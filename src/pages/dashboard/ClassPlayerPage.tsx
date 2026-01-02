@@ -1,0 +1,152 @@
+import { useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import ClassPlayer from "@/components/ClassPlayer";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { FileText, ArrowLeft, Calendar } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+const ClassPlayerPage = () => {
+  const { classId } = useParams();
+  const navigate = useNavigate();
+  const { profile } = useAuth();
+
+  const { data: classItem, isLoading } = useQuery({
+    queryKey: ["class", classId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("classes")
+        .select("*, course:courses(name, id)")
+        .eq("id", classId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: hasAccess, isLoading: accessLoading } = useQuery({
+    queryKey: ["check-class-access", classItem?.course_id, profile?.id],
+    queryFn: async () => {
+      if (!classItem?.course_id || !profile?.id) return false;
+
+      // Check for valid enrollment
+      const { data } = await supabase
+        .from("enrollments")
+        .select("id")
+        .eq("course_id", classItem.course_id)
+        .eq("profile_id", profile.id)
+        .maybeSingle();
+
+      return !!data;
+    },
+    enabled: !!classItem?.course_id && !!profile?.id
+  });
+
+  useEffect(() => {
+    if (classItem?.title) {
+      document.title = `${classItem.title} – Beshi Joss LMS`;
+    }
+  }, [classItem]);
+
+  if (isLoading || accessLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading class...</div>;
+  }
+
+  if (!classItem) {
+    return (
+      <div className="p-8 text-center space-y-4">
+        <h2 className="text-xl font-bold">Class not found</h2>
+        <Button onClick={() => navigate(-1)}>Go Back</Button>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
+     return (
+        <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
+            <div className="p-6 border rounded-lg bg-destructive/5 text-destructive">
+                <h2 className="text-xl font-bold mb-2">Access Denied</h2>
+                <p>You are not enrolled in <strong>{classItem.course?.name}</strong>.</p>
+                <p className="text-sm mt-2">Please purchase the course to access this content.</p>
+            </div>
+            <Button onClick={() => navigate(`/courses/${classItem.course_id}`)}>
+                View Course Details
+            </Button>
+        </div>
+     );
+  }
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate(-1)}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Classes
+      </Button>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="relative aspect-video w-full bg-black rounded-lg overflow-hidden shadow-lg border border-border/50 group">
+            {classItem.video_url ? (
+              <ClassPlayer
+                videoId={classItem.video_url}
+                title={classItem.title}
+                watermarkText={profile ? `${profile.full_name} (${profile.registration_id})` : undefined}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center text-muted-foreground">
+                Video not available yet.
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h1 className="text-2xl font-bold font-kalpurush leading-tight">{classItem.title}</h1>
+            <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
+                <span className="font-semibold text-primary">{classItem.course?.name}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {classItem.start_at && new Date(classItem.start_at).toLocaleString()}
+                </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+            {classItem.topic && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Topic Details</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap font-kalpurush">
+                            {classItem.topic}
+                        </p>
+                    </CardContent>
+                </Card>
+            )}
+
+            {classItem.notes_url && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Class Materials</CardTitle>
+                        <CardDescription>Download attached resources</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button variant="outline" className="w-full justify-start" asChild>
+                            <a href={classItem.notes_url} target="_blank" rel="noopener noreferrer">
+                                <FileText className="mr-2 h-4 w-4" />
+                                Lecture Notes (PDF)
+                            </a>
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ClassPlayerPage;

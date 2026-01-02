@@ -1,0 +1,450 @@
+import { Outlet, Link } from "react-router-dom";
+import {
+  ArrowLeft, Menu, Moon, Sun, Megaphone,
+  LayoutDashboard, Video, PenTool, BookOpen,
+  History, StickyNote, Files, Calendar,
+  User, BarChart, Bell, HelpCircle,
+  Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert
+} from "lucide-react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNotification } from "@/contexts/NotificationContext";
+import { useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import FloatingStudyTools from "@/components/study/FloatingStudyTools";
+import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
+
+export const DashboardLayout = () => {
+  const { profile, signOut, isAdmin } = useAuth();
+  const { sendNotification, permission, requestPermission } = useNotification();
+  const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
+  const { data: enrollments } = useEnrollments();
+  const [hasPendingPayments, setHasPendingPayments] = useState(false);
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
+  const [isDevMode, setIsDevMode] = useState(() => localStorage.getItem("dev_mode") === "true");
+
+  useEffect(() => {
+    localStorage.setItem("admin_sound_muted", String(isMuted));
+  }, [isMuted]);
+
+  useEffect(() => {
+    localStorage.setItem("dev_mode", String(isDevMode));
+    if (isDevMode) {
+      // Reload to apply changes (disable anti-cheat) if turning ON
+      // Actually, we need to reload to disable the running anti-cheat hooks or just let the user reload.
+      // But toggling it OFF -> ON (enabling dev mode) requires reload to stop existing intervals?
+      // No, existing intervals are set on mount.
+      // Easiest is to force reload if user toggles.
+    }
+  }, [isDevMode]);
+
+  // Polling for admin notifications
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    const checkAdminNotifications = async () => {
+      const { data, error } = await supabase.rpc('get_pending_payment_count');
+      if (error) {
+        console.error("Error fetching payment requests count:", error);
+        setHasPendingPayments(false);
+        return;
+      }
+      const pending = data > 0;
+      setHasPendingPayments(pending);
+
+      const audioEl = document.getElementById("notification-sound-loop") as HTMLAudioElement;
+      if (pending && !isMuted) {
+        if (audioEl && audioEl.paused) {
+          audioEl.play().catch(e => console.log("Audio play prevented:", e));
+        }
+      } else {
+        if (audioEl && !audioEl.paused) {
+          audioEl.pause();
+          audioEl.currentTime = 0;
+        }
+      }
+    };
+
+    const adminInterval = setInterval(checkAdminNotifications, 60000); // Reduced to 60s
+    checkAdminNotifications();
+    return () => clearInterval(adminInterval);
+  }, [isAdmin, isMuted]);
+
+  // Polling for reminders and announcements
+  useEffect(() => {
+    // Only poll if user is logged in
+    if (!profile) return;
+
+    // Ask for permission if not granted yet (optional, maybe better on a button click)
+    if (permission === 'default') {
+       // requestPermission(); // Uncomment to auto-request
+    }
+
+    const checkReminders = async () => {
+        if (!enrollments || enrollments.length === 0) return;
+        const enrolledCourseIds = enrollments.map(e => e.course_id);
+        const now = new Date();
+        const fifteenMinsLater = new Date(now.getTime() + 15 * 60000);
+
+        // Check Classes
+        const { data: upcomingClasses } = await supabase
+            .from("classes")
+            .select("title, start_at")
+            .in("course_id", enrolledCourseIds)
+            .gt("start_at", now.toISOString())
+            .lt("start_at", fifteenMinsLater.toISOString());
+
+        upcomingClasses?.forEach(cls => {
+            const clsKey = `notified-class-${cls.title}-${cls.start_at}`;
+            if (!localStorage.getItem(clsKey)) {
+                sendNotification("Upcoming Class", { body: `${cls.title} starts in less than 15 minutes!` });
+                localStorage.setItem(clsKey, "true");
+            }
+        });
+
+        // Check Exams
+        const { data: upcomingExams } = await supabase
+            .from("exams")
+            .select("title, time_window_start")
+            .in("course_id", enrolledCourseIds)
+            .gt("time_window_start", now.toISOString())
+            .lt("time_window_start", fifteenMinsLater.toISOString());
+
+        upcomingExams?.forEach(exam => {
+            const examKey = `notified-exam-${exam.title}-${exam.time_window_start}`;
+            if (!localStorage.getItem(examKey)) {
+                sendNotification("Upcoming Exam", { body: `${exam.title} starts in less than 15 minutes!` });
+                localStorage.setItem(examKey, "true");
+            }
+        });
+
+        // Check Personal Notifications (Unread) - User Notifications Table (System events)
+        const { data: unreadUserNotifs } = await supabase
+            .from("user_notifications")
+            .select("title, body, type")
+            .eq("user_id", profile.id)
+            .eq("is_read", false);
+
+        // Check Personal Announcements (Legacy/Direct messages)
+        const { data: unreadDirectNotes } = await supabase
+            .from("announcements")
+            .select("title, body, type")
+            .eq("recipient_profile_id", profile.id)
+            .is('read_at', null);
+
+        // Sound Logic for Payment Notifications
+        // Monitor both tables for critical types
+        const criticalTypes = [
+          'payment_approved',
+          'payment_rejected',
+          'course_request_declined',
+          'course_request_approved'
+        ];
+
+        const hasCriticalUserNotif = unreadUserNotifs?.some(n => criticalTypes.includes(n.type));
+        const hasCriticalDirectNote = unreadDirectNotes?.some(n => criticalTypes.includes(n.type));
+        const hasCriticalNotification = hasCriticalUserNotif || hasCriticalDirectNote;
+
+        const audioEl = document.getElementById("notification-sound-loop") as HTMLAudioElement;
+
+        if (hasCriticalNotification) {
+            if (audioEl && audioEl.paused) {
+                audioEl.play().catch(e => console.log("Audio play prevented:", e));
+            }
+            sendNotification("New Notification", { body: "You have important updates regarding your enrollment." });
+        } else {
+            if (audioEl && !audioEl.paused) {
+                audioEl.pause();
+                audioEl.currentTime = 0;
+            }
+        }
+
+        // Check Announcements (General)
+        const { count, error } = await supabase
+            .from("announcements")
+            .select("*", { count: 'exact', head: true })
+            .in("course_id", enrolledCourseIds.concat([null]));
+
+        const lastViewed = localStorage.getItem("last_viewed_announcements");
+        let hasNewAnnouncements = false;
+
+        if (lastViewed) {
+             const { data: newAnnouncements } = await supabase
+                .from("announcements")
+                .select("title")
+                .gt("created_at", lastViewed)
+                .in("course_id", enrolledCourseIds);
+
+             if (newAnnouncements && newAnnouncements.length > 0) hasNewAnnouncements = true;
+        } else {
+             hasNewAnnouncements = true;
+        }
+
+        const hasUnread = (unreadUserNotifs && unreadUserNotifs.length > 0) || (unreadDirectNotes && unreadDirectNotes.length > 0);
+
+        if (hasNewAnnouncements || hasUnread) {
+             document.getElementById("mobile-announcement-dot")?.classList.remove("hidden");
+             document.getElementById("desktop-announcement-dot")?.classList.remove("hidden");
+        } else {
+             document.getElementById("mobile-announcement-dot")?.classList.add("hidden");
+             document.getElementById("desktop-announcement-dot")?.classList.add("hidden");
+        }
+    };
+
+    checkReminders(); // Run immediately
+  }, [profile, enrollments, sendNotification, permission, isAdmin]);
+  
+  return (
+    <StudyToolsProvider>
+    <SidebarProvider>
+      <div className="min-h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
+        <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-4 supports-[backdrop-filter]:bg-background/60 print:hidden">
+          <SidebarTrigger className="mr-3 hidden sm:inline-flex" />
+          <div className="flex flex-1 items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 sm:hidden"
+                aria-label="Go back"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 hidden sm:inline-flex"
+                aria-label="Go back"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground hidden xs:block">Beshi Joss LMS</p>
+                <h1 className="text-sm font-semibold">Student &amp; Admin Dashboard</h1>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="hidden sm:inline-flex"
+                    aria-label={isDevMode ? "Disable Dev Mode" : "Enable Dev Mode"}
+                    onClick={async () => {
+                        const newVal = !isDevMode;
+                        setIsDevMode(newVal);
+                        localStorage.setItem("dev_mode", String(newVal));
+
+                        // Update Global Setting in Database
+                        await supabase.rpc('toggle_anti_cheat', { p_enabled: !newVal }); // Logic inverted: if devMode ON, anti-cheat OFF.
+
+                        window.location.reload();
+                    }}
+                    title={isDevMode ? "Disable Developer Mode (Enable Anti-Cheat Global)" : "Enable Developer Mode (Disable Anti-Cheat Global)"}
+                  >
+                    <ShieldAlert className={`h-4 w-4 ${isDevMode ? 'text-red-500' : 'text-muted-foreground'}`} />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="hidden sm:inline-flex"
+                    aria-label={isMuted ? "Unmute notifications" : "Mute notifications"}
+                    onClick={() => setIsMuted(!isMuted)}
+                  >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                  </Button>
+                </>
+              )}
+              {/* Desktop theme toggle */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="hidden sm:inline-flex"
+                aria-label="Toggle theme"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              >
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
+
+              {profile && (
+                <span className="hidden text-xs text-muted-foreground sm:inline-flex">
+                  Reg ID: {profile.registration_id}
+                </span>
+              )}
+
+              <Button variant="outline" size="sm" onClick={() => signOut()} className="hidden sm:inline-flex">
+                Logout
+              </Button>
+
+              {/* Announcements Icon (Mobile) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="sm:hidden relative"
+                onClick={() => navigate("/dashboard/announcements")}
+              >
+                <Megaphone className="h-5 w-5" />
+                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 hidden" id="mobile-announcement-dot" />
+              </Button>
+
+              {/* Notification Audio Element */}
+              <audio id="notification-sound-loop" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" loop className="hidden" />
+
+              {/* Mobile hamburger */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Open menu"
+                    className="sm:hidden"
+                  >
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="flex flex-col gap-4 w-[280px] overflow-y-auto">
+                  <SheetHeader className="text-left">
+                    <SheetTitle>Menu</SheetTitle>
+                    <SheetDescription className="text-xs text-muted-foreground">
+                      {profile ? `Reg ID: ${profile.registration_id}` : 'Beshi Joss LMS'}
+                    </SheetDescription>
+                  </SheetHeader>
+                  <nav className="flex flex-col gap-1 text-sm">
+                    <Link to="/dashboard" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <LayoutDashboard className="h-4 w-4" />
+                        Dashboard
+                    </Link>
+                    <div className="my-1 border-t border-border/50"></div>
+
+                    <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
+                    <Link to="/dashboard/profile" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <User className="h-4 w-4" /> Profile
+                    </Link>
+                    <Link to="/dashboard/live-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Video className="h-4 w-4" /> Live Class
+                    </Link>
+                    <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <PenTool className="h-4 w-4" /> Live Exam
+                    </Link>
+                    <Link to="/dashboard/past-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <History className="h-4 w-4" /> Past Class
+                    </Link>
+                    <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <BookOpen className="h-4 w-4" /> Past Exams
+                    </Link>
+                    <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Trophy className="h-4 w-4" /> Results
+                    </Link>
+                    <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Calendar className="h-4 w-4" /> Routine
+                    </Link>
+                    <Link to="/dashboard/class-notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <StickyNote className="h-4 w-4" /> Class Notes
+                    </Link>
+                    <Link to="/dashboard/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Megaphone className="h-4 w-4" /> Announcements
+                    </Link>
+                    <Link to="/dashboard/bookmarks" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Bookmark className="h-4 w-4" /> Bookmarks
+                    </Link>
+                    <Link to="/dashboard/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Files className="h-4 w-4" /> Resources
+                    </Link>
+                    <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Settings className="h-4 w-4" /> Study Tools
+                    </Link>
+                    <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <BarChart className="h-4 w-4" /> Exam Analytics
+                    </Link>
+                    <Link to="/dashboard/reminders" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Bell className="h-4 w-4" /> Reminders
+                    </Link>
+                    <Link to="/dashboard/help" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <HelpCircle className="h-4 w-4" /> Help & FAQ
+                    </Link>
+
+                    {isAdmin && (
+                      <>
+                        <div className="my-1 border-t border-border/50"></div>
+                        <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Admin</p>
+                        <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Settings className="h-4 w-4" /> Courses
+                        </Link>
+                        <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Users className="h-4 w-4" /> Students
+                        </Link>
+                        <Link to="/dashboard/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Video className="h-4 w-4" /> Classes
+                        </Link>
+                        <Link to="/dashboard/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <PenTool className="h-4 w-4" /> Exams
+                        </Link>
+                        <Link to="/dashboard/admin/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Library className="h-4 w-4" /> Resources
+                        </Link>
+                        <Link to="/dashboard/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <StickyNote className="h-4 w-4" /> Notes Manager
+                        </Link>
+                        <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Megaphone className="h-4 w-4" /> Announcements
+                        </Link>
+                        <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <CreditCard className="h-4 w-4" /> Payments
+                        </Link>
+                      </>
+                    )}
+
+                    <div className="my-1 border-t border-border/50"></div>
+                    <Link to="/" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <ArrowLeft className="h-4 w-4" /> Back to Home
+                    </Link>
+                  </nav>
+
+                  <div className="mt-auto flex flex-col gap-4">
+                    <div className="flex items-center justify-between gap-2 px-2">
+                      <span className="text-sm">Theme</span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        aria-label="Toggle theme"
+                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                      >
+                        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <Button variant="destructive" size="sm" onClick={() => signOut()} className="w-full">
+                      Logout
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          </div>
+        </header>
+
+        <div className="flex flex-1 w-full overflow-hidden pt-[1px] print:overflow-visible print:h-auto print:block">
+          <div className="print:hidden">
+            <AppSidebar hasPendingPayments={hasPendingPayments} />
+          </div>
+          <main className="flex-1 bg-background px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto w-full print:overflow-visible print:h-auto print:w-full print:px-0 print:py-0">
+            <Outlet />
+          </main>
+        </div>
+        <FloatingStudyTools />
+      </div>
+    </SidebarProvider>
+    </StudyToolsProvider>
+  );
+};
+
+export default DashboardLayout;

@@ -1,0 +1,278 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import PublicHeader from "@/components/PublicHeader";
+import { Eye, EyeOff } from "lucide-react";
+
+const Register = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isSecondTimer, setIsSecondTimer] = useState(false);
+
+  useEffect(() => {
+    document.title = "Register – Beshi Joss LMS";
+  }, []);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setLoading(true);
+
+    const formData = new FormData(event.currentTarget);
+    const fullName = formData.get("fullName") as string;
+    const fatherName = formData.get("fatherName") as string;
+    const motherName = formData.get("motherName") as string;
+    const registrationId = formData.get("registrationId") as string;
+    const phone = formData.get("phone") as string;
+    const emailInput = formData.get("email") as string;
+    const hscBatch = formData.get("hscBatch") as string;
+    const collegeName = formData.get("collegeName") as string;
+    const sscGpa = formData.get("sscGpa") as string;
+    const hscGpa = formData.get("hscGpa") as string;
+    const password = formData.get("password") as string;
+    const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Registration failed",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Determine the email to use
+      let email = emailInput;
+      if (!email) {
+        email = `${registrationId}@beshijoss.com`;
+      }
+
+      // 1. Create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: fullName,
+            registration_id: registrationId,
+            father_name: fatherName,
+            mother_name: motherName,
+            hsc_batch: hscBatch,
+            college_name: collegeName,
+            ssc_gpa: sscGpa,
+            hsc_gpa: hscGpa,
+            phone: phone,
+            is_second_timer: isSecondTimer
+          }
+        }
+      });
+
+      if (authError) {
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error("No user returned from sign up");
+      }
+
+      // 3. Attempt to insert into profiles if we have a session.
+      // If we don't have a session (email confirmation on), we skip this.
+      // If a trigger exists or if AuthContext handles it, this might duplicate or fail, so we ignore errors.
+      if (authData.session) {
+        const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: authData.user.id,
+          registration_id: registrationId,
+          full_name: fullName,
+          father_name: fatherName,
+          mother_name: motherName,
+          phone: phone,
+          hsc_batch: hscBatch,
+          college_name: collegeName,
+          ssc_gpa: parseFloat(sscGpa) || 0,
+          hsc_gpa: parseFloat(hscGpa) || 0,
+          is_second_timer: isSecondTimer,
+          extra_time_multiplier: 1,
+        });
+
+        if (profileError) {
+          console.warn("Profile creation during register failed (will be handled by AuthContext or trigger):", profileError);
+        }
+      }
+
+      let description = "You can now login with your credentials.";
+      if (!authData.session) {
+        description = "Account created! Please check your email for verification. If you used a Registration ID, ask an admin to confirm your account.";
+      }
+
+      toast({
+        title: "Registration successful",
+        description: description,
+      });
+
+      // Redirect to login after short delay
+      setTimeout(() => {
+        navigate("/login");
+      }, 2000);
+
+    } catch (error: any) {
+      console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <PublicHeader />
+      <main className="flex min-h-[calc(100vh-56px)] items-center justify-center px-4 py-10">
+        <Card className="w-full max-w-xl border-[3px] border-foreground">
+          <CardHeader className="space-y-2 pb-4">
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
+            <CardTitle className="text-xl font-semibold">Create an Account</CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              Register a new student or admin account.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Own Name</Label>
+                  <Input id="fullName" name="fullName" required placeholder="Your full name" />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="registrationId">Registration ID / Username</Label>
+                  <Input id="registrationId" name="registrationId" required autoComplete="off" placeholder="e.g. 1001 or user123" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fatherName">Father's Name</Label>
+                  <Input id="fatherName" name="fatherName" required placeholder="Father's name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="motherName">Mother's Name</Label>
+                  <Input id="motherName" name="motherName" required placeholder="Mother's name" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="collegeName">College Name</Label>
+                  <Input id="collegeName" name="collegeName" required placeholder="Your college" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hscBatch">HSC Batch</Label>
+                  <Input id="hscBatch" name="hscBatch" required placeholder="e.g. 2024" />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
+                </div>
+                 <div className="space-y-2">
+                  <Label htmlFor="email">Email (Optional)</Label>
+                  <Input id="email" name="email" type="email" placeholder="e.g. user@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sscGpa">SSC GPA (Out of 5)</Label>
+                  <Input id="sscGpa" name="sscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="hscGpa">HSC GPA (Out of 5)</Label>
+                  <Input id="hscGpa" name="hscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 py-2">
+                  <Checkbox
+                    id="isSecondTimer"
+                    checked={isSecondTimer}
+                    onCheckedChange={(checked) => setIsSecondTimer(checked as boolean)}
+                  />
+                  <Label htmlFor="isSecondTimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    I am a Second Timer Student
+                  </Label>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      name="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="sr-only">Toggle password visibility</span>
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      required
+                      className="pr-10"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                      <span className="sr-only">Toggle password visibility</span>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <Button type="submit" className="mt-4 w-full" disabled={loading}>
+                {loading ? "Creating Account..." : "Register"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  );
+};
+
+export default Register;
