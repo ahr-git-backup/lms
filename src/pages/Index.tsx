@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import useEmblaCarousel from "embla-carousel-react";
 import { ArrowRight, Flame, Infinity as InfinityIcon, Star, User } from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 
@@ -87,10 +88,21 @@ const Index = () => {
       title: "Elevate Your Learning with Beshi Joss LMS.",
       subtitle: "The all-in-one powerhouse for live classes, instant results, and seamless course management. Join the elite community of learners today.",
       cta_text: "Enter Classroom",
-      cta_link: "/login"
+      cta_link: "/login",
+      image_url: null
   };
 
-  const activeHero = heroes && heroes.length > 0 ? heroes[0] : defaultHero;
+  const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+
+  useEffect(() => {
+    if (emblaApi) {
+      const autoplay = setInterval(() => {
+        emblaApi.scrollNext();
+      }, 5000);
+      return () => clearInterval(autoplay);
+    }
+  }, [emblaApi]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -98,90 +110,50 @@ const Index = () => {
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
         {/* Hero Section */}
-        <section className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center">
-          <div className="space-y-6">
-            <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
-                <Flame className="h-3 w-3" />
-              </span>
-              Beshi Joss LMS
-            </p>
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              {activeHero.title}
-            </h1>
-            <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-              {activeHero.subtitle}
-            </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Button asChild size="lg">
-                <a href={activeHero.cta_link || "/login"} className="flex items-center gap-2">
-                  {activeHero.cta_text || "Get Started"}
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <a href="#courses">Explore Courses</a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative space-y-4 rounded-[25px] border-[3px] border-border bg-card p-6">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                  Student Activity
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Real-time engagement snapshot across all Beshi Joss batches.
-                </p>
-              </div>
-              <InfinityIcon className="h-5 w-5 text-primary" />
-            </div>
-
-            <div className="relative mt-4 h-40 w-full rounded-[1.2rem] bg-gradient-to-b from-background/60 to-primary/20 p-3">
-              <div
-                className="absolute z-10 pointer-events-none flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-                style={{
-                  left: "50%",
-                  top: "calc(100% - 10% - 20px)", // Position based on value (10% from bottom) minus offset
-                }}
-              >
-                <div className="flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm border border-primary/20 shadow-lg">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                  Live Now: 50k+ Students
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex">
+            {displayHeroes.map((hero: any, index: number) => (
+              <section key={hero.id || index} className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center min-w-0 flex-[0_0_100%] pl-4">
+                <div className="space-y-6">
+                  <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
+                      <Flame className="h-3 w-3" />
+                    </span>
+                    Beshi Joss LMS
+                  </p>
+                  <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
+                    {hero.title}
+                  </h1>
+                  <p className="max-w-xl text-base text-muted-foreground md:text-lg">
+                    {hero.subtitle}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Button asChild size="lg">
+                      <a href={hero.cta_link || "/login"} className="flex items-center gap-2">
+                        {hero.cta_text || "Get Started"}
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="lg">
+                      <a href="#courses">Explore Courses</a>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={liveActivityData}>
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      borderRadius: "0.75rem",
-                      border: "1px solid hsl(var(--border))",
-                      fontSize: "11px",
-                    }}
-                    labelFormatter={(label) => `Time: ${label}`}
-                    formatter={(value: any) => [
-                      `${Number(value).toLocaleString("en-BD")} students`,
-                      "Active",
-                    ]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={false}
-                    style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary)))" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+
+                {/* Hero Image / 16:9 Ratio */}
+                <div className="relative aspect-video w-full overflow-hidden rounded-[25px] border-[3px] border-border bg-muted shadow-sm">
+                   {hero.image_url ? (
+                     <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
+                   ) : (
+                     <div className="flex h-full w-full items-center justify-center bg-secondary/50 text-muted-foreground">
+                        <Flame className="h-16 w-16 opacity-20" />
+                     </div>
+                   )}
+                </div>
+              </section>
+            ))}
           </div>
-        </section>
+        </div>
 
         {/* Free Service/Courses Section */}
         <section className="space-y-6">

@@ -54,11 +54,8 @@ const Register = () => {
     }
 
     try {
-      // Determine the email to use
-      let email = emailInput;
-      if (!email) {
-        email = `${registrationId}@beshijoss.com`;
-      }
+      // Determine the email to use (Phone number based auth for free tier)
+      const email = `${phone}@beshijoss.com`;
 
       // 1. Create the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({

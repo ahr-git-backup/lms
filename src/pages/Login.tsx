@@ -81,14 +81,14 @@ const Login = () => {
                 <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
                 <CardTitle className="text-xl font-semibold">Student &amp; Admin Login</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                Enter your Registration ID (or Email) and password to login.
+                Enter your Phone Number and password to login.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                    <Label htmlFor="registrationId">Registration ID or Email</Label>
-                    <Input id="registrationId" name="registrationId" required autoComplete="off" />
+                    <Label htmlFor="registrationId">Phone Number</Label>
+                    <Input id="registrationId" name="registrationId" type="tel" required autoComplete="off" placeholder="01XXXXXXXXX" />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
