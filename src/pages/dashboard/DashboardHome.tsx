@@ -6,7 +6,6 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import StudyStreak from "@/components/StudyStreak";
 
 const DashboardHome = () => {
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
@@ -189,11 +188,6 @@ const DashboardHome = () => {
       )}
 
       <div className="grid gap-4 md:grid-cols-4">
-        {/* Streak Card */}
-        <div className="md:col-span-1">
-            <StudyStreak />
-        </div>
-
         {/* Live Class Card */}
         <Card className="border border-foreground/60 shadow-sm flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
