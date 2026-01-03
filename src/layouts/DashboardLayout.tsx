@@ -4,7 +4,8 @@ import {
   LayoutDashboard, Video, PenTool, BookOpen,
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
-  Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert
+  Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert,
+  Tag, LayoutTemplate
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
