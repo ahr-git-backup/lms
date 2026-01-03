@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { CalendarClock, FileText, ListChecks, Radio } from "lucide-react";
+import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -97,27 +97,22 @@ const DashboardHome = () => {
     enabled: enrolledCourseIds.length > 0,
   });
 
-  const { data: recentResource } = useQuery({
-    queryKey: ["dashboard-recent-resource", enrolledCourseIds],
-    queryFn: async () => {
-      if (enrolledCourseIds.length === 0) return null;
-      const { data, error } = await supabase
-        .from("resources")
-        .select("*, course:courses(name)")
-        .in("course_id", enrolledCourseIds)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== "PGRST116") console.error(error);
-      return data;
-    },
-    enabled: enrolledCourseIds.length > 0,
-  });
-
   if (enrollmentsLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading dashboard...</div>;
   }
+
+  const hasLiveActivity = activeLiveClasses?.length > 0 || activeLiveExams?.length > 0;
+
+  const navigationItems = [
+      { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
+      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
+      { title: "Past Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
+      { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
+      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "Class Notes", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
+      { title: "Resources", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
+      { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
+  ];
 
   return (
     <div className="space-y-6">
@@ -128,9 +123,9 @@ const DashboardHome = () => {
         </p>
       </header>
 
-      {/* Active Live Sessions Section - PRIORITY ORDER */}
-      {(activeLiveClasses?.length > 0 || activeLiveExams?.length > 0) && (
-        <div className="space-y-4 pb-4">
+      {/* 1. Live Activity Section (Priority 1) */}
+      {hasLiveActivity ? (
+        <div className="space-y-4">
            <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
@@ -138,7 +133,7 @@ const DashboardHome = () => {
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {activeLiveClasses?.map((classItem) => (
                   <Card key={classItem.id} className="border transition-all border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/10 dark:bg-blue-900/10">
-                    <CardHeader className="space-y-1">
+                    <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
                               {classItem.course?.name || "Unknown Course"}
@@ -162,7 +157,7 @@ const DashboardHome = () => {
 
               {activeLiveExams?.map((exam) => (
                   <Card key={exam.id} className="border transition-all border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/10 dark:bg-blue-900/10">
-                    <CardHeader className="space-y-1">
+                    <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
                               {exam.course?.name || "Unknown Course"}
@@ -185,101 +180,109 @@ const DashboardHome = () => {
               ))}
            </div>
         </div>
+      ) : (
+        /* 2. Upcoming Activity Section (Shown if no live activity) */
+        <div className="space-y-4">
+           <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* Next Live Class Card */}
+                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Next Live Class</CardTitle>
+                            <CalendarClock className="h-4 w-4 text-primary" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col justify-between">
+                        {nextClass ? (
+                        <>
+                            <div className="mb-4 space-y-1">
+                                <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {nextClass.course?.name || "Unknown Course"}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                        {new Date(nextClass.start_at).toLocaleString([], {
+                                        weekday: 'short', hour: '2-digit', minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                            {nextClass.video_url && (
+                                <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
+                                    Join Class
+                                </Button>
+                            )}
+                        </>
+                        ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-6">
+                            <CalendarClock className="h-8 w-8 mb-2 opacity-20" />
+                            <p className="text-sm">No classes scheduled.</p>
+                        </div>
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Upcoming Exam Card */}
+                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Upcoming Exam</CardTitle>
+                            <ListChecks className="h-4 w-4 text-primary" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col justify-between">
+                        {nextExam ? (
+                        <>
+                            <div className="mb-4 space-y-1">
+                                <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {nextExam.course?.name || "Unknown Course"}
+                                </p>
+                                <div className="flex items-center gap-2 mt-2">
+                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                        {new Date(nextExam.time_window_start).toLocaleString([], {
+                                        weekday: 'short', hour: '2-digit', minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+                            </div>
+                            <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
+                                View Exams
+                            </Button>
+                        </>
+                        ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-6">
+                            <ListChecks className="h-8 w-8 mb-2 opacity-20" />
+                            <p className="text-sm">No exams scheduled.</p>
+                        </div>
+                        )}
+                    </CardContent>
+                </Card>
+           </div>
+        </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {/* Live Class Card */}
-        <Card className="border border-foreground/60 shadow-sm flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Next live class</CardTitle>
-            <CalendarClock className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-between">
-            {nextClass ? (
-              <>
-                <div className="mb-2">
-                  <p className="text-sm font-bold line-clamp-2">{nextClass.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {nextClass.course?.name || "Unknown Course"}
-                  </p>
-                  <p className="text-xs font-medium text-primary mt-1">
-                    {new Date(nextClass.start_at).toLocaleString([], {
-                      weekday: 'short', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                {nextClass.topic && (
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{nextClass.topic}</p>
-                )}
-                {nextClass.video_url && (
-                  <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
-                    Join Class
-                  </Button>
-                )}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">No upcoming classes scheduled.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Exam Card */}
-        <Card className="border border-foreground/60 shadow-sm flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming exam</CardTitle>
-            <ListChecks className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-between">
-            {nextExam ? (
-              <>
-                <div className="mb-2">
-                  <p className="text-sm font-bold line-clamp-2">{nextExam.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {nextExam.course?.name || "Unknown Course"}
-                  </p>
-                  <p className="text-xs font-medium text-primary mt-1">
-                    {new Date(nextExam.time_window_start).toLocaleString([], {
-                      weekday: 'short', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => navigate('/dashboard/live-exam')}>
-                  View Exams
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">No upcoming exams.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Resources Card */}
-        <Card className="border border-foreground/60 shadow-sm flex flex-col">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New notes / Resources</CardTitle>
-            <FileText className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col justify-between">
-            {recentResource ? (
-              <>
-                <div className="mb-2">
-                  <p className="text-sm font-bold line-clamp-2">{recentResource.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {recentResource.course?.name || "Unknown Course"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 capitalize">
-                    {recentResource.resource_type} • {new Date(recentResource.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-                <Button size="sm" variant="outline" className="w-full mt-2" onClick={() => window.open(recentResource.url, '_blank')}>
-                  Open Resource
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground py-4">No new resources.</p>
-            )}
-          </CardContent>
-        </Card>
+      {/* 3. Navigation Cards Section */}
+      <div className="space-y-4">
+           <h2 className="text-lg font-semibold tracking-tight">Quick Access</h2>
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {navigationItems.map((item, index) => (
+                   <Card
+                        key={index}
+                        className="group hover:shadow-md transition-all cursor-pointer border-muted-foreground/20 hover:border-primary/50"
+                        onClick={() => navigate(item.url)}
+                    >
+                       <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                           <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300`}>
+                               <item.icon className={`h-6 w-6 ${item.color}`} />
+                           </div>
+                           <p className="font-medium text-sm">{item.title}</p>
+                       </CardContent>
+                   </Card>
+               ))}
+           </div>
       </div>
 
     </div>

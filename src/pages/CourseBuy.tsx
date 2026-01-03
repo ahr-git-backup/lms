@@ -227,7 +227,7 @@ const CourseBuy = () => {
               {course?.name ? `Buy ${course.name}` : "Course not found"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {course?.price === 0 ? "This course is free for everyone." : "Complete the payment manually and submit the details below."}
+              {finalPrice === 0 ? "This course is free for you." : "Complete the payment manually and submit the details below."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 text-sm">
@@ -235,7 +235,7 @@ const CourseBuy = () => {
               <p className="text-sm text-destructive">Failed to load course. Please refresh and try again.</p>
             )}
 
-            {course?.price === 0 ? (
+            {finalPrice === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center animate-in fade-in zoom-in-95 duration-500">
                     <div className="p-4 bg-primary/10 rounded-full">
                         <Sparkles className="h-12 w-12 text-primary animate-pulse" />

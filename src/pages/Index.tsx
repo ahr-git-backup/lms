@@ -145,7 +145,7 @@ const Index = () => {
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
               <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
-                <a href={hero.cta_link || "#"} className="block relative w-full aspect-video md:aspect-[21/9] lg:aspect-[21/9] xl:aspect-[21/7] overflow-hidden bg-muted cursor-pointer hover:opacity-95 transition-opacity">
+                <a href={hero.cta_link || "#"} className="block relative w-full aspect-video md:h-[calc(100vh-6rem)] overflow-hidden bg-muted cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
                      <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
                    ) : (
