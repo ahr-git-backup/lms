@@ -60,7 +60,7 @@ export const PublicHeader = () => {
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Menu">
-                  <Menu className="h-5 w-5" />
+                  <Menu className="h-5 w-5 text-primary" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right">

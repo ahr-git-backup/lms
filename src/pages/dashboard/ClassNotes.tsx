@@ -13,6 +13,10 @@ import { useNavigate } from "react-router-dom";
 
 const ClassNotes = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [selectedChapter, setSelectedChapter] = useState<string>("all");
+  const [selectedTopic, setSelectedTopic] = useState<string>("all");
+
   const { data: enrollments } = useEnrollments();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -24,7 +28,7 @@ const ClassNotes = () => {
 
   // Fetch Notes & User Interactions
   const { data: notesData, isLoading } = useQuery({
-    queryKey: ["class-notes-enhanced", selectedCourse, user?.id],
+    queryKey: ["class-notes-enhanced", selectedCourse, selectedSubject, selectedChapter, selectedTopic, user?.id],
     queryFn: async () => {
         // 1. Fetch Notes
         let query = supabase
@@ -33,6 +37,15 @@ const ClassNotes = () => {
 
         if (selectedCourse !== "all") {
             query = query.eq("course_id", selectedCourse);
+        }
+        if (selectedSubject !== "all") {
+            query = query.eq("subject", selectedSubject);
+        }
+        if (selectedChapter !== "all") {
+            query = query.eq("chapter", selectedChapter);
+        }
+        if (selectedTopic !== "all") {
+            query = query.ilike("topic", `%${selectedTopic}%`); // Simple search for topic
         }
 
         const { data: notes, error: notesError } = await query;
@@ -102,22 +115,56 @@ const ClassNotes = () => {
         <p className="text-sm text-muted-foreground">Access and organize your study materials.</p>
       </header>
 
-      <div className="flex flex-col sm:flex-row items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap hidden sm:block">Course</div>
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-full sm:w-[250px] bg-background">
-                <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
-                {enrollments?.map((enrollment) => (
-                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                    {enrollment.course.name}
-                </SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
+      <div className="flex flex-col gap-4 bg-muted/30 p-4 rounded-lg border">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap hidden sm:block">Course</div>
+                <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                <SelectTrigger className="w-full sm:w-[200px] bg-background">
+                    <SelectValue placeholder="All Courses" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Courses</SelectItem>
+                    {enrollments?.map((enrollment) => (
+                    <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
+                        {enrollment.course.name}
+                    </SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap hidden sm:block">Subject</div>
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                <SelectTrigger className="w-full sm:w-[150px] bg-background">
+                    <SelectValue placeholder="All Subjects" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Subjects</SelectItem>
+                    {/* Ideally fetch unique subjects from DB or use constants */}
+                    {["Physics", "Chemistry", "Math", "Biology", "English", "Bangla", "ICT"].map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
+
+             <div className="flex items-center gap-2 w-full sm:w-auto">
+                <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap hidden sm:block">Chapter</div>
+                <Select value={selectedChapter} onValueChange={setSelectedChapter}>
+                <SelectTrigger className="w-full sm:w-[150px] bg-background">
+                    <SelectValue placeholder="All Chapters" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="all">All Chapters</SelectItem>
+                    {/* Ideally dynamically populated based on selected subject/course */}
+                    {Array.from(new Set(notesData?.map((n: any) => n.chapter).filter(Boolean))).map((c: any) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                </SelectContent>
+                </Select>
+            </div>
         </div>
       </div>
 

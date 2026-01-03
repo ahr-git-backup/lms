@@ -10,6 +10,7 @@ import { FileText, Link as LinkIcon, Video } from "lucide-react";
 
 const Resources = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
@@ -19,7 +20,7 @@ const Resources = () => {
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
 
   const { data: resources, isLoading } = useQuery({
-    queryKey: ["resources", selectedCourse, enrolledCourseIds],
+    queryKey: ["resources", selectedCourse, selectedSubject, enrolledCourseIds],
     queryFn: async () => {
       // Security: Always filter by enrolled courses to prevent data leaks
       if (enrolledCourseIds.length === 0) return [];
@@ -35,6 +36,10 @@ const Resources = () => {
         query = query.eq("course_id", selectedCourse);
       } else {
         query = query.in("course_id", enrolledCourseIds);
+      }
+
+      if (selectedSubject !== "all") {
+        query = query.eq("subject", selectedSubject);
       }
 
       const { data, error } = await query;
@@ -66,21 +71,38 @@ const Resources = () => {
         <p className="text-sm text-muted-foreground">Access additional learning materials and resources.</p>
       </header>
 
-      <div className="flex items-center gap-4">
-        <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Course filter</div>
-        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-          <SelectTrigger className="w-56">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Courses</SelectItem>
-            {enrollments?.map((enrollment) => (
-              <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                {enrollment.course.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex flex-col sm:flex-row items-center gap-4">
+        <div className="flex items-center gap-2">
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Course</div>
+            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+            <SelectTrigger className="w-full sm:w-56">
+                <SelectValue placeholder="All Courses" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Courses</SelectItem>
+                {enrollments?.map((enrollment) => (
+                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
+                    {enrollment.course.name}
+                </SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
+            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <SelectTrigger className="w-full sm:w-40">
+                <SelectValue placeholder="All Subjects" />
+            </SelectTrigger>
+            <SelectContent>
+                <SelectItem value="all">All Subjects</SelectItem>
+                {["Physics", "Chemistry", "Math", "Biology", "English", "Bangla", "ICT"].map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+            </SelectContent>
+            </Select>
+        </div>
       </div>
 
       {isLoading ? (
@@ -92,7 +114,7 @@ const Resources = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
             <Card key={resource.id} className="border border-foreground/50">
               <CardHeader className="space-y-1">

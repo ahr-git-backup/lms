@@ -161,75 +161,6 @@ const Index = () => {
 
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
-        {/* Unique Services Section */}
-        <section className="space-y-6">
-            <div className="text-center md:text-left">
-                <h2 className="text-2xl font-semibold tracking-tight">Unique Services</h2>
-                <p className="text-sm text-muted-foreground">Why choose Beshi Joss LMS?</p>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {FEATURES.map((feature, i) => (
-                    <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
-                        <CardContent className="flex flex-col items-center text-center p-4 gap-2">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                <feature.icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm">{feature.title}</h3>
-                                <p className="text-xs text-muted-foreground">{feature.desc}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-        </section>
-
-        {/* Free Service/Courses Section */}
-        <section className="space-y-6">
-            <div className="text-center md:text-left">
-                <h2 className="text-2xl font-semibold tracking-tight">Free Learning Resources</h2>
-                <p className="text-sm text-muted-foreground">Start learning today without any cost.</p>
-            </div>
-            <div className="grid gap-6 md:grid-cols-2">
-                <Card className="border-2 border-primary/20 bg-primary/5">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Flame className="h-5 w-5 text-primary" /> Free Exams
-                        </CardTitle>
-                        <CardDescription>
-                            Test your preparation with our subject-wise and topic-wise free exams.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm">Register for free and get instant access to practice exams. No course purchase required.</p>
-                    </CardContent>
-                    <CardFooter>
-                        <Button asChild variant="default" className="w-full">
-                            <a href="/login">Take Free Exam</a>
-                        </Button>
-                    </CardFooter>
-                </Card>
-                 <Card className="border-2 border-primary/20 bg-primary/5">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <InfinityIcon className="h-5 w-5 text-primary" /> Free Classes
-                        </CardTitle>
-                        <CardDescription>
-                            Watch demo classes and selected topic discussions for free.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-sm">Explore our teaching style and quality content before you decide to join.</p>
-                    </CardContent>
-                    <CardFooter>
-                         <Button asChild variant="outline" className="w-full">
-                            <a href="https://youtube.com" target="_blank" rel="noreferrer">Watch on YouTube</a>
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
-        </section>
-
         {/* Paid Courses Section (Grid View) */}
         <section id="courses" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
@@ -294,6 +225,75 @@ const Index = () => {
               })
             )}
           </div>
+        </section>
+
+        {/* Free Service/Courses Section */}
+        <section className="space-y-6">
+            <div className="text-center md:text-left">
+                <h2 className="text-2xl font-semibold tracking-tight">Free Learning Resources</h2>
+                <p className="text-sm text-muted-foreground">Start learning today without any cost.</p>
+            </div>
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card className="border-2 border-primary/20 bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Flame className="h-5 w-5 text-primary" /> Free Exams
+                        </CardTitle>
+                        <CardDescription>
+                            Test your preparation with our subject-wise and topic-wise free exams.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm">Register for free and get instant access to practice exams. No course purchase required.</p>
+                    </CardContent>
+                    <CardFooter>
+                        <Button asChild variant="default" className="w-full">
+                            <a href="/login">Take Free Exam</a>
+                        </Button>
+                    </CardFooter>
+                </Card>
+                 <Card className="border-2 border-primary/20 bg-primary/5">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <InfinityIcon className="h-5 w-5 text-primary" /> Free Classes
+                        </CardTitle>
+                        <CardDescription>
+                            Watch demo classes and selected topic discussions for free.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-sm">Explore our teaching style and quality content before you decide to join.</p>
+                    </CardContent>
+                    <CardFooter>
+                         <Button asChild variant="outline" className="w-full">
+                            <a href="https://youtube.com" target="_blank" rel="noreferrer">Watch on YouTube</a>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        </section>
+
+        {/* Unique Services Section */}
+        <section className="space-y-6">
+            <div className="text-center md:text-left">
+                <h2 className="text-2xl font-semibold tracking-tight">Unique Services</h2>
+                <p className="text-sm text-muted-foreground">Why choose Beshi Joss LMS?</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {FEATURES.map((feature, i) => (
+                    <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+                        <CardContent className="flex flex-col items-center text-center p-4 gap-2">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <feature.icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-sm">{feature.title}</h3>
+                                <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </section>
 
         {/* Success Stats Section */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,10 +36,28 @@ const AdminResources = () => {
     resource_type: "PDF",
     course_id: null,
   });
-  const [subjectFilter, setSubjectFilter] = useState<string>("all");
-  const [page, setPage] = useState(0);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const subjectFilter = searchParams.get("subject") || "all";
+  const page = parseInt(searchParams.get("page") || "0");
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const setPage = (newPage: number) => {
+      setSearchParams(prev => {
+          prev.set("page", newPage.toString());
+          return prev;
+      });
+  };
+
+  const setSubjectFilter = (subject: string) => {
+      setSearchParams(prev => {
+          prev.set("subject", subject);
+          prev.set("page", "0");
+          return prev;
+      });
+  };
 
   useEffect(() => {
     document.title = "Admin – Resources – Beshi Joss LMS";

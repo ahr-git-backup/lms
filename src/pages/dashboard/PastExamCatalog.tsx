@@ -163,7 +163,7 @@ const PastExamCatalog = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => (
             <Card key={exam.id} className="border border-foreground/50">
               <CardHeader className="space-y-1">
