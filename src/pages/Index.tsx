@@ -1,6 +1,22 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Flame, Infinity as InfinityIcon, Star, User } from "lucide-react";
+import useEmblaCarousel from "embla-carousel-react";
+import {
+  ArrowRight,
+  Flame,
+  Infinity as InfinityIcon,
+  Star,
+  User,
+  Check,
+  Monitor,
+  Users,
+  BookOpen,
+  Lightbulb,
+  FileText,
+  MessageCircle,
+  Smartphone,
+  BarChart
+} from "lucide-react";
 import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +31,23 @@ const liveActivityData = [
   { t: "50", value: 50000 },
   { t: "75", value: 100000 },
   { t: "∞", value: 500000 },
+];
+
+const FEATURES = [
+    { icon: Monitor, title: "Offline/Online Program", desc: "Seamless learning experience." },
+    { icon: Users, title: "Experienced Teachers", desc: "Learn from the best mentors." },
+    { icon: BookOpen, title: "Study Materials", desc: "Quality notes and resources." },
+    { icon: Lightbulb, title: "Concept Based Class", desc: "Build strong foundations." },
+    { icon: FileText, title: "Unique Exam System", desc: "Standard evaluation methods." },
+    { icon: MessageCircle, title: "24/7 Q&A Support", desc: "Instant doubt solving." },
+    { icon: Smartphone, title: "Auto SMS Results", desc: "Track progress instantly." },
+    { icon: BarChart, title: "Exam Analysis", desc: "Detailed performance reports." },
+];
+
+const STATS = [
+    { year: "2024", title: "Medical Admission", details: "20/20 in Top 20, 240 in DMC. Total 4805+ Success." },
+    { year: "2023", title: "Medical Admission", details: "50/50 in Top 50, 241 in DMC. Total 4750+ Success." },
+    { year: "2022", title: "Medical Admission", details: "18/20 in Top 20, 209 in DMC. Total 3546 Success." },
 ];
 
 const Index = () => {
@@ -84,13 +117,24 @@ const Index = () => {
 
   // Default hero content if no custom heroes are found
   const defaultHero = {
-      title: "Elevate Your Learning with Beshi Joss LMS.",
-      subtitle: "The all-in-one powerhouse for live classes, instant results, and seamless course management. Join the elite community of learners today.",
-      cta_text: "Enter Classroom",
-      cta_link: "/login"
+      title: "Welcome to Beshi Joss LMS",
+      subtitle: "Your gateway to excellence. Join us to master your subjects with the best resources and mentors. The all-in-one powerhouse for live classes, instant results, and seamless course management.",
+      cta_text: "Get Started",
+      cta_link: "/login",
+      image_url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1600&h=900"
   };
 
-  const activeHero = heroes && heroes.length > 0 ? heroes[0] : defaultHero;
+  const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+
+  useEffect(() => {
+    if (emblaApi) {
+      const autoplay = setInterval(() => {
+        emblaApi.scrollNext();
+      }, 5000);
+      return () => clearInterval(autoplay);
+    }
+  }, [emblaApi]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -98,89 +142,72 @@ const Index = () => {
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
         {/* Hero Section */}
-        <section className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center">
-          <div className="space-y-6">
-            <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
-              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
-                <Flame className="h-3 w-3" />
-              </span>
-              Beshi Joss LMS
-            </p>
-            <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-              {activeHero.title}
-            </h1>
-            <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-              {activeHero.subtitle}
-            </p>
-            <div className="flex flex-wrap items-center gap-4">
-              <Button asChild size="lg">
-                <a href={activeHero.cta_link || "/login"} className="flex items-center gap-2">
-                  {activeHero.cta_text || "Get Started"}
-                  <ArrowRight className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button asChild variant="outline" size="lg">
-                <a href="#courses">Explore Courses</a>
-              </Button>
-            </div>
-          </div>
-
-          <div className="relative space-y-4 rounded-[25px] border-[3px] border-border bg-card p-6">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.25em] text-muted-foreground">
-                  Student Activity
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Real-time engagement snapshot across all Beshi Joss batches.
-                </p>
-              </div>
-              <InfinityIcon className="h-5 w-5 text-primary" />
-            </div>
-
-            <div className="relative mt-4 h-40 w-full rounded-[1.2rem] bg-gradient-to-b from-background/60 to-primary/20 p-3">
-              <div
-                className="absolute z-10 pointer-events-none flex -translate-x-1/2 -translate-y-1/2 items-center justify-center"
-                style={{
-                  left: "50%",
-                  top: "calc(100% - 10% - 20px)", // Position based on value (10% from bottom) minus offset
-                }}
-              >
-                <div className="flex items-center gap-2 rounded-full bg-background/80 px-3 py-1.5 text-xs font-semibold text-primary backdrop-blur-sm border border-primary/20 shadow-lg">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                  Live Now: 50k+ Students
+        <div className="overflow-hidden" ref={emblaRef}>
+          <div className="flex">
+            {displayHeroes.map((hero: any, index: number) => (
+              <section key={hero.id || index} className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center min-w-0 flex-[0_0_100%] pl-4">
+                <div className="space-y-6">
+                  <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
+                      <Flame className="h-3 w-3" />
+                    </span>
+                    Beshi Joss LMS
+                  </p>
+                  <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
+                    {hero.title}
+                  </h1>
+                  <p className="max-w-xl text-base text-muted-foreground md:text-lg">
+                    {hero.subtitle}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Button asChild size="lg">
+                      <a href={hero.cta_link || "/login"} className="flex items-center gap-2">
+                        {hero.cta_text || "Get Started"}
+                        <ArrowRight className="h-4 w-4" />
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline" size="lg">
+                      <a href="#courses">Explore Courses</a>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={liveActivityData}>
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      borderRadius: "0.75rem",
-                      border: "1px solid hsl(var(--border))",
-                      fontSize: "11px",
-                    }}
-                    labelFormatter={(label) => `Time: ${label}`}
-                    formatter={(value: any) => [
-                      `${Number(value).toLocaleString("en-BD")} students`,
-                      "Active",
-                    ]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={3}
-                    dot={false}
-                    style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary)))" }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+
+                {/* Hero Image / 16:9 Ratio */}
+                <div className="relative aspect-video w-full overflow-hidden rounded-[25px] border-[3px] border-border bg-muted shadow-sm">
+                   {hero.image_url ? (
+                     <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
+                   ) : (
+                     <div className="flex h-full w-full items-center justify-center bg-secondary/50 text-muted-foreground">
+                        <Flame className="h-16 w-16 opacity-20" />
+                     </div>
+                   )}
+                </div>
+              </section>
+            ))}
           </div>
+        </div>
+
+        {/* Unique Services Section */}
+        <section className="space-y-6">
+            <div className="text-center md:text-left">
+                <h2 className="text-2xl font-semibold tracking-tight">Unique Services</h2>
+                <p className="text-sm text-muted-foreground">Why choose Beshi Joss LMS?</p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {FEATURES.map((feature, i) => (
+                    <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+                        <CardContent className="flex flex-col items-center text-center p-4 gap-2">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                <feature.icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <h3 className="font-semibold text-sm">{feature.title}</h3>
+                                <p className="text-xs text-muted-foreground">{feature.desc}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
         </section>
 
         {/* Free Service/Courses Section */}
@@ -229,18 +256,18 @@ const Index = () => {
             </div>
         </section>
 
-        {/* Paid Courses Section */}
+        {/* Paid Courses Section (List View) */}
         <section id="courses" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
             <div>
               <h2 className="text-2xl font-semibold tracking-tight">Available Courses</h2>
               <p className="text-sm text-muted-foreground">
-                Each course comes with live & recorded classes, exams, routines, notes and resources.
+                Premium programs designed for your success.
               </p>
             </div>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="space-y-4">
             {isLoading ? (
               <p className="text-sm text-muted-foreground">Loading courses...</p>
             ) : !courses || courses.length === 0 ? (
@@ -252,43 +279,70 @@ const Index = () => {
                 const idOrSlug = course.slug || course.id;
 
                 return (
-                  <Card key={course.id} className="flex flex-col justify-between border-[3px] border-foreground">
-                    {image && (
-                      <div className="border-b-[3px] border-foreground">
-                        <AspectRatio ratio={16 / 9}>
-                          <img
-                            src={image}
-                            alt={`${course.name} cover`}
-                            className="h-full w-full rounded-t-[22px] object-cover"
-                          />
-                        </AspectRatio>
-                      </div>
-                    )}
-                    <CardHeader className="space-y-2 p-2.5 pb-0">
-                      <CardTitle className="text-base font-semibold leading-snug">{course.name}</CardTitle>
-                      <CardDescription className="text-xs leading-relaxed">{description}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-1 flex-col justify-between gap-4 p-2.5 pt-2">
-                      <div className="text-sm font-mono">
-                        <span className="text-xs uppercase text-muted-foreground">Course fee</span>
-                        <div className="text-lg font-semibold">
-                          {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact for fee"}
+                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex flex-col md:flex-row">
+                        {/* Course Image */}
+                        <div className="w-full md:w-1/3 aspect-video md:aspect-auto relative">
+                             <img
+                                src={image}
+                                alt={`${course.name} cover`}
+                                className="h-full w-full object-cover"
+                              />
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button asChild className="flex-1">
-                          <a href={`/courses/${idOrSlug}`}>View Details</a>
-                        </Button>
-                        <Button asChild variant="outline" className="flex-1">
-                          <a href={`/courses/${idOrSlug}/buy`}>Buy Instructions</a>
-                        </Button>
-                      </div>
-                    </CardContent>
+                        {/* Content */}
+                        <div className="flex-1 p-6 flex flex-col justify-between gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold mb-2">{course.name}</h3>
+                                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{description}</p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Live Classes</div>
+                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Lecture Notes</div>
+                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Standard Exams</div>
+                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Solve Sheets</div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-4 mt-auto pt-4 border-t border-dashed">
+                                <div className="text-lg font-bold text-primary">
+                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact for fee"}
+                                </div>
+                                <div className="flex gap-3">
+                                    <Button asChild variant="outline" size="sm">
+                                        <a href={`/courses/${idOrSlug}`}>View Details</a>
+                                    </Button>
+                                    <Button asChild size="sm">
+                                        <a href={`/courses/${idOrSlug}/buy`}>Enroll Now</a>
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                   </Card>
                 );
               })
             )}
           </div>
+        </section>
+
+        {/* Success Stats Section */}
+        <section className="space-y-6">
+             <div className="text-center space-y-2">
+                <h2 className="text-2xl font-semibold tracking-tight">Our Success Stories</h2>
+                <p className="text-muted-foreground">Consistent results year after year.</p>
+             </div>
+             <div className="grid gap-4 md:grid-cols-3">
+                 {STATS.map((stat, i) => (
+                     <Card key={i} className="text-center bg-primary/5 border-primary/20">
+                         <CardHeader>
+                             <CardTitle className="text-4xl font-bold text-primary">{stat.year}</CardTitle>
+                             <CardDescription className="font-semibold uppercase tracking-wider">{stat.title}</CardDescription>
+                         </CardHeader>
+                         <CardContent>
+                             <p className="text-sm font-medium">{stat.details}</p>
+                         </CardContent>
+                     </Card>
+                 ))}
+             </div>
         </section>
 
         {/* Student Reviews */}

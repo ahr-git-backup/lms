@@ -19,6 +19,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
         gpaScore = (Number(profile.ssc_gpa) * 8) + (Number(profile.hsc_gpa) * 12);
     }
     const totalScoreWithGpa = Number(attempt.score) + gpaScore;
+    const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
 
     return (
     <Card className={`border ${isLive ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10' : 'border-foreground/50'}`}>
@@ -31,7 +32,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             </div>
             <CardTitle className="text-base">{attempt.exam.title}</CardTitle>
             <CardDescription className="text-xs">
-                <div>Exam Score: <span className="font-bold text-foreground">{attempt.score}</span></div>
+                <div>Exam Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="ml-1 text-muted-foreground">({percentage}%)</span>}</div>
                 {gpaScore > 0 && <div>Total (with GPA): <span className="font-bold text-primary">{totalScoreWithGpa.toFixed(2)}</span></div>}
                 <div>Taken on {attempt.submitted_at && new Date(attempt.submitted_at).toLocaleDateString()}</div>
             </CardDescription>

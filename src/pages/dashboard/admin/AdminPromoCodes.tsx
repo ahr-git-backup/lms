@@ -88,8 +88,8 @@ const AdminPromoCodes = () => {
         code: values.code,
         discount_amount: values.discount_amount,
         discount_type: values.discount_type,
-        course_id: values.course_id || null,
-        usage_limit: values.usage_limit ? Number(values.usage_limit) : null,
+        course_id: (values.course_id === "" || values.course_id === "all") ? null : values.course_id,
+        usage_limit: (values.usage_limit === "" || values.usage_limit === null || isNaN(Number(values.usage_limit))) ? null : Number(values.usage_limit),
         is_active: values.is_active,
       };
 

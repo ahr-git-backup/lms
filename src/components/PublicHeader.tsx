@@ -1,8 +1,15 @@
-import { ArrowLeft, Flame, Moon, Sun } from "lucide-react";
+import { Flame, Menu, Moon, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import InstallPWA from "@/components/InstallPWA";
 
 export const PublicHeader = () => {
@@ -24,6 +31,7 @@ export const PublicHeader = () => {
           </div>
         </div>
 
+        {/* Desktop Navigation */}
         <nav className="hidden items-center gap-4 text-xs font-medium sm:flex sm:text-sm">
           <a href="/" className="underline-offset-4 hover:underline">
             Home
@@ -46,14 +54,33 @@ export const PublicHeader = () => {
           >
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            aria-label="Go back"
-            onClick={() => navigate(-1)}
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
+
+          {/* Mobile Menu */}
+          <div className="sm:hidden">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" aria-label="Menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetHeader>
+                  <SheetTitle>Menu</SheetTitle>
+                </SheetHeader>
+                <nav className="flex flex-col gap-4 mt-6">
+                  <a href="/" className="text-lg font-medium hover:text-primary">
+                    Home
+                  </a>
+                  <a href="/#courses" className="text-lg font-medium hover:text-primary">
+                    Courses
+                  </a>
+                  <a href="/login" className="text-lg font-medium hover:text-primary">
+                    Student Login
+                  </a>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </header>
