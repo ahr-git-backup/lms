@@ -6,7 +6,6 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import StudyStreak from "@/components/StudyStreak";
 
 const DashboardHome = () => {
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
@@ -142,7 +141,7 @@ const DashboardHome = () => {
                     <CardHeader className="space-y-1">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {classItem.course.name}
+                              {classItem.course?.name || "Unknown Course"}
                           </p>
                           <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               LIVE CLASS
@@ -166,7 +165,7 @@ const DashboardHome = () => {
                     <CardHeader className="space-y-1">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {exam.course.name}
+                              {exam.course?.name || "Unknown Course"}
                           </p>
                           <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
                               LIVE EXAM
@@ -189,11 +188,6 @@ const DashboardHome = () => {
       )}
 
       <div className="grid gap-4 md:grid-cols-4">
-        {/* Streak Card */}
-        <div className="md:col-span-1">
-            <StudyStreak />
-        </div>
-
         {/* Live Class Card */}
         <Card className="border border-foreground/60 shadow-sm flex flex-col">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -206,7 +200,7 @@ const DashboardHome = () => {
                 <div className="mb-2">
                   <p className="text-sm font-bold line-clamp-2">{nextClass.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {nextClass.course?.name}
+                    {nextClass.course?.name || "Unknown Course"}
                   </p>
                   <p className="text-xs font-medium text-primary mt-1">
                     {new Date(nextClass.start_at).toLocaleString([], {
@@ -241,7 +235,7 @@ const DashboardHome = () => {
                 <div className="mb-2">
                   <p className="text-sm font-bold line-clamp-2">{nextExam.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {nextExam.course?.name}
+                    {nextExam.course?.name || "Unknown Course"}
                   </p>
                   <p className="text-xs font-medium text-primary mt-1">
                     {new Date(nextExam.time_window_start).toLocaleString([], {
@@ -271,7 +265,7 @@ const DashboardHome = () => {
                 <div className="mb-2">
                   <p className="text-sm font-bold line-clamp-2">{recentResource.title}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {recentResource.course?.name}
+                    {recentResource.course?.name || "Unknown Course"}
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 capitalize">
                     {recentResource.resource_type} • {new Date(recentResource.created_at).toLocaleDateString()}

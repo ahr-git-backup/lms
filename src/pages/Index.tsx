@@ -139,41 +139,13 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicHeader />
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
-        {/* Hero Section */}
-        <div className="overflow-hidden" ref={emblaRef}>
+      {/* Hero Section (Full Width) */}
+      <div className="overflow-hidden w-full" ref={emblaRef}>
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
-              <section key={hero.id || index} className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center min-w-0 flex-[0_0_100%] pl-4">
-                <div className="space-y-6">
-                  <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
-                      <Flame className="h-3 w-3" />
-                    </span>
-                    Beshi Joss LMS
-                  </p>
-                  <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-                    {hero.title}
-                  </h1>
-                  <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-                    {hero.subtitle}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Button asChild size="lg">
-                      <a href={hero.cta_link || "/login"} className="flex items-center gap-2">
-                        {hero.cta_text || "Get Started"}
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button asChild variant="outline" size="lg">
-                      <a href="#courses">Explore Courses</a>
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Hero Image / 16:9 Ratio */}
-                <div className="relative aspect-video w-full overflow-hidden rounded-[25px] border-[3px] border-border bg-muted shadow-sm">
+              <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
+                <a href={hero.cta_link || "#"} className="block relative w-full aspect-video md:aspect-[21/9] lg:aspect-[21/9] xl:aspect-[21/7] overflow-hidden bg-muted cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
                      <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
                    ) : (
@@ -181,11 +153,13 @@ const Index = () => {
                         <Flame className="h-16 w-16 opacity-20" />
                      </div>
                    )}
-                </div>
+                </a>
               </section>
             ))}
           </div>
-        </div>
+      </div>
+
+      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
         {/* Unique Services Section */}
         <section className="space-y-6">
@@ -380,12 +354,12 @@ const Index = () => {
                    {mentors && mentors.length > 0 ? (
                        mentors.map((mentor: any) => (
                            <div key={mentor.id} className="flex flex-col items-center text-center space-y-3">
-                               <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-primary">
+                               <div className="h-40 w-40 rounded-full overflow-hidden border-2 border-primary shadow-lg hover:shadow-xl transition-shadow">
                                    {mentor.image_url ? (
                                        <img src={mentor.image_url} alt={mentor.name} className="h-full w-full object-cover" />
                                    ) : (
                                        <div className="h-full w-full bg-secondary flex items-center justify-center">
-                                           <User className="h-10 w-10 text-muted-foreground" />
+                                           <User className="h-16 w-16 text-muted-foreground" />
                                        </div>
                                    )}
                                </div>
