@@ -165,6 +165,15 @@ const ClassNotes = () => {
                 </SelectContent>
                 </Select>
             </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                <Input
+                    placeholder="Search by topic..."
+                    value={selectedTopic === "all" ? "" : selectedTopic}
+                    onChange={(e) => setSelectedTopic(e.target.value || "all")}
+                    className="bg-background w-full"
+                />
+            </div>
         </div>
       </div>
 

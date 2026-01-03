@@ -348,7 +348,7 @@ const AdminStudents = () => {
                      <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(p => Math.max(0, p - 1))}
+                        onClick={() => setPage(Math.max(0, page - 1))}
                         disabled={page === 0}
                      >
                          <ChevronLeft className="h-4 w-4" />
@@ -357,7 +357,7 @@ const AdminStudents = () => {
                      <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(p => p + 1)}
+                        onClick={() => setPage(page + 1)}
                         disabled={page >= totalPages - 1}
                      >
                          Next

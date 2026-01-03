@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -253,6 +253,16 @@ const Register = () => {
                     </Button>
                   </div>
                 </div>
+              </div>
+
+              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
+                  <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                      <div className="text-sm text-yellow-800 dark:text-yellow-400">
+                          <p className="font-bold mb-1">সতর্কবার্তা!</p>
+                          <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন। ফোন নম্বর এবং পাসওয়ার্ড পরিবর্তন করা যাবে না, পরিবর্তন করলে আগের অ্যাকাউন্টের সমস্ত তথ্য মুছে যাবে।</p>
+                      </div>
+                  </div>
               </div>
 
               <Button type="submit" className="mt-4 w-full" disabled={loading}>
