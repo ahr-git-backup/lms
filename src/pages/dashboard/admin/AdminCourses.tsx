@@ -11,7 +11,16 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const courseSchema = z.object({
   id: z.string().optional(),
@@ -55,6 +64,9 @@ const AdminCourses = () => {
     is_public: true,
   });
   const [page, setPage] = useState(0);
+  const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
+  const [selectedCourseForCoupon, setSelectedCourseForCoupon] = useState<Course | null>(null);
+  const [couponCode, setCouponCode] = useState("");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -179,8 +191,89 @@ const AdminCourses = () => {
     upsertMutation.mutate(form);
   };
 
+  const generateCouponMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCourseForCoupon) return;
+      const code = couponCode || `${selectedCourseForCoupon.name?.substring(0, 3).toUpperCase()}-FREE-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+      const { error } = await supabase.from("promo_codes").insert({
+        code: code,
+        discount_type: "percentage",
+        discount_amount: 100,
+        course_id: selectedCourseForCoupon.id,
+        is_active: true,
+        usage_limit: 1 // Default to 1 use for safety, user can change in promo page
+      });
+
+      if (error) throw error;
+      return code;
+    },
+    onSuccess: (code) => {
+      toast({
+        title: "Free Coupon Created",
+        description: `Code: ${code} (100% Off, Single Use)`
+      });
+      setIsCouponDialogOpen(false);
+      setCouponCode("");
+      setSelectedCourseForCoupon(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error creating coupon",
+        description: error.message,
+        variant: "destructive"
+      });
+    }
+  });
+
+  const openCouponDialog = (course: Course, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setSelectedCourseForCoupon(course);
+      const randomCode = `${course.name?.replace(/\s+/g, '').substring(0, 4).toUpperCase()}-FREE-${Math.floor(1000 + Math.random() * 9000)}`;
+      setCouponCode(randomCode);
+      setIsCouponDialogOpen(true);
+  };
+
   return (
     <section className="space-y-6">
+      <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Generate Free Coupon</DialogTitle>
+                <DialogDescription>
+                    Create a 100% off coupon for <strong>{selectedCourseForCoupon?.name}</strong>.
+                    <br/>This will create a single-use promo code.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label>Coupon Code</Label>
+                    <div className="flex gap-2">
+                        <Input
+                            value={couponCode}
+                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                            placeholder="ENTER-CODE"
+                        />
+                        <Button size="icon" variant="outline" onClick={() => {
+                             navigator.clipboard.writeText(couponCode);
+                             toast({ title: "Copied to clipboard" });
+                        }}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        Default: 100% discount, 1 usage limit. You can edit this later in "Promo Codes" page.
+                    </p>
+                </div>
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setIsCouponDialogOpen(false)}>Cancel</Button>
+                <Button onClick={() => generateCouponMutation.mutate()} disabled={generateCouponMutation.isPending}>
+                    {generateCouponMutation.isPending ? "Creating..." : "Create Coupon"}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Admin: Courses</h1>
         <p className="text-sm text-muted-foreground">
@@ -376,19 +469,31 @@ const AdminCourses = () => {
                       )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm("Delete this course? This cannot be undone.")) {
-                            deleteMutation.mutate(course.id);
-                          }
-                        }}
-                      >
-                         <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div className="flex justify-end gap-2">
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            title="Generate Free Coupon"
+                            onClick={(e) => openCouponDialog(course, e)}
+                          >
+                             <Ticket className="h-4 w-4 text-green-600" />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="hover:bg-destructive/10"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm("Delete this course? This cannot be undone.")) {
+                                deleteMutation.mutate(course.id);
+                              }
+                            }}
+                          >
+                             <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

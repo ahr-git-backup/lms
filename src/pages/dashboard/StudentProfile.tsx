@@ -10,8 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, BookOpen, PenTool, CheckCircle, Flame, Target, Calculator } from "lucide-react";
+import { Clock, BookOpen, PenTool, CheckCircle, Flame, Target, Calculator, PlusCircle, ArrowRight } from "lucide-react";
 import { startOfWeek, startOfMonth } from "date-fns";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import { Link } from "react-router-dom";
 
 const profileSchema = z.object({
   full_name: z.string().trim().max(120).optional().or(z.literal("")),
@@ -39,6 +41,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>;
 const StudentProfile = () => {
   const { profile } = useAuth();
   const { toast } = useToast();
+  const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const [timeRange, setTimeRange] = useState("daily");
@@ -243,6 +246,51 @@ const StudentProfile = () => {
                 </div>
             </CardContent>
         </Card>
+
+        {/* Enrolled Courses Section */}
+        <div className="md:col-span-2 space-y-4">
+            <h2 className="text-xl font-semibold tracking-tight">My Enrolled Courses</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {enrollments?.map((enrollment) => (
+                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group">
+                        <div className="aspect-video bg-muted relative">
+                             {/* Placeholder for course image if available, else generic pattern */}
+                             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                <BookOpen className="h-10 w-10 text-primary/40" />
+                             </div>
+                             <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                                Active
+                             </div>
+                        </div>
+                        <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                                <Link to={`/dashboard/class-notes`}>
+                                    Continue Learning
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {/* Buy More Card */}
+                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col items-center justify-center text-center p-6 gap-4 cursor-pointer min-h-[250px] bg-muted/10" onClick={() => window.location.href = "/"}>
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <PlusCircle className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold">Enroll in New Course</h3>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[150px] mx-auto">Explore premium courses and boost your preparation.</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                        Browse Courses <ArrowRight className="h-3 w-3" />
+                    </Button>
+                </Card>
+            </div>
+        </div>
 
         {/* Edit Profile Form */}
         <Card className="md:col-span-2 border border-foreground/60">

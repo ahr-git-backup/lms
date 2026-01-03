@@ -66,13 +66,33 @@ const CourseBuy = () => {
 
   const freeEnrollMutation = useMutation({
     mutationFn: async () => {
-        if (!course?.id) throw new Error("Course not found");
-        const { error } = await supabase.rpc('enroll_in_free_course', { p_course_id: course.id });
-        if (error) throw error;
+        if (!course?.id || !user?.id) throw new Error("Course not found or user not logged in");
+
+        // If price is 0 naturally, use the RPC
+        if (course.price === 0) {
+            const { error } = await supabase.rpc('enroll_in_free_course', { p_course_id: course.id });
+            if (error) throw error;
+        } else {
+            // If price is 0 due to promo, submit a payment request with special flag
+            const { error } = await supabase.from("payment_requests").insert({
+                profile_id: user.id,
+                course_id: course.id,
+                trx_id: 'PROMO-FREE',
+                phone: profile?.phone || 'N/A',
+                payment_method: 'bkash', // Placeholder, admin will see amount 0 or TRX PROMO-FREE
+                status: 'pending' // Admin will approve
+            });
+            if (error) throw error;
+        }
     },
     onSuccess: () => {
-        toast.success("Enrolled successfully!");
-        navigate("/dashboard");
+        if (course?.price === 0) {
+            toast.success("Enrolled successfully!");
+             navigate("/dashboard");
+        } else {
+             toast.success("Enrollment request submitted! Please wait for approval.");
+             navigate("/dashboard");
+        }
     },
     onError: (err) => {
         toast.error(err.message);
@@ -227,7 +247,7 @@ const CourseBuy = () => {
               {course?.name ? `Buy ${course.name}` : "Course not found"}
             </CardTitle>
             <CardDescription className="text-xs">
-              {course?.price === 0 ? "This course is free for everyone." : "Complete the payment manually and submit the details below."}
+              {finalPrice === 0 ? "This course is free for you." : "Complete the payment manually and submit the details below."}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 text-sm">
@@ -235,7 +255,7 @@ const CourseBuy = () => {
               <p className="text-sm text-destructive">Failed to load course. Please refresh and try again.</p>
             )}
 
-            {course?.price === 0 ? (
+            {finalPrice === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 space-y-6 text-center animate-in fade-in zoom-in-95 duration-500">
                     <div className="p-4 bg-primary/10 rounded-full">
                         <Sparkles className="h-12 w-12 text-primary animate-pulse" />

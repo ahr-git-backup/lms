@@ -29,8 +29,6 @@ const studentItems = [
   { title: "Resources", url: "/dashboard/resources", icon: GraduationCap },
   { title: "Study Tools", url: "/dashboard/program", icon: Sparkles },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2 },
-  { title: "Reminders", url: "/dashboard/reminders", icon: CalendarClock },
-  { title: "Help & FAQ", url: "/dashboard/help", icon: HelpCircle },
 ];
 
 const adminItems = [

@@ -31,8 +31,6 @@ import Resources from "./pages/dashboard/Resources";
 import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
-import Reminders from "./pages/dashboard/Reminders";
-import HelpFaq from "./pages/dashboard/HelpFaq";
 import AdminDashboardHome from "./pages/dashboard/admin/AdminDashboardHome";
 import AdminCourses from "./pages/dashboard/admin/AdminCourses";
 import AdminStudents from "./pages/dashboard/admin/AdminStudents";
@@ -124,9 +122,7 @@ const App = () => {
                 <Route path="announcements" element={<Announcements />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
-                <Route path="reminders" element={<Reminders />} />
                 <Route path="program" element={<Program />} />
-                <Route path="help" element={<HelpFaq />} />
 
                 <Route path="admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminDashboardHome /></ProtectedRoute>} />
                 <Route path="admin/courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
