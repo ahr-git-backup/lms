@@ -34,10 +34,13 @@ const Login = () => {
     setLoading(true);
     
     const formData = new FormData(event.currentTarget);
-    const registrationId = formData.get("registrationId") as string;
+    const phone = formData.get("registrationId") as string;
     const password = formData.get("password") as string;
     
-    const { error } = await signIn(registrationId, password);
+    // Synthetic email logic for phone login
+    const email = `${phone}@beshijoss.com`;
+
+    const { error } = await signIn(email, password);
     
     if (error) {
       toast({

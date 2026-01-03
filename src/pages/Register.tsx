@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
@@ -33,7 +32,7 @@ const Register = () => {
     const fullName = formData.get("fullName") as string;
     const fatherName = formData.get("fatherName") as string;
     const motherName = formData.get("motherName") as string;
-    const registrationId = formData.get("registrationId") as string;
+    // const registrationId = formData.get("registrationId") as string; // Optional or generated
     const phone = formData.get("phone") as string;
     const emailInput = formData.get("email") as string;
     const hscBatch = formData.get("hscBatch") as string;
@@ -55,6 +54,7 @@ const Register = () => {
 
     try {
       // Determine the email to use (Phone number based auth for free tier)
+      // We prioritize phone based auth as per requirements
       const email = `${phone}@beshijoss.com`;
 
       // 1. Create the user in Supabase Auth
@@ -64,7 +64,7 @@ const Register = () => {
         options: {
           data: {
             full_name: fullName,
-            registration_id: registrationId,
+            // registration_id: registrationId, // We might not need to force this input if phone is key
             father_name: fatherName,
             mother_name: motherName,
             hsc_batch: hscBatch,
@@ -72,7 +72,8 @@ const Register = () => {
             ssc_gpa: sscGpa,
             hsc_gpa: hscGpa,
             phone: phone,
-            is_second_timer: isSecondTimer
+            is_second_timer: isSecondTimer,
+            real_email: emailInput // Store real email in metadata if provided
           }
         }
       });
@@ -86,14 +87,12 @@ const Register = () => {
       }
 
       // 3. Attempt to insert into profiles if we have a session.
-      // If we don't have a session (email confirmation on), we skip this.
-      // If a trigger exists or if AuthContext handles it, this might duplicate or fail, so we ignore errors.
       if (authData.session) {
         const { error: profileError } = await supabase
         .from("profiles")
         .insert({
           id: authData.user.id,
-          registration_id: registrationId,
+          registration_id: phone, // Use phone as registration ID by default
           full_name: fullName,
           father_name: fatherName,
           mother_name: motherName,
@@ -111,14 +110,9 @@ const Register = () => {
         }
       }
 
-      let description = "You can now login with your credentials.";
-      if (!authData.session) {
-        description = "Account created! Please check your email for verification. If you used a Registration ID, ask an admin to confirm your account.";
-      }
-
       toast({
         title: "Registration successful",
-        description: description,
+        description: "Account created! You can now login with your phone number.",
       });
 
       // Redirect to login after short delay
@@ -147,7 +141,7 @@ const Register = () => {
             <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
             <CardTitle className="text-xl font-semibold">Create an Account</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
-              Register a new student or admin account.
+              Register a new student account.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -158,9 +152,13 @@ const Register = () => {
                   <Input id="fullName" name="fullName" required placeholder="Your full name" />
                 </div>
                  <div className="space-y-2">
-                  <Label htmlFor="registrationId">Registration ID / Username</Label>
-                  <Input id="registrationId" name="registrationId" required autoComplete="off" placeholder="e.g. 1001 or user123" />
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
                 </div>
+                {/* <div className="space-y-2">
+                  <Label htmlFor="registrationId">Registration ID (Optional)</Label>
+                  <Input id="registrationId" name="registrationId" autoComplete="off" placeholder="Leave empty to use phone" />
+                </div> */}
                 <div className="space-y-2">
                   <Label htmlFor="fatherName">Father's Name</Label>
                   <Input id="fatherName" name="fatherName" required placeholder="Father's name" />
@@ -178,10 +176,6 @@ const Register = () => {
                   <Input id="hscBatch" name="hscBatch" required placeholder="e.g. 2024" />
                 </div>
                  <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
-                </div>
-                 <div className="space-y-2">
                   <Label htmlFor="email">Email (Optional)</Label>
                   <Input id="email" name="email" type="email" placeholder="e.g. user@example.com" />
                 </div>
@@ -190,8 +184,8 @@ const Register = () => {
                   <Input id="sscGpa" name="sscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="hscGpa">HSC GPA (Out of 5)</Label>
-                  <Input id="hscGpa" name="hscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
+                  <Label htmlFor="hscGpa">HSC GPA (Optional)</Label>
+                  <Input id="hscGpa" name="hscGpa" type="number" step="0.01" max="5.00" min="0.00" placeholder="5.00" />
                 </div>
               </div>
 
