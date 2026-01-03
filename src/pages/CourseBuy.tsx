@@ -66,13 +66,33 @@ const CourseBuy = () => {
 
   const freeEnrollMutation = useMutation({
     mutationFn: async () => {
-        if (!course?.id) throw new Error("Course not found");
-        const { error } = await supabase.rpc('enroll_in_free_course', { p_course_id: course.id });
-        if (error) throw error;
+        if (!course?.id || !user?.id) throw new Error("Course not found or user not logged in");
+
+        // If price is 0 naturally, use the RPC
+        if (course.price === 0) {
+            const { error } = await supabase.rpc('enroll_in_free_course', { p_course_id: course.id });
+            if (error) throw error;
+        } else {
+            // If price is 0 due to promo, submit a payment request with special flag
+            const { error } = await supabase.from("payment_requests").insert({
+                profile_id: user.id,
+                course_id: course.id,
+                trx_id: 'PROMO-FREE',
+                phone: profile?.phone || 'N/A',
+                payment_method: 'bkash', // Placeholder, admin will see amount 0 or TRX PROMO-FREE
+                status: 'pending' // Admin will approve
+            });
+            if (error) throw error;
+        }
     },
     onSuccess: () => {
-        toast.success("Enrolled successfully!");
-        navigate("/dashboard");
+        if (course?.price === 0) {
+            toast.success("Enrolled successfully!");
+             navigate("/dashboard");
+        } else {
+             toast.success("Enrollment request submitted! Please wait for approval.");
+             navigate("/dashboard");
+        }
     },
     onError: (err) => {
         toast.error(err.message);

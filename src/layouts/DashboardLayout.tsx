@@ -367,12 +367,6 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BarChart className="h-4 w-4" /> Exam Analytics
                     </Link>
-                    <Link to="/dashboard/reminders" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Bell className="h-4 w-4" /> Reminders
-                    </Link>
-                    <Link to="/dashboard/help" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <HelpCircle className="h-4 w-4" /> Help & FAQ
-                    </Link>
 
                     {isAdmin && (
                       <>

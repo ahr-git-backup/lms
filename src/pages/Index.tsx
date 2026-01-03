@@ -230,7 +230,7 @@ const Index = () => {
             </div>
         </section>
 
-        {/* Paid Courses Section (List View) */}
+        {/* Paid Courses Section (Grid View) */}
         <section id="courses" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
             <div>
@@ -241,11 +241,11 @@ const Index = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading courses...</p>
+              <p className="text-sm text-muted-foreground col-span-full">Loading courses...</p>
             ) : !courses || courses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No courses available yet.</p>
+              <p className="text-sm text-muted-foreground col-span-full">No courses available yet.</p>
             ) : (
               courses.map((course: any) => {
                 const image = course.image_url || "/placeholder.svg";
@@ -253,41 +253,39 @@ const Index = () => {
                 const idOrSlug = course.slug || course.id;
 
                 return (
-                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex flex-col md:flex-row">
-                        {/* Course Image */}
-                        <div className="w-full md:w-1/3 aspect-video md:aspect-auto relative">
-                             <img
-                                src={image}
-                                alt={`${course.name} cover`}
-                                className="h-full w-full object-cover"
-                              />
-                        </div>
-                        {/* Content */}
-                        <div className="flex-1 p-6 flex flex-col justify-between gap-4">
-                            <div>
-                                <h3 className="text-xl font-bold mb-2">{course.name}</h3>
-                                <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{description}</p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Live Classes</div>
-                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Lecture Notes</div>
-                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Standard Exams</div>
-                                    <div className="flex items-center gap-2"><Check className="h-4 w-4 text-green-500" /> Solve Sheets</div>
-                                </div>
+                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+                    {/* Course Image */}
+                    <div className="w-full aspect-video relative">
+                            <img
+                            src={image}
+                            alt={`${course.name} cover`}
+                            className="h-full w-full object-cover"
+                            />
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 p-5 flex flex-col justify-between gap-4">
+                        <div>
+                            <h3 className="text-lg font-bold mb-2 leading-tight">{course.name}</h3>
+                            <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Live Classes</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Lecture Notes</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Standard Exams</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Solve Sheets</div>
                             </div>
+                        </div>
 
-                            <div className="flex flex-wrap items-center justify-between gap-4 mt-auto pt-4 border-t border-dashed">
-                                <div className="text-lg font-bold text-primary">
-                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact for fee"}
-                                </div>
-                                <div className="flex gap-3">
-                                    <Button asChild variant="outline" size="sm">
-                                        <a href={`/courses/${idOrSlug}`}>View Details</a>
-                                    </Button>
-                                    <Button asChild size="sm">
-                                        <a href={`/courses/${idOrSlug}/buy`}>Enroll Now</a>
-                                    </Button>
-                                </div>
+                        <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-dashed">
+                            <div className="text-base font-bold text-primary">
+                                {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact"}
+                            </div>
+                            <div className="flex gap-2">
+                                <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
+                                    <a href={`/courses/${idOrSlug}`}>Details</a>
+                                </Button>
+                                <Button asChild size="sm" className="h-8 px-2 text-xs">
+                                    <a href={`/courses/${idOrSlug}/buy`}>Enroll</a>
+                                </Button>
                             </div>
                         </div>
                     </div>
