@@ -56,7 +56,7 @@ const AdminPromoCodes = () => {
       code: "",
       discount_amount: 0,
       discount_type: "flat",
-      course_id: "",
+      course_id: "all",
       usage_limit: "",
       is_active: true,
     },
@@ -150,7 +150,7 @@ const AdminPromoCodes = () => {
       code: promo.code,
       discount_amount: promo.discount_amount,
       discount_type: promo.discount_type,
-      course_id: promo.course_id || "",
+      course_id: promo.course_id || "all",
       usage_limit: promo.usage_limit || "",
       is_active: promo.is_active,
     });
@@ -163,7 +163,7 @@ const AdminPromoCodes = () => {
       code: "",
       discount_amount: 0,
       discount_type: "flat",
-      course_id: "",
+      course_id: "all",
       usage_limit: "",
       is_active: true,
     });
@@ -217,7 +217,7 @@ const AdminPromoCodes = () => {
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="">All Courses</SelectItem>
+                                <SelectItem value="all">All Courses</SelectItem>
                                 {courses?.map((c: any) => (
                                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                                 ))}
