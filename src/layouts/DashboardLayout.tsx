@@ -401,6 +401,15 @@ export const DashboardLayout = () => {
                         <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <CreditCard className="h-4 w-4" /> Payments
                         </Link>
+                        <Link to="/dashboard/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Tag className="h-4 w-4" /> Promo Codes
+                        </Link>
+                        <Link to="/dashboard/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <LayoutTemplate className="h-4 w-4" /> Site Heroes
+                        </Link>
+                        <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <PenTool className="h-4 w-4" /> Mentors/Founders
+                        </Link>
                       </>
                     )}
 

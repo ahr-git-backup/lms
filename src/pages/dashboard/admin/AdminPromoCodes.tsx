@@ -178,11 +178,9 @@ const AdminPromoCodes = () => {
           <p className="text-muted-foreground">Manage discount codes for courses.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleAddNew}>
-              <Plus className="mr-2 h-4 w-4" /> Create Promo
-            </Button>
-          </DialogTrigger>
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" /> Create Promo
+          </Button>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingId ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>

@@ -145,35 +145,9 @@ const Index = () => {
         <div className="overflow-hidden" ref={emblaRef}>
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
-              <section key={hero.id || index} className="grid gap-10 md:grid-cols-[1.2fr,1fr] md:items-center min-w-0 flex-[0_0_100%] pl-4">
-                <div className="space-y-6">
-                  <p className="inline-flex items-center gap-2 rounded-full border-[3px] border-primary bg-accent/40 px-4 py-1 text-[10px] font-semibold uppercase tracking-[0.25em]">
-                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-background text-primary">
-                      <Flame className="h-3 w-3" />
-                    </span>
-                    Beshi Joss LMS
-                  </p>
-                  <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-                    {hero.title}
-                  </h1>
-                  <p className="max-w-xl text-base text-muted-foreground md:text-lg">
-                    {hero.subtitle}
-                  </p>
-                  <div className="flex flex-wrap items-center gap-4">
-                    <Button asChild size="lg">
-                      <a href={hero.cta_link || "/login"} className="flex items-center gap-2">
-                        {hero.cta_text || "Get Started"}
-                        <ArrowRight className="h-4 w-4" />
-                      </a>
-                    </Button>
-                    <Button asChild variant="outline" size="lg">
-                      <a href="#courses">Explore Courses</a>
-                    </Button>
-                  </div>
-                </div>
-
+              <section key={hero.id || index} className="min-w-0 flex-[0_0_100%] pl-4">
                 {/* Hero Image / 16:9 Ratio */}
-                <div className="relative aspect-video w-full overflow-hidden rounded-[25px] border-[3px] border-border bg-muted shadow-sm">
+                <a href={hero.cta_link || "#"} className="block relative aspect-video w-full overflow-hidden rounded-[25px] border-[3px] border-border bg-muted shadow-sm cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
                      <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
                    ) : (
@@ -181,7 +155,7 @@ const Index = () => {
                         <Flame className="h-16 w-16 opacity-20" />
                      </div>
                    )}
-                </div>
+                </a>
               </section>
             ))}
           </div>
