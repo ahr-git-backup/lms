@@ -22,7 +22,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
     const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
 
     return (
-    <Card className={`border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full ${isLive ? 'border-red-100 bg-red-50/50 dark:bg-red-950/20' : 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20'}`}>
+    <Card className={`border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900`}>
         <CardHeader className="space-y-1">
             <div className="flex justify-between items-start">
                 <p className="text-xs font-mono uppercase text-muted-foreground">
