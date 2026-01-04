@@ -129,8 +129,8 @@ const Resources = () => {
                   <CardDescription className="text-xs">{resource.description}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
-                <Button size="sm" variant="outline" className="rounded-full" asChild>
+              <CardContent className="flex-1 flex flex-col">
+                <Button size="sm" className="rounded-full mt-auto w-fit bg-amber-500 hover:bg-amber-600 text-white border-none" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     {getResourceIcon(resource.resource_type)}
                     <span className="ml-2">Open</span>

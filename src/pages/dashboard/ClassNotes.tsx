@@ -275,7 +275,7 @@ const NoteCard = ({ note, onBookmark, onOpen }: { note: any, onBookmark: () => v
                 )}
 
                 <div className="pt-2 mt-auto">
-                    <Button size="sm" variant="outline" className="w-full h-8 rounded-full" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
+                    <Button size="sm" className="w-full h-8 rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none" onClick={(e) => { e.stopPropagation(); onOpen(); }}>
                         Note
                     </Button>
                 </div>
