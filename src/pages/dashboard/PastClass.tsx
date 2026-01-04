@@ -99,7 +99,7 @@ const PastClass = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredClasses.map((classItem) => (
-            <Card key={classItem.id} className="border border-gray-100 bg-white dark:bg-card dark:border-gray-800 rounded-2xl shadow-md hover:shadow-lg transition-all">
+            <Card key={classItem.id} className="border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -124,21 +124,21 @@ const PastClass = () => {
                 {classItem.topic && (
                     <p className="text-sm text-muted-foreground line-clamp-2">{classItem.topic}</p>
                 )}
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap mt-auto">
                     {classItem.video_url && (
-                    <Button size="sm" variant="outline" className="rounded-full" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
+                    <Button size="sm" className="rounded-full bg-amber-500 text-white hover:bg-amber-600 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
                         Class
                     </Button>
                     )}
                     {classItem.notes_url && (
-                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                    <Button size="sm" className="rounded-full bg-amber-500 text-white hover:bg-amber-600 border-none" asChild>
                         <a href={classItem.notes_url} target="_blank" rel="noopener noreferrer">
                         Note
                         </a>
                     </Button>
                     )}
                     {classItem.button_text && classItem.button_url && (
-                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                    <Button size="sm" variant="outline" className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-50" asChild>
                         <a href={classItem.button_url} target="_blank" rel="noopener noreferrer">
                         {classItem.button_text}
                         </a>

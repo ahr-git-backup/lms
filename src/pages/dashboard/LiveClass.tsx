@@ -109,7 +109,7 @@ const LiveClass = () => {
             const isActive = start && end && now >= start && now <= end;
 
             return (
-            <Card key={classItem.id} className={`border transition-all rounded-2xl shadow-md hover:shadow-lg ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-gray-100 bg-white dark:bg-card dark:border-gray-800'}`}>
+            <Card key={classItem.id} className={`border transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-50 dark:bg-amber-900/40' : 'border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900'}`}>
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -152,14 +152,14 @@ const LiveClass = () => {
                 {classItem.topic && (
                     <p className="text-sm text-muted-foreground line-clamp-2 break-words">{classItem.topic}</p>
                 )}
-                <div className="flex gap-2">
+                <div className="flex gap-2 mt-auto">
                   {classItem.video_url && (
-                    <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className={`rounded-full ${isActive ? "bg-blue-600 hover:bg-blue-700" : ""}`}>
+                    <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="rounded-full bg-amber-500 text-white hover:bg-amber-600 border-none">
                         Class
                     </Button>
                   )}
                   {classItem.button_text && classItem.button_url && (
-                    <Button size="sm" variant="outline" className="rounded-full" asChild>
+                    <Button size="sm" variant="outline" className="rounded-full border-amber-200 text-amber-700 hover:bg-amber-50" asChild>
                       <a href={classItem.button_url} target="_blank" rel="noopener noreferrer">
                         {classItem.button_text}
                       </a>

@@ -165,7 +165,7 @@ const PastExamCatalog = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => (
-            <Card key={exam.id} className="border border-foreground/50">
+            <Card key={exam.id} className="border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -191,13 +191,16 @@ const PastExamCatalog = () => {
                   Duration: {exam.duration_minutes} mins
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col flex-1">
+                <div className="mt-auto">
                 <Button
                   size="sm"
                   onClick={() => setSelectedExamForPopup(exam)}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-full border-none"
                 >
                   Start Practice
                 </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

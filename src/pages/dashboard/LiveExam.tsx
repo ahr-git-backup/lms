@@ -189,7 +189,7 @@ const LiveExam = () => {
             const isActive = isLive && start && end && now >= start && now <= end;
 
             return (
-              <Card key={exam.id} className={`border transition-all ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/10 dark:bg-blue-900/10' : 'border-foreground/50'}`}>
+              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-50 dark:bg-amber-900/40' : 'border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900'}`}>
                 <CardHeader className="space-y-1">
                   <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -238,7 +238,7 @@ const LiveExam = () => {
                       size="sm" 
                       onClick={() => setSelectedExamForPopup(exam)}
                       disabled={isLive && attempted}
-                      className={isActive ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      className={isActive ? "w-full rounded-full bg-amber-600 hover:bg-amber-700 text-white border-none" : "w-full rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none"}
                     >
                       {isActive ? "Start Live Exam" : "Start Exam"}
                     </Button>

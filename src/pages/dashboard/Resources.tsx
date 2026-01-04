@@ -116,7 +116,7 @@ const Resources = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
-            <Card key={resource.id} className="border border-gray-100 bg-white dark:bg-card dark:border-gray-800 rounded-2xl shadow-md hover:shadow-lg transition-all">
+            <Card key={resource.id} className="border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -129,8 +129,8 @@ const Resources = () => {
                   <CardDescription className="text-xs">{resource.description}</CardDescription>
                 )}
               </CardHeader>
-              <CardContent>
-                <Button size="sm" variant="outline" className="rounded-full" asChild>
+              <CardContent className="flex-1 flex flex-col">
+                <Button size="sm" className="rounded-full mt-auto w-fit bg-amber-500 hover:bg-amber-600 text-white border-none" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     {getResourceIcon(resource.resource_type)}
                     <span className="ml-2">Open</span>
