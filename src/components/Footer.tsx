@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { Facebook, Youtube, Mail, Phone, MapPin } from "lucide-react";
 
 const Footer = () => {
@@ -30,10 +31,10 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Quick Links</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/" className="hover:text-primary transition-colors">Home</a></li>
-              <li><a href="/courses" className="hover:text-primary transition-colors">All Courses</a></li>
-              <li><a href="/login" className="hover:text-primary transition-colors">Login</a></li>
-              <li><a href="/register" className="hover:text-primary transition-colors">Register</a></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">Home</Link></li>
+              <li><Link to="/courses" className="hover:text-primary transition-colors">All Courses</Link></li>
+              <li><Link to="/login" className="hover:text-primary transition-colors">Login</Link></li>
+              <li><Link to="/register" className="hover:text-primary transition-colors">Register</Link></li>
             </ul>
           </div>
 
