@@ -322,50 +322,50 @@ export const DashboardLayout = () => {
                   </SheetHeader>
                   <nav className="flex flex-col gap-1 text-sm">
                     <Link to="/dashboard" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
-                        <LayoutDashboard className="h-4 w-4" />
+                        <LayoutDashboard className="h-4 w-4 text-blue-500" />
                         Dashboard
                     </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
                     <Link to="/dashboard/profile" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <User className="h-4 w-4" /> Profile
+                        <User className="h-4 w-4 text-green-500" /> Profile
                     </Link>
                     <Link to="/dashboard/live-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Video className="h-4 w-4" /> Live Class
+                        <Video className="h-4 w-4 text-red-500" /> Live Class
                     </Link>
                     <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <PenTool className="h-4 w-4" /> Live Exam
+                        <PenTool className="h-4 w-4 text-purple-500" /> Live Exam
                     </Link>
                     <Link to="/dashboard/past-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <History className="h-4 w-4" /> Past Class
+                        <History className="h-4 w-4 text-orange-500" /> Past Class
                     </Link>
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <BookOpen className="h-4 w-4" /> Past Exams
+                        <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams
                     </Link>
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Trophy className="h-4 w-4" /> Results
+                        <Trophy className="h-4 w-4 text-teal-500" /> Results
                     </Link>
                     <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Calendar className="h-4 w-4" /> Routine
+                        <Calendar className="h-4 w-4 text-indigo-500" /> Routine
                     </Link>
                     <Link to="/dashboard/class-notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <StickyNote className="h-4 w-4" /> Class Notes
+                        <StickyNote className="h-4 w-4 text-pink-500" /> Class Notes
                     </Link>
                     <Link to="/dashboard/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Megaphone className="h-4 w-4" /> Announcements
+                        <Megaphone className="h-4 w-4 text-rose-500" /> Announcements
                     </Link>
                     <Link to="/dashboard/bookmarks" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Bookmark className="h-4 w-4" /> Bookmarks
+                        <Bookmark className="h-4 w-4 text-emerald-500" /> Bookmarks
                     </Link>
                     <Link to="/dashboard/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Files className="h-4 w-4" /> Resources
+                        <Files className="h-4 w-4 text-cyan-500" /> Resources
                     </Link>
                     <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Settings className="h-4 w-4" /> Study Tools
+                        <Settings className="h-4 w-4 text-amber-500" /> Study Tools
                     </Link>
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <BarChart className="h-4 w-4" /> Exam Analytics
+                        <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
                     </Link>
 
                     {isAdmin && (
@@ -373,37 +373,37 @@ export const DashboardLayout = () => {
                         <div className="my-1 border-t border-border/50"></div>
                         <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Admin</p>
                         <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Settings className="h-4 w-4" /> Courses
+                            <Settings className="h-4 w-4 text-green-600" /> Courses
                         </Link>
                         <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Users className="h-4 w-4" /> Students
+                            <Users className="h-4 w-4 text-purple-600" /> Students
                         </Link>
                         <Link to="/dashboard/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Video className="h-4 w-4" /> Classes
+                            <Video className="h-4 w-4 text-red-600" /> Classes
                         </Link>
                         <Link to="/dashboard/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <PenTool className="h-4 w-4" /> Exams
+                            <PenTool className="h-4 w-4 text-orange-600" /> Exams
                         </Link>
                         <Link to="/dashboard/admin/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Library className="h-4 w-4" /> Resources
+                            <Library className="h-4 w-4 text-teal-600" /> Resources
                         </Link>
                         <Link to="/dashboard/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <StickyNote className="h-4 w-4" /> Notes Manager
+                            <StickyNote className="h-4 w-4 text-pink-600" /> Notes Manager
                         </Link>
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Megaphone className="h-4 w-4" /> Announcements
+                            <Megaphone className="h-4 w-4 text-yellow-600" /> Announcements
                         </Link>
                         <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <CreditCard className="h-4 w-4" /> Payments
+                            <CreditCard className="h-4 w-4 text-emerald-600" /> Payments
                         </Link>
                         <Link to="/dashboard/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Tag className="h-4 w-4" /> Promo Codes
+                            <Tag className="h-4 w-4 text-cyan-600" /> Promo Codes
                         </Link>
                         <Link to="/dashboard/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <LayoutTemplate className="h-4 w-4" /> Site Heroes
+                            <LayoutTemplate className="h-4 w-4 text-indigo-600" /> Site Heroes
                         </Link>
                         <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <PenTool className="h-4 w-4" /> Mentors/Founders
+                            <PenTool className="h-4 w-4 text-violet-600" /> Mentors/Founders
                         </Link>
                       </>
                     )}
