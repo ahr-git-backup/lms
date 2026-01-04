@@ -116,7 +116,7 @@ const Resources = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
-            <Card key={resource.id} className="border border-foreground/50">
+            <Card key={resource.id} className="border border-gray-100 bg-white dark:bg-card dark:border-gray-800 rounded-2xl shadow-md hover:shadow-lg transition-all">
               <CardHeader className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -130,7 +130,7 @@ const Resources = () => {
                 )}
               </CardHeader>
               <CardContent>
-                <Button size="sm" variant="outline" asChild>
+                <Button size="sm" variant="outline" className="rounded-full" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     {getResourceIcon(resource.resource_type)}
                     <span className="ml-2">Open</span>
