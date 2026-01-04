@@ -66,9 +66,9 @@ export interface Class {
 }
 
 export interface DemoContentItem {
-  type: 'video' | 'pdf' | 'note';
   title: string;
-  url: string;
+  video_url?: string;
+  note_url?: string;
   is_locked: boolean;
 }
 

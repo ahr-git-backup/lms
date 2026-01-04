@@ -88,26 +88,7 @@ const CourseDetails = () => {
                )}
           </div>
 
-          {/* 3. Price & Action */}
-          <div className="flex flex-col items-center gap-4">
-              <div className="flex items-center gap-3">
-                   {course?.original_price && course.original_price > (course.price || 0) && (
-                       <span className="text-muted-foreground line-through text-lg">
-                           ৳{Number(course.original_price).toLocaleString("en-BD")}
-                       </span>
-                   )}
-                   <span className="text-3xl font-bold text-primary">
-                        {course?.price != null
-                                ? `৳${Number(course.price).toLocaleString("en-BD")}`
-                                : "Free / Contact"}
-                   </span>
-              </div>
-              <Button asChild size="lg" className="w-full max-w-sm text-lg shadow-lg" disabled={!course && !isLoading}>
-                  <a href={idOrSlug ? `/courses/${idOrSlug}/buy` : "#"}>Enroll Now</a>
-              </Button>
-          </div>
-
-          {/* 4. Description (Full Page) */}
+          {/* 3. Description (Full Page) */}
           <div className="border-t pt-8">
               <h2 className="text-xl font-semibold mb-4">Course Description</h2>
               <div className="prose prose-stone dark:prose-invert max-w-none">
@@ -117,6 +98,18 @@ const CourseDetails = () => {
               </div>
           </div>
 
+          {/* 4. What You Get (Markdown Supported) */}
+          {course?.what_you_get && Array.isArray(course.what_you_get) && course.what_you_get.length > 0 && (
+              <div className="border-t pt-8">
+                  <h2 className="text-xl font-semibold mb-4">What you will get</h2>
+                  <div className="prose prose-stone dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                          {course.what_you_get.join("\n")}
+                      </ReactMarkdown>
+                  </div>
+              </div>
+          )}
+
           {/* 5. Demo Classes (Minimized List) */}
           {demoContent.length > 0 && (
               <div className="border-t pt-8">
@@ -125,21 +118,31 @@ const CourseDetails = () => {
                       {demoContent.map((item, idx) => (
                           <div
                             key={idx}
-                            onClick={() => navigate(`/courses/${idOrSlug}/demo/${idx}`)}
-                            className="flex items-center gap-3 p-3 rounded-md border hover:bg-muted/50 transition-colors cursor-pointer group"
+                            className="flex items-center gap-3 p-3 rounded-md border hover:bg-muted/50 transition-colors group"
                           >
-                               <div className="bg-primary/10 p-2 rounded-full text-primary group-hover:scale-110 transition-transform">
-                                   {item.type === 'video' ? <PlayCircle className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                               <div className="bg-primary/10 p-2 rounded-full text-primary">
+                                   <PlayCircle className="w-5 h-5" />
                                </div>
                                <div className="flex-1">
                                    <p className="font-medium text-sm">{item.title}</p>
-                                   <p className="text-xs text-muted-foreground capitalize">{item.type} Preview</p>
+                                   <div className="flex gap-2 text-xs text-muted-foreground">
+                                       {item.video_url && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> Video</span>}
+                                       {item.note_url && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> Note</span>}
+                                   </div>
                                </div>
-                               {!item.is_locked ? (
-                                    <Badge variant="secondary" className="text-[10px]">Free</Badge>
-                               ) : (
-                                   <Lock className="w-4 h-4 text-muted-foreground" />
-                               )}
+                               <div className="flex gap-2">
+                                   {item.video_url && (
+                                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/courses/${idOrSlug}/demo/${idx}?type=video`)}>
+                                           Watch
+                                       </Button>
+                                   )}
+                                   {item.note_url && (
+                                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/courses/${idOrSlug}/demo/${idx}?type=note`)}>
+                                           Note
+                                       </Button>
+                                   )}
+                                   {item.is_locked && <Lock className="w-4 h-4 text-muted-foreground ml-2" />}
+                               </div>
                           </div>
                       ))}
                   </div>

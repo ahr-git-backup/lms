@@ -14,7 +14,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
@@ -450,68 +449,164 @@ const ExamCreator = () => {
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const parsed = JSON.parse(event.target?.result as string);
-            if (Array.isArray(parsed)) {
-                // Normalize imported data
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const normalized = parsed.map((q: any) => {
-                    const question = q.question || q.question_text || "";
-                    const explanation = q.explanation || "";
-
+            const content = event.target?.result as string;
+            // Detect JSON vs CSV (Simple check: starts with [ or { is JSON)
+            if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
+                const parsed = JSON.parse(content);
+                if (Array.isArray(parsed)) {
+                    // Normalize imported data
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    let options: any = { A: "", B: "", C: "", D: "" };
-                    if (q.options && typeof q.options === 'object' && !Array.isArray(q.options)) {
-                        const keys = Object.keys(q.options);
-                        if (keys.includes('A')) options = q.options;
-                        else {
-                            const vals = Object.values(q.options);
+                    const normalized = parsed.map((q: any) => {
+                        const question = q.question || q.question_text || "";
+                        const explanation = q.explanation || "";
+
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        let options: any = { A: "", B: "", C: "", D: "" };
+                        if (q.options && typeof q.options === 'object' && !Array.isArray(q.options)) {
+                            const keys = Object.keys(q.options);
+                            if (keys.includes('A')) options = q.options;
+                            else {
+                                const vals = Object.values(q.options);
+                                options = {
+                                    A: vals[0] || "",
+                                    B: vals[1] || "",
+                                    C: vals[2] || "",
+                                    D: vals[3] || ""
+                                };
+                            }
+                        } else if (q.option_a || q.option1) {
                             options = {
-                                A: vals[0] || "",
-                                B: vals[1] || "",
-                                C: vals[2] || "",
-                                D: vals[3] || ""
+                                A: q.option_a || q.option1 || "",
+                                B: q.option_b || q.option2 || "",
+                                C: q.option_c || q.option3 || "",
+                                D: q.option_d || q.option4 || ""
                             };
                         }
-                    } else if (q.option_a || q.option1) {
-                        options = {
-                            A: q.option_a || q.option1 || "",
-                            B: q.option_b || q.option2 || "",
-                            C: q.option_c || q.option3 || "",
-                            D: q.option_d || q.option4 || ""
-                        };
-                    }
 
-                    let correct_answer = "";
-                    if (q.correct_answer) correct_answer = q.correct_answer;
-                    else if (q.correct_option) correct_answer = q.correct_option;
-                    else if (q.answer) {
-                        const num = Number(q.answer);
-                        if (!isNaN(num)) {
-                            correct_answer = ["A", "B", "C", "D"][num - 1] || "";
+                        let correct_answer = "";
+                        if (q.correct_answer) correct_answer = q.correct_answer;
+                        else if (q.correct_option) correct_answer = q.correct_option;
+                        else if (q.answer) {
+                            const num = Number(q.answer);
+                            if (!isNaN(num)) {
+                                correct_answer = ["A", "B", "C", "D"][num - 1] || "";
+                            }
                         }
+
+                        return {
+                            question: sanitizeHtml(String(question)),
+                            options: {
+                                A: sanitizeHtml(options.A),
+                                B: sanitizeHtml(options.B),
+                                C: sanitizeHtml(options.C),
+                                D: sanitizeHtml(options.D),
+                            },
+                            correct_answer: String(correct_answer).toUpperCase(),
+                            explanation: sanitizeHtml(String(explanation))
+                        };
+                    });
+
+                    setQuestions(prev => [...prev, ...normalized]);
+                    toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
+                } else {
+                    toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
+                }
+            } else {
+                // Handle CSV
+                // Inline robust CSV parser to handle quoted strings and newlines inside quotes
+                const rows: string[][] = [];
+                let currentRow: string[] = [];
+                let currentVal = "";
+                let inQuotes = false;
+
+                for (let i = 0; i < content.length; i++) {
+                    const char = content[i];
+                    const nextChar = content[i + 1];
+
+                    if (char === '"') {
+                        if (inQuotes && nextChar === '"') {
+                            // Escaped quote
+                            currentVal += '"';
+                            i++; // Skip next quote
+                        } else {
+                            // Toggle quote mode
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        currentRow.push(currentVal.trim());
+                        currentVal = "";
+                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
+                        if (currentVal || currentRow.length > 0) {
+                            currentRow.push(currentVal.trim());
+                            rows.push(currentRow);
+                        }
+                        currentRow = [];
+                        currentVal = "";
+                        // Handle CRLF
+                        if (char === '\r' && nextChar === '\n') i++;
+                    } else {
+                        currentVal += char;
+                    }
+                }
+                if (currentVal || currentRow.length > 0) {
+                    currentRow.push(currentVal.trim());
+                    rows.push(currentRow);
+                }
+
+                // Filter header if present (heuristic)
+                let startIndex = 0;
+                if (rows.length > 0 && rows[0][0].toLowerCase().includes('question')) {
+                    startIndex = 1;
+                }
+
+                const normalized = [];
+                for (let i = startIndex; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row.length < 2) continue; // Skip empty/invalid lines
+
+                    // Mapping: 0=Q, 1=Opt1, 2=Opt2, 3=Opt3, 4=Opt4, 5=Opt5(empty), 6=Ans, 7=Exp, 8=Type, 9=Sec
+                    const question = row[0] || "";
+                    const options = {
+                        A: row[1] || "",
+                        B: row[2] || "",
+                        C: row[3] || "",
+                        D: row[4] || "",
+                    };
+
+                    const ansRaw = row[6];
+                    let correct_answer = "";
+                    const num = Number(ansRaw);
+                    if (!isNaN(num) && num >= 1 && num <= 5) {
+                        correct_answer = ["A", "B", "C", "D", "E"][num - 1] || "";
+                    } else if (ansRaw) {
+                        correct_answer = ansRaw.toUpperCase();
                     }
 
-                    return {
-                        question: sanitizeHtml(String(question)),
+                    const explanation = row[7] || "";
+
+                    normalized.push({
+                        question: sanitizeHtml(question),
                         options: {
                             A: sanitizeHtml(options.A),
                             B: sanitizeHtml(options.B),
                             C: sanitizeHtml(options.C),
                             D: sanitizeHtml(options.D),
                         },
-                        correct_answer: String(correct_answer).toUpperCase(),
-                        explanation: sanitizeHtml(String(explanation))
-                    };
-                });
+                        correct_answer: correct_answer,
+                        explanation: sanitizeHtml(explanation)
+                    });
+                }
 
-                setQuestions(prev => [...prev, ...normalized]);
-                toast({ title: "Import Successful", description: `Imported ${normalized.length} questions.` });
-            } else {
-                toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
+                if (normalized.length > 0) {
+                    setQuestions(prev => [...prev, ...normalized]);
+                    toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from CSV.` });
+                } else {
+                    toast({ title: "Import Failed", description: "No valid questions found in CSV.", variant: "destructive" });
+                }
             }
         } catch (err) {
             console.error(err);
-            toast({ title: "Import Failed", description: "Could not parse JSON file.", variant: "destructive" });
+            toast({ title: "Import Failed", description: "Could not parse file.", variant: "destructive" });
         }
     };
     reader.readAsText(file);
@@ -599,7 +694,7 @@ const ExamCreator = () => {
                     <Button variant="outline" onClick={() => document.getElementById('impf')?.click()}>
                         <Upload className="mr-2 h-4 w-4" /> Import
                     </Button>
-                    <input type="file" id="impf" className="hidden" accept=".json" onChange={handleImport} />
+                    <input type="file" id="impf" className="hidden" accept=".json,.csv" onChange={handleImport} />
                 </div>
 
                 <Button variant="destructive" size="icon" onClick={() => {

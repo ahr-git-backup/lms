@@ -36,9 +36,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 
 const demoContentSchema = z.object({
-  type: z.enum(["video", "pdf", "note"]),
   title: z.string().min(1, "Title required"),
-  url: z.string().url("Valid URL required"),
+  video_url: z.string().trim().optional().or(z.literal("")),
+  note_url: z.string().trim().optional().or(z.literal("")),
   is_locked: z.boolean().default(false),
 });
 
@@ -578,7 +578,7 @@ const AdminCourses = () => {
                     <div className="flex justify-between items-center mb-4">
                         <div className="space-y-1">
                              <h4 className="text-sm font-semibold">Demo / Preview Content</h4>
-                             <p className="text-xs text-muted-foreground">These items will be shown in the "Preview" tab on the course details page.</p>
+                             <p className="text-xs text-muted-foreground">Add demo classes with video and/or note links.</p>
                         </div>
                         <Button
                             type="button"
@@ -586,12 +586,12 @@ const AdminCourses = () => {
                             onClick={() => {
                                 const newContent = [
                                     ...(form.demo_content || []),
-                                    { type: "video" as const, title: "", url: "", is_locked: false }
+                                    { title: "", video_url: "", note_url: "", is_locked: false }
                                 ];
                                 setForm({ ...form, demo_content: newContent });
                             }}
                         >
-                            <Plus className="w-4 h-4 mr-1" /> Add Item
+                            <Plus className="w-4 h-4 mr-1" /> Add Class
                         </Button>
                     </div>
 
@@ -606,53 +606,46 @@ const AdminCourses = () => {
                             <Card key={idx} className="overflow-hidden">
                                 <CardContent className="p-4 flex gap-4 flex-col md:flex-row md:items-start">
                                     <div className="flex-1 space-y-3">
-                                        <div className="flex gap-4">
-                                            <div className="w-32">
-                                                 <Label className="text-xs text-muted-foreground mb-1 block">Type</Label>
-                                                 <Select
-                                                    value={item.type}
-                                                    onValueChange={(val) => {
-                                                        const updated = [...(form.demo_content || [])];
-                                                        updated[idx] = { ...updated[idx], type: val as "video" | "pdf" | "note" };
-                                                        setForm({ ...form, demo_content: updated });
-                                                    }}
-                                                 >
-                                                    <SelectTrigger className="h-8">
-                                                        <SelectValue />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="video">Video</SelectItem>
-                                                        <SelectItem value="pdf">PDF</SelectItem>
-                                                        <SelectItem value="note">Note</SelectItem>
-                                                    </SelectContent>
-                                                 </Select>
-                                            </div>
-                                            <div className="flex-1">
-                                                <Label className="text-xs text-muted-foreground mb-1 block">Title</Label>
-                                                <Input
-                                                    value={item.title}
-                                                    onChange={(e) => {
-                                                        const updated = [...(form.demo_content || [])];
-                                                        updated[idx] = { ...updated[idx], title: e.target.value };
-                                                        setForm({ ...form, demo_content: updated });
-                                                    }}
-                                                    className="h-8"
-                                                    placeholder="e.g. Introduction Class"
-                                                />
-                                            </div>
-                                        </div>
                                         <div>
-                                             <Label className="text-xs text-muted-foreground mb-1 block">URL</Label>
-                                             <Input
-                                                value={item.url}
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Title</Label>
+                                            <Input
+                                                value={item.title}
                                                 onChange={(e) => {
                                                     const updated = [...(form.demo_content || [])];
-                                                    updated[idx] = { ...updated[idx], url: e.target.value };
+                                                    updated[idx] = { ...updated[idx], title: e.target.value };
                                                     setForm({ ...form, demo_content: updated });
                                                 }}
-                                                className="h-8 font-mono text-xs"
-                                                placeholder="https://..."
+                                                className="h-8"
+                                                placeholder="e.g. Introduction Class"
                                             />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Video URL</Label>
+                                                <Input
+                                                    value={item.video_url || ""}
+                                                    onChange={(e) => {
+                                                        const updated = [...(form.demo_content || [])];
+                                                        updated[idx] = { ...updated[idx], video_url: e.target.value };
+                                                        setForm({ ...form, demo_content: updated });
+                                                    }}
+                                                    className="h-8 font-mono text-xs"
+                                                    placeholder="https://youtube.com..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Note/PDF URL</Label>
+                                                <Input
+                                                    value={item.note_url || ""}
+                                                    onChange={(e) => {
+                                                        const updated = [...(form.demo_content || [])];
+                                                        updated[idx] = { ...updated[idx], note_url: e.target.value };
+                                                        setForm({ ...form, demo_content: updated });
+                                                    }}
+                                                    className="h-8 font-mono text-xs"
+                                                    placeholder="https://drive.google.com..."
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex md:flex-col justify-end gap-2 mt-2 md:mt-0">
