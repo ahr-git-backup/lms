@@ -202,7 +202,9 @@ const Leaderboard = () => {
                                 </div>
                             </TableCell>
                             <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
-                                {attempt.profile?.registration_id}
+                                {attempt.profile?.registration_id
+                                    ? `${attempt.profile.registration_id.slice(0, 2)}...${attempt.profile.registration_id.slice(-2)}`
+                                    : "Unknown"}
                             </TableCell>
                             <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                                 {attempt.score}

@@ -15,35 +15,35 @@ import {
 } from "@/components/ui/sidebar";
 
 const studentItems = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Profile", url: "/dashboard/profile", icon: User },
-  { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock },
-  { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks },
-  { title: "Past Class", url: "/dashboard/past-class", icon: BookOpen },
-  { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText },
-  { title: "Results", url: "/dashboard/results", icon: ClipboardList },
-  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock },
-  { title: "Class Notes", url: "/dashboard/class-notes", icon: StickyNote },
-  { title: "Announcements", url: "/dashboard/announcements", icon: Megaphone, hasDot: true },
-  { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark },
-  { title: "Resources", url: "/dashboard/resources", icon: GraduationCap },
-  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles },
-  { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2 },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
+  { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
+  { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
+  { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
+  { title: "Past Class", url: "/dashboard/past-class", icon: BookOpen, color: "text-orange-500" },
+  { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText, color: "text-yellow-500" },
+  { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
+  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
+  { title: "Class Notes", url: "/dashboard/class-notes", icon: StickyNote, color: "text-pink-500" },
+  { title: "Announcements", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
+  { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
+  { title: "Resources", url: "/dashboard/resources", icon: GraduationCap, color: "text-cyan-500" },
+  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
+  { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
 ];
 
 const adminItems = [
-  { title: "Overview", url: "/dashboard/admin", icon: LayoutDashboard, roles: ["admin", "teacher"] },
-  { title: "Courses", url: "/dashboard/admin/courses", icon: GraduationCap, roles: ["admin"] },
-  { title: "Students", url: "/dashboard/admin/students", icon: Users, roles: ["admin"] },
-  { title: "Class Schedule", url: "/dashboard/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"] },
-  { title: "Exams", url: "/dashboard/admin/exams", icon: ListChecks, roles: ["admin", "teacher"] },
-  { title: "Announcements", url: "/dashboard/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"] },
-  { title: "Resources", url: "/dashboard/admin/resources", icon: BookOpen, roles: ["admin", "teacher"] },
-  { title: "Notes Manager", url: "/dashboard/admin/notes", icon: StickyNote, roles: ["admin", "teacher"] },
-  { title: "Payments", url: "/dashboard/admin/payments", icon: CreditCard, roles: ["admin"] },
-  { title: "Promo Codes", url: "/dashboard/admin/promos", icon: Tag, roles: ["admin"] },
-  { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"] },
-  { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"] },
+  { title: "Overview", url: "/dashboard/admin", icon: LayoutDashboard, roles: ["admin", "teacher"], color: "text-blue-600" },
+  { title: "Courses", url: "/dashboard/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
+  { title: "Students", url: "/dashboard/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
+  { title: "Class Schedule", url: "/dashboard/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-red-600" },
+  { title: "Exams", url: "/dashboard/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
+  { title: "Announcements", url: "/dashboard/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
+  { title: "Resources", url: "/dashboard/admin/resources", icon: BookOpen, roles: ["admin", "teacher"], color: "text-teal-600" },
+  { title: "Notes Manager", url: "/dashboard/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
+  { title: "Payments", url: "/dashboard/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
+  { title: "Promo Codes", url: "/dashboard/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
+  { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
+  { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
 ];
 
 export function AppSidebar() {
@@ -86,13 +86,13 @@ export function AppSidebar() {
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
                       <div className="relative">
-                          <item.icon className="h-4 w-4 shrink-0" />
+                          <item.icon className={`h-5 w-5 shrink-0 ${item.color || ''}`} />
                           {/* @ts-expect-error - hasDot is not in the type definition yet */}
                           {item.hasDot && (
                              <span id="desktop-announcement-dot" className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-blue-500 hidden border border-background" />
                           )}
                       </div>
-                      {state === "expanded" && <span>{item.title}</span>}
+                      {state === "expanded" && <span className="font-medium">{item.title}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -117,8 +117,8 @@ export function AppSidebar() {
                         className="flex items-center gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
                         activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                       >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {state === "expanded" && <span>{item.title}</span>}
+                        <item.icon className={`h-5 w-5 shrink-0 ${item.color || ''}`} />
+                        {state === "expanded" && <span className="font-medium">{item.title}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

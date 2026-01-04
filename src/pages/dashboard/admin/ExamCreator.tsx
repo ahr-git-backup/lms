@@ -230,6 +230,29 @@ const ExamCreator = () => {
     data: Question;
   } | null>(null);
 
+  // Formula Editor State
+  const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetQuill: any | null }>({
+      isOpen: false,
+      targetQuill: null
+  });
+
+  const handleFormulaInsert = (latex: string) => {
+      if (formulaState.targetQuill) {
+          const editor = formulaState.targetQuill.getEditor();
+          const range = editor.getSelection(true);
+          if (range) {
+              editor.insertText(range.index, `$${latex}$`);
+              // Move cursor after the inserted formula
+              editor.setSelection(range.index + latex.length + 2);
+          } else {
+              // Fallback if no selection
+              const length = editor.getLength();
+              editor.insertText(length, `$${latex}$`);
+          }
+      }
+      setFormulaState({ isOpen: false, targetQuill: null });
+  };
+
   const emptyQuestion: Question = {
     question: "",
     options: { A: "", B: "", C: "", D: "" },
@@ -604,11 +627,19 @@ const ExamCreator = () => {
                             onSave={handleSaveQuestion}
                             onCancel={() => setActiveForm(null)}
                             onImageUpload={handleImageUpload}
+                            onOpenFormula={(quillRef: any) => setFormulaState({ isOpen: true, targetQuill: quillRef })}
                         />
                     </div>
                 </Card>
             </div>
         )}
+
+        {/* Global Formula Editor Dialog */}
+        <FormulaEditorDialog
+            isOpen={formulaState.isOpen}
+            onClose={() => setFormulaState({ isOpen: false, targetQuill: null })}
+            onInsert={handleFormulaInsert}
+        />
 
         {/* Questions List */}
         <div className="space-y-8 pb-32">
@@ -748,7 +779,7 @@ const ExamCreator = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload }: any) => {
+const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload, onOpenFormula }: any) => {
     // Helper for updating fields
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const update = (field: string, val: any) => {
@@ -768,20 +799,24 @@ const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload }: any) 
                 ['bold', 'italic', 'underline', 'strike'],
                 [{ 'list': 'ordered'}, { 'list': 'bullet' }],
                 [{ 'script': 'sub'}, { 'script': 'super' }],
+                ['formula'], // Added formula button
                 ['link', 'image', 'clean']
             ],
             handlers: {
-                image: () => onImageUpload(quillRef)
+                image: () => onImageUpload(quillRef),
+                formula: () => onOpenFormula(quillRef)
             }
         }
-    }), [onImageUpload]);
+    }), [onImageUpload, onOpenFormula]);
 
     return (
         <div className="space-y-8">
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">Question Text</Label>
-                    <FormulaHelper />
+                    <Button variant="ghost" size="sm" onClick={() => onOpenFormula(null)} className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
+                        Math Formula Helper (Manual)
+                    </Button>
                 </div>
                 <ExpandableRichTextEditor
                     value={data.question}
@@ -837,7 +872,6 @@ const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload }: any) 
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <Label className="text-base font-semibold">Explanation (Optional)</Label>
-                    <FormulaHelper />
                 </div>
                 <ExpandableRichTextEditor
                     value={data.explanation}
@@ -861,63 +895,91 @@ const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload }: any) 
     );
 };
 
-const FormulaHelper = () => {
+const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, onClose: () => void, onInsert: (latex: string) => void }) => {
     const { toast } = useToast();
+    const [latex, setLatex] = useState("");
+
+    // Reset latex when opened
+    useEffect(() => {
+        if (isOpen) setLatex("");
+    }, [isOpen]);
 
     const copyToClipboard = () => {
-        const text = document.getElementById('math-output')?.innerText;
-        if(text && text.trim() !== 'Type formula...') {
-            navigator.clipboard.writeText(text);
+        if(latex) {
+            navigator.clipboard.writeText('$' + latex + '$');
             toast({ title: "Copied!", description: "LaTeX formula copied to clipboard." });
         } else {
             toast({ title: "Empty", description: "Type a formula first.", variant: "secondary" });
         }
     };
 
+    const handleInsert = () => {
+        if (latex) {
+            onInsert(latex);
+        } else {
+            toast({ title: "Empty", description: "Type a formula first.", variant: "secondary" });
+        }
+    };
+
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
-                    Math Formula Helper
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent
+                className="sm:max-w-[500px]"
+                onPointerDownOutside={(e) => {
+                    // Prevent closing if clicking on mathlive keyboard or related elements
+                    const target = e.target as HTMLElement;
+                    if (
+                        target.closest('math-field') ||
+                        target.closest('.ML__keyboard') ||
+                        target.tagName.toLowerCase().startsWith('math-') ||
+                        target.classList.contains('ML__keyboard') ||
+                        target.closest('[role="dialog"]') // MathLive virtual keyboard might be in a dialog/popover
+                    ) {
+                        e.preventDefault();
+                    }
+                }}
+            >
                 <DialogHeader>
-                    <DialogTitle>MathLive Editor</DialogTitle>
+                    <DialogTitle>Math Formula Editor</DialogTitle>
                 </DialogHeader>
                 <div className="py-4">
                     {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
                     {/* @ts-ignore */}
                     <math-field
-                        virtual-keyboard-mode="manual"
-                        math-virtual-keyboard-policy="manual"
-                        style={{ width: '100%', border: '1px solid #e2e8f0', padding: '10px', borderRadius: '8px', marginBottom: '12px', background: 'white', color: 'black' }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onInput={(e: any) => {
-                             const out = document.getElementById('math-output');
-                             if (out) out.innerText = '$' + e.target.value + '$';
+                        virtual-keyboard-mode="onfocus"
+                        style={{
+                            width: '100%',
+                            border: '1px solid #e2e8f0',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            marginBottom: '12px',
+                            background: 'white',
+                            color: 'black',
+                            fontSize: '1.2em'
                         }}
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        onInput={(e: any) => setLatex(e.target.value)}
                     ></math-field>
 
                     <div className="relative group">
-                         <div className="bg-muted p-3 rounded-lg text-xs font-mono break-all select-all border" id="math-output">
-                             Type formula...
+                         <div className="bg-muted p-3 rounded-lg text-xs font-mono break-all select-all border min-h-[3rem]">
+                             {latex ? `$${latex}$` : <span className="text-muted-foreground italic">Preview...</span>}
                          </div>
                          <Button
                             size="sm"
-                            variant="secondary"
-                            className="absolute right-1 top-1 h-7 text-xs shadow-sm"
+                            variant="ghost"
+                            className="absolute right-1 top-1 h-7 text-xs"
                             onClick={copyToClipboard}
+                            title="Copy to clipboard"
                          >
-                            <Copy className="h-3 w-3 mr-1" /> Copy
+                            <Copy className="h-3 w-3" />
                          </Button>
                     </div>
 
-                    <p className="text-[10px] text-muted-foreground mt-3 leading-relaxed">
-                        1. Type formula in the box (System Keyboard).<br/>
-                        2. Click <b>Copy</b> to get the LaTeX code.<br/>
-                        3. Paste it into the question/option editor.
-                    </p>
+                    <div className="flex justify-end gap-2 mt-4">
+                        <Button variant="outline" onClick={onClose}>Cancel</Button>
+                        <Button onClick={handleInsert}>Insert Formula</Button>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,10 +25,27 @@ const addUserSchema = z.object({
 const PAGE_SIZE = 10;
 
 const AdminStudents = () => {
-  const [selectedCourseFilter, setSelectedCourseFilter] = useState<string>("all");
-  const [page, setPage] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCourseFilter = searchParams.get("course") || "all";
+  const page = parseInt(searchParams.get("page") || "0");
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const setPage = (newPage: number) => {
+      setSearchParams(prev => {
+          prev.set("page", newPage.toString());
+          return prev;
+      });
+  };
+
+  const setSelectedCourseFilter = (courseId: string) => {
+      setSearchParams(prev => {
+          prev.set("course", courseId);
+          prev.set("page", "0"); // Reset page on filter change
+          return prev;
+      });
+  };
 
   useEffect(() => {
     document.title = "Admin   Students   Udvash LMS";
@@ -52,7 +70,7 @@ const AdminStudents = () => {
       // We also fetch 'status' now
       const query = supabase
         .from("profiles")
-        .select("id, registration_id, full_name, batch_year, created_at, status, role, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
+        .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
 
       if (selectedCourseFilter !== "all") {
           const { data, error, count } = await supabase
@@ -189,18 +207,6 @@ const AdminStudents = () => {
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card className="border border-foreground/60">
-          <CardHeader>
-            <CardTitle className="text-base">Create new student</CardTitle>
-            <CardDescription>
-              Use the edge function to create a user without logging out.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-             <CreateStudentForm />
-          </CardContent>
-        </Card>
-
         <Card className="border border-foreground/60">
           <CardHeader>
             <CardTitle className="text-base">Enroll Student</CardTitle>
@@ -342,7 +348,7 @@ const AdminStudents = () => {
                      <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(p => Math.max(0, p - 1))}
+                        onClick={() => setPage(Math.max(0, page - 1))}
                         disabled={page === 0}
                      >
                          <ChevronLeft className="h-4 w-4" />
@@ -351,7 +357,7 @@ const AdminStudents = () => {
                      <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setPage(p => p + 1)}
+                        onClick={() => setPage(page + 1)}
                         disabled={page >= totalPages - 1}
                      >
                          Next
@@ -367,69 +373,6 @@ const AdminStudents = () => {
   );
 };
 
-const CreateStudentForm = () => {
-    const [formData, setFormData] = useState({ registrationId: "", password: "", fullName: "", email: "" });
-    const { toast } = useToast();
-    const queryClient = useQueryClient();
-
-    const createMutation = useMutation({
-        mutationFn: async () => {
-            const { data, error } = await supabase.functions.invoke("create-user", {
-                body: {
-                    registrationId: formData.registrationId,
-                    password: formData.password,
-                    fullName: formData.fullName,
-                    email: formData.email
-                }
-            });
-
-            if (error) throw new Error(error.message);
-            if (!data?.user) throw new Error(data?.error || "Failed to create user");
-            return data;
-        },
-        onSuccess: () => {
-            toast({ title: "User created successfully" });
-            setFormData({ registrationId: "", password: "", fullName: "", email: "" });
-            queryClient.invalidateQueries({ queryKey: ["admin-students"] });
-        },
-        onError: (error: Error) => {
-            toast({ title: "Creation failed", description: error.message, variant: "destructive" });
-        }
-    });
-
-    return (
-        <div className="grid gap-3">
-            <Input
-                placeholder="Full Name"
-                value={formData.fullName}
-                onChange={e => setFormData(p => ({ ...p, fullName: e.target.value }))}
-            />
-            <Input
-                placeholder="Registration ID (User ID)"
-                value={formData.registrationId}
-                onChange={e => setFormData(p => ({ ...p, registrationId: e.target.value }))}
-            />
-            <Input
-                placeholder="Email (Optional)"
-                value={formData.email}
-                onChange={e => setFormData(p => ({ ...p, email: e.target.value }))}
-            />
-            <Input
-                placeholder="Password (min 6 chars)"
-                type="password"
-                value={formData.password}
-                onChange={e => setFormData(p => ({ ...p, password: e.target.value }))}
-            />
-            <Button
-                className="w-full mt-2"
-                onClick={() => createMutation.mutate()}
-                disabled={!formData.registrationId || !formData.password || !formData.fullName || createMutation.isPending}
-            >
-                {createMutation.isPending ? "Creating..." : "Create Account"}
-            </Button>
-        </div>
-    );
-};
 
 const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[] }) => {
     const [registrationId, setRegistrationId] = useState("");

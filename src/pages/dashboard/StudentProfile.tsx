@@ -204,94 +204,6 @@ const StudentProfile = () => {
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Stats Section */}
-        <Card className="md:col-span-2 border border-border bg-gradient-to-br from-card to-secondary/10">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-primary" /> Learning Statistics
-                </CardTitle>
-                <Select value={timeRange} onValueChange={setTimeRange}>
-                  <SelectTrigger className="w-[140px] h-8 text-xs">
-                    <SelectValue placeholder="All Time" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Time</SelectItem>
-                    <SelectItem value="weekly">This Week</SelectItem>
-                    <SelectItem value="monthly">This Month</SelectItem>
-                    <SelectItem value="daily">Today</SelectItem>
-                  </SelectContent>
-                </Select>
-            </CardHeader>
-            <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    <div className="bg-background p-4 rounded-lg border flex flex-col items-center justify-center text-center gap-2 shadow-sm">
-                        <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full text-blue-600">
-                            <Clock className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold">{formatDuration(stats?.total_study_time || 0)}</div>
-                            <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Focus Time</div>
-                        </div>
-                    </div>
-                    {/* ... other stats ... */}
-                    <div className="bg-background p-4 rounded-lg border flex flex-col items-center justify-center text-center gap-2 shadow-sm">
-                        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full text-purple-600">
-                            <Calculator className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <div className="text-2xl font-bold">{gpaScore.toFixed(2)} / 100</div>
-                            <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">GPA Score</div>
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-
-        {/* Enrolled Courses Section */}
-        <div className="md:col-span-2 space-y-4">
-            <h2 className="text-xl font-semibold tracking-tight">My Enrolled Courses</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {enrollments?.map((enrollment) => (
-                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group">
-                        <div className="aspect-video bg-muted relative">
-                             {/* Placeholder for course image if available, else generic pattern */}
-                             <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                <BookOpen className="h-10 w-10 text-primary/40" />
-                             </div>
-                             <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                Active
-                             </div>
-                        </div>
-                        <CardContent className="p-4 space-y-3">
-                            <h3 className="font-bold line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}</span>
-                            </div>
-                            <Button asChild variant="outline" size="sm" className="w-full mt-2">
-                                <Link to={`/dashboard/class-notes`}>
-                                    Continue Learning
-                                </Link>
-                            </Button>
-                        </CardContent>
-                    </Card>
-                ))}
-
-                {/* Buy More Card */}
-                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col items-center justify-center text-center p-6 gap-4 cursor-pointer min-h-[250px] bg-muted/10" onClick={() => window.location.href = "/"}>
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <PlusCircle className="h-6 w-6" />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold">Enroll in New Course</h3>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-[150px] mx-auto">Explore premium courses and boost your preparation.</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="gap-1">
-                        Browse Courses <ArrowRight className="h-3 w-3" />
-                    </Button>
-                </Card>
-            </div>
-        </div>
-
         {/* Edit Profile Form */}
         <Card className="md:col-span-2 border border-foreground/60">
             <CardHeader>
@@ -376,6 +288,54 @@ const StudentProfile = () => {
             )}
             </CardContent>
         </Card>
+
+        {/* Enrolled Courses Section */}
+        <div className="md:col-span-2 space-y-4">
+            <h2 className="text-xl font-semibold tracking-tight">My Enrolled Courses</h2>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {enrollments?.map((enrollment) => (
+                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group">
+                        <div className="aspect-video bg-muted relative overflow-hidden">
+                             {enrollment.course?.image_url ? (
+                                <img src={enrollment.course.image_url} alt={enrollment.course.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
+                             ) : (
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
+                                    <BookOpen className="h-10 w-10 text-primary/40" />
+                                </div>
+                             )}
+                             <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                                Active
+                             </div>
+                        </div>
+                        <CardContent className="p-4 space-y-3">
+                            <h3 className="font-bold line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
+                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                <span>Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}</span>
+                            </div>
+                            <Button asChild variant="outline" size="sm" className="w-full mt-2">
+                                <Link to={`/dashboard/class-notes`}>
+                                    Continue Learning
+                                </Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                ))}
+
+                {/* Buy More Card */}
+                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col items-center justify-center text-center p-6 gap-4 cursor-pointer min-h-[250px] bg-muted/10" onClick={() => window.location.href = "/"}>
+                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        <PlusCircle className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold">Enroll in New Course</h3>
+                        <p className="text-xs text-muted-foreground mt-1 max-w-[150px] mx-auto">Explore premium courses and boost your preparation.</p>
+                    </div>
+                    <Button variant="ghost" size="sm" className="gap-1">
+                        Browse Courses <ArrowRight className="h-3 w-3" />
+                    </Button>
+                </Card>
+            </div>
+        </div>
       </div>
     </section>
   );
