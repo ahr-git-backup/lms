@@ -6,9 +6,14 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileText, BookOpen, Star, ExternalLink } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { useNavigate } from "react-router-dom";
 
 const ClassNotes = () => {
@@ -261,7 +266,9 @@ const NoteCard = ({ note, onBookmark, onOpen }: { note: any, onBookmark: () => v
             <CardContent className="space-y-4 flex-1">
                 {note.content ? (
                     <div className="prose prose-sm dark:prose-invert line-clamp-3 text-muted-foreground/80 pointer-events-none text-xs">
-                        <ReactMarkdown>{note.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {note.content}
+                        </ReactMarkdown>
                     </div>
                 ) : (
                     <p className="text-xs text-muted-foreground/50 italic">No preview available</p>

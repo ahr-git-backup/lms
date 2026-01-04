@@ -8,6 +8,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, FileText, Download, Calendar, BookOpen, Layers, Hash } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { Badge } from "@/components/ui/badge";
 
 const NoteDetails = () => {
@@ -83,7 +86,9 @@ const NoteDetails = () => {
             <CardContent className="p-6 md:p-10">
                 {note.content ? (
                     <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-m-20 prose-headings:tracking-tight prose-a:text-primary hover:prose-a:underline prose-img:rounded-xl">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                            {note.content}
+                        </ReactMarkdown>
                     </article>
                 ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-muted-foreground opacity-50">
