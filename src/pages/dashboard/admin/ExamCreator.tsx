@@ -898,10 +898,18 @@ const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload, onOpenF
 const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, onClose: () => void, onInsert: (latex: string) => void }) => {
     const { toast } = useToast();
     const [latex, setLatex] = useState("");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mathFieldRef = useRef<any>(null);
 
     // Reset latex when opened
     useEffect(() => {
-        if (isOpen) setLatex("");
+        if (isOpen) {
+            setLatex("");
+            // Focus on open
+            setTimeout(() => {
+                if (mathFieldRef.current) mathFieldRef.current.focus();
+            }, 100);
+        }
     }, [isOpen]);
 
     const copyToClipboard = () => {
@@ -927,7 +935,10 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
                 className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto"
                 onPointerDownOutside={(e) => {
                     const target = e.target as HTMLElement;
+                    // Check if target is detached (handles virtual keyboard re-renders like Shift key)
+                    const isDetached = !document.body.contains(target);
                     if (
+                        isDetached ||
                         target.closest('math-field') ||
                         target.closest('.ML__keyboard') ||
                         target.tagName.toLowerCase().startsWith('math-') ||
@@ -939,7 +950,9 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
                 }}
                 onInteractOutside={(e) => {
                     const target = e.target as HTMLElement;
+                    const isDetached = !document.body.contains(target);
                     if (
+                        isDetached ||
                         target.closest('math-field') ||
                         target.closest('.ML__keyboard') ||
                         target.tagName.toLowerCase().startsWith('math-') ||
@@ -958,14 +971,34 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
                     <DialogTitle>Math Formula Editor</DialogTitle>
                 </DialogHeader>
                 <div className="py-4 flex flex-col gap-4">
-                    <p className="text-sm text-muted-foreground">
-                        Use the virtual keyboard or type LaTeX commands directly.
-                    </p>
+                    <div className="flex items-center justify-between">
+                         <p className="text-sm text-muted-foreground">
+                            Type standard keyboard input or use the virtual math keyboard.
+                        </p>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                                const mf = mathFieldRef.current;
+                                if (mf) {
+                                    if (mf.virtualKeyboardState === 'visible') {
+                                        mf.executeCommand('hideVirtualKeyboard');
+                                    } else {
+                                        mf.executeCommand('showVirtualKeyboard');
+                                    }
+                                    mf.focus();
+                                }
+                            }}
+                        >
+                            Toggle Virtual Keyboard
+                        </Button>
+                    </div>
 
                     {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
                     {/* @ts-ignore */}
                     <math-field
-                        virtual-keyboard-mode="onfocus"
+                        ref={mathFieldRef}
+                        virtual-keyboard-mode="manual"
                         style={{
                             width: '100%',
                             border: '2px solid #3b82f6',
