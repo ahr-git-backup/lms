@@ -45,6 +45,7 @@ import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
+import DemoClassPlayerPage from "./pages/dashboard/DemoClassPlayerPage";
 import Program from "./pages/dashboard/Program";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
@@ -102,6 +103,7 @@ const App = () => {
               <Route path="/register" element={<Register />} />
               <Route path="/courses/:courseId" element={<CourseDetails />} />
               <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
+              <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<DashboardHome />} />

@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import "katex/dist/katex.min.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Course } from "@/types/admin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,16 +16,31 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+
+const demoContentSchema = z.object({
+  title: z.string().min(1, "Title required"),
+  video_url: z.string().trim().optional().or(z.literal("")),
+  note_url: z.string().trim().optional().or(z.literal("")),
+  is_locked: z.boolean().default(false),
+});
 
 const courseSchema = z.object({
   id: z.string().optional(),
@@ -33,12 +53,19 @@ const courseSchema = z.object({
     .optional()
     .or(z.literal(""))
     .refine((val) => !val || !isNaN(Number(val)), { message: "Price must be a number" }),
+  original_price: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Original Price must be a number" }),
   what_you_get: z
     .string()
     .trim()
     .max(10000)
     .optional()
     .or(z.literal("")),
+  demo_content: z.array(demoContentSchema).optional().default([]),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
   bkash_number: z.string().trim().max(50).optional().or(z.literal("")),
   nagad_number: z.string().trim().max(50).optional().or(z.literal("")),
@@ -55,7 +82,9 @@ const AdminCourses = () => {
     short_description: "",
     full_description: "",
     price: "",
+    original_price: "",
     what_you_get: "",
+    demo_content: [],
     image_url: "",
     bkash_number: "",
     nagad_number: "",
@@ -67,6 +96,11 @@ const AdminCourses = () => {
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [selectedCourseForCoupon, setSelectedCourseForCoupon] = useState<Course | null>(null);
   const [couponCode, setCouponCode] = useState("");
+  const [activeTab, setActiveTab] = useState("basic");
+
+  // Preview mode state for the markdown editor
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -87,6 +121,22 @@ const AdminCourses = () => {
     },
   });
 
+  // Fetch classes for the current editing course to display in Syllabus tab
+  const { data: linkedClasses } = useQuery({
+    queryKey: ["admin-course-classes", form.id],
+    queryFn: async () => {
+        if (!form.id) return [];
+        const { data, error } = await supabase
+            .from("classes")
+            .select("id, title, class_type, start_at")
+            .eq("course_id", form.id)
+            .order("start_at", { ascending: true });
+        if (error) throw error;
+        return data;
+    },
+    enabled: !!form.id
+  });
+
   const courses = coursesData?.data || [];
   const totalCount = coursesData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -97,7 +147,9 @@ const AdminCourses = () => {
       short_description: "",
       full_description: "",
       price: "",
+      original_price: "",
       what_you_get: "",
+      demo_content: [],
       image_url: "",
       bkash_number: "",
       nagad_number: "",
@@ -105,19 +157,23 @@ const AdminCourses = () => {
       is_active: true,
       is_public: true,
     });
+    setActiveTab("basic");
   };
 
   const upsertMutation = useMutation({
     mutationFn: async (values: z.infer<typeof courseSchema>) => {
       const parsed = courseSchema.parse(values);
-      const payload: Partial<Course> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
         name: parsed.name,
         short_description: parsed.short_description || null,
         full_description: parsed.full_description || null,
         price: parsed.price ? Number(parsed.price) : null,
+        original_price: parsed.original_price ? Number(parsed.original_price) : null,
         what_you_get: parsed.what_you_get
           ? [parsed.what_you_get]
           : null,
+        demo_content: parsed.demo_content,
         image_url: parsed.image_url || null,
         bkash_number: parsed.bkash_number || null,
         nagad_number: parsed.nagad_number || null,
@@ -176,7 +232,9 @@ const AdminCourses = () => {
       short_description: course.short_description ?? "",
       full_description: course.full_description ?? "",
       price: course.price != null ? String(course.price) : "",
+      original_price: course.original_price != null ? String(course.original_price) : "",
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
+      demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
       bkash_number: course.bkash_number ?? "",
       nagad_number: course.nagad_number ?? "",
@@ -184,6 +242,8 @@ const AdminCourses = () => {
       is_active: course.is_active ?? true,
       is_public: course.is_public ?? true,
     });
+    // Scroll to top to see the form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -281,157 +341,362 @@ const AdminCourses = () => {
         </p>
       </header>
 
-      <Card className="border border-foreground/60">
-        <CardHeader>
-          <CardTitle className="text-base">
-            {form.id ? "Edit course" : "Create new course"}
+      <Card className="border border-foreground/60 shadow-sm">
+        <CardHeader className="bg-muted/10 pb-4">
+          <CardTitle className="text-lg">
+            {form.id ? "Edit Course" : "Create New Course"}
           </CardTitle>
           <CardDescription>
-            Control visibility, descriptions, pricing, and the "what you get" bullet list.
+            Use the tabs below to configure all aspects of the course.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
+        <CardContent className="p-0">
+          <form onSubmit={handleSubmit}>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <div className="overflow-x-auto border-b bg-muted/5 px-4 pt-2">
+                  <TabsList className="h-auto w-full justify-start gap-2 bg-transparent p-0">
+                    <TabsTrigger value="basic" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Basic Info</TabsTrigger>
+                    <TabsTrigger value="description" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Description</TabsTrigger>
+                    <TabsTrigger value="content" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Curriculum Info</TabsTrigger>
+                    <TabsTrigger value="syllabus" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3" disabled={!form.id}>Syllabus</TabsTrigger>
+                    <TabsTrigger value="demos" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Demo Content</TabsTrigger>
+                  </TabsList>
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (৳)</Label>
-              <Input
-                id="price"
-                value={form.price}
-                onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-                placeholder="Ex: 3000"
-              />
-            </div>
+              <div className="p-6">
+                <TabsContent value="basic" className="mt-0 space-y-4">
+                    <div className="grid gap-6 md:grid-cols-2">
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Course Name</Label>
+                        <Input
+                        id="name"
+                        value={form.name}
+                        onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                        className="text-lg font-medium"
+                        placeholder="e.g. Engineering Admission 2024"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="short_description">Short description</Label>
-              <Textarea
-                id="short_description"
-                rows={2}
-                value={form.short_description}
-                onChange={(e) => setForm((prev) => ({ ...prev, short_description: e.target.value }))}
-              />
-            </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="price">Price (৳)</Label>
+                        <Input
+                        id="price"
+                        value={form.price}
+                        onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                        placeholder="Ex: 3000"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="full_description">Full description</Label>
-              <Textarea
-                id="full_description"
-                rows={4}
-                value={form.full_description}
-                onChange={(e) => setForm((prev) => ({ ...prev, full_description: e.target.value }))}
-              />
-            </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="original_price">Original / Fake Price (৳)</Label>
+                        <Input
+                        id="original_price"
+                        value={form.original_price}
+                        onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
+                        placeholder="Ex: 5000 (Shows as strikethrough)"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="what_you_get">
-                What students get (Markdown Supported)
-              </Label>
-              <Textarea
-                id="what_you_get"
-                rows={10}
-                value={form.what_you_get}
-                onChange={(e) => setForm((prev) => ({ ...prev, what_you_get: e.target.value }))}
-                placeholder={"# Markdown Supported\n- Paste your full passage here\n- Bullet points work too\n- **Bold text** supported"}
-              />
-              <p className="text-xs text-muted-foreground">You can paste a Markdown passage here. It will be rendered nicely.</p>
-            </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
+                        <Input
+                        id="image_url"
+                        value={form.image_url}
+                        onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
+                        placeholder="https://..."
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
-              <Input
-                id="image_url"
-                value={form.image_url}
-                onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
-                placeholder="https://..."
-              />
-            </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="bkash_number">bKash number (optional)</Label>
+                        <Input
+                        id="bkash_number"
+                        value={form.bkash_number}
+                        onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
+                        placeholder="01XXXXXXXXX"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="bkash_number">bKash number (optional)</Label>
-              <Input
-                id="bkash_number"
-                value={form.bkash_number}
-                onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
-                placeholder="01XXXXXXXXX"
-              />
-            </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="nagad_number">Nagad number (optional)</Label>
+                        <Input
+                        id="nagad_number"
+                        value={form.nagad_number}
+                        onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
+                        placeholder="01XXXXXXXXX"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="nagad_number">Nagad number (optional)</Label>
-              <Input
-                id="nagad_number"
-                value={form.nagad_number}
-                onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
-                placeholder="01XXXXXXXXX"
-              />
-            </div>
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="contact_info">Contact info for payment confirmation (optional)</Label>
+                        <Input
+                        id="contact_info"
+                        value={form.contact_info}
+                        onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
+                        placeholder="e.g. Telegram @handle or phone number"
+                        />
+                    </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="contact_info">Contact info for payment confirmation (optional)</Label>
-              <Input
-                id="contact_info"
-                value={form.contact_info}
-                onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
-                placeholder="e.g. Telegram @handle or phone number"
-              />
-            </div>
+                    <div className="flex items-center gap-4 md:col-span-2 border p-4 rounded-lg bg-muted/20">
+                        <div className="flex items-center gap-2">
+                            <Switch
+                            id="is_active"
+                            checked={form.is_active}
+                            onCheckedChange={(checked) =>
+                                setForm((prev) => ({ ...prev, is_active: checked }))
+                            }
+                            />
+                            <Label htmlFor="is_active">Is Active</Label>
+                        </div>
+                        <div className="w-px h-6 bg-border mx-2"></div>
+                        <div className="flex items-center gap-2">
+                            <Switch
+                            id="is_public"
+                            checked={form.is_public}
+                            onCheckedChange={(checked) =>
+                                setForm((prev) => ({ ...prev, is_public: checked }))
+                            }
+                            />
+                            <Label htmlFor="is_public">Publicly Listed</Label>
+                        </div>
+                    </div>
+                    </div>
+                </TabsContent>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Switch
-                id="is_active"
-                checked={form.is_active}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, is_active: checked }))
-                }
-              />
-              <Label htmlFor="is_active">Course is active / visible to students</Label>
-            </div>
+                <TabsContent value="description" className="mt-0 space-y-4">
+                    <div className="space-y-2">
+                    <Label htmlFor="short_description">Short description</Label>
+                    <Textarea
+                        id="short_description"
+                        rows={3}
+                        value={form.short_description}
+                        onChange={(e) => setForm((prev) => ({ ...prev, short_description: e.target.value }))}
+                        placeholder="A brief overview shown on course cards..."
+                    />
+                    </div>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Switch
-                id="is_public"
-                checked={form.is_public}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, is_public: checked }))
-                }
-              />
-              <Label htmlFor="is_public">Publicly listed (Show on homepage catalog)</Label>
-            </div>
+                    <div className="space-y-2">
+                    <Label htmlFor="full_description">Full description</Label>
+                    <Textarea
+                        id="full_description"
+                        rows={12}
+                        value={form.full_description}
+                        onChange={(e) => setForm((prev) => ({ ...prev, full_description: e.target.value }))}
+                        placeholder="Detailed description of the course..."
+                    />
+                    </div>
+                </TabsContent>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
-                {upsertMutation.isPending ? "Saving..." : form.id ? "Update course" : "Create course"}
-              </Button>
-              {form.id && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={resetForm}
-                  disabled={upsertMutation.isPending}
-                >
-                  Cancel edit
+                <TabsContent value="content" className="mt-0 space-y-4">
+                    <div className="flex justify-between items-center mb-2">
+                        <Label htmlFor="what_you_get">
+                            "What you get" Section (Markdown)
+                        </Label>
+                        <div className="flex items-center gap-2 lg:hidden">
+                            <Label className="text-xs">Preview</Label>
+                            <Switch checked={isPreviewMode} onCheckedChange={setIsPreviewMode} />
+                        </div>
+                    </div>
+
+                    <div className="grid lg:grid-cols-2 gap-4 h-[500px]">
+                        <div className={`h-full flex flex-col ${isPreviewMode ? 'hidden lg:flex' : 'flex'}`}>
+                             <Textarea
+                                id="what_you_get"
+                                className="flex-1 font-mono text-sm resize-none"
+                                value={form.what_you_get}
+                                onChange={(e) => setForm((prev) => ({ ...prev, what_you_get: e.target.value }))}
+                                placeholder={"# Course Features\n\n- Feature 1\n- Feature 2\n- **Bold**\n\n$$E=mc^2$$"}
+                            />
+                            <p className="text-xs text-muted-foreground mt-2">Use Markdown & LaTeX for rich text.</p>
+                        </div>
+                        <div className={`h-full overflow-y-auto border rounded-md p-4 bg-card ${!isPreviewMode ? 'hidden lg:block' : 'block'}`}>
+                            <div className="prose prose-sm dark:prose-invert max-w-none">
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkMath]}
+                                    rehypePlugins={[rehypeKatex]}
+                                >
+                                    {form.what_you_get || "_No content preview_"}
+                                </ReactMarkdown>
+                            </div>
+                        </div>
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="syllabus" className="mt-0 space-y-4">
+                    {/* Read-only view of linked classes */}
+                     <div className="flex justify-between items-center bg-muted/20 p-4 rounded-lg border">
+                         <div>
+                             <h3 className="font-semibold">Linked Classes</h3>
+                             <p className="text-sm text-muted-foreground">
+                                 {linkedClasses?.length || 0} classes are currently assigned to this course.
+                             </p>
+                         </div>
+                         <Button asChild size="sm" variant="outline">
+                             <a href="/dashboard/admin/classes" target="_blank">
+                                 Manage Classes <ExternalLink className="w-3 h-3 ml-2" />
+                             </a>
+                         </Button>
+                     </div>
+
+                     <div className="border rounded-md">
+                         <Table>
+                             <TableHeader>
+                                 <TableRow>
+                                     <TableHead>Class Title</TableHead>
+                                     <TableHead>Type</TableHead>
+                                     <TableHead>Date</TableHead>
+                                 </TableRow>
+                             </TableHeader>
+                             <TableBody>
+                                 {linkedClasses?.length === 0 ? (
+                                     <TableRow>
+                                         <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
+                                             No classes found for this course. Go to "Classes" to add some.
+                                         </TableCell>
+                                     </TableRow>
+                                 ) : (
+                                     linkedClasses?.map((cls) => (
+                                         <TableRow key={cls.id}>
+                                             <TableCell className="font-medium">{cls.title}</TableCell>
+                                             <TableCell>
+                                                 <Badge variant="secondary" className="uppercase text-[10px]">
+                                                     {cls.class_type}
+                                                 </Badge>
+                                             </TableCell>
+                                             <TableCell className="text-xs text-muted-foreground">
+                                                 {new Date(cls.start_at).toLocaleDateString()}
+                                             </TableCell>
+                                         </TableRow>
+                                     ))
+                                 )}
+                             </TableBody>
+                         </Table>
+                     </div>
+                </TabsContent>
+
+                <TabsContent value="demos" className="mt-0 space-y-4">
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="space-y-1">
+                             <h4 className="text-sm font-semibold">Demo / Preview Content</h4>
+                             <p className="text-xs text-muted-foreground">Add demo classes with video and/or note links.</p>
+                        </div>
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => {
+                                const newContent = [
+                                    ...(form.demo_content || []),
+                                    { title: "", video_url: "", note_url: "", is_locked: false }
+                                ];
+                                setForm({ ...form, demo_content: newContent });
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-1" /> Add Class
+                        </Button>
+                    </div>
+
+                    {form.demo_content?.length === 0 && (
+                         <div className="text-center py-12 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
+                             No demo content added yet.
+                         </div>
+                    )}
+
+                    <div className="grid gap-4">
+                        {form.demo_content?.map((item, idx) => (
+                            <Card key={idx} className="overflow-hidden">
+                                <CardContent className="p-4 flex gap-4 flex-col md:flex-row md:items-start">
+                                    <div className="flex-1 space-y-3">
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Title</Label>
+                                            <Input
+                                                value={item.title}
+                                                onChange={(e) => {
+                                                    const updated = [...(form.demo_content || [])];
+                                                    updated[idx] = { ...updated[idx], title: e.target.value };
+                                                    setForm({ ...form, demo_content: updated });
+                                                }}
+                                                className="h-8"
+                                                placeholder="e.g. Introduction Class"
+                                            />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Video URL</Label>
+                                                <Input
+                                                    value={item.video_url || ""}
+                                                    onChange={(e) => {
+                                                        const updated = [...(form.demo_content || [])];
+                                                        updated[idx] = { ...updated[idx], video_url: e.target.value };
+                                                        setForm({ ...form, demo_content: updated });
+                                                    }}
+                                                    className="h-8 font-mono text-xs"
+                                                    placeholder="https://youtube.com..."
+                                                />
+                                            </div>
+                                            <div>
+                                                <Label className="text-xs text-muted-foreground mb-1 block">Note/PDF URL</Label>
+                                                <Input
+                                                    value={item.note_url || ""}
+                                                    onChange={(e) => {
+                                                        const updated = [...(form.demo_content || [])];
+                                                        updated[idx] = { ...updated[idx], note_url: e.target.value };
+                                                        setForm({ ...form, demo_content: updated });
+                                                    }}
+                                                    className="h-8 font-mono text-xs"
+                                                    placeholder="https://drive.google.com..."
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex md:flex-col justify-end gap-2 mt-2 md:mt-0">
+                                         <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="destructive"
+                                            className="h-8 w-full md:w-auto"
+                                            onClick={() => {
+                                                 const updated = form.demo_content?.filter((_, i) => i !== idx);
+                                                 setForm({ ...form, demo_content: updated });
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4 md:mr-2" />
+                                            <span className="md:inline hidden">Remove</span>
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    </div>
+                </TabsContent>
+              </div>
+
+              <div className="flex items-center gap-2 p-6 pt-0">
+                <Button type="submit" disabled={upsertMutation.isPending} className="w-full md:w-auto">
+                  {upsertMutation.isPending ? "Saving..." : form.id ? "Update Course" : "Create Course"}
                 </Button>
-              )}
-            </div>
+                {form.id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetForm}
+                    disabled={upsertMutation.isPending}
+                    className="w-full md:w-auto"
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </Tabs>
           </form>
         </CardContent>
       </Card>
 
+      {/* Courses List Section - Collapsible or separate card */}
       <Card className="border border-foreground/60">
         <CardHeader>
-          <CardTitle className="text-base">All courses</CardTitle>
+          <CardTitle className="text-base">All Courses</CardTitle>
           <CardDescription>
-            These courses appear on the public site and drive enrollments.
+            Manage existing courses.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -441,64 +706,66 @@ const AdminCourses = () => {
             <div className="text-sm text-muted-foreground">No courses defined yet.</div>
           ) : (
             <>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Public</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {courses.map((course: Course) => (
-                  <TableRow key={course.id} className="cursor-pointer" onClick={() => handleEdit(course)}>
-                    <TableCell className="font-medium">{course.name}</TableCell>
-                    <TableCell>
-                      {course.price != null ? `৳${course.price}` : <span className="text-xs text-muted-foreground">Not set</span>}
-                    </TableCell>
-                    <TableCell>
-                      {course.is_public !== false ? "Yes" : <span className="text-xs text-muted-foreground">No</span>}
-                    </TableCell>
-                    <TableCell>
-                      {course.is_active ? (
-                        <span className="text-xs">Active</span>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Inactive</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            title="Generate Free Coupon"
-                            onClick={(e) => openCouponDialog(course, e)}
-                          >
-                             <Ticket className="h-4 w-4 text-green-600" />
-                          </Button>
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="hover:bg-destructive/10"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (window.confirm("Delete this course? This cannot be undone.")) {
-                                deleteMutation.mutate(course.id);
-                              }
-                            }}
-                          >
-                             <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <div className="rounded-md border overflow-x-auto">
+                <Table>
+                <TableHeader>
+                    <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Public</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {courses.map((course: Course) => (
+                    <TableRow key={course.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(course)}>
+                        <TableCell className="font-medium whitespace-nowrap">{course.name}</TableCell>
+                        <TableCell>
+                        {course.price != null ? `৳${course.price}` : <span className="text-xs text-muted-foreground">Not set</span>}
+                        </TableCell>
+                        <TableCell>
+                        {course.is_public !== false ? "Yes" : <span className="text-xs text-muted-foreground">No</span>}
+                        </TableCell>
+                        <TableCell>
+                        {course.is_active ? (
+                            <Badge variant="default" className="text-[10px] bg-green-600 hover:bg-green-700">Active</Badge>
+                        ) : (
+                            <Badge variant="secondary" className="text-[10px]">Inactive</Badge>
+                        )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                title="Generate Free Coupon"
+                                onClick={(e) => openCouponDialog(course, e)}
+                            >
+                                <Ticket className="h-4 w-4 text-green-600" />
+                            </Button>
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="hover:bg-destructive/10"
+                                onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm("Delete this course? This cannot be undone.")) {
+                                    deleteMutation.mutate(course.id);
+                                }
+                                }}
+                            >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </div>
+                        </TableCell>
+                    </TableRow>
+                    ))}
+                </TableBody>
+                </Table>
+            </div>
 
             {/* Pagination Controls */}
             <div className="flex items-center justify-between pt-4">

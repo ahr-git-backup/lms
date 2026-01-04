@@ -1,20 +1,24 @@
 import { useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css"; // Import KaTeX styles
+import "katex/dist/katex.min.css";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Badge } from "@/components/ui/badge";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { DemoContentItem } from "@/types/admin";
+import { PlayCircle, FileText, Lock } from "lucide-react";
 
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();
+  const navigate = useNavigate();
 
   const {
     data: course,
@@ -27,7 +31,7 @@ const CourseDetails = () => {
 
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, full_description, short_description, price, image_url, what_you_get, slug")
+        .select("id, name, full_description, short_description, price, original_price, image_url, what_you_get, demo_content, slug")
         .or(`slug.eq.${courseId},id.eq.${courseId}`)
         .maybeSingle();
 
@@ -45,90 +49,123 @@ const CourseDetails = () => {
     }
   }, [course?.name]);
 
-  const benefits = Array.isArray(course?.what_you_get) && course.what_you_get.length > 0
-    ? course.what_you_get
-    : [
-        "Live & recorded classes",
-        "Weekly or topic-wise exams",
-        "Detailed solution sheets",
-        "Class notes & resources",
-      ];
-
-  // Combine all items into one string (newline separated) to handle both legacy arrays and new single-string markdown blocks
-  const markdownContent = benefits.join("\n");
-
-  const description = course?.full_description || course?.short_description ||
-    "Deep-dive course with structured classes, exams, and resources to prepare you confidently.";
-
   const idOrSlug = course?.slug || course?.id || courseId;
 
+  // Safe parsing of demo_content
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const demoContent: DemoContentItem[] = (course?.demo_content as any) || [];
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-16">
       <PublicHeader />
-      <main className="mx-auto flex max-w-3xl flex-col gap-8 px-4 pb-16 pt-10 sm:pt-14">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Course details</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            {isLoading ? "Loading course..." : course?.name ?? "Course not found"}
-          </h1>
-          {!isLoading && !isError && course && (
-            <p className="mt-3 max-w-2xl text-sm text-muted-foreground">{description}</p>
-          )}
-          {isError && (
-            <p className="mt-3 max-w-2xl text-sm text-destructive">Failed to load course. Please try again.</p>
-          )}
-        </div>
 
-        {course?.image_url && (
-          <Card className="border-[3px] border-foreground">
-            <AspectRatio ratio={16 / 9}>
-              <img
-                src={course.image_url}
-                alt={`${course.name} cover`}
-                className="h-full w-full rounded-[22px] object-cover"
-              />
-            </AspectRatio>
-          </Card>
-        )}
+      <main className="mx-auto max-w-4xl px-4 py-8 space-y-8">
 
-        <Card className="border-[3px] border-foreground">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">What you get</CardTitle>
-            <CardDescription className="text-xs">
-              Clear list of everything included with this course.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-0">
-            <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-table:border prose-th:border prose-td:border prose-th:p-2 prose-td:p-2 prose-img:rounded-xl">
-               <ReactMarkdown
-                 remarkPlugins={[remarkGfm, remarkMath]}
-                 rehypePlugins={[rehypeKatex]}
-               >
-                 {markdownContent}
-               </ReactMarkdown>
-            </div>
+          {/* 1. Course Image */}
+          <div className="w-full max-w-2xl mx-auto rounded-xl overflow-hidden border bg-muted shadow-sm">
+             <AspectRatio ratio={16 / 9}>
+                  {course?.image_url ? (
+                      <img
+                          src={course.image_url}
+                          alt={`${course.name} cover`}
+                          className="h-full w-full object-cover"
+                      />
+                  ) : (
+                      <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                          No Image Available
+                      </div>
+                  )}
+             </AspectRatio>
+          </div>
 
-            <div className="flex flex-col items-start justify-between gap-4 border-t pt-4 text-sm sm:flex-row sm:items-center mt-4">
-              <div>
-                <span className="text-xs uppercase text-muted-foreground">Course fee</span>
-                <div className="text-lg font-semibold">
-                  {course?.price != null
-                    ? `৳${Number(course.price).toLocaleString("en-BD")}`
-                    : "Contact for fee"}
-                </div>
+          {/* 2. Course Name */}
+          <div className="text-center space-y-2">
+               <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                   {isLoading ? "Loading..." : course?.name ?? "Course not found"}
+               </h1>
+               {!isLoading && !isError && course?.short_description && (
+                   <p className="text-muted-foreground max-w-2xl mx-auto">{course.short_description}</p>
+               )}
+          </div>
+
+          {/* 3. Description (Full Page) */}
+          <div className="border-t pt-8">
+              <h2 className="text-xl font-semibold mb-4">Course Description</h2>
+              <div className="prose prose-stone dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                      {course?.full_description || "No description available."}
+                  </ReactMarkdown>
               </div>
-              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-                <Button asChild className="flex-1 sm:flex-none" disabled={!course && !isLoading}>
-                  <a href={idOrSlug ? `/courses/${idOrSlug}/buy` : "#"}>Buy Instructions</a>
-                </Button>
-                <Button asChild variant="outline" className="flex-1 sm:flex-none">
-                  <a href="/login">Student Login</a>
-                </Button>
+          </div>
+
+          {/* 4. What You Get (Markdown Supported) */}
+          {course?.what_you_get && Array.isArray(course.what_you_get) && course.what_you_get.length > 0 && (
+              <div className="border-t pt-8">
+                  <h2 className="text-xl font-semibold mb-4">What you will get</h2>
+                  <div className="prose prose-stone dark:prose-invert max-w-none">
+                      <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                          {course.what_you_get.join("\n")}
+                      </ReactMarkdown>
+                  </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+          )}
+
+          {/* 5. Demo Classes (Minimized List) */}
+          {demoContent.length > 0 && (
+              <div className="border-t pt-8">
+                  <h2 className="text-xl font-semibold mb-4">Demo Classes</h2>
+                  <div className="space-y-2 max-w-2xl">
+                      {demoContent.map((item, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-3 p-3 rounded-md border hover:bg-muted/50 transition-colors group"
+                          >
+                               <div className="bg-primary/10 p-2 rounded-full text-primary">
+                                   <PlayCircle className="w-5 h-5" />
+                               </div>
+                               <div className="flex-1">
+                                   <p className="font-medium text-sm">{item.title}</p>
+                                   <div className="flex gap-2 text-xs text-muted-foreground">
+                                       {item.video_url && <span className="flex items-center gap-1"><PlayCircle className="w-3 h-3" /> Video</span>}
+                                       {item.note_url && <span className="flex items-center gap-1"><FileText className="w-3 h-3" /> Note</span>}
+                                   </div>
+                               </div>
+                               <div className="flex gap-2">
+                                   {item.video_url && (
+                                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/courses/${idOrSlug}/demo/${idx}?type=video`)}>
+                                           Watch
+                                       </Button>
+                                   )}
+                                   {item.note_url && (
+                                       <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/courses/${idOrSlug}/demo/${idx}?type=note`)}>
+                                           Note
+                                       </Button>
+                                   )}
+                                   {item.is_locked && <Lock className="w-4 h-4 text-muted-foreground ml-2" />}
+                               </div>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          )}
       </main>
+
+      {/* Sticky Bottom Bar for Mobile (Optional, currently keeping generic flow but can add if requested or needed) */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 md:hidden flex items-center justify-between gap-4 shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
+          <div className="flex flex-col">
+              {course?.original_price && (
+                  <span className="text-[10px] text-muted-foreground line-through">
+                      ৳{Number(course.original_price).toLocaleString("en-BD")}
+                  </span>
+              )}
+              <span className="text-xl font-bold text-primary">
+                  {course?.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Free"}
+              </span>
+          </div>
+          <Button asChild size="lg" className="flex-1 shadow-md" disabled={!course && !isLoading}>
+              <a href={idOrSlug ? `/courses/${idOrSlug}/buy` : "#"}>Enroll Now</a>
+          </Button>
+      </div>
     </div>
   );
 };
