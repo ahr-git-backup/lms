@@ -37,6 +37,7 @@ export interface Course {
   short_description?: string | null;
   full_description?: string | null;
   price?: number | null;
+  original_price?: number | null;
   what_you_get?: string[] | null;
   demo_content?: DemoContentItem[] | null;
   image_url?: string | null;

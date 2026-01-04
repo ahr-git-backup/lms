@@ -53,6 +53,12 @@ const courseSchema = z.object({
     .optional()
     .or(z.literal(""))
     .refine((val) => !val || !isNaN(Number(val)), { message: "Price must be a number" }),
+  original_price: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Original Price must be a number" }),
   what_you_get: z
     .string()
     .trim()
@@ -76,6 +82,7 @@ const AdminCourses = () => {
     short_description: "",
     full_description: "",
     price: "",
+    original_price: "",
     what_you_get: "",
     demo_content: [],
     image_url: "",
@@ -140,6 +147,7 @@ const AdminCourses = () => {
       short_description: "",
       full_description: "",
       price: "",
+      original_price: "",
       what_you_get: "",
       demo_content: [],
       image_url: "",
@@ -161,6 +169,7 @@ const AdminCourses = () => {
         short_description: parsed.short_description || null,
         full_description: parsed.full_description || null,
         price: parsed.price ? Number(parsed.price) : null,
+        original_price: parsed.original_price ? Number(parsed.original_price) : null,
         what_you_get: parsed.what_you_get
           ? [parsed.what_you_get]
           : null,
@@ -223,6 +232,7 @@ const AdminCourses = () => {
       short_description: course.short_description ?? "",
       full_description: course.full_description ?? "",
       price: course.price != null ? String(course.price) : "",
+      original_price: course.original_price != null ? String(course.original_price) : "",
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
       demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
@@ -374,6 +384,16 @@ const AdminCourses = () => {
                         value={form.price}
                         onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
                         placeholder="Ex: 3000"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="original_price">Original / Fake Price (৳)</Label>
+                        <Input
+                        id="original_price"
+                        value={form.original_price}
+                        onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
+                        placeholder="Ex: 5000 (Shows as strikethrough)"
                         />
                     </div>
 
