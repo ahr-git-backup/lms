@@ -109,7 +109,7 @@ const LiveClass = () => {
             const isActive = start && end && now >= start && now <= end;
 
             return (
-            <Card key={classItem.id} className={`border transition-all ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/20 dark:bg-blue-900/20' : 'border-blue-200 bg-blue-50/10 dark:border-blue-800 dark:bg-blue-900/5'}`}>
+            <Card key={classItem.id} className={`border transition-all rounded-2xl shadow-md hover:shadow-lg ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-gray-100 bg-white dark:bg-card dark:border-gray-800'}`}>
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -154,12 +154,12 @@ const LiveClass = () => {
                 )}
                 <div className="flex gap-2">
                   {classItem.video_url && (
-                    <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className={isActive ? "bg-blue-600 hover:bg-blue-700" : ""}>
-                        {isActive ? "Join Live Class" : "Join Class"}
+                    <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className={`rounded-full ${isActive ? "bg-blue-600 hover:bg-blue-700" : ""}`}>
+                        Class
                     </Button>
                   )}
                   {classItem.button_text && classItem.button_url && (
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="sm" variant="outline" className="rounded-full" asChild>
                       <a href={classItem.button_url} target="_blank" rel="noopener noreferrer">
                         {classItem.button_text}
                       </a>
