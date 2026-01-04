@@ -13,6 +13,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
+import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LiveClass from "./pages/dashboard/LiveClass";
@@ -98,12 +99,14 @@ const App = () => {
           <AuthProvider>
             <NotificationProvider>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/courses/:courseId" element={<CourseDetails />} />
-              <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
-              <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<Index />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/courses/:courseId" element={<CourseDetails />} />
+                <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
+                <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
+              </Route>
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<DashboardHome />} />

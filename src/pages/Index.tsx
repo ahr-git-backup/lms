@@ -145,7 +145,7 @@ const Index = () => {
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
               <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
-                <a href={hero.cta_link || "#"} className="block relative w-full h-[50vh] md:h-[calc(100vh-64px)] overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity">
+                <a href={hero.cta_link || "#"} className="block relative w-full h-auto aspect-video md:aspect-auto md:h-[calc(100vh-64px)] overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
                      <div className="h-full w-full relative">
                         {/* Blurred background for fill */}
@@ -394,9 +394,6 @@ const Index = () => {
           </div>
       </section>
 
-      <footer className="bg-background border-t py-6 text-center text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} Beshi Joss LMS. All rights reserved.</p>
-      </footer>
     </div>
   );
 };

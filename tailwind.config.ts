@@ -89,6 +89,7 @@ export default {
   		},
 			fontFamily: {
 				sans: [
+                    "Kalpurush",
 					"DM Sans",
 					"ui-sans-serif",
 					"system-ui",
