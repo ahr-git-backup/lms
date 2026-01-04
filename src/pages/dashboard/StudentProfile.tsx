@@ -205,85 +205,161 @@ const StudentProfile = () => {
       </header>
 
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Edit Profile Form */}
+        {/* Profile Card (Compact vs Edit) */}
         <Card className="md:col-span-2 border border-foreground/60">
-            <CardHeader>
-            <CardTitle className="text-base">Personal Details</CardTitle>
-            <CardDescription>
-                Update your contact and academic information.
-            </CardDescription>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div className="space-y-1">
+                    <CardTitle className="text-base">Personal Details</CardTitle>
+                    <CardDescription>
+                        {isEditing ? "Update your contact and academic information." : "Your registered profile information."}
+                    </CardDescription>
+                </div>
+                {!isEditing && (
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditing(true)}>
+                        <PenTool className="h-4 w-4 mr-2" /> Edit Profile
+                    </Button>
+                )}
             </CardHeader>
             <CardContent>
             {profile ? (
-                <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
-                <div className="grid md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="full_name">Full name</Label>
-                        <Input id="full_name" {...form.register("full_name")} disabled />
-                    </div>
-                    <div className="space-y-2">
-                        <Label>Registration ID</Label>
-                        <Input value={profile.registration_id} disabled className="bg-muted" />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="phone">Phone</Label>
-                        <Input id="phone" {...form.register("phone")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="father_name">Father's Name</Label>
-                        <Input id="father_name" {...form.register("father_name")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="mother_name">Mother's Name</Label>
-                        <Input id="mother_name" {...form.register("mother_name")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="college_name">College Name</Label>
-                        <Input id="college_name" {...form.register("college_name")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="hsc_batch">HSC Batch</Label>
-                        <Input id="hsc_batch" {...form.register("hsc_batch")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="school">School / College</Label>
-                        <Input id="school" {...form.register("school")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="ssc_gpa">SSC GPA</Label>
-                        <Input id="ssc_gpa" type="number" step="0.01" {...form.register("ssc_gpa")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="hsc_gpa">HSC GPA</Label>
-                        <Input id="hsc_gpa" type="number" step="0.01" {...form.register("hsc_gpa")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="batch_year">Batch year</Label>
-                        <Input id="batch_year" placeholder="2025" {...form.register("batch_year")} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="is_second_timer">Second Timer?</Label>
-                        <Select
-                        value={form.watch("is_second_timer")}
-                        onValueChange={(val: "yes" | "no") => form.setValue("is_second_timer", val)}
-                        >
-                        <SelectTrigger id="is_second_timer">
-                            <SelectValue placeholder="Select..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="no">No</SelectItem>
-                            <SelectItem value="yes">Yes</SelectItem>
-                        </SelectContent>
-                        </Select>
-                    </div>
-                </div>
+                isEditing ? (
+                    <form className="space-y-4" onSubmit={form.handleSubmit((v) => { onSubmit(v); setIsEditing(false); })}>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="full_name">Full name</Label>
+                                <Input id="full_name" {...form.register("full_name")} disabled />
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Registration ID</Label>
+                                <Input value={profile.registration_id} disabled className="bg-muted" />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="phone">Phone</Label>
+                                <Input id="phone" {...form.register("phone")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="father_name">Father's Name</Label>
+                                <Input id="father_name" {...form.register("father_name")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="mother_name">Mother's Name</Label>
+                                <Input id="mother_name" {...form.register("mother_name")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="college_name">College Name</Label>
+                                <Input id="college_name" {...form.register("college_name")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="hsc_batch">HSC Batch</Label>
+                                <Input id="hsc_batch" {...form.register("hsc_batch")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="school">School / College</Label>
+                                <Input id="school" {...form.register("school")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="ssc_gpa">SSC GPA</Label>
+                                <Input id="ssc_gpa" type="number" step="0.01" {...form.register("ssc_gpa")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="hsc_gpa">HSC GPA</Label>
+                                <Input id="hsc_gpa" type="number" step="0.01" {...form.register("hsc_gpa")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="batch_year">Batch year</Label>
+                                <Input id="batch_year" placeholder="2025" {...form.register("batch_year")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="is_second_timer">Second Timer?</Label>
+                                <Select
+                                value={form.watch("is_second_timer")}
+                                onValueChange={(val: "yes" | "no") => form.setValue("is_second_timer", val)}
+                                >
+                                <SelectTrigger id="is_second_timer">
+                                    <SelectValue placeholder="Select..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="no">No</SelectItem>
+                                    <SelectItem value="yes">Yes</SelectItem>
+                                </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
 
-                <div className="pt-2 flex justify-end border-t mt-4">
-                    <Button type="submit">
-                    Save Changes
-                    </Button>
-                </div>
-                </form>
+                        <div className="pt-2 flex justify-end gap-2 border-t mt-4">
+                            <Button type="button" variant="outline" onClick={() => setIsEditing(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit">
+                                Save Changes
+                            </Button>
+                        </div>
+                    </form>
+                ) : (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8 text-sm">
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Full Name</span>
+                            <span className="font-medium">{profile.full_name || "-"}</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Registration ID</span>
+                            <span className="font-medium">{profile.registration_id}</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Phone</span>
+                            <span className="font-medium">{profile.phone || "-"}</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">College</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).college_name || "-"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">HSC Batch</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).hsc_batch || "-"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Second Timer</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).is_second_timer ? "Yes" : "No"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Father's Name</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).father_name || "-"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Mother's Name</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).mother_name || "-"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">SSC GPA</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).ssc_gpa || "0.00"
+                            }</span>
+                         </div>
+                         <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">HSC GPA</span>
+                            <span className="font-medium">{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                (profile as any).hsc_gpa || "0.00"
+                            }</span>
+                         </div>
+                    </div>
+                )
             ) : (
                 <p className="text-sm text-muted-foreground">Loading profile…</p>
             )}

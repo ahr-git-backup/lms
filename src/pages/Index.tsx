@@ -145,9 +145,21 @@ const Index = () => {
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
               <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
-                <a href={hero.cta_link || "#"} className="block relative w-full h-[50vh] md:h-[calc(100vh-64px)] overflow-hidden bg-muted cursor-pointer hover:opacity-95 transition-opacity">
+                <a href={hero.cta_link || "#"} className="block relative w-full h-[50vh] md:h-[calc(100vh-64px)] overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
-                     <img src={hero.image_url} alt={hero.title} className="h-full w-full object-cover" />
+                     <div className="h-full w-full relative">
+                        {/* Blurred background for fill */}
+                        <div
+                            className="absolute inset-0 bg-cover bg-center blur-xl opacity-50 scale-110"
+                            style={{ backgroundImage: `url(${hero.image_url})` }}
+                        />
+                        {/* Main Image */}
+                        <img
+                            src={hero.image_url}
+                            alt={hero.title}
+                            className="relative h-full w-full object-contain z-10"
+                        />
+                     </div>
                    ) : (
                      <div className="flex h-full w-full items-center justify-center bg-secondary/50 text-muted-foreground">
                         <Flame className="h-16 w-16 opacity-20" />

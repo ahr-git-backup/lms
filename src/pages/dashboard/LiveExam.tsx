@@ -189,7 +189,7 @@ const LiveExam = () => {
             const isActive = isLive && start && end && now >= start && now <= end;
 
             return (
-              <Card key={exam.id} className={`border transition-all ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/10 dark:bg-blue-900/10' : 'border-foreground/50'}`}>
+              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg ${isActive ? 'border border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] dark:shadow-[0_0_20px_rgba(59,130,246,0.3)] bg-blue-50/10 dark:bg-blue-900/10' : 'bg-red-50/30 dark:bg-red-950/20'}`}>
                 <CardHeader className="space-y-1">
                   <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-mono uppercase text-muted-foreground">

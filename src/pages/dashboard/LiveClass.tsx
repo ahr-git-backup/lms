@@ -109,7 +109,7 @@ const LiveClass = () => {
             const isActive = start && end && now >= start && now <= end;
 
             return (
-            <Card key={classItem.id} className={`border transition-all rounded-2xl shadow-md hover:shadow-lg ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'border-gray-100 bg-white dark:bg-card dark:border-gray-800'}`}>
+            <Card key={classItem.id} className={`border transition-all rounded-2xl shadow-md hover:shadow-lg ${isActive ? 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.5)] bg-blue-50/50 dark:bg-blue-900/20' : 'border-blue-100 bg-blue-50/30 dark:bg-blue-950/20 dark:border-blue-900'}`}>
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
