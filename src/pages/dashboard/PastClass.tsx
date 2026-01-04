@@ -99,7 +99,7 @@ const PastClass = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredClasses.map((classItem) => (
-            <Card key={classItem.id} className="border border-foreground/50">
+            <Card key={classItem.id} className="border border-slate-200 bg-slate-50/20 dark:border-slate-800 dark:bg-slate-900/10">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">

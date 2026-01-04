@@ -60,7 +60,7 @@ const Index = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, short_description, price, image_url, slug, is_active")
+        .select("id, name, short_description, price, original_price, image_url, slug, is_active")
         .eq("is_public", true) // Show only publicly listed courses
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -207,8 +207,15 @@ const Index = () => {
                         </div>
 
                         <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-dashed">
-                            <div className="text-base font-bold text-primary">
-                                {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact"}
+                            <div className="flex flex-col items-start">
+                                {course.original_price != null && Number(course.original_price) > Number(course.price) && (
+                                    <span className="text-[10px] text-muted-foreground line-through">
+                                        ৳{Number(course.original_price).toLocaleString("en-BD")}
+                                    </span>
+                                )}
+                                <div className="text-base font-bold text-primary">
+                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact"}
+                                </div>
                             </div>
                             <div className="flex gap-2">
                                 <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">

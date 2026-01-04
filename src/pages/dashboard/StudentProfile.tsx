@@ -45,6 +45,7 @@ const StudentProfile = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const [timeRange, setTimeRange] = useState("daily");
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     document.title = "Student Profile – Beshi Joss LMS";

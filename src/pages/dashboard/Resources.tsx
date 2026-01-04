@@ -116,7 +116,7 @@ const Resources = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
-            <Card key={resource.id} className="border border-foreground/50">
+            <Card key={resource.id} className="border border-purple-200 bg-purple-50/10 dark:border-purple-900/50 dark:bg-purple-900/5">
               <CardHeader className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-mono uppercase text-muted-foreground">

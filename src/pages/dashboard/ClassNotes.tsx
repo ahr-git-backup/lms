@@ -234,7 +234,7 @@ const ClassNotes = () => {
 
 const NoteCard = ({ note, onBookmark, onOpen }: { note: any, onBookmark: () => void, onOpen: () => void }) => {
     return (
-        <Card className="border border-foreground/50 transition-all hover:shadow-md h-full flex flex-col cursor-pointer" onClick={onOpen}>
+        <Card className="border border-orange-200 bg-orange-50/10 dark:border-orange-900/50 dark:bg-orange-900/5 transition-all hover:shadow-md h-full flex flex-col cursor-pointer" onClick={onOpen}>
             <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground truncate">

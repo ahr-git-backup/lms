@@ -22,7 +22,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
     const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
 
     return (
-    <Card className={`border ${isLive ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10' : 'border-foreground/50'}`}>
+    <Card className={`border ${isLive ? 'border-red-200 dark:border-red-900/50 bg-red-50/50 dark:bg-red-900/10' : 'border-emerald-200 bg-emerald-50/10 dark:border-emerald-900/50 dark:bg-emerald-900/5'}`}>
         <CardHeader className="space-y-1">
             <div className="flex justify-between items-start">
                 <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -161,7 +161,7 @@ const ExamResults = () => {
                         <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
                         Live Exam Results
                     </h2>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         {attempts.filter(a => a.attempt_type === 'live').map((attempt) => (
                             <ResultCard key={attempt.id} attempt={attempt} isLive={true} navigate={navigate} profile={profile} />
                         ))}
@@ -176,7 +176,7 @@ const ExamResults = () => {
                         <span className="h-2 w-2 rounded-full bg-green-500"></span>
                         Practice Exam Results
                     </h2>
-                    <div className="grid gap-4 md:grid-cols-2">
+                    <div className="grid gap-4 md:grid-cols-3">
                         {attempts.filter(a => a.attempt_type !== 'live').map((attempt) => (
                             <ResultCard key={attempt.id} attempt={attempt} isLive={false} navigate={navigate} profile={profile} />
                         ))}

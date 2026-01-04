@@ -358,7 +358,6 @@ const AdminCourses = () => {
                     <TabsTrigger value="basic" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Basic Info</TabsTrigger>
                     <TabsTrigger value="description" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Description</TabsTrigger>
                     <TabsTrigger value="content" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Curriculum Info</TabsTrigger>
-                    <TabsTrigger value="syllabus" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3" disabled={!form.id}>Syllabus</TabsTrigger>
                     <TabsTrigger value="demos" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Demo Content</TabsTrigger>
                   </TabsList>
               </div>
@@ -520,58 +519,6 @@ const AdminCourses = () => {
                             </div>
                         </div>
                     </div>
-                </TabsContent>
-
-                <TabsContent value="syllabus" className="mt-0 space-y-4">
-                    {/* Read-only view of linked classes */}
-                     <div className="flex justify-between items-center bg-muted/20 p-4 rounded-lg border">
-                         <div>
-                             <h3 className="font-semibold">Linked Classes</h3>
-                             <p className="text-sm text-muted-foreground">
-                                 {linkedClasses?.length || 0} classes are currently assigned to this course.
-                             </p>
-                         </div>
-                         <Button asChild size="sm" variant="outline">
-                             <a href="/dashboard/admin/classes" target="_blank">
-                                 Manage Classes <ExternalLink className="w-3 h-3 ml-2" />
-                             </a>
-                         </Button>
-                     </div>
-
-                     <div className="border rounded-md">
-                         <Table>
-                             <TableHeader>
-                                 <TableRow>
-                                     <TableHead>Class Title</TableHead>
-                                     <TableHead>Type</TableHead>
-                                     <TableHead>Date</TableHead>
-                                 </TableRow>
-                             </TableHeader>
-                             <TableBody>
-                                 {linkedClasses?.length === 0 ? (
-                                     <TableRow>
-                                         <TableCell colSpan={3} className="text-center h-24 text-muted-foreground">
-                                             No classes found for this course. Go to "Classes" to add some.
-                                         </TableCell>
-                                     </TableRow>
-                                 ) : (
-                                     linkedClasses?.map((cls) => (
-                                         <TableRow key={cls.id}>
-                                             <TableCell className="font-medium">{cls.title}</TableCell>
-                                             <TableCell>
-                                                 <Badge variant="secondary" className="uppercase text-[10px]">
-                                                     {cls.class_type}
-                                                 </Badge>
-                                             </TableCell>
-                                             <TableCell className="text-xs text-muted-foreground">
-                                                 {new Date(cls.start_at).toLocaleDateString()}
-                                             </TableCell>
-                                         </TableRow>
-                                     ))
-                                 )}
-                             </TableBody>
-                         </Table>
-                     </div>
                 </TabsContent>
 
                 <TabsContent value="demos" className="mt-0 space-y-4">
