@@ -37,12 +37,11 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                 <div>Taken on {attempt.submitted_at && new Date(attempt.submitted_at).toLocaleDateString()}</div>
             </CardDescription>
         </CardHeader>
-        <CardContent>
-            <div className="flex gap-2">
+        <CardContent className="flex flex-col flex-1">
+            <div className="flex gap-2 mt-auto">
                 <Button
                     size="sm"
-                    variant="outline"
-                    className="flex-1"
+                    className="flex-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none"
                     onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
                 >
                     Review & Retake
@@ -52,6 +51,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     variant="ghost"
                     onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
                     title="View Leaderboard"
+                    className="rounded-full hover:bg-amber-100 text-amber-700"
                 >
                     <Trophy className="h-4 w-4" />
                 </Button>

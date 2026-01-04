@@ -238,7 +238,7 @@ const LiveExam = () => {
                       size="sm" 
                       onClick={() => setSelectedExamForPopup(exam)}
                       disabled={isLive && attempted}
-                      className={isActive ? "bg-blue-600 hover:bg-blue-700" : ""}
+                      className={isActive ? "w-full rounded-full bg-amber-600 hover:bg-amber-700 text-white border-none" : "w-full rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none"}
                     >
                       {isActive ? "Start Live Exam" : "Start Exam"}
                     </Button>

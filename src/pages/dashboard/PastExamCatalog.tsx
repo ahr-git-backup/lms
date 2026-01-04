@@ -191,13 +191,16 @@ const PastExamCatalog = () => {
                   Duration: {exam.duration_minutes} mins
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="flex flex-col flex-1">
+                <div className="mt-auto">
                 <Button
                   size="sm"
                   onClick={() => setSelectedExamForPopup(exam)}
+                  className="w-full bg-amber-500 hover:bg-amber-600 text-white rounded-full border-none"
                 >
                   Start Practice
                 </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
