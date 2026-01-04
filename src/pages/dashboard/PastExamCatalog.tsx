@@ -165,7 +165,7 @@ const PastExamCatalog = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {exams.map((exam) => (
-            <Card key={exam.id} className="border border-foreground/50">
+            <Card key={exam.id} className="bg-red-50 dark:bg-red-900/30 rounded-2xl shadow-md hover:shadow-lg transition-all">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
