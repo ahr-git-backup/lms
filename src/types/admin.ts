@@ -38,6 +38,7 @@ export interface Course {
   full_description?: string | null;
   price?: number | null;
   what_you_get?: string[] | null;
+  demo_content?: DemoContentItem[] | null;
   image_url?: string | null;
   bkash_number?: string | null;
   nagad_number?: string | null;
@@ -61,6 +62,13 @@ export interface Class {
   course?: {
     name: string;
   };
+}
+
+export interface DemoContentItem {
+  type: 'video' | 'pdf' | 'note';
+  title: string;
+  url: string;
+  is_locked: boolean;
 }
 
 export interface Resource {

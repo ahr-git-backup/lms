@@ -11,16 +11,30 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+const demoContentSchema = z.object({
+  type: z.enum(["video", "pdf", "note"]),
+  title: z.string().min(1, "Title required"),
+  url: z.string().url("Valid URL required"),
+  is_locked: z.boolean().default(false),
+});
 
 const courseSchema = z.object({
   id: z.string().optional(),
@@ -39,6 +53,7 @@ const courseSchema = z.object({
     .max(10000)
     .optional()
     .or(z.literal("")),
+  demo_content: z.array(demoContentSchema).optional().default([]),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
   bkash_number: z.string().trim().max(50).optional().or(z.literal("")),
   nagad_number: z.string().trim().max(50).optional().or(z.literal("")),
@@ -56,6 +71,7 @@ const AdminCourses = () => {
     full_description: "",
     price: "",
     what_you_get: "",
+    demo_content: [],
     image_url: "",
     bkash_number: "",
     nagad_number: "",
@@ -98,6 +114,7 @@ const AdminCourses = () => {
       full_description: "",
       price: "",
       what_you_get: "",
+      demo_content: [],
       image_url: "",
       bkash_number: "",
       nagad_number: "",
@@ -110,7 +127,8 @@ const AdminCourses = () => {
   const upsertMutation = useMutation({
     mutationFn: async (values: z.infer<typeof courseSchema>) => {
       const parsed = courseSchema.parse(values);
-      const payload: Partial<Course> = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = {
         name: parsed.name,
         short_description: parsed.short_description || null,
         full_description: parsed.full_description || null,
@@ -118,6 +136,7 @@ const AdminCourses = () => {
         what_you_get: parsed.what_you_get
           ? [parsed.what_you_get]
           : null,
+        demo_content: parsed.demo_content,
         image_url: parsed.image_url || null,
         bkash_number: parsed.bkash_number || null,
         nagad_number: parsed.nagad_number || null,
@@ -177,6 +196,7 @@ const AdminCourses = () => {
       full_description: course.full_description ?? "",
       price: course.price != null ? String(course.price) : "",
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
+      demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
       bkash_number: course.bkash_number ?? "",
       nagad_number: course.nagad_number ?? "",
@@ -291,138 +311,251 @@ const AdminCourses = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={form.name}
-                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
+          <form onSubmit={handleSubmit}>
+            <Tabs defaultValue="basic" className="w-full">
+              <TabsList className="grid w-full grid-cols-4 mb-4">
+                <TabsTrigger value="basic">Basic Info</TabsTrigger>
+                <TabsTrigger value="description">Description</TabsTrigger>
+                <TabsTrigger value="content">Curriculum</TabsTrigger>
+                <TabsTrigger value="demos">Demo Content</TabsTrigger>
+              </TabsList>
 
-            <div className="space-y-2">
-              <Label htmlFor="price">Price (৳)</Label>
-              <Input
-                id="price"
-                value={form.price}
-                onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-                placeholder="Ex: 3000"
-              />
-            </div>
+              <TabsContent value="basic" className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      id="name"
+                      value={form.name}
+                      onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="short_description">Short description</Label>
-              <Textarea
-                id="short_description"
-                rows={2}
-                value={form.short_description}
-                onChange={(e) => setForm((prev) => ({ ...prev, short_description: e.target.value }))}
-              />
-            </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="price">Price (৳)</Label>
+                    <Input
+                      id="price"
+                      value={form.price}
+                      onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                      placeholder="Ex: 3000"
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="full_description">Full description</Label>
-              <Textarea
-                id="full_description"
-                rows={4}
-                value={form.full_description}
-                onChange={(e) => setForm((prev) => ({ ...prev, full_description: e.target.value }))}
-              />
-            </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
+                    <Input
+                      id="image_url"
+                      value={form.image_url}
+                      onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
+                      placeholder="https://..."
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="what_you_get">
-                What students get (Markdown Supported)
-              </Label>
-              <Textarea
-                id="what_you_get"
-                rows={10}
-                value={form.what_you_get}
-                onChange={(e) => setForm((prev) => ({ ...prev, what_you_get: e.target.value }))}
-                placeholder={"# Markdown Supported\n- Paste your full passage here\n- Bullet points work too\n- **Bold text** supported"}
-              />
-              <p className="text-xs text-muted-foreground">You can paste a Markdown passage here. It will be rendered nicely.</p>
-            </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="bkash_number">bKash number (optional)</Label>
+                    <Input
+                      id="bkash_number"
+                      value={form.bkash_number}
+                      onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
-              <Input
-                id="image_url"
-                value={form.image_url}
-                onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
-                placeholder="https://..."
-              />
-            </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="nagad_number">Nagad number (optional)</Label>
+                    <Input
+                      id="nagad_number"
+                      value={form.nagad_number}
+                      onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
+                      placeholder="01XXXXXXXXX"
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="bkash_number">bKash number (optional)</Label>
-              <Input
-                id="bkash_number"
-                value={form.bkash_number}
-                onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
-                placeholder="01XXXXXXXXX"
-              />
-            </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="contact_info">Contact info for payment confirmation (optional)</Label>
+                    <Input
+                      id="contact_info"
+                      value={form.contact_info}
+                      onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
+                      placeholder="e.g. Telegram @handle or phone number"
+                    />
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="nagad_number">Nagad number (optional)</Label>
-              <Input
-                id="nagad_number"
-                value={form.nagad_number}
-                onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
-                placeholder="01XXXXXXXXX"
-              />
-            </div>
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <Switch
+                      id="is_active"
+                      checked={form.is_active}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, is_active: checked }))
+                      }
+                    />
+                    <Label htmlFor="is_active">Course is active / visible to students</Label>
+                  </div>
 
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="contact_info">Contact info for payment confirmation (optional)</Label>
-              <Input
-                id="contact_info"
-                value={form.contact_info}
-                onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
-                placeholder="e.g. Telegram @handle or phone number"
-              />
-            </div>
+                  <div className="flex items-center gap-2 md:col-span-2">
+                    <Switch
+                      id="is_public"
+                      checked={form.is_public}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, is_public: checked }))
+                      }
+                    />
+                    <Label htmlFor="is_public">Publicly listed (Show on homepage catalog)</Label>
+                  </div>
+                </div>
+              </TabsContent>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Switch
-                id="is_active"
-                checked={form.is_active}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, is_active: checked }))
-                }
-              />
-              <Label htmlFor="is_active">Course is active / visible to students</Label>
-            </div>
+              <TabsContent value="description" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="short_description">Short description</Label>
+                  <Textarea
+                    id="short_description"
+                    rows={2}
+                    value={form.short_description}
+                    onChange={(e) => setForm((prev) => ({ ...prev, short_description: e.target.value }))}
+                  />
+                </div>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Switch
-                id="is_public"
-                checked={form.is_public}
-                onCheckedChange={(checked) =>
-                  setForm((prev) => ({ ...prev, is_public: checked }))
-                }
-              />
-              <Label htmlFor="is_public">Publicly listed (Show on homepage catalog)</Label>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="full_description">Full description</Label>
+                  <Textarea
+                    id="full_description"
+                    rows={8}
+                    value={form.full_description}
+                    onChange={(e) => setForm((prev) => ({ ...prev, full_description: e.target.value }))}
+                  />
+                </div>
+              </TabsContent>
 
-            <div className="flex items-center gap-2 md:col-span-2">
-              <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
-                {upsertMutation.isPending ? "Saving..." : form.id ? "Update course" : "Create course"}
-              </Button>
-              {form.id && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={resetForm}
-                  disabled={upsertMutation.isPending}
-                >
-                  Cancel edit
+              <TabsContent value="content" className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="what_you_get">
+                    What students get (Markdown Supported)
+                  </Label>
+                  <Textarea
+                    id="what_you_get"
+                    rows={15}
+                    value={form.what_you_get}
+                    onChange={(e) => setForm((prev) => ({ ...prev, what_you_get: e.target.value }))}
+                    placeholder={"# Markdown Supported\n- Paste your full passage here\n- Bullet points work too\n- **Bold text** supported"}
+                  />
+                  <p className="text-xs text-muted-foreground">You can paste a Markdown passage here. It will be rendered nicely on the course details page.</p>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="demos" className="space-y-4">
+                <div className="space-y-4 border rounded-md p-4 bg-muted/20">
+                    <div className="flex justify-between items-center">
+                        <h4 className="text-sm font-semibold">Preview Content</h4>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                                const newContent = [
+                                    ...(form.demo_content || []),
+                                    { type: "video" as const, title: "", url: "", is_locked: false }
+                                ];
+                                setForm({ ...form, demo_content: newContent });
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-1" /> Add Item
+                        </Button>
+                    </div>
+
+                    {form.demo_content?.length === 0 && (
+                         <div className="text-center py-8 text-muted-foreground text-sm">
+                             No demo content added. Add videos or PDFs for users to preview.
+                         </div>
+                    )}
+
+                    <div className="space-y-3">
+                        {form.demo_content?.map((item, idx) => (
+                            <div key={idx} className="flex gap-2 items-start border p-3 rounded-md bg-background">
+                                <div className="grid gap-2 flex-1">
+                                    <div className="flex gap-2">
+                                        <div className="w-1/4">
+                                             <Label className="text-xs">Type</Label>
+                                             <Select
+                                                value={item.type}
+                                                onValueChange={(val) => {
+                                                    const updated = [...(form.demo_content || [])];
+                                                    updated[idx] = { ...updated[idx], type: val as "video" | "pdf" | "note" };
+                                                    setForm({ ...form, demo_content: updated });
+                                                }}
+                                             >
+                                                <SelectTrigger className="h-8">
+                                                    <SelectValue />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="video">Video</SelectItem>
+                                                    <SelectItem value="pdf">PDF</SelectItem>
+                                                    <SelectItem value="note">Note</SelectItem>
+                                                </SelectContent>
+                                             </Select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <Label className="text-xs">Title</Label>
+                                            <Input
+                                                value={item.title}
+                                                onChange={(e) => {
+                                                    const updated = [...(form.demo_content || [])];
+                                                    updated[idx] = { ...updated[idx], title: e.target.value };
+                                                    setForm({ ...form, demo_content: updated });
+                                                }}
+                                                className="h-8"
+                                                placeholder="e.g. Intro Class"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                         <Label className="text-xs">URL</Label>
+                                         <Input
+                                            value={item.url}
+                                            onChange={(e) => {
+                                                const updated = [...(form.demo_content || [])];
+                                                updated[idx] = { ...updated[idx], url: e.target.value };
+                                                setForm({ ...form, demo_content: updated });
+                                            }}
+                                            className="h-8"
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-destructive mt-6"
+                                    onClick={() => {
+                                         const updated = form.demo_content?.filter((_, i) => i !== idx);
+                                         setForm({ ...form, demo_content: updated });
+                                    }}
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+              </TabsContent>
+
+              <div className="mt-6 flex items-center gap-2">
+                <Button type="submit" disabled={upsertMutation.isPending}>
+                  {upsertMutation.isPending ? "Saving..." : form.id ? "Update Course" : "Create Course"}
                 </Button>
-              )}
-            </div>
+                {form.id && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resetForm}
+                    disabled={upsertMutation.isPending}
+                  >
+                    Cancel
+                  </Button>
+                )}
+              </div>
+            </Tabs>
           </form>
         </CardContent>
       </Card>
