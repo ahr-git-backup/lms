@@ -23,6 +23,7 @@ import {
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingScreen } from "@/components/ui/loading-screen";
+import MathText from "@/components/MathText";
 
 // Custom Quill Link
 const Link = Quill.import('formats/link');
@@ -684,7 +685,7 @@ const ExamCreator = () => {
                         </div>
 
                         <div className="p-6 space-y-5">
-                            <div className="prose prose-lg max-w-none dark:prose-invert bg-background/50 p-4 rounded-lg border border-border/50 shadow-sm" dangerouslySetInnerHTML={{ __html: q.question }} />
+                            <MathText className="prose prose-lg max-w-none dark:prose-invert bg-background/50 p-4 rounded-lg border border-border/50 shadow-sm" text={q.question} />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {Object.entries(q.options).map(([key, val]) => (
@@ -704,7 +705,9 @@ const ExamCreator = () => {
                                             }`}>
                                                 {key}
                                             </span>
-                                            <div className="prose prose-sm max-w-none dark:prose-invert grow break-words overflow-hidden flex flex-col justify-center" dangerouslySetInnerHTML={{ __html: val }} />
+                                            <div className="prose prose-sm max-w-none dark:prose-invert grow break-words overflow-hidden flex flex-col justify-center">
+                                                <MathText text={val} />
+                                            </div>
                                         </div>
                                         {q.correct_answer === key && (
                                             <div className="absolute -top-3 -right-2">
@@ -722,7 +725,7 @@ const ExamCreator = () => {
                                     <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Explanation
                                     </p>
-                                    <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: q.explanation }} />
+                                    <MathText className="prose prose-sm max-w-none dark:prose-invert" text={q.explanation} />
                                 </div>
                             )}
                         </div>
