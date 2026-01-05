@@ -61,7 +61,6 @@ const AdminExams = () => {
     time_window_end: "",
     is_published: false,
     restrict_solution: false,
-    restrict_solution: false,
     questions_json: "",
     questions_csv: "",
   });
@@ -703,6 +702,7 @@ const AdminExams = () => {
                             <TableHead className="whitespace-nowrap">Duration</TableHead>
                             <TableHead className="whitespace-nowrap">Negative</TableHead>
                             <TableHead className="whitespace-nowrap">Published</TableHead>
+                            <TableHead className="whitespace-nowrap">Restricted</TableHead>
                             <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                         </TableHeader>
