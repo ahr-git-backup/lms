@@ -23,6 +23,7 @@ export interface Exam {
   time_window_start?: string | null;
   time_window_end?: string | null;
   is_published: boolean;
+  restrict_solution?: boolean;
   questions_json?: string;
   questions_csv?: string;
   course?: {
