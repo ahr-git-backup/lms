@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
 const ExamReview = () => {
   const { attemptId } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
@@ -50,6 +50,13 @@ const ExamReview = () => {
       return data;
     },
   });
+
+  // Calculate restriction status
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exam = attempt?.exam as any;
+  const isRestrictedByConfig = exam?.restrict_solution;
+  const isLiveAndActive = exam?.exam_type === 'live' && exam?.time_window_end && new Date() < new Date(exam.time_window_end);
+  const shouldRestrict = (isRestrictedByConfig || isLiveAndActive) && !isAdmin;
 
   const { data: questions, isLoading: questionsLoading } = useQuery({
     queryKey: ["exam-review-questions", attempt?.id], // Changed key to attempt.id
@@ -121,28 +128,10 @@ const ExamReview = () => {
   // Analytics Calculation
   const calculateOptionStats = (qId: string) => {
       // In a real scenario, this would fetch aggregate stats from an RPC or separate table.
-      // For now, I'll mock it or return null if not available, as querying all attempts for stats is heavy on client.
-      // Requirement: "Result Analytics: Option Percentage"
-      // Since I can't easily change backend to pre-calculate this efficiently without new RPCs,
-      // I will leave a placeholder or if I had the data, I'd show it.
-      // Assuming I can't fetch global stats efficiently here without backend change.
-      // I'll add a UI placeholder for it if requested, or skip if too heavy.
-      // Requirement says "Result Analytics". I'll skip implementation of *global* stats fetch here to avoid performance hit
-      // unless I create a specific RPC `get_exam_analytics` which I don't have yet.
-      // Wait, "Result Analytics" page exists. I should check `ExamAnalytics.tsx`.
-      // But requirement says "Result Analytics: Percentage... Option Percentage".
-      // I'll add a visual placeholder for Option Percentage if I can't fetch it real-time.
       return null;
   };
 
   const handleRetakeMistakes = () => {
-      // This would ideally create a new 'practice' attempt initialized with only the wrong questions.
-      // Since `TakeExam` expects a `examId`, I can't easily pass a subset of questions without modifying `TakeExam`.
-      // A workaround is to pass a state or URL param `?mode=mistakes&sourceAttemptId=xyz` to `TakeExam`.
-      // I'll update `TakeExam.tsx` next to handle this if I have time, or just alert for now.
-      // Actually, simplest is to re-direct to the exam in practice mode.
-      // But specifically "Wrong Answer Retake" implies ONLY wrong questions.
-      // I will add a query param `retake_mistakes_from=attemptId` and handle it in TakeExam.
       if (attempt?.exam_id) {
         navigate(`/dashboard/take-exam/${attempt.exam_id}?retake_from=${attempt.id}`);
       }
@@ -181,7 +170,7 @@ const ExamReview = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exams
             </Button>
             <div className="flex gap-2">
-                 {wrongCount > 0 && (
+                 {wrongCount > 0 && !shouldRestrict && (
                      <Button variant="destructive" onClick={handleRetakeMistakes}>
                         <RotateCw className="h-4 w-4 mr-2" /> Retake Mistakes
                      </Button>
@@ -230,129 +219,145 @@ const ExamReview = () => {
             </CardContent>
         </Card>
 
-        {/* Filters */}
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-            {[
-                { label: "All", value: "all", count: totalQuestions },
-                { label: "Correct", value: "correct", count: correctCount },
-                { label: "Incorrect", value: "incorrect", count: wrongCount },
-                { label: "Skipped", value: "skipped", count: skippedCount },
-            ].map((f) => (
-                <button
-                    key={f.value}
-                    onClick={() => setFilter(f.value as any)}
-                    className={cn(
-                        "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
-                        filter === f.value
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-background text-muted-foreground border-border hover:bg-muted"
-                    )}
-                >
-                    {f.label} ({f.count})
-                </button>
-            ))}
-        </div>
+        {shouldRestrict ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-4 border rounded-xl bg-muted/10">
+                <div className="p-4 bg-muted rounded-full">
+                    <Lock className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h2 className="text-xl font-bold">Solvesheet Restricted</h2>
+                <p className="text-muted-foreground text-center max-w-md">
+                    {isLiveAndActive
+                        ? "The detailed solution will be available after the live exam period ends."
+                        : "The solution for this exam is restricted by the administrator."}
+                </p>
+            </div>
+        ) : (
+            <>
+                {/* Filters */}
+                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {[
+                        { label: "All", value: "all", count: totalQuestions },
+                        { label: "Correct", value: "correct", count: correctCount },
+                        { label: "Incorrect", value: "incorrect", count: wrongCount },
+                        { label: "Skipped", value: "skipped", count: skippedCount },
+                    ].map((f) => (
+                        <button
+                            key={f.value}
+                            onClick={() => setFilter(f.value as any)}
+                            className={cn(
+                                "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
+                                filter === f.value
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-background text-muted-foreground border-border hover:bg-muted"
+                            )}
+                        >
+                            {f.label} ({f.count})
+                        </button>
+                    ))}
+                </div>
 
-        {/* Questions List */}
-        <div className="space-y-6">
-            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {filteredQuestions?.map((q: any) => {
-                const isCorrect = q.is_correct_answer;
-                const isSkipped = !q.user_answer;
-                const isWrong = !isCorrect && !isSkipped;
+                {/* Questions List */}
+                <div className="space-y-6">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {filteredQuestions?.map((q: any) => {
+                        const isCorrect = q.is_correct_answer;
+                        const isSkipped = !q.user_answer;
+                        const isWrong = !isCorrect && !isSkipped;
 
-                return (
-                    <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
-                        <CardContent className="p-5 space-y-2 relative">
-                             <div className="absolute top-4 right-4 print:hidden">
-                                 <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => toggleBookmarkMutation.mutate({ questionId: q.id, isBookmarked: q.is_bookmarked })}
-                                    className={cn("h-8 w-8 hover:bg-transparent", q.is_bookmarked ? "text-primary fill-primary" : "text-muted-foreground")}
-                                 >
-                                     <Bookmark className={cn("h-5 w-5", q.is_bookmarked && "fill-current")} />
-                                 </Button>
-                             </div>
-
-                             {/* Question Header */}
-                             <div className="flex items-start gap-4 pr-10">
-                                <div className={cn(
-                                    "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
-                                    isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                                    isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                                    "bg-muted text-muted-foreground"
-                                )}>
-                                    {q.question_index}
-                                </div>
-                                <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                    <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                        <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                        return (
+                            <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
+                                <CardContent className="p-5 space-y-2 relative">
+                                    <div className="absolute top-4 right-4 print:hidden">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => toggleBookmarkMutation.mutate({ questionId: q.id, isBookmarked: q.is_bookmarked })}
+                                            className={cn("h-8 w-8 hover:bg-transparent", q.is_bookmarked ? "text-primary fill-primary" : "text-muted-foreground")}
+                                        >
+                                            <Bookmark className={cn("h-5 w-5", q.is_bookmarked && "fill-current")} />
+                                        </Button>
                                     </div>
-                                </div>
-                             </div>
 
-                             {/* Options */}
-                             <div className="space-y-2 pt-2">
-                                {(["A", "B", "C", "D"] as const).map((optionKey) => {
-                                    const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
-                                    const isSelected = q.user_answer === optionKey;
-                                    const isCorrectOption = q.correct_option === optionKey;
-
-                                    // Determine circle style
-                                    let circleClass = "border-muted-foreground/30 text-muted-foreground";
-                                    let icon = <span className="text-sm font-bold">{optionKey}</span>;
-
-                                    if (isCorrectOption) {
-                                        // Always show green for correct option
-                                        circleClass = "bg-green-500 border-green-500 text-white";
-                                        icon = <Check className="h-4 w-4" />;
-                                    } else if (isSelected && !isCorrectOption) {
-                                        // Selected but wrong -> Red
-                                        circleClass = "bg-red-500 border-red-500 text-white";
-                                        icon = <X className="h-4 w-4" />;
-                                    } else if (isSelected) {
-                                        // Selected and correct (handled above usually, but fallback)
-                                        circleClass = "bg-green-500 border-green-500 text-white";
-                                        icon = <Check className="h-4 w-4" />;
-                                    }
-
-                                    return (
-                                        <div key={optionKey} className="flex items-start gap-4">
-                                            <div className={cn(
-                                                "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
-                                                circleClass
-                                            )}>
-                                                {icon}
-                                            </div>
-                                            <div className={cn(
-                                                "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
-                                                // Removed highlights/borders for rows, just standard text or color if needed
-                                                isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
-                                                isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
-                                            )}>
-                                                 <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                    {/* Question Header */}
+                                    <div className="flex items-start gap-4 pr-10">
+                                        <div className={cn(
+                                            "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                                            isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                                            isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                            "bg-muted text-muted-foreground"
+                                        )}>
+                                            {q.question_index}
+                                        </div>
+                                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
+                                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
+                                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
                                             </div>
                                         </div>
-                                    )
-                                })}
-                             </div>
+                                    </div>
 
-                             {/* Explanation */}
-                             {q.explanation && (
-                                 <div className="mt-4 pt-4 border-t border-dashed">
-                                     <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                     <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
-                                         <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
-                                     </div>
-                                 </div>
-                             )}
+                                    {/* Options */}
+                                    <div className="space-y-2 pt-2">
+                                        {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                                            const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
+                                            const isSelected = q.user_answer === optionKey;
+                                            const isCorrectOption = q.correct_option === optionKey;
 
-                        </CardContent>
-                    </Card>
-                );
-            })}
-        </div>
+                                            // Determine circle style
+                                            let circleClass = "border-muted-foreground/30 text-muted-foreground";
+                                            let icon = <span className="text-sm font-bold">{optionKey}</span>;
+
+                                            if (isCorrectOption) {
+                                                // Always show green for correct option
+                                                circleClass = "bg-green-500 border-green-500 text-white";
+                                                icon = <Check className="h-4 w-4" />;
+                                            } else if (isSelected && !isCorrectOption) {
+                                                // Selected but wrong -> Red
+                                                circleClass = "bg-red-500 border-red-500 text-white";
+                                                icon = <X className="h-4 w-4" />;
+                                            } else if (isSelected) {
+                                                // Selected and correct (handled above usually, but fallback)
+                                                circleClass = "bg-green-500 border-green-500 text-white";
+                                                icon = <Check className="h-4 w-4" />;
+                                            }
+
+                                            return (
+                                                <div key={optionKey} className="flex items-start gap-4">
+                                                    <div className={cn(
+                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
+                                                        circleClass
+                                                    )}>
+                                                        {icon}
+                                                    </div>
+                                                    <div className={cn(
+                                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                                        // Removed highlights/borders for rows, just standard text or color if needed
+                                                        isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
+                                                        isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
+                                                    )}>
+                                                        <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+
+                                    {/* Explanation */}
+                                    {q.explanation && (
+                                        <div className="mt-4 pt-4 border-t border-dashed">
+                                            <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
+                                            <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
+                                                <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
+                </div>
+            </>
+        )}
 
       </div>
     </div>

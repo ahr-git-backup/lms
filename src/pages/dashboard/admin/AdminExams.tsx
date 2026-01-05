@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -40,6 +40,7 @@ const examSchema = z.object({
   time_window_start: z.string().optional(),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
+  restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
 });
@@ -59,6 +60,7 @@ const AdminExams = () => {
     time_window_start: "",
     time_window_end: "",
     is_published: false,
+    restrict_solution: false,
     questions_json: "",
     questions_csv: "",
   });
@@ -158,6 +160,7 @@ const AdminExams = () => {
         time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
         time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
         is_published: parsed.is_published ?? false,
+        restrict_solution: parsed.restrict_solution ?? false,
       };
 
       // Helper to normalise questions from JSON/CSV into exam_questions rows (without exam_id/index)
@@ -391,6 +394,7 @@ const AdminExams = () => {
       time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
       time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
       is_published: exam.is_published ?? false,
+      restrict_solution: exam.restrict_solution ?? false,
       questions_json: "",
       questions_csv: "",
     });
@@ -548,6 +552,22 @@ const AdminExams = () => {
                 <Label htmlFor="is_published">Exam is published / visible to students</Label>
               </div>
 
+              <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
+                <Switch
+                  id="restrict_solution"
+                  checked={form.restrict_solution}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, restrict_solution: checked }))
+                  }
+                />
+                <Label htmlFor="restrict_solution" className="flex flex-col">
+                    <span>Restrict Solution (Solvesheet)</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                        If enabled, students cannot see the detailed solution or correct answers after the exam. They will only see their marks and stats.
+                    </span>
+                </Label>
+              </div>
+
               <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="questions_json">Bulk questions (JSON)</Label>
@@ -682,6 +702,7 @@ const AdminExams = () => {
                             <TableHead className="whitespace-nowrap">Duration</TableHead>
                             <TableHead className="whitespace-nowrap">Negative</TableHead>
                             <TableHead className="whitespace-nowrap">Published</TableHead>
+                            <TableHead className="whitespace-nowrap">Restricted</TableHead>
                             <TableHead className="text-right whitespace-nowrap">Actions</TableHead>
                         </TableRow>
                         </TableHeader>
@@ -704,6 +725,10 @@ const AdminExams = () => {
                             </TableCell>
                             <TableCell className="text-xs whitespace-nowrap">
                                 {exam.is_published ? "Yes" : "No"}
+                            </TableCell>
+                            <TableCell className="text-xs whitespace-nowrap">
+                                {exam.restrict_solution ? <Lock className="h-3 w-3 text-red-500 inline mr-1" /> : ""}
+                                {exam.restrict_solution ? "Yes" : "No"}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
@@ -779,6 +804,12 @@ const AdminExams = () => {
                                         {exam.exam_type === 'live' ? <CheckCircle className="h-3 w-3 text-red-500" /> : <CheckCircle className="h-3 w-3" />}
                                         {exam.exam_type}
                                     </div>
+                                    {exam.restrict_solution && (
+                                        <div className="flex items-center gap-1 text-red-500">
+                                            <Lock className="h-3 w-3" />
+                                            Restricted
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center gap-2 pt-2 border-t mt-2" onClick={(e) => e.stopPropagation()}>
