@@ -172,13 +172,13 @@ const PastExamCatalog = () => {
                     {exam.course.name}
                     </p>
                     <div className="flex flex-col items-end gap-1">
-                      <Badge variant={exam.exam_type === 'live' ? "secondary" : "outline"}>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${exam.exam_type === 'live' ? 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800' : 'bg-transparent text-amber-700 border-amber-200 dark:text-amber-200 dark:border-amber-800'}`}>
                           {exam.exam_type === 'live' ? 'Expired Live' : 'Practice'}
-                      </Badge>
+                      </span>
                       {Array.isArray(exam.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
                             {exam.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
                                     {s}
                                 </span>
                             ))}
