@@ -108,7 +108,7 @@ const PastClass = () => {
                     {Array.isArray(classItem.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
                             {classItem.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
                                     {s}
                                 </span>
                             ))}

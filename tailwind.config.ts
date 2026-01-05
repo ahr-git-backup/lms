@@ -90,6 +90,7 @@ export default {
 			fontFamily: {
 				sans: [
 					"DM Sans",
+                    "Kalpurush",
 					"ui-sans-serif",
 					"system-ui",
 					"-apple-system",

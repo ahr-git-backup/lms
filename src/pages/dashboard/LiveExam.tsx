@@ -196,14 +196,14 @@ const LiveExam = () => {
                           {exam.course.name}
                       </p>
                       {isActive && (
-                        <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                        <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                             LIVE NOW
                         </span>
                       )}
                       {Array.isArray(exam.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
                             {exam.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80">
+                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
                                     {s}
                                 </span>
                             ))}

@@ -230,7 +230,7 @@ export const DashboardLayout = () => {
               </Button>
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground hidden xs:block">Beshi Joss LMS</p>
-                <h1 className="text-sm font-semibold">Student &amp; Admin Dashboard</h1>
+                <h1 className="text-sm font-semibold">Dashboard</h1>
               </div>
             </div>
             <div className="flex items-center gap-3">
