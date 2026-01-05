@@ -122,7 +122,9 @@ const Resources = () => {
                   <p className="text-xs font-mono uppercase text-muted-foreground">
                     {resource.course?.name || "All Courses"}
                   </p>
-                  <Badge variant="outline">{resource.resource_type}</Badge>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
+                      {resource.resource_type}
+                  </span>
                 </div>
                 <CardTitle className="text-base">{resource.title}</CardTitle>
                 {resource.description && (
