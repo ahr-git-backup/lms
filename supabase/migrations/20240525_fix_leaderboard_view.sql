@@ -1,4 +1,6 @@
-CREATE OR REPLACE VIEW public.leaderboard_exam_attempts WITH (security_invoker='true') AS
+DROP VIEW IF EXISTS public.leaderboard_exam_attempts;
+
+CREATE VIEW public.leaderboard_exam_attempts WITH (security_invoker='true') AS
  SELECT a.id,
     a.exam_id,
     a.profile_id,
