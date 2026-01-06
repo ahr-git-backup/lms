@@ -120,7 +120,7 @@ const Index = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       <PublicHeader />
 
       {/* Hero Section (Full Width) */}

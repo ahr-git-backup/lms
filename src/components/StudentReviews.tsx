@@ -115,8 +115,8 @@ export const StudentReviews = ({ reviews }: StudentReviewsProps) => {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious className="-left-4 lg:-left-12" />
-          <CarouselNext className="-right-4 lg:-right-12" />
+          <CarouselPrevious className="hidden md:flex -left-4 lg:-left-12" />
+          <CarouselNext className="hidden md:flex -right-4 lg:-right-12" />
         </Carousel>
 
         {/* Dots */}
