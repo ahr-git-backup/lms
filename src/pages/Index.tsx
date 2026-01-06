@@ -3,11 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import {
-  ArrowRight,
-  Flame,
-  Infinity as InfinityIcon,
-  Star,
-  User,
   Check,
   Monitor,
   Users,
@@ -16,24 +11,17 @@ import {
   FileText,
   MessageCircle,
   Smartphone,
-  BarChart
+  BarChart,
+  Flame,
+  Infinity as InfinityIcon,
+  User,
 } from "lucide-react";
-import { LineChart, Line, ResponsiveContainer, Tooltip } from "recharts";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { MaleAvatar, FemaleAvatar } from "@/components/Avatars";
-
-const liveActivityData = [
-  { t: "0", value: 0 },
-  { t: "25", value: 25000 },
-  { t: "50", value: 50000 },
-  { t: "75", value: 100000 },
-  { t: "∞", value: 500000 },
-];
+import { StudentReviews } from "@/components/StudentReviews";
 
 const FEATURES = [
     { icon: Monitor, title: "Offline/Online Program", desc: "Seamless learning experience." },
@@ -108,11 +96,11 @@ const Index = () => {
 
        if (error || !data || data.length === 0) {
            return [
-               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "Best platform for HSC preparation!", rating: 5, gender: "male" },
-               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "The exam system is exactly like the real one.", rating: 5, gender: "female" },
-               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "Live classes and notes are super helpful.", rating: 5, gender: "male" },
-               { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "I improved my physics grade significantly.", rating: 5, gender: "female" },
-               { id: 5, student_name: "Karim Hasan", college_name: "Rajuk Uttara Model College", review_text: "Highly recommended for admission test prep.", rating: 5, gender: "male" }
+               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "Best platform for HSC preparation!", rating: 5, gender: "male", image_url: "" },
+               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "The exam system is exactly like the real one.", rating: 5, gender: "female", image_url: "" },
+               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "Live classes and notes are super helpful.", rating: 5, gender: "male", image_url: "" },
+               { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "I improved my physics grade significantly.", rating: 5, gender: "female", image_url: "" },
+               { id: 5, student_name: "Karim Hasan", college_name: "Rajuk Uttara Model College", review_text: "Highly recommended for admission test prep.", rating: 5, gender: "male", image_url: "" }
            ];
        }
        return data;
@@ -332,33 +320,7 @@ const Index = () => {
         </section>
 
         {/* Student Reviews */}
-        <section className="space-y-6">
-            <h2 className="text-2xl font-semibold tracking-tight text-center">Student Feedback</h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {reviews?.map((review: any) => (
-                    <Card key={review.id} className="h-full aspect-square flex flex-col items-center justify-center text-center p-6 border-none shadow-sm bg-secondary/10 hover:bg-secondary/20 transition-colors">
-                        <div className="mb-4">
-                            {review.gender === 'female' ? (
-                                <FemaleAvatar className="h-16 w-16" />
-                            ) : (
-                                <MaleAvatar className="h-16 w-16" />
-                            )}
-                        </div>
-                        <div className="space-y-1 mb-3">
-                            <h3 className="font-bold text-lg">{review.student_name}</h3>
-                            <p className="text-xs text-muted-foreground uppercase tracking-wide">{review.college_name}</p>
-                        </div>
-                        <div className="flex items-center gap-1 text-yellow-500 mb-4 justify-center">
-                            {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-                        </div>
-                        <p className="text-sm text-muted-foreground italic line-clamp-3">
-                            "{review.review_text}"
-                        </p>
-                    </Card>
-                ))}
-            </div>
-        </section>
+        <StudentReviews reviews={reviews} />
 
       </main>
 
