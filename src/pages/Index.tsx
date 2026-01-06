@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import {
   ArrowRight,
   Flame,
@@ -24,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { MaleAvatar, FemaleAvatar } from "@/components/Avatars";
 
 const liveActivityData = [
   { t: "0", value: 0 },
@@ -106,9 +108,11 @@ const Index = () => {
 
        if (error || !data || data.length === 0) {
            return [
-               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "Best platform for HSC preparation!", rating: 5 },
-               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "The exam system is exactly like the real one.", rating: 5 },
-               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "Live classes and notes are super helpful.", rating: 5 }
+               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "Best platform for HSC preparation!", rating: 5, gender: "male" },
+               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "The exam system is exactly like the real one.", rating: 5, gender: "female" },
+               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "Live classes and notes are super helpful.", rating: 5, gender: "male" },
+               { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "I improved my physics grade significantly.", rating: 5, gender: "female" },
+               { id: 5, student_name: "Karim Hasan", college_name: "Rajuk Uttara Model College", review_text: "Highly recommended for admission test prep.", rating: 5, gender: "male" }
            ];
        }
        return data;
@@ -125,16 +129,7 @@ const Index = () => {
   };
 
   const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-
-  useEffect(() => {
-    if (emblaApi) {
-      const autoplay = setInterval(() => {
-        emblaApi.scrollNext();
-      }, 5000);
-      return () => clearInterval(autoplay);
-    }
-  }, [emblaApi]);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -339,19 +334,27 @@ const Index = () => {
         {/* Student Reviews */}
         <section className="space-y-6">
             <h2 className="text-2xl font-semibold tracking-tight text-center">Student Feedback</h2>
-            <div className="grid gap-6 md:grid-cols-3">
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {reviews?.map((review: any) => (
-                    <Card key={review.id} className="bg-muted/50 border-none shadow-none">
-                        <CardHeader className="pb-2">
-                            <div className="flex items-center gap-1 text-yellow-500 mb-2">
-                                {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-                            </div>
-                            <CardTitle className="text-base">{review.student_name}</CardTitle>
-                            <CardDescription className="text-xs">{review.college_name}</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-sm italic text-muted-foreground">"{review.review_text}"</p>
-                        </CardContent>
+                    <Card key={review.id} className="h-full aspect-square flex flex-col items-center justify-center text-center p-6 border-none shadow-sm bg-secondary/10 hover:bg-secondary/20 transition-colors">
+                        <div className="mb-4">
+                            {review.gender === 'female' ? (
+                                <FemaleAvatar className="h-16 w-16" />
+                            ) : (
+                                <MaleAvatar className="h-16 w-16" />
+                            )}
+                        </div>
+                        <div className="space-y-1 mb-3">
+                            <h3 className="font-bold text-lg">{review.student_name}</h3>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">{review.college_name}</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-500 mb-4 justify-center">
+                            {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
+                        </div>
+                        <p className="text-sm text-muted-foreground italic line-clamp-3">
+                            "{review.review_text}"
+                        </p>
                     </Card>
                 ))}
             </div>
