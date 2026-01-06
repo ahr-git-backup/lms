@@ -47,12 +47,12 @@ export const StudentReviews = ({ reviews }: StudentReviewsProps) => {
   if (!reviews || reviews.length === 0) return null;
 
   return (
-    <section className="space-y-8 w-full">
+    <section className="space-y-8 w-[1px] min-w-full overflow-hidden">
       <h2 className="text-2xl font-semibold tracking-tight text-center">
         Student Feedback
       </h2>
 
-      <div className="relative -mx-[1px] md:mx-0 md:px-12">
+      <div className="relative md:px-12">
         <Carousel
           setApi={setApi}
           opts={{

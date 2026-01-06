@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import {
+  ArrowRight,
+  Star,
   Check,
   Monitor,
   Users,
@@ -179,13 +181,13 @@ const Index = () => {
                 const idOrSlug = course.slug || course.id;
 
                 return (
-                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full">
+                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full min-w-0 w-full max-w-full">
                     {/* Course Image */}
                     <div className="w-full aspect-video relative">
                             <img
                             src={image}
                             alt={`${course.name} cover`}
-                            className="h-full w-full object-cover"
+                            className="absolute inset-0 h-full w-full object-cover"
                             />
                     </div>
                     {/* Content */}
