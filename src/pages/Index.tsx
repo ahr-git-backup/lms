@@ -131,13 +131,6 @@ const Index = () => {
   const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
 
-  // Reviews carousel
-  const [reviewsRef] = useEmblaCarousel({
-    loop: true,
-    align: "start",
-    slidesToScroll: 1,
-  }, [Autoplay({ delay: 4000 })]);
-
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicHeader />
@@ -342,32 +335,28 @@ const Index = () => {
         <section className="space-y-6">
             <h2 className="text-2xl font-semibold tracking-tight text-center">Student Feedback</h2>
 
-            <div className="overflow-hidden" ref={reviewsRef}>
-                <div className="flex gap-4">
-                    {reviews?.map((review: any) => (
-                        <div key={review.id} className="flex-[0_0_100%] md:flex-[0_0_33.333%] min-w-0 md:pl-4 first:pl-4">
-                            <Card className="h-full aspect-square flex flex-col items-center justify-center text-center p-6 border-none shadow-sm bg-secondary/10 hover:bg-secondary/20 transition-colors">
-                                <div className="mb-4">
-                                    {review.gender === 'female' ? (
-                                        <FemaleAvatar className="h-16 w-16" />
-                                    ) : (
-                                        <MaleAvatar className="h-16 w-16" />
-                                    )}
-                                </div>
-                                <div className="space-y-1 mb-3">
-                                    <h3 className="font-bold text-lg">{review.student_name}</h3>
-                                    <p className="text-xs text-muted-foreground uppercase tracking-wide">{review.college_name}</p>
-                                </div>
-                                <div className="flex items-center gap-1 text-yellow-500 mb-4 justify-center">
-                                    {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
-                                </div>
-                                <p className="text-sm text-muted-foreground italic line-clamp-3">
-                                    "{review.review_text}"
-                                </p>
-                            </Card>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {reviews?.map((review: any) => (
+                    <Card key={review.id} className="h-full aspect-square flex flex-col items-center justify-center text-center p-6 border-none shadow-sm bg-secondary/10 hover:bg-secondary/20 transition-colors">
+                        <div className="mb-4">
+                            {review.gender === 'female' ? (
+                                <FemaleAvatar className="h-16 w-16" />
+                            ) : (
+                                <MaleAvatar className="h-16 w-16" />
+                            )}
                         </div>
-                    ))}
-                </div>
+                        <div className="space-y-1 mb-3">
+                            <h3 className="font-bold text-lg">{review.student_name}</h3>
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide">{review.college_name}</p>
+                        </div>
+                        <div className="flex items-center gap-1 text-yellow-500 mb-4 justify-center">
+                            {[...Array(review.rating)].map((_, i) => <Star key={i} className="h-4 w-4 fill-current" />)}
+                        </div>
+                        <p className="text-sm text-muted-foreground italic line-clamp-3">
+                            "{review.review_text}"
+                        </p>
+                    </Card>
+                ))}
             </div>
         </section>
 
