@@ -52,7 +52,7 @@ export const StudentReviews = ({ reviews }: StudentReviewsProps) => {
         Student Feedback
       </h2>
 
-      <div className="relative px-8 md:px-12">
+      <div className="relative -mx-[1px] md:mx-0 md:px-12">
         <Carousel
           setApi={setApi}
           opts={{
