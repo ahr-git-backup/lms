@@ -39,7 +39,7 @@ const Login = () => {
     const password = formData.get("password") as string;
     
     // Synthetic email logic for phone login
-    const email = `${phone}@atlas.com`;
+    const email = `${phone}@beshijoss.com`;
 
     const { error } = await signIn(email, password);
     

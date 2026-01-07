@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       let email = identifier;
       // If it looks like a registration ID (no @ symbol), format it as an internal email
       if (!identifier.includes("@")) {
-        email = `${identifier}@atlas.com`;
+        email = `${identifier}@beshijoss.com`;
       }
  
       const { data, error } = await supabase.auth.signInWithPassword({

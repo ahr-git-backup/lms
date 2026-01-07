@@ -55,7 +55,7 @@ const Register = () => {
     try {
       // Determine the email to use (Phone number based auth for free tier)
       // We prioritize phone based auth as per requirements
-      const email = `${phone}@atlas.com`;
+      const email = `${phone}@beshijoss.com`;
 
       // 1. Create the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
