@@ -50,7 +50,7 @@ export const StudentReviews = ({ reviews, id }: StudentReviewsProps) => {
   return (
     <section id={id} className="space-y-8 w-[1px] min-w-full overflow-hidden">
       <h2 className="text-2xl font-semibold tracking-tight text-center">
-        Student Feedback
+        শিক্ষার্থীদের মতামত
       </h2>
 
       <div className="relative md:px-12">
