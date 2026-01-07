@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Youtube, Mail, Phone, MapPin } from "lucide-react";
+import { Facebook, Youtube, Mail, Phone, MapPin, Send } from "lucide-react";
 
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -20,6 +20,9 @@ const Footer = () => {
             <div className="flex gap-4">
               <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-primary transition-colors">
                 <Facebook size={18} />
+              </a>
+              <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-blue-400 transition-colors">
+                <Send size={18} />
               </a>
               <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-red-600 transition-colors">
                 <Youtube size={18} />
@@ -42,10 +45,10 @@ const Footer = () => {
           <div>
             <h4 className="text-lg font-semibold text-white mb-4">Resources</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#" className="hover:text-primary transition-colors">Free Exams</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Demo Classes</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Success Stories</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Student Reviews</a></li>
+              <li><a href="/#free-resources" className="hover:text-primary transition-colors">Free Exams</a></li>
+              <li><a href="/#free-resources" className="hover:text-primary transition-colors">Demo Classes</a></li>
+              <li><a href="/#success-stories" className="hover:text-primary transition-colors">Success Stories</a></li>
+              <li><a href="/#reviews" className="hover:text-primary transition-colors">Student Reviews</a></li>
             </ul>
           </div>
 

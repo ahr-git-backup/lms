@@ -232,7 +232,7 @@ const Index = () => {
         </section>
 
         {/* Free Service/Courses Section */}
-        <section className="space-y-6">
+        <section id="free-resources" className="space-y-6">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">Free Learning Resources</h2>
                 <p className="text-sm text-muted-foreground">Start learning today without any cost.</p>
@@ -301,7 +301,7 @@ const Index = () => {
         </section>
 
         {/* Success Stats Section */}
-        <section className="space-y-6">
+        <section id="success-stories" className="space-y-6">
              <div className="text-center space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">Our Success Stories</h2>
                 <p className="text-muted-foreground">Consistent results year after year.</p>
@@ -322,7 +322,7 @@ const Index = () => {
         </section>
 
         {/* Student Reviews */}
-        <StudentReviews reviews={reviews} />
+        <StudentReviews reviews={reviews} id="reviews" />
 
       </main>
 

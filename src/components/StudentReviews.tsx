@@ -24,9 +24,10 @@ export interface Review {
 
 interface StudentReviewsProps {
   reviews: Review[];
+  id?: string;
 }
 
-export const StudentReviews = ({ reviews }: StudentReviewsProps) => {
+export const StudentReviews = ({ reviews, id }: StudentReviewsProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
@@ -47,7 +48,7 @@ export const StudentReviews = ({ reviews }: StudentReviewsProps) => {
   if (!reviews || reviews.length === 0) return null;
 
   return (
-    <section className="space-y-8 w-[1px] min-w-full overflow-hidden">
+    <section id={id} className="space-y-8 w-[1px] min-w-full overflow-hidden">
       <h2 className="text-2xl font-semibold tracking-tight text-center">
         Student Feedback
       </h2>
