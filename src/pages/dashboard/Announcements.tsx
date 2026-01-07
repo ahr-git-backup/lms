@@ -21,7 +21,7 @@ const Announcements = () => {
   const [readAnnouncements, setReadAnnouncements] = useState<string[]>([]);
 
   useEffect(() => {
-    document.title = "Announcements – Beshi Joss LMS";
+    document.title = "Announcements – Atlas";
     // Hide mobile dot if visible
     document.getElementById("mobile-announcement-dot")?.classList.add("hidden");
     document.getElementById("desktop-announcement-dot")?.classList.add("hidden");

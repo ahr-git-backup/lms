@@ -20,7 +20,7 @@ const LiveExam = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Live Exam – Beshi Joss LMS";
+    document.title = "Live Exam – Atlas";
   }, []);
 
   const { data: exams, isLoading } = useQuery({

@@ -44,7 +44,7 @@ const STATS = [
 
 const Index = () => {
   useEffect(() => {
-    document.title = "Beshi Joss LMS - Best Live Coaching & Exam Platform in BD";
+    document.title = "Atlas - Best Live Coaching & Exam Platform in BD";
   }, []);
 
   const { data: courses, isLoading } = useQuery({
@@ -111,7 +111,7 @@ const Index = () => {
 
   // Default hero content if no custom heroes are found
   const defaultHero = {
-      title: "Welcome to Beshi Joss LMS",
+      title: "Welcome to Atlas",
       subtitle: "Your gateway to excellence. Join us to master your subjects with the best resources and mentors. The all-in-one powerhouse for live classes, instant results, and seamless course management.",
       cta_text: "Get Started",
       cta_link: "/login",
@@ -281,7 +281,7 @@ const Index = () => {
         <section className="space-y-6">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">Unique Services</h2>
-                <p className="text-sm text-muted-foreground">Why choose Beshi Joss LMS?</p>
+                <p className="text-sm text-muted-foreground">Why choose Atlas?</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {FEATURES.map((feature, i) => (

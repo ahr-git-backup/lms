@@ -18,7 +18,7 @@ const NoteDetails = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "View Note – Beshi Joss LMS";
+    document.title = "View Note – Atlas";
   }, []);
 
   const { data: note, isLoading, isError } = useQuery({

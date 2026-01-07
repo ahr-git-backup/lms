@@ -28,7 +28,7 @@ const ClassNotes = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Class Notes – Beshi Joss LMS";
+    document.title = "Class Notes – Atlas";
   }, []);
 
   // Fetch Notes & User Interactions

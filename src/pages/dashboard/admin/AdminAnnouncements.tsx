@@ -33,7 +33,7 @@ const AdminAnnouncements = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    document.title = "Admin – Announcements – Beshi Joss LMS";
+    document.title = "Admin – Announcements – Atlas";
   }, []);
 
   const { data: courses } = useQuery({

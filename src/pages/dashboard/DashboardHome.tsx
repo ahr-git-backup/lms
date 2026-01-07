@@ -12,7 +12,7 @@ const DashboardHome = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Dashboard – Beshi Joss LMS";
+    document.title = "Dashboard – Atlas";
   }, []);
 
   const enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];

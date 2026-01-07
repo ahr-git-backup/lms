@@ -6,7 +6,7 @@ import { Users, GraduationCap, CreditCard, DollarSign } from "lucide-react";
 
 const AdminDashboardHome = () => {
   useEffect(() => {
-    document.title = "Admin Overview – Beshi Joss LMS";
+    document.title = "Admin Overview – Atlas";
   }, []);
 
   const { data: stats, isLoading } = useQuery({

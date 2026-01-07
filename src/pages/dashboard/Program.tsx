@@ -10,7 +10,7 @@ import IntervalReminder from "@/components/study/IntervalReminder";
 
 const Program = () => {
   useEffect(() => {
-    document.title = "Study Tools – Beshi Joss LMS";
+    document.title = "Study Tools – Atlas";
   }, []);
 
   return (

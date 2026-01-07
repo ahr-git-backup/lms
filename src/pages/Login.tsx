@@ -19,7 +19,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    document.title = "Login – Beshi Joss LMS";
+    document.title = "Login – Atlas";
 
     const params = new URLSearchParams(location.search);
     const reason = params.get("reason");
@@ -62,7 +62,7 @@ const Login = () => {
         {user ? (
             <Card className="w-full max-w-md border-[3px] border-foreground animate-in zoom-in-95 duration-200">
                 <CardHeader className="space-y-2 pb-4 text-center">
-                    <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
+                    <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
                     <CardTitle className="text-xl font-semibold">Welcome Back!</CardTitle>
                     <CardDescription>
                         You are already logged in as <span className="font-semibold text-foreground">{profile?.full_name || profile?.registration_id || "User"}</span>.
@@ -82,7 +82,7 @@ const Login = () => {
         ) : (
             <Card className="w-full max-w-md border-[3px] border-foreground">
             <CardHeader className="space-y-2 pb-4">
-                <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
+                <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
                 <CardTitle className="text-xl font-semibold">Student &amp; Admin Login</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                 Enter your Phone Number and password to login.

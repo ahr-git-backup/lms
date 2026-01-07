@@ -39,7 +39,7 @@ const TakeExam = () => {
       : `exam_session_${examId}_${user?.id}`;
 
   useEffect(() => {
-    document.title = retakeFromAttemptId ? "Retake Mistakes – Beshi Joss LMS" : "Take Exam – Beshi Joss LMS";
+    document.title = retakeFromAttemptId ? "Retake Mistakes – Atlas" : "Take Exam – Atlas";
 
     // Anti-Cheat: Tab Switch Detection
     const handleVisibilityChange = () => {

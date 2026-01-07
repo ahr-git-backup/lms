@@ -48,7 +48,7 @@ const StudentProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
-    document.title = "Student Profile – Beshi Joss LMS";
+    document.title = "Student Profile – Atlas";
     const fetchStats = async () => {
       if (!profile) return;
 

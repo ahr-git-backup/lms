@@ -21,7 +21,7 @@ const Register = () => {
   const [isSecondTimer, setIsSecondTimer] = useState(false);
 
   useEffect(() => {
-    document.title = "Register – Beshi Joss LMS";
+    document.title = "Register – Atlas";
   }, []);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -138,7 +138,7 @@ const Register = () => {
       <main className="flex min-h-[calc(100vh-56px)] items-center justify-center px-4 py-10">
         <Card className="w-full max-w-xl border-[3px] border-foreground">
           <CardHeader className="space-y-2 pb-4">
-            <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Beshi Joss LMS</p>
+            <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
             <CardTitle className="text-xl font-semibold">Create an Account</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               Register a new student account.
