@@ -22,7 +22,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
     const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
 
     return (
-    <Card className={`border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900`}>
+    <Card className={`border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900`}>
         <CardHeader className="space-y-1">
             <div className="flex justify-between items-start">
                 <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -41,7 +41,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             <div className="flex gap-2 mt-auto">
                 <Button
                     size="sm"
-                    className="flex-1 rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none"
+                    className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"
                     onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
                 >
                     Review & Retake
@@ -51,7 +51,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     variant="ghost"
                     onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
                     title="View Leaderboard"
-                    className="rounded-full hover:bg-amber-100 text-amber-700"
+                    className="rounded-full hover:bg-emerald-100 text-emerald-700"
                 >
                     <Trophy className="h-4 w-4" />
                 </Button>

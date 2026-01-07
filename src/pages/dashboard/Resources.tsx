@@ -116,13 +116,13 @@ const Resources = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredResources.map((resource) => (
-            <Card key={resource.id} className="border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
+            <Card key={resource.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-mono uppercase text-muted-foreground">
                     {resource.course?.name || "All Courses"}
                   </p>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border border-emerald-200 bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-800">
                       {resource.resource_type}
                   </span>
                 </div>
@@ -132,7 +132,7 @@ const Resources = () => {
                 )}
               </CardHeader>
               <CardContent className="flex-1 flex flex-col">
-                <Button size="sm" className="rounded-full mt-auto w-fit bg-amber-500 hover:bg-amber-600 text-white border-none" asChild>
+                <Button size="sm" className="rounded-full mt-auto w-fit bg-emerald-600 hover:bg-emerald-700 text-white border-none" asChild>
                   <a href={resource.url} target="_blank" rel="noopener noreferrer">
                     {getResourceIcon(resource.resource_type)}
                     <span className="ml-2">Open</span>

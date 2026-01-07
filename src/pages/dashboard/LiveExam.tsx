@@ -189,7 +189,7 @@ const LiveExam = () => {
             const isActive = isLive && start && end && now >= start && now <= end;
 
             return (
-              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] bg-amber-50 dark:bg-amber-900/40' : 'border border-amber-100 bg-amber-50/50 dark:bg-amber-950/20 dark:border-amber-900'}`}>
+              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
                 <CardHeader className="space-y-1">
                   <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -203,7 +203,7 @@ const LiveExam = () => {
                       {Array.isArray(exam.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
                             {exam.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-amber-200 bg-amber-100/50 text-amber-800 hover:bg-amber-100 dark:bg-amber-900/40 dark:text-amber-100 dark:border-amber-800">
+                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-emerald-200 bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-800">
                                     {s}
                                 </span>
                             ))}
@@ -238,7 +238,7 @@ const LiveExam = () => {
                       size="sm" 
                       onClick={() => setSelectedExamForPopup(exam)}
                       disabled={isLive && attempted}
-                      className={isActive ? "w-full rounded-full bg-amber-600 hover:bg-amber-700 text-white border-none" : "w-full rounded-full bg-amber-500 hover:bg-amber-600 text-white border-none"}
+                      className={isActive ? "w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white border-none" : "w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"}
                     >
                       {isActive ? "Start Live Exam" : "Start Exam"}
                     </Button>

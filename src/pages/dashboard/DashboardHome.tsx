@@ -132,7 +132,7 @@ const DashboardHome = () => {
            </div>
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {activeLiveClasses?.map((classItem) => (
-                  <Card key={classItem.id} className="border transition-all border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] dark:shadow-[0_0_20px_rgba(245,158,11,0.3)] bg-amber-50/50 dark:bg-amber-900/20">
+                  <Card key={classItem.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -148,7 +148,7 @@ const DashboardHome = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="w-full bg-amber-600 hover:bg-amber-700 text-white border-none">
+                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Join Live Class
                        </Button>
                     </CardContent>
@@ -156,7 +156,7 @@ const DashboardHome = () => {
               ))}
 
               {activeLiveExams?.map((exam) => (
-                  <Card key={exam.id} className="border transition-all border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] dark:shadow-[0_0_20px_rgba(245,158,11,0.3)] bg-amber-50/50 dark:bg-amber-900/20">
+                  <Card key={exam.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -172,7 +172,7 @@ const DashboardHome = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)} className="w-full bg-amber-600 hover:bg-amber-700 text-white border-none">
+                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Take Live Exam
                        </Button>
                     </CardContent>
