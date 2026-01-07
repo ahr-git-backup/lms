@@ -21,14 +21,9 @@ export const PublicHeader = () => {
     <header className="w-full border-b bg-background/80 backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4">
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full border-[3px] border-primary bg-background text-primary ring-2 ring-primary/60">
-            <Flame className="h-3.5 w-3.5" />
-          </span>
-          <div className="leading-tight">
-            <a href="/" className="text-sm font-semibold tracking-tight sm:text-base">
-              Beshi Joss LMS
-            </a>
-          </div>
+          <a href="/" className="block">
+            <img src="/logo.png" alt="Atlas Logo" className="h-10 w-auto object-contain" />
+          </a>
         </div>
 
         {/* Desktop Navigation */}
@@ -45,12 +40,20 @@ export const PublicHeader = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Mobile Login Button */}
+          <a href="/login" className="sm:hidden">
+            <Button size="sm" variant="default" className="h-9 px-4">
+              Login
+            </Button>
+          </a>
+
+          {/* Desktop Theme Toggle */}
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setTheme(isDark ? "light" : "dark")}
             aria-label="Toggle theme"
-            className="rounded-full"
+            className="hidden sm:flex rounded-full"
           >
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
@@ -77,6 +80,20 @@ export const PublicHeader = () => {
                   <a href="/login" className="text-lg font-medium hover:text-primary">
                     Student Login
                   </a>
+
+                  {/* Mobile Theme Toggle in Menu */}
+                  <div className="flex items-center justify-between mt-4 border-t pt-4">
+                    <span className="text-lg font-medium">Dark Mode</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTheme(isDark ? "light" : "dark")}
+                      aria-label="Toggle theme"
+                      className="rounded-full"
+                    >
+                      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                    </Button>
+                  </div>
                 </nav>
               </SheetContent>
             </Sheet>

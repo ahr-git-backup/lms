@@ -12,7 +12,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <span className="text-primary">Beshi</span> Joss LMS
+              <span className="text-primary">Atlas</span>
             </h3>
             <p className="text-sm text-slate-400 leading-relaxed">
               Empowering students with quality education, live classes, and instant exam results. Join us to unlock your potential.
@@ -55,7 +55,7 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Mail size={18} className="text-primary shrink-0 mt-0.5" />
-                <a href="mailto:support@beshijoss.com" className="hover:text-white transition-colors">support@beshijoss.com</a>
+                <a href="mailto:support@atlas.com" className="hover:text-white transition-colors">support@atlas.com</a>
               </li>
               <li className="flex items-start gap-3">
                 <Phone size={18} className="text-primary shrink-0 mt-0.5" />
@@ -71,7 +71,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-          <p>© {currentYear} Beshi Joss LMS. All rights reserved.</p>
+          <p>© {currentYear} Atlas. All rights reserved.</p>
         </div>
       </div>
     </footer>

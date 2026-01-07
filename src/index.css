@@ -14,8 +14,8 @@
     --card-foreground: 0 0% 0%;
     --popover: 0 0% 98.8235%;
     --popover-foreground: 0 0% 0%;
-    --primary: 212.9143 76.4192% 55.0980%;
-    --primary-foreground: 45.0000 5.7143% 86.2745%;
+    --primary: 142.1 76.2% 36.3%; /* Dark Green */
+    --primary-foreground: 0 0% 100%;
     --secondary: 214.2857 24.1379% 94.3137%;
     --secondary-foreground: 0 0% 3.1373%;
     --muted: 0 0% 96.0784%;
@@ -69,7 +69,7 @@
     --card-foreground: 0 0% 94.1176%;
     --popover: 228.0000 6.8493% 14.3137%;
     --popover-foreground: 0 0% 94.1176%;
-    --primary: 212.9143 76.4192% 55.0980%;
+    --primary: 142.1 76.2% 36.3%; /* Dark Green */
     --primary-foreground: 0 0% 100%;
     --secondary: 226.6667 9.6774% 18.2353%;
     --secondary-foreground: 0 0% 94.1176%;
@@ -89,12 +89,12 @@
     --chart-5: 0 0% 62.7451%;
     --sidebar: 240 4.3478% 9.0196%;
     --sidebar-foreground: 0 0% 94.1176%;
-    --sidebar-primary: 212.9143 76.4192% 55.0980%;
+    --sidebar-primary: 142.1 76.2% 36.3%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 226.6667 9.6774% 18.2353%;
-    --sidebar-accent-foreground: 212.9143 76.4192% 55.0980%;
+    --sidebar-accent-foreground: 142.1 76.2% 36.3%;
     --sidebar-border: 222.8571 6.4220% 21.3725%;
-    --sidebar-ring: 212.9143 76.4192% 55.0980%;
+    --sidebar-ring: 142.1 76.2% 36.3%;
     --font-sans: "Plus Jakarta Sans", sans-serif;
     --font-serif: "Lora", serif;
     --font-mono: "IBM Plex Mono", monospace;

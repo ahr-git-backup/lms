@@ -1,6 +1,6 @@
-# Beshi Joss LMS
+# Atlas
 
-**Beshi Joss LMS** is a modern, commercial-grade Learning Management System (LMS) designed for coaching centers and educational institutions in Bangladesh. It features a complete ecosystem for online exams, live classes, resource distribution, and manual payment verification.
+**Atlas** is a modern, commercial-grade Learning Management System (LMS) designed for coaching centers and educational institutions in Bangladesh. It features a complete ecosystem for online exams, live classes, resource distribution, and manual payment verification.
 
 ## 🚀 Features
 
@@ -52,8 +52,8 @@ supabase/
 
 1.  **Clone the repository:**
     ```bash
-    git clone https://github.com/your-username/beshijoss-lms.git
-    cd beshijoss-lms
+    git clone https://github.com/your-username/atlas.git
+    cd atlas
     ```
 
 2.  **Install dependencies:**
