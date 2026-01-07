@@ -26,25 +26,24 @@ import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 
 const FEATURES = [
-    { icon: Monitor, title: "Offline/Online Program", desc: "Seamless learning experience." },
+    { icon: Monitor, title: "Online Program", desc: "Seamless learning experience." },
     { icon: Users, title: "Experienced Teachers", desc: "Learn from the best mentors." },
     { icon: BookOpen, title: "Study Materials", desc: "Quality notes and resources." },
     { icon: Lightbulb, title: "Concept Based Class", desc: "Build strong foundations." },
     { icon: FileText, title: "Unique Exam System", desc: "Standard evaluation methods." },
-    { icon: MessageCircle, title: "24/7 Q&A Support", desc: "Instant doubt solving." },
-    { icon: Smartphone, title: "Auto SMS Results", desc: "Track progress instantly." },
-    { icon: BarChart, title: "Exam Analysis", desc: "Detailed performance reports." },
+    { icon: MessageCircle, title: "Q&A Support", desc: "Instant doubt solving." },
+    { icon: Smartphone, title: "Guidelines", desc: "Never lose your path." },
+    { icon: BarChart, title: "Exam Leaderboard", desc: "Track own performance among others." },
 ];
 
 const STATS = [
-    { year: "2024", title: "Medical Admission", details: "20/20 in Top 20, 240 in DMC. Total 4805+ Success." },
-    { year: "2023", title: "Medical Admission", details: "50/50 in Top 50, 241 in DMC. Total 4750+ Success." },
-    { year: "2022", title: "Medical Admission", details: "18/20 in Top 20, 209 in DMC. Total 3546 Success." },
+    { year: "2024", title: "Medical Admission", details: "6/20 in Top 20. Total 350+ Success." },
+    
 ];
 
 const Index = () => {
   useEffect(() => {
-    document.title = "Atlas - Best Live Coaching & Exam Platform in BD";
+    document.title = "Atlas - Best Coaching & Exam Platform";
   }, []);
 
   const { data: courses, isLoading } = useQuery({
