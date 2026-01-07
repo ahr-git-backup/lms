@@ -20,7 +20,7 @@ const PastExamCatalog = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Past Exams – Beshi Joss LMS";
+    document.title = "Past Exams – Atlas";
   }, []);
 
   const { data: exams, isLoading: examsLoading } = useQuery({

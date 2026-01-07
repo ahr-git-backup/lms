@@ -14,7 +14,7 @@ const Resources = () => {
   const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
-    document.title = "Resources – Beshi Joss LMS";
+    document.title = "Resources – Atlas";
   }, []);
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];

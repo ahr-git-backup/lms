@@ -60,7 +60,7 @@ const AdminResources = () => {
   };
 
   useEffect(() => {
-    document.title = "Admin – Resources – Beshi Joss LMS";
+    document.title = "Admin – Resources – Atlas";
   }, []);
 
   const { data: courses } = useQuery({

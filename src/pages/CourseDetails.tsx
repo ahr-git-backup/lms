@@ -43,9 +43,9 @@ const CourseDetails = () => {
 
   useEffect(() => {
     if (course?.name) {
-      document.title = `${course.name} – Beshi Joss LMS`;
+      document.title = `${course.name} – Atlas`;
     } else {
-      document.title = "Course – Beshi Joss LMS";
+      document.title = "Course – Atlas";
     }
   }, [course?.name]);
 

@@ -15,7 +15,7 @@ const PastClass = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Past Class – Beshi Joss LMS";
+    document.title = "Past Class – Atlas";
   }, []);
 
   const { data: classes, isLoading } = useQuery({

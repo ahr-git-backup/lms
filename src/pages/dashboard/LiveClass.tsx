@@ -16,7 +16,7 @@ const LiveClass = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Live Class – Beshi Joss LMS";
+    document.title = "Live Class – Atlas";
   }, []);
 
   const { data: classes, isLoading } = useQuery({

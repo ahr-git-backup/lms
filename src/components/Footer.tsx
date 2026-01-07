@@ -5,23 +5,23 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-slate-900 text-slate-200 border-t border-slate-800">
+    <footer className="bg-primary text-slate-100 border-t border-primary/20">
       <div className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 md:gap-12">
 
           {/* Brand Column */}
           <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <span className="text-primary">Atlas</span>
-            </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <div className="flex items-center gap-2 bg-white w-fit px-3 py-2 rounded-md">
+               <img src="/logo.png" alt="Atlas Logo" className="h-10 w-auto object-contain" />
+            </div>
+            <p className="text-sm text-slate-200 leading-relaxed">
               Empowering students with quality education, live classes, and instant exam results. Join us to unlock your potential.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="bg-slate-800 p-2 rounded-full hover:bg-primary hover:text-white transition-colors">
+              <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-primary transition-colors">
                 <Facebook size={18} />
               </a>
-              <a href="#" className="bg-slate-800 p-2 rounded-full hover:bg-red-600 hover:text-white transition-colors">
+              <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-red-600 transition-colors">
                 <Youtube size={18} />
               </a>
             </div>

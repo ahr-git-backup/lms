@@ -9,7 +9,7 @@ const ExamAnalytics = () => {
   const { user } = useAuth();
 
   useEffect(() => {
-    document.title = "Exam Analytics – Beshi Joss LMS";
+    document.title = "Exam Analytics – Atlas";
   }, []);
 
   const { data: attempts, isLoading } = useQuery({

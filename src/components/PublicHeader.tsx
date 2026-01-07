@@ -19,9 +19,9 @@ export const PublicHeader = () => {
 
   return (
     <header className="w-full border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:gap-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-2 py-3 sm:gap-4 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-3">
-          <a href="/" className="block">
+          <a href="/" className="block bg-white rounded p-1">
             <img src="/logo.png" alt="Atlas Logo" className="h-10 w-auto object-contain" />
           </a>
         </div>

@@ -15,7 +15,7 @@ const Bookmarks = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    document.title = "Bookmarks – Beshi Joss LMS";
+    document.title = "Bookmarks – Atlas";
   }, []);
 
   const { data: bookmarks, isLoading } = useQuery({

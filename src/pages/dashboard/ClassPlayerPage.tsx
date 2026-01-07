@@ -46,7 +46,7 @@ const ClassPlayerPage = () => {
 
   useEffect(() => {
     if (classItem?.title) {
-      document.title = `${classItem.title} – Beshi Joss LMS`;
+      document.title = `${classItem.title} – Atlas`;
     }
   }, [classItem]);
 

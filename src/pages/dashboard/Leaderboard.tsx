@@ -19,7 +19,7 @@ const Leaderboard = () => {
   const [filterType, setFilterType] = useState<'live' | 'practice'>('live');
 
   useEffect(() => {
-    document.title = "Leaderboard – Beshi Joss LMS";
+    document.title = "Leaderboard – Atlas";
   }, []);
 
   const { data: exam } = useQuery({

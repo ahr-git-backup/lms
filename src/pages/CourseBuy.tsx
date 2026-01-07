@@ -133,9 +133,9 @@ const CourseBuy = () => {
 
   useEffect(() => {
     if (course?.name) {
-      document.title = `Buy ${course.name} – Beshi Joss LMS`;
+      document.title = `Buy ${course.name} – Atlas`;
     } else {
-      document.title = "Buy course – Beshi Joss LMS";
+      document.title = "Buy course – Atlas";
     }
   }, [course?.name]);
 

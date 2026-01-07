@@ -20,7 +20,7 @@ const ExamReview = () => {
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
 
   useEffect(() => {
-    document.title = "Exam Review – Beshi Joss LMS";
+    document.title = "Exam Review – Atlas";
   }, []);
 
   const { data: profile } = useQuery({

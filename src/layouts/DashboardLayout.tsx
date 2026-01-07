@@ -228,8 +228,10 @@ export const DashboardLayout = () => {
               >
                 <ArrowLeft className="h-4 w-4" />
               </Button>
-              <div>
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground hidden xs:block">Beshi Joss LMS</p>
+              <div className="flex items-center gap-2">
+                <div className="bg-white rounded p-1 hidden xs:block">
+                  <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
+                </div>
                 <h1 className="text-sm font-semibold">Dashboard</h1>
               </div>
             </div>
@@ -317,7 +319,7 @@ export const DashboardLayout = () => {
                   <SheetHeader className="text-left">
                     <SheetTitle>Menu</SheetTitle>
                     <SheetDescription className="text-xs text-muted-foreground">
-                      {profile ? `Reg ID: ${profile.registration_id}` : 'Beshi Joss LMS'}
+                      {profile ? `Reg ID: ${profile.registration_id}` : 'Atlas'}
                     </SheetDescription>
                   </SheetHeader>
                   <nav className="flex flex-col gap-1 text-sm">

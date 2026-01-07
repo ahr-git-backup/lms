@@ -30,7 +30,7 @@ const Routine = () => {
   const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
-    document.title = "Routine – Beshi Joss LMS";
+    document.title = "Routine – Atlas";
   }, []);
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
