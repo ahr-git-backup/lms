@@ -15,7 +15,7 @@ const Footer = () => {
                <img src="/logo.png" alt="Atlas Logo" className="h-10 w-auto object-contain" />
             </div>
             <p className="text-sm text-slate-200 leading-relaxed">
-              Empowering students with quality education, live classes, and instant exam results. Join us to unlock your potential.
+              উন্নত শিক্ষা, লাইভ ক্লাস এবং তাৎক্ষণিক এক্সাম রেজাল্ট নিয়ে শিক্ষার্থীদের পাশে আমরা। নিজের সম্ভাবনাকে বিকশিত করতে আমাদের সাথে যুক্ত হোন।
             </p>
             <div className="flex gap-4">
               <a href="#" className="bg-primary-foreground/10 p-2 rounded-full hover:bg-white hover:text-primary transition-colors">
@@ -32,29 +32,29 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold text-white mb-4">প্রয়োজনীয় লিংক</h4>
             <ul className="space-y-2 text-sm">
-              <li><Link to="/" className="hover:text-primary transition-colors">Home</Link></li>
-              <li><Link to="/courses" className="hover:text-primary transition-colors">All Courses</Link></li>
-              <li><Link to="/login" className="hover:text-primary transition-colors">Login</Link></li>
-              <li><Link to="/register" className="hover:text-primary transition-colors">Register</Link></li>
+              <li><Link to="/" className="hover:text-primary transition-colors">হোম</Link></li>
+              <li><Link to="/courses" className="hover:text-primary transition-colors">সকল কোর্স</Link></li>
+              <li><Link to="/login" className="hover:text-primary transition-colors">লগইন</Link></li>
+              <li><Link to="/register" className="hover:text-primary transition-colors">রেজিস্ট্রেশন</Link></li>
             </ul>
           </div>
 
           {/* Resources (Placeholder) */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4">Resources</h4>
+            <h4 className="text-lg font-semibold text-white mb-4">রিসোর্স</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="/#free-resources" className="hover:text-primary transition-colors">Free Exams</a></li>
-              <li><a href="/#free-resources" className="hover:text-primary transition-colors">Demo Classes</a></li>
-              <li><a href="/#success-stories" className="hover:text-primary transition-colors">Success Stories</a></li>
-              <li><a href="/#reviews" className="hover:text-primary transition-colors">Student Reviews</a></li>
+              <li><a href="/#free-resources" className="hover:text-primary transition-colors">ফ্রি এক্সাম</a></li>
+              <li><a href="/#free-resources" className="hover:text-primary transition-colors">ডেমো ক্লাস</a></li>
+              <li><a href="/#success-stories" className="hover:text-primary transition-colors">সাফল্যের গল্প</a></li>
+              <li><a href="/#reviews" className="hover:text-primary transition-colors">শিক্ষার্থীদের মতামত</a></li>
             </ul>
           </div>
 
           {/* Contact Info */}
           <div>
-            <h4 className="text-lg font-semibold text-white mb-4">Contact Us</h4>
+            <h4 className="text-lg font-semibold text-white mb-4">যোগাযোগ</h4>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Mail size={18} className="text-primary shrink-0 mt-0.5" />
@@ -66,7 +66,7 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-3">
                 <MapPin size={18} className="text-primary shrink-0 mt-0.5" />
-                <span>Dhaka, Bangladesh</span>
+                <span>ঢাকা, বাংলাদেশ</span>
               </li>
             </ul>
           </div>
@@ -74,7 +74,7 @@ const Footer = () => {
 
         {/* Copyright */}
         <div className="mt-12 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-          <p>© {currentYear} Atlas. All rights reserved.</p>
+          <p>© {currentYear} Atlas. সর্বস্বত্ব সংরক্ষিত।</p>
         </div>
       </div>
     </footer>

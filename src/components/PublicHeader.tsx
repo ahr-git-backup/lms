@@ -29,13 +29,13 @@ export const PublicHeader = () => {
         {/* Desktop Navigation */}
         <nav className="hidden items-center gap-4 text-xs font-medium sm:flex sm:text-sm">
           <a href="/" className="underline-offset-4 hover:underline">
-            Home
+            হোম
           </a>
           <a href="/#courses" className="underline-offset-4 hover:underline">
-            Courses
+            কোর্সসমূহ
           </a>
           <a href="/login" className="underline-offset-4 hover:underline">
-            Student Login
+            লগইন
           </a>
         </nav>
 
@@ -43,7 +43,7 @@ export const PublicHeader = () => {
           {/* Mobile Login Button */}
           <a href="/login" className="sm:hidden">
             <Button size="sm" variant="default" className="h-9 px-4">
-              Login
+              লগইন
             </Button>
           </a>
 
@@ -68,22 +68,22 @@ export const PublicHeader = () => {
               </SheetTrigger>
               <SheetContent side="right">
                 <SheetHeader>
-                  <SheetTitle>Menu</SheetTitle>
+                  <SheetTitle>মেনু</SheetTitle>
                 </SheetHeader>
                 <nav className="flex flex-col gap-4 mt-6">
                   <a href="/" className="text-lg font-medium hover:text-primary">
-                    Home
+                    হোম
                   </a>
                   <a href="/#courses" className="text-lg font-medium hover:text-primary">
-                    Courses
+                    কোর্সসমূহ
                   </a>
                   <a href="/login" className="text-lg font-medium hover:text-primary">
-                    Student Login
+                    লগইন
                   </a>
 
                   {/* Mobile Theme Toggle in Menu */}
                   <div className="flex items-center justify-between mt-4 border-t pt-4">
-                    <span className="text-lg font-medium">Dark Mode</span>
+                    <span className="text-lg font-medium">ডার্ক মোড</span>
                     <Button
                       variant="ghost"
                       size="icon"

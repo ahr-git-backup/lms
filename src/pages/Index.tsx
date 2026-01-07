@@ -26,18 +26,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 
 const FEATURES = [
-    { icon: Monitor, title: "Online Program", desc: "Seamless learning experience." },
-    { icon: Users, title: "Experienced Teachers", desc: "Learn from the best mentors." },
-    { icon: BookOpen, title: "Study Materials", desc: "Quality notes and resources." },
-    { icon: Lightbulb, title: "Concept Based Class", desc: "Build strong foundations." },
-    { icon: FileText, title: "Unique Exam System", desc: "Standard evaluation methods." },
-    { icon: MessageCircle, title: "Q&A Support", desc: "Instant doubt solving." },
-    { icon: Smartphone, title: "Guidelines", desc: "Never lose your path." },
-    { icon: BarChart, title: "Exam Leaderboard", desc: "Track own performance among others." },
+    { icon: Monitor, title: "অনলাইন প্রোগ্রাম", desc: "ঘরে বসেই সেরা প্রস্তুতি।" },
+    { icon: Users, title: "অভিজ্ঞ শিক্ষকবৃন্দ", desc: "সেরা মেন্টরদের সান্নিধ্যে।" },
+    { icon: BookOpen, title: "স্টাডি ম্যাটেরিয়ালস", desc: "মানসম্মত নোট এবং রিসোর্স।" },
+    { icon: Lightbulb, title: "কনসেপ্ট ভিত্তিক ক্লাস", desc: "বেসিক হোক শক্তিশালী।" },
+    { icon: FileText, title: "ইউনিক এক্সাম সিস্টেম", desc: "নিজেকে যাচাইয়ের সেরা মাধ্যম।" },
+    { icon: MessageCircle, title: "Q&A সাপোর্ট", desc: "তাৎক্ষণিক সমস্যার সমাধান।" },
+    { icon: Smartphone, title: "সঠিক গাইডলাইন", desc: "সাফল্যের পথে এগিয়ে চলুন।" },
+    { icon: BarChart, title: "এক্সাম লিডারবোর্ড", desc: "অন্যদের সাথে নিজের অবস্থান যাচাই।" },
 ];
 
 const STATS = [
-    { year: "2024", title: "Medical Admission", details: "6/20 in Top 20. Total 350+ Success." },
+    { year: "২০২৪", title: "মেডিকেল ভর্তি", details: "টপ ২০-এ ৬/২০। মোট ৩৫০+ সাফল্য।" },
     
 ];
 
@@ -97,11 +97,11 @@ const Index = () => {
 
        if (error || !data || data.length === 0) {
            return [
-               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "Best platform for HSC preparation!", rating: 5, gender: "male", image_url: "" },
-               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "The exam system is exactly like the real one.", rating: 5, gender: "female", image_url: "" },
-               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "Live classes and notes are super helpful.", rating: 5, gender: "male", image_url: "" },
-               { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "I improved my physics grade significantly.", rating: 5, gender: "female", image_url: "" },
-               { id: 5, student_name: "Karim Hasan", college_name: "Rajuk Uttara Model College", review_text: "Highly recommended for admission test prep.", rating: 5, gender: "male", image_url: "" }
+               { id: 1, student_name: "Ayman Sadiq", college_name: "Dhaka College", review_text: "এইচএসসি প্রস্তুতির জন্য সেরা প্ল্যাটফর্ম!", rating: 5, gender: "male", image_url: "" },
+               { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "এক্সাম সিস্টেমটি হুবহু আসল পরীক্ষার মতো।", rating: 5, gender: "female", image_url: "" },
+               { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "লাইভ ক্লাস এবং নোটগুলো খুবই সহায়ক।", rating: 5, gender: "male", image_url: "" },
+               { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "আমি পদার্থবিজ্ঞানে অনেক উন্নতি করেছি।", rating: 5, gender: "female", image_url: "" },
+               { id: 5, student_name: "Karim Hasan", college_name: "Rajuk Uttara Model College", review_text: "ভর্তি পরীক্ষার প্রস্তুতির জন্য অত্যন্ত সুপারিশকৃত।", rating: 5, gender: "male", image_url: "" }
            ];
        }
        return data;
@@ -110,9 +110,9 @@ const Index = () => {
 
   // Default hero content if no custom heroes are found
   const defaultHero = {
-      title: "Welcome to Atlas",
-      subtitle: "Your gateway to excellence. Join us to master your subjects with the best resources and mentors. The all-in-one powerhouse for live classes, instant results, and seamless course management.",
-      cta_text: "Get Started",
+      title: "এটলাসে স্বাগতম",
+      subtitle: "সেরা রিসোর্স এবং মেন্টরদের সাথে নিয়ে এক্সিলেন্স অর্জনের পথে আপনাকে স্বাগতম। লাইভ ক্লাস, তাৎক্ষণিক রেজাল্ট এবং সম্পূর্ণ কোর্স ম্যানেজমেন্টের এক অনন্য আয়োজন।",
+      cta_text: "শুরু করুন",
       cta_link: "/login",
       image_url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1600&h=900"
   };
@@ -161,18 +161,18 @@ const Index = () => {
         <section id="courses" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-semibold tracking-tight">Available Courses</h2>
+              <h2 className="text-2xl font-semibold tracking-tight">চলমান কোর্সসমূহ</h2>
               <p className="text-sm text-muted-foreground">
-                Premium programs designed for your success.
+                আপনার সফলতার জন্য বিশেষভাবে ডিজাইন করা প্রিমিয়াম প্রোগ্রাম।
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground col-span-full">Loading courses...</p>
+              <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
             ) : !courses || courses.length === 0 ? (
-              <p className="text-sm text-muted-foreground col-span-full">No courses available yet.</p>
+              <p className="text-sm text-muted-foreground col-span-full">বর্তমানে কোনো কোর্স চালু নেই।</p>
             ) : (
               courses.map((course: any) => {
                 const image = course.image_url || "/placeholder.svg";
@@ -195,10 +195,10 @@ const Index = () => {
                             <h3 className="text-lg font-bold mb-2 leading-tight">{course.name}</h3>
                             <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
                             <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Live Classes</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Lecture Notes</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Standard Exams</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> Solve Sheets</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লাইভ ক্লাস</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লেকচার নোট</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
+                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> সলভ শিট</div>
                             </div>
                         </div>
 
@@ -210,15 +210,15 @@ const Index = () => {
                                     </span>
                                 )}
                                 <div className="text-base font-bold text-primary">
-                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Contact"}
+                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                 </div>
                             </div>
                             <div className="flex gap-2">
                                 <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
-                                    <a href={`/courses/${idOrSlug}`}>Details</a>
+                                    <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
                                 </Button>
                                 <Button asChild size="sm" className="h-8 px-2 text-xs">
-                                    <a href={`/courses/${idOrSlug}/buy`}>Enroll</a>
+                                    <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
                                 </Button>
                             </div>
                         </div>
@@ -233,43 +233,43 @@ const Index = () => {
         {/* Free Service/Courses Section */}
         <section id="free-resources" className="space-y-6">
             <div className="text-center md:text-left">
-                <h2 className="text-2xl font-semibold tracking-tight">Free Learning Resources</h2>
-                <p className="text-sm text-muted-foreground">Start learning today without any cost.</p>
+                <h2 className="text-2xl font-semibold tracking-tight">ফ্রি লার্নিং রিসোর্স</h2>
+                <p className="text-sm text-muted-foreground">আজই শুরু করুন সম্পূর্ণ ফ্রিতে।</p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
                 <Card className="border-2 border-primary/20 bg-primary/5">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <Flame className="h-5 w-5 text-primary" /> Free Exams
+                            <Flame className="h-5 w-5 text-primary" /> ফ্রি এক্সাম
                         </CardTitle>
                         <CardDescription>
-                            Test your preparation with our subject-wise and topic-wise free exams.
+                            আমাদের সাবজেক্ট এবং টপিক ভিত্তিক ফ্রি এক্সাম দিয়ে নিজেকে যাচাই করুন।
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm">Register for free and get instant access to practice exams. No course purchase required.</p>
+                        <p className="text-sm">ফ্রি রেজিস্ট্রেশন করে প্র্যাকটিস এক্সামে অংশ নিন। কোনো কোর্স কেনার প্রয়োজন নেই।</p>
                     </CardContent>
                     <CardFooter>
                         <Button asChild variant="default" className="w-full">
-                            <a href="/login">Take Free Exam</a>
+                            <a href="/login">ফ্রি এক্সাম দিন</a>
                         </Button>
                     </CardFooter>
                 </Card>
                  <Card className="border-2 border-primary/20 bg-primary/5">
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <InfinityIcon className="h-5 w-5 text-primary" /> Free Classes
+                            <InfinityIcon className="h-5 w-5 text-primary" /> ফ্রি ক্লাস
                         </CardTitle>
                         <CardDescription>
-                            Watch demo classes and selected topic discussions for free.
+                            ডেমো ক্লাস এবং নির্বাচিত টপিক আলোচনা দেখুন একদম ফ্রিতে।
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-sm">Explore our teaching style and quality content before you decide to join.</p>
+                        <p className="text-sm">ভর্তির আগে আমাদের পড়ানোর স্টাইল এবং কনটেন্ট কোয়ালিটি যাচাই করুন।</p>
                     </CardContent>
                     <CardFooter>
                          <Button asChild variant="outline" className="w-full">
-                            <a href="https://youtube.com" target="_blank" rel="noreferrer">Watch on YouTube</a>
+                            <a href="https://youtube.com" target="_blank" rel="noreferrer">ইউটিউবে দেখুন</a>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -279,8 +279,8 @@ const Index = () => {
         {/* Unique Services Section */}
         <section className="space-y-6">
             <div className="text-center md:text-left">
-                <h2 className="text-2xl font-semibold tracking-tight">Unique Services</h2>
-                <p className="text-sm text-muted-foreground">Why choose Atlas?</p>
+                <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
+                <p className="text-sm text-muted-foreground">কেন বাছবেন এটলাস?</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {FEATURES.map((feature, i) => (
@@ -302,8 +302,8 @@ const Index = () => {
         {/* Success Stats Section */}
         <section id="success-stories" className="space-y-6">
              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-semibold tracking-tight">Our Success Stories</h2>
-                <p className="text-muted-foreground">Consistent results year after year.</p>
+                <h2 className="text-2xl font-semibold tracking-tight">সাফল্যের গল্প</h2>
+                <p className="text-muted-foreground">প্রতি বছর ধারাবাহিক সাফল্য।</p>
              </div>
              <div className="grid gap-4 md:grid-cols-3">
                  {STATS.map((stat, i) => (
@@ -329,8 +329,8 @@ const Index = () => {
       <section className="bg-card border-t py-12 px-4 mt-auto">
           <div className="mx-auto max-w-6xl space-y-8">
                <div className="text-center space-y-2">
-                    <h2 className="text-2xl font-bold">Meet Our Mentors</h2>
-                    <p className="text-muted-foreground">The team behind your success.</p>
+                    <h2 className="text-2xl font-bold">আমাদের মেন্টরবৃন্দ</h2>
+                    <p className="text-muted-foreground">আপনার সফলতার কারিগর।</p>
                </div>
 
                <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4 justify-center">
@@ -354,7 +354,7 @@ const Index = () => {
                            </div>
                        ))
                    ) : (
-                       <p className="text-center col-span-full text-muted-foreground">Mentors will be added soon.</p>
+                       <p className="text-center col-span-full text-muted-foreground">খুব শীঘ্রই মেন্টর যুক্ত করা হবে।</p>
                    )}
                </div>
           </div>
