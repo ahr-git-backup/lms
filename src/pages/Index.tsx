@@ -114,7 +114,7 @@ const Index = () => {
       subtitle: "সেরা রিসোর্স এবং মেন্টরদের সাথে নিয়ে এক্সিলেন্স অর্জনের পথে আপনাকে স্বাগতম। লাইভ ক্লাস, তাৎক্ষণিক রেজাল্ট এবং সম্পূর্ণ কোর্স ম্যানেজমেন্টের এক অনন্য আয়োজন।",
       cta_text: "শুরু করুন",
       cta_link: "/login",
-      image_url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1600&h=900"
+      image_url: "https://pub-48488a27fc9244d9b86fec8da3eb89f4.r2.dev/99deffc5-66ec-46c4-a582-f02d9c07a0de.webp"
   };
 
   const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
@@ -269,7 +269,7 @@ const Index = () => {
                     </CardContent>
                     <CardFooter>
                          <Button asChild variant="outline" className="w-full">
-                            <a href="https://youtube.com" target="_blank" rel="noreferrer">ইউটিউবে দেখুন</a>
+                            <a href="https://www.youtube.com/@AtlasMedical_Preparation" target="_blank" rel="noreferrer">ইউটিউবে দেখুন</a>
                         </Button>
                     </CardFooter>
                 </Card>
