@@ -864,6 +864,20 @@ const AdminExams = () => {
                                 <div className="flex items-center gap-2 pt-2 border-t mt-2" onClick={(e) => e.stopPropagation()}>
                                     <Button
                                         type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-blue-500 border"
+                                        title="Copy Exam Link"
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/dashboard/take-exam/${exam.id}`;
+                                            navigator.clipboard.writeText(url);
+                                            toast({ title: "Copied!", description: "Exam link copied to clipboard." });
+                                        }}
+                                    >
+                                        <Copy className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                        type="button"
                                         size="sm"
                                         variant="outline"
                                         className="flex-1 h-8 text-xs"
