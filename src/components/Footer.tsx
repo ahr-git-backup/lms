@@ -58,11 +58,11 @@ const Footer = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3">
                 <Mail size={18} className="text-primary shrink-0 mt-0.5" />
-                <a href="mailto:hamza818483@gmail.com" className="hover:text-white transition-colors">support@atlas.com</a>
+                <a href="mailto:hamza818483@gmail.com" className="hover:text-white transition-colors">hamza818483@gmail.com</a>
               </li>
               <li className="flex items-start gap-3">
                 <Phone size={18} className="text-primary shrink-0 mt-0.5" />
-                <a href="tel:+8801999681290" className="hover:text-white transition-colors">+880 1234 567 890</a>
+                <a href="tel:+8801999681290" className="hover:text-white transition-colors">+8801999681290</a>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin size={18} className="text-primary shrink-0 mt-0.5" />
