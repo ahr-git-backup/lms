@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 
 const examSchema = z.object({
   id: z.string().optional(),
-  course_id: z.string().min(1, "Course is required"),
+  course_id: z.string().nullable().optional(),
   title: z.string().trim().min(1, "Title is required"),
   subject: z.array(z.string()).default([]),
   exam_type: z.enum(["live", "practice"]),
@@ -30,6 +30,12 @@ const examSchema = z.object({
     .trim()
     .min(1, "Duration is required")
     .refine((val) => !isNaN(Number(val)), { message: "Duration must be a number" }),
+  total_marks: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Total marks must be a number" }),
   negative_mark_per_question: z
     .string()
     .trim()
@@ -55,6 +61,7 @@ const AdminExams = () => {
     subject: [],
     exam_type: "live",
     duration_minutes: "60",
+    total_marks: "",
     negative_mark_per_question: "0",
     instructions: "",
     time_window_start: "",
@@ -148,11 +155,12 @@ const AdminExams = () => {
       const parsed = examSchema.parse(values);
 
       const payload: Partial<Exam> = {
-        course_id: parsed.course_id,
+        course_id: parsed.course_id || null,
         title: parsed.title,
         subject: parsed.subject, // Array
         exam_type: parsed.exam_type,
         duration_minutes: Number(parsed.duration_minutes),
+        total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
         negative_mark_per_question: parsed.negative_mark_per_question
           ? Number(parsed.negative_mark_per_question)
           : 0,
@@ -381,11 +389,12 @@ const AdminExams = () => {
 
     setForm({
       id: exam.id,
-      course_id: exam.course_id,
+      course_id: exam.course_id || "",
       title: exam.title ?? "",
       subject: subjects,
       exam_type: exam.exam_type === "practice" ? "practice" : "live",
       duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "60",
+      total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
       negative_mark_per_question:
         exam.negative_mark_per_question != null
           ? String(exam.negative_mark_per_question)
@@ -434,13 +443,26 @@ const AdminExams = () => {
           <CardContent>
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="course">Course</Label>
+                <div className="flex justify-between items-center">
+                    <Label htmlFor="course">Course (Optional)</Label>
+                    {form.course_id && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-5 px-2 text-xs"
+                            onClick={() => setForm(prev => ({ ...prev, course_id: "" }))}
+                        >
+                            Clear
+                        </Button>
+                    )}
+                </div>
                 <Select
-                  value={form.course_id}
+                  value={form.course_id || ""}
                   onValueChange={(value) => setForm((prev) => ({ ...prev, course_id: value }))}
                 >
                   <SelectTrigger id="course">
-                    <SelectValue placeholder="Select course" />
+                    <SelectValue placeholder="Select course (or leave empty for Public)" />
                   </SelectTrigger>
                   <SelectContent>
                     {courses?.map((course: Pick<Course, "id" | "name">) => (
@@ -450,6 +472,7 @@ const AdminExams = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                {!form.course_id && <p className="text-[10px] text-muted-foreground">This exam will be public (no course restriction).</p>}
               </div>
 
               <div className="space-y-2">
@@ -495,6 +518,16 @@ const AdminExams = () => {
                   id="duration_minutes"
                   value={form.duration_minutes}
                   onChange={(e) => setForm((prev) => ({ ...prev, duration_minutes: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="total_marks">Total Marks (Manual Override)</Label>
+                <Input
+                  id="total_marks"
+                  value={form.total_marks}
+                  onChange={(e) => setForm((prev) => ({ ...prev, total_marks: e.target.value }))}
+                  placeholder="Ex: 100 (Optional)"
                 />
               </div>
 
@@ -709,7 +742,9 @@ const AdminExams = () => {
                         <TableBody>
                         {exams.map((exam: Exam) => (
                             <TableRow key={exam.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => handleEdit(exam)}>
-                            <TableCell className="whitespace-nowrap font-medium">{exam.course?.name}</TableCell>
+                            <TableCell className="whitespace-nowrap font-medium">
+                                {exam.course?.name || <Badge variant="secondary">Public</Badge>}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap">{exam.title}</TableCell>
                             <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                                 <div className="flex flex-wrap gap-1">
@@ -732,6 +767,20 @@ const AdminExams = () => {
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap">
                                 <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8 text-blue-500"
+                                    title="Copy Exam Link"
+                                    onClick={() => {
+                                        const url = `${window.location.origin}/dashboard/take-exam/${exam.id}`;
+                                        navigator.clipboard.writeText(url);
+                                        toast({ title: "Copied!", description: "Exam link copied to clipboard." });
+                                    }}
+                                >
+                                    <Copy className="h-4 w-4" />
+                                </Button>
                                 <Button
                                     type="button"
                                     size="sm"

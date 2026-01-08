@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert } from "lucide-react";
+import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const PAGE_SIZE = 50;
@@ -38,7 +38,10 @@ const Leaderboard = () => {
   const { data: hasAccess } = useQuery({
     queryKey: ["check-leaderboard-access", exam?.course_id, user?.id],
     queryFn: async () => {
-       if (!exam?.course_id || !user?.id) return false;
+       // If public exam (no course_id), allow access
+       if (!exam?.course_id) return true;
+       if (!user?.id) return false;
+
        const { data } = await supabase
           .from("enrollments")
           .select("id")
@@ -47,7 +50,7 @@ const Leaderboard = () => {
           .maybeSingle();
        return !!data;
     },
-    enabled: !!exam?.course_id && !!user?.id
+    enabled: !!exam && !!user?.id
   });
 
   const { data: leaderboardData, isLoading } = useQuery({
@@ -87,6 +90,63 @@ const Leaderboard = () => {
   const totalCount = leaderboardData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  const handleExport = async () => {
+      try {
+          // Fetch ALL records for export, not just paginated
+          let query = (supabase as any)
+            .from('leaderboard_exam_attempts')
+            .select('*')
+            .eq('exam_id', examId);
+
+          if (filterType === 'live') {
+            query = query.eq('attempt_type', 'live');
+          } else {
+            query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+          }
+
+          const { data, error } = await query
+            .order('score', { ascending: false })
+            .order('submitted_at', { ascending: true });
+
+          if (error) throw error;
+          if (!data || data.length === 0) {
+              alert("No data to export");
+              return;
+          }
+
+          // Generate CSV
+          const headers = ["Rank", "Name", "Registration ID", "Score", "Time Taken (sec)", "Submitted At", "Attempt No"];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const rows = data.map((item: any, idx: number) => [
+              idx + 1,
+              item.profile?.full_name || "Unknown",
+              item.profile?.registration_id || "",
+              item.score,
+              item.time_taken_seconds,
+              new Date(item.submitted_at).toLocaleString(),
+              item.attempt_number || 1
+          ]);
+
+          const csvContent = [
+              headers.join(","),
+              ...rows.map(r => r.map(c => `"${c}"`).join(","))
+          ].join("\n");
+
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.setAttribute("href", url);
+          link.setAttribute("download", `${exam?.title}_leaderboard_${filterType}.csv`);
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+      } catch (err) {
+          console.error(err);
+          alert("Failed to export");
+      }
+  };
+
   // If exam is not live type, we might not need tabs, but user said "expired live exam will be counted as a practice exam"
   // So even for expired live exams, we should probably show the historical "Live Rank" vs "Practice Rank".
   const showTabs = exam?.exam_type === 'live';
@@ -94,23 +154,28 @@ const Leaderboard = () => {
   if (hasAccess === false) {
      return (
         <div className="p-8 text-center text-muted-foreground">
-            You are not enrolled in this course.
+            You are not enrolled in this course or this exam is private.
         </div>
      );
   }
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div>
-            <h1 className="text-2xl font-bold tracking-tight">Leaderboard</h1>
-            <p className="text-sm text-muted-foreground">
-                {exam?.title}
-            </p>
-        </div>
+      <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+                <h1 className="text-2xl font-bold tracking-tight">Leaderboard</h1>
+                <p className="text-sm text-muted-foreground">
+                    {exam?.title}
+                </p>
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleExport}>
+              <Download className="h-4 w-4 mr-2" /> Export CSV
+          </Button>
       </div>
 
       <Card className="border-0 shadow-none bg-transparent md:border md:border-yellow-500/20 md:bg-yellow-50/10 md:shadow-sm">

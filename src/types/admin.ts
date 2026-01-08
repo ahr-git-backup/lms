@@ -13,11 +13,12 @@ export interface Announcement {
 // ... existing types
 export interface Exam {
   id: string;
-  course_id: string;
+  course_id: string | null;
   title: string;
   subject: string[] | string;
   exam_type: "live" | "practice";
   duration_minutes: number;
+  total_marks?: number | null;
   negative_mark_per_question?: number;
   instructions?: string | null;
   time_window_start?: string | null;
@@ -28,7 +29,7 @@ export interface Exam {
   questions_csv?: string;
   course?: {
     name: string;
-  };
+  } | null;
   created_at?: string;
 }
 
