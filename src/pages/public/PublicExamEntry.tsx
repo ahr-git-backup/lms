@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
@@ -16,6 +17,7 @@ const PublicExamEntry = () => {
   const [exam, setExam] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSecondTimer, setIsSecondTimer] = useState(false);
 
   // Fetch Exam Details
   useEffect(() => {
@@ -58,29 +60,18 @@ const PublicExamEntry = () => {
 
         if (signInData.session) {
             // User exists and logged in.
-            // CHECK if profile exists, if not create it (fix for zombie users)
-            const { data: profile } = await supabase.from('profiles').select('id').eq('id', signInData.user.id).single();
+            // Update profile with latest info (Name, Second Timer) to ensure accuracy.
+            const { error: profileError } = await supabase.from("profiles").upsert({
+                id: signInData.user.id,
+                registration_id: phone,
+                full_name: fullName,
+                phone: phone,
+                is_second_timer: isSecondTimer,
+            }, { onConflict: 'id' });
 
-            if (!profile) {
-                console.log("User logged in but profile missing. Recreating...");
-                const { error: profileError } = await supabase.from("profiles").upsert({
-                    id: signInData.user.id,
-                    registration_id: phone,
-                    full_name: fullName,
-                    phone: phone,
-                    is_second_timer: false,
-                    extra_time_multiplier: 1
-                }, { onConflict: 'id' });
-
-                if (profileError) {
-                    console.error("Profile recovery failed:", profileError);
-                     toast({
-                        title: "Profile Error",
-                        description: "Your account exists but the profile is missing. Please contact support.",
-                        variant: "destructive"
-                    });
-                    return;
-                }
+            if (profileError) {
+                console.error("Profile update failed:", profileError);
+                // Non-critical failure, proceed to exam
             }
 
             toast({ title: "Welcome back!", description: "Starting exam..." });
@@ -100,7 +91,7 @@ const PublicExamEntry = () => {
                 data: {
                     full_name: fullName,
                     phone: phone,
-                    is_second_timer: false // Default for quick entry
+                    is_second_timer: isSecondTimer
                 }
             }
         });
@@ -113,9 +104,7 @@ const PublicExamEntry = () => {
                  full_name: fullName,
                  phone: phone,
                  // Defaults for required fields if any (check constraints)
-                 // Based on schema, others are nullable except maybe some?
-                 // Let's provide safe defaults.
-                 is_second_timer: false,
+                 is_second_timer: isSecondTimer,
                  extra_time_multiplier: 1
              }, { onConflict: 'id' });
 
@@ -175,6 +164,18 @@ const PublicExamEntry = () => {
                         <Label>Phone Number</Label>
                         <Input name="phone" required placeholder="01XXXXXXXXX" />
                     </div>
+
+                    <div className="flex items-center space-x-2">
+                        <Checkbox
+                            id="secondTimer"
+                            checked={isSecondTimer}
+                            onCheckedChange={(checked) => setIsSecondTimer(checked as boolean)}
+                        />
+                        <Label htmlFor="secondTimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                            I am a Second Timer Student
+                        </Label>
+                    </div>
+
                     <div className="space-y-2">
                         <Label>Password</Label>
                         <div className="relative">
