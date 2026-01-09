@@ -175,8 +175,10 @@ const Leaderboard = () => {
             </div>
           </div>
           {isStaff && (
-              <Button variant="outline" size="sm" onClick={handleExport}>
-                  <Download className="h-4 w-4 mr-2" /> Export CSV
+              <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0">
+                  <Download className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Export CSV</span>
+                  <span className="sm:hidden">CSV</span>
               </Button>
           )}
       </div>

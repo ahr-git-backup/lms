@@ -29,6 +29,7 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -39,6 +40,8 @@ const TakeExam = () => {
       : `exam_session_${examId}_${user?.id}`;
 
   useEffect(() => {
+    if (!hasStarted) return;
+
     document.title = retakeFromAttemptId ? "Retake Mistakes – Atlas" : "Take Exam – Atlas";
 
     // Anti-Cheat: Tab Switch Detection
@@ -68,7 +71,7 @@ const TakeExam = () => {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
         window.removeEventListener("beforeunload", handleBeforeUnload);
     };
-  }, [toast, retakeFromAttemptId]);
+  }, [toast, retakeFromAttemptId, hasStarted]);
 
   const { data: exam, isLoading: examLoading } = useQuery({
     queryKey: ["exam", examId],
@@ -175,7 +178,11 @@ const TakeExam = () => {
 
       const savedAnswers = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
       const savedViolations = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
-      // Start time logic handled in timer effect
+      const savedStartTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+
+      if (savedStartTime) {
+          setHasStarted(true);
+      }
 
       if (savedAnswers) {
           try {
@@ -198,7 +205,7 @@ const TakeExam = () => {
 
   // Timer logic with persistence
   useEffect(() => {
-    if (!exam?.duration_minutes || !user) return;
+    if (!exam?.duration_minutes || !user || !hasStarted) return;
 
     const isExpiredPractice = exam.exam_type === 'live' && exam.time_window_end && new Date() > new Date(exam.time_window_end);
     const startTimeKey = `${LOCAL_STORAGE_KEY_PREFIX}_start_time`;
@@ -238,7 +245,7 @@ const TakeExam = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId]);
+  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted]);
 
   // Auto-submit
   const submitExamMutation = useMutation({
@@ -353,6 +360,56 @@ const TakeExam = () => {
 
   if (!questions || questions.length === 0) {
     return <div className="p-8 text-center">No questions found to retake! You might have answered all correctly.</div>;
+  }
+
+  if (!hasStarted) {
+      return (
+          <div className="min-h-screen bg-background flex items-center justify-center p-4">
+              <Card className="w-full max-w-2xl shadow-xl">
+                  <CardContent className="p-6 md:p-8 space-y-6">
+                      <div className="space-y-2 text-center border-b pb-6">
+                          <h1 className="text-3xl font-bold text-primary">{exam.title}</h1>
+                          <p className="text-muted-foreground">Please read the instructions carefully before starting.</p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                              <p className="text-sm text-muted-foreground">Duration</p>
+                              <p className="text-xl font-bold">{exam.duration_minutes} Mins</p>
+                          </div>
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                              <p className="text-sm text-muted-foreground">Questions</p>
+                              <p className="text-xl font-bold">{questions.length}</p>
+                          </div>
+                          <div className="bg-muted/50 p-4 rounded-lg">
+                              <p className="text-sm text-muted-foreground">Negative Mark</p>
+                              <p className="text-xl font-bold text-red-500">{exam.negative_mark_per_question}</p>
+                          </div>
+                      </div>
+
+                      {exam.instructions && (
+                          <div className="space-y-2 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 p-5 rounded-lg text-sm">
+                              <h3 className="font-semibold text-yellow-800 dark:text-yellow-500 flex items-center gap-2">
+                                  <AlertTriangle className="h-4 w-4" /> Instructions
+                              </h3>
+                              <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
+                                  <MathText text={exam.instructions} />
+                              </div>
+                          </div>
+                      )}
+
+                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                          <Button variant="outline" size="lg" className="flex-1" onClick={() => navigate(-1)}>
+                              Cancel
+                          </Button>
+                          <Button size="lg" className="flex-1 text-lg font-bold shadow-lg shadow-primary/20" onClick={() => setHasStarted(true)}>
+                              Start Exam
+                          </Button>
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
+      );
   }
 
   // Use shuffled questions if ready, else raw (should only be raw for a split second)
