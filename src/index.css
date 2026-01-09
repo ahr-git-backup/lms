@@ -168,3 +168,16 @@ input, textarea {
   z-index: 10000 !important;
   position: fixed !important;
 }
+
+/* MathJax Inline Fix */
+mjx-container[display="false"] {
+  display: inline-block !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+
+mjx-container[display="true"] {
+  display: block !important;
+  margin: 1em 0 !important;
+  text-align: center !important;
+}

@@ -12,8 +12,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 const PAGE_SIZE = 50;
 
 const Leaderboard = () => {
-  const { user } = useAuth();
+  const { user, isAdmin, isTeacher } = useAuth();
   const { examId } = useParams();
+  const isStaff = isAdmin || isTeacher;
   const navigate = useNavigate();
   const [page, setPage] = useState(0);
   const [filterType, setFilterType] = useState<'live' | 'practice'>('live');
@@ -173,9 +174,11 @@ const Leaderboard = () => {
                 </p>
             </div>
           </div>
-          <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4 mr-2" /> Export CSV
-          </Button>
+          {isStaff && (
+              <Button variant="outline" size="sm" onClick={handleExport}>
+                  <Download className="h-4 w-4 mr-2" /> Export CSV
+              </Button>
+          )}
       </div>
 
       <Card className="border-0 shadow-none bg-transparent md:border md:border-yellow-500/20 md:bg-yellow-50/10 md:shadow-sm">
