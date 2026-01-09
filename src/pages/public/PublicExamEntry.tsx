@@ -57,8 +57,32 @@ const PublicExamEntry = () => {
         });
 
         if (signInData.session) {
-            // User exists and logged in. Update profile if needed?
-            // Just redirect to exam.
+            // User exists and logged in.
+            // CHECK if profile exists, if not create it (fix for zombie users)
+            const { data: profile } = await supabase.from('profiles').select('id').eq('id', signInData.user.id).single();
+
+            if (!profile) {
+                console.log("User logged in but profile missing. Recreating...");
+                const { error: profileError } = await supabase.from("profiles").upsert({
+                    id: signInData.user.id,
+                    registration_id: phone,
+                    full_name: fullName,
+                    phone: phone,
+                    is_second_timer: false,
+                    extra_time_multiplier: 1
+                }, { onConflict: 'id' });
+
+                if (profileError) {
+                    console.error("Profile recovery failed:", profileError);
+                     toast({
+                        title: "Profile Error",
+                        description: "Your account exists but the profile is missing. Please contact support.",
+                        variant: "destructive"
+                    });
+                    return;
+                }
+            }
+
             toast({ title: "Welcome back!", description: "Starting exam..." });
             navigate(`/dashboard/take-exam/${examId}`);
             return;

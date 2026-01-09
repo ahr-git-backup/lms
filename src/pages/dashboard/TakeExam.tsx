@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
@@ -22,7 +22,7 @@ const TakeExam = () => {
 
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const { updateStreak, updateStats } = useStudyTools();
 
   // State
@@ -253,6 +253,8 @@ const TakeExam = () => {
   const submitExamMutation = useMutation({
     mutationFn: async () => {
         if (!user || !exam) throw new Error("Invalid state");
+        // Explicitly check profile presence before submission
+        if (!profile || !profile.id) throw new Error("User profile not found. Please contact support.");
 
         const answersList = Object.entries(answers).map(([questionId, selectedOption]) => ({
             question_id: questionId,
@@ -320,6 +322,16 @@ const TakeExam = () => {
       setIsNavigatorOpen(false);
     }
   };
+
+  // 0. Auth Loading / Profile Check
+  if (authLoading || (!profile && user)) {
+     return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
+          <div className="space-y-4">
+              <Loader2 className="animate-spin h-8 w-8 text-primary mx-auto" />
+              <p className="text-muted-foreground">Verifying user profile...</p>
+          </div>
+     </div>;
+  }
 
   if (examLoading || questionsLoading || attemptsLoading) {
     return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
