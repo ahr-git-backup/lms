@@ -41,8 +41,8 @@ const ExamAnalytics = () => {
   const attemptsByCourse: Record<string, { name: string; count: number }> = {};
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (attempts || []).forEach((a: any) => {
-    const id = a.exam.course_id;
-    const name = a.exam.course.name;
+    const id = a.exam.course_id || 'public';
+    const name = a.exam.course?.name || 'Public Exams';
     if (!attemptsByCourse[id]) {
       attemptsByCourse[id] = { name, count: 0 };
     }
@@ -132,7 +132,7 @@ const ExamAnalytics = () => {
                     <div key={a.id} className="flex items-center justify-between">
                       <div className="flex flex-col">
                         <span className="text-foreground text-sm">{a.exam?.title}</span>
-                        <span className="text-xs">{a.exam?.course?.name}</span>
+                        <span className="text-xs">{a.exam?.course?.name || "Public Exam"}</span>
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-foreground">{a.score ?? "-"}</div>

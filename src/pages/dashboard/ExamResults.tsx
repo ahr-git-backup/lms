@@ -26,7 +26,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
         <CardHeader className="space-y-1">
             <div className="flex justify-between items-start">
                 <p className="text-xs font-mono uppercase text-muted-foreground">
-                    {attempt.exam.course.name}
+                    {attempt.exam.course?.name || "Public Exam"}
                 </p>
                 {isLive && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">LIVE</span>}
             </div>
