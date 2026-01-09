@@ -169,7 +169,7 @@ const PastExamCatalog = () => {
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
-                    {exam.course.name}
+                    {exam.course?.name || "Public Exam"}
                     </p>
                     <div className="flex flex-col items-end gap-1">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${exam.exam_type === 'live' ? 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-800' : 'bg-transparent text-emerald-700 border-emerald-200 dark:text-emerald-200 dark:border-emerald-800'}`}>

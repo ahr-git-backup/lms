@@ -193,7 +193,7 @@ const LiveExam = () => {
                 <CardHeader className="space-y-1">
                   <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-mono uppercase text-muted-foreground">
-                          {exam.course.name}
+                          {exam.course?.name || "Public Exam"}
                       </p>
                       {isActive && (
                         <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
