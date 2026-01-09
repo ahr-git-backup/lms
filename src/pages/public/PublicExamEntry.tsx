@@ -91,11 +91,19 @@ const PublicExamEntry = () => {
                  // Defaults for required fields if any (check constraints)
                  // Based on schema, others are nullable except maybe some?
                  // Let's provide safe defaults.
-                 is_second_timer: false
+                 is_second_timer: false,
+                 extra_time_multiplier: 1
              }, { onConflict: 'id' });
 
              if (profileError) {
                  console.error("Profile upsert error:", profileError);
+                 toast({
+                     title: "Profile Creation Failed",
+                     description: "Could not create user profile. Please try a different phone number or contact support.",
+                     variant: "destructive"
+                 });
+                 // DO NOT NAVIGATE
+                 return;
              }
 
              toast({ title: "Registered!", description: "Starting exam..." });

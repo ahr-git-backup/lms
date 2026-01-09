@@ -162,23 +162,22 @@ const Leaderboard = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <div>
-                <h1 className="text-2xl font-bold tracking-tight">Leaderboard</h1>
-                <p className="text-sm text-muted-foreground">
+            <div className="min-w-0">
+                <h1 className="text-2xl font-bold tracking-tight truncate">Leaderboard</h1>
+                <p className="text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-[400px]">
                     {exam?.title}
                 </p>
             </div>
           </div>
           {isStaff && (
-              <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0">
-                  <Download className="h-4 w-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0 self-end sm:self-auto">
+                  <Download className="h-4 w-4 sm:mr-2" />
                   <span className="hidden sm:inline">Export CSV</span>
-                  <span className="sm:hidden">CSV</span>
               </Button>
           )}
       </div>

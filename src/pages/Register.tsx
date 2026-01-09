@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { Eye, EyeOff, AlertTriangle } from "lucide-react";
 
 const Register = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -106,7 +107,15 @@ const Register = () => {
         });
 
         if (profileError) {
-          console.warn("Profile creation during register failed (will be handled by AuthContext or trigger):", profileError);
+          console.error("Profile creation during register failed:", profileError);
+          toast({
+            title: "Registration Failed",
+            description: "Could not create profile. This phone number might be already registered with another account.",
+            variant: "destructive",
+          });
+          // STOP execution, do not navigate
+          setLoading(false);
+          return;
         }
       }
 

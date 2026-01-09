@@ -7,11 +7,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyTools } from "@/contexts/StudyToolsContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const TakeExam = () => {
   useAntiCheat();
@@ -30,6 +31,7 @@ const TakeExam = () => {
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
+  const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -320,7 +322,12 @@ const TakeExam = () => {
   };
 
   if (examLoading || questionsLoading || attemptsLoading) {
-    return <div className="p-8 text-center">Loading exam...</div>;
+    return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
+        <div className="space-y-4">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Loading exam...</p>
+        </div>
+    </div>;
   }
 
   // Live Exam Check
@@ -333,10 +340,15 @@ const TakeExam = () => {
   // 1. Not Started Yet
   if (isLive && start && now < start && !retakeFromAttemptId) {
       return (
-          <div className="p-8 text-center">
-              <h2 className="text-xl font-bold mb-2">Exam Has Not Started Yet</h2>
-              <p>Please come back at {start.toLocaleString()}.</p>
-              <Button className="mt-4" onClick={() => navigate(-1)}>Go Back</Button>
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto">
+              <div className="bg-primary/10 p-4 rounded-full mb-4">
+                  <Clock className="h-10 w-10 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Exam Has Not Started Yet</h2>
+              <p className="text-muted-foreground mb-6">This exam is scheduled to start on <span className="font-semibold text-foreground">{start.toLocaleString()}</span>.</p>
+              <Button size="lg" onClick={() => navigate(-1)}>
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Go Back
+              </Button>
           </div>
       );
   }
@@ -345,13 +357,17 @@ const TakeExam = () => {
   if (!isExpiredLive && existingAttempts && existingAttempts.length > 0 && !retakeFromAttemptId) {
       if (isLive) {
             return (
-              <div className="p-8 text-center">
-                  <h2 className="text-xl font-bold mb-2">You have already taken this live exam.</h2>
-                  <p>You can view your results or leaderboard.</p>
-                  <p className="text-sm text-muted-foreground mt-2">Practice mode will be available after the exam ends.</p>
-                  <div className="flex gap-2 justify-center mt-4">
-                      <Button onClick={() => navigate(`/dashboard/exam-review/${existingAttempts[0].id}`)}>View Result</Button>
-                      <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}>Leaderboard</Button>
+              <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto">
+                  <div className="bg-green-100 dark:bg-green-900/20 p-4 rounded-full mb-4">
+                      <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-500" />
+                  </div>
+                  <h2 className="text-2xl font-bold mb-2">You have already taken this exam</h2>
+                  <p className="text-muted-foreground mb-6">
+                      You can view your results or check the leaderboard. Practice mode will be available after the exam period ends.
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 w-full justify-center">
+                      <Button size="lg" onClick={() => navigate(`/dashboard/exam-review/${existingAttempts[0].id}`)}>View Result</Button>
+                      <Button size="lg" variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}>Leaderboard</Button>
                   </div>
               </div>
           );
@@ -359,50 +375,84 @@ const TakeExam = () => {
   }
 
   if (!questions || questions.length === 0) {
-    return <div className="p-8 text-center">No questions found to retake! You might have answered all correctly.</div>;
+    return (
+        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh]">
+            <p className="text-xl font-semibold mb-4">No questions available!</p>
+            <Button onClick={() => navigate(-1)}>Go Back</Button>
+        </div>
+    );
   }
 
   if (!hasStarted) {
       return (
           <div className="min-h-screen bg-background flex items-center justify-center p-4">
-              <Card className="w-full max-w-2xl shadow-xl">
-                  <CardContent className="p-6 md:p-8 space-y-6">
+              <Card className="w-full max-w-2xl shadow-xl border-t-4 border-t-primary">
+                  <CardContent className="p-6 md:p-8 space-y-8">
                       <div className="space-y-2 text-center border-b pb-6">
                           <h1 className="text-3xl font-bold text-primary">{exam.title}</h1>
-                          <p className="text-muted-foreground">Please read the instructions carefully before starting.</p>
+                          <p className="text-muted-foreground text-lg">Exam Instructions & Rules</p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                          <div className="bg-muted/50 p-4 rounded-lg">
-                              <p className="text-sm text-muted-foreground">Duration</p>
-                              <p className="text-xl font-bold">{exam.duration_minutes} Mins</p>
+                          <div className="bg-muted/30 border p-4 rounded-xl">
+                              <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Duration</p>
+                              <p className="text-2xl font-bold mt-1">{exam.duration_minutes} <span className="text-sm font-normal text-muted-foreground">mins</span></p>
                           </div>
-                          <div className="bg-muted/50 p-4 rounded-lg">
-                              <p className="text-sm text-muted-foreground">Questions</p>
-                              <p className="text-xl font-bold">{questions.length}</p>
+                          <div className="bg-muted/30 border p-4 rounded-xl">
+                              <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Questions</p>
+                              <p className="text-2xl font-bold mt-1">{questions.length}</p>
                           </div>
-                          <div className="bg-muted/50 p-4 rounded-lg">
-                              <p className="text-sm text-muted-foreground">Negative Mark</p>
-                              <p className="text-xl font-bold text-red-500">{exam.negative_mark_per_question}</p>
+                          <div className="bg-muted/30 border p-4 rounded-xl">
+                              <p className="text-sm text-muted-foreground uppercase tracking-wider font-semibold">Negative Marking</p>
+                              <p className="text-2xl font-bold text-red-500 mt-1">{exam.negative_mark_per_question}</p>
                           </div>
                       </div>
 
-                      {exam.instructions && (
-                          <div className="space-y-2 bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 p-5 rounded-lg text-sm">
-                              <h3 className="font-semibold text-yellow-800 dark:text-yellow-500 flex items-center gap-2">
-                                  <AlertTriangle className="h-4 w-4" /> Instructions
-                              </h3>
-                              <div className="prose prose-sm max-w-none dark:prose-invert text-muted-foreground">
-                                  <MathText text={exam.instructions} />
-                              </div>
+                      <div className="space-y-4">
+                          <h3 className="font-semibold text-lg flex items-center gap-2">
+                              <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                              Important Instructions
+                          </h3>
+                          <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-100 dark:border-yellow-900/20 p-5 rounded-lg text-sm text-muted-foreground space-y-2">
+                              {exam.instructions ? (
+                                  <div className="prose prose-sm max-w-none dark:prose-invert">
+                                      <MathText text={exam.instructions} />
+                                  </div>
+                              ) : (
+                                  <ul className="list-disc pl-5 space-y-1">
+                                      <li>Ensure you have a stable internet connection.</li>
+                                      <li>Do not switch tabs or windows. Violations are recorded.</li>
+                                      <li>The exam will auto-submit when the timer ends.</li>
+                                      <li>Once started, the timer cannot be paused.</li>
+                                  </ul>
+                              )}
                           </div>
-                      )}
+                      </div>
 
-                      <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                          <Button variant="outline" size="lg" className="flex-1" onClick={() => navigate(-1)}>
+                      <div className="flex items-center space-x-2 pt-2">
+                          <Checkbox
+                              id="terms"
+                              checked={agreedToInstructions}
+                              onCheckedChange={(c) => setAgreedToInstructions(!!c)}
+                          />
+                          <label
+                              htmlFor="terms"
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                          >
+                              I have read and understood the instructions.
+                          </label>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                          <Button variant="outline" size="lg" className="flex-1 h-12" onClick={() => navigate(-1)}>
                               Cancel
                           </Button>
-                          <Button size="lg" className="flex-1 text-lg font-bold shadow-lg shadow-primary/20" onClick={() => setHasStarted(true)}>
+                          <Button
+                              size="lg"
+                              className="flex-1 h-12 text-lg font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]"
+                              onClick={() => setHasStarted(true)}
+                              disabled={!agreedToInstructions}
+                          >
                               Start Exam
                           </Button>
                       </div>
