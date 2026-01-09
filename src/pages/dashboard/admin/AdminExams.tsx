@@ -13,11 +13,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const examSchema = z.object({
   id: z.string().optional(),
@@ -861,52 +862,61 @@ const AdminExams = () => {
                                     )}
                                 </div>
 
-                                <div className="flex items-center gap-2 pt-2 border-t mt-2" onClick={(e) => e.stopPropagation()}>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 text-blue-500 border"
-                                        title="Copy Exam Link"
-                                        onClick={() => {
-                                            const url = `${window.location.origin}/dashboard/take-exam/${exam.id}`;
-                                            navigator.clipboard.writeText(url);
-                                            toast({ title: "Copied!", description: "Exam link copied to clipboard." });
-                                        }}
-                                    >
-                                        <Copy className="h-4 w-4" />
-                                    </Button>
+                                <div className="flex items-center justify-between pt-2 border-t mt-2" onClick={(e) => e.stopPropagation()}>
                                     <Button
                                         type="button"
                                         size="sm"
                                         variant="outline"
-                                        className="flex-1 h-8 text-xs"
+                                        className="h-8 text-xs"
                                         onClick={() => navigate(`/dashboard/admin/exams/question-maker/${exam.id}`)}
                                     >
                                         <FileQuestion className="h-3 w-3 mr-1" /> Questions
                                     </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="outline"
-                                        className="flex-1 h-8 text-xs"
-                                        onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}
-                                    >
-                                        <Trophy className="h-3 w-3 mr-1 text-yellow-500" /> Rank
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="icon"
-                                        variant="destructive"
-                                        className="h-8 w-8"
-                                        onClick={() => {
-                                        if (window.confirm("Delete this exam? This cannot be undone. Questions and results will be deleted.")) {
-                                            deleteExamMutation.mutate(exam.id);
-                                        }
-                                        }}
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
+
+                                    <div className="flex gap-1">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-8 w-8 p-0"
+                                            onClick={() => {
+                                                const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/public/exam/${exam.id}`;
+                                                const url = `${window.location.origin}${path}`;
+                                                navigator.clipboard.writeText(url);
+                                                toast({ title: "Copied!", description: "Link copied." });
+                                            }}
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </Button>
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem onClick={() => handleEdit(exam)}>
+                                                    <Edit className="mr-2 h-4 w-4" /> Edit Details
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}>
+                                                    <Trophy className="mr-2 h-4 w-4" /> Leaderboard
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => {
+                                                     const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/public/exam/${exam.id}`;
+                                                     window.open(path, '_blank');
+                                                }}>
+                                                    <ExternalLink className="mr-2 h-4 w-4" /> Open Exam
+                                                </DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                                                    if (window.confirm("Delete this exam?")) deleteExamMutation.mutate(exam.id);
+                                                }}>
+                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>

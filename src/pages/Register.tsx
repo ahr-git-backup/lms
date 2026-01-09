@@ -112,13 +112,18 @@ const Register = () => {
 
       toast({
         title: "Registration successful",
-        description: "Account created! You can now login with your phone number.",
+        description: "Account created! Redirecting...",
       });
 
-      // Redirect to login after short delay
-      setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+      // Redirect to destination or dashboard immediately if session exists
+      if (authData.session) {
+          navigate(location.state?.from || "/dashboard", { replace: true });
+      } else {
+          // Fallback to login if no session (e.g. email confirmation enabled)
+          setTimeout(() => {
+            navigate("/login", { state: { from: location.state?.from } });
+          }, 2000);
+      }
 
     } catch (error: any) {
       console.error("Registration error:", error);
