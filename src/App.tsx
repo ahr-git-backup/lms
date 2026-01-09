@@ -48,6 +48,7 @@ import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
 import DemoClassPlayerPage from "./pages/dashboard/DemoClassPlayerPage";
 import Program from "./pages/dashboard/Program";
+import PublicExamEntry from "./pages/public/PublicExamEntry";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 const queryClient = new QueryClient({
@@ -106,6 +107,7 @@ const App = () => {
                 <Route path="/courses/:courseId" element={<CourseDetails />} />
                 <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
                 <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
+                <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
               </Route>
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

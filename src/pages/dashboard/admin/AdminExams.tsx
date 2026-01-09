@@ -880,7 +880,7 @@ const AdminExams = () => {
                                             variant="ghost"
                                             className="h-8 w-8 p-0"
                                             onClick={() => {
-                                                const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/public/exam/${exam.id}`;
+                                                const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`;
                                                 const url = `${window.location.origin}${path}`;
                                                 navigator.clipboard.writeText(url);
                                                 toast({ title: "Copied!", description: "Link copied." });
@@ -903,7 +903,7 @@ const AdminExams = () => {
                                                     <Trophy className="mr-2 h-4 w-4" /> Leaderboard
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => {
-                                                     const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/public/exam/${exam.id}`;
+                                                     const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`;
                                                      window.open(path, '_blank');
                                                 }}>
                                                     <ExternalLink className="mr-2 h-4 w-4" /> Open Exam
