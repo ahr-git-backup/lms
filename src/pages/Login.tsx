@@ -126,7 +126,7 @@ const Login = () => {
 
                 <div className="mt-4 text-center text-sm">
                   Don&apos;t have an account?{" "}
-                  <Link to="/register" className="font-semibold text-primary hover:underline">
+                  <Link to="/register" state={{ from: location.state?.from }} className="font-semibold text-primary hover:underline">
                     Create new account
                   </Link>
                 </div>
