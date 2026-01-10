@@ -11,6 +11,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
 import PublicLayout from "./layouts/PublicLayout";
@@ -106,6 +108,8 @@ const App = () => {
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/courses/:courseId" element={<CourseDetails />} />
                 <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
                 <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
