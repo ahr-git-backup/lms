@@ -22,9 +22,11 @@ import LiveExam from "./pages/dashboard/LiveExam";
 import ExamResults from "./pages/dashboard/ExamResults";
 import PastExamCatalog from "./pages/dashboard/PastExamCatalog";
 import TakeExam from "./pages/dashboard/TakeExam";
+import TakeMistakeExam from "./pages/dashboard/TakeMistakeExam";
 import ExamReview from "./pages/dashboard/ExamReview";
 import Leaderboard from "./pages/dashboard/Leaderboard";
 import Bookmarks from "./pages/dashboard/Bookmarks";
+import MyMistakes from "./pages/dashboard/MyMistakes";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
@@ -117,11 +119,13 @@ const App = () => {
                 <Route path="past-class" element={<PastClass />} />
                 <Route path="live-exam" element={<LiveExam />} />
                 <Route path="take-exam/:examId" element={<TakeExam />} />
+                <Route path="take-mistakes" element={<TakeMistakeExam />} />
                 <Route path="past-exam" element={<PastExamCatalog />} />
                 <Route path="results" element={<ExamResults />} />
                 <Route path="exam-review/:attemptId" element={<ExamReview />} />
                 <Route path="leaderboard/:examId" element={<Leaderboard />} />
                 <Route path="bookmarks" element={<Bookmarks />} />
+                <Route path="my-mistakes" element={<MyMistakes />} />
                 <Route path="routine" element={<Routine />} />
                 <Route path="class-notes" element={<ClassNotes />} />
                 <Route path="class-notes/:noteId" element={<NoteDetails />} />
