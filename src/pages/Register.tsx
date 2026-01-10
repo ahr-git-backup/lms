@@ -54,18 +54,24 @@ const Register = () => {
     }
 
     try {
-      // Determine the email to use (Phone number based auth for free tier)
-      // We prioritize phone based auth as per requirements
-      const email = `${phone}@beshijoss.com`;
+      // 1. Determine Auth Email Strategy
+      // If user provided a real email, use it. Otherwise, fallback to phone logic?
+      // Requirement: "Real Email" preferred. We make email mandatory in UI now.
 
-      // 1. Create the user in Supabase Auth
+      const email = emailInput;
+
+      // Check if email is valid format roughly
+      if (!email || !email.includes('@')) {
+          throw new Error("Please provide a valid email address.");
+      }
+
+      // 2. Create the user in Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
-            // registration_id: registrationId, // We might not need to force this input if phone is key
             father_name: fatherName,
             mother_name: motherName,
             hsc_batch: hscBatch,
@@ -74,7 +80,7 @@ const Register = () => {
             hsc_gpa: hscGpa,
             phone: phone,
             is_second_timer: isSecondTimer,
-            real_email: emailInput // Store real email in metadata if provided
+            // real_email: emailInput // No longer needed as metadata if it's the main auth email
           }
         }
       });
@@ -84,16 +90,20 @@ const Register = () => {
       }
 
       if (!authData.user) {
-        throw new Error("No user returned from sign up");
+        throw new Error("No user returned from sign up. Please check your email for verification.");
       }
 
       // 3. Attempt to insert into profiles if we have a session.
+      // Note: If email confirmation is on, we won't have a session yet.
+      // But usually `profiles` is inserted via Trigger on server side for security.
+      // The existing code was doing client-side insert. Let's keep it for now if session exists.
+
       if (authData.session) {
         const { error: profileError } = await supabase
         .from("profiles")
         .insert({
           id: authData.user.id,
-          registration_id: phone, // Use phone as registration ID by default
+          registration_id: phone, // Still using phone as the "ID" for admin/legacy purposes
           full_name: fullName,
           father_name: fatherName,
           mother_name: motherName,
@@ -109,13 +119,10 @@ const Register = () => {
         if (profileError) {
           console.error("Profile creation during register failed:", profileError);
           toast({
-            title: "Registration Failed",
-            description: "Could not create profile. This phone number might be already registered with another account.",
+            title: "Registration Warning",
+            description: "Account created but profile setup failed. Please contact support.",
             variant: "destructive",
           });
-          // STOP execution, do not navigate
-          setLoading(false);
-          return;
         }
       }
 
@@ -124,14 +131,17 @@ const Register = () => {
         description: "Account created! Redirecting...",
       });
 
-      // Redirect to destination or dashboard immediately if session exists
       if (authData.session) {
           navigate(location.state?.from || "/dashboard", { replace: true });
       } else {
-          // Fallback to login if no session (e.g. email confirmation enabled)
+          // If no session (email verification required)
+           toast({
+            title: "Check your email",
+            description: "We sent you a verification link. Please verify your email to login.",
+          });
           setTimeout(() => {
             navigate("/login", { state: { from: location.state?.from } });
-          }, 2000);
+          }, 3000);
       }
 
     } catch (error: any) {
@@ -169,10 +179,12 @@ const Register = () => {
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
                 </div>
-                {/* <div className="space-y-2">
-                  <Label htmlFor="registrationId">Registration ID (Optional)</Label>
-                  <Input id="registrationId" name="registrationId" autoComplete="off" placeholder="Leave empty to use phone" />
-                </div> */}
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
+                  <Input id="email" name="email" type="email" required placeholder="user@example.com" />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="fatherName">Father's Name</Label>
                   <Input id="fatherName" name="fatherName" required placeholder="Father's name" />
@@ -189,10 +201,7 @@ const Register = () => {
                   <Label htmlFor="hscBatch">HSC Batch</Label>
                   <Input id="hscBatch" name="hscBatch" required placeholder="e.g. 2024" />
                 </div>
-                 <div className="space-y-2">
-                  <Label htmlFor="email">Email (Optional)</Label>
-                  <Input id="email" name="email" type="email" placeholder="e.g. user@example.com" />
-                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="sscGpa">SSC GPA (Out of 5)</Label>
                   <Input id="sscGpa" name="sscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
@@ -274,7 +283,7 @@ const Register = () => {
                       <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
                       <div className="text-sm text-yellow-800 dark:text-yellow-400">
                           <p className="font-bold mb-1">সতর্কবার্তা!</p>
-                          <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন। ফোন নম্বর এবং পাসওয়ার্ড পরিবর্তন করা যাবে না, পরিবর্তন করলে আগের অ্যাকাউন্টের সমস্ত তথ্য মুছে যাবে।</p>
+                          <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
                       </div>
                   </div>
               </div>

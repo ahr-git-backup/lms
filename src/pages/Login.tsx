@@ -35,18 +35,25 @@ const Login = () => {
     setLoading(true);
     
     const formData = new FormData(event.currentTarget);
-    const phone = formData.get("registrationId") as string;
+    const identifier = formData.get("identifier") as string; // Changed from registrationId to identifier
     const password = formData.get("password") as string;
     
-    // Synthetic email logic for phone login
-    const email = `${phone}@beshijoss.com`;
+    let email = identifier;
+
+    // Legacy Support: Check if input looks like a phone number (digits only, length check)
+    // If it's a phone number, convert to synthetic email
+    const isPhone = /^\d+$/.test(identifier) || (identifier.startsWith('+') && /^\+?\d+$/.test(identifier));
+
+    if (isPhone && !identifier.includes('@')) {
+        email = `${identifier}@beshijoss.com`;
+    }
 
     const { error } = await signIn(email, password);
     
     if (error) {
       toast({
         title: "Login failed",
-        description: error.message || "Invalid registration ID or password",
+        description: error.message || "Invalid credentials",
         variant: "destructive",
       });
       setLoading(false);
@@ -85,14 +92,14 @@ const Login = () => {
                 <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
                 <CardTitle className="text-xl font-semibold">Student &amp; Admin Login</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                Enter your Phone Number and password to login.
+                Enter your Email or Phone Number to login.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                    <Label htmlFor="registrationId">Phone Number</Label>
-                    <Input id="registrationId" name="registrationId" type="tel" required autoComplete="off" placeholder="01XXXXXXXXX" />
+                    <Label htmlFor="identifier">Email or Phone Number</Label>
+                    <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="user@example.com or 01XXXXXXXXX" />
                 </div>
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
@@ -107,6 +114,7 @@ const Login = () => {
                         name="password"
                         type={showPassword ? "text" : "password"}
                         required
+                        autoComplete="current-password"
                         className="pr-10"
                     />
                     <Button
@@ -120,7 +128,7 @@ const Login = () => {
                         <EyeOff className="h-4 w-4 text-muted-foreground" />
                         ) : (
                         <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
+                      )}
                         <span className="sr-only">Toggle password visibility</span>
                     </Button>
                     </div>
@@ -142,7 +150,7 @@ const Login = () => {
                         <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
                         <div className="text-sm text-yellow-800 dark:text-yellow-400">
                             <p className="font-bold mb-1">সতর্কবার্তা!</p>
-                            <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন। ফোন নম্বর এবং পাসওয়ার্ড পরিবর্তন করা যাবে না, পরিবর্তন করলে আগের অ্যাকাউন্টের সমস্ত তথ্য মুছে যাবে।</p>
+                            <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
                         </div>
                     </div>
                 </div>

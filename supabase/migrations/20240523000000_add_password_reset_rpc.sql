@@ -34,9 +34,15 @@ BEGIN
 
     -- 3. Update the password in auth.users
     -- This requires the 'pgcrypto' extension to be enabled (standard in Supabase)
+    -- Using explicit extension schema 'extensions' if applicable, but default 'public' or search_path usually handles it.
+    -- We use gen_salt('bf') for bcrypt.
     UPDATE auth.users
     SET encrypted_password = crypt(p_new_password, gen_salt('bf'))
     WHERE id = target_user_id;
+
+    -- Note: This direct update does NOT revoke existing sessions.
+    -- For legacy phone users, this is an acceptable tradeoff for now.
+    -- Standard email reset via Supabase Auth is preferred where possible.
 
     -- 4. Return true to indicate success
     RETURN TRUE;
