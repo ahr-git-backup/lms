@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag } from "lucide-react";
+import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -26,6 +26,7 @@ const studentItems = [
   { title: "Class Notes", url: "/dashboard/class-notes", icon: StickyNote, color: "text-pink-500" },
   { title: "Announcements", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
+  { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
   { title: "Resources", url: "/dashboard/resources", icon: GraduationCap, color: "text-cyan-500" },
   { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
