@@ -78,9 +78,9 @@ export const DashboardLayout = () => {
     return () => clearInterval(adminInterval);
   }, [isAdmin, isMuted]);
 
-  // Polling for reminders and announcements
+  // Check for reminders and announcements (ONCE on mount/profile load)
   useEffect(() => {
-    // Only poll if user is logged in
+    // Only check if user is logged in
     if (!profile) return;
 
     // Ask for permission if not granted yet (optional, maybe better on a button click)
@@ -168,10 +168,17 @@ export const DashboardLayout = () => {
         }
 
         // Check Announcements (General)
-        const { count, error } = await supabase
+        let query = supabase
             .from("announcements")
-            .select("*", { count: 'exact', head: true })
-            .in("course_id", enrolledCourseIds.concat([null]));
+            .select("*", { count: 'exact', head: true });
+
+        if (enrolledCourseIds.length > 0) {
+             query = query.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
+        } else {
+             query = query.is("course_id", null);
+        }
+
+        const { count, error } = await query;
 
         const lastViewed = localStorage.getItem("last_viewed_announcements");
         let hasNewAnnouncements = false;
@@ -348,6 +355,9 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Trophy className="h-4 w-4 text-teal-500" /> Results
                     </Link>
+                    <Link to="/dashboard/my-mistakes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <AlertCircle className="h-4 w-4 text-red-600" /> My Mistakes
+                    </Link>
                     <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Calendar className="h-4 w-4 text-indigo-500" /> Routine
                     </Link>
@@ -359,9 +369,6 @@ export const DashboardLayout = () => {
                     </Link>
                     <Link to="/dashboard/bookmarks" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Bookmark className="h-4 w-4 text-emerald-500" /> Bookmarks
-                    </Link>
-                    <Link to="/dashboard/my-mistakes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <AlertCircle className="h-4 w-4 text-red-600" /> My Mistakes
                     </Link>
                     <Link to="/dashboard/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Files className="h-4 w-4 text-cyan-500" /> Resources

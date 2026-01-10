@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, XCircle, ChevronLeft, Loader2, PlayCircle, RotateCcw } from "lucide-react";
+import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, ChevronLeft, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -270,104 +270,132 @@ const TakeMistakeExam = () => {
     // --- RESULT VIEW ---
     if (isFinished && resultData) {
         return (
-            <div className="container max-w-4xl mx-auto p-4 md:p-8 space-y-8">
-                <div className="text-center space-y-2">
-                    <h1 className="text-3xl font-bold">Practice Complete</h1>
-                    <p className="text-muted-foreground">Here is how you performed</p>
-                </div>
+            <div className="min-h-screen bg-background font-sans pb-20">
+                <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
+                    {/* Header */}
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <Button variant="ghost" onClick={() => navigate("/dashboard/my-mistakes")} className="pl-0">
+                            <ChevronLeft className="h-4 w-4 mr-2" /> Back to Mistakes
+                        </Button>
+                        <div className="flex gap-2">
+                             <Button size="sm" onClick={() => window.location.reload()}>
+                                <RotateCw className="h-4 w-4 mr-2" /> Practice Again
+                             </Button>
+                        </div>
+                    </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {/* Score Card */}
                     <Card className="bg-primary/5 border-primary/20">
-                        <CardContent className="p-6 text-center">
-                            <div className="text-4xl font-bold text-primary mb-1">{Math.round((resultData.correctCount / resultData.total) * 100)}%</div>
-                            <div className="text-sm font-medium text-muted-foreground">Accuracy</div>
+                        <CardContent className="p-6">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div className="text-center md:text-left">
+                                    <h1 className="text-2xl font-bold mb-1">Practice Result</h1>
+                                    <p className="text-sm text-muted-foreground">Duration: {Math.floor(resultData.timeTaken / 60)}m {resultData.timeTaken % 60}s</p>
+                                </div>
+                                <div className="flex gap-8 text-center">
+                                    <div>
+                                        <div className="text-3xl font-bold text-primary">{Math.round((resultData.correctCount / resultData.total) * 100)}%</div>
+                                        <div className="text-xs uppercase font-bold text-muted-foreground">Accuracy</div>
+                                    </div>
+                                     <div>
+                                        <div className="text-3xl font-bold text-green-600">{resultData.correctCount}</div>
+                                        <div className="text-xs uppercase font-bold text-muted-foreground">Correct</div>
+                                    </div>
+                                     <div>
+                                        <div className="text-3xl font-bold text-red-500">{resultData.wrongCount}</div>
+                                        <div className="text-xs uppercase font-bold text-muted-foreground">Wrong</div>
+                                    </div>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardContent className="p-6 text-center">
-                            <div className="text-4xl font-bold text-green-600 mb-1">{resultData.correctCount}</div>
-                            <div className="text-sm font-medium text-muted-foreground">Correct</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-6 text-center">
-                            <div className="text-4xl font-bold text-red-600 mb-1">{resultData.wrongCount}</div>
-                            <div className="text-sm font-medium text-muted-foreground">Wrong</div>
-                        </CardContent>
-                    </Card>
-                    <Card>
-                        <CardContent className="p-6 text-center">
-                            <div className="text-4xl font-bold text-orange-500 mb-1">{resultData.skippedCount}</div>
-                            <div className="text-sm font-medium text-muted-foreground">Skipped</div>
-                        </CardContent>
-                    </Card>
-                </div>
 
-                <div className="space-y-6">
-                    <h2 className="text-xl font-bold">Detailed Review</h2>
-                    {questions.map((q, idx) => {
-                        const selected = answers[q.id];
-                        const isCorrect = selected === q.correct_option;
-                        const isSkipped = !selected;
+                    {/* Questions List */}
+                    <div className="space-y-6">
+                        {questions.map((q, idx) => {
+                            const selected = answers[q.id];
+                            const isCorrect = selected === q.correct_option;
+                            const isSkipped = !selected;
+                            const isWrong = !isCorrect && !isSkipped;
 
-                        return (
-                            <Card key={q.id} className={cn("overflow-hidden", isSkipped ? "border-orange-200" : isCorrect ? "border-green-200" : "border-red-200")}>
-                                <div className={cn("h-1.5 w-full", isSkipped ? "bg-orange-500" : isCorrect ? "bg-green-500" : "bg-red-500")} />
-                                <CardContent className="p-6 space-y-4">
-                                    <div className="flex justify-between items-start gap-4">
-                                        <div className="flex gap-3">
-                                            <span className="font-bold text-muted-foreground">Q{idx+1}.</span>
-                                            <div className="space-y-1">
-                                                <MathText text={q.question_text} />
+                            return (
+                                <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border">
+                                    <CardContent className="p-5 space-y-2 relative">
+                                        {/* Question Header */}
+                                        <div className="flex items-start gap-4 pr-10">
+                                            <div className={cn(
+                                                "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                                                isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                                                isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                                "bg-muted text-muted-foreground"
+                                            )}>
+                                                {idx + 1}
+                                            </div>
+                                            <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
+                                                <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
+                                                    <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                </div>
                                                 <Badge variant="outline" className="mt-2 text-[10px]">{q.exam_title}</Badge>
                                             </div>
                                         </div>
-                                        <Badge variant={isSkipped ? "secondary" : isCorrect ? "default" : "destructive"} className="shrink-0">
-                                            {isSkipped ? "Skipped" : isCorrect ? "Correct" : "Wrong"}
-                                        </Badge>
-                                    </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                                        {(["A", "B", "C", "D"] as const).map((opt) => {
-                                            const isSelected = selected === opt;
-                                            const isThisCorrect = q.correct_option === opt;
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            const text = (q as any)[`option_${opt.toLowerCase()}`];
+                                        {/* Options */}
+                                        <div className="space-y-2 pt-2">
+                                            {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                                const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
+                                                const isSelected = selected === optionKey;
+                                                const isCorrectOption = q.correct_option === optionKey;
 
-                                            let style = "border-muted bg-background";
-                                            if (isThisCorrect) style = "border-green-500 bg-green-50 text-green-900";
-                                            else if (isSelected && !isThisCorrect) style = "border-red-500 bg-red-50 text-red-900";
+                                                // Determine circle style
+                                                let circleClass = "border-muted-foreground/30 text-muted-foreground";
+                                                let icon = <span className="text-sm font-bold">{optionKey}</span>;
 
-                                            return (
-                                                <div key={opt} className={`p-3 rounded-lg border flex gap-3 items-start ${style}`}>
-                                                    <span className="font-bold">{opt}</span>
-                                                    <MathText text={text} />
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                if (isCorrectOption) {
+                                                    circleClass = "bg-green-500 border-green-500 text-white";
+                                                    icon = <Check className="h-4 w-4" />;
+                                                } else if (isSelected && !isCorrectOption) {
+                                                    circleClass = "bg-red-500 border-red-500 text-white";
+                                                    icon = <X className="h-4 w-4" />;
+                                                } else if (isSelected) {
+                                                    circleClass = "bg-green-500 border-green-500 text-white";
+                                                    icon = <Check className="h-4 w-4" />;
+                                                }
 
-                                    {q.explanation && (
-                                        <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-lg text-sm space-y-1">
-                                            <span className="font-semibold text-blue-700 dark:text-blue-400">Explanation:</span>
-                                            <div className="text-muted-foreground">
-                                                <MathText text={q.explanation} />
-                                            </div>
+                                                return (
+                                                    <div key={optionKey} className="flex items-start gap-4">
+                                                        <div className={cn(
+                                                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
+                                                            circleClass
+                                                        )}>
+                                                            {icon}
+                                                        </div>
+                                                        <div className={cn(
+                                                            "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                                            isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
+                                                            isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
+                                                        )}>
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        );
-                    })}
-                </div>
 
-                <div className="flex justify-center gap-4 py-8">
-                    <Button variant="outline" size="lg" onClick={() => navigate('/dashboard/my-mistakes')}>
-                        <ChevronLeft className="mr-2 h-4 w-4" /> Back to My Mistakes
-                    </Button>
-                    <Button size="lg" onClick={() => window.location.reload()}>
-                        <RotateCcw className="mr-2 h-4 w-4" /> Practice Again
-                    </Button>
+                                        {/* Explanation */}
+                                        {q.explanation && (
+                                            <div className="mt-4 pt-4 border-t border-dashed">
+                                                <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
+                                                <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
+                                                    <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
         );
@@ -506,25 +534,33 @@ const TakeMistakeExam = () => {
                                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
                                             const isSelected = answers[q.id] === optionKey;
+                                            const isAnswered = !!answers[q.id];
+                                            const isThisSelected = isSelected;
 
                                             return (
                                                 <div
                                                     key={optionKey}
-                                                    onClick={() => setAnswers(prev => ({ ...prev, [q.id]: optionKey }))}
+                                                    onClick={() => {
+                                                        if (!isAnswered) {
+                                                            setAnswers(prev => ({ ...prev, [q.id]: optionKey }))
+                                                        }
+                                                    }}
                                                     className={cn(
-                                                        "flex items-start gap-4 cursor-pointer group p-2 rounded-lg transition-colors hover:bg-muted/50",
-                                                        isSelected && "bg-primary/5"
+                                                        "flex items-start gap-4 group p-2 rounded-lg transition-colors",
+                                                        !isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80",
+                                                        isThisSelected && "bg-primary/5"
                                                     )}
                                                 >
                                                     <div className={cn(
                                                         "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all mt-0.5",
-                                                        isSelected
+                                                        isThisSelected
                                                             ? "border-primary bg-primary text-primary-foreground scale-110"
-                                                            : "border-muted-foreground/30 text-muted-foreground group-hover:border-primary/50"
+                                                            : "border-muted-foreground/30 text-muted-foreground",
+                                                        !isAnswered && "group-hover:border-primary/50"
                                                     )}>
                                                         {optionKey}
                                                     </div>
-                                                    <div className={cn("flex-1 pt-1", isSelected && "text-primary font-medium")}>
+                                                    <div className={cn("flex-1 pt-1", isThisSelected && "text-primary font-medium")}>
                                                         <MathText text={optionText} />
                                                     </div>
                                                 </div>
