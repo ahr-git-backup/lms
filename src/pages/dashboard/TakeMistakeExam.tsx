@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 
 interface Question {
     id: string;
@@ -375,17 +376,17 @@ const TakeMistakeExam = () => {
     // --- START SCREEN ---
     if (!hasStarted) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-4">
-                <Card className="w-full max-w-2xl shadow-xl border-t-4 border-t-primary">
-                    <CardContent className="p-8 space-y-6 text-center">
+            <div className="min-h-screen flex items-center justify-center p-2 md:p-4">
+                <Card className="w-full max-w-2xl shadow-xl">
+                    <CardContent className="p-6 md:p-8 space-y-6 text-center">
                         <div className="space-y-2">
-                            <h1 className="text-3xl font-bold text-primary">Mistakes Practice</h1>
-                            <p className="text-lg text-muted-foreground">
+                            <h1 className="text-2xl md:text-3xl font-bold text-primary">Mistakes Practice</h1>
+                            <p className="text-base md:text-lg text-muted-foreground">
                                 You are about to practice {questions.length} questions based on your selection.
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
                              <div className="p-4 bg-muted rounded-xl">
                                  <div className="text-sm font-medium text-muted-foreground uppercase">Questions</div>
                                  <div className="text-3xl font-bold">{questions.length}</div>
