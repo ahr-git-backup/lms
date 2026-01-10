@@ -73,7 +73,19 @@ const AdminExams = () => {
     questions_csv: "",
   });
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
+  const [courseFilter, setCourseFilter] = useState<string>("all");
   const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        setDebouncedSearch(searchQuery);
+        if (searchQuery) setPage(0);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -94,19 +106,24 @@ const AdminExams = () => {
   });
 
   const { data: examsData, isLoading } = useQuery({
-    queryKey: ["admin-exams", subjectFilter, page],
+    queryKey: ["admin-exams", subjectFilter, courseFilter, page, debouncedSearch],
     queryFn: async () => {
       let query = supabase
         .from("exams")
         .select("*, course:courses(id, name)", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        .order("created_at", { ascending: false });
 
       if (subjectFilter !== "all") {
         query = query.contains("subject", [subjectFilter]);
       }
+      if (courseFilter !== "all") {
+          query = query.eq("course_id", courseFilter);
+      }
+      if (debouncedSearch) {
+          query = query.ilike("title", `%${debouncedSearch}%`);
+      }
 
-      const { data, error, count } = await query;
+      const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     },
@@ -695,26 +712,51 @@ const AdminExams = () => {
                     Existing exams by course, with type, duration, and publish status.
                 </p>
                 </div>
-                <div className="w-full md:w-[200px]">
-                <Select
-                    value={subjectFilter}
-                    onValueChange={(v) => {
-                        setSubjectFilter(v);
-                        setPage(0);
-                    }}
-                >
-                    <SelectTrigger>
-                    <SelectValue placeholder="Filter by subject" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="all">All Subjects</SelectItem>
-                    {SUBJECTS.map((subject) => (
-                        <SelectItem key={subject} value={subject}>
-                        {subject}
-                        </SelectItem>
-                    ))}
-                    </SelectContent>
-                </Select>
+                <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                    <Select
+                        value={courseFilter}
+                        onValueChange={(v) => {
+                            setCourseFilter(v);
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by Course" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Courses</SelectItem>
+                            {courses?.map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Select
+                        value={subjectFilter}
+                        onValueChange={(v) => {
+                            setSubjectFilter(v);
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                        <SelectItem value="all">All Subjects</SelectItem>
+                        {SUBJECTS.map((subject) => (
+                            <SelectItem key={subject} value={subject}>
+                            {subject}
+                            </SelectItem>
+                        ))}
+                        </SelectContent>
+                    </Select>
+
+                    <Input
+                        placeholder="Search Title..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full sm:w-[200px]"
+                    />
                 </div>
             </div>
 

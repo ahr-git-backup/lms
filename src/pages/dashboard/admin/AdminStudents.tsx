@@ -29,8 +29,8 @@ const AdminStudents = () => {
   const selectedCourseFilter = searchParams.get("course") || "all";
   const page = parseInt(searchParams.get("page") || "0");
 
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const setPage = (newPage: number) => {
       setSearchParams(prev => {
@@ -38,6 +38,18 @@ const AdminStudents = () => {
           return prev;
       });
   };
+
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          // Reset page when search changes
+          if (searchQuery) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const setSelectedCourseFilter = (courseId: string) => {
       setSearchParams(prev => {
@@ -64,31 +76,44 @@ const AdminStudents = () => {
   });
 
   const { data: studentsData, isLoading } = useQuery({
-    queryKey: ["admin-students", selectedCourseFilter, page],
+    queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch],
     queryFn: async () => {
       // Fetch profiles with necessary data
       // We also fetch 'status' now
-      const query = supabase
-        .from("profiles")
-        .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
 
       if (selectedCourseFilter !== "all") {
-          const { data, error, count } = await supabase
+          // If filtering by course, we query enrollments primarily
+          let query = supabase
             .from("enrollments")
-            .select("profile:profiles(*), course:courses(name), id, course_id", { count: 'exact' })
-            .eq("course_id", selectedCourseFilter)
+            .select("profile:profiles!inner(*), course:courses(name), id, course_id", { count: 'exact' })
+            .eq("course_id", selectedCourseFilter);
+
+          if (debouncedSearch) {
+              query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`, { foreignTable: "profiles" });
+          }
+
+          const { data, error, count } = await query
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
           if (error) throw error;
 
           // Map back to expected structure
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const profiles = data.map((e: any) => ({
               ...(e.profile as Profile),
               enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course }]
           }));
           return { data: profiles, count: count || 0 };
       } else {
-          // Default fetch profiles
+          // Default fetch profiles directly
+          let query = supabase
+            .from("profiles")
+            .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
+
+          if (debouncedSearch) {
+              query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
+          }
+
           const { data, error, count } = await query
             .order("created_at", { ascending: false })
             .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -226,27 +251,39 @@ const AdminStudents = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Course filter</div>
-            <Select
-              value={selectedCourseFilter}
-              onValueChange={(v) => {
-                  setSelectedCourseFilter(v);
-                  setPage(0);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
-                {courses?.map((course: Pick<Course, "id" | "name">) => (
-                  <SelectItem key={course.id} value={course.id}>
-                    {course.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full">
+                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                    <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap">Course filter</div>
+                    <Select
+                    value={selectedCourseFilter}
+                    onValueChange={(v) => {
+                        setSelectedCourseFilter(v);
+                        setPage(0);
+                    }}
+                    >
+                    <SelectTrigger className="w-full sm:w-56">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Courses</SelectItem>
+                        {courses?.map((course: Pick<Course, "id" | "name">) => (
+                        <SelectItem key={course.id} value={course.id}>
+                            {course.name}
+                        </SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
+
+                <div className="flex-1 w-full sm:max-w-xs">
+                     <Input
+                        placeholder="Search by Name or ID..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                     />
+                </div>
+            </div>
           </div>
 
           {isLoading ? (

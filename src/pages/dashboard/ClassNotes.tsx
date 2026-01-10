@@ -50,7 +50,8 @@ const ClassNotes = () => {
             query = query.eq("chapter", selectedChapter);
         }
         if (selectedTopic !== "all") {
-            query = query.ilike("topic", `%${selectedTopic}%`); // Simple search for topic
+            // Search in both title and topic
+            query = query.or(`title.ilike.%${selectedTopic}%,topic.ilike.%${selectedTopic}%`);
         }
 
         const { data: notes, error: notesError } = await query;
@@ -95,9 +96,13 @@ const ClassNotes = () => {
   // Handlers
   const toggleBookmark = async (noteId: string, currentStatus: boolean) => {
       // Optimistic update
-      queryClient.setQueryData(["class-notes-enhanced", selectedCourse, user?.id], (old: any[]) => {
-          return old.map(n => n.id === noteId ? { ...n, is_bookmarked: !currentStatus } : n);
-      });
+      queryClient.setQueryData(
+          ["class-notes-enhanced", selectedCourse, selectedSubject, selectedChapter, selectedTopic, user?.id],
+          (old: any[]) => {
+              if (!old) return old;
+              return old.map(n => n.id === noteId ? { ...n, is_bookmarked: !currentStatus } : n);
+          }
+      );
 
       if (user) {
           const { error } = await supabase.from("user_note_states").upsert({

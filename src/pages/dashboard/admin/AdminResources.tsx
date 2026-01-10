@@ -39,14 +39,34 @@ const AdminResources = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const subjectFilter = searchParams.get("subject") || "all";
+  const courseFilter = searchParams.get("course") || "all";
   const page = parseInt(searchParams.get("page") || "0");
 
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const setPage = (newPage: number) => {
       setSearchParams(prev => {
           prev.set("page", newPage.toString());
+          return prev;
+      });
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        setDebouncedSearch(searchQuery);
+        if (searchQuery) setPage(0);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const setCourseFilter = (course: string) => {
+      setSearchParams(prev => {
+          prev.set("course", course);
+          prev.set("page", "0");
           return prev;
       });
   };
@@ -76,7 +96,7 @@ const AdminResources = () => {
   });
 
   const { data: resourcesData, isLoading } = useQuery({
-    queryKey: ["admin-resources", subjectFilter, page],
+    queryKey: ["admin-resources", subjectFilter, courseFilter, page, debouncedSearch],
     queryFn: async () => {
       let query = supabase
         .from("resources")
@@ -85,6 +105,12 @@ const AdminResources = () => {
 
       if (subjectFilter !== "all") {
         query = query.eq("subject", subjectFilter);
+      }
+      if (courseFilter !== "all") {
+          query = query.eq("course_id", courseFilter);
+      }
+      if (debouncedSearch) {
+          query = query.ilike("title", `%${debouncedSearch}%`);
       }
 
       const { data, error, count } = await query
@@ -329,15 +355,27 @@ const AdminResources = () => {
               <CardTitle className="text-base">All resources</CardTitle>
               <CardDescription>Click a row to edit or use the delete button to remove it.</CardDescription>
             </div>
-            <div className="w-full md:w-[200px]">
+            <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+              <Select
+                value={courseFilter}
+                onValueChange={(v) => setCourseFilter(v)}
+              >
+                 <SelectTrigger className="w-full sm:w-[180px]">
+                     <SelectValue placeholder="Filter by Course" />
+                 </SelectTrigger>
+                 <SelectContent>
+                     <SelectItem value="all">All Courses</SelectItem>
+                     {courses?.map(c => (
+                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                     ))}
+                 </SelectContent>
+              </Select>
+
               <Select
                 value={subjectFilter}
-                onValueChange={(v) => {
-                    setSubjectFilter(v);
-                    setPage(0);
-                }}
+                onValueChange={(v) => setSubjectFilter(v)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by subject" />
                 </SelectTrigger>
                 <SelectContent>
@@ -349,6 +387,13 @@ const AdminResources = () => {
                   ))}
                 </SelectContent>
               </Select>
+
+              <Input
+                placeholder="Search Title..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full sm:w-[200px]"
+              />
             </div>
           </div>
         </CardHeader>
