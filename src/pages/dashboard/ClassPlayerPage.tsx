@@ -63,6 +63,27 @@ const ClassPlayerPage = () => {
     );
   }
 
+  // Check if class hasn't started yet
+  const startTime = classItem.start_at ? new Date(classItem.start_at) : null;
+  const now = new Date();
+  if (startTime && startTime > now) {
+      return (
+          <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
+              <div className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300">
+                  <h2 className="text-xl font-bold mb-2">Class Has Not Started Yet</h2>
+                  <p className="mb-4">This class is scheduled to start on:</p>
+                  <p className="text-lg font-mono bg-white dark:bg-black/20 p-2 rounded inline-block border">
+                      {startTime.toLocaleString([], { dateStyle: 'full', timeStyle: 'short' })}
+                  </p>
+                  <p className="text-xs mt-4 opacity-80">Please come back at the scheduled time.</p>
+              </div>
+              <Button onClick={() => navigate(-1)}>
+                  Go Back
+              </Button>
+          </div>
+      );
+  }
+
   if (!hasAccess) {
      return (
         <div className="p-8 max-w-2xl mx-auto text-center space-y-6">

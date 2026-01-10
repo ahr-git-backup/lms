@@ -48,6 +48,18 @@ const AdminClasses = () => {
     button_url: "",
   });
   const [page, setPage] = useState(0);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [courseFilter, setCourseFilter] = useState("all");
+
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          if (searchQuery) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -66,12 +78,24 @@ const AdminClasses = () => {
   });
 
   const { data: classesData, isLoading } = useQuery({
-    queryKey: ["admin-classes", page],
+    queryKey: ["admin-classes", page, debouncedSearch, subjectFilter, courseFilter],
     queryFn: async () => {
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("classes")
         .select("*, course:courses(name)", { count: 'exact' })
-        .order("start_at", { ascending: false })
+        .order("start_at", { ascending: false });
+
+      if (subjectFilter !== "all") {
+        query = query.contains("subject", [subjectFilter]);
+      }
+      if (courseFilter !== "all") {
+          query = query.eq("course_id", courseFilter);
+      }
+      if (debouncedSearch) {
+        query = query.ilike("title", `%${debouncedSearch}%`);
+      }
+
+      const { data, error, count } = await query
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
       return { data: data || [], count: count || 0 };
@@ -342,7 +366,54 @@ const AdminClasses = () => {
 
         {/* Classes List */}
         <div className="space-y-4">
-             <h2 className="text-lg font-semibold">Scheduled Classes</h2>
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                 <h2 className="text-lg font-semibold">Scheduled Classes</h2>
+                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Select
+                        value={courseFilter}
+                        onValueChange={(v) => {
+                            setCourseFilter(v);
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by Course" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Courses</SelectItem>
+                            {courses?.map(c => (
+                                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        value={subjectFilter}
+                        onValueChange={(v) => {
+                            setSubjectFilter(v);
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by Subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Subjects</SelectItem>
+                            {SUBJECTS.map((subject) => (
+                                <SelectItem key={subject} value={subject}>
+                                    {subject}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                     <Input
+                        placeholder="Search Title..."
+                        value={searchQuery}
+                        onChange={e => setSearchQuery(e.target.value)}
+                        className="w-full sm:w-[200px]"
+                     />
+                 </div>
+             </div>
+
              {isLoading ? (
                 <div className="text-sm text-muted-foreground">Loading...</div>
              ) : !classes || classes.length === 0 ? (

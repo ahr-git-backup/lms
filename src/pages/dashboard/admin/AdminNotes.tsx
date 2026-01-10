@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,14 +17,40 @@ const AdminNotes = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingNote, setEditingNote] = useState<any>(null);
 
+  const [courseFilter, setCourseFilter] = useState("all");
+  const [subjectFilter, setSubjectFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+        setDebouncedSearch(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { data: courses } = useQuery({
+    queryKey: ["admin-courses-list"],
+    queryFn: async () => {
+      const { data } = await supabase.from("courses").select("id, name");
+      return data || [];
+    }
+  });
+
   // List state
   const { data: notes, isLoading } = useQuery({
-    queryKey: ["admin-notes"],
+    queryKey: ["admin-notes", courseFilter, subjectFilter, debouncedSearch],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("class_notes")
         .select("*, courses(name)")
         .order("created_at", { ascending: false });
+
+      if (courseFilter !== "all") query = query.eq("course_id", courseFilter);
+      if (subjectFilter !== "all") query = query.eq("subject", subjectFilter);
+      if (debouncedSearch) query = query.ilike("title", `%${debouncedSearch}%`);
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     }
@@ -41,11 +67,44 @@ const AdminNotes = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight">Manage Notes</h1>
         <Button onClick={() => setIsEditing(true)}>
           <Plus className="mr-2 h-4 w-4" /> Create Note
         </Button>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={courseFilter} onValueChange={setCourseFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="All Courses" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Courses</SelectItem>
+                  {courses?.map((c: any) => (
+                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+
+          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectValue placeholder="All Subjects" />
+              </SelectTrigger>
+              <SelectContent>
+                  <SelectItem value="all">All Subjects</SelectItem>
+                  {SUBJECTS.map((s) => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
+
+          <Input
+              placeholder="Search Title..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full sm:w-[300px]"
+          />
       </div>
 
       <div className="grid gap-4">

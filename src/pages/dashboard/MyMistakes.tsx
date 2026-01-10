@@ -16,6 +16,8 @@ const MyMistakes = () => {
 
     const [filterMode, setFilterMode] = useState<"wrong" | "skipped" | "both">("both");
     const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
+    const [page, setPage] = useState(0);
+    const PAGE_SIZE = 10;
 
     const { data: exams, isLoading } = useQuery({
         queryKey: ["my-mistakes-exams", user?.id],
@@ -83,6 +85,9 @@ const MyMistakes = () => {
             state: { examIds: selectedExamIds, filterMode }
         });
     };
+
+    const paginatedExams = exams?.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const totalPages = Math.ceil((exams?.length || 0) / PAGE_SIZE);
 
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
@@ -158,36 +163,65 @@ const MyMistakes = () => {
                     </CardHeader>
                     <CardContent>
                         {exams && exams.length > 0 ? (
-                            <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {exams.map((exam: any) => (
-                                    <div
-                                        key={exam.id}
-                                        className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
-                                    >
-                                        <Checkbox
-                                            id={exam.id}
-                                            checked={selectedExamIds.includes(exam.id)}
-                                            onCheckedChange={() => toggleExam(exam.id)}
-                                        />
-                                        <div className="grid gap-1.5 leading-none w-full cursor-pointer" onClick={() => toggleExam(exam.id)}>
-                                            <div className="flex justify-between items-start gap-2">
-                                                <label
-                                                    htmlFor={exam.id}
-                                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                                >
-                                                    {exam.title}
-                                                </label>
-                                                {exam.subject && (
-                                                    <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
-                                                )}
+                            <div className="space-y-4">
+                                <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                    {paginatedExams?.map((exam: any) => (
+                                        <div
+                                            key={exam.id}
+                                            className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-muted/50 transition-colors"
+                                        >
+                                            <Checkbox
+                                                id={exam.id}
+                                                checked={selectedExamIds.includes(exam.id)}
+                                                onCheckedChange={() => toggleExam(exam.id)}
+                                            />
+                                            <div className="grid gap-1.5 leading-none w-full cursor-pointer" onClick={() => toggleExam(exam.id)}>
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <label
+                                                        htmlFor={exam.id}
+                                                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                    >
+                                                        {exam.title}
+                                                    </label>
+                                                    {exam.subject && (
+                                                        <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground">
+                                                    Last attempt: {format(new Date(exam.lastAttempt), "PP")}
+                                                </p>
                                             </div>
-                                            <p className="text-xs text-muted-foreground">
-                                                Last attempt: {format(new Date(exam.lastAttempt), "PP")}
-                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Pagination Controls */}
+                                {totalPages > 1 && (
+                                    <div className="flex items-center justify-between pt-2 border-t">
+                                        <div className="text-xs text-muted-foreground">
+                                            Page {page + 1} of {totalPages}
+                                        </div>
+                                        <div className="flex gap-2">
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                                disabled={page === 0}
+                                            >
+                                                Previous
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                                disabled={page >= totalPages - 1}
+                                            >
+                                                Next
+                                            </Button>
                                         </div>
                                     </div>
-                                ))}
+                                )}
                             </div>
                         ) : (
                             <div className="text-center py-8 text-muted-foreground">
