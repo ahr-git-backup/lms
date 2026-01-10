@@ -75,10 +75,10 @@ const ForgotPassword = () => {
 
     try {
         const { data, error } = await supabase.rpc('verify_and_reset_password', {
-            p_phone: phone,
-            p_father_name: fatherName,
-            p_mother_name: motherName,
-            p_hsc_batch: hscBatch,
+            p_phone: phone.trim(),
+            p_father_name: fatherName.trim(),
+            p_mother_name: motherName.trim(),
+            p_hsc_batch: hscBatch.trim(),
             p_new_password: newPassword
         });
 

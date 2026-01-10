@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { SUBJECTS } from "@/lib/constants";
 
 const AdminNotes = () => {
   const [isEditing, setIsEditing] = useState(false);
