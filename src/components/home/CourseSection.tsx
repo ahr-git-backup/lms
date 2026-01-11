@@ -107,8 +107,8 @@ export const CourseSection = () => {
                         </div>
 
                         {/* Category Buttons */}
-                        <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-                            <div className="flex flex-row gap-3 min-w-max">
+                        <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 scrollbar-hide">
+                            <div className="flex flex-row gap-3 min-w-max pr-4">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
@@ -131,8 +131,8 @@ export const CourseSection = () => {
 
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
-                            <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
-                                <div className="flex flex-row gap-3 min-w-max">
+                            <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
+                                <div className="flex flex-row gap-3 min-w-max pr-4">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
                                         onClick={() => setSelectedSubCategory("all")}
