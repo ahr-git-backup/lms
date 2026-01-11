@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
@@ -1009,7 +1010,6 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
     // Reset latex when opened
     useEffect(() => {
         if (isOpen) {
-            setLatex("");
             // Focus on open
             setTimeout(() => {
                 if (mathFieldRef.current) mathFieldRef.current.focus();
@@ -1074,6 +1074,7 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
             >
                 <DialogHeader>
                     <DialogTitle>Math Formula Editor</DialogTitle>
+                    <DialogDescription className="sr-only">Editor for inserting mathematical formulas</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
