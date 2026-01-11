@@ -5,13 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+// Configuration: Add category names here to restrict the buttons shown on the landing page.
+// Example: ["HSC 25", "HSC 26", "Engineering"]
+// If empty, all categories from active courses will be shown.
+const FEATURED_CATEGORIES: string[] = [];
 
 export const CourseSection = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -32,11 +30,16 @@ export const CourseSection = () => {
     });
 
     // Extract unique categories and subcategories flattened from arrays
-    const categories = Array.from(new Set(
+    let categories = Array.from(new Set(
         courses?.flatMap((c: any) =>
             Array.isArray(c.category) ? c.category : (c.category ? [c.category] : [])
         ) || []
-    )).sort();
+    )).sort() as string[];
+
+    // Filter categories if configuration is set
+    if (FEATURED_CATEGORIES.length > 0) {
+        categories = categories.filter(c => FEATURED_CATEGORIES.includes(c));
+    }
 
     // Filter courses based on selection
     const filteredCourses = courses?.filter((course: any) => {
@@ -66,9 +69,9 @@ export const CourseSection = () => {
                 Array.isArray(c.sub_category) ? c.sub_category : (c.sub_category ? [c.sub_category] : [])
             )
             .filter(Boolean) || []
-    )).sort();
+    )).sort() as string[];
 
-    // Reset subcategory when category changes if it's no longer valid (skip this for now as user might want to cross-filter)
+    // Reset subcategory when category changes if it's no longer valid
     useEffect(() => {
         if (selectedCategory !== "all" && selectedSubCategory !== "all") {
              // Check if any course has BOTH selectedCategory AND selectedSubCategory
@@ -84,7 +87,7 @@ export const CourseSection = () => {
 
     return (
         <section id="courses" className="space-y-6">
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
                 <div className="flex items-end justify-between gap-4">
                     <div>
                         <h2 className="text-2xl font-semibold tracking-tight">চলমান কোর্সসমূহ</h2>
@@ -94,52 +97,57 @@ export const CourseSection = () => {
                     </div>
                 </div>
 
-                {/* Filters using Select (Dropdowns) */}
-                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-muted/20 p-4 rounded-lg border">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-fit">
-                        <Filter className="h-4 w-4" />
-                        <span className="font-medium">ফিল্টার:</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4 w-full sm:w-auto flex-1">
-                        {/* Category Filter */}
-                        <div className="w-full">
-                             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                                <SelectTrigger className="w-full bg-background">
-                                    <SelectValue placeholder="All Batches" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Batches</SelectItem>
-                                    {categories.map((cat: any) => (
-                                        <SelectItem key={cat} value={cat}>
-                                            {cat}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-
-                        {/* Sub Category Filter */}
-                        <div className="w-full">
-                            <Select
-                                value={selectedSubCategory}
-                                onValueChange={setSelectedSubCategory}
-                                disabled={availableSubCategories.length === 0}
+                {/* Filters using Visible Buttons */}
+                <div className="flex flex-col gap-4">
+                    {/* Category Buttons */}
+                    <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                        <div className="flex flex-row gap-2 min-w-max sm:flex-wrap">
+                            <Button
+                                variant={selectedCategory === "all" ? "default" : "outline"}
+                                onClick={() => setSelectedCategory("all")}
+                                className="rounded-full px-6 transition-all duration-200"
                             >
-                                <SelectTrigger className="w-full bg-background">
-                                    <SelectValue placeholder="All Types" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Types</SelectItem>
-                                    {availableSubCategories.map((sub: any) => (
-                                        <SelectItem key={sub} value={sub}>
-                                            {sub}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                                All Batches
+                            </Button>
+                            {categories.map((cat: string) => (
+                                <Button
+                                    key={cat}
+                                    variant={selectedCategory === cat ? "default" : "outline"}
+                                    onClick={() => setSelectedCategory(cat)}
+                                    className="rounded-full px-6 transition-all duration-200"
+                                >
+                                    {cat}
+                                </Button>
+                            ))}
                         </div>
                     </div>
+
+                    {/* Sub Category Buttons (Secondary Filter) */}
+                    {availableSubCategories.length > 0 && (
+                        <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
+                            <div className="flex flex-row gap-2 min-w-max sm:flex-wrap">
+                                <Button
+                                    variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setSelectedSubCategory("all")}
+                                    className={`rounded-full border px-4 h-8 text-xs ${selectedSubCategory === "all" ? "bg-secondary font-semibold" : "bg-transparent hover:bg-muted"}`}
+                                >
+                                    All Types
+                                </Button>
+                                {availableSubCategories.map((sub: string) => (
+                                    <Button
+                                        key={sub}
+                                        variant={selectedSubCategory === sub ? "secondary" : "ghost"}
+                                        size="sm"
+                                        onClick={() => setSelectedSubCategory(sub)}
+                                        className={`rounded-full border px-4 h-8 text-xs ${selectedSubCategory === sub ? "bg-secondary font-semibold" : "bg-transparent hover:bg-muted"}`}
+                                    >
+                                        {sub}
+                                    </Button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
 

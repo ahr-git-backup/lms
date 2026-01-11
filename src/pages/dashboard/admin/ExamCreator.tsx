@@ -241,13 +241,20 @@ const ExamCreator = () => {
           const editor = formulaState.targetQuill.getEditor();
           const range = editor.getSelection(true);
           if (range) {
-              editor.insertText(range.index, `$${latex}$`);
-              // Move cursor after the inserted formula
-              editor.setSelection(range.index + latex.length + 2);
+              editor.insertText(range.index, `$${latex}$ `);
+              // Move cursor after the inserted formula and space
+              setTimeout(() => {
+                editor.setSelection(range.index + latex.length + 3);
+                editor.focus();
+              }, 0);
           } else {
               // Fallback if no selection
               const length = editor.getLength();
-              editor.insertText(length, `$${latex}$`);
+              editor.insertText(length, `$${latex}$ `);
+              setTimeout(() => {
+                editor.setSelection(length + latex.length + 3);
+                editor.focus();
+              }, 0);
           }
       }
       setFormulaState({ isOpen: false, targetQuill: null });
