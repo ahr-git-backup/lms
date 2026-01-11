@@ -98,56 +98,64 @@ export const CourseSection = () => {
                 </div>
 
                 {/* Filters using Visible Buttons */}
-                <div className="flex flex-col gap-4">
-                    {/* Category Buttons */}
-                    <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-                        <div className="flex flex-row gap-2 min-w-max sm:flex-wrap">
-                            <Button
-                                variant={selectedCategory === "all" ? "default" : "outline"}
-                                onClick={() => setSelectedCategory("all")}
-                                className="rounded-full px-6 transition-all duration-200"
-                            >
-                                All Batches
-                            </Button>
-                            {categories.map((cat: string) => (
-                                <Button
-                                    key={cat}
-                                    variant={selectedCategory === cat ? "default" : "outline"}
-                                    onClick={() => setSelectedCategory(cat)}
-                                    className="rounded-full px-6 transition-all duration-200"
-                                >
-                                    {cat}
-                                </Button>
-                            ))}
+                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-6">
+                    <div className="flex flex-col gap-4">
+                         {/* Header for Filter Section */}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                            <Filter className="h-4 w-4" />
+                            <span>কোর্স ফিল্টার করুন</span>
                         </div>
-                    </div>
 
-                    {/* Sub Category Buttons (Secondary Filter) */}
-                    {availableSubCategories.length > 0 && (
-                        <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0">
-                            <div className="flex flex-row gap-2 min-w-max sm:flex-wrap">
+                        {/* Category Buttons */}
+                        <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
+                            <div className="flex flex-row gap-3 min-w-max">
                                 <Button
-                                    variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
-                                    size="sm"
-                                    onClick={() => setSelectedSubCategory("all")}
-                                    className={`rounded-full border px-4 h-8 text-xs ${selectedSubCategory === "all" ? "bg-secondary font-semibold" : "bg-transparent hover:bg-muted"}`}
+                                    variant={selectedCategory === "all" ? "default" : "outline"}
+                                    onClick={() => setSelectedCategory("all")}
+                                    className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === "all" ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
                                 >
-                                    All Types
+                                    All Batches
                                 </Button>
-                                {availableSubCategories.map((sub: string) => (
+                                {categories.map((cat: string) => (
                                     <Button
-                                        key={sub}
-                                        variant={selectedSubCategory === sub ? "secondary" : "ghost"}
-                                        size="sm"
-                                        onClick={() => setSelectedSubCategory(sub)}
-                                        className={`rounded-full border px-4 h-8 text-xs ${selectedSubCategory === sub ? "bg-secondary font-semibold" : "bg-transparent hover:bg-muted"}`}
+                                        key={cat}
+                                        variant={selectedCategory === cat ? "default" : "outline"}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === cat ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
                                     >
-                                        {sub}
+                                        {cat}
                                     </Button>
                                 ))}
                             </div>
                         </div>
-                    )}
+
+                        {/* Sub Category Buttons (Secondary Filter) */}
+                        {availableSubCategories.length > 0 && (
+                            <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
+                                <div className="flex flex-row gap-2 min-w-max pt-2">
+                                    <Button
+                                        variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
+                                        size="sm"
+                                        onClick={() => setSelectedSubCategory("all")}
+                                        className={`rounded-full border h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                    >
+                                        All Types
+                                    </Button>
+                                    {availableSubCategories.map((sub: string) => (
+                                        <Button
+                                            key={sub}
+                                            variant={selectedSubCategory === sub ? "secondary" : "ghost"}
+                                            size="sm"
+                                            onClick={() => setSelectedSubCategory(sub)}
+                                            className={`rounded-full border h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                        >
+                                            {sub}
+                                        </Button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 
