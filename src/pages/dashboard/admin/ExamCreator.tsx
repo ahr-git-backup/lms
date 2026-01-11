@@ -237,6 +237,15 @@ const ExamCreator = () => {
       targetQuill: null
   });
 
+  // Optimize handlers to prevent re-renders
+  const handleOpenFormula = useCallback((quillRef: any) => {
+      setFormulaState({ isOpen: true, targetQuill: quillRef });
+  }, []);
+
+  const handleFormChange = useCallback((newData: Question) => {
+      setActiveForm(prev => prev ? { ...prev, data: newData } : null);
+  }, []);
+
   const handleFormulaInsert = (latex: string) => {
       if (formulaState.targetQuill) {
           const editor = formulaState.targetQuill.getEditor();
@@ -727,11 +736,11 @@ const ExamCreator = () => {
                     <div className="p-6 md:p-8 space-y-6 bg-card">
                         <QuestionForm
                             data={activeForm.data}
-                            onChange={(newData: Question) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                            onChange={handleFormChange}
                             onSave={handleSaveQuestion}
                             onCancel={() => setActiveForm(null)}
                             onImageUpload={handleImageUpload}
-                            onOpenFormula={(quillRef: any) => setFormulaState({ isOpen: true, targetQuill: quillRef })}
+                            onOpenFormula={handleOpenFormula}
                         />
                     </div>
                 </Card>
