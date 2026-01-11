@@ -84,25 +84,28 @@ export function MultiSelect({
       <PopoverContent className="w-full p-0">
         <Command>
           <CommandInput
-            placeholder="Search..."
+            placeholder={placeholder}
             onValueChange={(val) => setInputValue(val)}
           />
           <CommandList>
-              <CommandEmpty>
+              <CommandEmpty className="py-2 px-2">
                 {onCreate && inputValue.trim().length > 0 ? (
                     <div
-                        className="flex items-center gap-2 p-2 text-sm cursor-pointer hover:bg-muted"
+                        className="flex items-center gap-2 p-2 text-sm rounded-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
                         onClick={() => {
                             onCreate(inputValue.trim());
                             setInputValue("");
-                            // Keep open or close? Usually keep open to see it added.
                         }}
                     >
                         <Plus className="h-4 w-4" />
                         Create "{inputValue}"
                     </div>
                 ) : (
-                    "No item found."
+                   <span className="text-muted-foreground text-sm block py-4 text-center">No item found.</span>
                 )}
               </CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">

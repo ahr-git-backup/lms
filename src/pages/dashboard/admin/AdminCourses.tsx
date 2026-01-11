@@ -518,6 +518,7 @@ const AdminCourses = () => {
                             onCreate={handleCreateCategory}
                             placeholder="Select batches..."
                         />
+                        <p className="text-xs text-muted-foreground">Type a new batch name in the search box to create it.</p>
                     </div>
 
                     <div className="space-y-2">
@@ -529,6 +530,7 @@ const AdminCourses = () => {
                             onCreate={handleCreateSubCategory}
                             placeholder="Select types..."
                         />
+                        <p className="text-xs text-muted-foreground">Type a new category name in the search box to create it.</p>
                     </div>
 
                     <div className="space-y-2">
