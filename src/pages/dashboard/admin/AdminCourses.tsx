@@ -34,6 +34,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelect, Option } from "@/components/ui/multi-select";
 
 const demoContentSchema = z.object({
   title: z.string().min(1, "Title required"),
@@ -72,6 +73,9 @@ const courseSchema = z.object({
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
   is_active: z.boolean().optional().default(true),
   is_public: z.boolean().optional().default(true),
+  category: z.array(z.string()).default([]),
+  sub_category: z.array(z.string()).default([]),
+  priority: z.number().optional().default(0),
 });
 
 const PAGE_SIZE = 10;
@@ -91,12 +95,19 @@ const AdminCourses = () => {
     contact_info: "",
     is_active: true,
     is_public: true,
+    category: [],
+    sub_category: [],
+    priority: 0,
   });
   const [page, setPage] = useState(0);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
   const [selectedCourseForCoupon, setSelectedCourseForCoupon] = useState<Course | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
+
+  // Local state for dropdown options (will be populated from DB)
+  const [existingCategories, setExistingCategories] = useState<Option[]>([]);
+  const [existingSubCategories, setExistingSubCategories] = useState<Option[]>([]);
 
   // Preview mode state for the markdown editor
   const [isPreviewMode, setIsPreviewMode] = useState(false);
@@ -120,6 +131,34 @@ const AdminCourses = () => {
       return { data: data || [], count: count || 0 };
     },
   });
+
+  // Fetch unique categories and subcategories for the filters
+  useQuery({
+    queryKey: ["admin-course-tags"],
+    queryFn: async () => {
+        const { data, error } = await supabase
+            .from("courses")
+            .select("category, sub_category");
+        if (error) return null;
+
+        const cats = new Set<string>();
+        const subs = new Set<string>();
+
+        data?.forEach((row: any) => {
+            if (Array.isArray(row.category)) row.category.forEach((c: string) => cats.add(c));
+            // Handle legacy single string values if migration missed them or for safety
+            else if (typeof row.category === 'string') cats.add(row.category);
+
+            if (Array.isArray(row.sub_category)) row.sub_category.forEach((s: string) => subs.add(s));
+             else if (typeof row.sub_category === 'string') subs.add(row.sub_category);
+        });
+
+        setExistingCategories(Array.from(cats).map(c => ({ label: c, value: c })));
+        setExistingSubCategories(Array.from(subs).map(s => ({ label: s, value: s })));
+        return null;
+    }
+  });
+
 
   // Fetch classes for the current editing course to display in Syllabus tab
   const { data: linkedClasses } = useQuery({
@@ -156,6 +195,9 @@ const AdminCourses = () => {
       contact_info: "",
       is_active: true,
       is_public: true,
+      category: [],
+      sub_category: [],
+      priority: 0,
     });
     setActiveTab("basic");
   };
@@ -180,6 +222,9 @@ const AdminCourses = () => {
         contact_info: parsed.contact_info || null,
         is_active: parsed.is_active ?? true,
         is_public: parsed.is_public ?? true,
+        category: parsed.category,
+        sub_category: parsed.sub_category,
+        priority: parsed.priority ?? 0,
       };
 
       if (parsed.id) {
@@ -196,6 +241,7 @@ const AdminCourses = () => {
     onSuccess: () => {
       toast({ title: "Course saved" });
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-tags"] }); // Refresh tags
       resetForm();
     },
     onError: (error: Error) => {
@@ -226,6 +272,15 @@ const AdminCourses = () => {
   });
 
   const handleEdit = (course: Course) => {
+    // Handle array or string for category/sub_category legacy compatibility
+    const cats = Array.isArray(course.category)
+        ? course.category
+        : (typeof course.category === 'string' ? [course.category] : []);
+
+    const subs = Array.isArray(course.sub_category)
+        ? course.sub_category
+        : (typeof course.sub_category === 'string' ? [course.sub_category] : []);
+
     setForm({
       id: course.id,
       name: course.name ?? "",
@@ -241,6 +296,9 @@ const AdminCourses = () => {
       contact_info: course.contact_info ?? "",
       is_active: course.is_active ?? true,
       is_public: course.is_public ?? true,
+      category: cats,
+      sub_category: subs,
+      priority: course.priority ?? 0,
     });
     // Scroll to top to see the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -293,6 +351,21 @@ const AdminCourses = () => {
       setCouponCode(randomCode);
       setIsCouponDialogOpen(true);
   };
+
+  const handleCreateCategory = (val: string) => {
+      if (!existingCategories.find(c => c.value === val)) {
+          setExistingCategories(prev => [...prev, { label: val, value: val }]);
+      }
+      setForm(prev => ({ ...prev, category: [...prev.category, val] }));
+  };
+
+  const handleCreateSubCategory = (val: string) => {
+      if (!existingSubCategories.find(c => c.value === val)) {
+          setExistingSubCategories(prev => [...prev, { label: val, value: val }]);
+      }
+      setForm(prev => ({ ...prev, sub_category: [...prev.sub_category, val] }));
+  };
+
 
   return (
     <section className="space-y-6">
@@ -434,6 +507,42 @@ const AdminCourses = () => {
                         onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
                         placeholder="e.g. Telegram @handle or phone number"
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="category">Batch Category (Tags)</Label>
+                        <MultiSelect
+                            options={existingCategories}
+                            selected={form.category}
+                            onChange={(val) => setForm(prev => ({ ...prev, category: val }))}
+                            onCreate={handleCreateCategory}
+                            placeholder="Select batches..."
+                        />
+                        <p className="text-xs text-muted-foreground">Type a new batch name in the search box to create it.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="sub_category">Type / Sub Category (Tags)</Label>
+                         <MultiSelect
+                            options={existingSubCategories}
+                            selected={form.sub_category}
+                            onChange={(val) => setForm(prev => ({ ...prev, sub_category: val }))}
+                            onCreate={handleCreateSubCategory}
+                            placeholder="Select types..."
+                        />
+                        <p className="text-xs text-muted-foreground">Type a new category name in the search box to create it.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="priority">Priority (Order)</Label>
+                        <Input
+                        id="priority"
+                        type="number"
+                        value={form.priority}
+                        onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                        placeholder="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Lower numbers appear first.</p>
                     </div>
 
                     <div className="flex items-center gap-4 md:col-span-2 border p-4 rounded-lg bg-muted/20">
