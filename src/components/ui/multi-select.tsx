@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,7 @@ interface MultiSelectProps {
   options: Option[];
   selected: string[];
   onChange: (selected: string[]) => void;
+  onCreate?: (value: string) => void;
   placeholder?: string;
   className?: string;
 }
@@ -34,10 +35,12 @@ export function MultiSelect({
   options,
   selected,
   onChange,
+  onCreate,
   placeholder = "Select items...",
   className,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
+  const [inputValue, setInputValue] = React.useState("");
 
   const handleUnselect = (item: string) => {
     onChange(selected.filter((i) => i !== item));
@@ -80,9 +83,28 @@ export function MultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
         <Command>
-          <CommandInput placeholder="Search..." />
+          <CommandInput
+            placeholder="Search..."
+            onValueChange={(val) => setInputValue(val)}
+          />
           <CommandList>
-              <CommandEmpty>No item found.</CommandEmpty>
+              <CommandEmpty>
+                {onCreate && inputValue.trim().length > 0 ? (
+                    <div
+                        className="flex items-center gap-2 p-2 text-sm cursor-pointer hover:bg-muted"
+                        onClick={() => {
+                            onCreate(inputValue.trim());
+                            setInputValue("");
+                            // Keep open or close? Usually keep open to see it added.
+                        }}
+                    >
+                        <Plus className="h-4 w-4" />
+                        Create "{inputValue}"
+                    </div>
+                ) : (
+                    "No item found."
+                )}
+              </CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
                 {options.map((option) => (
                   <CommandItem
@@ -93,7 +115,7 @@ export function MultiSelect({
                           ? selected.filter((item) => item !== option.value)
                           : [...selected, option.value]
                       );
-                      setOpen(true);
+                      // setOpen(true); // Keep open for multiple selection
                     }}
                   >
                     <Check

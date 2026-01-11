@@ -49,8 +49,8 @@ export interface Course {
   is_active: boolean;
   is_public: boolean;
   created_at?: string;
-  category?: string | null;
-  sub_category?: string | null;
+  category?: string[];
+  sub_category?: string[];
   priority?: number;
 }
 

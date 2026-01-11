@@ -31,28 +31,53 @@ export const CourseSection = () => {
         },
     });
 
-    // Extract unique categories and subcategories
-    const categories = Array.from(new Set(courses?.map((c: any) => c.category).filter(Boolean) || [])).sort();
+    // Extract unique categories and subcategories flattened from arrays
+    const categories = Array.from(new Set(
+        courses?.flatMap((c: any) =>
+            Array.isArray(c.category) ? c.category : (c.category ? [c.category] : [])
+        ) || []
+    )).sort();
 
     // Filter courses based on selection
     const filteredCourses = courses?.filter((course: any) => {
-        if (selectedCategory !== "all" && course.category !== selectedCategory) return false;
-        if (selectedSubCategory !== "all" && course.sub_category !== selectedSubCategory) return false;
+        const courseCats = Array.isArray(course.category)
+            ? course.category
+            : (course.category ? [course.category] : []);
+
+        const courseSubs = Array.isArray(course.sub_category)
+            ? course.sub_category
+            : (course.sub_category ? [course.sub_category] : []);
+
+        if (selectedCategory !== "all" && !courseCats.includes(selectedCategory)) return false;
+        if (selectedSubCategory !== "all" && !courseSubs.includes(selectedSubCategory)) return false;
         return true;
     });
 
     // Get subcategories for the selected category (or all if no category selected)
     const availableSubCategories = Array.from(new Set(
         courses
-            ?.filter((c: any) => selectedCategory === "all" || c.category === selectedCategory)
-            .map((c: any) => c.sub_category)
+            ?.filter((c: any) => {
+                 const courseCats = Array.isArray(c.category)
+                    ? c.category
+                    : (c.category ? [c.category] : []);
+                return selectedCategory === "all" || courseCats.includes(selectedCategory);
+            })
+            .flatMap((c: any) =>
+                Array.isArray(c.sub_category) ? c.sub_category : (c.sub_category ? [c.sub_category] : [])
+            )
             .filter(Boolean) || []
     )).sort();
 
-    // Reset subcategory when category changes if it's no longer valid
+    // Reset subcategory when category changes if it's no longer valid (skip this for now as user might want to cross-filter)
     useEffect(() => {
         if (selectedCategory !== "all" && selectedSubCategory !== "all") {
-             const isValid = courses?.some((c: any) => c.category === selectedCategory && c.sub_category === selectedSubCategory);
+             // Check if any course has BOTH selectedCategory AND selectedSubCategory
+             const isValid = courses?.some((c: any) => {
+                 const courseCats = Array.isArray(c.category) ? c.category : [c.category];
+                 const courseSubs = Array.isArray(c.sub_category) ? c.sub_category : [c.sub_category];
+                 return courseCats.includes(selectedCategory) && courseSubs.includes(selectedSubCategory);
+             });
+
              if (!isValid) setSelectedSubCategory("all");
         }
     }, [selectedCategory, courses]);
@@ -131,6 +156,11 @@ export const CourseSection = () => {
                         const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
 
+                        // Handle array or string display
+                        const categoryBadges = Array.isArray(course.category)
+                            ? course.category
+                            : (course.category ? [course.category] : []);
+
                         return (
                             <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full min-w-0 w-full max-w-full">
                                 {/* Course Image */}
@@ -140,11 +170,13 @@ export const CourseSection = () => {
                                         alt={`${course.name} cover`}
                                         className="absolute inset-0 h-full w-full object-cover"
                                     />
-                                    {course.category && (
-                                        <Badge className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
-                                            {course.category}
-                                        </Badge>
-                                    )}
+                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                                        {categoryBadges.map((cat: string) => (
+                                            <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
+                                                {cat}
+                                            </Badge>
+                                        ))}
+                                    </div>
                                 </div>
                                 {/* Content */}
                                 <div className="flex-1 p-5 flex flex-col justify-between gap-4">
