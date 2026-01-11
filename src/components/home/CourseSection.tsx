@@ -98,10 +98,10 @@ export const CourseSection = () => {
                 </div>
 
                 {/* Filters using Visible Buttons */}
-                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-6">
-                    <div className="flex flex-col gap-4">
+                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4">
+                    <div className="flex flex-col gap-2">
                          {/* Header for Filter Section */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium mb-1">
                             <Filter className="h-4 w-4" />
                             <span>কোর্স ফিল্টার করুন</span>
                         </div>
@@ -132,12 +132,11 @@ export const CourseSection = () => {
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
                             <div className="w-full overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
-                                <div className="flex flex-row gap-2 min-w-max pt-2">
+                                <div className="flex flex-row gap-3 min-w-max">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
-                                        size="sm"
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`rounded-full border h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                        className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
                                     >
                                         All Types
                                     </Button>
@@ -145,9 +144,8 @@ export const CourseSection = () => {
                                         <Button
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "secondary" : "ghost"}
-                                            size="sm"
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`rounded-full border h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                            className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
                                         >
                                             {sub}
                                         </Button>
