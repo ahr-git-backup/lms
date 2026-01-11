@@ -14,6 +14,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
@@ -235,6 +236,15 @@ const ExamCreator = () => {
       isOpen: false,
       targetQuill: null
   });
+
+  // Optimize handlers to prevent re-renders
+  const handleOpenFormula = useCallback((quillRef: any) => {
+      setFormulaState({ isOpen: true, targetQuill: quillRef });
+  }, []);
+
+  const handleFormChange = useCallback((newData: Question) => {
+      setActiveForm(prev => prev ? { ...prev, data: newData } : null);
+  }, []);
 
   const handleFormulaInsert = (latex: string) => {
       if (formulaState.targetQuill) {
@@ -726,11 +736,11 @@ const ExamCreator = () => {
                     <div className="p-6 md:p-8 space-y-6 bg-card">
                         <QuestionForm
                             data={activeForm.data}
-                            onChange={(newData: Question) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                            onChange={handleFormChange}
                             onSave={handleSaveQuestion}
                             onCancel={() => setActiveForm(null)}
                             onImageUpload={handleImageUpload}
-                            onOpenFormula={(quillRef: any) => setFormulaState({ isOpen: true, targetQuill: quillRef })}
+                            onOpenFormula={handleOpenFormula}
                         />
                     </div>
                 </Card>
@@ -1009,7 +1019,6 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
     // Reset latex when opened
     useEffect(() => {
         if (isOpen) {
-            setLatex("");
             // Focus on open
             setTimeout(() => {
                 if (mathFieldRef.current) mathFieldRef.current.focus();
@@ -1074,6 +1083,7 @@ const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, o
             >
                 <DialogHeader>
                     <DialogTitle>Math Formula Editor</DialogTitle>
+                    <DialogDescription className="sr-only">Editor for inserting mathematical formulas</DialogDescription>
                 </DialogHeader>
                 <div className="py-4 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
