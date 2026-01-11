@@ -3,12 +3,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Filter } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export const CourseSection = () => {
-    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-    const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string>("all");
+    const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
 
     const { data: courses, isLoading } = useQuery({
         queryKey: ["public-courses"],
@@ -29,24 +36,24 @@ export const CourseSection = () => {
 
     // Filter courses based on selection
     const filteredCourses = courses?.filter((course: any) => {
-        if (selectedCategory && course.category !== selectedCategory) return false;
-        if (selectedSubCategory && course.sub_category !== selectedSubCategory) return false;
+        if (selectedCategory !== "all" && course.category !== selectedCategory) return false;
+        if (selectedSubCategory !== "all" && course.sub_category !== selectedSubCategory) return false;
         return true;
     });
 
     // Get subcategories for the selected category (or all if no category selected)
     const availableSubCategories = Array.from(new Set(
         courses
-            ?.filter((c: any) => !selectedCategory || c.category === selectedCategory)
+            ?.filter((c: any) => selectedCategory === "all" || c.category === selectedCategory)
             .map((c: any) => c.sub_category)
             .filter(Boolean) || []
     )).sort();
 
     // Reset subcategory when category changes if it's no longer valid
     useEffect(() => {
-        if (selectedCategory && selectedSubCategory) {
+        if (selectedCategory !== "all" && selectedSubCategory !== "all") {
              const isValid = courses?.some((c: any) => c.category === selectedCategory && c.sub_category === selectedSubCategory);
-             if (!isValid) setSelectedSubCategory(null);
+             if (!isValid) setSelectedSubCategory("all");
         }
     }, [selectedCategory, courses]);
 
@@ -62,57 +69,52 @@ export const CourseSection = () => {
                     </div>
                 </div>
 
-                {/* Filters */}
-                <div className="space-y-4">
-                    {/* Category Filter */}
-                    {categories.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                            <Button
-                                variant={selectedCategory === null ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setSelectedCategory(null)}
-                                className="rounded-full"
-                            >
-                                All Batches
-                            </Button>
-                            {categories.map((cat: any) => (
-                                <Button
-                                    key={cat}
-                                    variant={selectedCategory === cat ? "default" : "outline"}
-                                    size="sm"
-                                    onClick={() => setSelectedCategory(cat)}
-                                    className="rounded-full"
-                                >
-                                    {cat}
-                                </Button>
-                            ))}
-                        </div>
-                    )}
+                {/* Filters using Select (Dropdowns) */}
+                <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center bg-muted/20 p-4 rounded-lg border">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground min-w-fit">
+                        <Filter className="h-4 w-4" />
+                        <span className="font-medium">ফিল্টার:</span>
+                    </div>
 
-                    {/* Sub Category Filter */}
-                    {availableSubCategories.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                             <Button
-                                variant={selectedSubCategory === null ? "secondary" : "ghost"}
-                                size="sm"
-                                onClick={() => setSelectedSubCategory(null)}
-                                className="h-7 text-xs rounded-full"
-                            >
-                                All Types
-                            </Button>
-                            {availableSubCategories.map((sub: any) => (
-                                <Button
-                                    key={sub}
-                                    variant={selectedSubCategory === sub ? "secondary" : "ghost"}
-                                    size="sm"
-                                    onClick={() => setSelectedSubCategory(sub)}
-                                    className="h-7 text-xs rounded-full"
-                                >
-                                    {sub}
-                                </Button>
-                            ))}
+                    <div className="grid grid-cols-2 gap-4 w-full sm:w-auto flex-1">
+                        {/* Category Filter */}
+                        <div className="w-full">
+                             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                                <SelectTrigger className="w-full bg-background">
+                                    <SelectValue placeholder="All Batches" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Batches</SelectItem>
+                                    {categories.map((cat: any) => (
+                                        <SelectItem key={cat} value={cat}>
+                                            {cat}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
-                    )}
+
+                        {/* Sub Category Filter */}
+                        <div className="w-full">
+                            <Select
+                                value={selectedSubCategory}
+                                onValueChange={setSelectedSubCategory}
+                                disabled={availableSubCategories.length === 0}
+                            >
+                                <SelectTrigger className="w-full bg-background">
+                                    <SelectValue placeholder="All Types" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">All Types</SelectItem>
+                                    {availableSubCategories.map((sub: any) => (
+                                        <SelectItem key={sub} value={sub}>
+                                            {sub}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -139,7 +141,7 @@ export const CourseSection = () => {
                                         className="absolute inset-0 h-full w-full object-cover"
                                     />
                                     {course.category && (
-                                        <Badge className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm">
+                                        <Badge className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
                                             {course.category}
                                         </Badge>
                                     )}
