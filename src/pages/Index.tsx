@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
+import { CourseSection } from "@/components/home/CourseSection";
 
 const FEATURES = [
     { icon: Monitor, title: "অনলাইন প্রোগ্রাম", desc: "ঘরে বসেই সেরা প্রস্তুতি।" },
@@ -45,19 +46,6 @@ const Index = () => {
   useEffect(() => {
     document.title = "Atlas - Best Coaching & Exam Platform";
   }, []);
-
-  const { data: courses, isLoading } = useQuery({
-    queryKey: ["public-courses"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("courses")
-        .select("id, name, short_description, price, original_price, image_url, slug, is_active")
-        .eq("is_public", true) // Show only publicly listed courses
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-  });
 
   const { data: mentors } = useQuery({
     queryKey: ["public-mentors"],
@@ -158,77 +146,7 @@ const Index = () => {
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
 
         {/* Paid Courses Section (Grid View) */}
-        <section id="courses" className="space-y-6">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <h2 className="text-2xl font-semibold tracking-tight">চলমান কোর্সসমূহ</h2>
-              <p className="text-sm text-muted-foreground">
-                আপনার সফলতার জন্য বিশেষভাবে ডিজাইন করা প্রিমিয়াম প্রোগ্রাম।
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {isLoading ? (
-              <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
-            ) : !courses || courses.length === 0 ? (
-              <p className="text-sm text-muted-foreground col-span-full">বর্তমানে কোনো কোর্স চালু নেই।</p>
-            ) : (
-              courses.map((course: any) => {
-                const image = course.image_url || "/placeholder.svg";
-                const description = course.short_description || "";
-                const idOrSlug = course.slug || course.id;
-
-                return (
-                  <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full min-w-0 w-full max-w-full">
-                    {/* Course Image */}
-                    <div className="w-full aspect-video relative">
-                            <img
-                            src={image}
-                            alt={`${course.name} cover`}
-                            className="absolute inset-0 h-full w-full object-cover"
-                            />
-                    </div>
-                    {/* Content */}
-                    <div className="flex-1 p-5 flex flex-col justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-bold mb-2 leading-tight">{course.name}</h3>
-                            <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
-                            <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লাইভ ক্লাস</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লেকচার নোট</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
-                                <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> সলভ শিট</div>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-dashed">
-                            <div className="flex flex-col items-start">
-                                {course.original_price != null && Number(course.original_price) > Number(course.price) && (
-                                    <span className="text-[10px] text-muted-foreground line-through">
-                                        ৳{Number(course.original_price).toLocaleString("en-BD")}
-                                    </span>
-                                )}
-                                <div className="text-base font-bold text-primary">
-                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
-                                    <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
-                                </Button>
-                                <Button asChild size="sm" className="h-8 px-2 text-xs">
-                                    <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                  </Card>
-                );
-              })
-            )}
-          </div>
-        </section>
+        <CourseSection />
 
         {/* Free Service/Courses Section */}
         <section id="free-resources" className="space-y-6">

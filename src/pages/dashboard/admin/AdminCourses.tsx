@@ -72,6 +72,9 @@ const courseSchema = z.object({
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
   is_active: z.boolean().optional().default(true),
   is_public: z.boolean().optional().default(true),
+  category: z.string().trim().optional().or(z.literal("")),
+  sub_category: z.string().trim().optional().or(z.literal("")),
+  priority: z.number().optional().default(0),
 });
 
 const PAGE_SIZE = 10;
@@ -91,6 +94,9 @@ const AdminCourses = () => {
     contact_info: "",
     is_active: true,
     is_public: true,
+    category: "",
+    sub_category: "",
+    priority: 0,
   });
   const [page, setPage] = useState(0);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
@@ -156,6 +162,9 @@ const AdminCourses = () => {
       contact_info: "",
       is_active: true,
       is_public: true,
+      category: "",
+      sub_category: "",
+      priority: 0,
     });
     setActiveTab("basic");
   };
@@ -180,6 +189,9 @@ const AdminCourses = () => {
         contact_info: parsed.contact_info || null,
         is_active: parsed.is_active ?? true,
         is_public: parsed.is_public ?? true,
+        category: parsed.category || null,
+        sub_category: parsed.sub_category || null,
+        priority: parsed.priority ?? 0,
       };
 
       if (parsed.id) {
@@ -241,6 +253,9 @@ const AdminCourses = () => {
       contact_info: course.contact_info ?? "",
       is_active: course.is_active ?? true,
       is_public: course.is_public ?? true,
+      category: course.category ?? "",
+      sub_category: course.sub_category ?? "",
+      priority: course.priority ?? 0,
     });
     // Scroll to top to see the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -434,6 +449,38 @@ const AdminCourses = () => {
                         onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
                         placeholder="e.g. Telegram @handle or phone number"
                         />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="category">Batch Category</Label>
+                        <Input
+                        id="category"
+                        value={form.category}
+                        onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
+                        placeholder="e.g. HSC 25, HSC 24"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="sub_category">Type (Sub Category)</Label>
+                        <Input
+                        id="sub_category"
+                        value={form.sub_category}
+                        onChange={(e) => setForm((prev) => ({ ...prev, sub_category: e.target.value }))}
+                        placeholder="e.g. Full Course, Model Test"
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="priority">Priority (Order)</Label>
+                        <Input
+                        id="priority"
+                        type="number"
+                        value={form.priority}
+                        onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                        placeholder="0"
+                        />
+                        <p className="text-xs text-muted-foreground">Lower numbers appear first.</p>
                     </div>
 
                     <div className="flex items-center gap-4 md:col-span-2 border p-4 rounded-lg bg-muted/20">
