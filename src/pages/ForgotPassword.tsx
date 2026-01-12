@@ -7,23 +7,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { ArrowLeft, CheckCircle2, AlertCircle, Eye, EyeOff, Mail, Phone, ChevronRight } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertCircle, Eye, EyeOff, Mail, Phone, ChevronRight, UserCheck } from "lucide-react";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<"method-select" | "email-sent" | "phone-verify" | "success">("method-select");
+  const [step, setStep] = useState<"method-select" | "email-sent" | "phone-verify" | "email-profile-verify" | "success">("method-select");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   // Form State
   const [email, setEmail] = useState("");
-
   const [phone, setPhone] = useState("");
   const [fatherName, setFatherName] = useState("");
   const [motherName, setMotherName] = useState("");
   const [hscBatch, setHscBatch] = useState("");
+  const [collegeName, setCollegeName] = useState("");
+  const [sscGpa, setSscGpa] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -51,7 +52,7 @@ const ForgotPassword = () => {
       }
   };
 
-  const handleVerifyAndReset = async (e: React.FormEvent) => {
+  const handleVerifyAndReset = async (e: React.FormEvent, method: 'phone' | 'email') => {
     e.preventDefault();
 
     if (newPassword !== confirmPassword) {
@@ -74,13 +75,21 @@ const ForgotPassword = () => {
     setLoading(true);
 
     try {
-        const { data, error } = await supabase.rpc('verify_and_reset_password', {
-            p_phone: phone.trim(),
+        const payload: any = {
+            p_identifier: method === 'phone' ? phone.trim() : email.trim(),
+            p_method: method,
             p_father_name: fatherName.trim(),
             p_mother_name: motherName.trim(),
             p_hsc_batch: hscBatch.trim(),
             p_new_password: newPassword
-        });
+        };
+
+        if (method === 'email') {
+            payload.p_college_name = collegeName.trim();
+            payload.p_ssc_gpa = parseFloat(sscGpa) || null;
+        }
+
+        const { data, error } = await supabase.rpc('verify_and_reset_password', payload);
 
         if (error) throw error;
 
@@ -163,10 +172,10 @@ const ForgotPassword = () => {
                         </div>
                     </div>
 
-                    <form onSubmit={handleEmailReset} className="space-y-4">
-                        <div className="space-y-2">
-                             <Label htmlFor="reset-email">I used Email Address</Label>
-                             <div className="flex gap-2">
+                    <div className="space-y-2">
+                         <Label>I used Email Address</Label>
+                         <div className="grid gap-3">
+                             <form onSubmit={handleEmailReset} className="flex gap-2">
                                 <Input
                                     id="reset-email"
                                     type="email"
@@ -178,9 +187,17 @@ const ForgotPassword = () => {
                                 <Button type="submit" disabled={loading}>
                                     {loading ? "Sending..." : "Send Link"}
                                 </Button>
-                             </div>
-                        </div>
-                    </form>
+                             </form>
+                             <Button
+                                variant="outline"
+                                className="w-full flex items-center justify-center gap-2 text-muted-foreground hover:text-primary"
+                                onClick={() => setStep("email-profile-verify")}
+                             >
+                                <UserCheck className="h-4 w-4" />
+                                Or Verify Profile Details
+                             </Button>
+                         </div>
+                    </div>
                 </CardContent>
             )}
 
@@ -199,9 +216,9 @@ const ForgotPassword = () => {
                 </CardContent>
             )}
 
-            {/* Step 3: Phone Verification Form (Legacy) */}
+            {/* Step 3: Phone Verification Form */}
             {step === "phone-verify" && (
-                <form onSubmit={handleVerifyAndReset}>
+                <form onSubmit={(e) => handleVerifyAndReset(e, 'phone')}>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="phone">Registered Phone Number</Label>
@@ -246,6 +263,131 @@ const ForgotPassword = () => {
                                 required
                                 value={hscBatch}
                                 onChange={(e) => setHscBatch(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="pt-4 border-t border-dashed">
+                             <Label className="text-base font-semibold">New Password</Label>
+                             <div className="space-y-3 mt-2">
+                                <div className="relative">
+                                    <Input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="New Password"
+                                        required
+                                        value={newPassword}
+                                        onChange={(e) => setNewPassword(e.target.value)}
+                                        className="pr-10"
+                                    />
+                                     <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                    >
+                                        {showPassword ? (
+                                            <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                        ) : (
+                                            <Eye className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </Button>
+                                </div>
+                                <Input
+                                    type="password"
+                                    placeholder="Confirm New Password"
+                                    required
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                             </div>
+                        </div>
+
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md flex gap-3 text-xs text-blue-700 dark:text-blue-300">
+                             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                             <p>
+                                 Verification is case-insensitive but must match the spelling used during registration.
+                             </p>
+                        </div>
+
+                    </CardContent>
+                    <CardFooter>
+                        <Button type="submit" className="w-full" disabled={loading}>
+                            {loading ? "Verifying & Resetting..." : "Reset Password"}
+                        </Button>
+                    </CardFooter>
+                </form>
+            )}
+
+            {/* Step 3b: Email Profile Verification Form (New) */}
+            {step === "email-profile-verify" && (
+                <form onSubmit={(e) => handleVerifyAndReset(e, 'email')}>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="email-verify">Registered Email Address</Label>
+                            <Input
+                                id="email-verify"
+                                type="email"
+                                placeholder="user@example.com"
+                                required
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                             <div className="space-y-2">
+                                <Label htmlFor="fatherName">Father's Name</Label>
+                                <Input
+                                    id="fatherName"
+                                    placeholder="Exact spelling"
+                                    required
+                                    value={fatherName}
+                                    onChange={(e) => setFatherName(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="motherName">Mother's Name</Label>
+                                <Input
+                                    id="motherName"
+                                    placeholder="Exact spelling"
+                                    required
+                                    value={motherName}
+                                    onChange={(e) => setMotherName(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="hscBatch">HSC Batch</Label>
+                                <Input
+                                    id="hscBatch"
+                                    placeholder="e.g. 2024"
+                                    required
+                                    value={hscBatch}
+                                    onChange={(e) => setHscBatch(e.target.value)}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="sscGpa">SSC GPA</Label>
+                                <Input
+                                    id="sscGpa"
+                                    placeholder="e.g. 5.00"
+                                    required
+                                    value={sscGpa}
+                                    onChange={(e) => setSscGpa(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="collegeName">College Name (Exact Spelling)</Label>
+                            <Input
+                                id="collegeName"
+                                placeholder="e.g. Dhaka College"
+                                required
+                                value={collegeName}
+                                onChange={(e) => setCollegeName(e.target.value)}
                             />
                         </div>
 

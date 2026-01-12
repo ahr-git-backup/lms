@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
@@ -56,6 +57,7 @@ const PAGE_SIZE = 10;
 
 const AdminExams = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
   const [form, setForm] = useState<z.infer<typeof examSchema>>({
     course_id: "",
     title: "",
@@ -842,19 +844,21 @@ const AdminExams = () => {
                                 >
                                     <Trophy className="h-4 w-4 mr-1 text-yellow-500" /> Rank
                                 </Button>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 text-destructive"
-                                    onClick={() => {
-                                    if (window.confirm("Delete this exam? This cannot be undone. Questions and results will be deleted.")) {
-                                        deleteExamMutation.mutate(exam.id);
-                                    }
-                                    }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                                {isAdmin && (
+                                  <Button
+                                      type="button"
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-8 w-8 text-destructive"
+                                      onClick={() => {
+                                      if (window.confirm("Delete this exam? This cannot be undone. Questions and results will be deleted.")) {
+                                          deleteExamMutation.mutate(exam.id);
+                                      }
+                                      }}
+                                  >
+                                      <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
                                 </div>
                             </TableCell>
                             </TableRow>
@@ -950,12 +954,16 @@ const AdminExams = () => {
                                                 }}>
                                                     <ExternalLink className="mr-2 h-4 w-4" /> Open Exam
                                                 </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-                                                    if (window.confirm("Delete this exam?")) deleteExamMutation.mutate(exam.id);
-                                                }}>
-                                                    <Trash2 className="mr-2 h-4 w-4" /> Delete
-                                                </DropdownMenuItem>
+                                                {isAdmin && (
+                                                  <>
+                                                    <DropdownMenuSeparator />
+                                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
+                                                        if (window.confirm("Delete this exam?")) deleteExamMutation.mutate(exam.id);
+                                                    }}>
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                  </>
+                                                )}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </div>
