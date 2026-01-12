@@ -98,7 +98,7 @@ export const CourseSection = () => {
                 </div>
 
                 {/* Filters using Visible Buttons */}
-                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4 mx-4 sm:mx-0 min-w-0 max-w-[calc(100vw-3rem)] sm:max-w-none">
+                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4 mx-4 sm:mx-0 min-w-0">
                     <div className="flex flex-col gap-2">
                          {/* Header for Filter Section */}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium mb-1">
