@@ -86,7 +86,7 @@ export const CourseSection = () => {
     }, [selectedCategory, courses]);
 
     return (
-        <section id="courses" className="space-y-6">
+        <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
                 <div className="flex items-end justify-between gap-4">
                     <div>
@@ -98,7 +98,7 @@ export const CourseSection = () => {
                 </div>
 
                 {/* Filters using Visible Buttons */}
-                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4">
+                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4 w-[calc(100%-2rem)] max-w-[400px] mx-auto overflow-x-auto min-w-0 sm:w-full sm:max-w-none sm:mx-0">
                     <div className="flex flex-col gap-2">
                          {/* Header for Filter Section */}
                         <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium mb-1">
