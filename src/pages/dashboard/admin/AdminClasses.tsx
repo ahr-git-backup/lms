@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Trash2, Video, Calendar, Clock, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { SUBJECTS } from "@/lib/constants";
@@ -63,6 +64,7 @@ const AdminClasses = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     document.title = "Admin Classes – Atlas";
@@ -453,16 +455,18 @@ const AdminClasses = () => {
                                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(cls)}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8 text-destructive"
-                                                onClick={() => {
-                                                    if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
-                                                }}
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            {isAdmin && (
+                                              <Button
+                                                  size="icon"
+                                                  variant="ghost"
+                                                  className="h-8 w-8 text-destructive"
+                                                  onClick={() => {
+                                                      if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
+                                                  }}
+                                              >
+                                                  <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -493,16 +497,18 @@ const AdminClasses = () => {
                                      <Button size="sm" variant="outline" className="h-8" onClick={() => handleEdit(cls)}>
                                         Edit
                                     </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="destructive"
-                                        className="h-8"
-                                        onClick={() => {
-                                            if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
-                                        }}
-                                    >
-                                        Delete
-                                    </Button>
+                                    {isAdmin && (
+                                      <Button
+                                          size="sm"
+                                          variant="destructive"
+                                          className="h-8"
+                                          onClick={() => {
+                                              if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
+                                          }}
+                                      >
+                                          Delete
+                                      </Button>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>

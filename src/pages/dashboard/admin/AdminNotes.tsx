@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,6 +18,7 @@ import { SUBJECTS } from "@/lib/constants";
 const AdminNotes = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingNote, setEditingNote] = useState<any>(null);
+  const { isAdmin } = useAuth();
 
   const [courseFilter, setCourseFilter] = useState("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -138,7 +140,7 @@ const AdminNotes = () => {
                                 <Button variant="ghost" size="icon" onClick={() => { setEditingNote(note); setIsEditing(true); }}>
                                     <Pencil className="h-4 w-4" />
                                 </Button>
-                                <DeleteNoteButton noteId={note.id} />
+                                {isAdmin && <DeleteNoteButton noteId={note.id} />}
                             </td>
                         </tr>
                     ))}
@@ -188,6 +190,7 @@ const DeleteNoteButton = ({ noteId }: { noteId: string }) => {
 const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const [formData, setFormData] = useState({
@@ -262,7 +265,7 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <h2 className="text-xl font-bold">{note ? "Edit Note" : "Create Note"}</h2>
-            {note && (
+            {note && isAdmin && (
                 <Button variant="destructive" size="sm" onClick={handleDelete} disabled={loading}>
                     <Trash2 className="h-4 w-4 mr-2" /> Delete
                 </Button>
