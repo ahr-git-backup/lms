@@ -142,8 +142,8 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                         onChange={e => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 w-full md:w-2/3 items-end">
-                    <div className="flex-1">
+                <div className="flex gap-2 w-full md:w-2/3 items-end overflow-x-auto pb-1">
+                    <div className="flex-1 min-w-[200px]">
                         <Label className="text-xs mb-1 block">Assign to Archive of:</Label>
                         <MultiSelect
                             options={courses || []}
@@ -152,13 +152,13 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                             placeholder="Select Courses..."
                         />
                     </div>
-                    <Button onClick={handleApply} disabled={isApplying || selectedItems.length === 0}>
+                    <Button onClick={handleApply} disabled={isApplying || selectedItems.length === 0} className="shrink-0">
                         {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Save className="mr-2 h-4 w-4" /> Apply
                     </Button>
                     <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                         <DialogTrigger asChild>
-                            <Button variant="secondary">
+                            <Button variant="secondary" className="shrink-0">
                                 <Plus className="mr-2 h-4 w-4" /> New {type === 'classes' ? 'Class' : 'Exam'}
                             </Button>
                         </DialogTrigger>

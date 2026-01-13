@@ -12,13 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 import { fromDhakaTimeToUTC, toDhakaTimeISO } from "@/lib/dateUtils";
 import { SUBJECTS } from "@/lib/constants";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CreatableSelect } from "@/components/ui/creatable-select";
 
 const classSchema = z.object({
   id: z.string().optional(),
-  course_id: z.string().min(1, "Course is required"),
+  course_id: z.string().nullable().optional(),
   shared_course_ids: z.array(z.string()).default([]),
   archive_course_ids: z.array(z.string()).default([]),
   title: z.string().trim().min(1, "Title is required"),
+  chapter: z.string().trim().optional().or(z.literal("")),
   topic: z.string().trim().optional().or(z.literal("")),
   subject: z.array(z.string()).default([]),
   start_at: z.string().min(1, "Start time is required"),
@@ -46,6 +48,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
         shared_course_ids: [],
         archive_course_ids: [],
         title: "",
+        chapter: "",
         topic: "",
         subject: [],
         start_at: "",
@@ -74,6 +77,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 // @ts-ignore
                 archive_course_ids: classItem.archive_course_ids || [],
                 title: classItem.title,
+                chapter: classItem.chapter || "",
                 topic: classItem.topic || "",
                 subject: subjects,
                 start_at: toDhakaTimeISO(classItem.start_at),
@@ -86,6 +90,23 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             });
         }
     }, [classItem]);
+
+    const { data: distinctMetadata } = useQuery({
+        queryKey: ["admin-classes-metadata-form"],
+        queryFn: async () => {
+           // We can reuse exams metadata logic or create a similar one for classes if needed
+           // For now, let's just use SUBJECTS for subjects.
+           // For Chapters, we should fetch from classes table.
+           const { data } = await supabase.from("classes").select("chapter");
+           const chapters = new Set<string>();
+           data?.forEach(item => {
+               if (item.chapter) chapters.add(item.chapter);
+           });
+           return {
+               chapters: Array.from(chapters).sort().map(c => ({ label: c, value: c }))
+           };
+        }
+    });
 
     const { data: courses } = useQuery({
         queryKey: ["admin-courses-form"],
@@ -100,12 +121,13 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
         mutationFn: async (values: z.infer<typeof classSchema>) => {
             const parsed = classSchema.parse(values);
             const payload = {
-                course_id: parsed.course_id,
+                course_id: parsed.course_id || null, // Allow null if logic permits, but typically required unless archive-only flow
                 // @ts-ignore
                 shared_course_ids: parsed.shared_course_ids,
                 // @ts-ignore
                 archive_course_ids: parsed.archive_course_ids,
                 title: parsed.title,
+                chapter: parsed.chapter || null,
                 topic: parsed.topic || null,
                 subject: parsed.subject,
                 start_at: fromDhakaTimeToUTC(parsed.start_at),
@@ -135,6 +157,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     shared_course_ids: [],
                     archive_course_ids: [],
                     title: "",
+                    chapter: "",
                     topic: "",
                     subject: [],
                     start_at: "",
@@ -170,24 +193,51 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             </CardHeader>
             <CardContent>
                 <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-                    <div className="space-y-2 min-w-0">
-                        <Label htmlFor="course">Primary Course</Label>
-                        <Select
-                            value={form.course_id}
-                            onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
-                        >
-                            <SelectTrigger id="course" className="w-full">
-                                <SelectValue placeholder="Select Course" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {courses?.map((c: Pick<Course, "id" | "name">) => (
-                                    <SelectItem key={c.id} value={c.id}>
-                                        {c.name}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {isArchiveMode ? (
+                        <div className="space-y-2 min-w-0 md:col-span-2">
+                            <Label>Archive For Courses (Select one or more)</Label>
+                            <MultiSelect
+                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                selected={form.archive_course_ids}
+                                onChange={(vals) => {
+                                    // If strictly archive mode, set primary course to first selection if empty
+                                    // But keep visible only archive list
+                                    const first = vals.length > 0 ? vals[0] : "";
+                                    setForm(prev => ({
+                                        ...prev,
+                                        archive_course_ids: vals,
+                                        course_id: prev.course_id || first // Keep existing or set new primary
+                                    }));
+                                }}
+                                placeholder="Select courses..."
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                                These classes will appear in the Archive section for selected courses.
+                                (Primary course set to: {courses?.find(c => c.id === form.course_id)?.name || "None"})
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2 min-w-0">
+                                <Label htmlFor="course">Primary Course</Label>
+                                <Select
+                                    value={form.course_id || ""}
+                                    onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
+                                >
+                                    <SelectTrigger id="course" className="w-full">
+                                        <SelectValue placeholder="Select Course" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {courses?.map((c: Pick<Course, "id" | "name">) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </>
+                    )}
 
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="class_type">Type</Label>
@@ -205,7 +255,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         </Select>
                     </div>
 
-                    {form.course_id && (
+                    {!isArchiveMode && form.course_id && (
                         <div className="space-y-2 min-w-0">
                             <Label>Also Share With (Optional)</Label>
                             <MultiSelect
@@ -217,15 +267,17 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         </div>
                     )}
 
-                    <div className="space-y-2 min-w-0">
-                        <Label>Add to Archive of (Optional)</Label>
-                        <MultiSelect
-                            options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
-                            selected={form.archive_course_ids}
-                            onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
-                            placeholder="Select courses to archive for..."
-                        />
-                    </div>
+                    {!isArchiveMode && (
+                        <div className="space-y-2 min-w-0">
+                            <Label>Add to Archive of (Optional)</Label>
+                            <MultiSelect
+                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                selected={form.archive_course_ids}
+                                onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
+                                placeholder="Select courses to archive for..."
+                            />
+                        </div>
+                    )}
 
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="title">Title</Label>
@@ -244,6 +296,17 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             selected={form.subject}
                             onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
                             placeholder="Select subjects..."
+                        />
+                    </div>
+
+                    <div className="space-y-2 min-w-0">
+                        <Label htmlFor="chapter">Chapter</Label>
+                        <CreatableSelect
+                            options={distinctMetadata?.chapters || []}
+                            value={form.chapter || ""}
+                            onChange={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                            onCreate={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                            placeholder="Select or Create Chapter"
                         />
                     </div>
 

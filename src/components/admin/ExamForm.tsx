@@ -180,6 +180,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           const parsed = examSchema.parse(values);
 
           const payload: Partial<Exam> = {
+            course_id: (isFreeMode || isArchiveMode) ? (parsed.course_id || null) : (parsed.course_id || null),
+            // Logic: if free mode, course_id is null. If archive mode, course_id is whatever user set (or first from archive list).
+            // Actually, if isFreeMode is true, course_id SHOULD be null.
+            // If isArchiveMode is true, course_id can be null or a value.
+            // But let's stick to the previous correct logic:
             course_id: isFreeMode ? null : (parsed.course_id || null),
             // @ts-ignore
             shared_course_ids: parsed.shared_course_ids,
@@ -423,7 +428,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-              {!isFreeMode && (
+              {!isFreeMode && !isArchiveMode && (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
                         <Label htmlFor="course">Course (Optional)</Label>
@@ -458,7 +463,30 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </div>
               )}
 
-              {!isFreeMode && form.course_id && (
+              {isArchiveMode && (
+                  <div className="space-y-2 md:col-span-2">
+                      <Label>Archive For Courses (Select one or more)</Label>
+                      <MultiSelect
+                          options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                          selected={form.archive_course_ids}
+                          onChange={(vals) => {
+                              const first = vals.length > 0 ? vals[0] : "";
+                              setForm(prev => ({
+                                  ...prev,
+                                  archive_course_ids: vals,
+                                  course_id: prev.course_id || first
+                              }));
+                          }}
+                          placeholder="Select courses..."
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                          These exams will appear in the Archive section for selected courses.
+                          (Primary course set to: {courses?.find(c => c.id === form.course_id)?.name || "None"})
+                      </p>
+                  </div>
+              )}
+
+              {!isFreeMode && !isArchiveMode && form.course_id && (
                   <div className="space-y-2">
                       <Label>Also Share With (Optional)</Label>
                       <MultiSelect
@@ -470,15 +498,17 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </div>
               )}
 
-              <div className="space-y-2">
-                  <Label>Add to Archive of (Optional)</Label>
-                  <MultiSelect
-                      options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
-                      selected={form.archive_course_ids}
-                      onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
-                      placeholder="Select courses to archive for..."
-                  />
-              </div>
+              {!isArchiveMode && (
+                  <div className="space-y-2">
+                      <Label>Add to Archive of (Optional)</Label>
+                      <MultiSelect
+                          options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                          selected={form.archive_course_ids}
+                          onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
+                          placeholder="Select courses to archive for..."
+                      />
+                  </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="exam_type">Exam type</Label>
