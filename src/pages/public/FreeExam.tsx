@@ -40,7 +40,9 @@ const FreeExam = () => {
         .from("exams")
         .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)")
         .is("course_id", null)
-        .eq("is_published", true);
+        .eq("is_published", true)
+        // @ts-ignore
+        .eq("is_visible_on_free", true);
 
       if (error) throw error;
       return data;
