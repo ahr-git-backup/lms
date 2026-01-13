@@ -10,7 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Filter, Video, Trophy } from "lucide-react";
+import { Loader2, Save, Filter, Video, Trophy, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ClassForm } from "@/components/admin/ClassForm";
+import { ExamForm } from "@/components/admin/ExamForm";
 
 const ArchiveManager = () => {
     useEffect(() => {
@@ -19,9 +29,11 @@ const ArchiveManager = () => {
 
     return (
         <div className="space-y-6">
-            <header>
-                <h1 className="text-3xl font-bold tracking-tight">Archive Manager</h1>
-                <p className="text-muted-foreground">Manage archived content visibility for courses. Assign past content to current courses as archive material.</p>
+            <header className="flex justify-between items-start">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Archive Manager</h1>
+                    <p className="text-muted-foreground">Manage archived content visibility for courses. Assign past content to current courses as archive material.</p>
+                </div>
             </header>
 
             <Tabs defaultValue="classes" className="space-y-4">
@@ -41,6 +53,7 @@ const ArchiveManager = () => {
 };
 
 const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState("");
@@ -143,6 +156,26 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                         {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Save className="mr-2 h-4 w-4" /> Apply
                     </Button>
+                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="secondary">
+                                <Plus className="mr-2 h-4 w-4" /> New {type === 'classes' ? 'Class' : 'Exam'}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                                <DialogTitle>Create New {type === 'classes' ? 'Class' : 'Exam'} for Archive</DialogTitle>
+                                <DialogDescription>
+                                    Create a new item and assign it directly to archives.
+                                </DialogDescription>
+                            </DialogHeader>
+                            {type === 'classes' ? (
+                                <ClassForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
+                            ) : (
+                                <ExamForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
+                            )}
+                        </DialogContent>
+                    </Dialog>
                 </div>
             </div>
 
