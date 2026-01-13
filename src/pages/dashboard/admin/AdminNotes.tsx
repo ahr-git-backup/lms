@@ -101,7 +101,7 @@ const AdminNotes = () => {
                   <SelectItem value="all">All Courses</SelectItem>
                   {courses?.map((c: any) => (
                       <SelectItem key={c.id} value={c.id}>
-                          {c.name} {c.is_public ? "(Free)" : ""}
+                          {c.name}
                       </SelectItem>
                   ))}
               </SelectContent>
@@ -334,7 +334,7 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
                             <SelectContent>
                                 {courses?.map((c: any) => (
                                     <SelectItem key={c.id} value={c.id}>
-                                        {c.name} {c.is_public ? "(Free)" : ""}
+                                        {c.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
