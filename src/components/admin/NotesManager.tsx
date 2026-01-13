@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { SUBJECTS } from "@/lib/constants";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useSearchParams } from "react-router-dom";
@@ -414,7 +415,7 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
                         />
                         <div className="border rounded-md p-4 overflow-y-auto h-full prose dark:prose-invert max-w-none bg-muted/20">
                             {formData.content ? (
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{formData.content}</ReactMarkdown>
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{formData.content}</ReactMarkdown>
                             ) : (
                                 <p className="text-muted-foreground italic">Preview will appear here...</p>
                             )}
