@@ -1,1 +1,0 @@
-ALTER TABLE class_notes ADD COLUMN IF NOT EXISTS is_free BOOLEAN DEFAULT false;

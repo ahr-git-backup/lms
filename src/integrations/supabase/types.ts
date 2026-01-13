@@ -80,7 +80,7 @@ export type Database = {
       class_notes: {
         Row: {
           chapter: string | null
-          course_id: string
+          course_id: string | null
           created_at: string
           id: string
           notes_url: string | null
@@ -88,11 +88,10 @@ export type Database = {
           topic: string | null
           subject: string | null
           content: string | null
-          is_free: boolean | null
         }
         Insert: {
           chapter?: string | null
-          course_id: string
+          course_id?: string | null
           created_at?: string
           id?: string
           notes_url?: string | null
@@ -100,11 +99,10 @@ export type Database = {
           topic?: string | null
           subject?: string | null
           content?: string | null
-          is_free?: boolean | null
         }
         Update: {
           chapter?: string | null
-          course_id?: string
+          course_id?: string | null
           created_at?: string
           id?: string
           notes_url?: string | null
@@ -112,7 +110,6 @@ export type Database = {
           topic?: string | null
           subject?: string | null
           content?: string | null
-          is_free?: boolean | null
         }
         Relationships: [
           {

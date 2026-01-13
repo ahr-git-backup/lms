@@ -22,7 +22,6 @@ interface NoteMetadata {
   chapter: string | null;
   topic: string | null;
   created_at: string;
-  is_free: boolean | null;
 }
 
 interface NoteContent extends NoteMetadata {
@@ -51,11 +50,11 @@ const FreeClass = () => {
   const { data: notesMetadata, isLoading } = useQuery({
     queryKey: ["public-free-notes-metadata"],
     queryFn: async () => {
-      // Fetch notes that are explicitly marked as free
+      // Fetch notes where course_id is null (public)
       const { data, error } = await supabase
         .from("class_notes")
-        .select("id, title, subject, chapter, topic, created_at, is_free")
-        .eq("is_free", true);
+        .select("id, title, subject, chapter, topic, created_at")
+        .is("course_id", null);
 
       if (error) throw error;
       return data as NoteMetadata[];
