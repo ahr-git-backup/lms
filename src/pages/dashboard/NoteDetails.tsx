@@ -10,6 +10,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import remarkBreaks from "remark-breaks";
 import "katex/dist/katex.min.css";
 import { Badge } from "@/components/ui/badge";
 
@@ -86,7 +87,7 @@ const NoteDetails = () => {
             <CardContent className="p-6 md:p-10">
                 {note.content ? (
                     <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-m-20 prose-headings:tracking-tight prose-a:text-primary hover:prose-a:underline prose-img:rounded-xl">
-                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]} rehypePlugins={[rehypeKatex]}>
                             {note.content}
                         </ReactMarkdown>
                     </article>

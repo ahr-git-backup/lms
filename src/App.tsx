@@ -37,6 +37,7 @@ import Resources from "./pages/dashboard/Resources";
 import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
+import Archive from "./pages/dashboard/Archive";
 import AdminDashboardHome from "./pages/dashboard/admin/AdminDashboardHome";
 import AdminCourses from "./pages/dashboard/admin/AdminCourses";
 import AdminStudents from "./pages/dashboard/admin/AdminStudents";
@@ -46,6 +47,7 @@ import AdminAnnouncements from "./pages/dashboard/admin/AdminAnnouncements";
 import AdminResources from "./pages/dashboard/admin/AdminResources";
 import AdminPayments from "./pages/dashboard/admin/AdminPayments";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
+import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
 import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
@@ -145,6 +147,7 @@ const App = () => {
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
                 <Route path="program" element={<Program />} />
+                <Route path="archive" element={<Archive />} />
 
                 <Route path="admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminDashboardHome /></ProtectedRoute>} />
                 <Route path="admin/courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
@@ -156,6 +159,7 @@ const App = () => {
                 <Route path="admin/announcements" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAnnouncements /></ProtectedRoute>} />
                 <Route path="admin/resources" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminResources /></ProtectedRoute>} />
                 <Route path="admin/notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
+                <Route path="admin/archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
                 <Route path="admin/free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
                 <Route path="admin/payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
                 <Route path="admin/mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />

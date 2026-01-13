@@ -29,7 +29,8 @@ const PastClass = () => {
         .order("start_at", { ascending: false });
 
       if (selectedCourse !== "all") {
-        query = query.eq("course_id", selectedCourse);
+        // Match course_id directly OR check shared_course_ids
+        query = query.or(`course_id.eq.${selectedCourse},shared_course_ids.cs.{${selectedCourse}}`);
       }
 
       if (selectedSubject !== "all") {
@@ -43,7 +44,12 @@ const PastClass = () => {
   });
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
-  const filteredClasses = classes?.filter(c => enrolledCourseIds.includes(c.course_id)) || [];
+  const filteredClasses = classes?.filter(c => {
+      // Check primary course or shared
+      // @ts-ignore
+      const isShared = c.shared_course_ids && enrolledCourseIds.some(eid => c.shared_course_ids.includes(eid));
+      return enrolledCourseIds.includes(c.course_id) || isShared;
+  }) || [];
 
   return (
     <div className="space-y-6">
@@ -103,7 +109,7 @@ const PastClass = () => {
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
-                        {classItem.course.name}
+                        {classItem.course?.name || "Public/Archive"}
                     </p>
                     {Array.isArray(classItem.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">

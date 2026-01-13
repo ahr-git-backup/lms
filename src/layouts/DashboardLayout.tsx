@@ -5,7 +5,7 @@ import {
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
   Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert,
-  Tag, LayoutTemplate, AlertCircle
+  Tag, LayoutTemplate, AlertCircle, Archive
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -379,6 +379,9 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
                     </Link>
+                    <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Archive className="h-4 w-4 text-gray-500" /> Archive
+                    </Link>
 
                     {isAdmin && (
                       <>
@@ -401,6 +404,9 @@ export const DashboardLayout = () => {
                         </Link>
                         <Link to="/dashboard/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <StickyNote className="h-4 w-4 text-pink-600" /> Notes Manager
+                        </Link>
+                        <Link to="/dashboard/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
                         </Link>
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Megaphone className="h-4 w-4 text-yellow-600" /> Announcements

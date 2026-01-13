@@ -1,53 +1,24 @@
 import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { Course, Class } from "@/types/admin";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Class } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Trash2, Video, Calendar, Clock, Edit, ChevronLeft, ChevronRight } from "lucide-react";
-import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
+import { Trash2, Calendar, Edit, ChevronLeft, ChevronRight } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
-import { MultiSelect } from "@/components/ui/multi-select";
 import { Badge } from "@/components/ui/badge";
-
-const classSchema = z.object({
-  id: z.string().optional(),
-  course_id: z.string().min(1, "Course is required"),
-  title: z.string().trim().min(1, "Title is required"),
-  topic: z.string().trim().optional().or(z.literal("")),
-  subject: z.array(z.string()).default([]),
-  start_at: z.string().min(1, "Start time is required"),
-  end_at: z.string().min(1, "End time is required"),
-  video_url: z.string().trim().optional().or(z.literal("")),
-  notes_url: z.string().trim().optional().or(z.literal("")),
-  class_type: z.enum(["live", "recorded"]).default("live"),
-  button_text: z.string().trim().optional().or(z.literal("")),
-  button_url: z.string().trim().optional().or(z.literal("")),
-});
+import { Card, CardContent } from "@/components/ui/card";
+import { ClassForm } from "@/components/admin/ClassForm";
 
 const PAGE_SIZE = 10;
 
 const AdminClasses = () => {
-  const [form, setForm] = useState<z.infer<typeof classSchema>>({
-    course_id: "",
-    title: "",
-    topic: "",
-    subject: [],
-    start_at: "",
-    end_at: "",
-    video_url: "",
-    notes_url: "",
-    class_type: "live",
-    button_text: "",
-    button_url: "",
-  });
+  const [editingClass, setEditingClass] = useState<any>(null);
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -108,45 +79,6 @@ const AdminClasses = () => {
   const totalCount = classesData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const upsertClassMutation = useMutation({
-    mutationFn: async (values: z.infer<typeof classSchema>) => {
-      const parsed = classSchema.parse(values);
-      const payload = {
-        course_id: parsed.course_id,
-        title: parsed.title,
-        topic: parsed.topic || null,
-        subject: parsed.subject, // Now an array
-        start_at: fromDhakaTimeToUTC(parsed.start_at),
-        end_at: fromDhakaTimeToUTC(parsed.end_at),
-        video_url: parsed.video_url || null,
-        notes_url: parsed.notes_url || null,
-        class_type: parsed.class_type,
-        button_text: parsed.button_text || null,
-        button_url: parsed.button_url || null,
-      };
-
-      if (parsed.id) {
-        const { error } = await supabase.from("classes").update(payload).eq("id", parsed.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("classes").insert(payload);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast({ title: "Class saved successfully" });
-      queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
-      resetForm();
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error saving class",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
   const deleteClassMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("classes").delete().eq("id", id);
@@ -158,52 +90,6 @@ const AdminClasses = () => {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    upsertClassMutation.mutate(form);
-  };
-
-  const resetForm = () => {
-    setForm({
-      course_id: "",
-      title: "",
-      topic: "",
-      subject: [],
-      start_at: "",
-      end_at: "",
-      video_url: "",
-      notes_url: "",
-      class_type: "live",
-      button_text: "",
-      button_url: "",
-    });
-  };
-
-  const handleEdit = (cls: any) => {
-    // Handle subject being array or string (legacy)
-    let subjects: string[] = [];
-    if (Array.isArray(cls.subject)) {
-        subjects = cls.subject;
-    } else if (typeof cls.subject === 'string' && cls.subject) {
-        subjects = [cls.subject];
-    }
-
-    setForm({
-      id: cls.id,
-      course_id: cls.course_id,
-      title: cls.title,
-      topic: cls.topic || "",
-      subject: subjects,
-      start_at: toDhakaTimeISO(cls.start_at),
-      end_at: toDhakaTimeISO(cls.end_at),
-      video_url: cls.video_url || "",
-      notes_url: cls.notes_url || "",
-      class_type: cls.class_type as "live" | "recorded",
-      button_text: cls.button_text || "",
-      button_url: cls.button_url || "",
-    });
-  };
-
   return (
     <div className="space-y-6">
       <header className="space-y-1">
@@ -212,159 +98,11 @@ const AdminClasses = () => {
       </header>
 
       <div className="grid gap-6">
-        <Card className="border border-foreground/60 w-full overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-base">{form.id ? "Edit Class" : "Schedule New Class"}</CardTitle>
-            <CardDescription>
-              Set class timings in Dhaka Time.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="course">Course</Label>
-                <Select
-                  value={form.course_id}
-                  onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
-                >
-                  <SelectTrigger id="course" className="w-full">
-                    <SelectValue placeholder="Select Course" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {courses?.map((c: Pick<Course, "id" | "name">) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="class_type">Type</Label>
-                <Select
-                  value={form.class_type}
-                  onValueChange={(val) => setForm((prev) => ({ ...prev, class_type: val as "live" | "recorded" }))}
-                >
-                  <SelectTrigger id="class_type" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="live">Live Class</SelectItem>
-                    <SelectItem value="recorded">Recorded Class</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="title">Title</Label>
-                <Input
-                  id="title"
-                  value={form.title}
-                  onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-
-               <div className="space-y-2 min-w-0">
-                <Label htmlFor="subject">Subjects</Label>
-                <MultiSelect
-                    options={SUBJECTS.map(s => ({ label: s, value: s }))}
-                    selected={form.subject}
-                    onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
-                    placeholder="Select subjects..."
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2 min-w-0">
-                <Label htmlFor="topic">Topic (Optional)</Label>
-                <Input
-                  id="topic"
-                  value={form.topic}
-                  onChange={(e) => setForm((prev) => ({ ...prev, topic: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="start_at">Start Time</Label>
-                <Input
-                  id="start_at"
-                  type="datetime-local"
-                  value={form.start_at}
-                  onChange={(e) => setForm((prev) => ({ ...prev, start_at: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="end_at">End Time</Label>
-                <Input
-                  id="end_at"
-                  type="datetime-local"
-                  value={form.end_at}
-                  onChange={(e) => setForm((prev) => ({ ...prev, end_at: e.target.value }))}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="video_url">Video URL (Zoom/YouTube/Drive)</Label>
-                <Input
-                  id="video_url"
-                  value={form.video_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="notes_url">Notes URL (PDF/Drive)</Label>
-                <Input
-                  id="notes_url"
-                  value={form.notes_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, notes_url: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="button_text">Special Button Text (Optional)</Label>
-                <Input
-                  id="button_text"
-                  value={form.button_text}
-                  onChange={(e) => setForm((prev) => ({ ...prev, button_text: e.target.value }))}
-                  placeholder="e.g. Join Zoom"
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-2 min-w-0">
-                <Label htmlFor="button_url">Special Button URL</Label>
-                <Input
-                  id="button_url"
-                  value={form.button_url}
-                  onChange={(e) => setForm((prev) => ({ ...prev, button_url: e.target.value }))}
-                  placeholder="https://..."
-                  className="w-full"
-                />
-              </div>
-
-              <div className="flex items-center gap-2 md:col-span-2 pt-2">
-                <Button type="submit" size="sm" disabled={upsertClassMutation.isPending}>
-                  {upsertClassMutation.isPending ? "Saving..." : form.id ? "Update Class" : "Create Class"}
-                </Button>
-                {form.id && (
-                  <Button type="button" size="sm" variant="outline" onClick={resetForm}>
-                    Cancel
-                  </Button>
-                )}
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+        <ClassForm
+            classItem={editingClass}
+            onSuccess={() => setEditingClass(null)}
+            onCancel={() => setEditingClass(null)}
+        />
 
         {/* Classes List */}
         <div className="space-y-4">
@@ -452,7 +190,7 @@ const AdminClasses = () => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleEdit(cls)}>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             {isAdmin && (
@@ -494,7 +232,7 @@ const AdminClasses = () => {
                                     {new Date(cls.start_at).toLocaleString()}
                                 </div>
                                 <div className="flex justify-end gap-2 pt-2 border-t mt-2">
-                                     <Button size="sm" variant="outline" className="h-8" onClick={() => handleEdit(cls)}>
+                                     <Button size="sm" variant="outline" className="h-8" onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                         Edit
                                     </Button>
                                     {isAdmin && (

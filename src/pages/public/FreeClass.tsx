@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import remarkBreaks from "remark-breaks";
 import "katex/dist/katex.min.css";
 import PublicHeader from "@/components/PublicHeader";
 
@@ -328,7 +329,9 @@ const FreeClass = () => {
   if (selectedTopic && !selectedNoteId) {
       // Filter notes by topic
       // Handle "General" case if we implemented it
-      const notesInTopic = filteredNotes.filter(n => n.topic === selectedTopic);
+      const notesInTopic = selectedTopic === "General"
+          ? filteredNotes.filter(n => !n.topic)
+          : filteredNotes.filter(n => n.topic === selectedTopic);
 
       // If only one note, maybe auto-select? Let's keep it manual for clarity.
 
@@ -435,7 +438,7 @@ const FreeClass = () => {
                         <CardContent className="p-6 md:p-10">
                             {noteContent.content ? (
                                 <article className="prose prose-slate dark:prose-invert max-w-none prose-headings:scroll-m-20 prose-headings:tracking-tight prose-a:text-primary hover:prose-a:underline prose-img:rounded-xl">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]} rehypePlugins={[rehypeKatex]}>
                                         {noteContent.content}
                                     </ReactMarkdown>
                                 </article>
