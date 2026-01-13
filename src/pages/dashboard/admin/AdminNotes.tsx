@@ -16,6 +16,7 @@ import remarkGfm from "remark-gfm";
 import { SUBJECTS } from "@/lib/constants";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useSearchParams } from "react-router-dom";
+import { Switch } from "@/components/ui/switch";
 
 const AdminNotes = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -142,6 +143,7 @@ const AdminNotes = () => {
                         <th className="p-3 text-left font-medium">Subject</th>
                         <th className="p-3 text-left font-medium hidden md:table-cell">Chapter</th>
                         <th className="p-3 text-left font-medium hidden md:table-cell">Course</th>
+                        <th className="p-3 text-left font-medium">Public?</th>
                         <th className="p-3 text-right font-medium">Actions</th>
                     </tr>
                 </thead>
@@ -152,6 +154,13 @@ const AdminNotes = () => {
                             <td className="p-3">{note.subject || "-"}</td>
                             <td className="p-3 hidden md:table-cell">{note.chapter || "-"}</td>
                             <td className="p-3 hidden md:table-cell">{note.courses?.name}</td>
+                            <td className="p-3">
+                                {note.is_free ? (
+                                    <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-green-500 text-white shadow hover:bg-green-600">Free</span>
+                                ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                )}
+                            </td>
                             <td className="p-3 text-right flex justify-end gap-2">
                                 <Button variant="ghost" size="icon" onClick={() => { setEditingNote(note); setIsEditing(true); }}>
                                     <Pencil className="h-4 w-4" />
@@ -216,7 +225,8 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
     chapter: note?.chapter || "",
     topic: note?.topic || "",
     course_id: note?.course_id || "",
-    notes_url: note?.notes_url || ""
+    notes_url: note?.notes_url || "",
+    is_free: note?.is_free || false
   });
 
   const { data: courses } = useQuery({
@@ -367,6 +377,18 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
                     <div className="space-y-2">
                         <Label>PDF URL (Optional)</Label>
                         <Input value={formData.notes_url} onChange={e => setFormData({...formData, notes_url: e.target.value})} placeholder="https://..." />
+                    </div>
+                    <div className="space-y-2 flex flex-col gap-2">
+                        <Label>Free Class (Public)</Label>
+                        <div className="flex items-center space-x-2 border p-3 rounded-md">
+                            <Switch
+                                checked={formData.is_free}
+                                onCheckedChange={(checked) => setFormData({...formData, is_free: checked})}
+                            />
+                            <span className="text-sm text-muted-foreground">
+                                {formData.is_free ? "This note will appear in Free Classes page." : "Standard access rules apply."}
+                            </span>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

@@ -12,6 +12,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
+import PublicHeader from "@/components/PublicHeader";
 
 // Types
 interface NoteMetadata {
@@ -21,6 +22,7 @@ interface NoteMetadata {
   chapter: string | null;
   topic: string | null;
   created_at: string;
+  is_free: boolean | null;
 }
 
 interface NoteContent extends NoteMetadata {
@@ -49,12 +51,11 @@ const FreeClass = () => {
   const { data: notesMetadata, isLoading } = useQuery({
     queryKey: ["public-free-notes-metadata"],
     queryFn: async () => {
-      // Fetch notes linked to public courses OR courses with price 0
-      // Since we can't do complex OR across relations easily, we'll stick to is_public for now as per plan
+      // Fetch notes that are explicitly marked as free
       const { data, error } = await supabase
         .from("class_notes")
-        .select("id, title, subject, chapter, topic, created_at, courses!inner(is_public)")
-        .eq("courses.is_public", true);
+        .select("id, title, subject, chapter, topic, created_at, is_free")
+        .eq("is_free", true);
 
       if (error) throw error;
       return data as NoteMetadata[];

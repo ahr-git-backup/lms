@@ -88,6 +88,7 @@ export type Database = {
           topic: string | null
           subject: string | null
           content: string | null
+          is_free: boolean | null
         }
         Insert: {
           chapter?: string | null
@@ -99,6 +100,7 @@ export type Database = {
           topic?: string | null
           subject?: string | null
           content?: string | null
+          is_free?: boolean | null
         }
         Update: {
           chapter?: string | null
@@ -110,6 +112,7 @@ export type Database = {
           topic?: string | null
           subject?: string | null
           content?: string | null
+          is_free?: boolean | null
         }
         Relationships: [
           {
