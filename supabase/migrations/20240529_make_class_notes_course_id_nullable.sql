@@ -1,0 +1,2 @@
+ALTER TABLE class_notes ALTER COLUMN course_id DROP NOT NULL;
+ALTER TABLE class_notes DROP COLUMN IF EXISTS is_free;

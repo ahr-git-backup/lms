@@ -46,6 +46,7 @@ import AdminAnnouncements from "./pages/dashboard/admin/AdminAnnouncements";
 import AdminResources from "./pages/dashboard/admin/AdminResources";
 import AdminPayments from "./pages/dashboard/admin/AdminPayments";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
+import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
@@ -155,6 +156,7 @@ const App = () => {
                 <Route path="admin/announcements" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAnnouncements /></ProtectedRoute>} />
                 <Route path="admin/resources" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminResources /></ProtectedRoute>} />
                 <Route path="admin/notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
+                <Route path="admin/free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
                 <Route path="admin/payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
                 <Route path="admin/mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
                 <Route path="admin/promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
