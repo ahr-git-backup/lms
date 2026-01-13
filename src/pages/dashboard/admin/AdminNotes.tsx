@@ -39,7 +39,7 @@ const AdminNotes = () => {
   const { data: courses } = useQuery({
     queryKey: ["admin-courses-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("id, name");
+      const { data } = await supabase.from("courses").select("id, name, is_public");
       return data || [];
     }
   });
@@ -99,7 +99,9 @@ const AdminNotes = () => {
               <SelectContent>
                   <SelectItem value="all">All Courses</SelectItem>
                   {courses?.map((c: any) => (
-                      <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                      <SelectItem key={c.id} value={c.id}>
+                          {c.name} {c.is_public ? "(Free)" : ""}
+                      </SelectItem>
                   ))}
               </SelectContent>
           </Select>
@@ -220,7 +222,7 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
   const { data: courses } = useQuery({
     queryKey: ["admin-courses-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("courses").select("id, name");
+      const { data } = await supabase.from("courses").select("id, name, is_public");
       return data || [];
     }
   });
@@ -320,8 +322,10 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
                         <Select value={formData.course_id} onValueChange={v => setFormData({...formData, course_id: v})}>
                             <SelectTrigger><SelectValue placeholder="Select Course" /></SelectTrigger>
                             <SelectContent>
-                                {courses?.map(c => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                {courses?.map((c: any) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                        {c.name} {c.is_public ? "(Free)" : ""}
+                                    </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

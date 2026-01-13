@@ -80,13 +80,13 @@ const FreeClass = () => {
 
   // Helper to extract unique values
   const getUniqueValues = (data: NoteMetadata[] | undefined, key: keyof NoteMetadata) => {
-    if (!data) return [];
+    if (!data || !Array.isArray(data)) return [];
     const values = data.map(item => item[key]).filter(Boolean) as string[];
     return Array.from(new Set(values)).sort();
   };
 
   // Filter logic
-  const filteredNotes = notesMetadata?.filter(note => {
+  const filteredNotes = (Array.isArray(notesMetadata) ? notesMetadata : [])?.filter(note => {
     if (selectedSubject && note.subject !== selectedSubject) return false;
     if (selectedChapter && note.chapter !== selectedChapter) return false;
     if (selectedTopic && note.topic !== selectedTopic) return false;
