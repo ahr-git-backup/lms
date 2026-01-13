@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Save, Filter, Video, Trophy, Plus } from "lucide-react";
+import { Loader2, Save, Filter, Video, Trophy, Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ClassForm } from "@/components/admin/ClassForm";
 import { ExamForm } from "@/components/admin/ExamForm";
 
@@ -54,6 +61,7 @@ const ArchiveManager = () => {
 
 const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState<any>(null);
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [searchQuery, setSearchQuery] = useState("");
@@ -114,9 +122,6 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                 };
             }) || [];
 
-            // Perform updates sequentially (or RPC if available)
-            // Supabase update doesn't support bulk with different values easily without RPC.
-            // We'll loop.
             await Promise.all(updates.map(u =>
                 supabase.from(type).update({ archive_course_ids: u.archive_course_ids }).eq("id", u.id)
             ));
@@ -129,6 +134,23 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
             toast({ title: "Error", description: err.message, variant: "destructive" });
         } finally {
             setIsApplying(false);
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this item? This action cannot be undone.")) return;
+        try {
+            // Check dependency manually if needed, but usually cascade handles it
+            if (type === 'exams') {
+                 await supabase.from("exam_questions").delete().eq("exam_id", id);
+                 await supabase.from("exam_attempts").delete().eq("exam_id", id);
+            }
+            const { error } = await supabase.from(type).delete().eq("id", id);
+            if (error) throw error;
+            toast({ title: "Deleted", description: "Item deleted successfully." });
+            queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
+        } catch (err: any) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
         }
     };
 
@@ -199,6 +221,7 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                                     <th className="p-4">Title</th>
                                     <th className="p-4">Original Course</th>
                                     <th className="p-4">Archived For</th>
+                                    <th className="p-4 text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -224,6 +247,24 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                                                 )}
                                             </div>
                                         </td>
+                                        <td className="p-4 text-right">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                                        <MoreHorizontal className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end">
+                                                    <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                    <DropdownMenuItem onClick={() => setEditingItem(item)}>
+                                                        <Edit className="mr-2 h-4 w-4" /> Edit
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleDelete(item.id)}>
+                                                        <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -231,6 +272,29 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                     </div>
                 )}
             </div>
+
+            <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit {type === 'classes' ? 'Class' : 'Exam'}</DialogTitle>
+                    </DialogHeader>
+                    {editingItem && (
+                        type === 'classes' ? (
+                            <ClassForm
+                                classItem={editingItem}
+                                onSuccess={() => { setEditingItem(null); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }}
+                                isArchiveMode={true}
+                            />
+                        ) : (
+                            <ExamForm
+                                exam={editingItem}
+                                onSuccess={() => { setEditingItem(null); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }}
+                                isArchiveMode={true}
+                            />
+                        )
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
