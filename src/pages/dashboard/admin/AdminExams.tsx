@@ -18,14 +18,17 @@ import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, 
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CreatableSelect } from "@/components/ui/creatable-select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useSearchParams } from "react-router-dom";
 
 const examSchema = z.object({
   id: z.string().optional(),
   course_id: z.string().nullable().optional(),
   title: z.string().trim().min(1, "Title is required"),
   subject: z.array(z.string()).default([]),
+  chapter: z.string().trim().optional().or(z.literal("")),
   exam_type: z.enum(["live", "practice"]),
   duration_minutes: z
     .string()
@@ -58,10 +61,14 @@ const PAGE_SIZE = 10;
 const AdminExams = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("editId");
+
   const [form, setForm] = useState<z.infer<typeof examSchema>>({
     course_id: "",
     title: "",
     subject: [],
+    chapter: "",
     exam_type: "live",
     duration_minutes: "60",
     total_marks: "",
@@ -131,6 +138,35 @@ const AdminExams = () => {
     },
   });
 
+  // Fetch distinct subjects and chapters for autocomplete
+  const { data: distinctMetadata } = useQuery({
+    queryKey: ["admin-exams-metadata"],
+    queryFn: async () => {
+       const { data, error } = await supabase.from("exams").select("subject, chapter");
+       if (error) throw error;
+
+       const subjects = new Set<string>();
+       const chapters = new Set<string>();
+
+       data?.forEach(item => {
+           if (Array.isArray(item.subject)) {
+               item.subject.forEach((s: string) => subjects.add(s));
+           } else if (typeof item.subject === 'string' && item.subject) {
+               subjects.add(item.subject);
+           }
+           if (item.chapter) chapters.add(item.chapter);
+       });
+
+       // Add predefined subjects
+       SUBJECTS.forEach(s => subjects.add(s));
+
+       return {
+           subjects: Array.from(subjects).sort().map(s => ({ label: s, value: s })),
+           chapters: Array.from(chapters).sort().map(c => ({ label: c, value: c }))
+       };
+    }
+  });
+
   const exams = examsData?.data || [];
   const totalCount = examsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
@@ -140,6 +176,7 @@ const AdminExams = () => {
       course_id: "",
       title: "",
       subject: [],
+      chapter: "",
       exam_type: "live",
       duration_minutes: "60",
       negative_mark_per_question: "0",
@@ -178,6 +215,7 @@ const AdminExams = () => {
         course_id: parsed.course_id || null,
         title: parsed.title,
         subject: parsed.subject, // Array
+        chapter: parsed.chapter || null,
         exam_type: parsed.exam_type,
         duration_minutes: Number(parsed.duration_minutes),
         total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
@@ -399,6 +437,7 @@ const AdminExams = () => {
   });
 
   const handleEdit = (exam: Exam) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     // Handle subject being array or string (legacy)
     let subjects: string[] = [];
     if (Array.isArray(exam.subject)) {
@@ -412,6 +451,7 @@ const AdminExams = () => {
       course_id: exam.course_id || "",
       title: exam.title ?? "",
       subject: subjects,
+      chapter: exam.chapter || "",
       exam_type: exam.exam_type === "practice" ? "practice" : "live",
       duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "60",
       total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
@@ -433,6 +473,15 @@ const AdminExams = () => {
     e.preventDefault();
     upsertExamMutation.mutate(form);
   };
+
+  useEffect(() => {
+    if (editId && exams.length > 0) {
+        const examToEdit = exams.find((e: Exam) => e.id === editId);
+        if (examToEdit) {
+            handleEdit(examToEdit);
+        }
+    }
+  }, [editId, exams]);
 
   return (
     <section className="space-y-6">
@@ -525,10 +574,32 @@ const AdminExams = () => {
               <div className="space-y-2">
                 <Label htmlFor="subject">Subjects</Label>
                 <MultiSelect
-                    options={SUBJECTS.map(s => ({ label: s, value: s }))}
+                    options={distinctMetadata?.subjects || SUBJECTS.map(s => ({ label: s, value: s }))}
                     selected={form.subject}
                     onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
-                    placeholder="Select subjects..."
+                    onCreate={(val) => {
+                         // Optimistically add to list handled by MultiSelect if we wanted,
+                         // but here we just select it.
+                         // MultiSelect needs updated options to show the label correctly if it wasn't there?
+                         // Actually MultiSelect handles displaying the selected value even if not in options
+                         // IF we passed it as an option.
+                         // But for now, we just rely on MultiSelect's onCreate callback to add it to selected.
+                         // We might need to refresh metadata?
+                         // Let's just let MultiSelect handle the value.
+                         setForm(prev => ({ ...prev, subject: [...prev.subject, val] }));
+                    }}
+                    placeholder="Select or Create subjects..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="chapter">Chapter</Label>
+                <CreatableSelect
+                  options={distinctMetadata?.chapters || []}
+                  value={form.chapter || ""}
+                  onChange={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                  onCreate={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                  placeholder="Select or Create Chapter"
                 />
               </div>
 

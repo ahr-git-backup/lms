@@ -169,7 +169,7 @@ const Index = () => {
                     </CardContent>
                     <CardFooter>
                         <Button asChild variant="default" className="w-full">
-                            <a href="/login">ফ্রি এক্সাম দিন</a>
+                            <a href="/free-exam">ফ্রি এক্সাম দিন</a>
                         </Button>
                     </CardFooter>
                 </Card>
@@ -179,7 +179,7 @@ const Index = () => {
                             <InfinityIcon className="h-5 w-5 text-primary" /> ফ্রি ক্লাস
                         </CardTitle>
                         <CardDescription>
-                            ডেমো ক্লাস এবং নির্বাচিত টপিক আলোচনা দেখুন একদম ফ্রিতে।
+                            ক্লাস এবং নির্বাচিত টপিক আলোচনা দেখুন একদম ফ্রিতে।
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -187,7 +187,7 @@ const Index = () => {
                     </CardContent>
                     <CardFooter>
                          <Button asChild variant="outline" className="w-full">
-                            <a href="https://www.youtube.com/@AtlasMedical_Preparation" target="_blank" rel="noreferrer">ইউটিউবে দেখুন</a>
+                            <a href="/free-class">ক্লাস সমূহ দেখুন</a>
                         </Button>
                     </CardFooter>
                 </Card>

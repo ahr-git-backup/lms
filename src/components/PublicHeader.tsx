@@ -34,6 +34,12 @@ export const PublicHeader = () => {
           <a href="/#courses" className="underline-offset-4 hover:underline">
             কোর্সসমূহ
           </a>
+          <a href="/free-class" className="underline-offset-4 hover:underline">
+            ফ্রি ক্লাস
+          </a>
+          <a href="/free-exam" className="underline-offset-4 hover:underline">
+            ফ্রি এক্সাম
+          </a>
           <a href="/login" className="underline-offset-4 hover:underline">
             লগইন
           </a>
@@ -76,6 +82,12 @@ export const PublicHeader = () => {
                   </a>
                   <a href="/#courses" className="text-lg font-medium hover:text-primary">
                     কোর্সসমূহ
+                  </a>
+                  <a href="/free-class" className="text-lg font-medium hover:text-primary">
+                    ফ্রি ক্লাস
+                  </a>
+                  <a href="/free-exam" className="text-lg font-medium hover:text-primary">
+                    ফ্রি এক্সাম
                   </a>
                   <a href="/login" className="text-lg font-medium hover:text-primary">
                     লগইন
