@@ -481,6 +481,13 @@ export type Database = {
           registration_id: string
           school: string | null
           updated_at: string
+          father_name: string | null
+          mother_name: string | null
+          college_name: string | null
+          ssc_gpa: number | null
+          hsc_gpa: number | null
+          hsc_batch: string | null
+          is_second_timer: boolean | null
         }
         Insert: {
           batch_year?: number | null
@@ -492,6 +499,13 @@ export type Database = {
           registration_id: string
           school?: string | null
           updated_at?: string
+          father_name?: string | null
+          mother_name?: string | null
+          college_name?: string | null
+          ssc_gpa?: number | null
+          hsc_gpa?: number | null
+          hsc_batch?: string | null
+          is_second_timer?: boolean | null
         }
         Update: {
           batch_year?: number | null
@@ -503,6 +517,13 @@ export type Database = {
           registration_id?: string
           school?: string | null
           updated_at?: string
+          father_name?: string | null
+          mother_name?: string | null
+          college_name?: string | null
+          ssc_gpa?: number | null
+          hsc_gpa?: number | null
+          hsc_batch?: string | null
+          is_second_timer?: boolean | null
         }
         Relationships: []
       }
