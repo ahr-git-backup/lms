@@ -16,6 +16,7 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { SUBJECTS } from "@/lib/constants";
 import { CreatableSelect } from "@/components/ui/creatable-select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { useSearchParams } from "react-router-dom";
 import { Switch } from "@/components/ui/switch";
 
@@ -234,6 +235,8 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
     chapter: note?.chapter || "",
     topic: note?.topic || "",
     course_id: note?.course_id || (isFreeMode ? null : ""),
+    // @ts-ignore
+    shared_course_ids: note?.shared_course_ids || [],
     notes_url: note?.notes_url || "",
     // is_free removed as we rely on course_id=null
   });
@@ -291,6 +294,8 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
         const payload = {
             ...formData,
             course_id: isFreeMode ? null : formData.course_id,
+            // @ts-ignore
+            shared_course_ids: formData.shared_course_ids,
             notes_url: formData.notes_url || null // Handle empty string
         };
 
@@ -348,19 +353,34 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
                 <CardHeader><CardTitle>Details</CardTitle></CardHeader>
                 <CardContent className="grid gap-4 grid-cols-1 md:grid-cols-2">
                     {!isFreeMode && (
-                        <div className="space-y-2">
-                            <Label>Course *</Label>
-                            <Select value={formData.course_id || ""} onValueChange={v => setFormData({...formData, course_id: v})}>
-                                <SelectTrigger><SelectValue placeholder="Select Course" /></SelectTrigger>
-                                <SelectContent>
-                                    {courses?.map((c: any) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                        <>
+                            <div className="space-y-2">
+                                <Label>Course *</Label>
+                                <Select value={formData.course_id || ""} onValueChange={v => setFormData({...formData, course_id: v})}>
+                                    <SelectTrigger><SelectValue placeholder="Select Course" /></SelectTrigger>
+                                    <SelectContent>
+                                        {courses?.map((c: any) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            {formData.course_id && (
+                                <div className="space-y-2">
+                                    <Label>Also Share With (Optional)</Label>
+                                    <MultiSelect
+                                        options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                        // @ts-ignore
+                                        selected={formData.shared_course_ids}
+                                        // @ts-ignore
+                                        onChange={(vals) => setFormData({...formData, shared_course_ids: vals})}
+                                        placeholder="Select additional courses..."
+                                    />
+                                </div>
+                            )}
+                        </>
                     )}
                     <div className="space-y-2">
                         <Label>Title *</Label>

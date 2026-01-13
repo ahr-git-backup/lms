@@ -562,6 +562,18 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                   </div>
               )}
 
+              {!isFreeMode && form.course_id && (
+                  <div className="space-y-2">
+                      <Label>Also Share With (Optional)</Label>
+                      <MultiSelect
+                          options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                          selected={form.shared_course_ids}
+                          onChange={(vals) => setForm(prev => ({ ...prev, shared_course_ids: vals }))}
+                          placeholder="Select additional courses..."
+                      />
+                  </div>
+              )}
+
               <div className="space-y-2">
                 <Label htmlFor="exam_type">Exam type</Label>
                 <Select

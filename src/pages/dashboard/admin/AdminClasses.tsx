@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 const classSchema = z.object({
   id: z.string().optional(),
   course_id: z.string().min(1, "Course is required"),
+  shared_course_ids: z.array(z.string()).default([]),
   title: z.string().trim().min(1, "Title is required"),
   topic: z.string().trim().optional().or(z.literal("")),
   subject: z.array(z.string()).default([]),
@@ -37,6 +38,7 @@ const PAGE_SIZE = 10;
 const AdminClasses = () => {
   const [form, setForm] = useState<z.infer<typeof classSchema>>({
     course_id: "",
+    shared_course_ids: [],
     title: "",
     topic: "",
     subject: [],
@@ -113,6 +115,8 @@ const AdminClasses = () => {
       const parsed = classSchema.parse(values);
       const payload = {
         course_id: parsed.course_id,
+        // @ts-ignore
+        shared_course_ids: parsed.shared_course_ids,
         title: parsed.title,
         topic: parsed.topic || null,
         subject: parsed.subject, // Now an array
@@ -166,6 +170,7 @@ const AdminClasses = () => {
   const resetForm = () => {
     setForm({
       course_id: "",
+      shared_course_ids: [],
       title: "",
       topic: "",
       subject: [],
@@ -191,6 +196,8 @@ const AdminClasses = () => {
     setForm({
       id: cls.id,
       course_id: cls.course_id,
+      // @ts-ignore
+      shared_course_ids: cls.shared_course_ids || [],
       title: cls.title,
       topic: cls.topic || "",
       subject: subjects,
@@ -239,6 +246,18 @@ const AdminClasses = () => {
                   </SelectContent>
                 </Select>
               </div>
+
+              {form.course_id && (
+                  <div className="space-y-2 min-w-0">
+                      <Label>Also Share With (Optional)</Label>
+                      <MultiSelect
+                          options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                          selected={form.shared_course_ids}
+                          onChange={(vals) => setForm(prev => ({ ...prev, shared_course_ids: vals }))}
+                          placeholder="Select additional courses..."
+                      />
+                  </div>
+              )}
 
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="class_type">Type</Label>

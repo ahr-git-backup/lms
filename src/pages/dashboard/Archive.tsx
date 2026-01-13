@@ -74,14 +74,12 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            // We can't easily get distinct array elements via standard postgrest
-            // So we fetch all relevant rows and process locally, or use an RPC if available.
-            // For now, fetch distinct 'subject' column if it was single value, but it is array or text.
-            // Let's fetch lightweight data.
+            // Filter where archive_course_ids contains ANY of the enrolled courseIds.
+            // PostgREST: archive_course_ids.cs.{id1,id2}
             const { data } = await supabase
                 .from("classes")
                 .select("subject")
-                .in("course_id", courseIds);
+                .overlaps("archive_course_ids", courseIds);
 
             const unique = new Set<string>();
             data?.forEach(row => {
@@ -102,7 +100,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             const { data } = await supabase
                 .from("classes")
                 .select("chapter")
-                .in("course_id", courseIds)
+                .overlaps("archive_course_ids", courseIds)
                 .contains("subject", [selectedSubject]);
 
             const unique = new Set<string>();
@@ -123,7 +121,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             const { data } = await supabase
                 .from("classes")
                 .select("*, course:courses(name)")
-                .in("course_id", courseIds)
+                .overlaps("archive_course_ids", courseIds)
                 .contains("subject", [selectedSubject])
                 .eq("chapter", selectedChapter)
                 .order("start_at", { ascending: false });
@@ -245,7 +243,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             const { data } = await supabase
                 .from("exams")
                 .select("subject")
-                .in("course_id", courseIds)
+                .overlaps("archive_course_ids", courseIds)
                 .eq("is_published", true);
 
             const unique = new Set<string>();
@@ -267,7 +265,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             const { data } = await supabase
                 .from("exams")
                 .select("chapter")
-                .in("course_id", courseIds)
+                .overlaps("archive_course_ids", courseIds)
                 .contains("subject", [selectedSubject])
                 .eq("is_published", true);
 
@@ -289,7 +287,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
              const { data } = await supabase
                  .from("exams")
                  .select("*, course:courses(name), questions_count:exam_questions(count)")
-                 .in("course_id", courseIds)
+                 .overlaps("archive_course_ids", courseIds)
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
                  .eq("is_published", true)
