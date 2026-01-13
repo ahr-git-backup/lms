@@ -412,6 +412,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     onSuccess: () => {
       toast({ title: "Exam saved" });
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["public-free-exams"] });
       resetForm();
     },
     onError: (error: Error) => {
@@ -438,6 +439,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     onSuccess: () => {
       toast({ title: "Exam deleted" });
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["public-free-exams"] });
     },
     onError: (error: Error) => {
       toast({

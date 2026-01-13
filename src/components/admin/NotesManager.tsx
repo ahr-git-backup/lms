@@ -198,6 +198,7 @@ const DeleteNoteButton = ({ noteId }: { noteId: string }) => {
             if (error) throw error;
             toast({ title: "Note deleted" });
             await queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
+            await queryClient.invalidateQueries({ queryKey: ["public-free-notes-metadata"] });
         } catch (err: any) {
             console.error(err);
             toast({ title: "Error deleting note", description: err.message, variant: "destructive" });
@@ -302,6 +303,7 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
             toast({ title: "Created", description: "Note created successfully." });
         }
         await queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
+        await queryClient.invalidateQueries({ queryKey: ["public-free-notes-metadata"] });
         onClose();
     } catch (err: any) {
         toast({ title: "Error", description: err.message, variant: "destructive" });
@@ -318,6 +320,7 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
         if (error) throw error;
         toast({ title: "Deleted", description: "Note deleted." });
         await queryClient.invalidateQueries({ queryKey: ["admin-notes"] });
+        await queryClient.invalidateQueries({ queryKey: ["public-free-notes-metadata"] });
         onClose();
       } catch (err: any) {
         toast({ title: "Error", description: err.message, variant: "destructive" });
