@@ -16,6 +16,7 @@ export interface Exam {
   course_id: string | null;
   title: string;
   subject: string[] | string;
+  chapter?: string | null;
   exam_type: "live" | "practice";
   duration_minutes: number;
   total_marks?: number | null;

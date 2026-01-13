@@ -26,6 +26,7 @@ const examSchema = z.object({
   course_id: z.string().nullable().optional(),
   title: z.string().trim().min(1, "Title is required"),
   subject: z.array(z.string()).default([]),
+  chapter: z.string().trim().optional().or(z.literal("")),
   exam_type: z.enum(["live", "practice"]),
   duration_minutes: z
     .string()
@@ -62,6 +63,7 @@ const AdminExams = () => {
     course_id: "",
     title: "",
     subject: [],
+    chapter: "",
     exam_type: "live",
     duration_minutes: "60",
     total_marks: "",
@@ -140,6 +142,7 @@ const AdminExams = () => {
       course_id: "",
       title: "",
       subject: [],
+      chapter: "",
       exam_type: "live",
       duration_minutes: "60",
       negative_mark_per_question: "0",
@@ -178,6 +181,7 @@ const AdminExams = () => {
         course_id: parsed.course_id || null,
         title: parsed.title,
         subject: parsed.subject, // Array
+        chapter: parsed.chapter || null,
         exam_type: parsed.exam_type,
         duration_minutes: Number(parsed.duration_minutes),
         total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
@@ -412,6 +416,7 @@ const AdminExams = () => {
       course_id: exam.course_id || "",
       title: exam.title ?? "",
       subject: subjects,
+      chapter: exam.chapter || "",
       exam_type: exam.exam_type === "practice" ? "practice" : "live",
       duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "60",
       total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
@@ -529,6 +534,16 @@ const AdminExams = () => {
                     selected={form.subject}
                     onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
                     placeholder="Select subjects..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="chapter">Chapter</Label>
+                <Input
+                  id="chapter"
+                  value={form.chapter}
+                  onChange={(e) => setForm((prev) => ({ ...prev, chapter: e.target.value }))}
+                  placeholder="e.g. Vector"
                 />
               </div>
 

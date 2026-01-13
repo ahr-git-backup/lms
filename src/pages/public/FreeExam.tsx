@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame } from "lucide-react";
+import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // Types
@@ -12,6 +12,7 @@ interface Exam {
   id: string;
   title: string;
   subject: string[] | string | null;
+  chapter: string | null;
   exam_type: string;
   duration_minutes: number;
   questions_count: { count: number }[];
@@ -25,6 +26,7 @@ const FreeExam = () => {
 
   // State
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
   // Fetch Public Exams
   const { data: exams, isLoading } = useQuery({
@@ -32,7 +34,7 @@ const FreeExam = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, exam_type, duration_minutes, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)")
         .is("course_id", null)
         .eq("is_published", true);
 
@@ -55,6 +57,15 @@ const FreeExam = () => {
     return Array.from(subjects).sort();
   };
 
+  const getUniqueChapters = () => {
+      if (!filteredExams) return [];
+      const chapters = new Set<string>();
+      filteredExams.forEach(exam => {
+          if (exam.chapter) chapters.add(exam.chapter);
+      });
+      return Array.from(chapters).sort();
+  };
+
   const subjects = getUniqueSubjects();
 
   // Filter exams by selected subject
@@ -63,6 +74,19 @@ const FreeExam = () => {
     if (Array.isArray(exam.subject)) return exam.subject.includes(selectedSubject);
     return exam.subject === selectedSubject;
   }) || [];
+
+  const filteredExamsByChapter = filteredExams.filter(exam => {
+      if (!selectedChapter) return true;
+      return exam.chapter === selectedChapter;
+  });
+
+  const handleBack = () => {
+      if (selectedChapter) {
+          setSelectedChapter(null);
+      } else if (selectedSubject) {
+          setSelectedSubject(null);
+      }
+  };
 
   // Level 1: Subjects
   if (!selectedSubject) {
@@ -112,55 +136,148 @@ const FreeExam = () => {
     );
   }
 
-  // Level 2: Exam List
+  // Level 2: Chapters
+  if (!selectedChapter) {
+      const chapters = getUniqueChapters();
+
+      // If no chapters are defined for this subject, list exams directly?
+      // Or show a "General" chapter?
+      // If we have mixed content (some with chapter, some without), how to handle?
+      // Let's assume if chapters exist, we show them. If not, we list exams directly.
+
+      const hasChapters = chapters.length > 0;
+
+      if (!hasChapters) {
+           // Skip chapter level if none exist
+           // Logic handled by rendering exams list directly if no chapters found?
+           // Or we can just render the list here.
+      } else {
+          return (
+            <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+                <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects
+                </Button>
+
+                <div className="mb-8">
+                    <h2 className="text-2xl font-bold tracking-tight text-primary">{selectedSubject}</h2>
+                    <p className="text-muted-foreground">Select a chapter.</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    {chapters.map(chapter => (
+                        <Card
+                            key={chapter}
+                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
+                            onClick={() => setSelectedChapter(chapter)}
+                        >
+                            <CardHeader className="pb-2">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                                    <Layers className="h-5 w-5 text-primary" />
+                                </div>
+                                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">{chapter}</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-xs text-muted-foreground">
+                                    {filteredExams.filter(e => e.chapter === chapter).length} exams
+                                </p>
+                            </CardContent>
+                            <CardFooter className="pt-0">
+                                <div className="text-xs text-primary font-medium flex items-center mt-auto">
+                                    View Exams <ChevronRight className="h-3 w-3 ml-1" />
+                                </div>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                    {/* Handle exams without chapter */}
+                    {filteredExams.some(e => !e.chapter) && (
+                         <Card
+                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group border-dashed"
+                            onClick={() => setSelectedChapter("General")}
+                        >
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-lg">General / Other</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-xs text-muted-foreground">
+                                    {filteredExams.filter(e => !e.chapter).length} exams
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+            </div>
+          );
+      }
+  }
+
+  // Level 3: Exam List (Filtered by Chapter if selected)
+  // If selectedChapter is "General", filter where chapter is null/empty
+  const finalExams = selectedChapter === "General"
+      ? filteredExams.filter(e => !e.chapter)
+      : selectedChapter
+          ? filteredExamsByChapter
+          : filteredExams;
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
-        <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={() => setSelectedSubject(null)}>
-             <ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects
+        <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
+             <ArrowLeft className="mr-2 h-4 w-4" /> Back to {selectedChapter ? 'Chapters' : 'Subjects'}
         </Button>
 
         <div className="mb-8">
-            <h2 className="text-2xl font-bold tracking-tight text-primary">{selectedSubject}</h2>
-            <p className="text-muted-foreground">Available exams.</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <span>{selectedSubject}</span>
+                {selectedChapter && (
+                    <>
+                        <ChevronRight className="h-3 w-3" />
+                        <span>{selectedChapter}</span>
+                    </>
+                )}
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-primary">Available Exams</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredExams.map((exam: any) => (
-                <Card
-                    key={exam.id}
-                    className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                    onClick={() => navigate(`/open-exam/${exam.id}`)}
-                >
-                    <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start gap-2">
-                             <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                                 {exam.title}
-                             </CardTitle>
-                             <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                 {exam.exam_type}
-                             </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1">
-                        <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4" />
-                                <span>{exam.duration_minutes} min</span>
+        {finalExams.length === 0 ? (
+            <div className="text-center py-10">No exams found in this section.</div>
+        ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {finalExams.map((exam: any) => (
+                    <Card
+                        key={exam.id}
+                        className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+                        onClick={() => navigate(`/open-exam/${exam.id}`)}
+                    >
+                        <CardHeader className="pb-2">
+                            <div className="flex justify-between items-start gap-2">
+                                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                    {exam.title}
+                                </CardTitle>
+                                <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                    {exam.exam_type}
+                                </Badge>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <CheckCircle className="h-4 w-4" />
-                                <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                            <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" />
+                                    <span>{exam.duration_minutes} min</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <CheckCircle className="h-4 w-4" />
+                                    <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
+                                </div>
                             </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="pt-0 mt-auto border-t pt-4">
-                        <Button className="w-full group-hover:bg-primary/90">
-                            Start Exam
-                        </Button>
-                    </CardFooter>
-                </Card>
-            ))}
-        </div>
+                        </CardContent>
+                        <CardFooter className="pt-0 mt-auto border-t pt-4">
+                            <Button className="w-full group-hover:bg-primary/90">
+                                Start Exam
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                ))}
+            </div>
+        )}
     </div>
   );
 };
