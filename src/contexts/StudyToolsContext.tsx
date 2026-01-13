@@ -96,11 +96,11 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
   // --- Helper: Notifications ---
   const sendNotification = (title: string, body?: string) => {
     if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: "/favicon.ico" });
+      new Notification(title, { body, icon: "/public/favicon.png" });
     } else if (Notification.permission !== "denied") {
       Notification.requestPermission().then(permission => {
         if (permission === "granted") {
-          new Notification(title, { body, icon: "/favicon.ico" });
+          new Notification(title, { body, icon: "/public/favicon.png" });
         }
       });
     }
