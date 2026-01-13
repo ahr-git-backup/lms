@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers, Plus, Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers, Plus, Edit, Search, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
@@ -20,6 +21,8 @@ interface Exam {
   questions_count: { count: number }[];
 }
 
+const PAGE_SIZE = 12;
+
 const FreeExam = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
@@ -32,9 +35,22 @@ const FreeExam = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
-  // Fetch Public Exams
-  const { data: exams, isLoading } = useQuery({
-    queryKey: ["public-free-exams"],
+  // Search & Pagination State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
+
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          if (searchQuery) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch Public Exams (Metadata for hierarchy)
+  const { data: exams, isLoading: isLoadingMetadata } = useQuery({
+    queryKey: ["public-free-exams-metadata"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
@@ -47,6 +63,29 @@ const FreeExam = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !debouncedSearch
+  });
+
+  // Fetch Search Results
+  const { data: searchResults, isLoading: isLoadingSearch } = useQuery({
+      queryKey: ["public-free-exams-search", debouncedSearch, page],
+      queryFn: async () => {
+          let query = supabase
+              .from("exams")
+              .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)", { count: 'exact' })
+              .is("course_id", null)
+              .eq("is_published", true)
+              // @ts-ignore
+              .eq("is_visible_on_free", true)
+              .ilike("title", `%${debouncedSearch}%`)
+              .order("created_at", { ascending: false })
+              .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+          const { data, error, count } = await query;
+          if (error) throw error;
+          return { data: data as Exam[], count: count || 0 };
+      },
+      enabled: !!debouncedSearch
   });
 
   // Helper to extract unique subjects
@@ -72,6 +111,140 @@ const FreeExam = () => {
       return Array.from(chapters).sort();
   };
 
+  const handleBack = () => {
+      if (selectedChapter) {
+          setSelectedChapter(null);
+      } else if (selectedSubject) {
+          setSelectedSubject(null);
+      }
+  };
+
+  // Header Component
+  const renderHeader = () => (
+      <div className="mb-8 relative">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div>
+                  <h1 className="text-3xl font-bold tracking-tight mb-2">Free Exams</h1>
+                  <p className="text-muted-foreground">Select a subject to test your skills.</p>
+              </div>
+              <div className="w-full md:w-auto flex items-center gap-2">
+                  <div className="relative w-full md:w-64">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                          placeholder="Search exams..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9"
+                      />
+                  </div>
+                  {isAdmin && (
+                      <Button onClick={() => navigate("/dashboard/admin/exams")}>
+                          <Plus className="mr-2 h-4 w-4" /> Add
+                      </Button>
+                  )}
+              </div>
+          </div>
+      </div>
+  );
+
+  // --- Views ---
+
+  // Search Mode View
+  if (debouncedSearch) {
+      const results = searchResults?.data || [];
+      const totalCount = searchResults?.count || 0;
+      const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
+      return (
+          <div className="min-h-screen bg-background text-foreground flex flex-col">
+              <PublicHeader />
+              <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+                  {renderHeader()}
+
+                  {isLoadingSearch ? (
+                      <div className="space-y-4">
+                          {[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}
+                      </div>
+                  ) : results.length === 0 ? (
+                      <div className="text-center py-20 bg-muted/30 rounded-lg">
+                          <Search className="h-12 w-12 mx-auto text-muted-foreground opacity-50 mb-3" />
+                          <h3 className="text-lg font-medium">No exams found.</h3>
+                          <p className="text-sm text-muted-foreground">Try a different search term.</p>
+                      </div>
+                  ) : (
+                      <div className="space-y-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {results.map((exam) => (
+                                  <Card
+                                      key={exam.id}
+                                      className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+                                      onClick={() => navigate(`/open-exam/${exam.id}`)}
+                                  >
+                                      <CardHeader className="pb-2">
+                                          <div className="flex justify-between items-start gap-2">
+                                              <div className="space-y-1">
+                                                  <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                                      {exam.title}
+                                                  </CardTitle>
+                                              </div>
+                                              <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                                  {exam.exam_type}
+                                              </Badge>
+                                          </div>
+                                      </CardHeader>
+                                      <CardContent className="flex-1">
+                                          <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
+                                              <div className="flex items-center gap-2">
+                                                  <Clock className="h-4 w-4" />
+                                                  <span>{exam.duration_minutes} min</span>
+                                              </div>
+                                              <div className="flex items-center gap-2">
+                                                  <CheckCircle className="h-4 w-4" />
+                                                  <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
+                                              </div>
+                                          </div>
+                                      </CardContent>
+                                      <CardFooter className="pt-0 mt-auto border-t pt-4">
+                                          <Button className="w-full group-hover:bg-primary/90">
+                                              Start Exam
+                                          </Button>
+                                      </CardFooter>
+                                  </Card>
+                              ))}
+                          </div>
+
+                          {/* Pagination */}
+                          <div className="flex items-center justify-between pt-4">
+                               <div className="text-xs text-muted-foreground">
+                                   Page {page + 1} of {totalPages || 1}
+                               </div>
+                               <div className="flex gap-2">
+                                   <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setPage(Math.max(0, page - 1))}
+                                      disabled={page === 0}
+                                   >
+                                       <ChevronLeft className="h-4 w-4" /> Previous
+                                   </Button>
+                                   <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setPage(page + 1)}
+                                      disabled={page >= totalPages - 1}
+                                   >
+                                       Next <ChevronRight className="h-4 w-4" />
+                                   </Button>
+                               </div>
+                          </div>
+                      </div>
+                  )}
+              </main>
+          </div>
+      );
+  }
+
+  // Browse Mode
   const subjects = getUniqueSubjects();
 
   // Filter exams by selected subject
@@ -86,34 +259,15 @@ const FreeExam = () => {
       return exam.chapter === selectedChapter;
   });
 
-  const handleBack = () => {
-      if (selectedChapter) {
-          setSelectedChapter(null);
-      } else if (selectedSubject) {
-          setSelectedSubject(null);
-      }
-  };
-
   // Level 1: Subjects
   if (!selectedSubject) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <PublicHeader />
         <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
-        <div className="mb-8 text-center relative">
-            <h1 className="text-3xl font-bold tracking-tight mb-2">Free Exams</h1>
-            <p className="text-muted-foreground">Select a subject to test your skills.</p>
-            {isAdmin && (
-                <Button
-                    className="absolute top-0 right-0"
-                    onClick={() => navigate("/dashboard/admin/exams")}
-                >
-                    <Plus className="mr-2 h-4 w-4" /> Add Exam
-                </Button>
-            )}
-        </div>
+        {renderHeader()}
 
-        {isLoading ? (
+        {isLoadingMetadata ? (
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}
              </div>
@@ -156,19 +310,9 @@ const FreeExam = () => {
   // Level 2: Chapters
   if (!selectedChapter) {
       const chapters = getUniqueChapters();
-
-      // If no chapters are defined for this subject, list exams directly?
-      // Or show a "General" chapter?
-      // If we have mixed content (some with chapter, some without), how to handle?
-      // Let's assume if chapters exist, we show them. If not, we list exams directly.
-
       const hasChapters = chapters.length > 0;
 
-      if (!hasChapters) {
-           // Skip chapter level if none exist
-           // Logic handled by rendering exams list directly if no chapters found?
-           // Or we can just render the list here.
-      } else {
+      if (hasChapters) {
           return (
             <div className="min-h-screen bg-background text-foreground flex flex-col">
                 <PublicHeader />
@@ -207,7 +351,6 @@ const FreeExam = () => {
                             </CardFooter>
                         </Card>
                     ))}
-                    {/* Handle exams without chapter */}
                     {filteredExams.some(e => !e.chapter) && (
                          <Card
                             className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group border-dashed"
@@ -230,8 +373,7 @@ const FreeExam = () => {
       }
   }
 
-  // Level 3: Exam List (Filtered by Chapter if selected)
-  // If selectedChapter is "General", filter where chapter is null/empty
+  // Level 3: Exam List
   const finalExams = selectedChapter === "General"
       ? filteredExams.filter(e => !e.chapter)
       : selectedChapter

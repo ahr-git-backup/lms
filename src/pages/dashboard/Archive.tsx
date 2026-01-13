@@ -8,9 +8,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, BookOpen, Layers, Trophy, Clock, CheckCircle, Lock, ChevronRight, Video, FileText } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, BookOpen, Layers, Trophy, Clock, CheckCircle, Lock, ChevronRight, Video, FileText, Search, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { SUBJECTS } from "@/lib/constants";
+
+const PAGE_SIZE = 9;
 
 const Archive = () => {
   const [activeTab, setActiveTab] = useState("classes");
@@ -19,13 +22,29 @@ const Archive = () => {
   const { data: enrollments } = useEnrollments();
   const navigate = useNavigate();
 
+  // Search & Pagination State (Global for this page context, reset when tab changes)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [page, setPage] = useState(0);
+
   useEffect(() => {
     document.title = "Archive – Atlas";
   }, []);
 
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          if (searchQuery) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
+
   const resetSelection = () => {
       setSelectedSubject(null);
       setSelectedChapter(null);
+      setSearchQuery("");
+      setDebouncedSearch("");
+      setPage(0);
   };
 
   return (
@@ -35,39 +54,130 @@ const Archive = () => {
         <p className="text-sm text-muted-foreground">Access your past classes and exams organized by subject.</p>
       </header>
 
-      <Tabs defaultValue="classes" className="space-y-6" onValueChange={(val) => { setActiveTab(val); resetSelection(); }}>
-        <TabsList>
-            <TabsTrigger value="classes" className="gap-2"><Video className="h-4 w-4" /> Classes</TabsTrigger>
-            <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
-        </TabsList>
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); resetSelection(); }} className="w-full sm:w-auto">
+            <TabsList>
+                <TabsTrigger value="classes" className="gap-2"><Video className="h-4 w-4" /> Classes</TabsTrigger>
+                <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
+            </TabsList>
+          </Tabs>
 
-        <TabsContent value="classes">
-            <ArchiveClassView
-                enrollments={enrollments}
-                selectedSubject={selectedSubject}
-                setSelectedSubject={setSelectedSubject}
-                selectedChapter={selectedChapter}
-                setSelectedChapter={setSelectedChapter}
-                navigate={navigate}
-            />
-        </TabsContent>
+          <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                  placeholder={`Search ${activeTab}...`}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+              />
+          </div>
+      </div>
 
-        <TabsContent value="exams">
-            <ArchiveExamView
-                enrollments={enrollments}
-                selectedSubject={selectedSubject}
-                setSelectedSubject={setSelectedSubject}
-                selectedChapter={selectedChapter}
-                setSelectedChapter={setSelectedChapter}
-                navigate={navigate}
-            />
-        </TabsContent>
-      </Tabs>
+      {activeTab === "classes" ? (
+        <ArchiveClassView
+            enrollments={enrollments}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            selectedChapter={selectedChapter}
+            setSelectedChapter={setSelectedChapter}
+            navigate={navigate}
+            searchQuery={debouncedSearch}
+            page={page}
+            setPage={setPage}
+        />
+      ) : (
+        <ArchiveExamView
+            enrollments={enrollments}
+            selectedSubject={selectedSubject}
+            setSelectedSubject={setSelectedSubject}
+            selectedChapter={selectedChapter}
+            setSelectedChapter={setSelectedChapter}
+            navigate={navigate}
+            searchQuery={debouncedSearch}
+            page={page}
+            setPage={setPage}
+        />
+      )}
     </div>
   );
 };
 
-const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate }: any) => {
+const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
+
+    // --- Search Mode ---
+    const { data: searchResults, isLoading: searching } = useQuery({
+        queryKey: ["archive-classes-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            let query = supabase
+                .from("classes")
+                .select("*, course:courses(name)", { count: 'exact' })
+                .overlaps("archive_course_ids", courseIds)
+                .or(`title.ilike.%${searchQuery}%,topic.ilike.%${searchQuery}%`)
+                .order("start_at", { ascending: false })
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+            return { data: data || [], count: count || 0 };
+        },
+        enabled: !!searchQuery && !!enrollments
+    });
+
+    if (searchQuery) {
+        if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
+        const classes = searchResults?.data || [];
+        const count = searchResults?.count || 0;
+        const totalPages = Math.ceil(count / PAGE_SIZE);
+
+        if (classes.length === 0) return <div className="text-center py-12 text-muted-foreground">No classes found matching "{searchQuery}".</div>;
+
+        return (
+            <div className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {classes.map((classItem: any) => (
+                         <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
+                          <CardHeader className="space-y-1">
+                            <div className="flex justify-between items-start gap-2">
+                                <p className="text-xs font-mono uppercase text-muted-foreground">
+                                    {classItem.course?.name}
+                                </p>
+                            </div>
+                            <CardTitle className="text-base">{classItem.title}</CardTitle>
+                            <CardDescription className="text-xs">
+                              {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
+                            </CardDescription>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {classItem.topic && (
+                                <p className="text-sm text-muted-foreground line-clamp-2">{classItem.topic}</p>
+                            )}
+                            <div className="flex gap-2 flex-wrap mt-auto">
+                                {classItem.video_url && (
+                                <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
+                                    Class
+                                </Button>
+                                )}
+                                {classItem.notes_url && (
+                                <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" asChild>
+                                    <a href={classItem.notes_url} target="_blank" rel="noopener noreferrer">
+                                    Note
+                                    </a>
+                                </Button>
+                                )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+            </div>
+        );
+    }
+
+    // --- Browse Mode ---
+
     // 1. Fetch distinct Subjects available in enrolled classes
     const { data: subjects, isLoading: loadingSubjects } = useQuery({
         queryKey: ["archive-classes-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
@@ -88,7 +198,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             });
             return Array.from(unique).sort();
         },
-        enabled: !!enrollments && !selectedSubject
+        enabled: !!enrollments && !selectedSubject && !searchQuery
     });
 
     // 2. Fetch distinct Chapters for selected Subject
@@ -109,25 +219,28 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             });
             return Array.from(unique).sort();
         },
-        enabled: !!selectedSubject && !selectedChapter
+        enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });
 
-    // 3. Fetch Classes for selected Chapter
-    const { data: classes, isLoading: loadingClasses } = useQuery({
-        queryKey: ["archive-classes-list", selectedSubject, selectedChapter],
+    // 3. Fetch Classes for selected Chapter (Paginated)
+    const { data: classesData, isLoading: loadingClasses } = useQuery({
+        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page],
         queryFn: async () => {
-            if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return [];
+            if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const { data } = await supabase
+            const { data, count, error } = await supabase
                 .from("classes")
-                .select("*, course:courses(name)")
+                .select("*, course:courses(name)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
                 .contains("subject", [selectedSubject])
                 .eq("chapter", selectedChapter)
-                .order("start_at", { ascending: false });
-            return data;
+                .order("start_at", { ascending: false })
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            if (error) throw error;
+            return { data: data || [], count: count || 0 };
         },
-        enabled: !!selectedSubject && !!selectedChapter
+        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
     });
 
     if (!selectedSubject) {
@@ -175,6 +288,10 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
          );
     }
 
+    const classes = classesData?.data || [];
+    const totalCount = classesData?.count || 0;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
     return (
         <div className="space-y-6">
             <Button variant="ghost" onClick={() => setSelectedChapter(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
@@ -192,6 +309,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             ) : !classes || classes.length === 0 ? (
                 <div className="text-muted-foreground">No classes found.</div>
             ) : (
+                <>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {classes.map((classItem: any) => (
                          <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
@@ -228,12 +346,98 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         </Card>
                     ))}
                 </div>
+                <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+                </>
             )}
         </div>
     );
 };
 
-const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate }: any) => {
+const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
+
+    // --- Search Mode ---
+    const { data: searchResults, isLoading: searching } = useQuery({
+        queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            let query = supabase
+                .from("exams")
+                .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
+                .overlaps("archive_course_ids", courseIds)
+                .eq("is_published", true)
+                .ilike("title", `%${searchQuery}%`)
+                .order("created_at", { ascending: false })
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            const { data, error, count } = await query;
+            if (error) throw error;
+            return { data: data || [], count: count || 0 };
+        },
+        enabled: !!searchQuery && !!enrollments
+    });
+
+    if (searchQuery) {
+        if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
+        const exams = searchResults?.data || [];
+        const count = searchResults?.count || 0;
+        const totalPages = Math.ceil(count / PAGE_SIZE);
+
+        if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No exams found matching "{searchQuery}".</div>;
+
+        return (
+            <div className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exams.map((exam: any) => (
+                        <Card
+                            key={exam.id}
+                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+                            onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}
+                        >
+                            <CardHeader className="pb-2">
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-mono uppercase text-muted-foreground">
+                                            {exam.course?.name}
+                                        </p>
+                                        <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                            {exam.title}
+                                        </CardTitle>
+                                    </div>
+                                    <div className="flex flex-col gap-1 items-end">
+                                        <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                            {exam.exam_type}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="flex-1">
+                                <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
+                                    <div className="flex items-center gap-2">
+                                        <Clock className="h-4 w-4" />
+                                        <span>{exam.duration_minutes} min</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle className="h-4 w-4" />
+                                        <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="pt-0 mt-auto border-t pt-4">
+                                <Button className="w-full group-hover:bg-primary/90">
+                                    Start Exam
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+                <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+            </div>
+        );
+    }
+
+    // --- Browse Mode ---
+
     // 1. Fetch distinct Subjects
     const { data: subjects, isLoading: loadingSubjects } = useQuery({
         queryKey: ["archive-exams-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
@@ -253,7 +457,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             });
             return Array.from(unique).sort();
         },
-        enabled: !!enrollments && !selectedSubject
+        enabled: !!enrollments && !selectedSubject && !searchQuery
     });
 
     // 2. Fetch distinct Chapters
@@ -275,26 +479,28 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             });
             return Array.from(unique).sort();
         },
-        enabled: !!selectedSubject && !selectedChapter
+        enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });
 
     // 3. Fetch Exams
-    const { data: exams, isLoading: loadingExams } = useQuery({
-        queryKey: ["archive-exams-list", selectedSubject, selectedChapter],
+    const { data: examsData, isLoading: loadingExams } = useQuery({
+        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page],
         queryFn: async () => {
-             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return [];
+             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
              const courseIds = enrollments.map((e: any) => e.course_id);
-             const { data } = await supabase
+             const { data, count, error } = await supabase
                  .from("exams")
-                 .select("*, course:courses(name), questions_count:exam_questions(count)")
+                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                  .overlaps("archive_course_ids", courseIds)
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
                  .eq("is_published", true)
-                 .order("created_at", { ascending: false });
-             return data;
+                 .order("created_at", { ascending: false })
+                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+             if (error) throw error;
+             return { data: data || [], count: count || 0 };
         },
-        enabled: !!selectedSubject && !!selectedChapter
+        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
     });
 
     if (!selectedSubject) {
@@ -342,6 +548,10 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
          );
     }
 
+    const exams = examsData?.data || [];
+    const totalCount = examsData?.count || 0;
+    const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
     return (
         <div className="space-y-6">
             <Button variant="ghost" onClick={() => setSelectedChapter(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
@@ -359,6 +569,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             ) : !exams || exams.length === 0 ? (
                 <div className="text-muted-foreground">No exams found.</div>
             ) : (
+                <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {exams.map((exam: any) => (
                     <Card
@@ -403,7 +614,38 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                     </Card>
                 ))}
             </div>
+            <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+            </>
             )}
+        </div>
+    );
+};
+
+const PaginationControls = ({ page, setPage, totalPages }: { page: number, setPage: (p: number) => void, totalPages: number }) => {
+    return (
+        <div className="flex items-center justify-between pt-4">
+             <div className="text-xs text-muted-foreground">
+                 Page {page + 1} of {totalPages || 1}
+             </div>
+             <div className="flex gap-2">
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(Math.max(0, page - 1))}
+                    disabled={page === 0}
+                 >
+                     <ChevronLeft className="h-4 w-4" />
+                     Previous
+                 </Button>
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(page + 1)}
+                    disabled={page >= totalPages - 1}
+                 >
+                     Next <ChevronRight className="h-4 w-4" />
+                 </Button>
+             </div>
         </div>
     );
 };
