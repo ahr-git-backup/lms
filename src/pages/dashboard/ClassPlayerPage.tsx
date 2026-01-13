@@ -27,21 +27,38 @@ const ClassPlayerPage = () => {
   });
 
   const { data: hasAccess, isLoading: accessLoading } = useQuery({
-    queryKey: ["check-class-access", classItem?.course_id, profile?.id],
+    queryKey: ["check-class-access", classItem?.id, profile?.id],
     queryFn: async () => {
-      if (!classItem?.course_id || !profile?.id) return false;
+      if (!classItem || !profile?.id) return false;
 
-      // Check for valid enrollment
-      const { data } = await supabase
+      // Fetch all enrollments for the user
+      const { data: enrollments } = await supabase
         .from("enrollments")
-        .select("id")
-        .eq("course_id", classItem.course_id)
-        .eq("profile_id", profile.id)
-        .maybeSingle();
+        .select("course_id")
+        .eq("profile_id", profile.id);
 
-      return !!data;
+      if (!enrollments || enrollments.length === 0) return false;
+
+      const enrolledCourseIds = enrollments.map(e => e.course_id);
+
+      // 1. Check Primary Course
+      if (classItem.course_id && enrolledCourseIds.includes(classItem.course_id)) return true;
+
+      // 2. Check Shared Courses
+      if (classItem.shared_course_ids && Array.isArray(classItem.shared_course_ids)) {
+          const hasSharedAccess = classItem.shared_course_ids.some((id: string) => enrolledCourseIds.includes(id));
+          if (hasSharedAccess) return true;
+      }
+
+      // 3. Check Archive Courses
+      if (classItem.archive_course_ids && Array.isArray(classItem.archive_course_ids)) {
+          const hasArchiveAccess = classItem.archive_course_ids.some((id: string) => enrolledCourseIds.includes(id));
+          if (hasArchiveAccess) return true;
+      }
+
+      return false;
     },
-    enabled: !!classItem?.course_id && !!profile?.id
+    enabled: !!classItem && !!profile?.id
   });
 
   useEffect(() => {

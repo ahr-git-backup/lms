@@ -198,7 +198,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                           <CardHeader className="space-y-1">
                             <div className="flex justify-between items-start gap-2">
                                 <p className="text-xs font-mono uppercase text-muted-foreground">
-                                    {classItem.course.name}
+                                    {classItem.course?.name}
                                 </p>
                             </div>
                             <CardTitle className="text-base">{classItem.title}</CardTitle>
