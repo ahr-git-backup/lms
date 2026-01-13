@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, ArrowLeft, BookOpen, FileText, Layers, Hash, Calendar, Download } from "lucide-react";
+import { ChevronRight, ArrowLeft, BookOpen, FileText, Layers, Hash, Calendar, Download, Plus, Edit } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -30,6 +32,9 @@ interface NoteContent extends NoteMetadata {
 }
 
 const FreeClass = () => {
+  const { isAdmin } = useAuth();
+  const navigate = useNavigate();
+
   useEffect(() => {
     document.title = "Free Classes – Atlas";
   }, []);
@@ -105,10 +110,20 @@ const FreeClass = () => {
   if (!selectedSubject) {
     const subjects = getUniqueValues(notesMetadata, "subject");
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
-        <div className="mb-8 text-center">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+        <div className="mb-8 text-center relative">
             <h1 className="text-3xl font-bold tracking-tight mb-2">Free Classes</h1>
             <p className="text-muted-foreground">Select a subject to explore free resources.</p>
+            {isAdmin && (
+                <Button
+                    className="absolute top-0 right-0"
+                    onClick={() => navigate("/dashboard/admin/notes")}
+                >
+                    <Plus className="mr-2 h-4 w-4" /> Add Note
+                </Button>
+            )}
         </div>
 
         {isLoading ? (
@@ -143,6 +158,7 @@ const FreeClass = () => {
                 ))}
             </div>
         )}
+        </main>
       </div>
     );
   }
@@ -151,7 +167,9 @@ const FreeClass = () => {
   if (!selectedChapter) {
     const chapters = getUniqueValues(filteredNotes, "chapter");
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
         <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects
         </Button>
@@ -193,6 +211,7 @@ const FreeClass = () => {
                 ))}
             </div>
         )}
+        </main>
       </div>
     );
   }
@@ -217,7 +236,9 @@ const FreeClass = () => {
     }
 
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
         <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters
         </Button>
@@ -298,6 +319,7 @@ const FreeClass = () => {
                  ))}
              </div>
         )}
+        </main>
       </div>
     );
   }
@@ -311,7 +333,9 @@ const FreeClass = () => {
       // If only one note, maybe auto-select? Let's keep it manual for clarity.
 
       return (
-        <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+            <PublicHeader />
+            <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
             <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back to Topics
             </Button>
@@ -345,13 +369,26 @@ const FreeClass = () => {
                                      {new Date(note.created_at).toLocaleDateString()}
                                  </CardDescription>
                              </div>
-                             <div className="ml-auto">
+                             <div className="ml-auto flex items-center gap-2">
+                                 {isAdmin && (
+                                     <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            navigate(`/dashboard/admin/notes?editId=${note.id}`);
+                                        }}
+                                     >
+                                         <Edit className="h-4 w-4" />
+                                     </Button>
+                                 )}
                                  <Button variant="ghost" size="sm">View</Button>
                              </div>
                          </CardHeader>
                      </Card>
                  ))}
              </div>
+            </main>
         </div>
       );
   }
@@ -359,7 +396,9 @@ const FreeClass = () => {
   // Level 4: Note Content
   if (selectedNoteId) {
       return (
-        <div className="container mx-auto px-4 py-8 max-w-4xl min-h-[80vh]">
+        <div className="min-h-screen bg-background text-foreground flex flex-col">
+            <PublicHeader />
+            <main className="container mx-auto px-4 py-8 max-w-4xl flex-1">
             <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
@@ -420,6 +459,7 @@ const FreeClass = () => {
                     )}
                 </div>
             )}
+            </main>
         </div>
       );
   }

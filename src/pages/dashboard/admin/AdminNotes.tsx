@@ -14,11 +14,15 @@ import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { SUBJECTS } from "@/lib/constants";
+import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useSearchParams } from "react-router-dom";
 
 const AdminNotes = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingNote, setEditingNote] = useState<any>(null);
   const { isAdmin } = useAuth();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("editId");
 
   const [courseFilter, setCourseFilter] = useState("all");
   const [subjectFilter, setSubjectFilter] = useState("all");
@@ -58,6 +62,16 @@ const AdminNotes = () => {
       return data;
     }
   });
+
+  useEffect(() => {
+    if (editId && notes?.length) {
+        const note = notes.find((n: any) => n.id === editId);
+        if (note) {
+            setEditingNote(note);
+            setIsEditing(true);
+        }
+    }
+  }, [editId, notes]);
 
   if (isEditing) {
     return (
@@ -211,6 +225,31 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
     }
   });
 
+  const { data: distinctMetadata } = useQuery({
+    queryKey: ["admin-notes-metadata"],
+    queryFn: async () => {
+       const { data } = await supabase.from("class_notes").select("subject, chapter, topic");
+
+       const subjects = new Set<string>();
+       const chapters = new Set<string>();
+       const topics = new Set<string>();
+
+       data?.forEach(item => {
+           if (item.subject) subjects.add(item.subject);
+           if (item.chapter) chapters.add(item.chapter);
+           if (item.topic) topics.add(item.topic);
+       });
+
+       SUBJECTS.forEach(s => subjects.add(s));
+
+       return {
+           subjects: Array.from(subjects).sort().map(s => ({ label: s, value: s })),
+           chapters: Array.from(chapters).sort().map(c => ({ label: c, value: c })),
+           topics: Array.from(topics).sort().map(t => ({ label: t, value: t }))
+       };
+    }
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title || !formData.course_id) {
@@ -293,15 +332,33 @@ const NoteForm = ({ note, onClose }: { note?: any, onClose: () => void }) => {
                     </div>
                     <div className="space-y-2">
                         <Label>Subject</Label>
-                        <Input value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} placeholder="e.g. Physics 1st Paper" />
+                        <CreatableSelect
+                            options={distinctMetadata?.subjects || []}
+                            value={formData.subject}
+                            onChange={(val) => setFormData({...formData, subject: val})}
+                            onCreate={(val) => setFormData({...formData, subject: val})}
+                            placeholder="Select or Create Subject"
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label>Chapter</Label>
-                        <Input value={formData.chapter} onChange={e => setFormData({...formData, chapter: e.target.value})} placeholder="e.g. Vector" />
+                        <CreatableSelect
+                            options={distinctMetadata?.chapters || []}
+                            value={formData.chapter}
+                            onChange={(val) => setFormData({...formData, chapter: val})}
+                            onCreate={(val) => setFormData({...formData, chapter: val})}
+                            placeholder="Select or Create Chapter"
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label>Topic</Label>
-                        <Input value={formData.topic} onChange={e => setFormData({...formData, topic: e.target.value})} placeholder="e.g. Dot Product" />
+                        <CreatableSelect
+                            options={distinctMetadata?.topics || []}
+                            value={formData.topic}
+                            onChange={(val) => setFormData({...formData, topic: val})}
+                            onCreate={(val) => setFormData({...formData, topic: val})}
+                            placeholder="Select or Create Topic"
+                        />
                     </div>
                     <div className="space-y-2">
                         <Label>PDF URL (Optional)</Label>

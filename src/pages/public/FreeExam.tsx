@@ -4,8 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers } from "lucide-react";
+import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers, Plus, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import PublicHeader from "@/components/PublicHeader";
 
 // Types
 interface Exam {
@@ -20,6 +22,8 @@ interface Exam {
 
 const FreeExam = () => {
   const navigate = useNavigate();
+  const { isAdmin } = useAuth();
+
   useEffect(() => {
     document.title = "Free Exams – Atlas";
   }, []);
@@ -91,10 +95,20 @@ const FreeExam = () => {
   // Level 1: Subjects
   if (!selectedSubject) {
     return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
-        <div className="mb-8 text-center">
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+        <div className="mb-8 text-center relative">
             <h1 className="text-3xl font-bold tracking-tight mb-2">Free Exams</h1>
             <p className="text-muted-foreground">Select a subject to test your skills.</p>
+            {isAdmin && (
+                <Button
+                    className="absolute top-0 right-0"
+                    onClick={() => navigate("/dashboard/admin/exams")}
+                >
+                    <Plus className="mr-2 h-4 w-4" /> Add Exam
+                </Button>
+            )}
         </div>
 
         {isLoading ? (
@@ -132,6 +146,7 @@ const FreeExam = () => {
                 ))}
             </div>
         )}
+        </main>
       </div>
     );
   }
@@ -153,7 +168,9 @@ const FreeExam = () => {
            // Or we can just render the list here.
       } else {
           return (
-            <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+            <div className="min-h-screen bg-background text-foreground flex flex-col">
+                <PublicHeader />
+                <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
                 <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects
                 </Button>
@@ -205,6 +222,7 @@ const FreeExam = () => {
                         </Card>
                     )}
                 </div>
+                </main>
             </div>
           );
       }
@@ -219,7 +237,9 @@ const FreeExam = () => {
           : filteredExams;
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-6xl min-h-[80vh]">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
         <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
              <ArrowLeft className="mr-2 h-4 w-4" /> Back to {selectedChapter ? 'Chapters' : 'Subjects'}
         </Button>
@@ -249,12 +269,29 @@ const FreeExam = () => {
                     >
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start gap-2">
-                                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
-                                    {exam.title}
-                                </CardTitle>
-                                <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                    {exam.exam_type}
-                                </Badge>
+                                <div className="space-y-1">
+                                    <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                        {exam.title}
+                                    </CardTitle>
+                                </div>
+                                <div className="flex flex-col gap-1 items-end">
+                                    <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                        {exam.exam_type}
+                                    </Badge>
+                                    {isAdmin && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-6 w-6 p-0"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                navigate(`/dashboard/admin/exams?editId=${exam.id}`);
+                                            }}
+                                        >
+                                            <Edit className="h-4 w-4" />
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         </CardHeader>
                         <CardContent className="flex-1">
@@ -278,6 +315,7 @@ const FreeExam = () => {
                 ))}
             </div>
         )}
+        </main>
     </div>
   );
 };
