@@ -47,6 +47,7 @@ const examSchema = z.object({
   time_window_start: z.string().optional(),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
+  is_visible_on_free: z.boolean().optional().default(true),
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
@@ -79,6 +80,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         time_window_start: "",
         time_window_end: "",
         is_published: false,
+        is_visible_on_free: true,
         restrict_solution: false,
         questions_json: "",
         questions_csv: "",
@@ -114,6 +116,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
+                is_visible_on_free: exam.is_visible_on_free ?? true,
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
                 questions_csv: "",
@@ -203,6 +206,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
+            is_visible_on_free: parsed.is_visible_on_free ?? true,
             restrict_solution: parsed.restrict_solution ?? false,
           };
 
@@ -395,6 +399,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_start: "",
                 time_window_end: "",
                 is_published: false,
+                is_visible_on_free: true,
                 restrict_solution: false,
                 questions_json: "",
                 questions_csv: "",
@@ -633,6 +638,19 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 />
                 <Label htmlFor="is_published">Exam is published / visible to students</Label>
               </div>
+
+              {(isFreeMode || (!form.course_id)) && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                      <Switch
+                          id="is_visible_on_free"
+                          checked={form.is_visible_on_free}
+                          onCheckedChange={(checked) =>
+                              setForm((prev) => ({ ...prev, is_visible_on_free: checked }))
+                          }
+                      />
+                      <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
+                  </div>
+              )}
 
               <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
                 <Switch

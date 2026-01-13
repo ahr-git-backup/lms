@@ -21,6 +21,7 @@ const studentItems = [
   { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
   { title: "Past Class", url: "/dashboard/past-class", icon: BookOpen, color: "text-orange-500" },
   { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText, color: "text-yellow-500" },
+  { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
   { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
@@ -30,7 +31,6 @@ const studentItems = [
   { title: "Resources", url: "/dashboard/resources", icon: GraduationCap, color: "text-cyan-500" },
   { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
-  { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
 ];
 
 const adminItems = [

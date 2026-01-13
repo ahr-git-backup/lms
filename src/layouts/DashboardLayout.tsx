@@ -352,6 +352,9 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams
                     </Link>
+                    <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Archive className="h-4 w-4 text-gray-500" /> Archive
+                    </Link>
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Trophy className="h-4 w-4 text-teal-500" /> Results
                     </Link>
@@ -379,9 +382,6 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
                     </Link>
-                    <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Archive className="h-4 w-4 text-gray-500" /> Archive
-                    </Link>
 
                     {isAdmin && (
                       <>
@@ -407,6 +407,9 @@ export const DashboardLayout = () => {
                         </Link>
                         <Link to="/dashboard/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
+                        </Link>
+                        <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
                         </Link>
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Megaphone className="h-4 w-4 text-yellow-600" /> Announcements

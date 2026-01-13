@@ -6,13 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Bell, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+
+const PAGE_SIZE = 10;
 
 const Announcements = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [filterType, setFilterType] = useState<"all" | "unread">("all");
+  const [page, setPage] = useState(0);
   const { data: enrollments } = useEnrollments();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -87,32 +90,40 @@ const Announcements = () => {
       }
   });
 
-  const { data: announcements, isLoading } = useQuery({
-    queryKey: ["announcements", selectedCourse],
+  const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+
+  const { data: announcementsData, isLoading } = useQuery({
+    queryKey: ["announcements", selectedCourse, enrolledCourseIds, page],
     queryFn: async () => {
       let query = supabase
         .from("announcements")
-        .select("*, course:courses(*)")
+        .select("*, course:courses(*)", { count: 'exact' })
         .order("published_at", { ascending: false });
 
       if (selectedCourse !== "all") {
-        query = query.eq("course_id", selectedCourse);
+         if (!enrolledCourseIds.includes(selectedCourse)) return { data: [], count: 0 };
+         query = query.eq("course_id", selectedCourse);
+      } else {
+         if (enrolledCourseIds.length > 0) {
+             query = query.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
+         } else {
+             query = query.is("course_id", null);
+         }
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
-      return data || [];
+      return { data: data || [], count: count || 0 };
     },
   });
 
-  const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+  const announcements = announcementsData?.data || [];
+  const totalCount = announcementsData?.count || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  let filteredAnnouncements = announcements?.filter(a =>
-    !a.course_id || enrolledCourseIds.includes(a.course_id)
-  ) || [];
-
+  let displayedAnnouncements = announcements;
   if (filterType === "unread") {
-      filteredAnnouncements = filteredAnnouncements.filter(a => !readAnnouncements.includes(a.id));
+      displayedAnnouncements = announcements.filter(a => !readAnnouncements.includes(a.id));
   }
 
   const toggleExpand = (id: string) => {
@@ -149,7 +160,13 @@ const Announcements = () => {
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
             <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Course</div>
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+            <Select
+                value={selectedCourse}
+                onValueChange={(val) => {
+                    setSelectedCourse(val);
+                    setPage(0);
+                }}
+            >
             <SelectTrigger className="w-56">
                 <SelectValue />
             </SelectTrigger>
@@ -236,14 +253,14 @@ const Announcements = () => {
             {/* General Announcements Section */}
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Course Announcements</h2>
-                {filteredAnnouncements.length === 0 ? (
+                {displayedAnnouncements.length === 0 ? (
                     <Card className="border border-foreground/50">
                     <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-                        {filterType === 'unread' ? "No unread announcements." : "No announcements available."}
+                        {filterType === 'unread' ? "No unread announcements on this page." : "No announcements available."}
                     </CardContent>
                     </Card>
                 ) : (
-                    filteredAnnouncements.map((announcement) => {
+                    displayedAnnouncements.map((announcement) => {
                         const isExpanded = expandedIds.includes(announcement.id);
                         const isRead = readAnnouncements.includes(announcement.id);
 
@@ -283,6 +300,33 @@ const Announcements = () => {
                         </Card>
                     )})
                 )}
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between pt-4">
+                     <div className="text-xs text-muted-foreground">
+                         Page {page + 1} of {totalPages || 1} ({totalCount} items)
+                     </div>
+                     <div className="flex gap-2">
+                         <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                         >
+                             <ChevronLeft className="h-4 w-4" />
+                             Previous
+                         </Button>
+                         <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page >= totalPages - 1}
+                         >
+                             Next
+                             <ChevronRight className="h-4 w-4" />
+                         </Button>
+                     </div>
+                </div>
             </div>
         </div>
       )}
