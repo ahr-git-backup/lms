@@ -109,7 +109,7 @@ const PastClass = () => {
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
-                        {classItem.course.name}
+                        {classItem.course?.name || "Public/Archive"}
                     </p>
                     {Array.isArray(classItem.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
