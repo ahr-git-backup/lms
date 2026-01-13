@@ -5,12 +5,14 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { FileText, Link as LinkIcon, Video } from "lucide-react";
+import { FileText, Link as LinkIcon, Video, ChevronLeft, ChevronRight } from "lucide-react";
+
+const PAGE_SIZE = 9;
 
 const Resources = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [page, setPage] = useState(0);
   const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
@@ -19,37 +21,41 @@ const Resources = () => {
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
 
-  const { data: resources, isLoading } = useQuery({
-    queryKey: ["resources", selectedCourse, selectedSubject, enrolledCourseIds],
+  const { data: resourcesData, isLoading } = useQuery({
+    queryKey: ["resources", selectedCourse, selectedSubject, enrolledCourseIds, page],
     queryFn: async () => {
       // Security: Always filter by enrolled courses to prevent data leaks
-      if (enrolledCourseIds.length === 0) return [];
+      if (enrolledCourseIds.length === 0) return { data: [], count: 0 };
 
       let query = supabase
         .from("resources")
-        .select("*, course:courses(*)")
+        .select("*, course:courses(*)", { count: 'exact' })
         .order("created_at", { ascending: false });
 
       if (selectedCourse !== "all") {
         // Double check strict enrollment
-        if (!enrolledCourseIds.includes(selectedCourse)) return [];
+        if (!enrolledCourseIds.includes(selectedCourse)) return { data: [], count: 0 };
         query = query.eq("course_id", selectedCourse);
       } else {
-        query = query.in("course_id", enrolledCourseIds);
+        query = query.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
       }
 
       if (selectedSubject !== "all") {
         query = query.eq("subject", selectedSubject);
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
       if (error) throw error;
-      return data || [];
+      return { data: data || [], count: count || 0 };
     },
     enabled: enrolledCourseIds.length > 0,
   });
 
-  const filteredResources = resources || [];
+  const resources = resourcesData?.data || [];
+  const totalCount = resourcesData?.count || 0;
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   const getResourceIcon = (type: string) => {
     switch (type) {
@@ -74,7 +80,13 @@ const Resources = () => {
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="flex items-center gap-2">
             <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Course</div>
-            <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+            <Select
+                value={selectedCourse}
+                onValueChange={(val) => {
+                    setSelectedCourse(val);
+                    setPage(0);
+                }}
+            >
             <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="All Courses" />
             </SelectTrigger>
@@ -91,7 +103,13 @@ const Resources = () => {
 
         <div className="flex items-center gap-2">
             <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
-            <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+            <Select
+                value={selectedSubject}
+                onValueChange={(val) => {
+                    setSelectedSubject(val);
+                    setPage(0);
+                }}
+            >
             <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="All Subjects" />
             </SelectTrigger>
@@ -107,15 +125,16 @@ const Resources = () => {
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
-      ) : filteredResources.length === 0 ? (
+      ) : resources.length === 0 ? (
         <Card className="border border-foreground/50">
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             No resources available for this course yet.
           </CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredResources.map((resource) => (
+          {resources.map((resource) => (
             <Card key={resource.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex items-center justify-between">
@@ -142,6 +161,33 @@ const Resources = () => {
             </Card>
           ))}
         </div>
+        {/* Pagination Controls */}
+        <div className="flex items-center justify-between pt-4">
+             <div className="text-xs text-muted-foreground">
+                 Page {page + 1} of {totalPages || 1} ({totalCount} items)
+             </div>
+             <div className="flex gap-2">
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => Math.max(0, p - 1))}
+                    disabled={page === 0}
+                 >
+                     <ChevronLeft className="h-4 w-4" />
+                     Previous
+                 </Button>
+                 <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage(p => p + 1)}
+                    disabled={page >= totalPages - 1}
+                 >
+                     Next
+                     <ChevronRight className="h-4 w-4" />
+                 </Button>
+             </div>
+        </div>
+        </>
       )}
     </div>
   );

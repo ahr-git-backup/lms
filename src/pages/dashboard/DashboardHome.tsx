@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User } from "lucide-react";
+import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -102,6 +102,7 @@ const DashboardHome = () => {
   }
 
   const hasLiveActivity = activeLiveClasses?.length > 0 || activeLiveExams?.length > 0;
+  const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
       { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
@@ -109,8 +110,10 @@ const DashboardHome = () => {
       { title: "Past Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
       { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
       { title: "Class Notes", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
       { title: "Resources", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
+      { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
       { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
 
@@ -124,7 +127,7 @@ const DashboardHome = () => {
       </header>
 
       {/* 1. Live Activity Section (Priority 1) */}
-      {hasLiveActivity ? (
+      {hasLiveActivity && (
         <div className="space-y-4">
            <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -180,12 +183,18 @@ const DashboardHome = () => {
               ))}
            </div>
         </div>
-      ) : (
-        /* 2. Upcoming Activity Section (Shown if no live activity) */
+      )}
+
+      {/* 2. Upcoming Activity Section (Shown if activity exists and no live activity, or maybe just always if exists?)
+          User asked: "hide the empty upcoming cards.. they will apear if there is upcoming"
+          So we only render this section if hasUpcomingActivity is true.
+      */}
+      {!hasLiveActivity && hasUpcomingActivity && (
         <div className="space-y-4">
            <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* Next Live Class Card */}
+                {nextClass && (
                 <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -194,37 +203,30 @@ const DashboardHome = () => {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-between">
-                        {nextClass ? (
-                        <>
-                            <div className="mb-4 space-y-1">
-                                <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {nextClass.course?.name || "Unknown Course"}
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                        {new Date(nextClass.start_at).toLocaleString([], {
-                                        weekday: 'short', hour: '2-digit', minute: '2-digit'
-                                        })}
-                                    </span>
-                                </div>
+                        <div className="mb-4 space-y-1">
+                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {nextClass.course?.name || "Unknown Course"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                    {new Date(nextClass.start_at).toLocaleString([], {
+                                    weekday: 'short', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                </span>
                             </div>
-                            {nextClass.video_url && (
-                                <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
-                                    Join Class
-                                </Button>
-                            )}
-                        </>
-                        ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-6">
-                            <CalendarClock className="h-8 w-8 mb-2 opacity-20" />
-                            <p className="text-sm">No classes scheduled.</p>
                         </div>
+                        {nextClass.video_url && (
+                            <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
+                                Join Class
+                            </Button>
                         )}
                     </CardContent>
                 </Card>
+                )}
 
                 {/* Upcoming Exam Card */}
+                {nextExam && (
                 <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
@@ -233,33 +235,25 @@ const DashboardHome = () => {
                         </div>
                     </CardHeader>
                     <CardContent className="flex-1 flex flex-col justify-between">
-                        {nextExam ? (
-                        <>
-                            <div className="mb-4 space-y-1">
-                                <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                    {nextExam.course?.name || "Unknown Course"}
-                                </p>
-                                <div className="flex items-center gap-2 mt-2">
-                                    <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                        {new Date(nextExam.time_window_start).toLocaleString([], {
-                                        weekday: 'short', hour: '2-digit', minute: '2-digit'
-                                        })}
-                                    </span>
-                                </div>
+                        <div className="mb-4 space-y-1">
+                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {nextExam.course?.name || "Unknown Course"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                    {new Date(nextExam.time_window_start).toLocaleString([], {
+                                    weekday: 'short', hour: '2-digit', minute: '2-digit'
+                                    })}
+                                </span>
                             </div>
-                            <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
-                                View Exams
-                            </Button>
-                        </>
-                        ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-6">
-                            <ListChecks className="h-8 w-8 mb-2 opacity-20" />
-                            <p className="text-sm">No exams scheduled.</p>
                         </div>
-                        )}
+                        <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
+                            View Exams
+                        </Button>
                     </CardContent>
                 </Card>
+                )}
            </div>
         </div>
       )}
