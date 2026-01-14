@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -23,18 +24,54 @@ import {
 
 const PAGE_SIZE = 10;
 
+// Helper to determine status
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CourseTable = ({ courseName, attempts }: { courseName: string, attempts: any[] }) => {
+const getLiveStatus = (exam: any, attempt: any) => {
+    if (attempt) return attempt.score; // Taken
+    const now = new Date();
+    const endTime = new Date(exam.time_window_end);
+    if (now > endTime) return "Absent"; // Missed
+    return "-"; // Upcoming or Ongoing
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getPracticeStatus = (attempt: any) => {
+    if (attempt) return attempt.score;
+    return "Absent"; // Per user request
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }) => {
   const [page, setPage] = useState(1);
 
-  const totalPages = Math.ceil(attempts.length / PAGE_SIZE);
+  const totalPages = Math.ceil(exams.length / PAGE_SIZE);
   const startIndex = (page - 1) * PAGE_SIZE;
-  const currentAttempts = attempts.slice(startIndex, startIndex + PAGE_SIZE);
+  const currentExams = exams.slice(startIndex, startIndex + PAGE_SIZE);
 
   // Summary Calculations
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalScore = attempts.reduce((sum: number, a: any) => sum + (Number(a.score) || 0), 0);
-  const averageScore = attempts.length > 0 ? (totalScore / attempts.length).toFixed(2) : "0.00";
+  const liveStats = exams.reduce((acc, exam) => {
+      if (exam.liveAttempt) {
+          acc.obtained += Number(exam.liveAttempt.score) || 0;
+          acc.total += exam.total_marks || 0;
+      } else if (getLiveStatus(exam, null) === "Absent") {
+           // If absent, we still count the total marks as 'lost' potential?
+           // Usually "Obtained / Full Marks Sum" implies sum of full marks of ALL exams listed?
+           // "obtained mark/out of full marks sum"
+           // Let's sum total marks of ALL exams in the list, and obtained of what was taken.
+           acc.total += exam.total_marks || 0;
+      }
+      return acc;
+  }, { obtained: 0, total: 0 });
+
+  const practiceStats = exams.reduce((acc, exam) => {
+       // Practice is always available, so sum total marks of all exams
+       acc.total += exam.total_marks || 0;
+       if (exam.practiceAttempt) {
+           acc.obtained += Number(exam.practiceAttempt.score) || 0;
+       }
+       return acc;
+  }, { obtained: 0, total: 0 });
+
 
   return (
     <div className="space-y-4">
@@ -43,56 +80,73 @@ const CourseTable = ({ courseName, attempts }: { courseName: string, attempts: a
           {courseName}
         </h2>
         <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
-            {attempts.length} Exams
+            {exams.length} Exams
         </span>
       </div>
 
-      <div className="rounded-md border bg-card overflow-hidden shadow-sm">
+      <div className="rounded-md border bg-card overflow-hidden shadow-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="w-[40%]">Exam Name</TableHead>
-              <TableHead>Exam Date</TableHead>
-              <TableHead className="text-right">Obtained Mark</TableHead>
-              <TableHead className="text-right">Highest Mark (Live)</TableHead>
+              <TableHead className="min-w-[250px] whitespace-normal">Exam Name</TableHead>
+              <TableHead className="whitespace-nowrap">Exam Date</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Live Mark</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Practice Mark</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Highest (Live)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {currentAttempts.map((attempt) => (
-              <TableRow key={attempt.id} className="hover:bg-muted/50 transition-colors">
-                <TableCell className="font-medium">
-                  {attempt.exam.title}
-                  {attempt.attempt_type === 'live' && (
-                     <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 uppercase">Live</span>
+            {currentExams.map((item) => {
+              const liveStatus = getLiveStatus(item, item.liveAttempt);
+              const practiceStatus = getPracticeStatus(item.practiceAttempt);
+
+              return (
+              <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
+                <TableCell className="font-medium min-w-[250px]">
+                  <div className="line-clamp-2" title={item.title}>
+                    {item.title}
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-nowrap">
+                  {new Date(item.start_at || item.created_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                </TableCell>
+
+                {/* Live Mark Column */}
+                <TableCell className="text-right font-bold whitespace-nowrap">
+                  {liveStatus === "Absent" ? (
+                      <span className="text-red-500 font-medium">Absent</span>
+                  ) : liveStatus === "-" ? (
+                      <span className="text-muted-foreground">-</span>
+                  ) : (
+                      <span>{liveStatus} <span className="text-muted-foreground text-xs font-normal">/ {item.total_marks}</span></span>
                   )}
                 </TableCell>
-                <TableCell>
-                  {new Date(attempt.submitted_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
-                  <span className="text-xs text-muted-foreground block">
-                     {new Date(attempt.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
+
+                 {/* Practice Mark Column */}
+                 <TableCell className="text-right font-bold whitespace-nowrap">
+                  {practiceStatus === "Absent" ? (
+                      <span className="text-muted-foreground/50 font-normal">Absent</span>
+                  ) : (
+                      <span>{practiceStatus} <span className="text-muted-foreground text-xs font-normal">/ {item.total_marks}</span></span>
+                  )}
                 </TableCell>
-                <TableCell className="text-right font-bold">
-                  {attempt.score}
-                  <span className="text-muted-foreground font-normal text-xs ml-1">
-                     / {attempt.exam.total_marks}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  {attempt.highest_live_score !== null ? attempt.highest_live_score : "-"}
+
+                <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                  {item.highest_live_score !== null ? item.highest_live_score : "-"}
                 </TableCell>
               </TableRow>
-            ))}
+            )})}
           </TableBody>
           <TableFooter>
             <TableRow className="bg-primary/5 hover:bg-primary/10">
                 <TableCell colSpan={2} className="font-bold text-primary">Summary</TableCell>
-                <TableCell className="text-right font-bold text-primary">
-                    Avg: {averageScore}
+                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                    {liveStats.obtained} / {liveStats.total}
                 </TableCell>
-                <TableCell className="text-right font-bold text-primary">
-                    Total: {attempts.length}
+                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                    {practiceStats.obtained} / {practiceStats.total}
                 </TableCell>
+                <TableCell />
             </TableRow>
           </TableFooter>
         </Table>
@@ -110,8 +164,6 @@ const CourseTable = ({ courseName, attempts }: { courseName: string, attempts: a
             </PaginationItem>
 
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                // Simple pagination logic: Show all if small, or just current context if large
-                // For simplicity in this iteration, limiting to a sliding window or just showing all if < 7
                 (totalPages <= 7 || p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) ? (
                      <PaginationItem key={p}>
                         <PaginationLink
@@ -143,36 +195,52 @@ const CourseTable = ({ courseName, attempts }: { courseName: string, attempts: a
 
 const ExamAnalytics = () => {
   const { user } = useAuth();
+  const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
     document.title = "Exam Analytics – Atlas";
   }, []);
 
-  const { data: attempts, isLoading } = useQuery({
-    queryKey: ["exam-analytics-comprehensive", user?.id],
+  const { data: analyticsData, isLoading } = useQuery({
+    queryKey: ["exam-analytics-comprehensive-v2", user?.id, enrollments?.length],
     queryFn: async () => {
-      if (!user) return [];
+      if (!user) return null;
 
-      const { data: rawAttempts, error } = await supabase
+      // 1. Get Course IDs
+      const courseIds = enrollments?.map(e => e.course_id) || [];
+
+      // 2. Fetch ALL Exams (Active + Archived?)
+      // We assume public exams (course_id is null) + enrolled course exams
+      let examsQuery = supabase
+        .from("exams")
+        .select("id, title, total_marks, start_at, end_at, time_window_start, time_window_end, course_id, course:courses(name)");
+
+      if (courseIds.length > 0) {
+          examsQuery = examsQuery.or(`course_id.in.(${courseIds.join(',')}),course_id.is.null`);
+      } else {
+          examsQuery = examsQuery.is("course_id", null);
+      }
+
+      const { data: allExams, error: examsError } = await examsQuery;
+      if (examsError) throw examsError;
+
+      // 3. Fetch Attempts
+      const { data: attempts, error: attemptsError } = await supabase
         .from("exam_attempts")
-        .select("*, exam:exams(*, course:courses(*))")
+        .select("id, exam_id, score, attempt_type, submitted_at")
         .eq("profile_id", user.id);
 
-      if (error) throw error;
-      if (!rawAttempts || rawAttempts.length === 0) return [];
+      if (attemptsError) throw attemptsError;
 
-      // Fetch Highest Marks (Live Period)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const uniqueExamIds = [...new Set(rawAttempts.map((a: any) => a.exam_id))];
+      // 4. Fetch High Scores (Live)
+      const uniqueExamIds = allExams?.map(e => e.id) || [];
       const highScores: Record<string, number | null> = {};
 
-      // Batch fetches in chunks of 10 to avoid too many parallel connections if list is huge
       const chunkSize = 10;
       for (let i = 0; i < uniqueExamIds.length; i += chunkSize) {
           const chunk = uniqueExamIds.slice(i, i + chunkSize);
           await Promise.all(
             chunk.map(async (examId) => {
-              if (!examId) return;
               const { data } = await supabase
                 .from("leaderboard_exam_attempts")
                 .select("score")
@@ -186,45 +254,60 @@ const ExamAnalytics = () => {
           );
       }
 
+      // 5. Merge Data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return rawAttempts.map((attempt: any) => ({
-        ...attempt,
-        highest_live_score: highScores[attempt.exam_id],
-      }));
+      const mergedExams = allExams?.map((exam: any) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const examAttempts = attempts?.filter((a: any) => a.exam_id === exam.id) || [];
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const liveAttempt = examAttempts.find((a: any) => a.attempt_type === 'live');
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const practiceAttempt = examAttempts.find((a: any) => a.attempt_type !== 'live'); // Treat non-live as practice
+
+          return {
+              ...exam,
+              liveAttempt,
+              practiceAttempt,
+              highest_live_score: highScores[exam.id]
+          };
+      });
+
+      return mergedExams || [];
     },
-    enabled: !!user,
+    enabled: !!user && enrollments !== undefined,
   });
 
-  const groupedAttempts = useMemo(() => {
-    if (!attempts) return {};
+  const groupedExams = useMemo(() => {
+    if (!analyticsData) return {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const groups: Record<string, any[]> = {};
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    attempts.forEach((attempt: any) => {
-      const courseName = attempt.exam.course?.name || "Public Exams";
+    analyticsData.forEach((exam: any) => {
+      const courseName = exam.course?.name || "Public Exams";
       if (!groups[courseName]) {
         groups[courseName] = [];
       }
-      groups[courseName].push(attempt);
+      groups[courseName].push(exam);
     });
 
-    // Sort chronologically (Oldest first as per "chronologically" usually means,
-    // but typically users want newest last in a table, or newest first?
-    // "sort the exams chronologically (by date)" usually means Date Ascending (Jan 1, Jan 2, Jan 3).
+    // Sort chronologically (Oldest first)
     Object.keys(groups).forEach((key) => {
       groups[key].sort((a, b) =>
-        new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime()
+        new Date(a.start_at || a.created_at).getTime() - new Date(b.start_at || b.created_at).getTime()
       );
     });
 
     return groups;
-  }, [attempts]);
+  }, [analyticsData]);
 
-  const totalAttempts = attempts?.length ?? 0;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalAvg = totalAttempts > 0 ? (attempts!.reduce((sum: number, a: any) => sum + (Number(a.score) || 0), 0) / totalAttempts).toFixed(2) : "0.00";
+  const totalExams = analyticsData?.length ?? 0;
+
+  // Calculate Global Stats
+  // Live: Obtained / Total (where exam ended)
+  const globalLiveObtained = analyticsData?.reduce((sum, e) => sum + (Number(e.liveAttempt?.score) || 0), 0) || 0;
+  const globalLiveTotal = analyticsData?.reduce((sum, e) => sum + (e.total_marks || 0), 0) || 0; // Simplified to all exams
 
   return (
     <section className="space-y-8 pb-10">
@@ -237,30 +320,31 @@ const ExamAnalytics = () => {
 
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading analysis...</p>
-      ) : totalAttempts === 0 ? (
+      ) : totalExams === 0 ? (
         <Card className="border border-foreground/60">
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-            You have not completed any exams yet.
+            No exams found available for you.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-8">
-           {/* Top Stats Cards - Keeping these for high-level context */}
            <div className="grid gap-4 md:grid-cols-3">
             <Card className="border border-foreground/20 shadow-sm bg-muted/20">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams Taken</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams Available</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{totalAttempts}</div>
+                <div className="text-2xl font-bold">{totalExams}</div>
               </CardContent>
             </Card>
             <Card className="border border-foreground/20 shadow-sm bg-muted/20">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Global Average Score</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total Live Score</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{globalAvg}</div>
+                <div className="text-2xl font-bold">
+                    {globalLiveObtained} <span className="text-sm text-muted-foreground font-normal">/ {globalLiveTotal}</span>
+                </div>
               </CardContent>
             </Card>
             <Card className="border border-foreground/20 shadow-sm bg-muted/20">
@@ -268,14 +352,14 @@ const ExamAnalytics = () => {
                 <CardTitle className="text-sm font-medium text-muted-foreground">Courses</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{Object.keys(groupedAttempts).length}</div>
+                <div className="text-2xl font-bold">{Object.keys(groupedExams).length}</div>
               </CardContent>
             </Card>
           </div>
 
           <div className="space-y-10">
-            {Object.entries(groupedAttempts).map(([courseName, courseAttempts]) => (
-                <CourseTable key={courseName} courseName={courseName} attempts={courseAttempts} />
+            {Object.entries(groupedExams).map(([courseName, exams]) => (
+                <CourseTable key={courseName} courseName={courseName} exams={exams} />
             ))}
           </div>
         </div>
