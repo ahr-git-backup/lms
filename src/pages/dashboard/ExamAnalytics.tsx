@@ -24,24 +24,45 @@ import {
 
 const PAGE_SIZE = 10;
 
-// Helper to determine status
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getLiveStatus = (exam: any, attempt: any) => {
-    if (attempt) return attempt.score; // Taken
-    const now = new Date();
-    const endTime = new Date(exam.time_window_end);
-    if (now > endTime) return "Absent"; // Missed
-    return "-"; // Upcoming or Ongoing
+type AnalyticsExam = {
+  id: string;
+  title: string;
+  total_marks: number | null;
+  time_window_start: string | null;
+  time_window_end: string | null;
+  created_at: string;
+  course_name: string;
+  live_attempt: {
+    score: number;
+    rank: number;
+    highest_score: number | null;
+  } | null;
+  practice_attempt: {
+    score: number;
+    rank: number;
+    highest_score: number | null;
+  } | null;
+  highest_live_score: number | null;
+  highest_practice_score: number | null;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const getPracticeStatus = (attempt: any) => {
-    if (attempt) return attempt.score;
+// Helper to determine status
+const getLiveStatus = (exam: AnalyticsExam) => {
+    if (exam.live_attempt) return exam.live_attempt.score;
+    const now = new Date();
+    if (exam.time_window_end) {
+        const endTime = new Date(exam.time_window_end);
+        if (now > endTime) return "Absent";
+    }
+    return "-";
+};
+
+const getPracticeStatus = (exam: AnalyticsExam) => {
+    if (exam.practice_attempt) return exam.practice_attempt.score;
     return "Absent"; // Per user request
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }) => {
+const CourseTable = ({ courseName, exams }: { courseName: string, exams: AnalyticsExam[] }) => {
   const [page, setPage] = useState(1);
 
   const totalPages = Math.ceil(exams.length / PAGE_SIZE);
@@ -50,10 +71,11 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
 
   // Summary Calculations
   const liveStats = exams.reduce((acc, exam) => {
-      if (exam.liveAttempt) {
-          acc.obtained += Number(exam.liveAttempt.score) || 0;
+      const status = getLiveStatus(exam);
+      if (typeof status === 'number') {
+          acc.obtained += status;
           acc.total += exam.total_marks || 0;
-      } else if (getLiveStatus(exam, null) === "Absent") {
+      } else if (status === "Absent") {
            acc.total += exam.total_marks || 0;
       }
       return acc;
@@ -61,8 +83,8 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
 
   const practiceStats = exams.reduce((acc, exam) => {
        acc.total += exam.total_marks || 0;
-       if (exam.practiceAttempt) {
-           acc.obtained += Number(exam.practiceAttempt.score) || 0;
+       if (exam.practice_attempt) {
+           acc.obtained += Number(exam.practice_attempt.score) || 0;
        }
        return acc;
   }, { obtained: 0, total: 0 });
@@ -85,16 +107,21 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
             <TableRow className="bg-muted/50 hover:bg-muted/50">
               <TableHead className="min-w-[250px] whitespace-normal">Exam Name</TableHead>
               <TableHead className="whitespace-nowrap">Exam Date</TableHead>
+
               <TableHead className="text-right whitespace-nowrap">Live Mark</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Rank</TableHead>
+
               <TableHead className="text-right whitespace-nowrap">Prac Mark</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Rank</TableHead>
+
               <TableHead className="text-right whitespace-nowrap">Highest (Live)</TableHead>
               <TableHead className="text-right whitespace-nowrap">Highest (Prac)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {currentExams.map((item) => {
-              const liveStatus = getLiveStatus(item, item.liveAttempt);
-              const practiceStatus = getPracticeStatus(item.practiceAttempt);
+              const liveStatus = getLiveStatus(item);
+              const practiceStatus = getPracticeStatus(item);
 
               return (
               <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
@@ -121,6 +148,17 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                   )}
                 </TableCell>
 
+                {/* Live Rank */}
+                <TableCell className="text-right font-mono whitespace-nowrap">
+                    {item.live_attempt?.rank ? (
+                        <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                            #{item.live_attempt.rank}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground/30">-</span>
+                    )}
+                </TableCell>
+
                  {/* Practice Mark Column */}
                  <TableCell className="text-right font-bold whitespace-nowrap">
                   {practiceStatus === "Absent" ? (
@@ -128,6 +166,17 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                   ) : (
                       <span>{practiceStatus} <span className="text-muted-foreground text-xs font-normal">/ {item.total_marks}</span></span>
                   )}
+                </TableCell>
+
+                {/* Practice Rank */}
+                <TableCell className="text-right font-mono whitespace-nowrap">
+                    {item.practice_attempt?.rank ? (
+                        <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-secondary text-secondary-foreground text-xs font-bold">
+                            #{item.practice_attempt.rank}
+                        </span>
+                    ) : (
+                        <span className="text-muted-foreground/30">-</span>
+                    )}
                 </TableCell>
 
                 <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
@@ -146,9 +195,12 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                     {liveStats.obtained} / {liveStats.total}
                 </TableCell>
                 <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                    -
+                </TableCell>
+                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                     {practiceStats.obtained} / {practiceStats.total}
                 </TableCell>
-                <TableCell colSpan={2} />
+                <TableCell colSpan={3} />
             </TableRow>
           </TableFooter>
         </Table>
@@ -204,106 +256,30 @@ const ExamAnalytics = () => {
   }, []);
 
   const { data: analyticsData, isLoading } = useQuery({
-    queryKey: ["exam-analytics-comprehensive-v2", user?.id, enrollments?.length],
+    queryKey: ["exam-analytics-rpc-v1", user?.id],
     queryFn: async () => {
       if (!user) return null;
 
-      // 1. Get Course IDs
-      const courseIds = enrollments?.map(e => e.course_id) || [];
-
-      // 2. Fetch ALL Exams (Active + Archived?)
-      // We assume public exams (course_id is null) + enrolled course exams
-      let examsQuery = supabase
-        .from("exams")
-        .select("id, title, total_marks, time_window_start, time_window_end, course_id, course:courses(name), created_at");
-
-      if (courseIds.length > 0) {
-          examsQuery = examsQuery.or(`course_id.in.(${courseIds.join(',')}),course_id.is.null`);
-      } else {
-          examsQuery = examsQuery.is("course_id", null);
+      const { data, error } = await supabase.rpc('get_student_exam_analytics');
+      if (error) {
+        console.error("Error fetching analytics:", error);
+        throw error;
       }
 
-      const { data: allExams, error: examsError } = await examsQuery;
-      if (examsError) throw examsError;
-
-      // 3. Fetch Attempts
-      const { data: attempts, error: attemptsError } = await supabase
-        .from("exam_attempts")
-        .select("id, exam_id, score, attempt_type, submitted_at")
-        .eq("profile_id", user.id);
-
-      if (attemptsError) throw attemptsError;
-
-      // 4. Fetch High Scores (Live & Practice)
-      const uniqueExamIds = allExams?.map(e => e.id) || [];
-      const highScores: Record<string, { live: number | null, practice: number | null }> = {};
-
-      const chunkSize = 10;
-      for (let i = 0; i < uniqueExamIds.length; i += chunkSize) {
-          const chunk = uniqueExamIds.slice(i, i + chunkSize);
-          await Promise.all(
-            chunk.map(async (examId) => {
-              // Parallel fetch for Live and Practice high scores
-              const [liveRes, practiceRes] = await Promise.all([
-                 supabase
-                    .from("leaderboard_exam_attempts")
-                    .select("score")
-                    .eq("exam_id", examId)
-                    .eq("attempt_type", "live")
-                    .order("score", { ascending: false })
-                    .limit(1)
-                    .maybeSingle(),
-                 supabase
-                    .from("leaderboard_exam_attempts")
-                    .select("score")
-                    .eq("exam_id", examId)
-                    .neq("attempt_type", "live") // Treat anything not live as practice/null
-                    .order("score", { ascending: false })
-                    .limit(1)
-                    .maybeSingle()
-              ]);
-
-              highScores[examId] = {
-                  live: liveRes.data ? liveRes.data.score : null,
-                  practice: practiceRes.data ? practiceRes.data.score : null
-              };
-            })
-          );
-      }
-
-      // 5. Merge Data
+      // Cast the result to our type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mergedExams = allExams?.map((exam: any) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const examAttempts = attempts?.filter((a: any) => a.exam_id === exam.id) || [];
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const liveAttempt = examAttempts.find((a: any) => a.attempt_type === 'live');
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const practiceAttempt = examAttempts.find((a: any) => a.attempt_type !== 'live'); // Treat non-live as practice
-
-          return {
-              ...exam,
-              liveAttempt,
-              practiceAttempt,
-              highest_live_score: highScores[exam.id]?.live ?? null,
-              highest_practice_score: highScores[exam.id]?.practice ?? null
-          };
-      });
-
-      return mergedExams || [];
+      return (data as any) as AnalyticsExam[];
     },
-    enabled: !!user && enrollments !== undefined,
+    enabled: !!user,
   });
 
   const groupedExams = useMemo(() => {
     if (!analyticsData) return {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const groups: Record<string, any[]> = {};
+    const groups: Record<string, AnalyticsExam[]> = {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    analyticsData.forEach((exam: any) => {
-      const courseName = exam.course?.name || "Public Exams";
+    analyticsData.forEach((exam) => {
+      const courseName = exam.course_name || "Public Exams";
       if (!groups[courseName]) {
         groups[courseName] = [];
       }
@@ -324,8 +300,8 @@ const ExamAnalytics = () => {
 
   // Calculate Global Stats
   // Live: Obtained / Total (where exam ended)
-  const globalLiveObtained = analyticsData?.reduce((sum, e) => sum + (Number(e.liveAttempt?.score) || 0), 0) || 0;
-  const globalLiveTotal = analyticsData?.reduce((sum, e) => sum + (e.total_marks || 0), 0) || 0; // Simplified to all exams
+  const globalLiveObtained = analyticsData?.reduce((sum, e) => sum + (Number(e.live_attempt?.score) || 0), 0) || 0;
+  const globalLiveTotal = analyticsData?.reduce((sum, e) => sum + (e.total_marks || 0), 0) || 0;
 
   return (
     <section className="space-y-8 pb-10">
