@@ -41,6 +41,8 @@ const TakeExam = () => {
       ? `exam_session_retake_${retakeFromAttemptId}_${user?.id}`
       : `exam_session_${examId}_${user?.id}`;
 
+  const QUESTIONS_STORAGE_KEY = `${LOCAL_STORAGE_KEY_PREFIX}_questions`;
+
   useEffect(() => {
     if (!hasStarted) return;
 
@@ -107,13 +109,38 @@ const TakeExam = () => {
   const { data: questions, isLoading: questionsLoading } = useQuery({
     queryKey: ["exam-questions", examId, retakeFromAttemptId],
     queryFn: async () => {
-      // 1. Fetch ALL exam questions securely via RPC
-      const { data: allQuestions, error } = await supabase.rpc("get_exam_questions", {
-        p_exam_id: examId,
-      });
-      if (error) throw error;
+      let allQuestions;
 
-      // 2. If filtering for mistakes, fetch the previous attempt's wrong answers
+      // 1. Check LocalStorage
+      const cached = localStorage.getItem(QUESTIONS_STORAGE_KEY);
+      if (cached) {
+          try {
+            allQuestions = JSON.parse(cached);
+            console.log("Loaded questions from cache");
+          } catch(e) {
+            console.error("Cache parse error", e);
+          }
+      }
+
+      // 2. Fetch if missing
+      if (!allQuestions) {
+          // Use light RPC: get_exam_questions_start
+          const { data, error } = await supabase.rpc("get_exam_questions_start", {
+            p_exam_id: examId,
+          });
+          if (error) throw error;
+          allQuestions = data;
+
+          // Save to LocalStorage (full set before filtering)
+          // NOTE: If retaking mistakes, we might want to only cache the filtered set?
+          // If we cache full set, we re-filter every time, which is fine.
+          // The key `QUESTIONS_STORAGE_KEY` is specific to this session (attempt).
+          // If retake attempt ID is part of key, then this cache is unique to this retake attempt.
+          // So we can save the FILTERED set if we want.
+          // BUT `allQuestions` variable here holds the FULL set initially from RPC.
+      }
+
+      // 3. If filtering for mistakes, fetch the previous attempt's wrong answers
       if (retakeFromAttemptId) {
           const { data: attemptData } = await supabase
               .from("exam_attempts")
@@ -122,13 +149,6 @@ const TakeExam = () => {
               .single();
 
           if (attemptData?.answers) {
-              // We need to know which were WRONG. The attempt `answers` JSON doesn't say if it's correct/wrong directly usually
-              // unless we stored it. But `get_exam_questions` doesn't give correct answer either (security).
-              // To filter, we need to know the correct answers.
-              // BUT, the client shouldn't know correct answers.
-              // Solution: We fetch the review-style questions (which has is_correct logic server side usually, or exposed)
-              // Actually, `get_student_exam_review` returns correct options. We can use that!
-
               const { data: reviewData, error: reviewError } = await supabase.rpc("get_student_exam_review", {
                   p_attempt_id: retakeFromAttemptId
               });
@@ -137,13 +157,6 @@ const TakeExam = () => {
                   // Filter for questions where user was WRONG
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const wrongQuestionIds = new Set(reviewData.filter((q: any) => {
-                       // Find user answer from attempt json
-                       // Actually `reviewData` should be easier to parse if we trust it aligned
-                       // Wait, `get_student_exam_review` might strictly return what user answered vs correct.
-                       // Let's assume we find the wrong ones.
-                       // reviewData has `correct_option`. We need to match with user answer.
-                       // But wait, `get_student_exam_review` is intended for result view.
-                       // Let's map user answers.
                        const userAnswerObj = (attemptData.answers as any[]).find((a: any) => a.question_id === (q.question_id || q.id));
                        const selected = userAnswerObj?.selected_option;
                        return selected !== q.correct_option; // Wrong or Skipped
@@ -152,9 +165,17 @@ const TakeExam = () => {
 
                   // Return only the questions from `allQuestions` that match `wrongQuestionIds`
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  return allQuestions.filter((q: any) => wrongQuestionIds.has(q.id));
+                  allQuestions = allQuestions.filter((q: any) => wrongQuestionIds.has(q.id));
               }
           }
+      }
+
+      // Update cache with the final list (filtered or full)
+      // Since the key is specific to the session (retake vs normal), caching the result is correct.
+      try {
+         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(allQuestions));
+      } catch (e) {
+         console.error("Cache save error", e);
       }
 
       return allQuestions;
@@ -264,14 +285,6 @@ const TakeExam = () => {
         const startTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
         const timeTaken = startTime ? Math.floor((Date.now() - parseInt(startTime)) / 1000) : 0;
 
-        // If retaking mistakes, we are submitting a PRACTICE attempt, regardless of original exam type
-        // The RPC `submit_exam_attempt` handles marking it as practice if outside window,
-        // but for specific filtered set, the score might be weird (out of total questions?).
-        // The RPC calculates score based on ALL questions in `exam_questions` usually?
-        // No, `submit_exam_attempt` usually counts matched answers.
-        // It will just score the subset submitted.
-        // The `total_marks` might be low, but that's expected for retake.
-
         const { data: attemptId, error } = await supabase.rpc("submit_exam_attempt", {
             p_exam_id: exam.id,
             p_answers: answersList,
@@ -295,6 +308,7 @@ const TakeExam = () => {
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
+      localStorage.removeItem(QUESTIONS_STORAGE_KEY); // Clear questions cache
 
       toast({ title: "Exam submitted successfully!" });
       navigate(`/dashboard/exam-review/${attemptId}`);

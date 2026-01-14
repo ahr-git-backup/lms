@@ -237,7 +237,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // --- Session Enforcement Logic ---
   const checkSessionValidity = useCallback(async () => {
     if (!user || !session) return;
-    if (location.pathname === "/login") return;
+    if (window.location.pathname === "/login") return;
 
     // We check the DB profile's current_session_id against our local storage
     const localSessionId = localStorage.getItem("app_session_id");
@@ -268,7 +268,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         console.warn("Session mismatch detected. Logging out.");
         await signOut(true); // pass true to indicate forced logout
     }
-  }, [user, session, signOut, location.pathname]);
+  }, [user, session, signOut]);
 
   useEffect(() => {
       if (user) {
@@ -279,10 +279,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (user && !loading) {
             checkSessionValidity();
         }
-    }, 60000); // Reduced to 60 seconds
+    }, 300000); // Increased to 5 minutes
 
     return () => clearInterval(interval);
-  }, [location.pathname, user, loading, checkSessionValidity]);
+  }, [user, loading, checkSessionValidity]);
   // ----------------------------------
 
   return (
