@@ -54,17 +54,12 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
           acc.obtained += Number(exam.liveAttempt.score) || 0;
           acc.total += exam.total_marks || 0;
       } else if (getLiveStatus(exam, null) === "Absent") {
-           // If absent, we still count the total marks as 'lost' potential?
-           // Usually "Obtained / Full Marks Sum" implies sum of full marks of ALL exams listed?
-           // "obtained mark/out of full marks sum"
-           // Let's sum total marks of ALL exams in the list, and obtained of what was taken.
            acc.total += exam.total_marks || 0;
       }
       return acc;
   }, { obtained: 0, total: 0 });
 
   const practiceStats = exams.reduce((acc, exam) => {
-       // Practice is always available, so sum total marks of all exams
        acc.total += exam.total_marks || 0;
        if (exam.practiceAttempt) {
            acc.obtained += Number(exam.practiceAttempt.score) || 0;
@@ -91,8 +86,9 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
               <TableHead className="min-w-[250px] whitespace-normal">Exam Name</TableHead>
               <TableHead className="whitespace-nowrap">Exam Date</TableHead>
               <TableHead className="text-right whitespace-nowrap">Live Mark</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Practice Mark</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Prac Mark</TableHead>
               <TableHead className="text-right whitespace-nowrap">Highest (Live)</TableHead>
+              <TableHead className="text-right whitespace-nowrap">Highest (Prac)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -134,8 +130,11 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                   )}
                 </TableCell>
 
-                <TableCell className="text-right text-muted-foreground whitespace-nowrap">
+                <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
                   {item.highest_live_score !== null ? item.highest_live_score : "-"}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
+                  {item.highest_practice_score !== null ? item.highest_practice_score : "-"}
                 </TableCell>
               </TableRow>
             )})}
@@ -149,7 +148,7 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                 <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                     {practiceStats.obtained} / {practiceStats.total}
                 </TableCell>
-                <TableCell />
+                <TableCell colSpan={2} />
             </TableRow>
           </TableFooter>
         </Table>
@@ -235,24 +234,39 @@ const ExamAnalytics = () => {
 
       if (attemptsError) throw attemptsError;
 
-      // 4. Fetch High Scores (Live)
+      // 4. Fetch High Scores (Live & Practice)
       const uniqueExamIds = allExams?.map(e => e.id) || [];
-      const highScores: Record<string, number | null> = {};
+      const highScores: Record<string, { live: number | null, practice: number | null }> = {};
 
       const chunkSize = 10;
       for (let i = 0; i < uniqueExamIds.length; i += chunkSize) {
           const chunk = uniqueExamIds.slice(i, i + chunkSize);
           await Promise.all(
             chunk.map(async (examId) => {
-              const { data } = await supabase
-                .from("leaderboard_exam_attempts")
-                .select("score")
-                .eq("exam_id", examId)
-                .eq("attempt_type", "live")
-                .order("score", { ascending: false })
-                .limit(1)
-                .maybeSingle();
-              highScores[examId] = data ? data.score : null;
+              // Parallel fetch for Live and Practice high scores
+              const [liveRes, practiceRes] = await Promise.all([
+                 supabase
+                    .from("leaderboard_exam_attempts")
+                    .select("score")
+                    .eq("exam_id", examId)
+                    .eq("attempt_type", "live")
+                    .order("score", { ascending: false })
+                    .limit(1)
+                    .maybeSingle(),
+                 supabase
+                    .from("leaderboard_exam_attempts")
+                    .select("score")
+                    .eq("exam_id", examId)
+                    .neq("attempt_type", "live") // Treat anything not live as practice/null
+                    .order("score", { ascending: false })
+                    .limit(1)
+                    .maybeSingle()
+              ]);
+
+              highScores[examId] = {
+                  live: liveRes.data ? liveRes.data.score : null,
+                  practice: practiceRes.data ? practiceRes.data.score : null
+              };
             })
           );
       }
@@ -271,7 +285,8 @@ const ExamAnalytics = () => {
               ...exam,
               liveAttempt,
               practiceAttempt,
-              highest_live_score: highScores[exam.id]
+              highest_live_score: highScores[exam.id]?.live ?? null,
+              highest_practice_score: highScores[exam.id]?.practice ?? null
           };
       });
 
