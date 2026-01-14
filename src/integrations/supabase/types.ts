@@ -714,6 +714,23 @@ export type Database = {
         Args: { p_course_id: string }
         Returns: undefined
       }
+      get_dashboard_data: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_exam_questions_start: {
+        Args: {
+          p_exam_id: string
+        }
+        Returns: {
+          id: string
+          question_text: string
+          option_a: string
+          option_b: string
+          option_c: string
+          option_d: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

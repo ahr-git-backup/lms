@@ -65,7 +65,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes (Reduce polling/refetching)
-      gcTime: 24 * 60 * 60 * 1000, // 24 hours
+      gcTime: 30 * 60 * 1000, // 30 minutes
       retry: 1,
       refetchOnWindowFocus: false, // Disable refetch on window focus to reduce load
       refetchOnReconnect: false, // Disable refetch on reconnect

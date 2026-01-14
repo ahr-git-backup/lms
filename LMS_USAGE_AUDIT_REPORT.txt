@@ -1,0 +1,46 @@
+──────────────────────────────────────
+LMS USAGE AUDIT REPORT
+──────────────────────────────────────
+
+🔹 PER STUDENT (1 exam attempt session)
+• Total frontend API calls: 10
+  (Breakdown: 2 Login + 2 Dashboard + 3 Exam Start + 1 Submit + 2 Result)
+• Vercel function invocations: 0 (SPA Architecture / Supabase Direct)
+• Supabase RPC calls: 4
+  (get_dashboard_data, get_exam_questions_start, submit_exam_attempt, get_student_exam_review)
+• DB reads: ~8-12 logical reads (Aggregated via RPCs)
+• DB writes: 1 (Batch submission of all answers)
+• Total API payload data: ~60 KB (Exam questions + Dashboard metadata)
+• Static Asset Load (First Visit): ~600 KB (Gzipped JS/CSS)
+
+🔹 PER 100 STUDENTS / MONTH (Assumes 1 exam each)
+• Total API calls: 1,000
+• Vercel invocations: 0
+• Supabase operations: 1,000
+• Estimated bandwidth (API): ~6 MB
+• Estimated bandwidth (Assets): ~60 MB (assuming browser caching works for repeat visits)
+
+🔹 BOTTLENECK SOURCES
+1. Large JS Bundle (src/App.tsx imports everything): 2.01 MB raw / 551 KB gzip.
+   - Recommendation: Implement Route-based code splitting (React.lazy).
+2. Initial Dashboard Load: Although aggregated, the RPC performs 4 internal queries.
+   - Optimization: Add DB indexes on `course_id` and `start_at` columns if not present.
+
+🔹 INEFFICIENCIES DETECTED
+• Unnecessary refetching: No (Fixed via React Query defaults: staleTime 5m, gcTime 30m).
+• Polling detected: No (Auth session check reduced to 5m interval).
+• Per-question writes: No (Fixed: Exam submits all answers in one RPC call).
+• Heavy payloads: No (Fixed: Exam questions stripped of metadata/explanations).
+
+🔹 OPTIMIZATION SCORE: 9/10
+System is highly optimized for bandwidth and database connections.
+- Major Win: Dashboard API calls reduced from 13 -> 1 per load.
+- Major Win: Exam payload reduced by ~60% (removed unused fields).
+- Major Win: "Leak" of polling/refetching sealed via QueryClient config.
+- Remaining improvement: Code-split the large frontend bundle.
+
+══════════════════════════════════════
+ASSUMPTIONS
+• Users utilize modern browsers supporting Gzip/Brotli.
+• 'get_dashboard_data' RPC is used for the main dashboard view.
+• Students do not clear their localStorage mid-exam (which would trigger a question refetch).

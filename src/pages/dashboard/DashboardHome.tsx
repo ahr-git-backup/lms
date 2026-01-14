@@ -2,106 +2,58 @@ import { useEffect } from "react";
 import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEnrollments } from "@/hooks/useEnrollments";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+// Define shape of dashboard data (or cast to any for simplicity in this task, but interfaces are better)
+interface DashboardData {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    next_class: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    active_live_classes: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    active_live_exams: any[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    next_exam: any;
+}
+
 const DashboardHome = () => {
-  const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Dashboard – Atlas";
   }, []);
 
-  const enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
-
-  const { data: nextClass } = useQuery({
-    queryKey: ["dashboard-next-class", enrolledCourseIds],
+  const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+    queryKey: ["dashboard-data", user?.id],
     queryFn: async () => {
-      if (enrolledCourseIds.length === 0) return null;
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*, course:courses(name)")
-        .in("course_id", enrolledCourseIds)
-        .gt("start_at", now)
-        .order("start_at", { ascending: true })
-        .limit(1)
-        .single();
+      if (!user) return null;
+      // Fetch aggregated data via RPC
+      const { data, error } = await supabase.rpc("get_dashboard_data");
 
-      if (error && error.code !== "PGRST116") console.error(error);
-      return data;
+      if (error) {
+        console.error("Dashboard data fetch error:", error);
+        throw error;
+      }
+      return data as unknown as DashboardData;
     },
-    enabled: enrolledCourseIds.length > 0,
+    enabled: !!user,
   });
 
-  const { data: activeLiveClasses } = useQuery({
-    queryKey: ["dashboard-active-live-classes", enrolledCourseIds],
-    queryFn: async () => {
-      if (enrolledCourseIds.length === 0) return [];
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("classes")
-        .select("*, course:courses(name)")
-        .in("course_id", enrolledCourseIds)
-        .eq("class_type", "live")
-        .lte("start_at", now)
-        .gt("end_at", now)
-        .order("start_at", { ascending: true });
-
-      if (error) console.error(error);
-      return data || [];
-    },
-    enabled: enrolledCourseIds.length > 0,
-  });
-
-  const { data: activeLiveExams } = useQuery({
-    queryKey: ["dashboard-active-live-exams", enrolledCourseIds],
-    queryFn: async () => {
-      if (enrolledCourseIds.length === 0) return [];
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("exams")
-        .select("*, course:courses(name)")
-        .in("course_id", enrolledCourseIds)
-        .eq("exam_type", "live")
-        .lte("time_window_start", now)
-        .gt("time_window_end", now)
-        .order("time_window_end", { ascending: true });
-
-      if (error) console.error(error);
-      return data || [];
-    },
-    enabled: enrolledCourseIds.length > 0,
-  });
-
-  const { data: nextExam } = useQuery({
-    queryKey: ["dashboard-next-exam", enrolledCourseIds],
-    queryFn: async () => {
-      if (enrolledCourseIds.length === 0) return null;
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("exams")
-        .select("*, course:courses(name)")
-        .in("course_id", enrolledCourseIds)
-        .gt("time_window_start", now)
-        .order("time_window_start", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (error && error.code !== "PGRST116") console.error(error);
-      return data;
-    },
-    enabled: enrolledCourseIds.length > 0,
-  });
-
-  if (enrollmentsLoading) {
+  if (dashboardLoading) {
     return <div className="p-4 text-sm text-muted-foreground">Loading dashboard...</div>;
   }
 
-  const hasLiveActivity = activeLiveClasses?.length > 0 || activeLiveExams?.length > 0;
+  // Extract data with fallbacks
+  const nextClass = dashboardData?.next_class;
+  const activeLiveClasses = dashboardData?.active_live_classes || [];
+  const activeLiveExams = dashboardData?.active_live_exams || [];
+  const nextExam = dashboardData?.next_exam;
+
+  const hasLiveActivity = activeLiveClasses.length > 0 || activeLiveExams.length > 0;
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
@@ -135,7 +87,8 @@ const DashboardHome = () => {
                 <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
            </div>
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {activeLiveClasses?.map((classItem) => (
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {activeLiveClasses.map((classItem: any) => (
                   <Card key={classItem.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
@@ -159,7 +112,8 @@ const DashboardHome = () => {
                   </Card>
               ))}
 
-              {activeLiveExams?.map((exam) => (
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {activeLiveExams.map((exam: any) => (
                   <Card key={exam.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
@@ -186,10 +140,7 @@ const DashboardHome = () => {
         </div>
       )}
 
-      {/* 2. Upcoming Activity Section (Shown if activity exists and no live activity, or maybe just always if exists?)
-          User asked: "hide the empty upcoming cards.. they will apear if there is upcoming"
-          So we only render this section if hasUpcomingActivity is true.
-      */}
+      {/* 2. Upcoming Activity Section */}
       {!hasLiveActivity && hasUpcomingActivity && (
         <div className="space-y-4">
            <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
