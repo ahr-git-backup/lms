@@ -1,190 +1,192 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEnrollments } from "@/hooks/useEnrollments";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Trophy, RotateCw } from "lucide-react";
-import { SUBJECTS } from "@/lib/constants";
-
-// Helper Component for Result Card
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLive: boolean, navigate: any, profile: any }) => {
-    // Calculate GPA score component if fields exist
-    let gpaScore = 0;
-    if (profile?.ssc_gpa && profile?.hsc_gpa) {
-        gpaScore = (Number(profile.ssc_gpa) * 8) + (Number(profile.hsc_gpa) * 12);
-    }
-    const totalScoreWithGpa = Number(attempt.score) + gpaScore;
-    const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
-
-    return (
-    <Card className={`border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900`}>
-        <CardHeader className="space-y-1">
-            <div className="flex justify-between items-start">
-                <p className="text-xs font-mono uppercase text-muted-foreground">
-                    {attempt.exam.course?.name || "Public Exam"}
-                </p>
-                {isLive && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">LIVE</span>}
-            </div>
-            <CardTitle className="text-base">{attempt.exam.title}</CardTitle>
-            <CardDescription className="text-xs">
-                <div>Exam Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="ml-1 text-muted-foreground">({percentage}%)</span>}</div>
-                {gpaScore > 0 && <div>Total (with GPA): <span className="font-bold text-primary">{totalScoreWithGpa.toFixed(2)}</span></div>}
-                <div>Taken on {attempt.submitted_at && new Date(attempt.submitted_at).toLocaleDateString()}</div>
-            </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col flex-1">
-            <div className="flex gap-2 mt-auto">
-                <Button
-                    size="sm"
-                    className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"
-                    onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
-                >
-                    Review & Retake
-                </Button>
-                <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
-                    title="View Leaderboard"
-                    className="rounded-full hover:bg-emerald-100 text-emerald-700"
-                >
-                    <Trophy className="h-4 w-4" />
-                </Button>
-            </div>
-        </CardContent>
-    </Card>
-    );
-};
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 const ExamResults = () => {
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
-  const [selectedSubject, setSelectedSubject] = useState<string>("all");
-  const { data: enrollments } = useEnrollments();
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Results – Atlas";
+    document.title = "Exam Results – Atlas";
   }, []);
 
   const { data: attempts, isLoading } = useQuery({
-    queryKey: ["exam-results", user?.id, selectedCourse, selectedSubject],
+    queryKey: ["exam-results-report", user?.id],
     queryFn: async () => {
       if (!user) return [];
 
-      let query = supabase
+      // 1. Fetch all attempts
+      const { data: rawAttempts, error } = await supabase
         .from("exam_attempts")
         .select("*, exam:exams(*, course:courses(*))")
-        .eq("profile_id", user.id)
-        .order("submitted_at", { ascending: false });
+        .eq("profile_id", user.id);
 
-      const { data, error } = await query;
       if (error) throw error;
+      if (!rawAttempts || rawAttempts.length === 0) return [];
 
-      let filteredData = data || [];
+      // 2. Fetch Highest Marks (Live Period) for each unique exam
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const uniqueExamIds = [...new Set(rawAttempts.map((a: any) => a.exam_id))];
+      const highScores: Record<string, number | null> = {};
 
-      if (selectedCourse !== "all") {
-        filteredData = filteredData.filter(a => a.exam.course_id === selectedCourse);
-      }
+      await Promise.all(
+        uniqueExamIds.map(async (examId) => {
+          // Check if examId is valid
+          if (!examId) return;
 
-      if (selectedSubject !== "all") {
-        filteredData = filteredData.filter(a => a.exam.subject === selectedSubject);
-      }
+          const { data } = await supabase
+            .from("leaderboard_exam_attempts")
+            .select("score")
+            .eq("exam_id", examId)
+            .eq("attempt_type", "live")
+            .order("score", { ascending: false })
+            .limit(1)
+            .maybeSingle();
 
-      return filteredData;
+          highScores[examId] = data ? data.score : null;
+        })
+      );
+
+      // 3. Merge high scores
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return rawAttempts.map((attempt: any) => ({
+        ...attempt,
+        highest_live_score: highScores[attempt.exam_id],
+      }));
     },
     enabled: !!user,
   });
 
+  // Grouping Logic
+  const groupedAttempts = useMemo(() => {
+    if (!attempts) return {};
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const groups: Record<string, any[]> = {};
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    attempts.forEach((attempt: any) => {
+      const courseName = attempt.exam.course?.name || "Public Exams";
+
+      if (!groups[courseName]) {
+        groups[courseName] = [];
+      }
+      groups[courseName].push(attempt);
+    });
+
+    // Sort chronologically (oldest to newest) within groups
+    Object.keys(groups).forEach((key) => {
+      groups[key].sort((a, b) =>
+        new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime()
+      );
+    });
+
+    return groups;
+  }, [attempts]);
+
+  if (isLoading) {
+    return <div className="p-8 text-center text-muted-foreground">Loading exam results...</div>;
+  }
+
+  if (!attempts || attempts.length === 0) {
+    return (
+      <Card className="border border-foreground/50">
+        <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+          No exam results found.
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Exam Results</h1>
-        <p className="text-sm text-muted-foreground">Review your scores and answer scripts.</p>
+        <p className="text-sm text-muted-foreground">
+          Course-wise performance analysis report.
+        </p>
       </header>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Course</div>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
-              {enrollments?.map((enrollment) => (
-                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                  {enrollment.course.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {Object.entries(groupedAttempts).map(([courseName, courseAttempts]) => {
+        const totalExams = courseAttempts.length;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const totalScore = courseAttempts.reduce((sum: number, a: any) => sum + (Number(a.score) || 0), 0);
+        const averageScore = totalExams > 0 ? (totalScore / totalExams).toFixed(2) : "0.00";
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Subjects" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subjects</SelectItem>
-              {SUBJECTS.map((subject) => (
-                <SelectItem key={subject} value={subject}>
-                  {subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+        return (
+          <div key={courseName} className="space-y-3">
+            <h2 className="text-xl font-bold text-foreground border-l-4 border-primary pl-3">
+              {courseName}
+            </h2>
 
-      {isLoading ? (
-        <div className="text-sm text-muted-foreground">Loading...</div>
-      ) : !attempts || attempts.length === 0 ? (
-        <Card className="border border-foreground/50">
-          <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-            No exam results found.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-            {/* Live Exams Section - Only show actual Live Attempts */}
-            {attempts.some(a => a.attempt_type === 'live') && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse"></span>
-                        Live Exam Results
-                    </h2>
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {attempts.filter(a => a.attempt_type === 'live').map((attempt) => (
-                            <ResultCard key={attempt.id} attempt={attempt} isLive={true} navigate={navigate} profile={profile} />
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Practice Exams Section - Show Practice OR Expired Live (treated as practice) */}
-             {attempts.some(a => a.attempt_type !== 'live') && (
-                <div className="space-y-4">
-                    <h2 className="text-xl font-bold flex items-center gap-2">
-                        <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                        Practice Exam Results
-                    </h2>
-                    <div className="grid gap-4 md:grid-cols-3">
-                        {attempts.filter(a => a.attempt_type !== 'live').map((attempt) => (
-                            <ResultCard key={attempt.id} attempt={attempt} isLive={false} navigate={navigate} profile={profile} />
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-      )}
+            <div className="rounded-md border bg-card overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Exam Name</TableHead>
+                    <TableHead>Date Taken</TableHead>
+                    <TableHead className="text-right">Obtained Mark</TableHead>
+                    <TableHead className="text-right">Highest Mark (Live)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  {courseAttempts.map((attempt: any) => (
+                    <TableRow
+                        key={attempt.id}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
+                        title="Click to review details"
+                    >
+                      <TableCell className="font-medium">
+                        {attempt.exam.title}
+                        {attempt.attempt_type === 'live' && (
+                           <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-bold text-red-700 uppercase">Live</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(attempt.submitted_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {attempt.score}
+                        <span className="text-muted-foreground font-normal text-xs ml-1">
+                           / {attempt.exam.total_marks}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {attempt.highest_live_score !== null ? attempt.highest_live_score : "-"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow className="bg-primary/5 hover:bg-primary/10">
+                    <TableCell colSpan={2} className="font-bold text-primary">Summary</TableCell>
+                    <TableCell className="text-right font-bold text-primary">
+                      Avg: {averageScore}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-primary">
+                      Total Exams: {totalExams}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 };
