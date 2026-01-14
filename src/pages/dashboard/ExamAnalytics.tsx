@@ -108,7 +108,10 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: any[] }
                   </div>
                 </TableCell>
                 <TableCell className="whitespace-nowrap">
-                  {new Date(item.start_at || item.created_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                  {new Date(item.time_window_start || item.created_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
+                  <span className="text-xs text-muted-foreground block">
+                     {new Date(item.time_window_start || item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </TableCell>
 
                 {/* Live Mark Column */}
@@ -213,7 +216,7 @@ const ExamAnalytics = () => {
       // We assume public exams (course_id is null) + enrolled course exams
       let examsQuery = supabase
         .from("exams")
-        .select("id, title, total_marks, start_at, end_at, time_window_start, time_window_end, course_id, course:courses(name)");
+        .select("id, title, total_marks, time_window_start, time_window_end, course_id, course:courses(name), created_at");
 
       if (courseIds.length > 0) {
           examsQuery = examsQuery.or(`course_id.in.(${courseIds.join(',')}),course_id.is.null`);
@@ -295,7 +298,7 @@ const ExamAnalytics = () => {
     // Sort chronologically (Oldest first)
     Object.keys(groups).forEach((key) => {
       groups[key].sort((a, b) =>
-        new Date(a.start_at || a.created_at).getTime() - new Date(b.start_at || b.created_at).getTime()
+        new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime()
       );
     });
 
