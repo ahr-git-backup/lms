@@ -5,7 +5,7 @@ import {
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
   Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert,
-  Tag, LayoutTemplate, AlertCircle, Archive
+  Tag, LayoutTemplate, AlertCircle, Archive, Database
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -398,6 +398,9 @@ export const DashboardLayout = () => {
                         </Link>
                         <Link to="/dashboard/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <PenTool className="h-4 w-4 text-orange-600" /> Exams
+                        </Link>
+                        <Link to="/dashboard/admin/question-bank" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Database className="h-4 w-4 text-blue-600" /> Question Bank
                         </Link>
                         <Link to="/dashboard/admin/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Library className="h-4 w-4 text-teal-600" /> Resources
