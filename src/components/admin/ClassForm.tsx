@@ -13,6 +13,7 @@ import { fromDhakaTimeToUTC, toDhakaTimeISO } from "@/lib/dateUtils";
 import { SUBJECTS } from "@/lib/constants";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
 
 const classSchema = z.object({
   id: z.string().optional(),
@@ -42,6 +43,15 @@ interface ClassFormProps {
 export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = false }: ClassFormProps) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Global Metadata Hook
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: globalMeta } = useGlobalMetadata() as any;
+    const addMetadata = useAddGlobalMetadata();
+
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'topic', value: string) => {
+        addMetadata.mutate({ type, value });
+    };
 
     const [form, setForm] = useState<z.infer<typeof classSchema>>({
         course_id: "",
@@ -94,19 +104,72 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
     const { data: distinctMetadata } = useQuery({
         queryKey: ["admin-classes-metadata-form"],
         queryFn: async () => {
-           // We can reuse exams metadata logic or create a similar one for classes if needed
-           // For now, let's just use SUBJECTS for subjects.
-           // For Chapters, we should fetch from classes table.
-           const { data } = await supabase.from("classes").select("chapter");
-           const chapters = new Set<string>();
-           data?.forEach(item => {
-               if (item.chapter) chapters.add(item.chapter);
-           });
-           return {
-               chapters: Array.from(chapters).sort().map(c => ({ label: c, value: c }))
-           };
+           // Fetch subject, chapter, topic to build hierarchy
+           const { data } = await supabase.from("classes").select("subject, chapter, topic");
+           return data || [];
         }
     });
+
+    // Merge global metadata with existing class data
+    const subjectOptions = React.useMemo(() => {
+        const set = new Set(SUBJECTS);
+        globalMeta?.subject?.forEach((s: any) => set.add(s.value));
+        return Array.from(set).sort().map(s => ({ label: s, value: s }));
+    }, [globalMeta]);
+
+    const chapterOptions = React.useMemo(() => {
+        const set = new Set<string>();
+
+        // Add globally defined chapters
+        globalMeta?.chapter?.forEach((c: any) => set.add(c.value));
+
+        // Add chapters from classes that match selected subjects
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.chapter) return;
+
+            // If no subject selected, show all (or could show none) - let's show all
+            if (form.subject.length === 0) {
+                set.add(item.chapter);
+                return;
+            }
+
+            // Check if class subject intersects with selected subjects
+            let itemSubjects: string[] = [];
+            if (Array.isArray(item.subject)) itemSubjects = item.subject;
+            else if (typeof item.subject === 'string') itemSubjects = [item.subject];
+
+            const hasIntersection = itemSubjects.some(s => form.subject.includes(s));
+            if (hasIntersection) {
+                set.add(item.chapter);
+            }
+        });
+
+        return Array.from(set).sort().map(c => ({ label: c, value: c }));
+    }, [distinctMetadata, globalMeta, form.subject]);
+
+    const topicOptions = React.useMemo(() => {
+        const set = new Set<string>();
+
+        // Add globally defined topics
+        globalMeta?.topic?.forEach((t: any) => set.add(t.value));
+
+        // Add topics from classes that match selected chapter
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.topic) return;
+
+            // If no chapter selected, show all (or could show none) - let's show all
+            if (!form.chapter) {
+                set.add(item.topic);
+                return;
+            }
+
+            if (item.chapter === form.chapter) {
+                set.add(item.topic);
+            }
+        });
+
+        return Array.from(set).sort().map(t => ({ label: t, value: t }));
+    }, [distinctMetadata, globalMeta, form.chapter]);
 
     const { data: courses } = useQuery({
         queryKey: ["admin-courses-form"],
@@ -292,31 +355,42 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="subject">Subjects</Label>
                         <MultiSelect
-                            options={SUBJECTS.map(s => ({ label: s, value: s }))}
+                            options={subjectOptions}
                             selected={form.subject}
                             onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
-                            placeholder="Select subjects..."
+                            onCreate={(val) => {
+                                handleCreateMeta('subject', val);
+                                setForm((prev) => ({ ...prev, subject: [...prev.subject, val] }));
+                            }}
+                            placeholder="Select or Create subjects..."
                         />
                     </div>
 
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="chapter">Chapter</Label>
                         <CreatableSelect
-                            options={distinctMetadata?.chapters || []}
+                            options={chapterOptions}
                             value={form.chapter || ""}
                             onChange={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
-                            onCreate={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                            onCreate={(val) => {
+                                handleCreateMeta('chapter', val);
+                                setForm((prev) => ({ ...prev, chapter: val }));
+                            }}
                             placeholder="Select or Create Chapter"
                         />
                     </div>
 
                     <div className="space-y-2 md:col-span-2 min-w-0">
                         <Label htmlFor="topic">Topic (Optional)</Label>
-                        <Input
-                            id="topic"
-                            value={form.topic}
-                            onChange={(e) => setForm((prev) => ({ ...prev, topic: e.target.value }))}
-                            className="w-full"
+                        <CreatableSelect
+                            options={topicOptions}
+                            value={form.topic || ""}
+                            onChange={(val) => setForm((prev) => ({ ...prev, topic: val }))}
+                            onCreate={(val) => {
+                                handleCreateMeta('topic', val);
+                                setForm((prev) => ({ ...prev, topic: val }));
+                            }}
+                            placeholder="Select or Create Topic"
                         />
                     </div>
 
