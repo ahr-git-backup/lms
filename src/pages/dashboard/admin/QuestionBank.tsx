@@ -72,6 +72,53 @@ const QuestionBank = () => {
     const { data: globalMeta } = useGlobalMetadata() as any;
     const addMetadata = useAddGlobalMetadata();
 
+    const { data: distinctMetadata } = useQuery({
+        queryKey: ["question-bank-metadata"],
+        queryFn: async () => {
+            const { data } = await supabase.from("question_bank").select("subject, chapter, topic");
+            return data || [];
+        }
+    });
+
+    // Compute hierarchical options
+    const subjectOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.subject?.forEach((s: any) => set.add(s.value));
+        // Add existing subjects from DB
+        distinctMetadata?.forEach((item: any) => {
+             if (item.subject) set.add(item.subject);
+        });
+        return Array.from(set).sort().map(s => ({ label: s, value: s }));
+    }, [globalMeta, distinctMetadata]);
+
+    const chapterOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.chapter?.forEach((c: any) => set.add(c.value));
+
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.chapter) return;
+            // Filter by selected subject if available
+            if (formData.subject && item.subject !== formData.subject) return;
+            set.add(item.chapter);
+        });
+
+        return Array.from(set).sort().map(c => ({ label: c, value: c }));
+    }, [globalMeta, distinctMetadata, formData.subject]);
+
+    const topicOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.topic?.forEach((t: any) => set.add(t.value));
+
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.topic) return;
+            // Filter by selected chapter if available
+            if (formData.chapter && item.chapter !== formData.chapter) return;
+            set.add(item.topic);
+        });
+
+        return Array.from(set).sort().map(t => ({ label: t, value: t }));
+    }, [globalMeta, distinctMetadata, formData.chapter]);
+
     const handleCreateMeta = (type: 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag', value: string) => {
         addMetadata.mutate({ type, value });
         // Optimistically update form data
@@ -211,7 +258,7 @@ const QuestionBank = () => {
                     <div className="space-y-2">
                         <Label>Subject</Label>
                         <CreatableSelect
-                            options={globalMeta?.subject || []}
+                            options={subjectOptions}
                             value={formData.subject}
                             onChange={(val) => setFormData(prev => ({ ...prev, subject: val }))}
                             onCreate={(val) => handleCreateMeta('subject', val)}
@@ -221,7 +268,7 @@ const QuestionBank = () => {
                     <div className="space-y-2">
                         <Label>Chapter</Label>
                         <CreatableSelect
-                            options={globalMeta?.chapter || []}
+                            options={chapterOptions}
                             value={formData.chapter}
                             onChange={(val) => setFormData(prev => ({ ...prev, chapter: val }))}
                             onCreate={(val) => handleCreateMeta('chapter', val)}
@@ -231,7 +278,7 @@ const QuestionBank = () => {
                     <div className="space-y-2">
                         <Label>Topic</Label>
                         <CreatableSelect
-                            options={globalMeta?.topic || []}
+                            options={topicOptions}
                             value={formData.topic}
                             onChange={(val) => setFormData(prev => ({ ...prev, topic: val }))}
                             onCreate={(val) => handleCreateMeta('topic', val)}

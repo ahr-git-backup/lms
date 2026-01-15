@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
-  Database, BookOpen
+  Database, BookOpen, Check
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
