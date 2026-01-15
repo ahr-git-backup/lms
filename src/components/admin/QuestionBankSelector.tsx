@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2 } from "lucide-react";
 import MathText from "@/components/MathText";
 import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import { CreatableSelect } from "@/components/ui/creatable-select";
 
 interface QuestionBankSelectorProps {
     open: boolean;
@@ -130,38 +130,34 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
                                 onChange={(e) => setSearch(e.target.value)}
                             />
                         </div>
-                        <Select value={filters.subject} onValueChange={(val) => setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }))}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Subject" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Subjects</SelectItem>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {globalMeta?.subject?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <Select value={filters.chapter} onValueChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Chapter" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Chapters</SelectItem>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {globalMeta?.chapter?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                         <Select value={filters.exam_code} onValueChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Code" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Codes</SelectItem>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {globalMeta?.exam_code?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                         <Select value={filters.year} onValueChange={(val) => setFilters(prev => ({ ...prev, year: val === 'all' ? '' : val }))}>
-                            <SelectTrigger className="h-9"><SelectValue placeholder="Year" /></SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">All Years</SelectItem>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {globalMeta?.year?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                        <CreatableSelect
+                            options={[{ label: "All Subjects", value: "all" }, ...(globalMeta?.subject || [])]}
+                            value={filters.subject}
+                            onChange={(val) => setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }))}
+                            placeholder="Subject"
+                            className="h-9"
+                        />
+                        <CreatableSelect
+                            options={[{ label: "All Chapters", value: "all" }, ...(globalMeta?.chapter || [])]}
+                            value={filters.chapter}
+                            onChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}
+                            placeholder="Chapter"
+                            className="h-9"
+                        />
+                        <CreatableSelect
+                            options={[{ label: "All Codes", value: "all" }, ...(globalMeta?.exam_code || [])]}
+                            value={filters.exam_code}
+                            onChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}
+                            placeholder="Code"
+                            className="h-9"
+                        />
+                        <CreatableSelect
+                            options={[{ label: "All Years", value: "all" }, ...(globalMeta?.year || [])]}
+                            value={filters.year}
+                            onChange={(val) => setFilters(prev => ({ ...prev, year: val === 'all' ? '' : val }))}
+                            placeholder="Year"
+                            className="h-9"
+                        />
                     </div>
 
                     <div className="border rounded-md min-h-[300px] max-h-[400px] overflow-y-auto">

@@ -317,34 +317,34 @@ const QuestionBank = () => {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <Select value={filters.subject} onValueChange={(val) => setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }))}>
-                    <SelectTrigger><SelectValue placeholder="Subject" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Subjects</SelectItem>
-                        {globalMeta?.subject?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <Select value={filters.chapter} onValueChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}>
-                    <SelectTrigger><SelectValue placeholder="Chapter" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Chapters</SelectItem>
-                        {globalMeta?.chapter?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                <Select value={filters.topic} onValueChange={(val) => setFilters(prev => ({ ...prev, topic: val === 'all' ? '' : val }))}>
-                    <SelectTrigger><SelectValue placeholder="Topic" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Topics</SelectItem>
-                        {globalMeta?.topic?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
-                 <Select value={filters.exam_code} onValueChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}>
-                    <SelectTrigger><SelectValue placeholder="Exam Code" /></SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Codes</SelectItem>
-                        {globalMeta?.exam_code?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
-                    </SelectContent>
-                </Select>
+                <CreatableSelect
+                    options={[{ label: "All Subjects", value: "all" }, ...(globalMeta?.subject || [])]}
+                    value={filters.subject}
+                    onChange={(val) => setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }))}
+                    placeholder="Subject"
+                    className="bg-background"
+                />
+                <CreatableSelect
+                    options={[{ label: "All Chapters", value: "all" }, ...(globalMeta?.chapter || [])]}
+                    value={filters.chapter}
+                    onChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}
+                    placeholder="Chapter"
+                    className="bg-background"
+                />
+                <CreatableSelect
+                    options={[{ label: "All Topics", value: "all" }, ...(globalMeta?.topic || [])]}
+                    value={filters.topic}
+                    onChange={(val) => setFilters(prev => ({ ...prev, topic: val === 'all' ? '' : val }))}
+                    placeholder="Topic"
+                    className="bg-background"
+                />
+                <CreatableSelect
+                    options={[{ label: "All Codes", value: "all" }, ...(globalMeta?.exam_code || [])]}
+                    value={filters.exam_code}
+                    onChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}
+                    placeholder="Exam Code"
+                    className="bg-background"
+                />
             </div>
 
             {isLoading ? (
