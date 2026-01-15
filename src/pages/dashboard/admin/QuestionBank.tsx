@@ -13,6 +13,7 @@ import { Loader2, Plus, Search, Filter, Edit2, Trash2, ArrowLeft } from "lucide-
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import MathText from "@/components/MathText";
+import { SUBJECTS } from "@/lib/constants";
 
 interface QuestionBankItem extends QuestionData {
     subject: string;
@@ -66,12 +67,22 @@ const QuestionBank = () => {
     };
     const [formData, setFormData] = useState<QuestionBankItem>(emptyQuestion);
 
-    // Fetch Metadata for Filters
+    // Fetch Global Metadata
     const { data: metadata } = useQuery({
-        queryKey: ["question-bank-metadata"],
+        queryKey: ["question-bank-metadata-global"],
         queryFn: async () => {
-            const { data, error } = await supabase.from("question_bank").select("subject, chapter, topic, exam_code, year, tags");
-            if (error) throw error;
+            // Parallel fetches from all relevant tables
+            const [
+                { data: qbData },
+                { data: examsData },
+                { data: notesData },
+                { data: classesData }
+            ] = await Promise.all([
+                supabase.from("question_bank").select("subject, chapter, topic, exam_code, year, tags"),
+                supabase.from("exams").select("subject, chapter"),
+                supabase.from("class_notes").select("subject, chapter, topic"),
+                supabase.from("classes").select("subject, chapter, topic")
+            ]);
 
             const subjects = new Set<string>();
             const chapters = new Set<string>();
@@ -80,13 +91,41 @@ const QuestionBank = () => {
             const years = new Set<string>();
             const tags = new Set<string>();
 
-            data?.forEach(item => {
+            // Add Constants
+            SUBJECTS.forEach(s => subjects.add(s));
+
+            // Process Question Bank Data
+            qbData?.forEach(item => {
                 if (item.subject) subjects.add(item.subject);
                 if (item.chapter) chapters.add(item.chapter);
                 if (item.topic) topics.add(item.topic);
                 if (item.exam_code) examCodes.add(item.exam_code);
                 if (item.year) years.add(item.year);
                 if (Array.isArray(item.tags)) item.tags.forEach((t: string) => tags.add(t));
+            });
+
+            // Process Exams Data
+            examsData?.forEach(item => {
+                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
+                else if (item.subject) subjects.add(item.subject);
+
+                if (item.chapter) chapters.add(item.chapter);
+            });
+
+            // Process Notes Data
+            notesData?.forEach(item => {
+                if (item.subject) subjects.add(item.subject);
+                if (item.chapter) chapters.add(item.chapter);
+                if (item.topic) topics.add(item.topic);
+            });
+
+            // Process Classes Data
+            classesData?.forEach(item => {
+                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
+                else if (item.subject) subjects.add(item.subject);
+
+                if (item.chapter) chapters.add(item.chapter);
+                if (item.topic) topics.add(item.topic);
             });
 
             return {
@@ -161,7 +200,7 @@ const QuestionBank = () => {
         onSuccess: () => {
             toast({ title: "Question saved successfully" });
             queryClient.invalidateQueries({ queryKey: ["question-bank"] });
-            queryClient.invalidateQueries({ queryKey: ["question-bank-metadata"] });
+            queryClient.invalidateQueries({ queryKey: ["question-bank-metadata-global"] });
             setViewMode('list');
             setEditingId(null);
             setFormData(emptyQuestion);

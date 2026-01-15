@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2 } from "lucide-react";
 import MathText from "@/components/MathText";
+import { SUBJECTS } from "@/lib/constants";
 
 interface QuestionBankSelectorProps {
     open: boolean;
@@ -32,10 +33,20 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
 
     // Fetch Metadata for Filters (Lightweight)
     const { data: metadata } = useQuery({
-        queryKey: ["question-bank-metadata-selector"],
+        queryKey: ["question-bank-metadata-selector-global"],
         queryFn: async () => {
-            const { data, error } = await supabase.from("question_bank").select("subject, chapter, topic, exam_code, year");
-            if (error) throw error;
+            // Parallel fetches from all relevant tables
+            const [
+                { data: qbData },
+                { data: examsData },
+                { data: notesData },
+                { data: classesData }
+            ] = await Promise.all([
+                supabase.from("question_bank").select("subject, chapter, topic, exam_code, year"),
+                supabase.from("exams").select("subject, chapter"),
+                supabase.from("class_notes").select("subject, chapter, topic"),
+                supabase.from("classes").select("subject, chapter, topic")
+            ]);
 
             const subjects = new Set<string>();
             const chapters = new Set<string>();
@@ -43,12 +54,40 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
             const examCodes = new Set<string>();
             const years = new Set<string>();
 
-            data?.forEach(item => {
+            // Add Constants
+            SUBJECTS.forEach(s => subjects.add(s));
+
+            // Process Question Bank Data
+            qbData?.forEach(item => {
                 if (item.subject) subjects.add(item.subject);
                 if (item.chapter) chapters.add(item.chapter);
                 if (item.topic) topics.add(item.topic);
                 if (item.exam_code) examCodes.add(item.exam_code);
                 if (item.year) years.add(item.year);
+            });
+
+            // Process Exams Data
+            examsData?.forEach(item => {
+                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
+                else if (item.subject) subjects.add(item.subject);
+
+                if (item.chapter) chapters.add(item.chapter);
+            });
+
+            // Process Notes Data
+            notesData?.forEach(item => {
+                if (item.subject) subjects.add(item.subject);
+                if (item.chapter) chapters.add(item.chapter);
+                if (item.topic) topics.add(item.topic);
+            });
+
+            // Process Classes Data
+            classesData?.forEach(item => {
+                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
+                else if (item.subject) subjects.add(item.subject);
+
+                if (item.chapter) chapters.add(item.chapter);
+                if (item.topic) topics.add(item.topic);
             });
 
             return {
@@ -104,16 +143,6 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
 
     const handleConfirm = () => {
         if (selectedIds.size === 0) return;
-        // Fetch full data for selected IDs from the current page cache or rely on what we have
-        // But we might have selected items across pages if we persisted selection (current impl resets selection logic on page change? No, state is persistent but hidden items are tricky if not careful. Here we keep it simple: selection is global state)
-
-        // However, we only have data for current page in questionsData.
-        // If user selected items on previous pages, we don't have their data here unless we fetch them or cache them.
-        // For simplicity, let's assume we select from what is visible or we need to fetch by IDs.
-
-        // Better: Pass IDs to parent or Fetch full objects?
-        // Parent expects Question objects.
-        // Let's fetch the selected questions by ID to be safe and complete.
 
         const fetchSelected = async () => {
             const { data, error } = await supabase
