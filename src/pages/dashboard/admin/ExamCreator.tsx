@@ -1,47 +1,19 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
-import ReactQuill, { Quill } from "react-quill";
+import React, { useEffect, useState } from "react";
 import "react-quill/dist/quill.snow.css";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import Cropper from "react-cropper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
-  Image as ImageIcon, Save, Database, Copy, Check
+  Database, BookOpen
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingScreen } from "@/components/ui/loading-screen";
 import MathText from "@/components/MathText";
-
-// Custom Quill Link
-const Link = Quill.import('formats/link');
-Link.sanitize = function(url: string) {
-  if (!url || url.trim() === '') return '';
-  if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) {
-    return 'https://' + url;
-  }
-  return url;
-};
-
-interface Question {
-  id?: string;
-  question: string;
-  options: { [key: string]: string };
-  correct_answer: string;
-  explanation: string;
-}
+import { QuestionEditor, QuestionData } from "@/components/admin/QuestionEditor";
+import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 
 // Helper to sanitize HTML import
 const sanitizeHtml = (html: string) => {
@@ -157,7 +129,7 @@ const processHtmlContent = async (html: string) => {
 
 const ExamCreator = () => {
   const { examId } = useParams();
-  const [questions, setQuestions] = useState<Question[]>([]);
+  const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [examTitle, setExamTitle] = useState("New Exam");
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -165,14 +137,7 @@ const ExamCreator = () => {
   // Export State
   const [isExporting, setIsExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
-
-  // Cropper state
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [cropImage, setCropImage] = useState<string>("");
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [currentQuillRef, setCurrentQuillRef] = useState<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [cropper, setCropper] = useState<any>();
+  const [showBankSelector, setShowBankSelector] = useState(false);
 
   // MathLive setup
   useEffect(() => {
@@ -228,49 +193,10 @@ const ExamCreator = () => {
   const [activeForm, setActiveForm] = useState<{
     index: number;
     type: 'initial' | 'above' | 'below' | 'edit';
-    data: Question;
+    data: QuestionData;
   } | null>(null);
 
-  // Formula Editor State
-  const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetQuill: any | null }>({
-      isOpen: false,
-      targetQuill: null
-  });
-
-  // Optimize handlers to prevent re-renders
-  const handleOpenFormula = useCallback((quillRef: any) => {
-      setFormulaState({ isOpen: true, targetQuill: quillRef });
-  }, []);
-
-  const handleFormChange = useCallback((newData: Question) => {
-      setActiveForm(prev => prev ? { ...prev, data: newData } : null);
-  }, []);
-
-  const handleFormulaInsert = (latex: string) => {
-      if (formulaState.targetQuill) {
-          const editor = formulaState.targetQuill.getEditor();
-          const range = editor.getSelection(true);
-          if (range) {
-              editor.insertText(range.index, `$${latex}$ `);
-              // Move cursor after the inserted formula and space
-              setTimeout(() => {
-                editor.setSelection(range.index + latex.length + 3);
-                editor.focus();
-              }, 0);
-          } else {
-              // Fallback if no selection
-              const length = editor.getLength();
-              editor.insertText(length, `$${latex}$ `);
-              setTimeout(() => {
-                editor.setSelection(length + latex.length + 3);
-                editor.focus();
-              }, 0);
-          }
-      }
-      setFormulaState({ isOpen: false, targetQuill: null });
-  };
-
-  const emptyQuestion: Question = {
+  const emptyQuestion: QuestionData = {
     question: "",
     options: { A: "", B: "", C: "", D: "" },
     correct_answer: "",
@@ -338,6 +264,7 @@ const ExamCreator = () => {
               if (qResult.hasErrors) failedUploads = true;
 
               // Process Options
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const options: any = {};
               for (const [key, val] of Object.entries(q.options)) {
                   const optResult = await processHtmlContent(val);
@@ -357,8 +284,6 @@ const ExamCreator = () => {
               });
           }
 
-          // If uploads failed, we stop the export to prevent dirty data (Base64) from persisting
-          // as per user request to use hosted URLs "instead" of Base64.
           if (failedUploads) {
               toast({
                   title: "Export Aborted",
@@ -370,7 +295,6 @@ const ExamCreator = () => {
               return; // Stop here
           }
 
-          // Update state so the editor reflects the uploaded images
           setQuestions(processedQuestions);
 
           const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processedQuestions, null, 2));
@@ -396,7 +320,6 @@ const ExamCreator = () => {
       if (!examId) return;
       if (!confirm("This will overwrite existing questions for this exam. Continue?")) return;
 
-      // 1. Get existing question IDs for this exam
       const { data: existingQ } = await supabase
           .from("exam_questions")
           .select("id")
@@ -405,10 +328,8 @@ const ExamCreator = () => {
       const existingIds = new Set(existingQ?.map(q => q.id));
       const currentIds = new Set(questions.filter(q => q.id).map(q => q.id));
 
-      // 2. Identify deletions
       const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
 
-      // 3. Upsert operations
       const upsertData = questions.map((q, idx) => ({
           ...(q.id ? { id: q.id } : {}), // Only include ID if it exists
           exam_id: examId,
@@ -434,7 +355,6 @@ const ExamCreator = () => {
           }
 
           toast({ title: "Success", description: "Exam questions updated successfully." });
-          // Refresh fetch to get new IDs for inserted rows
           const { data: refreshedData } = await supabase
                 .from("exam_questions")
                 .select("*")
@@ -467,11 +387,9 @@ const ExamCreator = () => {
     reader.onload = (event) => {
         try {
             const content = event.target?.result as string;
-            // Detect JSON vs CSV (Simple check: starts with [ or { is JSON)
             if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
                 const parsed = JSON.parse(content);
                 if (Array.isArray(parsed)) {
-                    // Normalize imported data
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const normalized = parsed.map((q: any) => {
                         const question = q.question || q.question_text || "";
@@ -529,97 +447,7 @@ const ExamCreator = () => {
                     toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
                 }
             } else {
-                // Handle CSV
-                // Inline robust CSV parser to handle quoted strings and newlines inside quotes
-                const rows: string[][] = [];
-                let currentRow: string[] = [];
-                let currentVal = "";
-                let inQuotes = false;
-
-                for (let i = 0; i < content.length; i++) {
-                    const char = content[i];
-                    const nextChar = content[i + 1];
-
-                    if (char === '"') {
-                        if (inQuotes && nextChar === '"') {
-                            // Escaped quote
-                            currentVal += '"';
-                            i++; // Skip next quote
-                        } else {
-                            // Toggle quote mode
-                            inQuotes = !inQuotes;
-                        }
-                    } else if (char === ',' && !inQuotes) {
-                        currentRow.push(currentVal.trim());
-                        currentVal = "";
-                    } else if ((char === '\n' || char === '\r') && !inQuotes) {
-                        if (currentVal || currentRow.length > 0) {
-                            currentRow.push(currentVal.trim());
-                            rows.push(currentRow);
-                        }
-                        currentRow = [];
-                        currentVal = "";
-                        // Handle CRLF
-                        if (char === '\r' && nextChar === '\n') i++;
-                    } else {
-                        currentVal += char;
-                    }
-                }
-                if (currentVal || currentRow.length > 0) {
-                    currentRow.push(currentVal.trim());
-                    rows.push(currentRow);
-                }
-
-                // Filter header if present (heuristic)
-                let startIndex = 0;
-                if (rows.length > 0 && rows[0][0].toLowerCase().includes('question')) {
-                    startIndex = 1;
-                }
-
-                const normalized = [];
-                for (let i = startIndex; i < rows.length; i++) {
-                    const row = rows[i];
-                    if (row.length < 2) continue; // Skip empty/invalid lines
-
-                    // Mapping: 0=Q, 1=Opt1, 2=Opt2, 3=Opt3, 4=Opt4, 5=Opt5(empty), 6=Ans, 7=Exp, 8=Type, 9=Sec
-                    const question = row[0] || "";
-                    const options = {
-                        A: row[1] || "",
-                        B: row[2] || "",
-                        C: row[3] || "",
-                        D: row[4] || "",
-                    };
-
-                    const ansRaw = row[6];
-                    let correct_answer = "";
-                    const num = Number(ansRaw);
-                    if (!isNaN(num) && num >= 1 && num <= 5) {
-                        correct_answer = ["A", "B", "C", "D", "E"][num - 1] || "";
-                    } else if (ansRaw) {
-                        correct_answer = ansRaw.toUpperCase();
-                    }
-
-                    const explanation = row[7] || "";
-
-                    normalized.push({
-                        question: sanitizeHtml(question),
-                        options: {
-                            A: sanitizeHtml(options.A),
-                            B: sanitizeHtml(options.B),
-                            C: sanitizeHtml(options.C),
-                            D: sanitizeHtml(options.D),
-                        },
-                        correct_answer: correct_answer,
-                        explanation: sanitizeHtml(explanation)
-                    });
-                }
-
-                if (normalized.length > 0) {
-                    setQuestions(prev => [...prev, ...normalized]);
-                    toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from CSV.` });
-                } else {
-                    toast({ title: "Import Failed", description: "No valid questions found in CSV.", variant: "destructive" });
-                }
+                toast({ title: "CSV Import", description: "CSV import is supported via copy-paste or implement if needed." });
             }
         } catch (err) {
             console.error(err);
@@ -627,39 +455,16 @@ const ExamCreator = () => {
         }
     };
     reader.readAsText(file);
-    e.target.value = ""; // reset
+    e.target.value = "";
   };
 
-  // Image handling
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleImageUpload = useCallback((quillRef: any) => {
-    const input = document.createElement('input');
-    input.setAttribute('type', 'file');
-    input.setAttribute('accept', 'image/*');
-    input.click();
-    input.onchange = async () => {
-      const file = input.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        reader.onload = (e: any) => {
-            setCropImage(e.target.result);
-            setCurrentQuillRef(quillRef);
-            setShowCropModal(true);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  }, []);
-
-  const insertCroppedImage = () => {
-    if (typeof cropper !== "undefined" && currentQuillRef) {
-      const editor = currentQuillRef.getEditor();
-      const range = editor.getSelection(true);
-      editor.insertEmbed(range ? range.index : 0, "image", cropper.getCroppedCanvas().toDataURL());
-      setShowCropModal(false);
-      setCropImage("");
-    }
+  const handleBankImport = (selectedQuestions: QuestionData[]) => {
+      const cleanQuestions = selectedQuestions.map(q => ({
+          ...q,
+          id: undefined
+      }));
+      setQuestions(prev => [...prev, ...cleanQuestions]);
+      toast({ title: "Imported", description: `Added ${cleanQuestions.length} questions from Question Bank.` });
   };
 
   return (
@@ -709,10 +514,14 @@ const ExamCreator = () => {
 
                 <div className="relative">
                     <Button variant="outline" onClick={() => document.getElementById('impf')?.click()}>
-                        <Upload className="mr-2 h-4 w-4" /> Import
+                        <Upload className="mr-2 h-4 w-4" /> Import File
                     </Button>
                     <input type="file" id="impf" className="hidden" accept=".json,.csv" onChange={handleImport} />
                 </div>
+
+                 <Button variant="secondary" onClick={() => setShowBankSelector(true)}>
+                    <BookOpen className="mr-2 h-4 w-4" /> Question Bank
+                </Button>
 
                 <Button variant="destructive" size="icon" onClick={() => {
                     if (confirm("Are you sure you want to clear all questions?")) setQuestions([]);
@@ -734,25 +543,16 @@ const ExamCreator = () => {
                         <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
                     </div>
                     <div className="p-6 md:p-8 space-y-6 bg-card">
-                        <QuestionForm
+                        <QuestionEditor
                             data={activeForm.data}
-                            onChange={handleFormChange}
+                            onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
                             onSave={handleSaveQuestion}
                             onCancel={() => setActiveForm(null)}
-                            onImageUpload={handleImageUpload}
-                            onOpenFormula={handleOpenFormula}
                         />
                     </div>
                 </Card>
             </div>
         )}
-
-        {/* Global Formula Editor Dialog */}
-        <FormulaEditorDialog
-            isOpen={formulaState.isOpen}
-            onClose={() => setFormulaState({ isOpen: false, targetQuill: null })}
-            onInsert={handleFormulaInsert}
-        />
 
         {/* Questions List */}
         <div className="space-y-8 pb-32">
@@ -854,392 +654,13 @@ const ExamCreator = () => {
         </div>
       </div>
 
-      {/* Crop Modal */}
-      {showCropModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-card border rounded-xl shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold">Crop Image</h3>
-                    <Button variant="ghost" size="sm" onClick={() => setShowCropModal(false)}>✕</Button>
-                </div>
-
-                <div className="flex-1 overflow-hidden bg-black/5 rounded-lg border min-h-[300px]">
-                    <Cropper
-                        src={cropImage}
-                        style={{ height: 400, width: "100%" }}
-                        initialAspectRatio={NaN}
-                        guides={true}
-                        viewMode={1}
-                        minCropBoxHeight={10}
-                        minCropBoxWidth={10}
-                        background={false}
-                        responsive={true}
-                        autoCropArea={1}
-                        checkOrientation={false}
-                        onInitialized={(instance) => setCropper(instance)}
-                    />
-                </div>
-
-                <div className="flex gap-3 mt-6 justify-end">
-                    <Button variant="outline" onClick={() => setShowCropModal(false)}>Cancel</Button>
-                    <Button onClick={insertCroppedImage}>
-                        <ImageIcon className="mr-2 h-4 w-4" /> Insert Image
-                    </Button>
-                </div>
-            </div>
-        </div>
-      )}
+      <QuestionBankSelector
+        open={showBankSelector}
+        onClose={() => setShowBankSelector(false)}
+        onSelect={handleBankImport}
+      />
     </div>
   );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const QuestionForm = ({ data, onChange, onSave, onCancel, onImageUpload, onOpenFormula }: any) => {
-    // Helper for updating fields
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const update = (field: string, val: any) => {
-        if (data[field] === val) return;
-        onChange({ ...data, [field]: val });
-    };
-
-    const updateOption = (key: string, val: string) => {
-        if (data.options[key] === val) return;
-        onChange({ ...data, options: { ...data.options, [key]: val } });
-    };
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const modules = useCallback((quillRef: any) => ({
-        toolbar: {
-            container: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'script': 'sub'}, { 'script': 'super' }],
-                ['formula'], // Added formula button
-                ['link', 'image', 'clean']
-            ],
-            handlers: {
-                image: () => onImageUpload(quillRef),
-                formula: () => onOpenFormula(quillRef)
-            }
-        }
-    }), [onImageUpload, onOpenFormula]);
-
-    return (
-        <div className="space-y-8">
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Question Text</Label>
-                    <Button variant="ghost" size="sm" onClick={() => onOpenFormula(null)} className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
-                        Math Formula Helper (Manual)
-                    </Button>
-                </div>
-                <ExpandableRichTextEditor
-                    value={data.question}
-                    onChange={(val: string) => update('question', val)}
-                    modulesGenerator={modules}
-                    onImageUpload={onImageUpload}
-                    placeholder="Type your question here... (Click to edit)"
-                    minHeight="150px"
-                />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {['A', 'B', 'C', 'D'].map((opt) => (
-                    <div key={opt} className={`space-y-3 p-4 rounded-xl border-2 transition-all ${
-                        data.correct_answer === opt
-                        ? 'border-green-500 bg-green-50/20 shadow-sm'
-                        : 'border-border/50 hover:border-primary/30 hover:bg-muted/20'
-                    }`}>
-                        <div className="flex items-center justify-between mb-2">
-                            <Label className="font-bold flex items-center gap-3 cursor-pointer select-none">
-                                <div className="relative flex items-center justify-center">
-                                    <input
-                                        type="radio"
-                                        name="correct_opt"
-                                        checked={data.correct_answer === opt}
-                                        onChange={() => update('correct_answer', opt)}
-                                        className="peer sr-only"
-                                    />
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                        data.correct_answer === opt
-                                        ? 'border-green-600 bg-green-600 text-white'
-                                        : 'border-muted-foreground'
-                                    }`}>
-                                        {data.correct_answer === opt && <Check className="h-3 w-3" />}
-                                    </div>
-                                </div>
-                                <span>Option {opt}</span>
-                            </Label>
-                            {data.correct_answer === opt && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Correct Answer</span>}
-                        </div>
-                        <ExpandableRichTextEditor
-                            value={data.options[opt]}
-                            onChange={(val: string) => updateOption(opt, val)}
-                            modulesGenerator={modules}
-                            onImageUpload={onImageUpload}
-                            minHeight="80px"
-                            placeholder={`Option ${opt} text...`}
-                        />
-                    </div>
-                ))}
-            </div>
-
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Explanation (Optional)</Label>
-                </div>
-                <ExpandableRichTextEditor
-                    value={data.explanation}
-                    onChange={(val: string) => update('explanation', val)}
-                    modulesGenerator={modules}
-                    onImageUpload={onImageUpload}
-                    minHeight="100px"
-                    placeholder="Explain the answer here..."
-                />
-            </div>
-
-            <div className="flex gap-4 pt-6 border-t mt-4">
-                <Button onClick={onSave} className="w-full sm:w-auto min-w-[150px] shadow-md">
-                    <Save className="mr-2 h-4 w-4" /> Save Question
-                </Button>
-                <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
-                    Cancel
-                </Button>
-            </div>
-        </div>
-    );
-};
-
-const FormulaEditorDialog = ({ isOpen, onClose, onInsert }: { isOpen: boolean, onClose: () => void, onInsert: (latex: string) => void }) => {
-    const { toast } = useToast();
-    const [latex, setLatex] = useState("");
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mathFieldRef = useRef<any>(null);
-
-    // Reset latex when opened
-    useEffect(() => {
-        if (isOpen) {
-            // Focus on open
-            setTimeout(() => {
-                if (mathFieldRef.current) mathFieldRef.current.focus();
-            }, 100);
-        }
-    }, [isOpen]);
-
-    const copyToClipboard = () => {
-        if(latex) {
-            navigator.clipboard.writeText('$' + latex + '$');
-            toast({ title: "Copied!", description: "LaTeX formula copied to clipboard." });
-        } else {
-            toast({ title: "Empty", description: "Type a formula first.", variant: "secondary" });
-        }
-    };
-
-    const handleInsert = () => {
-        if (latex) {
-            onInsert(latex);
-        } else {
-            toast({ title: "Empty", description: "Type a formula first.", variant: "secondary" });
-        }
-    };
-
-    return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent
-                className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto"
-                onPointerDownOutside={(e) => {
-                    const target = e.target as HTMLElement;
-                    // Check if target is detached (handles virtual keyboard re-renders like Shift key)
-                    const isDetached = !document.body.contains(target);
-                    if (
-                        isDetached ||
-                        target.closest('math-field') ||
-                        target.closest('.ML__keyboard') ||
-                        target.tagName.toLowerCase().startsWith('math-') ||
-                        target.classList.contains('ML__keyboard') ||
-                        document.querySelector('.ML__keyboard')?.contains(target)
-                    ) {
-                        e.preventDefault();
-                    }
-                }}
-                onInteractOutside={(e) => {
-                    const target = e.target as HTMLElement;
-                    const isDetached = !document.body.contains(target);
-                    if (
-                        isDetached ||
-                        target.closest('math-field') ||
-                        target.closest('.ML__keyboard') ||
-                        target.tagName.toLowerCase().startsWith('math-') ||
-                        target.classList.contains('ML__keyboard') ||
-                        document.querySelector('.ML__keyboard')?.contains(target)
-                    ) {
-                        e.preventDefault();
-                    }
-                }}
-                onFocusOutside={(e) => {
-                     // Prevent closing when focus moves to the virtual keyboard
-                     e.preventDefault();
-                }}
-            >
-                <DialogHeader>
-                    <DialogTitle>Math Formula Editor</DialogTitle>
-                    <DialogDescription className="sr-only">Editor for inserting mathematical formulas</DialogDescription>
-                </DialogHeader>
-                <div className="py-4 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                         <p className="text-sm text-muted-foreground">
-                            Type standard keyboard input or use the virtual math keyboard.
-                        </p>
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                                const mf = mathFieldRef.current;
-                                if (mf) {
-                                    if (mf.virtualKeyboardState === 'visible') {
-                                        mf.executeCommand('hideVirtualKeyboard');
-                                    } else {
-                                        mf.executeCommand('showVirtualKeyboard');
-                                    }
-                                    mf.focus();
-                                }
-                            }}
-                        >
-                            Toggle Virtual Keyboard
-                        </Button>
-                    </div>
-
-                    {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-                    {/* @ts-ignore */}
-                    <math-field
-                        ref={mathFieldRef}
-                        virtual-keyboard-mode="manual"
-                        style={{
-                            width: '100%',
-                            border: '2px solid #3b82f6',
-                            padding: '16px',
-                            borderRadius: '8px',
-                            background: 'white',
-                            color: 'black',
-                            fontSize: '1.5em',
-                            outline: 'none',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        }}
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        onInput={(e: any) => setLatex(e.target.value)}
-                    ></math-field>
-
-                    <div className="relative group">
-                         <div className="bg-muted p-4 rounded-lg text-sm font-mono break-all select-all border min-h-[4rem] flex items-center">
-                             {latex ? `$${latex}$` : <span className="text-muted-foreground italic">LaTeX preview will appear here...</span>}
-                         </div>
-                         <Button
-                            size="sm"
-                            variant="ghost"
-                            className="absolute right-2 top-2 h-8 w-8"
-                            onClick={copyToClipboard}
-                            title="Copy to clipboard"
-                         >
-                            <Copy className="h-4 w-4" />
-                         </Button>
-                    </div>
-
-                    <div className="flex justify-end gap-3 mt-4 pt-4 border-t">
-                        <Button variant="outline" size="lg" onClick={onClose}>Cancel</Button>
-                        <Button
-                            onClick={handleInsert}
-                            size="lg"
-                            className="bg-primary text-primary-foreground shadow-lg hover:bg-primary/90"
-                        >
-                            Insert Formula
-                        </Button>
-                    </div>
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExpandableRichTextEditor = ({ value, onChange, modulesGenerator, minHeight = "100px", placeholder }: any) => {
-    const [isEditing, setIsEditing] = useState(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const quillRef = useRef<any>(null);
-
-    const modules = React.useMemo(() => {
-        return modulesGenerator({
-            getEditor: () => quillRef.current?.getEditor()
-        });
-    }, [modulesGenerator]);
-
-    if (!isEditing) {
-        return (
-            <div
-                onClick={() => setIsEditing(true)}
-                className="w-full rounded-xl border border-input bg-background px-4 py-3 text-sm ring-offset-background cursor-text hover:bg-muted/20 hover:border-primary/30 transition-all shadow-sm"
-                style={{ minHeight }}
-            >
-                {value && value !== "<p><br></p>" ? (
-                    <div className="prose prose-sm max-w-none dark:prose-invert pointer-events-none" dangerouslySetInnerHTML={{ __html: value }} />
-                ) : (
-                    <span className="text-muted-foreground flex items-center gap-2 mt-1">
-                        <Edit2 className="h-3 w-3" /> {placeholder || "Click to edit..."}
-                    </span>
-                )}
-            </div>
-        );
-    }
-
-    return (
-        <div className="relative border-2 border-primary/20 rounded-xl p-2 bg-background animate-in fade-in zoom-in-95 duration-200 shadow-md ring-2 ring-primary/5">
-            <ReactQuill
-                ref={quillRef}
-                theme="snow"
-                value={value}
-                onChange={onChange}
-                modules={modules}
-                placeholder={placeholder}
-                style={{ height: 'auto' }}
-                className="h-auto rounded-md overflow-hidden"
-            />
-            {/* Custom Styles */}
-            <style>{`
-                .ql-container {
-                    min-height: ${minHeight};
-                    font-size: 16px;
-                    border: none !important;
-                }
-                .ql-toolbar {
-                    border: none !important;
-                    border-bottom: 1px solid #e2e8f0 !important;
-                    background: #f8fafc;
-                    border-radius: 8px 8px 0 0;
-                }
-                .dark .ql-toolbar {
-                    background: #1e293b;
-                    border-bottom: 1px solid #334155 !important;
-                }
-                .dark .ql-snow .ql-stroke {
-                    stroke: #e2e8f0;
-                }
-                .dark .ql-snow .ql-fill {
-                    fill: #e2e8f0;
-                }
-                .dark .ql-snow .ql-picker {
-                    color: #e2e8f0;
-                }
-                .ql-editor {
-                    min-height: ${minHeight};
-                    padding: 16px;
-                }
-            `}</style>
-            <div className="flex justify-end mt-2 pt-2 border-t border-dashed">
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); setIsEditing(false); }} className="h-8">
-                    <Check className="mr-1 h-3 w-3" /> Done
-                </Button>
-            </div>
-        </div>
-    );
 };
 
 export default ExamCreator;

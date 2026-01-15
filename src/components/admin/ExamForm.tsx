@@ -16,6 +16,7 @@ import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
 
 const examSchema = z.object({
   id: z.string().optional(),
@@ -54,6 +55,7 @@ const examSchema = z.object({
 });
 
 interface ExamFormProps {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     exam?: any;
     onSuccess: () => void;
     onCancel?: () => void;
@@ -64,6 +66,15 @@ interface ExamFormProps {
 export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArchiveMode = false }: ExamFormProps) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Global Metadata Hook
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: globalMeta } = useGlobalMetadata() as any;
+    const addMetadata = useAddGlobalMetadata();
+
+    const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+        addMetadata.mutate({ type, value });
+    };
 
     const [form, setForm] = useState<z.infer<typeof examSchema>>({
         course_id: "",
@@ -133,33 +144,6 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         },
     });
 
-    const { data: distinctMetadata } = useQuery({
-        queryKey: ["admin-exams-metadata-form"],
-        queryFn: async () => {
-           const { data, error } = await supabase.from("exams").select("subject, chapter");
-           if (error) throw error;
-
-           const subjects = new Set<string>();
-           const chapters = new Set<string>();
-
-           data?.forEach(item => {
-               if (Array.isArray(item.subject)) {
-                   item.subject.forEach((s: string) => subjects.add(s));
-               } else if (typeof item.subject === 'string' && item.subject) {
-                   subjects.add(item.subject);
-               }
-               if (item.chapter) chapters.add(item.chapter);
-           });
-
-           SUBJECTS.forEach(s => subjects.add(s));
-
-           return {
-               subjects: Array.from(subjects).sort().map(s => ({ label: s, value: s })),
-               chapters: Array.from(chapters).sort().map(c => ({ label: c, value: c }))
-           };
-        }
-    });
-
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'json' | 'csv') => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -183,11 +167,6 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           const parsed = examSchema.parse(values);
 
           const payload: Partial<Exam> = {
-            course_id: (isFreeMode || isArchiveMode) ? (parsed.course_id || null) : (parsed.course_id || null),
-            // Logic: if free mode, course_id is null. If archive mode, course_id is whatever user set (or first from archive list).
-            // Actually, if isFreeMode is true, course_id SHOULD be null.
-            // If isArchiveMode is true, course_id can be null or a value.
-            // But let's stick to the previous correct logic:
             course_id: isFreeMode ? null : (parsed.course_id || null),
             // @ts-ignore
             shared_course_ids: parsed.shared_course_ids,
@@ -213,6 +192,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           // Helper functions for questions (copied from original)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const normaliseQuestions = (input: Array<any>) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             return input.map((q) => {
               const questionText = String(
                 q.question_text ?? q.question ?? "",
@@ -261,6 +241,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           };
 
           const parseCsvQuestions = (csv: string) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const rows: any[] = [];
             const lines = csv
               .split(/\r?\n/)
@@ -383,6 +364,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
           queryClient.invalidateQueries({ queryKey: ["public-free-exams"] });
           queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
+          queryClient.invalidateQueries({ queryKey: ["global-metadata"] }); // Invalidate global metadata
           if (!exam) {
               setForm({
                 course_id: "",
@@ -471,6 +453,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {isArchiveMode && (
                   <div className="space-y-2 md:col-span-2">
                       <Label>Archive For Courses (Select one or more)</Label>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.archive_course_ids}
@@ -494,6 +477,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isFreeMode && !isArchiveMode && form.course_id && (
                   <div className="space-y-2">
                       <Label>Also Share With (Optional)</Label>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.shared_course_ids}
@@ -506,6 +490,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isArchiveMode && (
                   <div className="space-y-2">
                       <Label>Add to Archive of (Optional)</Label>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.archive_course_ids}
@@ -545,10 +530,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               <div className="space-y-2">
                 <Label htmlFor="subject">Subjects</Label>
                 <MultiSelect
-                    options={distinctMetadata?.subjects || SUBJECTS.map(s => ({ label: s, value: s }))}
+                    options={globalMeta?.subject || []}
                     selected={form.subject}
                     onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
                     onCreate={(val) => {
+                         handleCreateMeta('subject', val);
                          setForm(prev => ({ ...prev, subject: [...prev.subject, val] }));
                     }}
                     placeholder="Select or Create subjects..."
@@ -558,10 +544,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               <div className="space-y-2">
                 <Label htmlFor="chapter">Chapter</Label>
                 <CreatableSelect
-                  options={distinctMetadata?.chapters || []}
+                  options={globalMeta?.chapter || []}
                   value={form.chapter || ""}
                   onChange={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
-                  onCreate={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                  onCreate={(val) => {
+                      handleCreateMeta('chapter', val);
+                      setForm((prev) => ({ ...prev, chapter: val }));
+                  }}
                   placeholder="Select or Create Chapter"
                 />
               </div>
