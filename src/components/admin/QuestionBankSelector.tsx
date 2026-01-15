@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, Loader2 } from "lucide-react";
 import MathText from "@/components/MathText";
-import { SUBJECTS } from "@/lib/constants";
+import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
 
 interface QuestionBankSelectorProps {
     open: boolean;
@@ -31,75 +31,9 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
     const PAGE_SIZE = 5;
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-    // Fetch Metadata for Filters (Lightweight)
-    const { data: metadata } = useQuery({
-        queryKey: ["question-bank-metadata-selector-global"],
-        queryFn: async () => {
-            // Parallel fetches from all relevant tables
-            const [
-                { data: qbData },
-                { data: examsData },
-                { data: notesData },
-                { data: classesData }
-            ] = await Promise.all([
-                supabase.from("question_bank").select("subject, chapter, topic, exam_code, year"),
-                supabase.from("exams").select("subject, chapter"),
-                supabase.from("class_notes").select("subject, chapter, topic"),
-                supabase.from("classes").select("subject, chapter, topic")
-            ]);
-
-            const subjects = new Set<string>();
-            const chapters = new Set<string>();
-            const topics = new Set<string>();
-            const examCodes = new Set<string>();
-            const years = new Set<string>();
-
-            // Add Constants
-            SUBJECTS.forEach(s => subjects.add(s));
-
-            // Process Question Bank Data
-            qbData?.forEach(item => {
-                if (item.subject) subjects.add(item.subject);
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-                if (item.exam_code) examCodes.add(item.exam_code);
-                if (item.year) years.add(item.year);
-            });
-
-            // Process Exams Data
-            examsData?.forEach(item => {
-                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
-                else if (item.subject) subjects.add(item.subject);
-
-                if (item.chapter) chapters.add(item.chapter);
-            });
-
-            // Process Notes Data
-            notesData?.forEach(item => {
-                if (item.subject) subjects.add(item.subject);
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-            });
-
-            // Process Classes Data
-            classesData?.forEach(item => {
-                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
-                else if (item.subject) subjects.add(item.subject);
-
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-            });
-
-            return {
-                subjects: Array.from(subjects).sort().map(s => ({ label: s, value: s })),
-                chapters: Array.from(chapters).sort().map(s => ({ label: s, value: s })),
-                topics: Array.from(topics).sort().map(s => ({ label: s, value: s })),
-                examCodes: Array.from(examCodes).sort().map(s => ({ label: s, value: s })),
-                years: Array.from(years).sort().map(s => ({ label: s, value: s })),
-            };
-        },
-        enabled: open
-    });
+    // Global Metadata Hook
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: globalMeta } = useGlobalMetadata() as any;
 
     const { data: questionsData, isLoading } = useQuery({
         queryKey: ["question-bank-selector", page, search, filters],
@@ -156,7 +90,8 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
             }
 
             // Map to Question format expected by ExamCreator
-            const mapped = data.map(q => ({
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const mapped = data.map((q: any) => ({
                 question: q.question_text,
                 options: {
                     A: q.option_a,
@@ -199,28 +134,32 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
                             <SelectTrigger className="h-9"><SelectValue placeholder="Subject" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Subjects</SelectItem>
-                                {metadata?.subjects.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {globalMeta?.subject?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                         <Select value={filters.chapter} onValueChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Chapter" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Chapters</SelectItem>
-                                {metadata?.chapters.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {globalMeta?.chapter?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                          <Select value={filters.exam_code} onValueChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Code" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Codes</SelectItem>
-                                {metadata?.examCodes.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {globalMeta?.exam_code?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                          <Select value={filters.year} onValueChange={(val) => setFilters(prev => ({ ...prev, year: val === 'all' ? '' : val }))}>
                             <SelectTrigger className="h-9"><SelectValue placeholder="Year" /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Years</SelectItem>
-                                {metadata?.years.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {globalMeta?.year?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                             </SelectContent>
                         </Select>
                     </div>

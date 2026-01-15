@@ -13,7 +13,7 @@ import { Loader2, Plus, Search, Filter, Edit2, Trash2, ArrowLeft } from "lucide-
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { MultiSelect } from "@/components/ui/multi-select";
 import MathText from "@/components/MathText";
-import { SUBJECTS } from "@/lib/constants";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
 
 interface QuestionBankItem extends QuestionData {
     subject: string;
@@ -67,77 +67,21 @@ const QuestionBank = () => {
     };
     const [formData, setFormData] = useState<QuestionBankItem>(emptyQuestion);
 
-    // Fetch Global Metadata
-    const { data: metadata } = useQuery({
-        queryKey: ["question-bank-metadata-global"],
-        queryFn: async () => {
-            // Parallel fetches from all relevant tables
-            const [
-                { data: qbData },
-                { data: examsData },
-                { data: notesData },
-                { data: classesData }
-            ] = await Promise.all([
-                supabase.from("question_bank").select("subject, chapter, topic, exam_code, year, tags"),
-                supabase.from("exams").select("subject, chapter"),
-                supabase.from("class_notes").select("subject, chapter, topic"),
-                supabase.from("classes").select("subject, chapter, topic")
-            ]);
+    // Global Metadata Hook
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: globalMeta } = useGlobalMetadata() as any;
+    const addMetadata = useAddGlobalMetadata();
 
-            const subjects = new Set<string>();
-            const chapters = new Set<string>();
-            const topics = new Set<string>();
-            const examCodes = new Set<string>();
-            const years = new Set<string>();
-            const tags = new Set<string>();
-
-            // Add Constants
-            SUBJECTS.forEach(s => subjects.add(s));
-
-            // Process Question Bank Data
-            qbData?.forEach(item => {
-                if (item.subject) subjects.add(item.subject);
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-                if (item.exam_code) examCodes.add(item.exam_code);
-                if (item.year) years.add(item.year);
-                if (Array.isArray(item.tags)) item.tags.forEach((t: string) => tags.add(t));
-            });
-
-            // Process Exams Data
-            examsData?.forEach(item => {
-                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
-                else if (item.subject) subjects.add(item.subject);
-
-                if (item.chapter) chapters.add(item.chapter);
-            });
-
-            // Process Notes Data
-            notesData?.forEach(item => {
-                if (item.subject) subjects.add(item.subject);
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-            });
-
-            // Process Classes Data
-            classesData?.forEach(item => {
-                if (Array.isArray(item.subject)) item.subject.forEach((s: string) => subjects.add(s));
-                else if (item.subject) subjects.add(item.subject);
-
-                if (item.chapter) chapters.add(item.chapter);
-                if (item.topic) topics.add(item.topic);
-            });
-
-            return {
-                subjects: Array.from(subjects).sort().map(s => ({ label: s, value: s })),
-                chapters: Array.from(chapters).sort().map(s => ({ label: s, value: s })),
-                topics: Array.from(topics).sort().map(s => ({ label: s, value: s })),
-                examCodes: Array.from(examCodes).sort().map(s => ({ label: s, value: s })),
-                years: Array.from(years).sort().map(s => ({ label: s, value: s })),
-                tags: Array.from(tags).sort().map(s => ({ label: s, value: s })),
-            };
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag', value: string) => {
+        addMetadata.mutate({ type, value });
+        // Optimistically update form data
+        if (type === 'tag') {
+            setFormData(prev => ({ ...prev, tags: [...prev.tags, value] }));
+        } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            setFormData(prev => ({ ...prev, [type]: value } as any));
         }
-    });
+    };
 
     // Fetch Questions
     const { data: questionsData, isLoading } = useQuery({
@@ -200,7 +144,6 @@ const QuestionBank = () => {
         onSuccess: () => {
             toast({ title: "Question saved successfully" });
             queryClient.invalidateQueries({ queryKey: ["question-bank"] });
-            queryClient.invalidateQueries({ queryKey: ["question-bank-metadata-global"] });
             setViewMode('list');
             setEditingId(null);
             setFormData(emptyQuestion);
@@ -268,50 +211,50 @@ const QuestionBank = () => {
                     <div className="space-y-2">
                         <Label>Subject</Label>
                         <CreatableSelect
-                            options={metadata?.subjects || []}
+                            options={globalMeta?.subject || []}
                             value={formData.subject}
                             onChange={(val) => setFormData(prev => ({ ...prev, subject: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, subject: val }))}
+                            onCreate={(val) => handleCreateMeta('subject', val)}
                             placeholder="Select or create Subject"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Chapter</Label>
                         <CreatableSelect
-                            options={metadata?.chapters || []}
+                            options={globalMeta?.chapter || []}
                             value={formData.chapter}
                             onChange={(val) => setFormData(prev => ({ ...prev, chapter: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, chapter: val }))}
+                            onCreate={(val) => handleCreateMeta('chapter', val)}
                             placeholder="Select or create Chapter"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Topic</Label>
                         <CreatableSelect
-                            options={metadata?.topics || []}
+                            options={globalMeta?.topic || []}
                             value={formData.topic}
                             onChange={(val) => setFormData(prev => ({ ...prev, topic: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, topic: val }))}
+                            onCreate={(val) => handleCreateMeta('topic', val)}
                             placeholder="Select or create Topic"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Exam Code (e.g. DU)</Label>
                         <CreatableSelect
-                            options={metadata?.examCodes || []}
+                            options={globalMeta?.exam_code || []}
                             value={formData.exam_code}
                             onChange={(val) => setFormData(prev => ({ ...prev, exam_code: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, exam_code: val }))}
+                            onCreate={(val) => handleCreateMeta('exam_code', val)}
                             placeholder="Select or create Code"
                         />
                     </div>
                     <div className="space-y-2">
                         <Label>Year</Label>
                         <CreatableSelect
-                            options={metadata?.years || []}
+                            options={globalMeta?.year || []}
                             value={formData.year}
                             onChange={(val) => setFormData(prev => ({ ...prev, year: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, year: val }))}
+                            onCreate={(val) => handleCreateMeta('year', val)}
                             placeholder="Select or create Year"
                         />
                     </div>
@@ -331,10 +274,10 @@ const QuestionBank = () => {
                     <div className="space-y-2 md:col-span-2">
                         <Label>Tags</Label>
                         <MultiSelect
-                            options={metadata?.tags || []}
+                            options={globalMeta?.tag || []}
                             selected={formData.tags}
                             onChange={(val) => setFormData(prev => ({ ...prev, tags: val }))}
-                            onCreate={(val) => setFormData(prev => ({ ...prev, tags: [...prev.tags, val] }))}
+                            onCreate={(val) => handleCreateMeta('tag', val)}
                             placeholder="Select or create Tags"
                         />
                     </div>
@@ -378,28 +321,28 @@ const QuestionBank = () => {
                     <SelectTrigger><SelectValue placeholder="Subject" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Subjects</SelectItem>
-                        {metadata?.subjects.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        {globalMeta?.subject?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={filters.chapter} onValueChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}>
                     <SelectTrigger><SelectValue placeholder="Chapter" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Chapters</SelectItem>
-                        {metadata?.chapters.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        {globalMeta?.chapter?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                 <Select value={filters.topic} onValueChange={(val) => setFilters(prev => ({ ...prev, topic: val === 'all' ? '' : val }))}>
                     <SelectTrigger><SelectValue placeholder="Topic" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Topics</SelectItem>
-                        {metadata?.topics.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        {globalMeta?.topic?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
                  <Select value={filters.exam_code} onValueChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}>
                     <SelectTrigger><SelectValue placeholder="Exam Code" /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Codes</SelectItem>
-                        {metadata?.examCodes.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                        {globalMeta?.exam_code?.map((s: any) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                     </SelectContent>
                 </Select>
             </div>
