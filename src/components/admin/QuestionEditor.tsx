@@ -7,7 +7,6 @@ import { FormulaEditorDialog } from "@/components/ui/formula-editor-dialog";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import Cropper from "react-cropper";
-import "cropperjs/dist/cropper.css";
 
 // Helper to convert base64 to Blob
 const base64ToBlob = (base64: string) => {

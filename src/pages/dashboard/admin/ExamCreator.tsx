@@ -1,17 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
-import ReactQuill, { Quill } from "react-quill";
+import React, { useEffect, useState } from "react";
 import "react-quill/dist/quill.snow.css";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import Cropper from "react-cropper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
-  Database, BookOpen, Check
+  Database, BookOpen
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
