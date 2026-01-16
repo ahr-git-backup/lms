@@ -328,42 +328,42 @@ const CourseBuy = () => {
                     )}
                 </div>
 
-                <div className="bg-muted/50 p-4 rounded-lg space-y-3 border">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                        <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span>
+                <div className="bg-muted/50 p-6 rounded-lg space-y-4 border">
+                    <div className="flex items-center gap-2 text-base font-bold text-primary">
+                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span>
                         Step 1: Send Money
                     </div>
-                    <p className="text-muted-foreground ml-8">
+                    <p className="text-muted-foreground pl-9">
                         Send <span className="font-bold text-foreground">৳{Number(finalPrice).toLocaleString("en-BD")}</span> via "Send Money".
                     </p>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2 ml-8">
-                        <div className="relative p-3 bg-pink-50 dark:bg-pink-950/30 rounded-md border border-pink-200 dark:border-pink-800 group">
-                            <span className="text-xs font-bold text-pink-600 dark:text-pink-400 block mb-1">bKash Personal</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
+                        <div className="relative p-4 bg-pink-50 dark:bg-pink-950/30 rounded-lg border border-pink-200 dark:border-pink-800 group hover:shadow-sm transition-shadow">
+                            <span className="text-xs font-bold text-pink-600 dark:text-pink-400 block mb-1 uppercase tracking-wider">bKash Personal</span>
                             <div className="flex items-center justify-between">
                                 <span className="font-mono text-lg font-bold tracking-wide">{bkashNumber}</span>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 text-pink-600 hover:text-pink-700 hover:bg-pink-100"
+                                    className="h-8 w-8 text-pink-600 hover:text-pink-700 hover:bg-pink-100"
                                     onClick={() => copyToClipboard(bkashNumber, "bKash number")}
                                 >
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
 
-                        <div className="relative p-3 bg-orange-50 dark:bg-orange-950/30 rounded-md border border-orange-200 dark:border-orange-800 group">
-                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 block mb-1">Nagad Personal</span>
+                        <div className="relative p-4 bg-orange-50 dark:bg-orange-950/30 rounded-lg border border-orange-200 dark:border-orange-800 group hover:shadow-sm transition-shadow">
+                            <span className="text-xs font-bold text-orange-600 dark:text-orange-400 block mb-1 uppercase tracking-wider">Nagad Personal</span>
                             <div className="flex items-center justify-between">
                                 <span className="font-mono text-lg font-bold tracking-wide">{nagadNumber}</span>
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-6 w-6 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
+                                    className="h-8 w-8 text-orange-600 hover:text-orange-700 hover:bg-orange-100"
                                     onClick={() => copyToClipboard(nagadNumber, "Nagad number")}
                                 >
-                                    <Copy className="h-3 w-3" />
+                                    <Copy className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
@@ -371,13 +371,13 @@ const CourseBuy = () => {
                 </div>
 
                 <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold">
-                        <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                    <div className="flex items-center gap-2 text-base font-bold text-primary">
+                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
                         Step 2: Submit Details
                     </div>
 
                     {!user ? (
-                        <div className="ml-8 text-center py-8 border-2 border-dashed rounded-lg bg-muted/20">
+                        <div className="text-center py-8 border-2 border-dashed rounded-lg bg-muted/20">
                             <div className="flex justify-center mb-3 text-muted-foreground"><AlertCircle className="h-8 w-8" /></div>
                             <p className="mb-4 font-medium">You must be logged in to submit payment details.</p>
                             <div className="flex gap-2 justify-center">
@@ -386,18 +386,33 @@ const CourseBuy = () => {
                             </div>
                         </div>
                     ) : isSubmitted || existingRequest ? (
-                        <div className="ml-8 text-center py-8 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 animate-in zoom-in-95 duration-300">
-                            <div className="flex justify-center mb-3 text-green-600"><CheckCircle2 className="h-10 w-10" /></div>
-                            <h3 className="font-bold text-xl text-green-700 dark:text-green-400">Payment Submitted!</h3>
-                            <p className="text-sm text-green-600/90 dark:text-green-500/90 mt-2 leading-relaxed">
-                                We have received your request. <br/>
-                                Please wait for admin approval (usually takes 10-30 mins).
-                            </p>
-                            <Button asChild className="mt-4 bg-green-600 hover:bg-green-700 text-white"><Link to="/dashboard">Go to Dashboard</Link></Button>
+                        <div className="text-center py-8 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 animate-in zoom-in-95 duration-300 p-6">
+                            <div className="flex justify-center mb-4">
+                                <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">
+                                    <CheckCircle2 className="h-8 w-8" />
+                                </div>
+                            </div>
+                            <h3 className="font-bold text-xl text-yellow-900 dark:text-yellow-200 mb-4">
+                                এটলাসের কোর্সে আপনাকে স্বাগতম।
+                            </h3>
+                            <div className="text-sm text-yellow-800 dark:text-yellow-300 space-y-3 leading-relaxed max-w-lg mx-auto">
+                                <p>
+                                    <span className="font-semibold">@atlasweb_Robot</span> এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন।
+                                    ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
+                                </p>
+                                <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
+                                <p>
+                                    ২৪ ঘন্টার মাঝে এক্সেস না পেলে মেসেজ দিন এই নাম্বারে <br/>
+                                    <a href="http://wa.me/8801999681290" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-bold underline mt-1 hover:text-yellow-900">
+                                        01999681290 (WhatsApp)
+                                    </a>
+                                </p>
+                            </div>
+                            <Button asChild className="mt-6 bg-yellow-600 hover:bg-yellow-700 text-white border-none"><Link to="/dashboard">Go to Dashboard</Link></Button>
                         </div>
                     ) : (
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="ml-8 space-y-4 border p-5 rounded-lg bg-card shadow-sm">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border p-6 rounded-lg bg-card shadow-sm">
                                 <FormField
                                 control={form.control}
                                 name="payment_method"
