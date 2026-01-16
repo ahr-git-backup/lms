@@ -3,6 +3,7 @@ import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNo
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +23,7 @@ interface DashboardData {
 const DashboardHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
 
   useEffect(() => {
     document.title = "Dashboard – Atlas";
@@ -78,6 +80,33 @@ const DashboardHome = () => {
           See a quick overview of your upcoming activities.
         </p>
       </header>
+
+      {/* Enrollment Warning Card */}
+      {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
+            <CardContent className="flex flex-col md:flex-row items-center justify-between gap-4 p-6">
+                <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-100 text-red-600 rounded-full dark:bg-red-900/30 dark:text-red-400">
+                        <AlertCircle className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
+                            No Active Course
+                        </h3>
+                        <p className="text-red-700 dark:text-red-300">
+                            আপনি কোনো কোর্সে এনরোল করেননি। ওয়েবসাইটটি সঠিকভাবে ব্যবহার করতে যেকোনো একটি কোর্স কিনুন।
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    onClick={() => navigate("/courses")}
+                    className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
+                >
+                    কোর্স কিনতে এখানে ক্লিক করুন
+                </Button>
+            </CardContent>
+        </Card>
+      )}
 
       {/* 1. Live Activity Section (Priority 1) */}
       {hasLiveActivity && (

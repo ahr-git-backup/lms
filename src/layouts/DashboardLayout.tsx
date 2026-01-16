@@ -22,7 +22,7 @@ import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
-  const { profile, signOut, isAdmin } = useAuth();
+  const { profile, signOut, isAdmin, isTeacher } = useAuth();
   const { sendNotification, permission, requestPermission } = useNotification();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
@@ -383,15 +383,14 @@ export const DashboardLayout = () => {
                         <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
                     </Link>
 
-                    {isAdmin && (
+                    {(isAdmin || isTeacher) && (
                       <>
                         <div className="my-1 border-t border-border/50"></div>
-                        <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Admin</p>
-                        <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Settings className="h-4 w-4 text-green-600" /> Courses
-                        </Link>
-                        <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Users className="h-4 w-4 text-purple-600" /> Students
+                        <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{isAdmin ? "Admin" : "Teacher"}</p>
+
+                        {/* Common Links for Admin & Teacher */}
+                        <Link to="/dashboard/admin" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <LayoutDashboard className="h-4 w-4 text-blue-600" /> Overview
                         </Link>
                         <Link to="/dashboard/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Video className="h-4 w-4 text-red-600" /> Classes
@@ -411,24 +410,36 @@ export const DashboardLayout = () => {
                         <Link to="/dashboard/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
                         </Link>
-                        <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
-                        </Link>
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Megaphone className="h-4 w-4 text-yellow-600" /> Announcements
                         </Link>
-                        <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <CreditCard className="h-4 w-4 text-emerald-600" /> Payments
-                        </Link>
-                        <Link to="/dashboard/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Tag className="h-4 w-4 text-cyan-600" /> Promo Codes
-                        </Link>
-                        <Link to="/dashboard/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <LayoutTemplate className="h-4 w-4 text-indigo-600" /> Site Heroes
-                        </Link>
-                        <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <PenTool className="h-4 w-4 text-violet-600" /> Mentors/Founders
-                        </Link>
+
+                        {/* Admin Only Links */}
+                        {isAdmin && (
+                          <>
+                            <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <Settings className="h-4 w-4 text-green-600" /> Courses
+                            </Link>
+                            <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <Users className="h-4 w-4 text-purple-600" /> Students
+                            </Link>
+                            <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
+                            </Link>
+                            <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <CreditCard className="h-4 w-4 text-emerald-600" /> Payments
+                            </Link>
+                            <Link to="/dashboard/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <Tag className="h-4 w-4 text-cyan-600" /> Promo Codes
+                            </Link>
+                            <Link to="/dashboard/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <LayoutTemplate className="h-4 w-4 text-indigo-600" /> Site Heroes
+                            </Link>
+                            <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <PenTool className="h-4 w-4 text-violet-600" /> Mentors/Founders
+                            </Link>
+                          </>
+                        )}
                       </>
                     )}
 

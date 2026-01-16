@@ -27,6 +27,7 @@ import {
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { Loader2, Plus, Trash2, Edit, Image as ImageIcon } from "lucide-react";
 
 const heroSchema = z.object({
@@ -187,7 +188,11 @@ const AdminHeroes = () => {
                     <FormItem>
                       <FormLabel>Image URL</FormLabel>
                       <FormControl>
-                        <Input placeholder="https://..." {...field} />
+                        <ImageUploader
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="https://... or upload"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
