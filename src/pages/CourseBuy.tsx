@@ -397,7 +397,9 @@ const CourseBuy = () => {
                             </h3>
                             <div className="text-sm text-yellow-800 dark:text-yellow-300 space-y-3 leading-relaxed max-w-lg mx-auto">
                                 <p>
-                                    <span className="font-semibold">@atlasweb_Robot</span> এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন।
+                                    <a href="https://t.me/atlasweb_robot" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-yellow-900">
+                                        @atlasweb_Robot
+                                    </a> এ আপনার বিকাশ/নগদ পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন।
                                     ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
                                 </p>
                                 <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
