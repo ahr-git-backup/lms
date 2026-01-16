@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-// Define shape of dashboard data (or cast to any for simplicity in this task, but interfaces are better)
+// Define shape of dashboard data
 interface DashboardData {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     next_class: any;
@@ -29,7 +29,7 @@ const DashboardHome = () => {
     document.title = "Dashboard – Atlas";
   }, []);
 
-  const { data: pendingPayments, isLoading: pendingPaymentsLoading } = useQuery({
+  const { data: pendingPayments } = useQuery({
     queryKey: ["pending-payments", user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -60,7 +60,7 @@ const DashboardHome = () => {
   });
 
   if (dashboardLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading dashboard...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">লোডিং হচ্ছে...</div>;
   }
 
   // Extract data with fallbacks
@@ -73,17 +73,17 @@ const DashboardHome = () => {
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
-      { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
-      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
-      { title: "Past Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
-      { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
-      { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
-      { title: "Class Notes", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
-      { title: "Resources", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
-      { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
-      { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
+      { title: "লাইভ ক্লাস", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
+      { title: "লাইভ এক্সাম", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
+      { title: "রেকর্ডেড ক্লাস", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
+      { title: "অতীত এক্সাম", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
+      { title: "আর্কাইভ", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
+      { title: "ফলাফল", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "ভুলসমূহ", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
+      { title: "নোটস", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
+      { title: "রিসোর্স", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
+      { title: "বুকমার্ক", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
+      { title: "প্রোফাইল", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
 
   return (
@@ -96,7 +96,7 @@ const DashboardHome = () => {
       </header>
 
       {/* Enrollment Warning Card */}
-      {!enrollmentsLoading && !pendingPaymentsLoading && enrollments && enrollments.length === 0 && (
+      {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
         <>
           {pendingPayments && pendingPayments.length > 0 ? (
              <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-800">
@@ -127,7 +127,7 @@ const DashboardHome = () => {
                         </div>
                         <div>
                             <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
-                                No Active Course
+                                কোনো সক্রিয় কোর্স নেই
                             </h3>
                             <p className="text-red-700 dark:text-red-300">
                                 আপনি কোনো কোর্সে এনরোল করেননি। ওয়েবসাইটটি সঠিকভাবে ব্যবহার করতে যেকোনো একটি কোর্স কিনুন।
@@ -168,12 +168,12 @@ const DashboardHome = () => {
                       </div>
                       <CardTitle className="text-base break-words">{classItem.title}</CardTitle>
                       <CardDescription className="text-xs">
-                        Started: {new Date(classItem.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        শুরু: {new Date(classItem.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          লাইভ ক্লাসে যোগ দিন
+                          ক্লাসে যোগ দিন
                        </Button>
                     </CardContent>
                   </Card>
@@ -193,12 +193,12 @@ const DashboardHome = () => {
                       </div>
                       <CardTitle className="text-base break-words">{exam.title}</CardTitle>
                       <CardDescription className="text-xs">
-                        Ends at: {new Date(exam.time_window_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        শেষ: {new Date(exam.time_window_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          লাইভ এক্সাম দিন
+                          পরীক্ষা দিন
                        </Button>
                     </CardContent>
                   </Card>
@@ -237,7 +237,7 @@ const DashboardHome = () => {
                         </div>
                         {nextClass.video_url && (
                             <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
-                                Join Class
+                                ক্লাসে যোগ দিন
                             </Button>
                         )}
                     </CardContent>
@@ -268,7 +268,7 @@ const DashboardHome = () => {
                             </div>
                         </div>
                         <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
-                            View Exams
+                            এক্সাম সমূহ
                         </Button>
                     </CardContent>
                 </Card>
