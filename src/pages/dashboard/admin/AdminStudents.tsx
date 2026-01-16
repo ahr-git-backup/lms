@@ -60,7 +60,7 @@ const AdminStudents = () => {
   };
 
   useEffect(() => {
-    document.title = "Admin   Students   Udvash LMS";
+    document.title = "Admin – Students – Atlas";
   }, []);
 
   const { data: courses } = useQuery({

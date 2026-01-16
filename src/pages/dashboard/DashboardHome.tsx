@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-// Define shape of dashboard data (or cast to any for simplicity in this task, but interfaces are better)
+// Define shape of dashboard data
 interface DashboardData {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     next_class: any;
@@ -29,6 +29,20 @@ const DashboardHome = () => {
     document.title = "Dashboard – Atlas";
   }, []);
 
+  const { data: pendingPayments } = useQuery({
+    queryKey: ["pending-payments", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data } = await supabase
+        .from("payment_requests")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "pending");
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
   const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
     queryKey: ["dashboard-data", user?.id],
     queryFn: async () => {
@@ -46,7 +60,7 @@ const DashboardHome = () => {
   });
 
   if (dashboardLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading dashboard...</div>;
+    return <div className="p-4 text-sm text-muted-foreground">লোডিং হচ্ছে...</div>;
   }
 
   // Extract data with fallbacks
@@ -59,53 +73,77 @@ const DashboardHome = () => {
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
-      { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
-      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
-      { title: "Past Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
-      { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
-      { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
-      { title: "Class Notes", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
-      { title: "Resources", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
-      { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
-      { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
+      { title: "লাইভ ক্লাস", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
+      { title: "লাইভ এক্সাম", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
+      { title: "রেকর্ডেড ক্লাস", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/past-class" },
+      { title: "অতীত এক্সাম", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
+      { title: "আর্কাইভ", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
+      { title: "ফলাফল", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "ভুলসমূহ", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
+      { title: "নোটস", icon: StickyNote, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950", url: "/dashboard/class-notes" },
+      { title: "রিসোর্স", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/resources" },
+      { title: "বুকমার্ক", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
+      { title: "প্রোফাইল", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
 
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome to your dashboard</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">ড্যাশবোর্ডে স্বাগতম</h1>
         <p className="text-sm text-muted-foreground">
-          See a quick overview of your upcoming activities.
+          আপনার আসন্ন কার্যক্রমের একটি দ্রুত ওভারভিউ দেখুন।
         </p>
       </header>
 
       {/* Enrollment Warning Card */}
       {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
-        <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
-            <CardContent className="flex flex-col md:flex-row items-center justify-between gap-4 p-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-3 bg-red-100 text-red-600 rounded-full dark:bg-red-900/30 dark:text-red-400">
-                        <AlertCircle className="h-6 w-6" />
+        <>
+          {pendingPayments && pendingPayments.length > 0 ? (
+             <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-800">
+                <CardContent className="flex flex-col gap-4 p-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">
+                            <AlertCircle className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-lg text-yellow-900 dark:text-yellow-200">
+                                এটলাসের কোর্সে আপনাকে স্বাগতম।
+                            </h3>
+                            <div className="text-yellow-800 dark:text-yellow-300 space-y-2 text-sm">
+                                <p>@atlasweb_Robot এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন। ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।</p>
+                                <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
+                                <p>২৪ ঘন্টার মাঝে এক্সেস না পেলে মেসেজ দিন এই নাম্বারে <a href="http://wa.me/8801999681290" target="_blank" rel="noreferrer" className="underline font-bold">01999681290</a> (WhatsApp)</p>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
-                            No Active Course
-                        </h3>
-                        <p className="text-red-700 dark:text-red-300">
-                            আপনি কোনো কোর্সে এনরোল করেননি। ওয়েবসাইটটি সঠিকভাবে ব্যবহার করতে যেকোনো একটি কোর্স কিনুন।
-                        </p>
+                </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
+                <CardContent className="flex flex-col md:flex-row items-center justify-between gap-4 p-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 text-red-600 rounded-full dark:bg-red-900/30 dark:text-red-400">
+                            <AlertCircle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
+                                কোনো সক্রিয় কোর্স নেই
+                            </h3>
+                            <p className="text-red-700 dark:text-red-300">
+                                আপনি কোনো কোর্সে এনরোল করেননি। ওয়েবসাইটটি সঠিকভাবে ব্যবহার করতে যেকোনো একটি কোর্স কিনুন।
+                            </p>
+                        </div>
                     </div>
-                </div>
-                <Button
-                    onClick={() => navigate("/courses")}
-                    className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
-                >
-                    কোর্স কিনতে এখানে ক্লিক করুন
-                </Button>
-            </CardContent>
-        </Card>
+                    <Button
+                        onClick={() => navigate("/courses")}
+                        className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
+                    >
+                        কোর্স কিনতে এখানে ক্লিক করুন
+                    </Button>
+                </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* 1. Live Activity Section (Priority 1) */}
@@ -113,7 +151,7 @@ const DashboardHome = () => {
         <div className="space-y-4">
            <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
+                <h2 className="text-lg font-semibold tracking-tight">লাইভ এখন</h2>
            </div>
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -130,12 +168,12 @@ const DashboardHome = () => {
                       </div>
                       <CardTitle className="text-base break-words">{classItem.title}</CardTitle>
                       <CardDescription className="text-xs">
-                        Started: {new Date(classItem.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        শুরু: {new Date(classItem.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Join Live Class
+                          ক্লাসে যোগ দিন
                        </Button>
                     </CardContent>
                   </Card>
@@ -155,12 +193,12 @@ const DashboardHome = () => {
                       </div>
                       <CardTitle className="text-base break-words">{exam.title}</CardTitle>
                       <CardDescription className="text-xs">
-                        Ends at: {new Date(exam.time_window_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        শেষ: {new Date(exam.time_window_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
                        <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Take Live Exam
+                          পরীক্ষা দিন
                        </Button>
                     </CardContent>
                   </Card>
@@ -172,14 +210,14 @@ const DashboardHome = () => {
       {/* 2. Upcoming Activity Section */}
       {!hasLiveActivity && hasUpcomingActivity && (
         <div className="space-y-4">
-           <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
+           <h2 className="text-lg font-semibold tracking-tight">আসন্ন কার্যক্রম</h2>
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* Next Live Class Card */}
                 {nextClass && (
                 <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Next Live Class</CardTitle>
+                            <CardTitle className="text-base">পরবর্তী লাইভ ক্লাস</CardTitle>
                             <CalendarClock className="h-4 w-4 text-primary" />
                         </div>
                     </CardHeader>
@@ -199,7 +237,7 @@ const DashboardHome = () => {
                         </div>
                         {nextClass.video_url && (
                             <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
-                                Join Class
+                                ক্লাসে যোগ দিন
                             </Button>
                         )}
                     </CardContent>
@@ -211,7 +249,7 @@ const DashboardHome = () => {
                 <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
                     <CardHeader className="pb-2">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Upcoming Exam</CardTitle>
+                            <CardTitle className="text-base">আসন্ন এক্সাম</CardTitle>
                             <ListChecks className="h-4 w-4 text-primary" />
                         </div>
                     </CardHeader>
@@ -230,7 +268,7 @@ const DashboardHome = () => {
                             </div>
                         </div>
                         <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
-                            View Exams
+                            এক্সাম সমূহ
                         </Button>
                     </CardContent>
                 </Card>
@@ -241,7 +279,7 @@ const DashboardHome = () => {
 
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
-           <h2 className="text-lg font-semibold tracking-tight">Quick Access</h2>
+           <h2 className="text-lg font-semibold tracking-tight">দ্রুত প্রবেশ</h2>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                {navigationItems.map((item, index) => (
                    <Card
