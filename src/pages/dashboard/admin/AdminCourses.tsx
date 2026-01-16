@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { ImageUploader } from "@/components/ui/image-uploader";
 
 const demoContentSchema = z.object({
   title: z.string().min(1, "Title required"),
@@ -471,11 +472,10 @@ const AdminCourses = () => {
 
                     <div className="space-y-2 md:col-span-2">
                         <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
-                        <Input
-                        id="image_url"
-                        value={form.image_url}
-                        onChange={(e) => setForm((prev) => ({ ...prev, image_url: e.target.value }))}
-                        placeholder="https://..."
+                        <ImageUploader
+                            value={form.image_url || ""}
+                            onChange={(val) => setForm((prev) => ({ ...prev, image_url: val }))}
+                            placeholder="https://... or upload"
                         />
                     </div>
 
