@@ -117,7 +117,7 @@ const AdminCourses = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    document.title = "Admin   Courses   Udvash LMS";
+    document.title = "Admin – Courses – Atlas";
   }, []);
 
   const { data: coursesData, isLoading } = useQuery({

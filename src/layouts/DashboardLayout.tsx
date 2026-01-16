@@ -368,7 +368,7 @@ export const DashboardLayout = () => {
                         <StickyNote className="h-4 w-4 text-pink-500" /> Class Notes
                     </Link>
                     <Link to="/dashboard/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Megaphone className="h-4 w-4 text-rose-500" /> Announcements
+                        <Megaphone className="h-4 w-4 text-rose-500" /> Notice
                     </Link>
                     <Link to="/dashboard/bookmarks" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Bookmark className="h-4 w-4 text-emerald-500" /> Bookmarks
@@ -411,7 +411,7 @@ export const DashboardLayout = () => {
                             <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
                         </Link>
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Megaphone className="h-4 w-4 text-yellow-600" /> Announcements
+                            <Megaphone className="h-4 w-4 text-yellow-600" /> Notice
                         </Link>
 
                         {/* Admin Only Links */}

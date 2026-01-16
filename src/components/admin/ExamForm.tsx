@@ -17,6 +17,7 @@ import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import Papa from "papaparse";
 
 const examSchema = z.object({
   id: z.string().optional(),
@@ -241,54 +242,34 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           };
 
           const parseCsvQuestions = (csv: string) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rows: any[] = [];
-            const lines = csv
-              .split(/\r?\n/)
-              .map((l) => l.trim())
-              .filter((l) => l.length > 0);
+            const { data, errors } = Papa.parse(csv, {
+              header: true,
+              skipEmptyLines: true,
+              newline: "",
+            });
 
-            if (!lines.length) return rows;
-
-            const header = lines[0].replace(/^"|"$/g, "");
-            const expectedHeader =
-              "questions,option1,option2,option3,option4,option5,answer,explanation,type,section";
-            if (header.toLowerCase().replace(/\s+/g, "") !== expectedHeader) {
-              throw new Error("CSV header does not match expected format.");
+            if (errors.length > 0) {
+              console.warn("CSV parse errors:", errors);
             }
 
-            const parseLine = (line: string): string[] => {
-              const result: string[] = [];
-              let current = "";
-              let inQuotes = false;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const rows: any[] = [];
 
-              for (let i = 0; i < line.length; i++) {
-                const char = line[i];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data.forEach((row: any) => {
+              // Expected headers: questions,option1,option2,option3,option4,option5,answer,explanation,type,section
+              const qText = row["questions"];
+              if (!qText) return;
 
-                if (char === '"') {
-                  if (inQuotes && line[i + 1] === '"') {
-                    current += '"';
-                    i++;
-                  } else {
-                    inQuotes = !inQuotes;
-                  }
-                } else if (char === "," && !inQuotes) {
-                  result.push(current);
-                  current = "";
-                } else {
-                  current += char;
-                }
-              }
-              result.push(current);
+              const o1 = row["option1"];
+              const o2 = row["option2"];
+              const o3 = row["option3"];
+              const o4 = row["option4"];
+              const answer = row["answer"];
+              const explanation = row["explanation"];
+              const type = row["type"];
+              const section = row["section"];
 
-              return result.map((v) => v.replace(/^"|"$/g, ""));
-            };
-
-            for (let i = 1; i < lines.length; i++) {
-              const cols = parseLine(lines[i]);
-              if (cols.length < 8) continue;
-
-              const [qText, o1, o2, o3, o4, _o5, answer, explanation, type, section] = cols;
               const ansIdx = Number(answer);
               const correct = ansIdx >= 1 && ansIdx <= 4 ? ["A", "B", "C", "D"][ansIdx - 1] : "A";
 
@@ -304,7 +285,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 question_type: type || null,
                 section: section || null,
               });
-            }
+            });
 
             return rows;
           };
