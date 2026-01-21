@@ -201,10 +201,12 @@ export const CourseSection = () => {
 
                                         <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
                                         <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লাইভ ক্লাস</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লেকচার নোট</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> প্রিমিয়াম গাইডলাইন</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লিডারবোর্ড</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ইউনিক কন্টেন্ট</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ওয়ান টু ওয়ান মেন্টরিং</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> র‍্যাপিড ফায়ার</div>
                                             <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> সলভ শিট</div>
                                         </div>
                                     </div>
 

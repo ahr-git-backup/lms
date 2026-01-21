@@ -187,16 +187,13 @@ const CourseDetails = () => {
                         <div className="space-y-2 text-sm text-muted-foreground">
                              <div className="flex items-center gap-2">
                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                 <span>Instant Access</span>
+                                 <span>Fast Access</span>
                              </div>
                              <div className="flex items-center gap-2">
                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
                                  <span>Premium Support</span>
                              </div>
-                             <div className="flex items-center gap-2">
-                                 <CheckCircle2 className="w-4 h-4 text-green-500" />
-                                 <span>Cancel Anytime</span>
-                             </div>
+                             
                         </div>
                     </CardContent>
                 </Card>
