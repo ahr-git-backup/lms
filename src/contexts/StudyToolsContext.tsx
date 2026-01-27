@@ -95,14 +95,22 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
 
   // --- Helper: Notifications ---
   const sendNotification = (title: string, body?: string) => {
-    if (Notification.permission === "granted") {
-      new Notification(title, { body, icon: "/public/favicon.png" });
-    } else if (Notification.permission !== "denied") {
-      Notification.requestPermission().then(permission => {
-        if (permission === "granted") {
-          new Notification(title, { body, icon: "/public/favicon.png" });
+    try {
+        if (!("Notification" in window)) {
+             toast({ title, description: body });
+             return;
         }
-      });
+        if (Notification.permission === "granted") {
+          new Notification(title, { body, icon: "/public/favicon.png" });
+        } else if (Notification.permission !== "denied") {
+          Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+              new Notification(title, { body, icon: "/public/favicon.png" });
+            }
+          });
+        }
+    } catch (e) {
+        console.warn("Notification failed:", e);
     }
     toast({ title, description: body });
   };
@@ -250,7 +258,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
     } else if (timeLeft === 0 && isPomoActive) {
       // Session Finished
       setIsPomoActive(false);
-      pomoAudioRef.current?.play();
+      pomoAudioRef.current?.play().catch(e => console.warn("Audio play failed", e));
 
       if (pomoMode === 'work') {
           // Work Finished -> Start Break
@@ -318,7 +326,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
       if (isReminderActive && reminderInterval > 0) {
           reminderRef.current = setInterval(() => {
-              pomoAudioRef.current?.play(); // reuse clock sound or different one
+              pomoAudioRef.current?.play().catch(e => console.warn("Audio play failed", e)); // reuse clock sound or different one
               sendNotification("Reminder", reminderMessage || "Time to check in!");
           }, reminderInterval * 60 * 1000);
       } else {

@@ -34,6 +34,8 @@ interface ClassPlayerProps {
   title?: string;
   onEnded?: () => void;
   watermarkText?: string;
+  isLive?: boolean;
+  startTime?: string | null;
 }
 
 declare global {
@@ -72,7 +74,7 @@ const WatermarkOverlay = ({ text }: { text: string }) => {
     );
 };
 
-const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProps) => {
+const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime }: ClassPlayerProps) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -148,6 +150,18 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProp
     setVolume(event.target.getVolume());
     updateQualityLevels();
 
+    if (isLive && startTime) {
+        const start = new Date(startTime).getTime();
+        const now = Date.now();
+        const elapsedSeconds = (now - start) / 1000;
+        if (elapsedSeconds > 0) {
+            // Check if seekTo is available
+            if (event.target.seekTo) {
+                 event.target.seekTo(elapsedSeconds, true);
+            }
+        }
+    }
+
     // Start interval to update time
     setInterval(() => {
       if (playerRef.current && playerRef.current.getCurrentTime) {
@@ -155,6 +169,25 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProp
       }
     }, 1000);
   };
+
+  // Sync Live Time
+  useEffect(() => {
+      if (!isLive || !startTime || !playerRef.current || !isPlaying) return;
+
+      const interval = setInterval(() => {
+          const start = new Date(startTime).getTime();
+          const now = Date.now();
+          const elapsedSeconds = (now - start) / 1000;
+          if (elapsedSeconds > 0 && Math.abs(currentTime - elapsedSeconds) > 10) {
+              if (playerRef.current.seekTo) {
+                  playerRef.current.seekTo(elapsedSeconds, true);
+              }
+          }
+      }, 10000); // Check every 10s
+
+      return () => clearInterval(interval);
+  }, [isLive, startTime, isPlaying, currentTime]);
+
 
   // Track watch time for streak & stats
   useEffect(() => {
@@ -424,16 +457,26 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProp
           onClick={(e) => e.stopPropagation()}
         >
           {/* Progress Bar */}
-          <div className="mb-2 group/slider w-full">
-              <Slider
-                value={[currentTime]}
-                min={0}
-                max={duration || 100}
-                step={1}
-                onValueChange={handleSeek}
-                className="cursor-pointer py-2 [&>.relative>.bg-primary]:h-1 [&>.relative>.bg-primary]:sm:h-1.5 [&>.relative>.bg-primary]:group-hover/slider:h-2 [&>.relative]:h-1 [&>.relative]:sm:h-1.5 [&>.relative]:group-hover/slider:h-2 transition-all [&_span[role='slider']]:h-3 [&_span[role='slider']]:w-3 [&_span[role='slider']]:sm:h-5 [&_span[role='slider']]:sm:w-5"
-              />
-          </div>
+          {!isLive && (
+            <div className="mb-2 group/slider w-full">
+                <Slider
+                    value={[currentTime]}
+                    min={0}
+                    max={duration || 100}
+                    step={1}
+                    onValueChange={handleSeek}
+                    className="cursor-pointer py-2 [&>.relative>.bg-primary]:h-1 [&>.relative>.bg-primary]:sm:h-1.5 [&>.relative>.bg-primary]:group-hover/slider:h-2 [&>.relative]:h-1 [&>.relative]:sm:h-1.5 [&>.relative]:group-hover/slider:h-2 transition-all [&_span[role='slider']]:h-3 [&_span[role='slider']]:w-3 [&_span[role='slider']]:sm:h-5 [&_span[role='slider']]:sm:w-5"
+                />
+            </div>
+          )}
+          {isLive && (
+              <div className="mb-2 w-full flex items-center gap-2">
+                  <div className="h-1.5 flex-1 bg-red-600 rounded-full animate-pulse opacity-50" />
+                  <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider animate-pulse flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-red-500 rounded-full inline-block" /> Live
+                  </span>
+              </div>
+          )}
 
           <div className="flex items-center justify-between pb-1 sm:pb-2 pointer-events-auto">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -448,29 +491,31 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProp
                 </TooltipContent>
               </Tooltip>
 
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={skipBackward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
-                      <SkipBack className="h-4 w-4 fill-current" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Rewind 10s (←)</p>
-                  </TooltipContent>
-                </Tooltip>
+              {!isLive && (
+                <div className="flex items-center gap-1">
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={skipBackward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
+                        <SkipBack className="h-4 w-4 fill-current" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Rewind 10s (←)</p>
+                    </TooltipContent>
+                    </Tooltip>
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={skipForward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
-                      <SkipForward className="h-4 w-4 fill-current" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Forward 10s (→)</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
+                    <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Button variant="ghost" size="icon" onClick={skipForward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
+                        <SkipForward className="h-4 w-4 fill-current" />
+                        </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <p>Forward 10s (→)</p>
+                    </TooltipContent>
+                    </Tooltip>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 group/vol ml-2">
                   <Tooltip>
@@ -496,7 +541,11 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText }: ClassPlayerProp
               </div>
 
               <span className="text-white text-[10px] sm:text-sm font-mono ml-2 select-none">
-                {formatTime(currentTime)} / {formatTime(duration)}
+                {isLive ? (
+                   <span className="text-red-500 font-bold">LIVE</span>
+                ) : (
+                   `${formatTime(currentTime)} / ${formatTime(duration)}`
+                )}
               </span>
             </div>
 

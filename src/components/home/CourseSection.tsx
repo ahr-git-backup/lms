@@ -107,21 +107,21 @@ export const CourseSection = () => {
                         </div>
 
                         {/* Category Buttons */}
-                        <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 scrollbar-hide">
-                            <div className="flex flex-row gap-3 min-w-max pr-4">
+                        <div className="w-full sm:mx-0 sm:px-0">
+                            <div className="flex flex-wrap gap-3">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === "all" ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
+                                    className={`rounded-full px-4 h-8 text-xs transition-all duration-200 min-w-[80px] border-primary/20 ${selectedCategory === "all" ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
                                 >
-                                    All Batches
+                                    সব
                                 </Button>
                                 {categories.map((cat: string) => (
                                     <Button
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === cat ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
+                                        className={`rounded-full px-4 h-8 text-xs transition-all duration-200 min-w-[80px] border-primary/20 ${selectedCategory === cat ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
                                     >
                                         {cat}
                                     </Button>
@@ -131,21 +131,21 @@ export const CourseSection = () => {
 
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
-                            <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
-                                <div className="flex flex-row gap-3 min-w-max pr-4">
+                            <div className="w-full sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
+                                <div className="flex flex-wrap gap-3">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                        className={`rounded-full border px-4 h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
                                     >
-                                        All Types
+                                        সব টাইপ
                                     </Button>
                                     {availableSubCategories.map((sub: string) => (
                                         <Button
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "secondary" : "ghost"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                            className={`rounded-full border px-4 h-8 text-xs min-w-[80px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
                                         >
                                             {sub}
                                         </Button>

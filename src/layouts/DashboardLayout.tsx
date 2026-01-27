@@ -334,6 +334,10 @@ export const DashboardLayout = () => {
                         <LayoutDashboard className="h-4 w-4 text-blue-500" />
                         Dashboard
                     </Link>
+                    <Link to="/dashboard/my-courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <GraduationCap className="h-4 w-4 text-indigo-500" />
+                        My Courses
+                    </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
@@ -346,8 +350,8 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <PenTool className="h-4 w-4 text-purple-500" /> Live Exam
                     </Link>
-                    <Link to="/dashboard/past-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <History className="h-4 w-4 text-orange-500" /> Past Class
+                    <Link to="/dashboard/recordings" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <History className="h-4 w-4 text-orange-500" /> Recordings
                     </Link>
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams

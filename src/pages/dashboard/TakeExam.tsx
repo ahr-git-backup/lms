@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyTools } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useEnrollments } from "@/hooks/useEnrollments";
 
 const TakeExam = () => {
   useAntiCheat();
@@ -24,6 +25,7 @@ const TakeExam = () => {
   const { toast } = useToast();
   const { user, profile, loading: authLoading } = useAuth();
   const { updateStreak, updateStats } = useStudyTools();
+  const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
 
   // State
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -347,13 +349,50 @@ const TakeExam = () => {
      </div>;
   }
 
-  if (examLoading || questionsLoading || attemptsLoading) {
+  if (examLoading || questionsLoading || attemptsLoading || enrollmentsLoading) {
     return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
         <div className="space-y-4">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
             <p className="text-muted-foreground">Loading exam...</p>
         </div>
     </div>;
+  }
+
+  // Access Control
+  const hasAccess = (() => {
+      if (!exam) return false;
+      if (!exam.course_id) return true; // Public/Free Exam
+      if (!enrollments) return false;
+
+      const enrolledIds = enrollments.map((e: any) => e.course_id);
+      if (enrolledIds.includes(exam.course_id)) return true;
+
+      // Check Shared Courses
+      // @ts-ignore
+      if (exam.shared_course_ids && Array.isArray(exam.shared_course_ids)) {
+          // @ts-ignore
+          if (exam.shared_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+      }
+
+      // Check Archive Courses
+      // @ts-ignore
+      if (exam.archive_course_ids && Array.isArray(exam.archive_course_ids)) {
+          // @ts-ignore
+          if (exam.archive_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+      }
+
+      return false;
+  })();
+
+  if (!hasAccess) {
+      return (
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] gap-4">
+              <AlertTriangle className="h-12 w-12 text-destructive" />
+              <h2 className="text-xl font-bold">Access Denied</h2>
+              <p className="text-muted-foreground">You are not enrolled in the course required for this exam.</p>
+              <Button onClick={() => navigate("/courses")}>View Courses</Button>
+          </div>
+      );
   }
 
   // Live Exam Check

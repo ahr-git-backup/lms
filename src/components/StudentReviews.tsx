@@ -20,6 +20,7 @@ export interface Review {
   rating: number;
   gender: string;
   image_url?: string;
+  post_image_url?: string;
 }
 
 interface StudentReviewsProps {
@@ -110,6 +111,11 @@ export const StudentReviews = ({ reviews, id }: StudentReviewsProps) => {
                       <p className="text-sm text-muted-foreground italic leading-relaxed line-clamp-4">
                         "{review.review_text}"
                       </p>
+                      {review.post_image_url && (
+                        <div className="mt-4 rounded-lg overflow-hidden border border-border/50">
+                            <img src={review.post_image_url} alt="Review attachment" className="w-full h-48 object-cover hover:scale-105 transition-transform duration-500" />
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

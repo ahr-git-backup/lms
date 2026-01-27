@@ -34,7 +34,7 @@ const PastExamCatalog = () => {
         let query = supabase
             .from("exams")
             .select("*, course:courses(*)")
-            .in("course_id", courseIds)
+            .or(`course_id.in.(${courseIds.join(',')}),shared_course_ids.overlaps.{${courseIds.join(',')}}`)
             .eq("is_published", true)
             // Filter: Either practice exam OR (live exam AND window ended)
             .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`)
@@ -46,7 +46,11 @@ const PastExamCatalog = () => {
         let filteredData = data || [];
 
         if (selectedCourse !== "all") {
-            filteredData = filteredData.filter(e => e.course_id === selectedCourse);
+            filteredData = filteredData.filter(e =>
+                e.course_id === selectedCourse ||
+                // @ts-ignore
+                e.shared_course_ids?.includes(selectedCourse)
+            );
         }
 
         if (selectedSubject !== "all") {

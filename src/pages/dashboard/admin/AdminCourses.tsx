@@ -77,6 +77,7 @@ const courseSchema = z.object({
   category: z.array(z.string()).default([]),
   sub_category: z.array(z.string()).default([]),
   priority: z.number().optional().default(0),
+  linked_course_ids: z.array(z.string()).default([]),
 });
 
 const PAGE_SIZE = 10;
@@ -99,6 +100,7 @@ const AdminCourses = () => {
     category: [],
     sub_category: [],
     priority: 0,
+    linked_course_ids: [],
   });
   const [page, setPage] = useState(0);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
@@ -131,6 +133,15 @@ const AdminCourses = () => {
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     },
+  });
+
+  // Fetch all courses for the linked courses dropdown
+  const { data: allCoursesList } = useQuery({
+      queryKey: ["admin-all-courses-list"],
+      queryFn: async () => {
+          const { data } = await supabase.from("courses").select("id, name");
+          return data?.map(c => ({ label: c.name, value: c.id })) || [];
+      }
   });
 
   // Fetch unique categories and subcategories for the filters
@@ -199,6 +210,7 @@ const AdminCourses = () => {
       category: [],
       sub_category: [],
       priority: 0,
+      linked_course_ids: [],
     });
     setActiveTab("basic");
   };
@@ -226,6 +238,7 @@ const AdminCourses = () => {
         category: parsed.category,
         sub_category: parsed.sub_category,
         priority: parsed.priority ?? 0,
+        linked_course_ids: parsed.linked_course_ids,
       };
 
       if (parsed.id) {
@@ -300,6 +313,8 @@ const AdminCourses = () => {
       category: cats,
       sub_category: subs,
       priority: course.priority ?? 0,
+      // @ts-ignore
+      linked_course_ids: course.linked_course_ids || [],
     });
     // Scroll to top to see the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -531,6 +546,17 @@ const AdminCourses = () => {
                             placeholder="Select types..."
                         />
                         <p className="text-xs text-muted-foreground">Type a new category name in the search box to create it.</p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label>Include Extra Courses (Bundles)</Label>
+                        <MultiSelect
+                            options={allCoursesList?.filter(c => c.value !== form.id) || []}
+                            selected={form.linked_course_ids}
+                            onChange={(val) => setForm(prev => ({ ...prev, linked_course_ids: val }))}
+                            placeholder="Select courses to include..."
+                        />
+                        <p className="text-xs text-muted-foreground">Users enrolling in this course will also get access to selected courses.</p>
                     </div>
 
                     <div className="space-y-2">

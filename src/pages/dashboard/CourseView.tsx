@@ -1,0 +1,259 @@
+import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useEnrollments } from "@/hooks/useEnrollments";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock } from "lucide-react";
+
+const CourseView = () => {
+  const { courseId } = useParams();
+  const navigate = useNavigate();
+  const { data: enrollments } = useEnrollments();
+
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+
+  const enrollment = enrollments?.find((e: any) => e.course_id === courseId);
+
+  useEffect(() => {
+    if (enrollment?.course?.name) {
+        document.title = `${enrollment.course.name} – Atlas`;
+    }
+  }, [enrollment]);
+
+  // 1. Subjects
+  const { data: subjects, isLoading: loadingSubjects } = useQuery({
+    queryKey: ["course-subjects", courseId],
+    queryFn: async () => {
+      if (!courseId) return [];
+      // Fetch subjects from classes or exams linked to this course (or shared)
+      const { data } = await supabase
+        .from("classes")
+        .select("subject")
+        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`);
+
+      const unique = new Set<string>();
+      data?.forEach(row => {
+         if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
+         else if (typeof row.subject === 'string') unique.add(row.subject);
+      });
+      return Array.from(unique).sort();
+    },
+    enabled: !!courseId
+  });
+
+  // 2. Chapters
+  const { data: chapters, isLoading: loadingChapters } = useQuery({
+    queryKey: ["course-chapters", courseId, selectedSubject],
+    queryFn: async () => {
+      if (!courseId || !selectedSubject) return [];
+      const { data } = await supabase
+        .from("classes")
+        .select("chapter")
+        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .contains("subject", [selectedSubject]);
+
+      const unique = new Set<string>();
+      data?.forEach(row => {
+          if (row.chapter) unique.add(row.chapter);
+      });
+      return Array.from(unique).sort();
+    },
+    enabled: !!courseId && !!selectedSubject
+  });
+
+  if (!enrollment && enrollments) {
+      return (
+          <div className="p-8 text-center">
+              <h2 className="text-xl font-bold text-destructive">Access Denied</h2>
+              <p>You are not enrolled in this course.</p>
+              <Button className="mt-4" onClick={() => navigate("/dashboard/my-courses")}>My Courses</Button>
+          </div>
+      );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => {
+              if (selectedChapter) setSelectedChapter(null);
+              else if (selectedSubject) setSelectedSubject(null);
+              else navigate("/dashboard/my-courses");
+          }}>
+              <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight">
+                {selectedChapter || selectedSubject || enrollment?.course?.name || "Course View"}
+            </h1>
+            {selectedSubject && (
+                <p className="text-xs text-muted-foreground">
+                    {enrollment?.course?.name} {selectedChapter ? `> ${selectedSubject}` : ""}
+                </p>
+            )}
+          </div>
+      </div>
+
+      {!selectedSubject ? (
+          <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Subjects</h2>
+              {loadingSubjects ? <div className="text-muted-foreground">Loading...</div> : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                      {subjects?.map(sub => (
+                          <Card key={sub} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSubject(sub)}>
+                              <CardHeader className="flex flex-row items-center gap-4">
+                                  <div className="p-3 bg-primary/10 rounded-full text-primary">
+                                      <BookOpen className="h-6 w-6" />
+                                  </div>
+                                  <CardTitle className="text-base">{sub}</CardTitle>
+                              </CardHeader>
+                          </Card>
+                      ))}
+                      {subjects?.length === 0 && <p className="text-muted-foreground">No content found.</p>}
+                  </div>
+              )}
+          </div>
+      ) : !selectedChapter ? (
+          <div className="space-y-4">
+              <h2 className="text-lg font-semibold">Chapters in {selectedSubject}</h2>
+              {loadingChapters ? <div className="text-muted-foreground">Loading...</div> : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {chapters?.map(chap => (
+                          <Card key={chap} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedChapter(chap)}>
+                              <CardHeader className="flex flex-row items-center justify-between">
+                                  <CardTitle className="text-base">{chap}</CardTitle>
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </CardHeader>
+                          </Card>
+                      ))}
+                      {chapters?.length === 0 && <p className="text-muted-foreground">No chapters found.</p>}
+                  </div>
+              )}
+          </div>
+      ) : (
+          <CourseContentTabs courseId={courseId!} subject={selectedSubject} chapter={selectedChapter} />
+      )}
+    </div>
+  );
+};
+
+const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
+    const navigate = useNavigate();
+
+    // Fetch counts or data
+    // For simplicity, we just link to filtered views or show simple lists
+
+    return (
+        <Tabs defaultValue="recordings" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="recordings" className="gap-2"><Video className="h-4 w-4" /> Recordings</TabsTrigger>
+                <TabsTrigger value="exams" className="gap-2"><FileText className="h-4 w-4" /> Exams</TabsTrigger>
+                <TabsTrigger value="resources" className="gap-2"><FolderOpen className="h-4 w-4" /> Resources</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="recordings" className="mt-6">
+                <ClassList courseId={courseId} subject={subject} chapter={chapter} />
+            </TabsContent>
+
+            <TabsContent value="exams" className="mt-6">
+                <ExamList courseId={courseId} subject={subject} chapter={chapter} />
+            </TabsContent>
+
+            <TabsContent value="resources" className="mt-6">
+                <div className="text-center py-8 text-muted-foreground">
+                    <p>Resources specific to this chapter will appear here.</p>
+                </div>
+            </TabsContent>
+        </Tabs>
+    );
+}
+
+const ClassList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: classes, isLoading } = useQuery({
+        queryKey: ["course-classes", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("classes")
+                .select("*")
+                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .order("start_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading classes...</div>;
+    if (!classes || classes.length === 0) return <div>No recordings found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {classes.map((cls: any) => (
+                <Card key={cls.id} className="flex flex-col">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{cls.title}</CardTitle>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
+                            Watch Class
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+const ExamList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: exams, isLoading } = useQuery({
+        queryKey: ["course-exams", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("exams")
+                .select("*")
+                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .eq("is_published", true)
+                .order("created_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading exams...</div>;
+    if (!exams || exams.length === 0) return <div>No exams found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {exams.map((exam: any) => (
+                <Card key={exam.id} className="flex flex-col">
+                    <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            {exam.exam_type === 'live' && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">LIVE</span>}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {exam.duration_minutes} mins • {exam.total_marks || '?'} marks
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                            Start Exam
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+export default CourseView;

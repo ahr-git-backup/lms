@@ -8,18 +8,18 @@ import { Button } from "@/components/ui/button";
 import { SUBJECTS } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 
-const PastClass = () => {
+const Recordings = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const { data: enrollments } = useEnrollments();
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Past Class – Atlas";
+    document.title = "Recordings – Atlas";
   }, []);
 
   const { data: classes, isLoading } = useQuery({
-    queryKey: ["past-classes", selectedCourse, selectedSubject],
+    queryKey: ["recordings-list", selectedCourse, selectedSubject],
     queryFn: async () => {
       const now = new Date().toISOString();
       let query = supabase
@@ -54,7 +54,7 @@ const PastClass = () => {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Past classes</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Recordings</h1>
         <p className="text-sm text-muted-foreground">Watch recordings of previous sessions.</p>
       </header>
 
@@ -160,4 +160,4 @@ const PastClass = () => {
   );
 };
 
-export default PastClass;
+export default Recordings;

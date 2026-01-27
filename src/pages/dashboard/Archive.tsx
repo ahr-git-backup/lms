@@ -109,12 +109,16 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryKey: ["archive-classes-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
+            // Sanitize query to prevent crashes (allow letters, numbers, spaces, Bengali)
+            const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
+            if (!safeQuery) return { data: [], count: 0 };
+
             const courseIds = enrollments.map((e: any) => e.course_id);
             let query = supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
-                .or(`title.ilike.%${searchQuery}%,topic.ilike.%${searchQuery}%`)
+                .or(`title.ilike.%${safeQuery}%,topic.ilike.%${safeQuery}%`)
                 .order("start_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -360,13 +364,16 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
+            const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
+            if (!safeQuery) return { data: [], count: 0 };
+
             const courseIds = enrollments.map((e: any) => e.course_id);
             let query = supabase
                 .from("exams")
                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
                 .eq("is_published", true)
-                .ilike("title", `%${searchQuery}%`)
+                .ilike("title", `%${safeQuery}%`)
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
