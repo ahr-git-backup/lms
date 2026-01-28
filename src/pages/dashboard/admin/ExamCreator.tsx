@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
-  Database, BookOpen, Check
+  Database, BookOpen, Check, RefreshCw
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -318,7 +318,7 @@ const ExamCreator = () => {
 
   const handleSaveToDatabase = async () => {
       if (!examId) return;
-      if (!confirm("This will overwrite existing questions for this exam. Continue?")) return;
+      if (!confirm("This will update existing questions. Continue?")) return;
 
       const { data: existingQ } = await supabase
           .from("exam_questions")
@@ -355,6 +355,68 @@ const ExamCreator = () => {
           }
 
           toast({ title: "Success", description: "Exam questions updated successfully." });
+          const { data: refreshedData } = await supabase
+                .from("exam_questions")
+                .select("*")
+                .eq("exam_id", examId)
+                .order("question_index", { ascending: true });
+
+          if (refreshedData) {
+             // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             const loaded = refreshedData.map((q: any) => ({
+                id: q.id,
+                question: q.question_text,
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                correct_answer: q.correct_option,
+                explanation: q.explanation || ""
+             }));
+             setQuestions(loaded);
+          }
+
+      } catch (err) {
+        if (err instanceof Error) {
+            toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+      }
+  };
+
+  const handleReplaceAllQuestions = async () => {
+      if (!examId) return;
+      if (!confirm("⚠️ DANGER: This will DELETE all existing questions and replace them with the current list.\n\nAny student exam attempts linked to old questions might break or lose data.\n\nAre you sure you want to proceed?")) return;
+
+      try {
+          // 1. Delete all existing questions
+          const { error: deleteError } = await supabase
+              .from("exam_questions")
+              .delete()
+              .eq("exam_id", examId);
+
+          if (deleteError) throw deleteError;
+
+          // 2. Prepare new questions (dropping IDs to force new insert)
+          const insertData = questions.map((q, idx) => ({
+              exam_id: examId,
+              question_index: idx + 1,
+              question_text: q.question,
+              option_a: q.options.A,
+              option_b: q.options.B,
+              option_c: q.options.C,
+              option_d: q.options.D,
+              correct_option: q.correct_answer,
+              explanation: q.explanation,
+              marks: 1
+          }));
+
+          if (insertData.length > 0) {
+              const { error: insertError } = await supabase
+                  .from("exam_questions")
+                  .insert(insertData);
+              if (insertError) throw insertError;
+          }
+
+          toast({ title: "Success", description: "All questions replaced successfully." });
+
+          // 3. Refresh local state
           const { data: refreshedData } = await supabase
                 .from("exam_questions")
                 .select("*")
@@ -503,9 +565,14 @@ const ExamCreator = () => {
                 )}
 
                 {examId ? (
-                    <Button onClick={handleSaveToDatabase} className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20">
-                        <Database className="mr-2 h-4 w-4" /> Save Changes
-                    </Button>
+                    <>
+                        <Button onClick={handleSaveToDatabase} className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20">
+                            <Database className="mr-2 h-4 w-4" /> Save
+                        </Button>
+                        <Button variant="destructive" onClick={handleReplaceAllQuestions} title="Delete all questions & Re-upload">
+                            <RefreshCw className="mr-2 h-4 w-4" /> Replace All
+                        </Button>
+                    </>
                 ) : (
                     <Button variant="outline" onClick={handleExport}>
                         <Download className="mr-2 h-4 w-4" /> Export JSON

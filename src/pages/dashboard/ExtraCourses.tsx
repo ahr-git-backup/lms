@@ -42,7 +42,7 @@ const ExtraCourses = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {extraCourses.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full hover:shadow-md transition-all border-l-4 border-l-purple-500">
+          <Card key={enrollment.id} className="flex flex-col h-full transition-all hover:shadow-md hover:border-purple-500">
             <CardHeader>
               <CardTitle className="line-clamp-2 leading-tight flex items-start justify-between gap-2">
                 {enrollment.course?.name || "Unknown Course"}

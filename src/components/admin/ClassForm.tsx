@@ -98,6 +98,23 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: classItem.button_text || "",
                 button_url: classItem.button_url || "",
             });
+        } else {
+             setForm({
+                course_id: "",
+                shared_course_ids: [],
+                archive_course_ids: [],
+                title: "",
+                chapter: "",
+                topic: "",
+                subject: [],
+                start_at: "",
+                end_at: "",
+                video_url: "",
+                notes_url: "",
+                class_type: "live",
+                button_text: "",
+                button_url: "",
+            });
         }
     }, [classItem]);
 

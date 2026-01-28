@@ -101,21 +101,22 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
         </span>
       </div>
 
-      <div className="rounded-md border bg-card overflow-hidden shadow-sm overflow-x-auto">
-        <Table>
+      {/* Desktop View */}
+      <div className="hidden md:block rounded-md border bg-card overflow-hidden shadow-sm">
+        <Table className="text-sm">
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="min-w-[250px] whitespace-normal">Exam Name</TableHead>
-              <TableHead className="whitespace-nowrap">Exam Date</TableHead>
+              <TableHead className="w-[30%] py-2 text-xs font-semibold">Exam Name</TableHead>
+              <TableHead className="py-2 text-xs font-semibold whitespace-nowrap">Date</TableHead>
 
-              <TableHead className="text-right whitespace-nowrap">Live Mark</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Rank</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Live Mark</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Rank</TableHead>
 
-              <TableHead className="text-right whitespace-nowrap">Prac Mark</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Rank</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Prac Mark</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Rank</TableHead>
 
-              <TableHead className="text-right whitespace-nowrap">Highest (Live)</TableHead>
-              <TableHead className="text-right whitespace-nowrap">Highest (Prac)</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Top (Live)</TableHead>
+              <TableHead className="py-2 text-xs font-semibold text-right whitespace-nowrap">Top (Prac)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -125,33 +126,33 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
 
               return (
               <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
-                <TableCell className="font-medium min-w-[250px]">
-                  <div className="line-clamp-2" title={item.title}>
+                <TableCell className="py-2 font-medium">
+                  <div className="line-clamp-2 leading-tight" title={item.title}>
                     {item.title}
                   </div>
                 </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  {new Date(item.time_window_start || item.created_at).toLocaleDateString([], { year: 'numeric', month: 'short', day: 'numeric' })}
-                  <span className="text-xs text-muted-foreground block">
+                <TableCell className="py-2 whitespace-nowrap">
+                  {new Date(item.time_window_start || item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  <span className="text-[10px] text-muted-foreground block">
                      {new Date(item.time_window_start || item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </TableCell>
 
                 {/* Live Mark Column */}
-                <TableCell className="text-right font-bold whitespace-nowrap">
+                <TableCell className="py-2 text-right font-bold whitespace-nowrap">
                   {liveStatus === "Absent" ? (
-                      <span className="text-red-500 font-medium">Absent</span>
+                      <span className="text-red-500 font-medium text-xs">Absent</span>
                   ) : liveStatus === "-" ? (
                       <span className="text-muted-foreground">-</span>
                   ) : (
-                      <span>{liveStatus} <span className="text-muted-foreground text-xs font-normal">/ {item.total_marks}</span></span>
+                      <span>{liveStatus} <span className="text-muted-foreground text-[10px] font-normal">/ {item.total_marks}</span></span>
                   )}
                 </TableCell>
 
                 {/* Live Rank */}
-                <TableCell className="text-right font-mono whitespace-nowrap">
+                <TableCell className="py-2 text-right font-mono whitespace-nowrap">
                     {item.live_attempt?.rank ? (
-                        <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                        <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
                             #{item.live_attempt.rank}
                         </span>
                     ) : (
@@ -160,18 +161,18 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
                 </TableCell>
 
                  {/* Practice Mark Column */}
-                 <TableCell className="text-right font-bold whitespace-nowrap">
+                 <TableCell className="py-2 text-right font-bold whitespace-nowrap">
                   {practiceStatus === "Absent" ? (
-                      <span className="text-muted-foreground/50 font-normal">Absent</span>
+                      <span className="text-muted-foreground/50 font-normal text-xs">Absent</span>
                   ) : (
-                      <span>{practiceStatus} <span className="text-muted-foreground text-xs font-normal">/ {item.total_marks}</span></span>
+                      <span>{practiceStatus} <span className="text-muted-foreground text-[10px] font-normal">/ {item.total_marks}</span></span>
                   )}
                 </TableCell>
 
                 {/* Practice Rank */}
-                <TableCell className="text-right font-mono whitespace-nowrap">
+                <TableCell className="py-2 text-right font-mono whitespace-nowrap">
                     {item.practice_attempt?.rank ? (
-                        <span className="inline-flex items-center justify-center min-w-[1.5rem] h-6 px-2 rounded-full bg-secondary text-secondary-foreground text-xs font-bold">
+                        <span className="inline-flex items-center justify-center h-5 px-2 rounded-full bg-secondary text-secondary-foreground text-[10px] font-bold">
                             #{item.practice_attempt.rank}
                         </span>
                     ) : (
@@ -179,10 +180,10 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
                     )}
                 </TableCell>
 
-                <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
+                <TableCell className="py-2 text-right text-muted-foreground whitespace-nowrap font-mono text-xs">
                   {item.highest_live_score !== null ? item.highest_live_score : "-"}
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground whitespace-nowrap font-mono">
+                <TableCell className="py-2 text-right text-muted-foreground whitespace-nowrap font-mono text-xs">
                   {item.highest_practice_score !== null ? item.highest_practice_score : "-"}
                 </TableCell>
               </TableRow>
@@ -190,20 +191,67 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
           </TableBody>
           <TableFooter>
             <TableRow className="bg-primary/5 hover:bg-primary/10">
-                <TableCell colSpan={2} className="font-bold text-primary">Summary</TableCell>
-                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                <TableCell colSpan={2} className="py-2 font-bold text-primary text-xs">Summary</TableCell>
+                <TableCell className="py-2 text-right font-bold text-primary whitespace-nowrap text-xs">
                     {liveStats.obtained} / {liveStats.total}
                 </TableCell>
-                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                <TableCell className="py-2 text-right font-bold text-primary whitespace-nowrap text-xs">
                     -
                 </TableCell>
-                <TableCell className="text-right font-bold text-primary whitespace-nowrap">
+                <TableCell className="py-2 text-right font-bold text-primary whitespace-nowrap text-xs">
                     {practiceStats.obtained} / {practiceStats.total}
                 </TableCell>
                 <TableCell colSpan={3} />
             </TableRow>
           </TableFooter>
         </Table>
+      </div>
+
+      {/* Mobile Cards View */}
+      <div className="md:hidden space-y-3">
+        {currentExams.map((item) => {
+             const liveStatus = getLiveStatus(item);
+             const practiceStatus = getPracticeStatus(item);
+             return (
+                 <Card key={item.id} className="text-sm shadow-sm border-l-4 border-l-primary/50">
+                     <CardContent className="p-3 space-y-3">
+                         <div className="flex justify-between items-start gap-2">
+                             <div className="font-semibold leading-tight">{item.title}</div>
+                             <div className="text-[10px] text-muted-foreground whitespace-nowrap text-right">
+                                 <div>{new Date(item.time_window_start || item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}</div>
+                                 <div>{new Date(item.time_window_start || item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                             </div>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-2 text-xs">
+                             <div className="space-y-1 bg-muted/30 p-2 rounded">
+                                 <div className="font-semibold text-muted-foreground flex items-center gap-1">Live <span className="ml-auto text-[10px] font-normal opacity-70">Top: {item.highest_live_score ?? '-'}</span></div>
+                                 <div className="flex justify-between items-center">
+                                     <span className={liveStatus === "Absent" ? "text-red-500 font-medium" : "font-bold"}>
+                                         {liveStatus === "Absent" ? "Absent" : liveStatus === "-" ? "-" : `${liveStatus}/${item.total_marks}`}
+                                     </span>
+                                     {item.live_attempt?.rank && (
+                                         <span className="bg-primary/10 text-primary px-1.5 py-0.5 rounded-full text-[10px] font-bold">#{item.live_attempt.rank}</span>
+                                     )}
+                                 </div>
+                             </div>
+
+                             <div className="space-y-1 bg-muted/30 p-2 rounded">
+                                 <div className="font-semibold text-muted-foreground flex items-center gap-1">Practice <span className="ml-auto text-[10px] font-normal opacity-70">Top: {item.highest_practice_score ?? '-'}</span></div>
+                                 <div className="flex justify-between items-center">
+                                      <span className={practiceStatus === "Absent" ? "text-muted-foreground/50" : "font-bold"}>
+                                         {practiceStatus === "Absent" ? "Absent" : `${practiceStatus}/${item.total_marks}`}
+                                     </span>
+                                     {item.practice_attempt?.rank && (
+                                         <span className="bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded-full text-[10px] font-bold">#{item.practice_attempt.rank}</span>
+                                     )}
+                                 </div>
+                             </div>
+                         </div>
+                     </CardContent>
+                 </Card>
+             );
+        })}
       </div>
 
       {totalPages > 1 && (

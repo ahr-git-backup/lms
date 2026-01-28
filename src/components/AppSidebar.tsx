@@ -19,9 +19,10 @@ const studentItems = [
   { title: "My Courses", url: "/dashboard/my-courses", icon: GraduationCap, color: "text-indigo-500" },
   { title: "Extra Courses", url: "/dashboard/extra-courses", icon: Gift, color: "text-purple-500" },
   { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
+  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
   { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
   { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
-  { title: "Recordings", url: "/dashboard/recordings", icon: BookOpen, color: "text-orange-500" },
+  { title: "Record Class", url: "/dashboard/recordings", icon: BookOpen, color: "text-orange-500" },
   { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText, color: "text-yellow-500" },
   { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
@@ -31,7 +32,6 @@ const studentItems = [
   { title: "Notice", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
   { title: "Resources", url: "/dashboard/resources", icon: GraduationCap, color: "text-cyan-500" },
-  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
 ];
 
