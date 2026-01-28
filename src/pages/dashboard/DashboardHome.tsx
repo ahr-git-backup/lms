@@ -158,10 +158,13 @@ const DashboardHome = () => {
                         </div>
                         <div>
                             <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
-                                No Active Course
+                                আপনার কোনো কোর্স চালু নেই
                             </h3>
                             <p className="text-red-700 dark:text-red-300">
-                                You are not enrolled in any course. Purchase a course to get started.
+                                আপনি কোনো কোর্সে এনরোল করেননি। শুরু করতে একটি কোর্স কিনুন।
+                            </p>
+                            <p className="text-red-800 dark:text-red-300 mt-2 text-sm font-medium">
+                                কোর্সে পেমেন্ট করে থাকলে শীঘ্রই যোগাযোগ করুন টেলিগ্রাম বটে <a href="https://t.me/atlasweb_Robot" target="_blank" rel="noreferrer" className="underline hover:text-red-950">@atlasweb_Robot</a>
                             </p>
                         </div>
                     </div>
