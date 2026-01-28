@@ -45,12 +45,14 @@ const PastExamCatalog = () => {
 
         let filteredData = data || [];
 
+        // Client-side filtering
         if (selectedCourse !== "all") {
-            filteredData = filteredData.filter(e =>
-                e.course_id === selectedCourse ||
+            filteredData = filteredData.filter(e => {
+                if (e.course_id === selectedCourse) return true;
                 // @ts-ignore
-                e.shared_course_ids?.includes(selectedCourse)
-            );
+                if (e.shared_course_ids && Array.isArray(e.shared_course_ids) && e.shared_course_ids.includes(selectedCourse)) return true;
+                return false;
+            });
         }
 
         if (selectedSubject !== "all") {

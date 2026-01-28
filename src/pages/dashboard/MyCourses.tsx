@@ -35,21 +35,30 @@ const MyCourses = () => {
         <p className="text-sm text-muted-foreground">Access your enrolled courses and content.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {enrollments.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full hover:shadow-md transition-all border-l-4 border-l-primary">
-            <CardHeader>
-              <CardTitle className="line-clamp-2 leading-tight">
+          <Card key={enrollment.id} className="flex flex-col h-full group hover:border-primary/50 transition-all duration-300">
+            {enrollment.course?.image_url && (
+                <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+                    <img
+                        src={enrollment.course.image_url}
+                        alt={enrollment.course.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                </div>
+            )}
+            <CardHeader className="pb-3">
+              <CardTitle className="line-clamp-2 leading-tight text-lg">
                 {enrollment.course?.name || "Unknown Course"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
+            <CardContent className="flex-1 pb-4">
                <p className="text-sm text-muted-foreground line-clamp-3">
                    {enrollment.course?.short_description}
                </p>
             </CardContent>
-            <CardFooter className="pt-4 border-t">
-              <Button className="w-full gap-2" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
+            <CardFooter className="pt-0 mt-auto">
+              <Button className="w-full gap-2 rounded-full" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
                 <BookOpen className="h-4 w-4" /> Enter Course
               </Button>
             </CardFooter>

@@ -338,6 +338,10 @@ export const DashboardLayout = () => {
                         <GraduationCap className="h-4 w-4 text-indigo-500" />
                         My Courses
                     </Link>
+                    <Link to="/dashboard/extra-courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <Tag className="h-4 w-4 text-purple-500" />
+                        Extra Courses
+                    </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
