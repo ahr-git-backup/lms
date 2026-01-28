@@ -5,7 +5,7 @@ import {
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
   Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert,
-  Tag, LayoutTemplate, AlertCircle, Archive, Database
+  Tag, LayoutTemplate, AlertCircle, Archive, Database, GraduationCap
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
@@ -334,6 +334,14 @@ export const DashboardLayout = () => {
                         <LayoutDashboard className="h-4 w-4 text-blue-500" />
                         Dashboard
                     </Link>
+                    <Link to="/dashboard/my-courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <GraduationCap className="h-4 w-4 text-indigo-500" />
+                        My Courses
+                    </Link>
+                    <Link to="/dashboard/extra-courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <Tag className="h-4 w-4 text-purple-500" />
+                        Extra Courses
+                    </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
@@ -346,8 +354,8 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <PenTool className="h-4 w-4 text-purple-500" /> Live Exam
                     </Link>
-                    <Link to="/dashboard/past-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <History className="h-4 w-4 text-orange-500" /> Past Class
+                    <Link to="/dashboard/recordings" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <History className="h-4 w-4 text-orange-500" /> Recordings
                     </Link>
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams
@@ -401,6 +409,9 @@ export const DashboardLayout = () => {
                         <Link to="/dashboard/admin/question-bank" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Database className="h-4 w-4 text-blue-600" /> Question Bank
                         </Link>
+                        <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Megaphone className="h-4 w-4 text-yellow-600" /> Notice
+                        </Link>
                         <Link to="/dashboard/admin/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Library className="h-4 w-4 text-teal-600" /> Resources
                         </Link>
@@ -410,21 +421,18 @@ export const DashboardLayout = () => {
                         <Link to="/dashboard/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
                         </Link>
-                        <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Megaphone className="h-4 w-4 text-yellow-600" /> Notice
-                        </Link>
 
                         {/* Admin Only Links */}
                         {isAdmin && (
                           <>
+                            <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
+                            </Link>
                             <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Settings className="h-4 w-4 text-green-600" /> Courses
                             </Link>
                             <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Users className="h-4 w-4 text-purple-600" /> Students
-                            </Link>
-                            <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                                <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
                             </Link>
                             <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <CreditCard className="h-4 w-4 text-emerald-600" /> Payments
@@ -437,6 +445,9 @@ export const DashboardLayout = () => {
                             </Link>
                             <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <PenTool className="h-4 w-4 text-violet-600" /> Mentors/Founders
+                            </Link>
+                            <Link to="/dashboard/admin/reviews" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <Megaphone className="h-4 w-4 text-pink-600" /> Reviews
                             </Link>
                           </>
                         )}

@@ -8,18 +8,18 @@ import { Button } from "@/components/ui/button";
 import { SUBJECTS } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
 
-const PastClass = () => {
+const Recordings = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const { data: enrollments } = useEnrollments();
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Past Class – Atlas";
+    document.title = "Recordings – Atlas";
   }, []);
 
   const { data: classes, isLoading } = useQuery({
-    queryKey: ["past-classes", selectedCourse, selectedSubject],
+    queryKey: ["recordings-list", selectedCourse, selectedSubject],
     queryFn: async () => {
       const now = new Date().toISOString();
       let query = supabase
@@ -43,18 +43,34 @@ const PastClass = () => {
     },
   });
 
+  // Client-side filtering as fallback/refinement
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
+
   const filteredClasses = classes?.filter(c => {
-      // Check primary course or shared
+      // If course is selected, trust the server filter
+      if (selectedCourse !== "all") return true;
+
+      // Otherwise, ensure the user has access
+      // Case 1: Primary Course Enrollment
+      if (enrolledCourseIds.includes(c.course_id)) return true;
+
+      // Case 2: Public Content
+      if (!c.course_id) return true;
+
+      // Case 3: Shared Access
       // @ts-ignore
-      const isShared = c.shared_course_ids && enrolledCourseIds.some(eid => c.shared_course_ids.includes(eid));
-      return enrolledCourseIds.includes(c.course_id) || isShared;
+      if (c.shared_course_ids && Array.isArray(c.shared_course_ids)) {
+          // @ts-ignore
+          if (c.shared_course_ids.some((id: string) => enrolledCourseIds.includes(id))) return true;
+      }
+
+      return false;
   }) || [];
 
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Past classes</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Recordings</h1>
         <p className="text-sm text-muted-foreground">Watch recordings of previous sessions.</p>
       </header>
 
@@ -160,4 +176,4 @@ const PastClass = () => {
   );
 };
 
-export default PastClass;
+export default Recordings;

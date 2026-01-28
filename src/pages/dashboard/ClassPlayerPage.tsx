@@ -130,6 +130,8 @@ const ClassPlayerPage = () => {
                 videoId={classItem.video_url}
                 title={classItem.title}
                 watermarkText={profile ? `${profile.full_name} (${profile.registration_id})` : undefined}
+                isLive={classItem.class_type === 'live'}
+                startTime={classItem.start_at}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">

@@ -85,7 +85,7 @@ const Index = () => {
 
        if (error || !data || data.length === 0) {
            return [
-               { id: 1, student_name: "Sadiq", college_name: "Dhaka College", review_text: "এইচএসসি প্রস্তুতির জন্য সেরা প্ল্যাটফর্ম!", rating: 5, gender: "male", image_url: "https://pub-48488a27fc9244d9b86fec8da3eb89f4.r2.dev/d63297ba-5e53-45ba-a2a1-7ab15d3c5ade.webp" },
+               { id: 1, student_name: "Sadiq", college_name: "Dhaka College", review_text: "এইচএসসি প্রস্তুতির জন্য সেরা প্ল্যাটফর্ম!", rating: 5, gender: "male", image_url: "https://pub-48488a27fc9244d9b86fec8da3eb89f4.r2.dev/d63297ba-5e53-45ba-a2a1-7ab15d3c5ade.webp", post_image_url: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&auto=format&fit=crop" },
                { id: 2, student_name: "Sadia Islam", college_name: "Viqarunnisa Noon", review_text: "এক্সাম সিস্টেমটি হুবহু আসল পরীক্ষার মতো।", rating: 5, gender: "female", image_url: "https://pub-48488a27fc9244d9b86fec8da3eb89f4.r2.dev/test/478d327a-0d10-4f7e-91a9-4df3756c86b2.webp" },
                { id: 3, student_name: "Rahim Uddin", college_name: "Notre Dame College", review_text: "লাইভ ক্লাস এবং নোটগুলো খুবই সহায়ক।", rating: 5, gender: "male", image_url: "" },
                { id: 4, student_name: "Fatima Akter", college_name: "Holy Cross College", review_text: "আমি পদার্থবিজ্ঞানে অনেক উন্নতি করেছি।", rating: 5, gender: "female", image_url: "" },
@@ -200,20 +200,22 @@ const Index = () => {
                 <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
                 <p className="text-sm text-muted-foreground">কেন বাছবেন এটলাস?</p>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {FEATURES.map((feature, i) => (
-                    <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
-                        <CardContent className="flex flex-col items-center text-center p-4 gap-2">
-                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                                <feature.icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm">{feature.title}</h3>
-                                <p className="text-xs text-muted-foreground">{feature.desc}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
+            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
+                 <div className="flex md:grid md:grid-cols-4 gap-4 min-w-[max-content] md:min-w-0">
+                    {FEATURES.map((feature, i) => (
+                        <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors w-[160px] md:w-auto flex-shrink-0">
+                            <CardContent className="flex flex-col items-center text-center p-4 gap-2">
+                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                                    <feature.icon className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-xs md:text-sm">{feature.title}</h3>
+                                    <p className="text-[10px] md:text-xs text-muted-foreground">{feature.desc}</p>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                 </div>
             </div>
         </section>
 

@@ -54,6 +54,7 @@ export interface Course {
   category?: string[];
   sub_category?: string[];
   priority?: number;
+  linked_course_ids?: string[];
 }
 
 export interface Class {

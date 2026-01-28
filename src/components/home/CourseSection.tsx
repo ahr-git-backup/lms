@@ -98,30 +98,38 @@ export const CourseSection = () => {
                 </div>
 
                 {/* Filters using Visible Buttons */}
-                <div className="bg-muted/10 border border-border/50 rounded-xl p-4 sm:p-6 space-y-4 w-[calc(100%-2rem)] max-w-[400px] mx-auto overflow-x-auto min-w-0 sm:w-full sm:max-w-none sm:mx-0">
-                    <div className="flex flex-col gap-2">
+                <div className="space-y-4 w-full">
+                    <div className="flex flex-col gap-3">
                          {/* Header for Filter Section */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium mb-1">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
                             <Filter className="h-4 w-4" />
                             <span>কোর্স ফিল্টার করুন</span>
                         </div>
 
                         {/* Category Buttons */}
-                        <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 scrollbar-hide">
-                            <div className="flex flex-row gap-3 min-w-max pr-4">
+                        <div className="w-full">
+                            <div className="flex flex-wrap gap-2">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === "all" ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
+                                    className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                        selectedCategory === "all"
+                                        ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
+                                        : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                    }`}
                                 >
-                                    All Batches
+                                    সব
                                 </Button>
                                 {categories.map((cat: string) => (
                                     <Button
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`rounded-full px-6 h-10 transition-all duration-200 min-w-[100px] border-primary/20 ${selectedCategory === cat ? "shadow-md" : "hover:bg-primary/5 hover:text-primary hover:border-primary"}`}
+                                        className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                            selectedCategory === cat
+                                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
+                                            : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                        }`}
                                     >
                                         {cat}
                                     </Button>
@@ -131,21 +139,29 @@ export const CourseSection = () => {
 
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
-                            <div className="w-full overflow-x-auto pb-2 sm:mx-0 sm:px-0 pt-2 border-t border-dashed border-border/50">
-                                <div className="flex flex-row gap-3 min-w-max pr-4">
+                            <div className="w-full pt-2 border-t border-dashed border-border/50">
+                                <div className="flex flex-wrap gap-2">
                                     <Button
-                                        variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
+                                        variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === "all" ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                        className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                            selectedSubCategory === "all"
+                                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
+                                            : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                        }`}
                                     >
-                                        All Types
+                                        সব টাইপ
                                     </Button>
                                     {availableSubCategories.map((sub: string) => (
                                         <Button
                                             key={sub}
-                                            variant={selectedSubCategory === sub ? "secondary" : "ghost"}
+                                            variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`rounded-full border px-6 h-10 min-w-[100px] transition-colors ${selectedSubCategory === sub ? "bg-secondary font-semibold shadow-sm border-secondary-foreground/20" : "bg-transparent border-transparent hover:bg-muted hover:border-border"}`}
+                                            className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                                selectedSubCategory === sub
+                                                ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
+                                                : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                            }`}
                                         >
                                             {sub}
                                         </Button>

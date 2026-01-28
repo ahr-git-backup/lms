@@ -37,7 +37,7 @@ const LiveExam = () => {
         .order("created_at", { ascending: false });
 
       if (selectedCourse !== "all") {
-        query = query.eq("course_id", selectedCourse);
+        query = query.or(`course_id.eq.${selectedCourse},shared_course_ids.cs.{${selectedCourse}}`);
       }
 
       if (selectedSubject !== "all") {

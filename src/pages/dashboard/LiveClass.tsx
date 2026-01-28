@@ -31,7 +31,8 @@ const LiveClass = () => {
         .order("start_at", { ascending: true });
 
       if (selectedCourse !== "all") {
-        query = query.eq("course_id", selectedCourse);
+        // Match course_id directly OR check shared_course_ids
+        query = query.or(`course_id.eq.${selectedCourse},shared_course_ids.cs.{${selectedCourse}}`);
       }
 
       if (selectedSubject !== "all") {
@@ -47,7 +48,12 @@ const LiveClass = () => {
   const { preferences } = useReminderPreferences();
 
   const enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
-  const filteredClasses = classes?.filter((c) => enrolledCourseIds.includes(c.course_id)) || [];
+  const filteredClasses = classes?.filter(c => {
+      // Check primary course or shared
+      // @ts-ignore
+      const isShared = c.shared_course_ids && enrolledCourseIds.some(eid => c.shared_course_ids.includes(eid));
+      return enrolledCourseIds.includes(c.course_id) || isShared;
+  }) || [];
 
   return (
     <div className="space-y-6">

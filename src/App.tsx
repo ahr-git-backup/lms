@@ -20,7 +20,7 @@ import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LiveClass from "./pages/dashboard/LiveClass";
-import PastClass from "./pages/dashboard/PastClass";
+import Recordings from "./pages/dashboard/Recordings";
 import LiveExam from "./pages/dashboard/LiveExam";
 import ExamResults from "./pages/dashboard/ExamResults";
 import PastExamCatalog from "./pages/dashboard/PastExamCatalog";
@@ -38,6 +38,9 @@ import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
+import MyCourses from "./pages/dashboard/MyCourses";
+import ExtraCourses from "./pages/dashboard/ExtraCourses";
+import CourseView from "./pages/dashboard/CourseView";
 import AdminDashboardHome from "./pages/dashboard/admin/AdminDashboardHome";
 import AdminCourses from "./pages/dashboard/admin/AdminCourses";
 import AdminStudents from "./pages/dashboard/admin/AdminStudents";
@@ -52,6 +55,7 @@ import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
+import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
 import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
@@ -130,7 +134,7 @@ const App = () => {
                 <Route index element={<DashboardHome />} />
                 <Route path="live-class" element={<LiveClass />} />
                 <Route path="class/:classId" element={<ClassPlayerPage />} />
-                <Route path="past-class" element={<PastClass />} />
+                <Route path="recordings" element={<Recordings />} />
                 <Route path="live-exam" element={<LiveExam />} />
                 <Route path="take-exam/:examId" element={<TakeExam />} />
                 <Route path="take-mistakes" element={<TakeMistakeExam />} />
@@ -149,6 +153,9 @@ const App = () => {
                 <Route path="analytics" element={<ExamAnalytics />} />
                 <Route path="program" element={<Program />} />
                 <Route path="archive" element={<Archive />} />
+                <Route path="my-courses" element={<MyCourses />} />
+                <Route path="extra-courses" element={<ExtraCourses />} />
+                <Route path="course/:courseId" element={<CourseView />} />
 
                 <Route path="admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminDashboardHome /></ProtectedRoute>} />
                 <Route path="admin/courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
@@ -167,6 +174,7 @@ const App = () => {
                 <Route path="admin/mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
                 <Route path="admin/promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
                 <Route path="admin/heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
+                <Route path="admin/reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

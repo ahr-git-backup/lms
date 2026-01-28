@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database } from "lucide-react";
+import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -16,10 +16,12 @@ import {
 
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
+  { title: "My Courses", url: "/dashboard/my-courses", icon: GraduationCap, color: "text-indigo-500" },
+  { title: "Extra Courses", url: "/dashboard/extra-courses", icon: Gift, color: "text-purple-500" },
   { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
   { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
   { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
-  { title: "Past Class", url: "/dashboard/past-class", icon: BookOpen, color: "text-orange-500" },
+  { title: "Recordings", url: "/dashboard/recordings", icon: BookOpen, color: "text-orange-500" },
   { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText, color: "text-yellow-500" },
   { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
@@ -49,6 +51,7 @@ const adminItems = [
   { title: "Promo Codes", url: "/dashboard/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
   { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
   { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
+  { title: "Reviews", url: "/dashboard/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
 ];
 
 export function AppSidebar() {
@@ -74,9 +77,9 @@ export function AppSidebar() {
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-sidebar-border bg-sidebar bg-background text-sidebar-foreground w-56 data-[state=collapsed]:w-16 mt-14 h-[calc(100svh-3.5rem)]"
+      className="border-r border-sidebar-border bg-background text-sidebar-foreground w-56 data-[state=collapsed]:w-16 mt-14 h-[calc(100svh-3.5rem)] z-30"
     >
-      <SidebarContent className="flex h-full flex-col group-data-[collapsible=icon]:!overflow-y-auto no-scrollbar">
+      <SidebarContent className="flex h-full flex-col group-data-[collapsible=icon]:!overflow-y-auto no-scrollbar bg-background">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70">Student</SidebarGroupLabel>
           <SidebarGroupContent>
