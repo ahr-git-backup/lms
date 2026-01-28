@@ -142,12 +142,12 @@ export const CourseSection = () => {
                             <div className="w-full pt-2 border-t border-dashed border-border/50">
                                 <div className="flex flex-wrap gap-2">
                                     <Button
-                                        variant={selectedSubCategory === "all" ? "secondary" : "ghost"}
+                                        variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`rounded-full border px-4 h-8 text-xs transition-colors ${
+                                        className={`rounded-full px-4 h-8 text-xs border transition-all ${
                                             selectedSubCategory === "all"
-                                            ? "bg-secondary font-semibold border-secondary-foreground/20"
-                                            : "bg-transparent border-transparent hover:bg-muted hover:border-border"
+                                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
+                                            : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
                                         }`}
                                     >
                                         সব টাইপ
@@ -155,12 +155,12 @@ export const CourseSection = () => {
                                     {availableSubCategories.map((sub: string) => (
                                         <Button
                                             key={sub}
-                                            variant={selectedSubCategory === sub ? "secondary" : "ghost"}
+                                            variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`rounded-full border px-4 h-8 text-xs transition-colors ${
+                                            className={`rounded-full px-4 h-8 text-xs border transition-all ${
                                                 selectedSubCategory === sub
-                                                ? "bg-secondary font-semibold border-secondary-foreground/20"
-                                                : "bg-transparent border-transparent hover:bg-muted hover:border-border"
+                                                ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
+                                                : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
                                             }`}
                                         >
                                             {sub}

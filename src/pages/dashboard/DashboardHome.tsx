@@ -20,6 +20,19 @@ interface DashboardData {
     next_exam: any;
 }
 
+// Safe Date Helper to prevent crashes
+const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions) => {
+    if (!dateStr) return "N/A";
+    try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return "Invalid Date";
+        return date.toLocaleString([], options);
+    } catch (e) {
+        console.error("Date formatting error", e);
+        return "Error";
+    }
+};
+
 const DashboardHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -43,7 +56,7 @@ const DashboardHome = () => {
     enabled: !!user,
   });
 
-  const { data: dashboardData, isLoading: dashboardLoading } = useQuery({
+  const { data: dashboardData, isLoading: dashboardLoading, isError } = useQuery({
     queryKey: ["dashboard-data", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -60,7 +73,18 @@ const DashboardHome = () => {
   });
 
   if (dashboardLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">Loading...</div>;
+    return <div className="p-8 text-center text-sm text-muted-foreground">Loading dashboard...</div>;
+  }
+
+  if (isError) {
+      return (
+          <div className="p-8 text-center">
+              <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
+              <h2 className="text-lg font-semibold text-destructive">Failed to load dashboard data.</h2>
+              <p className="text-sm text-muted-foreground">Please check your connection and try again.</p>
+              <Button onClick={() => window.location.reload()} size="sm" className="mt-4">Retry</Button>
+          </div>
+      );
   }
 
   // Extract data with fallbacks
@@ -88,7 +112,7 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in duration-500">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
         <p className="text-sm text-muted-foreground">
@@ -113,7 +137,7 @@ const DashboardHome = () => {
                             <div className="text-yellow-800 dark:text-yellow-300 space-y-2 text-sm">
                                 <p>
                                     <a href="https://t.me/atlasweb_robot" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-yellow-900">
-                                        @atlasweb_Robot
+                                        @atlasweb_robot
                                     </a> এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন। ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
                                 </p>
                                 <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
@@ -163,23 +187,23 @@ const DashboardHome = () => {
            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveClasses.map((classItem: any) => (
-                  <Card key={classItem.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
+                  <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {classItem.course?.name || "Unknown Course"}
+                              {classItem?.course?.name || "Unknown Course"}
                           </p>
                           <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE CLASS
                           </span>
                       </div>
-                      <CardTitle className="text-base break-words">{classItem.title}</CardTitle>
+                      <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
                       <CardDescription className="text-xs">
-                        Started: {classItem.start_at ? new Date(classItem.start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
+                        Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Join Class
                        </Button>
                     </CardContent>
@@ -188,23 +212,23 @@ const DashboardHome = () => {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
-                  <Card key={exam.id} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
+                  <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
                           <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {exam.course?.name || "Unknown Course"}
+                              {exam?.course?.name || "Unknown Course"}
                           </p>
                           <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE EXAM
                           </span>
                       </div>
-                      <CardTitle className="text-base break-words">{exam.title}</CardTitle>
+                      <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
                       <CardDescription className="text-xs">
-                        Ends: {exam.time_window_end ? new Date(exam.time_window_end).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Take Exam
                        </Button>
                     </CardContent>
@@ -236,9 +260,7 @@ const DashboardHome = () => {
                             </p>
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                    {nextClass.start_at ? new Date(nextClass.start_at).toLocaleString([], {
-                                    weekday: 'short', hour: '2-digit', minute: '2-digit'
-                                    }) : "TBA"}
+                                    {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
                         </div>
@@ -268,9 +290,7 @@ const DashboardHome = () => {
                             </p>
                             <div className="flex items-center gap-2 mt-2">
                                 <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                    {nextExam.time_window_start ? new Date(nextExam.time_window_start).toLocaleString([], {
-                                    weekday: 'short', hour: '2-digit', minute: '2-digit'
-                                    }) : "TBA"}
+                                    {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
                         </div>
