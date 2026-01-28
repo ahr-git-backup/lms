@@ -196,10 +196,10 @@ const Index = () => {
                 <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
                 <p className="text-sm text-muted-foreground">কেন বাছবেন এটলাস?</p>
             </div>
-            <div className="overflow-x-auto pb-4 -mx-4 px-4 scrollbar-hide">
-                 <div className="flex md:grid md:grid-cols-4 gap-4 min-w-[max-content] md:min-w-0">
+            <div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {FEATURES.map((feature, i) => (
-                        <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors w-[160px] md:w-auto flex-shrink-0">
+                        <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
                             <CardContent className="flex flex-col items-center text-center p-4 gap-2">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                     <feature.icon className="h-5 w-5" />
