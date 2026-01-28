@@ -96,7 +96,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
   // --- Helper: Notifications ---
   const sendNotification = (title: string, body?: string) => {
     try {
-        if (!("Notification" in window)) {
+        if (typeof window === 'undefined' || !("Notification" in window)) {
              toast({ title, description: body });
              return;
         }
@@ -112,7 +112,15 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
         console.warn("Notification failed:", e);
     }
+    // Always show toast as fallback or complement
     toast({ title, description: body });
+  };
+
+  const safePlayAudio = (audio: HTMLAudioElement | null) => {
+      if (!audio) return;
+      audio.play().catch(e => {
+          console.warn("Audio play blocked/failed:", e);
+      });
   };
 
   // --- Helper: Update Streak & Stats ---
@@ -207,7 +215,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (isNoisePlaying) {
-            audio.play().catch(e => console.error("Audio play failed", e));
+            safePlayAudio(audio);
         } else {
             audio.pause();
         }
@@ -258,7 +266,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
     } else if (timeLeft === 0 && isPomoActive) {
       // Session Finished
       setIsPomoActive(false);
-      pomoAudioRef.current?.play().catch(e => console.warn("Audio play failed", e));
+      safePlayAudio(pomoAudioRef.current);
 
       if (pomoMode === 'work') {
           // Work Finished -> Start Break
@@ -326,7 +334,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
       if (isReminderActive && reminderInterval > 0) {
           reminderRef.current = setInterval(() => {
-              pomoAudioRef.current?.play().catch(e => console.warn("Audio play failed", e)); // reuse clock sound or different one
+              safePlayAudio(pomoAudioRef.current);
               sendNotification("Reminder", reminderMessage || "Time to check in!");
           }, reminderInterval * 60 * 1000);
       } else {

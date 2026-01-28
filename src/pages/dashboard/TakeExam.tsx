@@ -361,11 +361,24 @@ const TakeExam = () => {
   // Access Control
   const hasAccess = (() => {
       if (!exam) return false;
-      if (!exam.course_id) return true; // Public/Free Exam
+
+      // If course_id is null, it's potentially public, BUT we must check if hidden from free view
+      if (!exam.course_id) {
+          // @ts-ignore
+          if (exam.is_visible_on_free === false) {
+             // Not public. Check if user has access via Archive/Shared
+             // Fall through to enrollment checks
+          } else {
+             return true; // Strictly public/free
+          }
+      }
+
       if (!enrollments) return false;
 
       const enrolledIds = enrollments.map((e: any) => e.course_id);
-      if (enrolledIds.includes(exam.course_id)) return true;
+
+      // Check Primary Enrollment
+      if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
 
       // Check Shared Courses
       // @ts-ignore

@@ -231,6 +231,29 @@ const AdminStudents = () => {
         </p>
       </header>
 
+      <div className="grid gap-6 md:grid-cols-4">
+          <Card>
+              <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Total Paid Students</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">
+                      {students.filter((s: any) => s.enrollments && s.enrollments.length > 0).length}
+                  </div>
+              </CardContent>
+          </Card>
+          <Card>
+              <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Free/Unpaid Students</CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">
+                      {students.filter((s: any) => !s.enrollments || s.enrollments.length === 0).length}
+                  </div>
+              </CardContent>
+          </Card>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="border border-foreground/60">
           <CardHeader>

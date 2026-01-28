@@ -51,6 +51,7 @@ const adminItems = [
   { title: "Promo Codes", url: "/dashboard/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
   { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
   { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
+  { title: "Reviews", url: "/dashboard/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
 ];
 
 export function AppSidebar() {

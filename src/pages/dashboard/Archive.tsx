@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,11 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, BookOpen, Layers, Trophy, Clock, CheckCircle, Lock, ChevronRight, Video, FileText, Search, ChevronLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { SUBJECTS } from "@/lib/constants";
 
 const PAGE_SIZE = 9;
 
@@ -102,19 +99,19 @@ const Archive = () => {
   );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
 
-    // --- Search Mode ---
+    // Move all hooks to top level
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ["archive-classes-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
-            // Sanitize query to prevent crashes (allow letters, numbers, spaces, Bengali)
             const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
-            let query = supabase
+            const query = supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
@@ -129,6 +126,69 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         enabled: !!searchQuery && !!enrollments
     });
 
+    const { data: subjects, isLoading: loadingSubjects } = useQuery({
+        queryKey: ["archive-classes-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0) return [];
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            const { data } = await supabase
+                .from("classes")
+                .select("subject")
+                .overlaps("archive_course_ids", courseIds);
+
+            const unique = new Set<string>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.forEach((row: any) => {
+                 if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
+                 else if (typeof row.subject === 'string') unique.add(row.subject);
+            });
+            return Array.from(unique).sort();
+        },
+        enabled: !!enrollments && !selectedSubject && !searchQuery
+    });
+
+    const { data: chapters, isLoading: loadingChapters } = useQuery({
+        queryKey: ["archive-classes-chapters", selectedSubject],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            const { data } = await supabase
+                .from("classes")
+                .select("chapter")
+                .overlaps("archive_course_ids", courseIds)
+                .contains("subject", [selectedSubject]);
+
+            const unique = new Set<string>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.forEach((row: any) => {
+                if (row.chapter) unique.add(row.chapter);
+            });
+            return Array.from(unique).sort();
+        },
+        enabled: !!selectedSubject && !selectedChapter && !searchQuery
+    });
+
+    const { data: classesData, isLoading: loadingClasses } = useQuery({
+        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            const { data, count, error } = await supabase
+                .from("classes")
+                .select("*, course:courses(name)", { count: 'exact' })
+                .overlaps("archive_course_ids", courseIds)
+                .contains("subject", [selectedSubject])
+                .eq("chapter", selectedChapter)
+                .order("start_at", { ascending: false })
+                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+            if (error) throw error;
+            return { data: data || [], count: count || 0 };
+        },
+        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
+    });
+
+    // Render Logic
     if (searchQuery) {
         if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
         const classes = searchResults?.data || [];
@@ -140,6 +200,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         return (
             <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => (
                          <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
                           <CardHeader className="space-y-1">
@@ -179,73 +240,6 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             </div>
         );
     }
-
-    // --- Browse Mode ---
-
-    // 1. Fetch distinct Subjects available in enrolled classes
-    const { data: subjects, isLoading: loadingSubjects } = useQuery({
-        queryKey: ["archive-classes-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
-        queryFn: async () => {
-            if (!enrollments || enrollments.length === 0) return [];
-            const courseIds = enrollments.map((e: any) => e.course_id);
-            // Filter where archive_course_ids contains ANY of the enrolled courseIds.
-            // PostgREST: archive_course_ids.cs.{id1,id2}
-            const { data } = await supabase
-                .from("classes")
-                .select("subject")
-                .overlaps("archive_course_ids", courseIds);
-
-            const unique = new Set<string>();
-            data?.forEach(row => {
-                 if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-                 else if (typeof row.subject === 'string') unique.add(row.subject);
-            });
-            return Array.from(unique).sort();
-        },
-        enabled: !!enrollments && !selectedSubject && !searchQuery
-    });
-
-    // 2. Fetch distinct Chapters for selected Subject
-    const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-classes-chapters", selectedSubject],
-        queryFn: async () => {
-            if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
-            const courseIds = enrollments.map((e: any) => e.course_id);
-            const { data } = await supabase
-                .from("classes")
-                .select("chapter")
-                .overlaps("archive_course_ids", courseIds)
-                .contains("subject", [selectedSubject]);
-
-            const unique = new Set<string>();
-            data?.forEach(row => {
-                if (row.chapter) unique.add(row.chapter);
-            });
-            return Array.from(unique).sort();
-        },
-        enabled: !!selectedSubject && !selectedChapter && !searchQuery
-    });
-
-    // 3. Fetch Classes for selected Chapter (Paginated)
-    const { data: classesData, isLoading: loadingClasses } = useQuery({
-        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page],
-        queryFn: async () => {
-            if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
-            const courseIds = enrollments.map((e: any) => e.course_id);
-            const { data, count, error } = await supabase
-                .from("classes")
-                .select("*, course:courses(name)", { count: 'exact' })
-                .overlaps("archive_course_ids", courseIds)
-                .contains("subject", [selectedSubject])
-                .eq("chapter", selectedChapter)
-                .order("start_at", { ascending: false })
-                .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-            if (error) throw error;
-            return { data: data || [], count: count || 0 };
-        },
-        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
-    });
 
     if (!selectedSubject) {
         if (loadingSubjects) return <div className="text-muted-foreground">Loading subjects...</div>;
@@ -315,6 +309,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             ) : (
                 <>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => (
                          <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
                           <CardHeader className="space-y-1">
@@ -357,9 +352,9 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     );
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
 
-    // --- Search Mode ---
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
         queryFn: async () => {
@@ -368,7 +363,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
-            let query = supabase
+            const query = supabase
                 .from("exams")
                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
@@ -384,6 +379,70 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         enabled: !!searchQuery && !!enrollments
     });
 
+    const { data: subjects, isLoading: loadingSubjects } = useQuery({
+        queryKey: ["archive-exams-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0) return [];
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            const { data } = await supabase
+                .from("exams")
+                .select("subject")
+                .overlaps("archive_course_ids", courseIds)
+                .eq("is_published", true);
+
+            const unique = new Set<string>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.forEach((row: any) => {
+                 if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
+                 else if (typeof row.subject === 'string') unique.add(row.subject);
+            });
+            return Array.from(unique).sort();
+        },
+        enabled: !!enrollments && !selectedSubject && !searchQuery
+    });
+
+    const { data: chapters, isLoading: loadingChapters } = useQuery({
+        queryKey: ["archive-exams-chapters", selectedSubject],
+        queryFn: async () => {
+            if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
+            const courseIds = enrollments.map((e: any) => e.course_id);
+            const { data } = await supabase
+                .from("exams")
+                .select("chapter")
+                .overlaps("archive_course_ids", courseIds)
+                .contains("subject", [selectedSubject])
+                .eq("is_published", true);
+
+            const unique = new Set<string>();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data?.forEach((row: any) => {
+                if (row.chapter) unique.add(row.chapter);
+            });
+            return Array.from(unique).sort();
+        },
+        enabled: !!selectedSubject && !selectedChapter && !searchQuery
+    });
+
+    const { data: examsData, isLoading: loadingExams } = useQuery({
+        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page],
+        queryFn: async () => {
+             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
+             const courseIds = enrollments.map((e: any) => e.course_id);
+             const { data, count, error } = await supabase
+                 .from("exams")
+                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
+                 .overlaps("archive_course_ids", courseIds)
+                 .contains("subject", [selectedSubject])
+                 .eq("chapter", selectedChapter)
+                 .eq("is_published", true)
+                 .order("created_at", { ascending: false })
+                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+             if (error) throw error;
+             return { data: data || [], count: count || 0 };
+        },
+        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
+    });
+
     if (searchQuery) {
         if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
         const exams = searchResults?.data || [];
@@ -395,6 +454,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         return (
             <div className="space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {exams.map((exam: any) => (
                         <Card
                             key={exam.id}
@@ -442,73 +502,6 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             </div>
         );
     }
-
-    // --- Browse Mode ---
-
-    // 1. Fetch distinct Subjects
-    const { data: subjects, isLoading: loadingSubjects } = useQuery({
-        queryKey: ["archive-exams-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
-        queryFn: async () => {
-            if (!enrollments || enrollments.length === 0) return [];
-            const courseIds = enrollments.map((e: any) => e.course_id);
-            const { data } = await supabase
-                .from("exams")
-                .select("subject")
-                .overlaps("archive_course_ids", courseIds)
-                .eq("is_published", true);
-
-            const unique = new Set<string>();
-            data?.forEach(row => {
-                 if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-                 else if (typeof row.subject === 'string') unique.add(row.subject);
-            });
-            return Array.from(unique).sort();
-        },
-        enabled: !!enrollments && !selectedSubject && !searchQuery
-    });
-
-    // 2. Fetch distinct Chapters
-    const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-exams-chapters", selectedSubject],
-        queryFn: async () => {
-            if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
-            const courseIds = enrollments.map((e: any) => e.course_id);
-            const { data } = await supabase
-                .from("exams")
-                .select("chapter")
-                .overlaps("archive_course_ids", courseIds)
-                .contains("subject", [selectedSubject])
-                .eq("is_published", true);
-
-            const unique = new Set<string>();
-            data?.forEach(row => {
-                if (row.chapter) unique.add(row.chapter);
-            });
-            return Array.from(unique).sort();
-        },
-        enabled: !!selectedSubject && !selectedChapter && !searchQuery
-    });
-
-    // 3. Fetch Exams
-    const { data: examsData, isLoading: loadingExams } = useQuery({
-        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page],
-        queryFn: async () => {
-             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
-             const courseIds = enrollments.map((e: any) => e.course_id);
-             const { data, count, error } = await supabase
-                 .from("exams")
-                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
-                 .overlaps("archive_course_ids", courseIds)
-                 .contains("subject", [selectedSubject])
-                 .eq("chapter", selectedChapter)
-                 .eq("is_published", true)
-                 .order("created_at", { ascending: false })
-                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-             if (error) throw error;
-             return { data: data || [], count: count || 0 };
-        },
-        enabled: !!selectedSubject && !!selectedChapter && !searchQuery
-    });
 
     if (!selectedSubject) {
         if (loadingSubjects) return <div className="text-muted-foreground">Loading subjects...</div>;
@@ -578,6 +571,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             ) : (
                 <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {exams.map((exam: any) => (
                     <Card
                         key={exam.id}

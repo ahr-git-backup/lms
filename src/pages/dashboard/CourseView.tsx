@@ -3,10 +3,11 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock } from "lucide-react";
+import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const CourseView = () => {
   const { courseId } = useParams();
@@ -173,17 +174,13 @@ const CourseView = () => {
 };
 
 const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
-    const navigate = useNavigate();
-
-    // Fetch counts or data
-    // For simplicity, we just link to filtered views or show simple lists
-
     return (
         <Tabs defaultValue="recordings" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="recordings" className="gap-2"><Video className="h-4 w-4" /> Recordings</TabsTrigger>
-                <TabsTrigger value="exams" className="gap-2"><FileText className="h-4 w-4" /> Exams</TabsTrigger>
-                <TabsTrigger value="resources" className="gap-2"><FolderOpen className="h-4 w-4" /> Resources</TabsTrigger>
+                <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
+                <TabsTrigger value="archive-class" className="gap-2"><Archive className="h-4 w-4" /> Arch. Class</TabsTrigger>
+                <TabsTrigger value="archive-exam" className="gap-2"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
             </TabsList>
 
             <TabsContent value="recordings" className="mt-6">
@@ -194,10 +191,12 @@ const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, s
                 <ExamList courseId={courseId} subject={subject} chapter={chapter} />
             </TabsContent>
 
-            <TabsContent value="resources" className="mt-6">
-                <div className="text-center py-8 text-muted-foreground">
-                    <p>Resources specific to this chapter will appear here.</p>
-                </div>
+            <TabsContent value="archive-class" className="mt-6">
+                <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} />
+            </TabsContent>
+
+            <TabsContent value="archive-exam" className="mt-6">
+                <ArchiveExamList courseId={courseId} subject={subject} chapter={chapter} />
             </TabsContent>
         </Tabs>
     );
@@ -219,7 +218,7 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
         }
     });
 
-    if (isLoading) return <div>Loading classes...</div>;
+    if (isLoading) return <div>Loading...</div>;
     if (!classes || classes.length === 0) return <div>No recordings found.</div>;
 
     return (
@@ -261,7 +260,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
         }
     });
 
-    if (isLoading) return <div>Loading exams...</div>;
+    if (isLoading) return <div>Loading...</div>;
     if (!exams || exams.length === 0) return <div>No exams found.</div>;
 
     return (
@@ -275,6 +274,92 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {exam.duration_minutes} mins • {exam.total_marks || '?'} marks
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                            Start Exam
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+const ArchiveClassList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: classes, isLoading } = useQuery({
+        queryKey: ["course-archive-classes", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("classes")
+                .select("*")
+                .contains("archive_course_ids", [courseId])
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .order("start_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading...</div>;
+    if (!classes || classes.length === 0) return <div>No archive classes found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {classes.map((cls: any) => (
+                <Card key={cls.id} className="flex flex-col border-emerald-100 bg-emerald-50/20">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-base">{cls.title}</CardTitle>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                             <Badge variant="outline" className="text-[10px]">Archive</Badge>
+                             <Clock className="h-3 w-3" />
+                             {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
+                            Watch Class
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+const ArchiveExamList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: exams, isLoading } = useQuery({
+        queryKey: ["course-archive-exams", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("exams")
+                .select("*")
+                .contains("archive_course_ids", [courseId])
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .eq("is_published", true)
+                .order("created_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading...</div>;
+    if (!exams || exams.length === 0) return <div>No archive exams found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {exams.map((exam: any) => (
+                <Card key={exam.id} className="flex flex-col border-emerald-100 bg-emerald-50/20">
+                    <CardHeader className="pb-2">
+                         <div className="flex justify-between items-start">
+                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            <Badge variant="outline" className="text-[10px]">Archive</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {exam.duration_minutes} mins
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
