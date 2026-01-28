@@ -3,8 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Filter } from "lucide-react";
+import { Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 // Configuration: Add category names here to restrict the buttons shown on the landing page.
 // Example: ["HSC 25", "HSC 26", "Engineering"]
@@ -14,6 +15,7 @@ const FEATURED_CATEGORIES: string[] = [];
 export const CourseSection = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState<string>("");
 
     const { data: courses, isLoading } = useQuery({
         queryKey: ["public-courses"],
@@ -41,7 +43,7 @@ export const CourseSection = () => {
         categories = categories.filter(c => FEATURED_CATEGORIES.includes(c));
     }
 
-    // Filter courses based on selection
+    // Filter courses based on selection and search
     const filteredCourses = courses?.filter((course: any) => {
         const courseCats = Array.isArray(course.category)
             ? course.category
@@ -53,6 +55,13 @@ export const CourseSection = () => {
 
         if (selectedCategory !== "all" && !courseCats.includes(selectedCategory)) return false;
         if (selectedSubCategory !== "all" && !courseSubs.includes(selectedSubCategory)) return false;
+
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const nameMatch = course.name?.toLowerCase().includes(query);
+            return nameMatch;
+        }
+
         return true;
     });
 
@@ -88,31 +97,32 @@ export const CourseSection = () => {
     return (
         <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
-                <div className="flex items-end justify-between gap-4">
-                    <div>
-                        <h2 className="text-2xl font-semibold tracking-tight">চলমান কোর্সসমূহ</h2>
-                        <p className="text-sm text-muted-foreground">
-                            আপনার সফলতার জন্য বিশেষভাবে ডিজাইন করা প্রিমিয়াম প্রোগ্রাম।
-                        </p>
+                <div className="flex flex-col items-center justify-center text-center gap-2">
+                    <h2 className="text-3xl font-bold tracking-tight text-primary">চলমান কোর্স সমূহ</h2>
+
+                    {/* Search Input */}
+                    <div className="w-full max-w-2xl mt-4">
+                        <Input
+                            type="text"
+                            placeholder="কোর্স খুঁজুন..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="bg-white"
+                        />
                     </div>
                 </div>
 
                 {/* Filters using Visible Buttons */}
                 <div className="space-y-4 w-full">
-                    <div className="flex flex-col gap-3">
-                         {/* Header for Filter Section */}
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-                            <Filter className="h-4 w-4" />
-                            <span>কোর্স ফিল্টার করুন</span>
-                        </div>
+                    <div className="flex flex-col items-center gap-4">
 
                         {/* Category Buttons */}
                         <div className="w-full">
-                            <div className="flex flex-wrap gap-2">
+                            <div className="flex flex-wrap justify-center gap-3">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                    className={`px-6 h-10 text-sm border transition-all ${
                                         selectedCategory === "all"
                                         ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
                                         : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
@@ -125,7 +135,7 @@ export const CourseSection = () => {
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                        className={`px-6 h-10 text-sm border transition-all ${
                                             selectedCategory === cat
                                             ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
                                             : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
@@ -139,12 +149,12 @@ export const CourseSection = () => {
 
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
-                            <div className="w-full pt-2 border-t border-dashed border-border/50">
-                                <div className="flex flex-wrap gap-2">
+                            <div className="w-full">
+                                <div className="flex flex-wrap justify-center gap-3">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                        className={`px-6 h-10 text-sm border transition-all ${
                                             selectedSubCategory === "all"
                                             ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
                                             : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
@@ -157,7 +167,7 @@ export const CourseSection = () => {
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`rounded-full px-4 h-8 text-xs border transition-all ${
+                                            className={`px-6 h-10 text-sm border transition-all ${
                                                 selectedSubCategory === sub
                                                 ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
                                                 : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
