@@ -5,7 +5,7 @@ import {
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
   Settings, Users, Library, Trophy, CreditCard, Bookmark, VolumeX, Volume2, ShieldAlert,
-  Tag, LayoutTemplate, AlertCircle, Archive, Database
+  Tag, LayoutTemplate, AlertCircle, Archive, Database, GraduationCap
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
