@@ -65,16 +65,33 @@ const CourseView = () => {
     queryKey: ["course-chapters", courseId, selectedSubject],
     queryFn: async () => {
       if (!courseId || !selectedSubject) return [];
-      const { data } = await supabase
+
+      // Fetch chapters from classes
+      const { data: classData } = await supabase
         .from("classes")
         .select("chapter")
         .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
         .contains("subject", [selectedSubject]);
 
+      // Fetch chapters from exams
+      const { data: examData } = await supabase
+        .from("exams")
+        .select("chapter")
+        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .contains("subject", [selectedSubject])
+        .eq("is_published", true);
+
       const unique = new Set<string>();
-      data?.forEach(row => {
-          if (row.chapter) unique.add(row.chapter);
-      });
+
+      const processChapters = (data: any[]) => {
+          data?.forEach(row => {
+              if (row.chapter) unique.add(row.chapter);
+          });
+      };
+
+      processChapters(classData || []);
+      processChapters(examData || []);
+
       return Array.from(unique).sort();
     },
     enabled: !!courseId && !!selectedSubject
