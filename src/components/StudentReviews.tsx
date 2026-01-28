@@ -13,7 +13,7 @@ import { MaleAvatar, FemaleAvatar } from "@/components/Avatars";
 import { cn } from "@/lib/utils";
 
 export interface Review {
-  id: number;
+  id: string | number;
   student_name: string;
   college_name: string;
   review_text: string;

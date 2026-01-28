@@ -11,7 +11,7 @@ import { Trash2, Star, Edit2 } from "lucide-react";
 
 // Review Interface matching DB
 interface Review {
-    id: number;
+    id: string | number;
     student_name: string;
     college_name: string;
     review_text: string;
@@ -24,7 +24,7 @@ interface Review {
 const AdminReviews = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | number | null>(null);
 
   const [form, setForm] = useState<Partial<Review>>({
       student_name: "",
@@ -40,7 +40,7 @@ const AdminReviews = () => {
       queryKey: ["admin-reviews"],
       queryFn: async () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const { data, error } = await supabase.from("reviews").select("*").order("id", { ascending: false });
+          const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
           if (error) throw error;
           return data as Review[];
       }
@@ -77,7 +77,7 @@ const AdminReviews = () => {
   });
 
   const deleteMutation = useMutation({
-      mutationFn: async (id: number) => {
+      mutationFn: async (id: string | number) => {
           const { error } = await supabase.from("reviews").delete().eq("id", id);
           if (error) throw error;
       },
