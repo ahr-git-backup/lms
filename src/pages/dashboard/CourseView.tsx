@@ -29,17 +29,32 @@ const CourseView = () => {
     queryKey: ["course-subjects", courseId],
     queryFn: async () => {
       if (!courseId) return [];
-      // Fetch subjects from classes or exams linked to this course (or shared)
-      const { data } = await supabase
+
+      // Fetch subjects from classes
+      const { data: classData } = await supabase
         .from("classes")
         .select("subject")
         .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`);
 
+      // Fetch subjects from exams
+      const { data: examData } = await supabase
+        .from("exams")
+        .select("subject")
+        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .eq("is_published", true);
+
       const unique = new Set<string>();
-      data?.forEach(row => {
-         if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-         else if (typeof row.subject === 'string') unique.add(row.subject);
-      });
+
+      const processSubjects = (data: any[]) => {
+          data?.forEach(row => {
+             if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
+             else if (typeof row.subject === 'string') unique.add(row.subject);
+          });
+      };
+
+      processSubjects(classData || []);
+      processSubjects(examData || []);
+
       return Array.from(unique).sort();
     },
     enabled: !!courseId
