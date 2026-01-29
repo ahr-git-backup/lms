@@ -1,6 +1,7 @@
 -- Fix Exam Access - Clean up and Robust Implementation
 -- Drops previous versions to resolve overloading conflicts.
 -- Uses fully qualified table names and explicit search path.
+-- Fixes "ambiguous column" error by aliasing all column references.
 
 DROP FUNCTION IF EXISTS get_exam_questions_start(uuid);
 DROP FUNCTION IF EXISTS get_exam_questions_start(uuid, uuid);
@@ -26,10 +27,10 @@ DECLARE
   v_has_access boolean := false;
 BEGIN
   -- 1. Get Exam Metadata
-  SELECT course_id, is_visible_on_free, shared_course_ids
+  SELECT ex.course_id, ex.is_visible_on_free, ex.shared_course_ids
   INTO v_exam_course_id, v_is_visible_on_free, v_shared_course_ids
-  FROM public.exams
-  WHERE id = p_exam_id;
+  FROM public.exams ex
+  WHERE ex.id = p_exam_id;
 
   -- 2. Check Access Logic
   IF v_exam_course_id IS NULL THEN
@@ -43,9 +44,9 @@ BEGIN
       -- Check A: Direct Enrollment
       IF NOT v_has_access THEN
           SELECT EXISTS (
-              SELECT 1 FROM public.enrollments
-              WHERE profile_id = p_user_id
-              AND course_id = v_exam_course_id
+              SELECT 1 FROM public.enrollments en
+              WHERE en.profile_id = p_user_id
+              AND en.course_id = v_exam_course_id
           ) INTO v_has_access;
       END IF;
 
@@ -65,9 +66,9 @@ BEGIN
       -- Check C: Shared Course
       IF NOT v_has_access AND v_shared_course_ids IS NOT NULL THEN
           SELECT EXISTS (
-              SELECT 1 FROM public.enrollments
-              WHERE profile_id = p_user_id
-              AND course_id = ANY(v_shared_course_ids)
+              SELECT 1 FROM public.enrollments en_shared
+              WHERE en_shared.profile_id = p_user_id
+              AND en_shared.course_id = ANY(v_shared_course_ids)
           ) INTO v_has_access;
       END IF;
   END IF;
