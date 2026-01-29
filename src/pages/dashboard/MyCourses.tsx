@@ -37,28 +37,39 @@ const MyCourses = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {enrollments.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full group hover:border-primary/50 transition-all duration-300">
-            {enrollment.course?.image_url && (
-                <div className="aspect-video w-full overflow-hidden rounded-t-lg">
+          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50">
+            <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-muted/20 relative">
+                {enrollment.course?.image_url ? (
                     <img
                         src={enrollment.course.image_url}
                         alt={enrollment.course.name}
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                        <GraduationCap className="h-12 w-12 opacity-20" />
+                    </div>
+                )}
+                {/* Status Badge */}
+                <div className="absolute top-2 right-2">
+                    <span className="bg-background/80 backdrop-blur text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+                        Enrolled
+                    </span>
                 </div>
-            )}
-            <CardHeader className="pb-3">
-              <CardTitle className="line-clamp-2 leading-tight text-lg">
+            </div>
+
+            <CardHeader className="pb-2">
+              <CardTitle className="line-clamp-2 leading-tight text-lg group-hover:text-primary transition-colors">
                 {enrollment.course?.name || "Unknown Course"}
               </CardTitle>
             </CardHeader>
             <CardContent className="flex-1 pb-4">
-               <p className="text-sm text-muted-foreground line-clamp-3">
-                   {enrollment.course?.short_description}
+               <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                   {enrollment.course?.short_description || "No description available."}
                </p>
             </CardContent>
-            <CardFooter className="pt-0 mt-auto">
-              <Button className="w-full gap-2 rounded-full" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
+            <CardFooter className="pt-0 mt-auto pb-6 px-6">
+              <Button className="w-full gap-2 rounded-full shadow-lg shadow-primary/10 group-hover:shadow-primary/20 transition-all" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
                 <BookOpen className="h-4 w-4" /> Enter Course
               </Button>
             </CardFooter>

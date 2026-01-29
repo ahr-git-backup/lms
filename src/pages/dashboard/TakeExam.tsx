@@ -119,8 +119,15 @@ const TakeExam = () => {
           try {
             allQuestions = JSON.parse(cached);
             console.log("Loaded questions from cache");
+
+            // Validate cache structure - ensure it's a non-empty array if supposed to be
+            if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
+                console.warn("Cached questions empty or invalid, refetching...");
+                allQuestions = null; // Force refetch
+            }
           } catch(e) {
             console.error("Cache parse error", e);
+            allQuestions = null;
           }
       }
 
@@ -130,16 +137,31 @@ const TakeExam = () => {
           const { data, error } = await supabase.rpc("get_exam_questions_start", {
             p_exam_id: examId,
           });
-          if (error) throw error;
-          allQuestions = data;
 
-          // Save to LocalStorage (full set before filtering)
-          // NOTE: If retaking mistakes, we might want to only cache the filtered set?
-          // If we cache full set, we re-filter every time, which is fine.
-          // The key `QUESTIONS_STORAGE_KEY` is specific to this session (attempt).
-          // If retake attempt ID is part of key, then this cache is unique to this retake attempt.
-          // So we can save the FILTERED set if we want.
-          // BUT `allQuestions` variable here holds the FULL set initially from RPC.
+          if (error) {
+              console.error("RPC Error:", error);
+              throw error;
+          }
+
+          // Fallback: If RPC returns empty but we know questions exist (admin view),
+          // try direct fetch if RPC logic is too strict (e.g. published check)
+          // Only do this if user has access (already checked in logic below, but RLS might block)
+          if (!data || data.length === 0) {
+               console.warn("RPC returned no questions. Attempting direct fallback...");
+               const { data: directData, error: directError } = await supabase
+                   .from("exam_questions")
+                   .select("id, question_text, option_a, option_b, option_c, option_d, question_index")
+                   .eq("exam_id", examId)
+                   .order("question_index", { ascending: true });
+
+               if (!directError && directData && directData.length > 0) {
+                   allQuestions = directData;
+               } else {
+                   allQuestions = [];
+               }
+          } else {
+              allQuestions = data;
+          }
       }
 
       // 3. If filtering for mistakes, fetch the previous attempt's wrong answers

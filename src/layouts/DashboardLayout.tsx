@@ -351,11 +351,14 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/live-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Video className="h-4 w-4 text-red-500" /> Live Class
                     </Link>
+                    <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Settings className="h-4 w-4 text-amber-500" /> Study Tools
+                    </Link>
                     <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <PenTool className="h-4 w-4 text-purple-500" /> Live Exam
                     </Link>
                     <Link to="/dashboard/recordings" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <History className="h-4 w-4 text-orange-500" /> Recordings
+                        <History className="h-4 w-4 text-orange-500" /> Record Class
                     </Link>
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams
@@ -383,9 +386,6 @@ export const DashboardLayout = () => {
                     </Link>
                     <Link to="/dashboard/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Files className="h-4 w-4 text-cyan-500" /> Resources
-                    </Link>
-                    <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Settings className="h-4 w-4 text-amber-500" /> Study Tools
                     </Link>
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
