@@ -1,12 +1,13 @@
-import { useEffect } from "react";
-import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // Define shape of dashboard data
 interface DashboardData {
@@ -37,10 +38,58 @@ const DashboardHome = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
 
   useEffect(() => {
     document.title = "Dashboard – Atlas";
   }, []);
+
+  // Fetch Personal Notifications
+  const { data: userNotifications } = useQuery({
+      queryKey: ["user-notifications-dashboard", user?.id],
+      queryFn: async () => {
+          if (!user) return [];
+          const { data, error } = await supabase
+              .from("user_notifications")
+              .select("*")
+              .eq("user_id", user.id)
+              // We only want recent relevant notifications on dashboard, but user asked for "approval and decline"
+              // Filters: payment_approved, payment_rejected, course_request_declined
+              .in("type", ["payment_approved", "payment_rejected", "course_request_declined"])
+              .order("created_at", { ascending: false });
+          if (error) throw error;
+          return data;
+      },
+      enabled: !!user
+  });
+
+  const deleteNotificationMutation = useMutation({
+      mutationFn: async (id: string) => {
+          const { error } = await supabase
+              .from("user_notifications")
+              .delete()
+              .eq("id", id);
+          if (error) throw error;
+      },
+      onSuccess: () => {
+          queryClient.invalidateQueries({ queryKey: ["user-notifications-dashboard"] });
+          queryClient.invalidateQueries({ queryKey: ["user-notifications"] }); // Refresh main list too
+          toast({ title: "Notification dismissed" });
+      },
+      onError: () => {
+          toast({ title: "Failed to dismiss", variant: "destructive" });
+      }
+  });
+
+  const toggleExpandNotification = (id: string) => {
+    if (expandedNotifIds.includes(id)) {
+        setExpandedNotifIds(expandedNotifIds.filter(e => e !== id));
+    } else {
+        setExpandedNotifIds([...expandedNotifIds, id]);
+    }
+  };
 
   const { data: pendingPayments } = useQuery({
     queryKey: ["pending-payments", user?.id],
@@ -119,6 +168,56 @@ const DashboardHome = () => {
           Get a quick overview of your upcoming activities.
         </p>
       </header>
+
+      {/* User Notifications (Approvals/Declines) */}
+      {userNotifications && userNotifications.length > 0 && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-500">
+             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+             {userNotifications.map((notif: any) => {
+                const isExpanded = expandedNotifIds.includes(notif.id);
+                const isSuccess = notif.type === 'payment_approved';
+                return (
+                <Card key={notif.id}
+                      className={`border cursor-pointer transition-colors shadow-sm ${isSuccess ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}
+                      onClick={() => toggleExpandNotification(notif.id)}
+                >
+                    <CardHeader className="space-y-0 p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
+                                <div>
+                                    <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
+                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if(confirm("Dismiss this notification?")) deleteNotificationMutation.mutate(notif.id);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    {isExpanded && (
+                        <CardContent className="px-4 pb-4 pt-0">
+                            <div className="h-px w-full bg-border/20 mb-3" />
+                            <p className="text-sm text-foreground/90">{notif.body}</p>
+                        </CardContent>
+                    )}
+                </Card>
+            )})}
+        </div>
+      )}
 
       {/* Enrollment Warning Card */}
       {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
