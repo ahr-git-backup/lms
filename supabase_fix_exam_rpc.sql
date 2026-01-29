@@ -1,9 +1,7 @@
 -- Fix Exam Access for Extra Courses (Linked Courses)
--- This function replaces the previous lightweight RPC.
--- It is now SECURITY DEFINER to perform advanced access checks (Linked Courses)
--- that standard RLS policies on 'exam_questions' cannot easily handle.
+-- Revised Version: More robust logic, optional p_user_id, and explicit checks.
 
-CREATE OR REPLACE FUNCTION get_exam_questions_start(p_exam_id uuid)
+CREATE OR REPLACE FUNCTION get_exam_questions_start(p_exam_id uuid, p_user_id uuid DEFAULT auth.uid())
 RETURNS TABLE (
   id uuid,
   question_text text,
@@ -15,9 +13,9 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
+-- No search_path set to allow access to extensions if needed (like auth.uid)
 AS $$
 DECLARE
-  v_user_id uuid := auth.uid();
   v_exam_course_id uuid;
   v_is_visible_on_free boolean;
   v_shared_course_ids uuid[];
@@ -31,30 +29,43 @@ BEGIN
 
   -- 2. Check Access Logic
   IF v_exam_course_id IS NULL THEN
-      -- Public Exam (check visibility flag)
+      -- Case: Public Exam
       IF v_is_visible_on_free IS TRUE THEN
           v_has_access := true;
       END IF;
   ELSE
-      -- Check Direct Enrollment OR Linked Course Enrollment OR Shared Course Enrollment
-      SELECT EXISTS (
-          SELECT 1
-          FROM enrollments e
-          JOIN courses c ON e.course_id = c.id
-          WHERE e.profile_id = v_user_id
-          AND (
-              -- Case A: Direct Enrollment
-              e.course_id = v_exam_course_id
-              OR
-              -- Case B: Linked Course (Extra Course)
-              -- User is enrolled in 'c', and 'c' links to 'v_exam_course_id'
-              -- Using text casting for safety against text[] vs uuid[] mismatch
-              (c.linked_course_ids IS NOT NULL AND v_exam_course_id::text = ANY(COALESCE(c.linked_course_ids, '{}')::text[]))
-              OR
-              -- Case C: Shared Course (Exam shared with a course user is enrolled in)
-              (v_shared_course_ids IS NOT NULL AND e.course_id = ANY(v_shared_course_ids))
-          )
-      ) INTO v_has_access;
+      -- Case: Course Exam
+
+      -- Check A: Direct Enrollment
+      IF NOT v_has_access THEN
+          SELECT EXISTS (
+              SELECT 1 FROM enrollments
+              WHERE profile_id = p_user_id
+              AND course_id = v_exam_course_id
+          ) INTO v_has_access;
+      END IF;
+
+      -- Check B: Linked Course (Extra Course)
+      IF NOT v_has_access THEN
+          SELECT EXISTS (
+              SELECT 1
+              FROM enrollments e
+              JOIN courses c ON e.course_id = c.id
+              WHERE e.profile_id = p_user_id
+              AND c.linked_course_ids IS NOT NULL
+              -- Cast both to text to be safe comparing UUID vs potentially text[] or uuid[]
+              AND v_exam_course_id::text = ANY(COALESCE(c.linked_course_ids, '{}')::text[])
+          ) INTO v_has_access;
+      END IF;
+
+      -- Check C: Shared Course
+      IF NOT v_has_access AND v_shared_course_ids IS NOT NULL THEN
+          SELECT EXISTS (
+              SELECT 1 FROM enrollments
+              WHERE profile_id = p_user_id
+              AND course_id = ANY(v_shared_course_ids)
+          ) INTO v_has_access;
+      END IF;
   END IF;
 
   -- 3. Return Questions if Access Granted
@@ -73,7 +84,6 @@ BEGIN
       ORDER BY q.question_index ASC;
   ELSE
       -- Return Empty (Access Denied)
-      -- We return empty set, front-end handles "no questions"
       RETURN;
   END IF;
 END;

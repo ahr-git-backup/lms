@@ -134,8 +134,10 @@ const TakeExam = () => {
       // 2. Fetch if missing
       if (!allQuestions) {
           // Use light RPC: get_exam_questions_start
+          // We pass p_user_id explicitly to ensure the SECURITY DEFINER function uses the correct context
           const { data, error } = await supabase.rpc("get_exam_questions_start", {
             p_exam_id: examId,
+            p_user_id: user?.id
           });
 
           if (error) {
