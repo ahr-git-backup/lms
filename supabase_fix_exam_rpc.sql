@@ -15,7 +15,6 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
 AS $$
 DECLARE
   v_user_id uuid := auth.uid();
@@ -49,7 +48,8 @@ BEGIN
               OR
               -- Case B: Linked Course (Extra Course)
               -- User is enrolled in 'c', and 'c' links to 'v_exam_course_id'
-              (c.linked_course_ids IS NOT NULL AND v_exam_course_id::text = ANY(c.linked_course_ids))
+              -- Using text casting for safety against text[] vs uuid[] mismatch
+              (c.linked_course_ids IS NOT NULL AND v_exam_course_id::text = ANY(COALESCE(c.linked_course_ids, '{}')::text[]))
               OR
               -- Case C: Shared Course (Exam shared with a course user is enrolled in)
               (v_shared_course_ids IS NOT NULL AND e.course_id = ANY(v_shared_course_ids))
