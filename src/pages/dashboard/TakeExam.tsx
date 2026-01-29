@@ -476,9 +476,20 @@ const TakeExam = () => {
 
   if (!questions || questions.length === 0) {
     return (
-        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh]">
-            <p className="text-xl font-semibold mb-4">No questions available!</p>
-            <Button onClick={() => navigate(-1)}>Go Back</Button>
+        <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] gap-4">
+            <div className="bg-muted p-4 rounded-full">
+                <AlertTriangle className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div>
+                <p className="text-xl font-semibold">No questions loaded</p>
+                <p className="text-muted-foreground text-sm max-w-md mx-auto mt-2">
+                    We verified your access, but could not load the exam content. This might be due to a server error or the questions haven't been published yet.
+                </p>
+            </div>
+            <div className="flex gap-2">
+                <Button variant="outline" onClick={() => window.location.reload()}>Retry</Button>
+                <Button onClick={() => navigate(-1)}>Go Back</Button>
+            </div>
         </div>
     );
   }
