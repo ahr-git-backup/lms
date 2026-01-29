@@ -42,20 +42,37 @@ const ExtraCourses = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {extraCourses.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full hover:shadow-md transition-all border-l-4 border-l-purple-500">
-            <CardHeader>
-              <CardTitle className="line-clamp-2 leading-tight flex items-start justify-between gap-2">
+          <Card key={enrollment.id} className="flex flex-col h-full transition-all duration-300 hover:shadow-md hover:border-purple-500 group">
+             <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-purple-50 dark:bg-purple-950/20 relative flex items-center justify-center">
+                {enrollment.course?.image_url ? (
+                    <img
+                        src={enrollment.course.image_url}
+                        alt={enrollment.course.name}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                ) : (
+                    <Gift className="h-12 w-12 text-purple-300 dark:text-purple-800" />
+                )}
+                {/* Status Badge */}
+                <div className="absolute top-2 right-2">
+                    <span className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                        BONUS
+                    </span>
+                </div>
+            </div>
+
+            <CardHeader className="pb-2">
+              <CardTitle className="line-clamp-2 leading-tight text-lg group-hover:text-purple-600 transition-colors">
                 {enrollment.course?.name || "Unknown Course"}
-                <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-1 rounded-full whitespace-nowrap">BONUS</span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1">
-               <p className="text-sm text-muted-foreground line-clamp-3">
-                   {enrollment.course?.short_description}
+            <CardContent className="flex-1 pb-4">
+               <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
+                   {enrollment.course?.short_description || "Bonus content included with your enrollment."}
                </p>
             </CardContent>
-            <CardFooter className="pt-4 border-t">
-              <Button className="w-full gap-2" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
+            <CardFooter className="pt-0 mt-auto pb-6 px-6">
+              <Button className="w-full gap-2 rounded-full shadow-lg shadow-purple-500/10 group-hover:shadow-purple-500/20 transition-all bg-purple-600 hover:bg-purple-700" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
                 <BookOpen className="h-4 w-4" /> Enter Course
               </Button>
             </CardFooter>

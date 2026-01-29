@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEnrollments } from "@/hooks/useEnrollments";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ const PAGE_SIZE = 50;
 
 const Leaderboard = () => {
   const { user, isAdmin, isTeacher } = useAuth();
+  const { data: enrollments } = useEnrollments();
   const { examId } = useParams();
   const isStaff = isAdmin || isTeacher;
   const navigate = useNavigate();
@@ -36,23 +38,24 @@ const Leaderboard = () => {
     },
   });
 
-  const { data: hasAccess } = useQuery({
-    queryKey: ["check-leaderboard-access", exam?.course_id, user?.id],
-    queryFn: async () => {
-       // If public exam (no course_id), allow access
-       if (!exam?.course_id) return true;
-       if (!user?.id) return false;
+  // Calculate Access using useEnrollments (which handles linked courses)
+  const hasAccess = (() => {
+      if (!exam) return undefined; // Loading state essentially
+      if (!exam.course_id) return true; // Public
+      if (isStaff) return true;
 
-       const { data } = await supabase
-          .from("enrollments")
-          .select("id")
-          .eq("course_id", exam.course_id)
-          .eq("profile_id", user.id)
-          .maybeSingle();
-       return !!data;
-    },
-    enabled: !!exam && !!user?.id
-  });
+      const enrolledIds = enrollments?.map(e => e.course_id) || [];
+      if (enrolledIds.includes(exam.course_id)) return true;
+
+      // Check shared courses if available in exam object (assuming standard field)
+      // @ts-ignore
+      if (exam.shared_course_ids && Array.isArray(exam.shared_course_ids)) {
+          // @ts-ignore
+          if (exam.shared_course_ids.some(id => enrolledIds.includes(id))) return true;
+      }
+
+      return false;
+  })();
 
   const { data: leaderboardData, isLoading } = useQuery({
     queryKey: ["leaderboard", examId, page, filterType],
