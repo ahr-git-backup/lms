@@ -58,8 +58,6 @@ const AdminStudents = () => {
             .select("*", { count: 'exact', head: true });
 
           // 2. Paid Students (unique profiles with enrollments)
-          // Since Supabase doesn't support distinct count easily, we fetch enrollment profile_ids
-          // This might be heavy if users > 10k, but fine for now.
           const { data: enrollmentIds } = await supabase
             .from("enrollments")
             .select("profile_id");
@@ -100,53 +98,39 @@ const AdminStudents = () => {
   const { data: studentsData, isLoading } = useQuery({
     queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch, listFilter],
     queryFn: async () => {
-      // If list is hidden (filter is null), don't fetch unless searching
       if (!listFilter && !debouncedSearch && selectedCourseFilter === 'all') return { data: [], count: 0 };
 
+      // Base query setup
       let query = supabase
         .from("profiles")
         .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
 
-      // Apply Filter Logic
+      // Apply Paid/Enrollment Filter
       if (listFilter === 'paid') {
-         query = query.not('enrollments', 'is', null); // This only checks if join is possible, need inner join logic ideally
-         // Supabase join filtering is tricky. Better to use !inner on enrollments if we want to enforce it.
-         // But here we selected enrollments as left join.
-         // Let's rely on client side filter or explicit query if needed.
-         // Actually, `!inner` forces records to exist.
-      }
-
-      // Construct query based on filter
-      if (listFilter === 'paid') {
-           // We need profiles that HAVE enrollments.
-           // inner join on enrollments
            query = supabase.from("profiles")
              .select("*, enrollments!inner(id, course_id, courses(name))", { count: 'exact' });
       } else if (listFilter === 'free') {
-           // Hard to filter "no enrollments" directly in one query efficiently without raw SQL.
-           // We can fetch all and filter, or use `not.in` with enrollment ids.
-           // Given limitations, maybe we just list all and sort?
-           // Or we fetch range and filter client side? No pagination breaks.
-           // Let's switch strategy: `enrollments(count)`? No.
-           // For 'free', we might need to accept a bit of inefficiency or just show All for now if complex.
-           // Actually, the user wants clickable cards.
-           // Let's try to stick to standard `select`
+           // For free students, we MUST fetch excluded IDs first
+           const { data: enrolledIds } = await supabase.from("enrollments").select("profile_id");
+           const distinctEnrolled = new Set(enrolledIds?.map(e => e.profile_id));
+
+           if (distinctEnrolled.size > 0 && distinctEnrolled.size < 2000) {
+                query = query.not("id", "in", `(${Array.from(distinctEnrolled).join(',')})`);
+           }
       } else if (listFilter === 'admin' || listFilter === 'teacher') {
-            // Need join on user_roles
-            // But we don't have user_roles in profiles definition usually, it's a separate table.
-            // We can fetch user_ids from user_roles first.
              const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", listFilter);
              const ids = roleData?.map(r => r.user_id) || [];
              if (ids.length === 0) return { data: [], count: 0 };
              query = query.in("id", ids);
       }
 
+      // Apply Search Filter (ALWAYS applied on top of list filter)
       if (debouncedSearch) {
         query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
       }
 
+      // Apply Course Filter (Overrides base query if specific)
       if (selectedCourseFilter !== 'all') {
-           // Override query to search via enrollments
            query = supabase.from("enrollments")
             .select("profile:profiles!inner(*), course:courses(name), id, course_id", { count: 'exact' })
             .eq("course_id", selectedCourseFilter);
@@ -156,6 +140,7 @@ const AdminStudents = () => {
            }
       }
 
+      // Final Execution
       const { data, error, count } = await query
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -164,37 +149,12 @@ const AdminStudents = () => {
       // Normalization
       let resultData = data || [];
 
-      // If we queried enrollments directly (course filter), map it
       if (selectedCourseFilter !== 'all') {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           resultData = data.map((e: any) => ({
               ...(e.profile as Profile),
               enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course }]
           }));
-      } else if (listFilter === 'free') {
-           // Client side filter for "Free" (no enrollments) if we couldn't do it server side easily
-           // This is a limitation: Pagination will be broken if we filter client side.
-           // Workaround: We can't easily filter "doesn't have relation" in PostgREST
-           // unless we use `is.null` on a left join which PostgREST doesn't support well for array/relation fields.
-           // We'll skip strict server filtering for 'free' and just show All with an indicator, or handle it via raw SQL RPC if strictly needed.
-           // For now, let's just NOT strict filter 'free' in query but sort by enrollments?
-           // We will rely on the user understanding this limitation or implementing an RPC `get_free_students`.
-           // Let's implement a quick client-side filter if the page size is small, but that doesn't help total count.
-           // We will ignore strict 'free' filter for the list query to avoid breaking things,
-           // OR we can fetch IDs of all enrolled students and use `not.in`.
-           const { data: enrolledIds } = await supabase.from("enrollments").select("profile_id");
-           const distinctEnrolled = new Set(enrolledIds?.map(e => e.profile_id));
-           // If listFilter is free, exclude these.
-           if (distinctEnrolled.size > 0) {
-              // Note: `not.in` with thousands of IDs might fail.
-              // If < 1000 enrolled, it's fine.
-              if (distinctEnrolled.size < 2000) {
-                 query = query.not("id", "in", `(${Array.from(distinctEnrolled).join(',')})`);
-                 // Re-run query
-                 const res = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-                 return { data: res.data || [], count: res.count || 0 };
-              }
-           }
       }
 
       // Fetch roles
@@ -217,6 +177,7 @@ const AdminStudents = () => {
   const totalCount = studentsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  // ... mutations (omitted for brevity, unchanged)
   const removeEnrollmentMutation = useMutation({
       mutationFn: async (enrollmentId: string) => {
           const { error } = await supabase.from("enrollments").delete().eq("id", enrollmentId);

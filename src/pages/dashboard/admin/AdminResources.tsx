@@ -420,8 +420,7 @@ const AdminResources = () => {
                   {resources.map((resource: Resource) => (
                     <TableRow
                       key={resource.id}
-                      className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => handleEdit(resource)}
+                      className="hover:bg-muted/40"
                     >
                       <TableCell className="font-medium">{resource.title}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -437,16 +436,24 @@ const AdminResources = () => {
                         {resource.url}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteMutation.mutate(resource.id);
-                          }}
-                        >
-                          Delete
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                            <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEdit(resource)}
+                            >
+                                Edit
+                            </Button>
+                            <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                                deleteMutation.mutate(resource.id);
+                            }}
+                            >
+                            Delete
+                            </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

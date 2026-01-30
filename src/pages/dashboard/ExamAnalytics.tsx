@@ -214,7 +214,7 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
              const liveStatus = getLiveStatus(item);
              const practiceStatus = getPracticeStatus(item);
              return (
-                 <Card key={item.id} className="text-sm shadow-sm border-l-4 border-l-primary/50">
+                 <Card key={item.id} className="text-sm shadow-sm border-none">
                      <CardContent className="p-3 space-y-3">
                          <div className="flex justify-between items-start gap-2">
                              <div className="font-semibold leading-tight">{item.title}</div>
