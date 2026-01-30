@@ -499,27 +499,27 @@ const TakeExam = () => {
   if (!hasStarted) {
       return (
           <div className="min-h-screen bg-background flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl bg-card rounded-[2rem] shadow-2xl p-8 md:p-10 space-y-8 animate-in fade-in zoom-in-95 duration-500 border border-border/50">
-                  <div className="space-y-4 text-center">
-                      <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary mb-6">
-                          <Clock className="h-8 w-8" />
+              <div className="w-full max-w-2xl bg-card rounded-2xl md:rounded-[2rem] shadow-2xl p-6 md:p-10 space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-500 border border-border/50">
+                  <div className="space-y-3 md:space-y-4 text-center">
+                      <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary mb-4 md:mb-6">
+                          <Clock className="h-6 w-6 md:h-8 md:w-8" />
                       </div>
-                      <h1 className="text-3xl md:text-4xl font-black tracking-tight text-foreground">{exam.title}</h1>
-                      <p className="text-muted-foreground text-lg font-medium">Ready to start your exam?</p>
+                      <h1 className="text-2xl md:text-4xl font-black tracking-tight text-foreground">{exam.title}</h1>
+                      <p className="text-muted-foreground text-base md:text-lg font-medium">Ready to start your exam?</p>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-4 md:gap-8">
-                      <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-2xl">
-                          <span className="text-3xl font-bold text-primary">{exam.duration_minutes}</span>
-                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
+                  <div className="grid grid-cols-3 gap-3 md:gap-8">
+                      <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-secondary/30 rounded-xl md:rounded-2xl">
+                          <span className="text-xl md:text-3xl font-bold text-primary">{exam.duration_minutes}</span>
+                          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
                       </div>
-                      <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-2xl">
-                          <span className="text-3xl font-bold text-primary">{questions.length}</span>
-                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Questions</span>
+                      <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-secondary/30 rounded-xl md:rounded-2xl">
+                          <span className="text-xl md:text-3xl font-bold text-primary">{questions.length}</span>
+                          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Questions</span>
                       </div>
-                      <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-2xl">
-                          <span className="text-3xl font-bold text-red-500">{exam.negative_mark_per_question}</span>
-                          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Negative</span>
+                      <div className="flex flex-col items-center justify-center p-3 md:p-4 bg-secondary/30 rounded-xl md:rounded-2xl">
+                          <span className="text-xl md:text-3xl font-bold text-red-500">{exam.negative_mark_per_question}</span>
+                          <span className="text-[10px] md:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Negative</span>
                       </div>
                   </div>
 

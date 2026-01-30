@@ -37,7 +37,7 @@ const Readymade = () => {
   return (
     <div className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Readymade Exams</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Readymade Exam</h1>
         <p className="text-sm text-muted-foreground">Pre-configured practice exams for your courses.</p>
       </header>
 
