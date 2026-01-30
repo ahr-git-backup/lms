@@ -38,6 +38,7 @@ import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
+import Readymade from "./pages/dashboard/Readymade";
 import MyCourses from "./pages/dashboard/MyCourses";
 import ExtraCourses from "./pages/dashboard/ExtraCourses";
 import CourseView from "./pages/dashboard/CourseView";
@@ -152,6 +153,7 @@ const App = () => {
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
                 <Route path="program" element={<Program />} />
+                <Route path="readymade" element={<Readymade />} />
                 <Route path="archive" element={<Archive />} />
                 <Route path="my-courses" element={<MyCourses />} />
                 <Route path="extra-courses" element={<ExtraCourses />} />

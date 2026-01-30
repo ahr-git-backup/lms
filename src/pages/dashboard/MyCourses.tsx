@@ -3,7 +3,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap } from "lucide-react";
+import { BookOpen, GraduationCap, Gift } from "lucide-react";
 
 const MyCourses = () => {
   const { data: enrollments, isLoading } = useEnrollments();
@@ -47,14 +47,20 @@ const MyCourses = () => {
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                        <GraduationCap className="h-12 w-12 opacity-20" />
+                        {enrollment.is_extra ? <Gift className="h-12 w-12 opacity-20" /> : <GraduationCap className="h-12 w-12 opacity-20" />}
                     </div>
                 )}
                 {/* Status Badge */}
-                <div className="absolute top-2 right-2">
-                    <span className="bg-background/80 backdrop-blur text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-                        Enrolled
-                    </span>
+                <div className="absolute top-2 right-2 flex gap-2">
+                    {enrollment.is_extra ? (
+                        <span className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 backdrop-blur text-xs font-bold px-2 py-1 rounded-full shadow-sm">
+                            Bonus
+                        </span>
+                    ) : (
+                        <span className="bg-background/80 backdrop-blur text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+                            Enrolled
+                        </span>
+                    )}
                 </div>
             </div>
 

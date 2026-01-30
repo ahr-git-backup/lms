@@ -801,7 +801,7 @@ const AdminCourses = () => {
                 </TableHeader>
                 <TableBody>
                     {courses.map((course: Course) => (
-                    <TableRow key={course.id} className="cursor-pointer hover:bg-muted/50" onClick={() => handleEdit(course)}>
+                    <TableRow key={course.id} className="hover:bg-muted/50">
                         <TableCell className="font-medium whitespace-nowrap">{course.name}</TableCell>
                         <TableCell>
                         {course.price != null ? `৳${course.price}` : <span className="text-xs text-muted-foreground">Not set</span>}
@@ -818,6 +818,15 @@ const AdminCourses = () => {
                         </TableCell>
                         <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                            <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => handleEdit(course)}
+                                title="Edit Course"
+                            >
+                                <Edit2 className="h-4 w-4" />
+                            </Button>
                             <Button
                                 type="button"
                                 size="icon"

@@ -252,7 +252,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         </TableHeader>
                         <TableBody>
                         {exams.map((exam: Exam) => (
-                            <TableRow key={exam.id} className="cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => { setEditingExam(exam); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                            <TableRow key={exam.id} className="hover:bg-muted/50 transition-colors">
                             {!isFreeMode && (
                                 <TableCell className="whitespace-nowrap font-medium">
                                     {exam.course?.name || <Badge variant="secondary">Public</Badge>}
@@ -279,7 +279,17 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 {exam.restrict_solution ? "Yes" : "No"}
                             </TableCell>
                             <TableCell className="text-right whitespace-nowrap">
-                                <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-2">
+                                <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-8 w-8"
+                                    title="Edit Details"
+                                    onClick={() => { setEditingExam(exam); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                >
+                                    <Edit className="h-4 w-4" />
+                                </Button>
                                 <Button
                                     type="button"
                                     size="icon"
@@ -338,7 +348,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                 {/* Mobile Card View */}
                 <div className="md:hidden grid gap-4">
                     {exams.map((exam: Exam) => (
-                        <Card key={exam.id} onClick={() => { setEditingExam(exam); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="cursor-pointer hover:border-primary/50 transition-colors">
+                        <Card key={exam.id} className="hover:border-primary/50 transition-colors">
                             <CardContent className="p-4 space-y-3">
                                 <div className="flex justify-between items-start">
                                     <div className="space-y-1">
@@ -377,7 +387,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                     )}
                                 </div>
 
-                                <div className="flex items-center justify-between pt-2 border-t mt-2" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-between pt-2 border-t mt-2">
                                     <Button
                                         type="button"
                                         size="sm"

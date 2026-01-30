@@ -31,6 +31,7 @@ const classSchema = z.object({
   class_type: z.enum(["live", "recorded"]).default("live"),
   button_text: z.string().trim().optional().or(z.literal("")),
   button_url: z.string().trim().optional().or(z.literal("")),
+  is_archive: z.boolean().optional().default(false),
 });
 
 interface ClassFormProps {
@@ -97,6 +98,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 class_type: classItem.class_type as "live" | "recorded",
                 button_text: classItem.button_text || "",
                 button_url: classItem.button_url || "",
+            is_archive: classItem.is_archive || isArchiveMode,
             });
         } else {
              setForm({
@@ -114,6 +116,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 class_type: "live",
                 button_text: "",
                 button_url: "",
+            is_archive: isArchiveMode,
             });
         }
     }, [classItem]);
@@ -217,6 +220,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 class_type: parsed.class_type,
                 button_text: parsed.button_text || null,
                 button_url: parsed.button_url || null,
+                is_archive: parsed.is_archive,
             };
 
             if (parsed.id) {

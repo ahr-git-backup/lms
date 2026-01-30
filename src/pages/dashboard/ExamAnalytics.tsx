@@ -31,6 +31,7 @@ type AnalyticsExam = {
   time_window_start: string | null;
   time_window_end: string | null;
   created_at: string;
+  is_archive?: boolean;
   course_name: string;
   live_attempt: {
     score: number;
@@ -213,7 +214,7 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
              const liveStatus = getLiveStatus(item);
              const practiceStatus = getPracticeStatus(item);
              return (
-                 <Card key={item.id} className="text-sm shadow-sm border-l-4 border-l-primary/50">
+                 <Card key={item.id} className="text-sm shadow-sm border-2 border-green-500/20">
                      <CardContent className="p-3 space-y-3">
                          <div className="flex justify-between items-start gap-2">
                              <div className="font-semibold leading-tight">{item.title}</div>
@@ -327,11 +328,17 @@ const ExamAnalytics = () => {
     const groups: Record<string, AnalyticsExam[]> = {};
 
     analyticsData.forEach((exam) => {
-      const courseName = exam.course_name || "Public Exams";
-      if (!groups[courseName]) {
-        groups[courseName] = [];
+      // Determine group name
+      let groupName = exam.course_name || "Public Exams";
+
+      if (exam.is_archive) {
+          groupName = `Archive - ${exam.course_name || "Public"}`;
       }
-      groups[courseName].push(exam);
+
+      if (!groups[groupName]) {
+        groups[groupName] = [];
+      }
+      groups[groupName].push(exam);
     });
 
     // Sort chronologically (Oldest first)
@@ -341,7 +348,20 @@ const ExamAnalytics = () => {
       );
     });
 
-    return groups;
+    // Ordering: Enrolled -> Archive -> Public
+    const sortedGroups: Record<string, AnalyticsExam[]> = {};
+
+    const enrolledKeys = Object.keys(groups).filter(k => !k.startsWith("Archive") && k !== "Public Exams").sort();
+    const archiveKeys = Object.keys(groups).filter(k => k.startsWith("Archive")).sort();
+
+    enrolledKeys.forEach(k => sortedGroups[k] = groups[k]);
+    archiveKeys.forEach(k => sortedGroups[k] = groups[k]);
+
+    if (groups["Public Exams"]) {
+        sortedGroups["Public Exams"] = groups["Public Exams"];
+    }
+
+    return sortedGroups;
   }, [analyticsData]);
 
   const totalExams = analyticsData?.length ?? 0;

@@ -170,11 +170,18 @@ const NotesManager = ({ isFreeMode = false }: NotesManagerProps) => {
                             <td className="p-3">{note.subject || "-"}</td>
                             <td className="p-3 hidden md:table-cell">{note.chapter || "-"}</td>
                             {!isFreeMode && <td className="p-3 hidden md:table-cell">{note.courses?.name}</td>}
-                            <td className="p-3 text-right flex justify-end gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => { setEditingNote(note); setIsEditing(true); }}>
-                                    <Pencil className="h-4 w-4" />
-                                </Button>
-                                {isAdmin && <DeleteNoteButton noteId={note.id} />}
+                            <td className="p-3 text-right">
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => { setEditingNote(note); setIsEditing(true); }}
+                                        title="Edit Note"
+                                    >
+                                        <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    {isAdmin && <DeleteNoteButton noteId={note.id} />}
+                                </div>
                             </td>
                         </tr>
                     ))}

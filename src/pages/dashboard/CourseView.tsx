@@ -6,7 +6,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive } from "lucide-react";
+import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 const CourseView = () => {
@@ -176,11 +176,12 @@ const CourseView = () => {
 const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
     return (
         <Tabs defaultValue="recordings" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
                 <TabsTrigger value="recordings" className="gap-2"><Video className="h-4 w-4" /> Recordings</TabsTrigger>
                 <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
+                <TabsTrigger value="readymade" className="gap-2"><LayoutTemplate className="h-4 w-4" /> Readymade Exam</TabsTrigger>
                 <TabsTrigger value="archive-class" className="gap-2"><Archive className="h-4 w-4" /> Arch. Class</TabsTrigger>
-                <TabsTrigger value="archive-exam" className="gap-2"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
+                <TabsTrigger value="archive-exam" className="gap-2 col-span-2 sm:col-span-1"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
             </TabsList>
 
             <TabsContent value="recordings" className="mt-6">
@@ -189,6 +190,10 @@ const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, s
 
             <TabsContent value="exams" className="mt-6">
                 <ExamList courseId={courseId} subject={subject} chapter={chapter} />
+            </TabsContent>
+
+            <TabsContent value="readymade" className="mt-6">
+                <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} />
             </TabsContent>
 
             <TabsContent value="archive-class" className="mt-6">
@@ -255,6 +260,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)
+                .not("is_readymade", "is", true) // Exclude readymade
                 .order("created_at", { ascending: false });
             return data || [];
         }
@@ -271,6 +277,51 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                         <div className="flex justify-between items-start">
                             <CardTitle className="text-base">{exam.title}</CardTitle>
                             {exam.exam_type === 'live' && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">LIVE</span>}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                            {exam.duration_minutes} mins • {exam.total_marks || '?'} marks
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                            Start Exam
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: exams, isLoading } = useQuery({
+        queryKey: ["course-readymade-exams", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("exams")
+                .select("*")
+                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .eq("is_published", true)
+                .eq("is_readymade", true)
+                .order("created_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading...</div>;
+    if (!exams || exams.length === 0) return <div>No readymade exams found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {exams.map((exam: any) => (
+                <Card key={exam.id} className="flex flex-col border-blue-100 bg-blue-50/20">
+                    <CardHeader className="pb-2">
+                        <div className="flex justify-between items-start">
+                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-600">Readymade</Badge>
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {exam.duration_minutes} mins • {exam.total_marks || '?'} marks

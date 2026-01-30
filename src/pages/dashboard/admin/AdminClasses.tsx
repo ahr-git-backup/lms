@@ -174,7 +174,7 @@ const AdminClasses = () => {
                         </TableHeader>
                         <TableBody>
                             {classes.map((cls: Class) => (
-                                <TableRow key={cls.id}>
+                                <TableRow key={cls.id} className="hover:bg-muted/50">
                                     <TableCell className="font-medium whitespace-nowrap">{cls.course?.name}</TableCell>
                                     <TableCell className="max-w-[200px] truncate" title={cls.title}>
                                         <div className="font-semibold">{cls.title}</div>
@@ -190,7 +190,13 @@ const AdminClasses = () => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8"
+                                                title="Edit Class"
+                                                onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                            >
                                                 <Edit className="h-4 w-4" />
                                             </Button>
                                             {isAdmin && (

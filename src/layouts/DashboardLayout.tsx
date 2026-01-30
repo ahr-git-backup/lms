@@ -338,10 +338,6 @@ export const DashboardLayout = () => {
                         <GraduationCap className="h-4 w-4 text-indigo-500" />
                         My Courses
                     </Link>
-                    <Link to="/dashboard/extra-courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
-                        <Tag className="h-4 w-4 text-purple-500" />
-                        Extra Courses
-                    </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
@@ -362,6 +358,9 @@ export const DashboardLayout = () => {
                     </Link>
                     <Link to="/dashboard/past-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BookOpen className="h-4 w-4 text-yellow-500" /> Past Exams
+                    </Link>
+                    <Link to="/dashboard/readymade" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <LayoutTemplate className="h-4 w-4 text-blue-400" /> Readymade Exam
                     </Link>
                     <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Archive className="h-4 w-4 text-gray-500" /> Archive

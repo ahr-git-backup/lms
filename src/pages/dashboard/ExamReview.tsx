@@ -182,13 +182,12 @@ const ExamReview = () => {
         </div>
 
         {/* Warning for Second Timers */}
-        {profile?.is_second_timer && attempt?.exam?.total_marks && (attempt.exam.total_marks === 100 || attempt.exam.total_marks === 50 || attempt.exam.total_marks === 30) && (
+        {profile?.is_second_timer && (
             <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 text-yellow-800 dark:text-yellow-200 text-sm">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
                 <p>
                     <strong>Second Timer Deduction Applied:</strong> As you are a second timer,
-                    {attempt.exam.total_marks === 100 ? " 3 " : attempt.exam.total_marks === 50 ? " 1.5 " : " 1 "}
-                    marks have been deducted from your raw score.
+                    marks have been deducted from your raw score (if applicable based on question count).
                 </p>
             </div>
         )}

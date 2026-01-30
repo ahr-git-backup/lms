@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Save, Filter, Video, Trophy, Plus, Edit, Trash2, MoreHorizontal } from "lucide-react";
 import {
@@ -84,7 +85,7 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
         queryFn: async () => {
             let query = supabase
                 .from(type)
-                .select("id, title, course:courses(name), archive_course_ids")
+                .select("id, title, course:courses(name), archive_course_ids, is_archive")
                 .order("created_at", { ascending: false })
                 .limit(50); // Pagination ideal but limit for now
 
@@ -154,6 +155,18 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
         }
     };
 
+    const handleToggleArchive = async (id: string, checked: boolean) => {
+        try {
+            // @ts-ignore
+            const { error } = await supabase.from(type).update({ is_archive: checked }).eq("id", id);
+            if (error) throw error;
+            toast({ title: "Updated", description: `Marked as ${checked ? "Archive" : "Public/Normal"}.` });
+            queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
+        } catch (err: any) {
+             toast({ title: "Error", description: err.message, variant: "destructive" });
+        }
+    };
+
     return (
         <div className="space-y-4">
             <div className="flex flex-col md:flex-row gap-4 justify-between items-end">
@@ -220,6 +233,7 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                                     </th>
                                     <th className="p-4">Title</th>
                                     <th className="p-4">Original Course</th>
+                                    <th className="p-4">Is Archive</th>
                                     <th className="p-4">Archived For</th>
                                     <th className="p-4 text-right">Actions</th>
                                 </tr>
@@ -238,6 +252,15 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                                         </td>
                                         <td className="p-4 font-medium">{item.title}</td>
                                         <td className="p-4 text-muted-foreground">{item.course?.name || "Public"}</td>
+                                        <td className="p-4">
+                                            <div className="flex items-center gap-2">
+                                                <Switch
+                                                    checked={!!item.is_archive}
+                                                    onCheckedChange={(checked) => handleToggleArchive(item.id, checked)}
+                                                />
+                                                <span className="text-xs text-muted-foreground">{item.is_archive ? "Archive" : "Normal"}</span>
+                                            </div>
+                                        </td>
                                         <td className="p-4">
                                             <div className="flex flex-wrap gap-1">
                                                 {item.archive_course_ids?.length > 0 ? (
