@@ -29,6 +29,7 @@ export interface Exam {
   restrict_solution?: boolean;
   questions_json?: string;
   questions_csv?: string;
+  is_archive?: boolean;
   course?: {
     name: string;
   } | null;
@@ -68,6 +69,7 @@ export interface Class {
   video_url?: string | null;
   notes_url?: string | null;
   class_type: "live" | "recorded";
+  is_archive?: boolean;
   course?: {
     name: string;
   };

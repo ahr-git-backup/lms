@@ -6,8 +6,11 @@ import { useNavigate } from "react-router-dom";
 import { BookOpen, GraduationCap } from "lucide-react";
 
 const MyCourses = () => {
-  const { data: enrollments, isLoading } = useEnrollments();
+  const { data: allEnrollments, isLoading } = useEnrollments();
   const navigate = useNavigate();
+
+  // Filter out extra (virtual) enrollments
+  const enrollments = allEnrollments?.filter((e: any) => !e.is_extra) || [];
 
   useEffect(() => {
     document.title = "My Courses – Atlas";

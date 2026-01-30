@@ -53,6 +53,7 @@ const examSchema = z.object({
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
+  is_archive: z.boolean().optional().default(false),
 });
 
 interface ExamFormProps {
@@ -132,6 +133,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
                 questions_csv: "",
+            is_archive: exam.is_archive || isArchiveMode,
             });
         }
     }, [exam]);
@@ -188,6 +190,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? true,
             restrict_solution: parsed.restrict_solution ?? false,
+            is_archive: parsed.is_archive,
           };
 
           // Helper functions for questions (copied from original)

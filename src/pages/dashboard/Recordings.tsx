@@ -26,6 +26,7 @@ const Recordings = () => {
         .from("classes")
         .select("*, course:courses(*)")
         .or(`class_type.eq.recorded,and(class_type.eq.live,end_at.lt.${now})`)
+        .not("is_archive", "is", true)
         .order("start_at", { ascending: false });
 
       if (selectedCourse !== "all") {

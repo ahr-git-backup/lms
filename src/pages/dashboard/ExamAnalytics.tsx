@@ -31,6 +31,7 @@ type AnalyticsExam = {
   time_window_start: string | null;
   time_window_end: string | null;
   created_at: string;
+  is_archive?: boolean;
   course_name: string;
   live_attempt: {
     score: number;
@@ -327,6 +328,8 @@ const ExamAnalytics = () => {
     const groups: Record<string, AnalyticsExam[]> = {};
 
     analyticsData.forEach((exam) => {
+      if (exam.is_archive) return; // Filter out archives
+
       const courseName = exam.course_name || "Public Exams";
       if (!groups[courseName]) {
         groups[courseName] = [];

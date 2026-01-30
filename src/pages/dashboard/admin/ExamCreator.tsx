@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
-  Database, BookOpen, Check, RefreshCw
+  Database, BookOpen, Check, RefreshCw, Loader2
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,8 +134,9 @@ const ExamCreator = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Export State
+  // Export/Save State
   const [isExporting, setIsExporting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
 
@@ -320,41 +321,51 @@ const ExamCreator = () => {
       if (!examId) return;
       if (!confirm("This will update existing questions. Continue?")) return;
 
-      const { data: existingQ } = await supabase
-          .from("exam_questions")
-          .select("id")
-          .eq("exam_id", examId);
-
-      const existingIds = new Set(existingQ?.map(q => q.id));
-      const currentIds = new Set(questions.filter(q => q.id).map(q => q.id));
-
-      const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
-
-      const upsertData = questions.map((q, idx) => ({
-          ...(q.id ? { id: q.id } : {}), // Only include ID if it exists
-          exam_id: examId,
-          question_index: idx + 1,
-          question_text: q.question,
-          option_a: q.options.A,
-          option_b: q.options.B,
-          option_c: q.options.C,
-          option_d: q.options.D,
-          correct_option: q.correct_answer,
-          explanation: q.explanation,
-          marks: 1
-      }));
-
+      setIsSaving(true);
       try {
+          // 1. Fetch current DB state to identify deletions
+          const { data: existingQ, error: fetchError } = await supabase
+              .from("exam_questions")
+              .select("id")
+              .eq("exam_id", examId);
+
+          if (fetchError) throw fetchError;
+
+          const existingIds = new Set(existingQ?.map(q => q.id));
+          const currentIds = new Set(questions.filter(q => q.id).map(q => q.id));
+
+          const idsToDelete = [...existingIds].filter(id => !currentIds.has(id));
+
+          // 2. Prepare Upsert Data
+          const upsertData = questions.map((q, idx) => ({
+              ...(q.id ? { id: q.id } : {}), // Only include ID if it exists (update)
+              exam_id: examId,
+              question_index: idx + 1, // Ensure sequential indexing
+              question_text: q.question,
+              option_a: q.options.A,
+              option_b: q.options.B,
+              option_c: q.options.C,
+              option_d: q.options.D,
+              correct_option: q.correct_answer,
+              explanation: q.explanation,
+              marks: 1
+          }));
+
+          // 3. Delete Removed Questions
           if (idsToDelete.length > 0) {
-              await supabase.from("exam_questions").delete().in("id", idsToDelete);
+              const { error: delError } = await supabase.from("exam_questions").delete().in("id", idsToDelete);
+              if (delError) throw delError;
           }
 
+          // 4. Upsert Questions
           if (upsertData.length > 0) {
-              const { error } = await supabase.from("exam_questions").upsert(upsertData);
-              if (error) throw error;
+              const { error: upsertError } = await supabase.from("exam_questions").upsert(upsertData);
+              if (upsertError) throw upsertError;
           }
 
-          toast({ title: "Success", description: "Exam questions updated successfully." });
+          toast({ title: "Success", description: "Exam questions saved and re-indexed successfully." });
+
+          // 5. Refresh Data from DB to sync IDs
           const { data: refreshedData } = await supabase
                 .from("exam_questions")
                 .select("*")
@@ -374,9 +385,14 @@ const ExamCreator = () => {
           }
 
       } catch (err) {
+        console.error("Save error:", err);
         if (err instanceof Error) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: "Error saving questions", description: err.message, variant: "destructive" });
+        } else {
+             toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
         }
+      } finally {
+          setIsSaving(false);
       }
   };
 
@@ -384,6 +400,7 @@ const ExamCreator = () => {
       if (!examId) return;
       if (!confirm("⚠️ DANGER: This will DELETE all existing questions and replace them with the current list.\n\nAny student exam attempts linked to old questions might break or lose data.\n\nAre you sure you want to proceed?")) return;
 
+      setIsSaving(true);
       try {
           // 1. Delete all existing questions
           const { error: deleteError } = await supabase
@@ -436,9 +453,12 @@ const ExamCreator = () => {
           }
 
       } catch (err) {
+        console.error("Replace error:", err);
         if (err instanceof Error) {
-            toast({ title: "Error", description: err.message, variant: "destructive" });
+            toast({ title: "Error replacing questions", description: err.message, variant: "destructive" });
         }
+      } finally {
+          setIsSaving(false);
       }
   };
 
@@ -566,11 +586,22 @@ const ExamCreator = () => {
 
                 {examId ? (
                     <>
-                        <Button onClick={handleSaveToDatabase} className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20">
-                            <Database className="mr-2 h-4 w-4" /> Save
+                        <Button
+                            onClick={handleSaveToDatabase}
+                            disabled={isSaving}
+                            className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20"
+                        >
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                            Save
                         </Button>
-                        <Button variant="destructive" onClick={handleReplaceAllQuestions} title="Delete all questions & Re-upload">
-                            <RefreshCw className="mr-2 h-4 w-4" /> Replace All
+                        <Button
+                            variant="destructive"
+                            onClick={handleReplaceAllQuestions}
+                            disabled={isSaving}
+                            title="Delete all questions & Re-upload (Cleaner)"
+                        >
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Replace All
                         </Button>
                     </>
                 ) : (

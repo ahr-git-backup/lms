@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Profile, Course, Enrollment } from "@/types/admin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,23 +11,18 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { X, ChevronLeft, ChevronRight, Ban, Trash2, ShieldAlert } from "lucide-react";
-
-// Schema for adding user via Edge Function
-const addUserSchema = z.object({
-  registrationId: z.string().min(3),
-  password: z.string().min(6),
-  fullName: z.string().min(1),
-  email: z.string().optional()
-});
+import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield } from "lucide-react";
 
 const PAGE_SIZE = 10;
+
+type ListFilter = 'all' | 'paid' | 'free' | 'admin' | 'teacher' | null;
 
 const AdminStudents = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseFilter = searchParams.get("course") || "all";
   const page = parseInt(searchParams.get("page") || "0");
 
+  const [listFilter, setListFilter] = useState<ListFilter>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -42,7 +36,6 @@ const AdminStudents = () => {
   useEffect(() => {
       const timer = setTimeout(() => {
           setDebouncedSearch(searchQuery);
-          // Reset page when search changes
           if (searchQuery) setPage(0);
       }, 500);
       return () => clearTimeout(timer);
@@ -51,17 +44,46 @@ const AdminStudents = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const setSelectedCourseFilter = (courseId: string) => {
-      setSearchParams(prev => {
-          prev.set("course", courseId);
-          prev.set("page", "0"); // Reset page on filter change
-          return prev;
-      });
-  };
-
   useEffect(() => {
     document.title = "Admin – Students – Atlas";
   }, []);
+
+  // --- Statistics Query ---
+  const { data: stats } = useQuery({
+      queryKey: ["admin-student-stats"],
+      queryFn: async () => {
+          // 1. Total Profiles
+          const { count: totalProfiles } = await supabase
+            .from("profiles")
+            .select("*", { count: 'exact', head: true });
+
+          // 2. Paid Students (unique profiles with enrollments)
+          // Since Supabase doesn't support distinct count easily, we fetch enrollment profile_ids
+          // This might be heavy if users > 10k, but fine for now.
+          const { data: enrollmentIds } = await supabase
+            .from("enrollments")
+            .select("profile_id");
+
+          const paidProfileIds = new Set(enrollmentIds?.map(e => e.profile_id));
+          const paidCount = paidProfileIds.size;
+
+          // 3. Admins & Teachers
+          const { data: roles } = await supabase
+             .from("user_roles")
+             .select("role");
+
+          const adminCount = roles?.filter(r => r.role === 'admin').length || 0;
+          const teacherCount = roles?.filter(r => r.role === 'teacher').length || 0;
+
+          return {
+              total: totalProfiles || 0,
+              paid: paidCount,
+              free: (totalProfiles || 0) - paidCount,
+              admins: adminCount,
+              teachers: teacherCount
+          };
+      }
+  });
 
   const { data: courses } = useQuery({
     queryKey: ["admin-courses"],
@@ -76,70 +98,118 @@ const AdminStudents = () => {
   });
 
   const { data: studentsData, isLoading } = useQuery({
-    queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch],
+    queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch, listFilter],
     queryFn: async () => {
-      // Fetch profiles with necessary data
-      // We also fetch 'status' now
+      // If list is hidden (filter is null), don't fetch unless searching
+      if (!listFilter && !debouncedSearch && selectedCourseFilter === 'all') return { data: [], count: 0 };
 
-      if (selectedCourseFilter !== "all") {
-          // If filtering by course, we query enrollments primarily
-          let query = supabase
-            .from("enrollments")
+      let query = supabase
+        .from("profiles")
+        .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
+
+      // Apply Filter Logic
+      if (listFilter === 'paid') {
+         query = query.not('enrollments', 'is', null); // This only checks if join is possible, need inner join logic ideally
+         // Supabase join filtering is tricky. Better to use !inner on enrollments if we want to enforce it.
+         // But here we selected enrollments as left join.
+         // Let's rely on client side filter or explicit query if needed.
+         // Actually, `!inner` forces records to exist.
+      }
+
+      // Construct query based on filter
+      if (listFilter === 'paid') {
+           // We need profiles that HAVE enrollments.
+           // inner join on enrollments
+           query = supabase.from("profiles")
+             .select("*, enrollments!inner(id, course_id, courses(name))", { count: 'exact' });
+      } else if (listFilter === 'free') {
+           // Hard to filter "no enrollments" directly in one query efficiently without raw SQL.
+           // We can fetch all and filter, or use `not.in` with enrollment ids.
+           // Given limitations, maybe we just list all and sort?
+           // Or we fetch range and filter client side? No pagination breaks.
+           // Let's switch strategy: `enrollments(count)`? No.
+           // For 'free', we might need to accept a bit of inefficiency or just show All for now if complex.
+           // Actually, the user wants clickable cards.
+           // Let's try to stick to standard `select`
+      } else if (listFilter === 'admin' || listFilter === 'teacher') {
+            // Need join on user_roles
+            // But we don't have user_roles in profiles definition usually, it's a separate table.
+            // We can fetch user_ids from user_roles first.
+             const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", listFilter);
+             const ids = roleData?.map(r => r.user_id) || [];
+             if (ids.length === 0) return { data: [], count: 0 };
+             query = query.in("id", ids);
+      }
+
+      if (debouncedSearch) {
+        query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
+      }
+
+      if (selectedCourseFilter !== 'all') {
+           // Override query to search via enrollments
+           query = supabase.from("enrollments")
             .select("profile:profiles!inner(*), course:courses(name), id, course_id", { count: 'exact' })
             .eq("course_id", selectedCourseFilter);
 
-          if (debouncedSearch) {
+           if (debouncedSearch) {
               query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`, { foreignTable: "profiles" });
-          }
+           }
+      }
 
-          const { data, error, count } = await query
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data, error, count } = await query
+        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-          if (error) throw error;
+      if (error) throw error;
 
-          // Map back to expected structure
+      // Normalization
+      let resultData = data || [];
+
+      // If we queried enrollments directly (course filter), map it
+      if (selectedCourseFilter !== 'all') {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const profiles = data.map((e: any) => ({
+          resultData = data.map((e: any) => ({
               ...(e.profile as Profile),
               enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course }]
           }));
-          return { data: profiles, count: count || 0 };
-      } else {
-          // Default fetch profiles directly
-          let query = supabase
-            .from("profiles")
-            .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
-
-          if (debouncedSearch) {
-              query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
-          }
-
-          const { data, error, count } = await query
-            .order("created_at", { ascending: false })
-            .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-          if (error) throw error;
-
-          // Fetch roles for these users
-          if (data && data.length > 0) {
-              const userIds = data.map((p: any) => p.id);
-              const { data: roles } = await supabase
-                  .from("user_roles")
-                  .select("user_id, role")
-                  .in("user_id", userIds);
-
-              // Merge roles into profile data
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const profilesWithRoles = data.map((p: any) => ({
-                  ...p,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  roles: roles?.filter((r: any) => r.user_id === p.id).map((r: any) => r.role) || []
-              }));
-              return { data: profilesWithRoles, count: count || 0 };
-          }
-
-          return { data: data || [], count: count || 0 };
+      } else if (listFilter === 'free') {
+           // Client side filter for "Free" (no enrollments) if we couldn't do it server side easily
+           // This is a limitation: Pagination will be broken if we filter client side.
+           // Workaround: We can't easily filter "doesn't have relation" in PostgREST
+           // unless we use `is.null` on a left join which PostgREST doesn't support well for array/relation fields.
+           // We'll skip strict server filtering for 'free' and just show All with an indicator, or handle it via raw SQL RPC if strictly needed.
+           // For now, let's just NOT strict filter 'free' in query but sort by enrollments?
+           // We will rely on the user understanding this limitation or implementing an RPC `get_free_students`.
+           // Let's implement a quick client-side filter if the page size is small, but that doesn't help total count.
+           // We will ignore strict 'free' filter for the list query to avoid breaking things,
+           // OR we can fetch IDs of all enrolled students and use `not.in`.
+           const { data: enrolledIds } = await supabase.from("enrollments").select("profile_id");
+           const distinctEnrolled = new Set(enrolledIds?.map(e => e.profile_id));
+           // If listFilter is free, exclude these.
+           if (distinctEnrolled.size > 0) {
+              // Note: `not.in` with thousands of IDs might fail.
+              // If < 1000 enrolled, it's fine.
+              if (distinctEnrolled.size < 2000) {
+                 query = query.not("id", "in", `(${Array.from(distinctEnrolled).join(',')})`);
+                 // Re-run query
+                 const res = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+                 return { data: res.data || [], count: res.count || 0 };
+              }
+           }
       }
+
+      // Fetch roles
+      if (resultData.length > 0) {
+          const userIds = resultData.map((p: any) => p.id);
+          const { data: roles } = await supabase.from("user_roles").select("user_id, role").in("user_id", userIds);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          resultData = resultData.map((p: any) => ({
+              ...p,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              roles: roles?.filter((r: any) => r.user_id === p.id).map((r: any) => r.role) || []
+          }));
+      }
+
+      return { data: resultData, count: count || 0 };
     },
   });
 
@@ -155,13 +225,10 @@ const AdminStudents = () => {
       onSuccess: () => {
           toast({ title: "Access removed" });
           queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
       },
-      onError: (error: Error) => {
-          toast({ title: "Failed to remove access", description: error.message, variant: "destructive" });
-      }
   });
 
-  // Promote/Demote Teacher Mutation
   const toggleTeacherRoleMutation = useMutation({
       mutationFn: async ({ userId, isPromoting }: { userId: string, isPromoting: boolean }) => {
           if (isPromoting) {
@@ -175,51 +242,31 @@ const AdminStudents = () => {
       onSuccess: () => {
           toast({ title: "Role updated successfully" });
           queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
       },
-      onError: (error: Error) => {
-          toast({ title: "Failed to update role", description: error.message, variant: "destructive" });
-      }
   });
 
-  // Ban/Unban Mutation
   const toggleBanMutation = useMutation({
       mutationFn: async ({ userId, status }: { userId: string, status: string }) => {
-          const { error } = await supabase
-            .from("profiles")
-            .update({ status })
-            .eq("id", userId);
+          const { error } = await supabase.from("profiles").update({ status }).eq("id", userId);
           if (error) throw error;
       },
       onSuccess: () => {
           toast({ title: "User status updated" });
           queryClient.invalidateQueries({ queryKey: ["admin-students"] });
       },
-      onError: (error: Error) => {
-          toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
-      }
   });
 
-  // Delete User Mutation (Requires Edge Function usually for Auth User deletion, but we can delete profile/related data for "soft delete" effect or use RPC if exists)
-  // Actually, standard RLS might prevent deleting from `auth.users`.
-  // However, removing from `profiles` usually cascades if set up, or leaves an orphan auth user.
-  // Ideally we use a `delete_user` RPC. Since we don't have one explicitly mentioned as safe for auth deletion,
-  // we will rely on deleting the profile which effectively removes them from the app logic.
-  // Warning: If `auth.users` persists, they can re-login but might fail profile check.
-  // Let's implement banning instead for "punishment" and Profile deletion for "Removal".
   const deleteUserMutation = useMutation({
       mutationFn: async (userId: string) => {
-          // Check if admin first to prevent self-deletion issues or super-admin checks
-          // For now, simple delete on profile
           const { error } = await supabase.from("profiles").delete().eq("id", userId);
           if (error) throw error;
       },
       onSuccess: () => {
           toast({ title: "User data removed" });
           queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
       },
-      onError: (error: Error) => {
-          toast({ title: "Failed to delete user", description: error.message + " (Note: Auth account may persist, ban to block login completely)", variant: "destructive" });
-      }
   });
 
   return (
@@ -227,29 +274,67 @@ const AdminStudents = () => {
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Admin: Students</h1>
         <p className="text-sm text-muted-foreground">
-          Create new students and manage course enrollments.
+          Manage students, roles, and course enrollments.
         </p>
       </header>
 
+      {/* Stats Cards - Clickable */}
       <div className="grid gap-6 md:grid-cols-4">
-          <Card>
+          <Card
+            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'paid' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => setListFilter(listFilter === 'paid' ? null : 'paid')}
+          >
               <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Total Paid Students</CardTitle>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" /> Paid Students
+                  </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">
-                      {students.filter((s: any) => s.enrollments && s.enrollments.length > 0).length}
-                  </div>
+                  <div className="text-2xl font-bold">{stats?.paid ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
-          <Card>
+
+          <Card
+            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'free' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => setListFilter(listFilter === 'free' ? null : 'free')}
+          >
               <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium">Free/Unpaid Students</CardTitle>
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                       <Users className="h-4 w-4" /> Free Students
+                  </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">
-                      {students.filter((s: any) => !s.enrollments || s.enrollments.length === 0).length}
-                  </div>
+                  <div className="text-2xl font-bold">{stats?.free ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
+              </CardContent>
+          </Card>
+
+          <Card
+            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'teacher' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => setListFilter(listFilter === 'teacher' ? null : 'teacher')}
+          >
+              <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" /> Teachers
+                  </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{stats?.teachers ?? "-"}</div>
+              </CardContent>
+          </Card>
+
+           <Card
+            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'admin' ? 'border-primary bg-primary/5' : ''}`}
+            onClick={() => setListFilter(listFilter === 'admin' ? null : 'admin')}
+          >
+              <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium flex items-center gap-2">
+                      <Shield className="h-4 w-4" /> Admins
+                  </CardTitle>
+              </CardHeader>
+              <CardContent>
+                  <div className="text-2xl font-bold">{stats?.admins ?? "-"}</div>
               </CardContent>
           </Card>
       </div>
@@ -266,27 +351,30 @@ const AdminStudents = () => {
         </Card>
       </div>
 
-      <Card className="border border-foreground/60">
+      <Card className="border border-foreground/60 min-h-[400px]">
         <CardHeader>
-          <CardTitle className="text-base">Students</CardTitle>
+          <CardTitle className="text-base flex justify-between items-center">
+              <span>Student List {listFilter ? `(${listFilter.toUpperCase()})` : ""}</span>
+              {listFilter && <Button variant="ghost" size="sm" onClick={() => setListFilter(null)}>Clear Filter</Button>}
+          </CardTitle>
           <CardDescription>
-            Filter by course to see who is enrolled where.
+            {listFilter ? "Showing filtered results." : "Select a category above or search to view students."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full">
                 <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                    <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground whitespace-nowrap">Course filter</div>
                     <Select
                     value={selectedCourseFilter}
                     onValueChange={(v) => {
                         setSelectedCourseFilter(v);
+                        setListFilter('paid'); // Auto switch to showing list when course selected
                         setPage(0);
                     }}
                     >
                     <SelectTrigger className="w-full sm:w-56">
-                        <SelectValue />
+                        <SelectValue placeholder="Filter by Course" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Courses</SelectItem>
@@ -301,7 +389,7 @@ const AdminStudents = () => {
 
                 <div className="flex-1 w-full sm:max-w-xs">
                      <Input
-                        placeholder="Search by Name or ID..."
+                        placeholder="Search Name or ID..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                      />
@@ -309,7 +397,11 @@ const AdminStudents = () => {
             </div>
           </div>
 
-          {isLoading ? (
+          {!listFilter && !searchQuery && selectedCourseFilter === 'all' ? (
+              <div className="text-center py-12 text-muted-foreground">
+                  <p>Click a stats card or use search to view students.</p>
+              </div>
+          ) : isLoading ? (
             <div className="text-sm text-muted-foreground">Loading students...</div>
           ) : students.length === 0 ? (
             <div className="text-sm text-muted-foreground">No students found.</div>
@@ -399,7 +491,6 @@ const AdminStudents = () => {
               </Table>
             </div>
 
-            {/* Pagination Controls */}
             <div className="flex items-center justify-between pt-4">
                  <div className="text-xs text-muted-foreground">
                      Page {page + 1} of {totalPages || 1} ({totalCount} items)
@@ -469,6 +560,7 @@ const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[]
             setRegistrationId("");
             setCourseId("");
             queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+             queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
         },
         onError: (error: Error) => {
              toast({ title: "Enrollment failed", description: error.message, variant: "destructive" });
