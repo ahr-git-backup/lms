@@ -6,10 +6,16 @@ AS $$
 DECLARE
     v_user_id uuid := auth.uid();
     v_result jsonb;
+    v_enrolled_courses uuid[];
 BEGIN
     IF v_user_id IS NULL THEN
         RETURN '[]'::jsonb;
     END IF;
+
+    -- Fetch enrolled course IDs once
+    SELECT array_agg(course_id) INTO v_enrolled_courses
+    FROM public.enrollments
+    WHERE profile_id = v_user_id;
 
     WITH relevant_exams AS (
         SELECT
@@ -20,14 +26,22 @@ BEGIN
             e.time_window_end,
             e.created_at,
             e.course_id,
-            e.is_archive, -- Include is_archive column
+            e.is_archive,
             c.name as course_name
         FROM public.exams e
         LEFT JOIN public.courses c ON e.course_id = c.id
         WHERE
-            e.course_id IS NULL -- Public
-            OR
-            e.course_id IN (SELECT course_id FROM public.enrollments WHERE profile_id = v_user_id) -- Enrolled
+            e.is_published = true -- Must be published
+            AND (
+                -- 1. Enrolled Course Exams
+                (e.course_id = ANY(v_enrolled_courses))
+                OR
+                -- 2. Public Active Exams (Not Archive)
+                (e.course_id IS NULL AND (e.is_archive IS NULL OR e.is_archive = false))
+                OR
+                -- 3. Relevant Archived Exams (Shared with Enrolled Courses)
+                (e.is_archive = true AND e.archive_course_ids && v_enrolled_courses)
+            )
     ),
     my_attempts AS (
         SELECT
@@ -69,7 +83,7 @@ BEGIN
             'time_window_end', e.time_window_end,
             'created_at', e.created_at,
             'course_name', COALESCE(e.course_name, 'Public Exams'),
-            'is_archive', e.is_archive, -- Add to JSON output
+            'is_archive', e.is_archive,
 
             -- Live Attempt Data
             'live_attempt', (
