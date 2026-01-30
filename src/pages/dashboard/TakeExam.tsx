@@ -498,8 +498,8 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex items-center justify-center p-4">
-              <div className="w-full max-w-2xl bg-card rounded-2xl md:rounded-[2rem] shadow-2xl p-6 md:p-10 space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-500 border border-border/50">
+          <div className="min-h-screen bg-background flex items-center justify-center p-2 sm:p-4">
+              <div className="w-full max-w-2xl bg-card rounded-xl md:rounded-[2rem] shadow-2xl p-4 md:p-10 space-y-6 md:space-y-8 animate-in fade-in zoom-in-95 duration-500 border border-border/50">
                   <div className="space-y-3 md:space-y-4 text-center">
                       <div className="w-12 h-12 md:w-16 md:h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary mb-4 md:mb-6">
                           <Clock className="h-6 w-6 md:h-8 md:w-8" />

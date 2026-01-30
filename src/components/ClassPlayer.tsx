@@ -457,7 +457,7 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
           onClick={(e) => e.stopPropagation()}
         >
           {/* Progress Bar */}
-          {!isLive && (
+          {!isLive ? (
             <div className="mb-2 group/slider w-full">
                 <Slider
                     value={[currentTime]}
@@ -468,8 +468,7 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
                     className="cursor-pointer py-2 [&>.relative>.bg-primary]:h-1 [&>.relative>.bg-primary]:sm:h-1.5 [&>.relative>.bg-primary]:group-hover/slider:h-2 [&>.relative]:h-1 [&>.relative]:sm:h-1.5 [&>.relative]:group-hover/slider:h-2 transition-all [&_span[role='slider']]:h-3 [&_span[role='slider']]:w-3 [&_span[role='slider']]:sm:h-5 [&_span[role='slider']]:sm:w-5"
                 />
             </div>
-          )}
-          {isLive && (
+          ) : (
               <div className="mb-2 w-full flex items-center gap-2">
                   <div className="h-1.5 flex-1 bg-red-600 rounded-full animate-pulse opacity-50" />
                   <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider animate-pulse flex items-center gap-1">

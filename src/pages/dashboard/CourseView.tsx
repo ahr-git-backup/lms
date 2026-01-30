@@ -176,12 +176,12 @@ const CourseView = () => {
 const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
     return (
         <Tabs defaultValue="recordings" className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
                 <TabsTrigger value="recordings" className="gap-2"><Video className="h-4 w-4" /> Recordings</TabsTrigger>
                 <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
                 <TabsTrigger value="readymade" className="gap-2"><LayoutTemplate className="h-4 w-4" /> Readymade Exam</TabsTrigger>
                 <TabsTrigger value="archive-class" className="gap-2"><Archive className="h-4 w-4" /> Arch. Class</TabsTrigger>
-                <TabsTrigger value="archive-exam" className="gap-2"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
+                <TabsTrigger value="archive-exam" className="gap-2 col-span-2 sm:col-span-1"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
             </TabsList>
 
             <TabsContent value="recordings" className="mt-6">
