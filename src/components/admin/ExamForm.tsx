@@ -54,6 +54,7 @@ const examSchema = z.object({
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
   is_archive: z.boolean().optional().default(false),
+  is_readymade: z.boolean().optional().default(false),
 });
 
 interface ExamFormProps {
@@ -134,6 +135,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 questions_json: "",
                 questions_csv: "",
             is_archive: exam.is_archive || isArchiveMode,
+            is_readymade: exam.is_readymade ?? false,
             });
         }
     }, [exam]);
@@ -191,6 +193,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_visible_on_free: parsed.is_visible_on_free ?? true,
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
+            is_readymade: parsed.is_readymade ?? false,
           };
 
           // Helper functions for questions (copied from original)
@@ -640,6 +643,24 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     </span>
                 </Label>
               </div>
+
+              {!isArchiveMode && (
+                  <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border-blue-200">
+                    <Switch
+                        id="is_readymade"
+                        checked={form.is_readymade}
+                        onCheckedChange={(checked) =>
+                            setForm((prev) => ({ ...prev, is_readymade: checked }))
+                        }
+                    />
+                    <Label htmlFor="is_readymade" className="flex flex-col">
+                        <span>Is Readymade Exam?</span>
+                        <span className="text-xs text-muted-foreground font-normal">
+                            If enabled, this exam will appear in the "Readymade" section. It can be course-specific or public.
+                        </span>
+                    </Label>
+                  </div>
+              )}
 
               <div className="space-y-2 md:col-span-2">
                 <div className="flex items-center justify-between">

@@ -30,6 +30,7 @@ export interface Exam {
   questions_json?: string;
   questions_csv?: string;
   is_archive?: boolean;
+  is_readymade?: boolean;
   course?: {
     name: string;
   } | null;
