@@ -55,6 +55,7 @@ const examSchema = z.object({
   questions_csv: z.string().trim().optional().or(z.literal("")),
   is_archive: z.boolean().optional().default(false),
   is_readymade: z.boolean().optional().default(false),
+  readymade_course_ids: z.array(z.string()).default([]),
 });
 
 interface ExamFormProps {
@@ -83,6 +84,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         course_id: "",
         shared_course_ids: [],
         archive_course_ids: [],
+        readymade_course_ids: [],
         title: "",
         subject: [],
         chapter: "",
@@ -116,6 +118,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 shared_course_ids: exam.shared_course_ids || [],
                 // @ts-ignore
                 archive_course_ids: exam.archive_course_ids || [],
+                // @ts-ignore
+                readymade_course_ids: exam.readymade_course_ids || [],
                 title: exam.title ?? "",
                 subject: subjects,
                 chapter: exam.chapter || "",
@@ -177,6 +181,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             shared_course_ids: parsed.shared_course_ids,
             // @ts-ignore
             archive_course_ids: parsed.archive_course_ids,
+            // @ts-ignore
+            readymade_course_ids: parsed.readymade_course_ids,
             title: parsed.title,
             subject: parsed.subject,
             chapter: parsed.chapter || null,
@@ -357,6 +363,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 course_id: "",
                 shared_course_ids: [],
                 archive_course_ids: [],
+                readymade_course_ids: [],
                 title: "",
                 subject: [],
                 chapter: "",
@@ -645,20 +652,39 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               </div>
 
               {!isArchiveMode && (
-                  <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-blue-50 dark:bg-blue-900/10 border-blue-200">
-                    <Switch
-                        id="is_readymade"
-                        checked={form.is_readymade}
-                        onCheckedChange={(checked) =>
-                            setForm((prev) => ({ ...prev, is_readymade: checked }))
-                        }
-                    />
-                    <Label htmlFor="is_readymade" className="flex flex-col">
-                        <span>Is Readymade Exam?</span>
-                        <span className="text-xs text-muted-foreground font-normal">
-                            If enabled, this exam will appear in the "Readymade" section. It can be course-specific or public.
-                        </span>
-                    </Label>
+                  <div className="md:col-span-2 border p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border-blue-200 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <Switch
+                            id="is_readymade"
+                            checked={form.is_readymade}
+                            onCheckedChange={(checked) =>
+                                setForm((prev) => ({ ...prev, is_readymade: checked }))
+                            }
+                        />
+                        <Label htmlFor="is_readymade" className="flex flex-col">
+                            <span>Is Readymade Exam?</span>
+                            <span className="text-xs text-muted-foreground font-normal">
+                                Enable to show in "Readymade" section.
+                            </span>
+                        </Label>
+                      </div>
+
+                      {form.is_readymade && (
+                           <div className="space-y-2">
+                                <Label>Readymade For Specific Courses (Optional)</Label>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                <MultiSelect
+                                    options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                    selected={form.readymade_course_ids}
+                                    onChange={(vals) => setForm(prev => ({ ...prev, readymade_course_ids: vals }))}
+                                    placeholder="Select courses..."
+                                />
+                                <p className="text-[10px] text-muted-foreground">
+                                    If selected, only students enrolled in these courses (plus the main course) will see this in their Readymade list.
+                                    If empty and public, it may be visible to all.
+                                </p>
+                           </div>
+                      )}
                   </div>
               )}
 

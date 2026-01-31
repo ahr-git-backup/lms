@@ -1,0 +1,239 @@
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users } from "lucide-react";
+
+const AdminCommunity = () => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    const [page, setPage] = useState(0);
+    const [selectedCourse, setSelectedCourse] = useState<string>("all");
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [editingResource, setEditingResource] = useState<any>(null);
+
+    // Fetch Courses
+    const { data: courses } = useQuery({
+        queryKey: ["admin-courses-simple"],
+        queryFn: async () => {
+            const { data, error } = await supabase.from("courses").select("id, name");
+            if (error) throw error;
+            return data || [];
+        }
+    });
+
+    // Fetch Community Resources (Type: Link)
+    const { data: resourcesData, isLoading } = useQuery({
+        queryKey: ["admin-community-resources", page, selectedCourse],
+        queryFn: async () => {
+            let query = supabase
+                .from("resources")
+                .select("*, course:courses(name)", { count: 'exact' })
+                .eq("resource_type", "Link") // Focus on Links
+                .order("created_at", { ascending: false })
+                .range(page * 10, (page + 1) * 10 - 1);
+
+            if (selectedCourse !== "all") query = query.eq("course_id", selectedCourse);
+
+            const { data, count, error } = await query;
+            if (error) throw error;
+            return { data: data || [], count: count || 0 };
+        }
+    });
+
+    const deleteResource = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from("resources").delete().eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast({ title: "Community Link deleted" });
+            queryClient.invalidateQueries({ queryKey: ["admin-community-resources"] });
+        },
+        onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
+    });
+
+    const resources = resourcesData?.data || [];
+    const totalCount = resourcesData?.count || 0;
+    const totalPages = Math.ceil(totalCount / 10);
+
+    return (
+        <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Community Manager</h1>
+                    <p className="text-muted-foreground">Manage Telegram, Facebook, and other community links for your courses.</p>
+                </div>
+                <Button onClick={() => { setEditingResource(null); setIsCreateOpen(true); }}>
+                    <Plus className="mr-2 h-4 w-4" /> Add Community Link
+                </Button>
+            </div>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Community Links</CardTitle>
+                        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+                            <SelectTrigger className="w-[200px]">
+                                <SelectValue placeholder="Filter by Course" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Courses</SelectItem>
+                                {courses?.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    {isLoading ? (
+                        <div className="text-center py-4">Loading...</div>
+                    ) : resources.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">No community links found.</div>
+                    ) : (
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Title</TableHead>
+                                    <TableHead>Course</TableHead>
+                                    <TableHead>URL</TableHead>
+                                    <TableHead className="text-right">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {resources.map((res) => (
+                                    <TableRow key={res.id}>
+                                        <TableCell className="font-medium flex items-center gap-2">
+                                            {res.url.includes("t.me") ? <Send className="h-4 w-4 text-blue-500" /> :
+                                             res.url.includes("facebook") ? <Facebook className="h-4 w-4 text-blue-700" /> :
+                                             <LinkIcon className="h-4 w-4" />}
+                                            {res.title}
+                                        </TableCell>
+                                        <TableCell>{res.course?.name || "All Courses"}</TableCell>
+                                        <TableCell className="max-w-[200px] truncate">
+                                            <a href={res.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
+                                                {res.url}
+                                            </a>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <Button variant="ghost" size="icon" onClick={() => { setEditingResource(res); setIsCreateOpen(true); }}>
+                                                    <Edit2 className="h-4 w-4" />
+                                                </Button>
+                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => { if(confirm("Delete this link?")) deleteResource.mutate(res.id); }}>
+                                                    <Trash2 className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    )}
+                </CardContent>
+            </Card>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{editingResource ? "Edit Community Link" : "Add Community Link"}</DialogTitle>
+                        <DialogDescription>Add links to Telegram channels, Facebook groups, or other social platforms.</DialogDescription>
+                    </DialogHeader>
+                    <ResourceForm
+                        initialData={editingResource}
+                        courses={courses || []}
+                        onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-community-resources"] }); }}
+                        onCancel={() => setIsCreateOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
+        </div>
+    );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialData: any, courses: any[], onSuccess: () => void, onCancel: () => void }) => {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(false);
+    const [title, setTitle] = useState(initialData?.title || "");
+    const [url, setUrl] = useState(initialData?.url || "");
+    const [courseId, setCourseId] = useState(initialData?.course_id || "");
+    const [description, setDescription] = useState(initialData?.description || "");
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const payload = {
+            title,
+            url,
+            course_id: courseId || null,
+            description,
+            resource_type: "Link", // Always Link for Community Manager
+            subject: "Community" // Tagging it as Community
+        };
+
+        try {
+            if (initialData?.id) {
+                const { error } = await supabase.from("resources").update(payload).eq("id", initialData.id);
+                if (error) throw error;
+                toast({ title: "Updated successfully" });
+            } else {
+                const { error } = await supabase.from("resources").insert(payload);
+                if (error) throw error;
+                toast({ title: "Created successfully" });
+            }
+            onSuccess();
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Title</label>
+                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Official Telegram Channel" required />
+            </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">URL</label>
+                <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
+            </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Course (Optional)</label>
+                <Select value={courseId} onValueChange={setCourseId}>
+                    <SelectTrigger>
+                        <SelectValue placeholder="All Courses (Public)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all_courses_placeholder">All Courses (Public)</SelectItem>
+                        {courses.map(c => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Select a specific course or leave as 'All Courses' to make it visible to everyone.</p>
+            </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Description (Optional)</label>
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+                <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save"}</Button>
+            </div>
+        </form>
+    );
+};
+
+export default AdminCommunity;

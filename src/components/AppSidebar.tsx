@@ -17,8 +17,8 @@ import {
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
   { title: "My Courses", url: "/dashboard/my-courses", icon: GraduationCap, color: "text-indigo-500" },
+  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
   { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
-  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
   { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
   { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
   { title: "Record Class", url: "/dashboard/recordings", icon: BookOpen, color: "text-orange-500" },
@@ -27,12 +27,11 @@ const studentItems = [
   { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
-  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
-  { title: "Class Notes", url: "/dashboard/class-notes", icon: StickyNote, color: "text-pink-500" },
   { title: "Notice", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
-  { title: "Resources", url: "/dashboard/resources", icon: GraduationCap, color: "text-cyan-500" },
+  { title: "Community", url: "/dashboard/community", icon: Users, color: "text-cyan-500" },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
+  { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
 ];
 
 const adminItems = [
@@ -40,10 +39,11 @@ const adminItems = [
   { title: "Courses", url: "/dashboard/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
   { title: "Students", url: "/dashboard/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
   { title: "Class Schedule", url: "/dashboard/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-red-600" },
+  { title: "Routine Manager", url: "/dashboard/admin/routines", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-indigo-600" },
   { title: "Exams", url: "/dashboard/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
   { title: "Question Bank", url: "/dashboard/admin/question-bank", icon: Database, roles: ["admin", "teacher"], color: "text-blue-500" },
   { title: "Notice", url: "/dashboard/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
-  { title: "Resources", url: "/dashboard/admin/resources", icon: BookOpen, roles: ["admin", "teacher"], color: "text-teal-600" },
+  { title: "Community Manager", url: "/dashboard/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
   { title: "Notes Manager", url: "/dashboard/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
   { title: "Archive Manager", url: "/dashboard/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
   { title: "Free Manager", url: "/dashboard/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },

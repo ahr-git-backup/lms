@@ -33,7 +33,7 @@ import MyMistakes from "./pages/dashboard/MyMistakes";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
-import Resources from "./pages/dashboard/Resources";
+import Community from "./pages/dashboard/Community";
 import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
@@ -46,9 +46,10 @@ import AdminDashboardHome from "./pages/dashboard/admin/AdminDashboardHome";
 import AdminCourses from "./pages/dashboard/admin/AdminCourses";
 import AdminStudents from "./pages/dashboard/admin/AdminStudents";
 import AdminClasses from "./pages/dashboard/admin/AdminClasses";
+import AdminRoutines from "./pages/dashboard/admin/AdminRoutines";
 import AdminExams from "./pages/dashboard/admin/AdminExams";
 import AdminAnnouncements from "./pages/dashboard/admin/AdminAnnouncements";
-import AdminResources from "./pages/dashboard/admin/AdminResources";
+import AdminCommunity from "./pages/dashboard/admin/AdminCommunity";
 import AdminPayments from "./pages/dashboard/admin/AdminPayments";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
 import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
@@ -148,7 +149,7 @@ const App = () => {
                 <Route path="routine" element={<Routine />} />
                 <Route path="class-notes" element={<ClassNotes />} />
                 <Route path="class-notes/:noteId" element={<NoteDetails />} />
-                <Route path="resources" element={<Resources />} />
+                <Route path="community" element={<Community />} />
                 <Route path="announcements" element={<Announcements />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
@@ -163,12 +164,13 @@ const App = () => {
                 <Route path="admin/courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
                 <Route path="admin/students" element={<ProtectedRoute requireAdmin><AdminStudents /></ProtectedRoute>} />
                 <Route path="admin/classes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminClasses /></ProtectedRoute>} />
+                <Route path="admin/routines" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminRoutines /></ProtectedRoute>} />
                 <Route path="admin/exams" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExams /></ProtectedRoute>} />
                 <Route path="admin/exams/question-maker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><ExamCreator /></ProtectedRoute>} />
                 <Route path="admin/exams/question-maker/:examId" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><ExamCreator /></ProtectedRoute>} />
                 <Route path="admin/question-bank" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><QuestionBank /></ProtectedRoute>} />
                 <Route path="admin/announcements" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAnnouncements /></ProtectedRoute>} />
-                <Route path="admin/resources" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminResources /></ProtectedRoute>} />
+                <Route path="admin/community" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminCommunity /></ProtectedRoute>} />
                 <Route path="admin/notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
                 <Route path="admin/archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
                 <Route path="admin/free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
