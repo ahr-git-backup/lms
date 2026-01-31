@@ -411,8 +411,8 @@ export const DashboardLayout = () => {
                         <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Megaphone className="h-4 w-4 text-yellow-600" /> Notice
                         </Link>
-                        <Link to="/dashboard/admin/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                            <Library className="h-4 w-4 text-teal-600" /> Resources
+                        <Link to="/dashboard/admin/community" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Users className="h-4 w-4 text-teal-600" /> Community Manager
                         </Link>
                         <Link to="/dashboard/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <StickyNote className="h-4 w-4 text-pink-600" /> Notes Manager

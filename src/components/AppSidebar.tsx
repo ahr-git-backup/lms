@@ -43,7 +43,7 @@ const adminItems = [
   { title: "Exams", url: "/dashboard/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
   { title: "Question Bank", url: "/dashboard/admin/question-bank", icon: Database, roles: ["admin", "teacher"], color: "text-blue-500" },
   { title: "Notice", url: "/dashboard/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
-  { title: "Resources", url: "/dashboard/admin/resources", icon: BookOpen, roles: ["admin", "teacher"], color: "text-teal-600" },
+  { title: "Community Manager", url: "/dashboard/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
   { title: "Notes Manager", url: "/dashboard/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
   { title: "Archive Manager", url: "/dashboard/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
   { title: "Free Manager", url: "/dashboard/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
