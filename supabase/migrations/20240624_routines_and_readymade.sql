@@ -16,31 +16,61 @@ ADD COLUMN IF NOT EXISTS readymade_course_ids UUID[] DEFAULT '{}';
 -- Enable RLS
 ALTER TABLE public.routines ENABLE ROW LEVEL SECURITY;
 
--- Policies for routines
-CREATE POLICY "Routines are viewable by everyone" ON public.routines
-FOR SELECT USING (true);
+-- Policies for routines (Idempotent)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'routines' AND policyname = 'Routines are viewable by everyone'
+    ) THEN
+        CREATE POLICY "Routines are viewable by everyone" ON public.routines FOR SELECT USING (true);
+    END IF;
+END
+$$;
 
--- Admins and Teachers can insert/update/delete (Using casting to public.app_role)
-CREATE POLICY "Admins/Teachers can insert routines" ON public.routines
-FOR INSERT WITH CHECK (
-    auth.uid() IN (
-        SELECT user_id FROM public.user_roles
-        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
-    )
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'routines' AND policyname = 'Admins/Teachers can insert routines'
+    ) THEN
+        CREATE POLICY "Admins/Teachers can insert routines" ON public.routines
+        FOR INSERT WITH CHECK (
+            auth.uid() IN (
+                SELECT user_id FROM public.user_roles
+                WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+            )
+        );
+    END IF;
+END
+$$;
 
-CREATE POLICY "Admins/Teachers can update routines" ON public.routines
-FOR UPDATE USING (
-    auth.uid() IN (
-        SELECT user_id FROM public.user_roles
-        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
-    )
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'routines' AND policyname = 'Admins/Teachers can update routines'
+    ) THEN
+        CREATE POLICY "Admins/Teachers can update routines" ON public.routines
+        FOR UPDATE USING (
+            auth.uid() IN (
+                SELECT user_id FROM public.user_roles
+                WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+            )
+        );
+    END IF;
+END
+$$;
 
-CREATE POLICY "Admins/Teachers can delete routines" ON public.routines
-FOR DELETE USING (
-    auth.uid() IN (
-        SELECT user_id FROM public.user_roles
-        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
-    )
-);
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies WHERE tablename = 'routines' AND policyname = 'Admins/Teachers can delete routines'
+    ) THEN
+        CREATE POLICY "Admins/Teachers can delete routines" ON public.routines
+        FOR DELETE USING (
+            auth.uid() IN (
+                SELECT user_id FROM public.user_roles
+                WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+            )
+        );
+    END IF;
+END
+$$;
