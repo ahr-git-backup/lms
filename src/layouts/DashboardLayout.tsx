@@ -347,9 +347,6 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/live-class" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Video className="h-4 w-4 text-red-500" /> Live Class
                     </Link>
-                    <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Settings className="h-4 w-4 text-amber-500" /> Study Tools
-                    </Link>
                     <Link to="/dashboard/live-exam" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <PenTool className="h-4 w-4 text-purple-500" /> Live Exam
                     </Link>
@@ -374,20 +371,20 @@ export const DashboardLayout = () => {
                     <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Calendar className="h-4 w-4 text-indigo-500" /> Routine
                     </Link>
-                    <Link to="/dashboard/class-notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <StickyNote className="h-4 w-4 text-pink-500" /> Class Notes
-                    </Link>
                     <Link to="/dashboard/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Megaphone className="h-4 w-4 text-rose-500" /> Notice
                     </Link>
                     <Link to="/dashboard/bookmarks" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Bookmark className="h-4 w-4 text-emerald-500" /> Bookmarks
                     </Link>
-                    <Link to="/dashboard/resources" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Files className="h-4 w-4 text-cyan-500" /> Resources
+                    <Link to="/dashboard/community" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Users className="h-4 w-4 text-cyan-500" /> Community
                     </Link>
                     <Link to="/dashboard/analytics" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <BarChart className="h-4 w-4 text-slate-500" /> Exam Analytics
+                    </Link>
+                    <Link to="/dashboard/program" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Settings className="h-4 w-4 text-amber-500" /> Study Tools
                     </Link>
 
                     {(isAdmin || isTeacher) && (
@@ -401,6 +398,9 @@ export const DashboardLayout = () => {
                         </Link>
                         <Link to="/dashboard/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Video className="h-4 w-4 text-red-600" /> Classes
+                        </Link>
+                        <Link to="/dashboard/admin/routines" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Calendar className="h-4 w-4 text-indigo-600" /> Routine Manager
                         </Link>
                         <Link to="/dashboard/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <PenTool className="h-4 w-4 text-orange-600" /> Exams

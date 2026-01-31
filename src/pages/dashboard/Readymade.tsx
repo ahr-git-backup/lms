@@ -90,9 +90,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
-            // Filter by access
+            // Filter by access: Enrolled course must be in course_id, OR shared_course_ids, OR readymade_course_ids, OR null (public)
             if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
             } else {
                  query = query.is("course_id", null);
             }
@@ -121,7 +121,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
              // If not using RLS for visibility but logic:
 
              if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
              } else {
                  query = query.is("course_id", null);
              }

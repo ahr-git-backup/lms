@@ -33,7 +33,7 @@ import MyMistakes from "./pages/dashboard/MyMistakes";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
-import Resources from "./pages/dashboard/Resources";
+import Community from "./pages/dashboard/Community";
 import Announcements from "./pages/dashboard/Announcements";
 import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
@@ -148,7 +148,7 @@ const App = () => {
                 <Route path="routine" element={<Routine />} />
                 <Route path="class-notes" element={<ClassNotes />} />
                 <Route path="class-notes/:noteId" element={<NoteDetails />} />
-                <Route path="resources" element={<Resources />} />
+                <Route path="community" element={<Community />} />
                 <Route path="announcements" element={<Announcements />} />
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
