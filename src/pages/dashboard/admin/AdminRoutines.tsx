@@ -170,7 +170,7 @@ const AdminRoutines = () => {
                                                 </Button>
                                             </div>
                                         </TableCell>
-                                    TableRow>
+                                    </TableRow>
                                 ))}
                             </TableBody>
                         </Table>

@@ -338,6 +338,9 @@ export const DashboardLayout = () => {
                         <GraduationCap className="h-4 w-4 text-indigo-500" />
                         My Courses
                     </Link>
+                    <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                        <Calendar className="h-4 w-4 text-indigo-500" /> Routine
+                    </Link>
                     <div className="my-1 border-t border-border/50"></div>
 
                     <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">Student</p>
@@ -367,9 +370,6 @@ export const DashboardLayout = () => {
                     </Link>
                     <Link to="/dashboard/my-mistakes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <AlertCircle className="h-4 w-4 text-red-600" /> My Mistakes
-                    </Link>
-                    <Link to="/dashboard/routine" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Calendar className="h-4 w-4 text-indigo-500" /> Routine
                     </Link>
                     <Link to="/dashboard/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Megaphone className="h-4 w-4 text-rose-500" /> Notice

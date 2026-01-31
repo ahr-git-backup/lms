@@ -17,6 +17,7 @@ import {
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
   { title: "My Courses", url: "/dashboard/my-courses", icon: GraduationCap, color: "text-indigo-500" },
+  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
   { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
   { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
   { title: "Live Exam", url: "/dashboard/live-exam", icon: ListChecks, color: "text-purple-500" },
@@ -26,7 +27,6 @@ const studentItems = [
   { title: "Archive", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Results", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
-  { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
   { title: "Notice", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
   { title: "Community", url: "/dashboard/community", icon: Users, color: "text-cyan-500" },
