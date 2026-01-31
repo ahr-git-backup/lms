@@ -20,11 +20,27 @@ ALTER TABLE public.routines ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Routines are viewable by everyone" ON public.routines
 FOR SELECT USING (true);
 
-CREATE POLICY "Admins can insert routines" ON public.routines
-FOR INSERT WITH CHECK (auth.uid() IN (SELECT user_id FROM public.user_roles WHERE role IN ('admin', 'super_admin')));
+-- Admins and Teachers can insert/update/delete (Using casting to public.app_role)
+CREATE POLICY "Admins/Teachers can insert routines" ON public.routines
+FOR INSERT WITH CHECK (
+    auth.uid() IN (
+        SELECT user_id FROM public.user_roles
+        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+    )
+);
 
-CREATE POLICY "Admins can update routines" ON public.routines
-FOR UPDATE USING (auth.uid() IN (SELECT user_id FROM public.user_roles WHERE role IN ('admin', 'super_admin')));
+CREATE POLICY "Admins/Teachers can update routines" ON public.routines
+FOR UPDATE USING (
+    auth.uid() IN (
+        SELECT user_id FROM public.user_roles
+        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+    )
+);
 
-CREATE POLICY "Admins can delete routines" ON public.routines
-FOR DELETE USING (auth.uid() IN (SELECT user_id FROM public.user_roles WHERE role IN ('admin', 'super_admin')));
+CREATE POLICY "Admins/Teachers can delete routines" ON public.routines
+FOR DELETE USING (
+    auth.uid() IN (
+        SELECT user_id FROM public.user_roles
+        WHERE role IN ('admin'::public.app_role, 'teacher'::public.app_role)
+    )
+);
