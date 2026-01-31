@@ -1,1 +1,0 @@
-ALTER TABLE exams ADD COLUMN IF NOT EXISTS chapter text;

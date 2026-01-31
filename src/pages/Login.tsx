@@ -92,14 +92,14 @@ const Login = () => {
                 <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
                 <CardTitle className="text-xl font-semibold">Student &amp; Admin Login</CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
-                Enter your Email or Phone Number to login.
+                Enter your Email to login.
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2">
                     <Label htmlFor="identifier">Email</Label>
-                    <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="user@example.com or 100200" />
+                    <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="user@example.com" />
                 </div>
                 <div className="space-y-2">
                     <div className="flex items-center justify-between">
