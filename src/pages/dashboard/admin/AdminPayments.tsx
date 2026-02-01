@@ -52,7 +52,7 @@ const AdminPayments = () => {
       const { data, error, count } = await supabase
         .from("payment_requests")
         .select(`
-            *,
+            id, created_at, phone, trx_id, payment_method, status, profile_id, course_id,
             profiles (full_name, registration_id),
             courses (name, price)
         `, { count: 'exact' })

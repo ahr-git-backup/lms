@@ -418,6 +418,13 @@ const TakeExam = () => {
           if (exam.archive_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
       }
 
+      // Check Readymade Linked Courses
+      // @ts-ignore
+      if (exam.is_readymade && exam.readymade_course_ids && Array.isArray(exam.readymade_course_ids)) {
+          // @ts-ignore
+          if (exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+      }
+
       return false;
   })();
 
