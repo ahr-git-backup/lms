@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users } from "lucide-react";
+import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users, MessageCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const AdminCommunity = () => {
     const { toast } = useToast();
@@ -16,6 +17,7 @@ const AdminCommunity = () => {
     const [page, setPage] = useState(0);
     const [selectedCourse, setSelectedCourse] = useState<string>("all");
     const [isCreateOpen, setIsCreateOpen] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingResource, setEditingResource] = useState<any>(null);
 
     // Fetch Courses
@@ -63,6 +65,13 @@ const AdminCommunity = () => {
     const totalCount = resourcesData?.count || 0;
     const totalPages = Math.ceil(totalCount / 10);
 
+    const getPlatform = (url: string) => {
+        if (url.includes("t.me")) return { name: "Telegram", icon: <Send className="h-3 w-3" />, color: "bg-blue-500" };
+        if (url.includes("facebook") || url.includes("fb.me")) return { name: "Facebook", icon: <Facebook className="h-3 w-3" />, color: "bg-indigo-600" };
+        if (url.includes("wa.me") || url.includes("whatsapp")) return { name: "WhatsApp", icon: <MessageCircle className="h-3 w-3" />, color: "bg-green-600" };
+        return { name: "Link", icon: <LinkIcon className="h-3 w-3" />, color: "bg-gray-500" };
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -77,7 +86,7 @@ const AdminCommunity = () => {
 
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <CardTitle>Community Links</CardTitle>
                         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
                             <SelectTrigger className="w-[200px]">
@@ -98,44 +107,52 @@ const AdminCommunity = () => {
                     ) : resources.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">No community links found.</div>
                     ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Title</TableHead>
-                                    <TableHead>Course</TableHead>
-                                    <TableHead>URL</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {resources.map((res) => (
-                                    <TableRow key={res.id}>
-                                        <TableCell className="font-medium flex items-center gap-2">
-                                            {res.url.includes("t.me") ? <Send className="h-4 w-4 text-blue-500" /> :
-                                             res.url.includes("facebook") ? <Facebook className="h-4 w-4 text-blue-700" /> :
-                                             <LinkIcon className="h-4 w-4" />}
-                                            {res.title}
-                                        </TableCell>
-                                        <TableCell>{res.course?.name || "All Courses"}</TableCell>
-                                        <TableCell className="max-w-[200px] truncate">
-                                            <a href={res.url} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
-                                                {res.url}
-                                            </a>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex justify-end gap-2">
-                                                <Button variant="ghost" size="icon" onClick={() => { setEditingResource(res); setIsCreateOpen(true); }}>
-                                                    <Edit2 className="h-4 w-4" />
-                                                </Button>
-                                                <Button variant="ghost" size="icon" className="text-red-500" onClick={() => { if(confirm("Delete this link?")) deleteResource.mutate(res.id); }}>
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+                        <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Platform</TableHead>
+                                        <TableHead>Title</TableHead>
+                                        <TableHead>Course</TableHead>
+                                        <TableHead>URL</TableHead>
+                                        <TableHead className="text-right">Actions</TableHead>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                    {resources.map((res) => {
+                                        const platform = getPlatform(res.url);
+                                        return (
+                                            <TableRow key={res.id}>
+                                                <TableCell>
+                                                    <Badge className={`${platform.color} hover:${platform.color} text-white gap-1`}>
+                                                        {platform.icon} {platform.name}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {res.title}
+                                                </TableCell>
+                                                <TableCell>{res.course?.name || "All Courses"}</TableCell>
+                                                <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                                                    <a href={res.url} target="_blank" rel="noreferrer" className="hover:underline hover:text-primary">
+                                                        {res.url}
+                                                    </a>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button variant="ghost" size="icon" onClick={() => { setEditingResource(res); setIsCreateOpen(true); }}>
+                                                            <Edit2 className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { if(confirm("Delete this link?")) deleteResource.mutate(res.id); }}>
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
                     )}
                 </CardContent>
             </Card>
