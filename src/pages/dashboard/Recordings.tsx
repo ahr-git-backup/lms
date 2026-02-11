@@ -55,8 +55,8 @@ const Recordings = () => {
       // Case 1: Primary Course Enrollment
       if (enrolledCourseIds.includes(c.course_id)) return true;
 
-      // Case 2: Public Content
-      if (!c.course_id) return true;
+      // Case 2: Public Content - Removed to ensure only enrolled content shows
+      // if (!c.course_id) return true;
 
       // Case 3: Shared Access
       // @ts-ignore
