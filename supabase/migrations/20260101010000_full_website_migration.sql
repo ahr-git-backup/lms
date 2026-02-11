@@ -58,7 +58,7 @@ BEGIN
         RAISE EXCEPTION 'Access denied: User is not an admin';
     END IF;
 
-    -- Get request details
+    -- Get request details explicitly into variables
     SELECT course_id, profile_id INTO v_course_id, v_profile_id
     FROM public.payment_requests
     WHERE id = p_request_id;
@@ -141,6 +141,104 @@ $$;
 
 
 --
+-- Name: get_admin_profiles_paginated(text, text, integer, integer); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_admin_profiles_paginated(p_filter_type text, p_search text, p_page integer, p_page_size integer) RETURNS json
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_offset integer;
+    v_total_count integer;
+    v_data json;
+BEGIN
+    v_offset := p_page * p_page_size;
+
+    -- CTE for filtering IDs
+    CREATE TEMP TABLE temp_filtered_ids AS
+    SELECT p.id
+    FROM profiles p
+    LEFT JOIN (SELECT profile_id, count(*) as c FROM enrollments GROUP BY profile_id) ea ON p.id = ea.profile_id
+    LEFT JOIN (SELECT user_id, array_agg(role::text) as roles FROM user_roles GROUP BY user_id) ura ON p.id = ura.user_id
+    WHERE 
+        (p_search IS NULL OR p_search = '' OR p.full_name ILIKE '%' || p_search || '%' OR p.registration_id ILIKE '%' || p_search || '%')
+        AND (
+            p_filter_type = 'all' OR
+            (p_filter_type = 'paid' AND ea.c > 0) OR
+            (p_filter_type = 'unpaid' AND (ea.c IS NULL OR ea.c = 0)) OR
+            (p_filter_type = 'admin' AND 'admin' = ANY(ura.roles)) OR
+            (p_filter_type = 'teacher' AND 'teacher' = ANY(ura.roles))
+        );
+
+    SELECT count(*) INTO v_total_count FROM temp_filtered_ids;
+
+    SELECT json_agg(t) INTO v_data
+    FROM (
+        SELECT 
+            p.*,
+            (
+                SELECT json_agg(json_build_object('id', e.id, 'course_id', e.course_id, 'courses', json_build_object('name', c.name)))
+                FROM enrollments e
+                JOIN courses c ON e.course_id = c.id
+                WHERE e.profile_id = p.id
+            ) as enrollments,
+            (
+                SELECT json_agg(ur.role)
+                FROM user_roles ur
+                WHERE ur.user_id = p.id
+            ) as roles
+        FROM profiles p
+        WHERE p.id IN (SELECT id FROM temp_filtered_ids ORDER BY id LIMIT p_page_size OFFSET v_offset)
+        ORDER BY p.created_at DESC
+    ) t;
+
+    DROP TABLE temp_filtered_ids;
+
+    RETURN json_build_object('data', COALESCE(v_data, '[]'::json), 'count', v_total_count);
+END;
+$$;
+
+
+--
+-- Name: get_admin_student_stats(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_admin_student_stats() RETURNS json
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  paid_count integer;
+  unpaid_count integer;
+  admin_count integer;
+  teacher_count integer;
+BEGIN
+  -- Paid: Count distinct profiles in enrollments
+  SELECT COUNT(DISTINCT profile_id) INTO paid_count FROM enrollments;
+
+  -- Unpaid: Total profiles - Paid
+  SELECT COUNT(*) - paid_count INTO unpaid_count FROM profiles;
+
+  -- Admin: Count user_roles where role = 'admin'
+  SELECT COUNT(DISTINCT user_id) INTO admin_count 
+  FROM user_roles 
+  WHERE role = 'admin';
+
+  -- Teacher: Count user_roles where role = 'teacher'
+  SELECT COUNT(DISTINCT user_id) INTO teacher_count 
+  FROM user_roles 
+  WHERE role::text = 'teacher';
+
+  RETURN json_build_object(
+    'paid', paid_count,
+    'unpaid', unpaid_count,
+    'admins', admin_count,
+    'teachers', teacher_count
+  );
+END;
+$$;
+
+
+--
 -- Name: get_app_setting(text); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -148,6 +246,105 @@ CREATE FUNCTION public.get_app_setting(p_key text) RETURNS jsonb
     LANGUAGE sql STABLE
     AS $$
   SELECT value FROM public.app_settings WHERE key = p_key;
+$$;
+
+
+--
+-- Name: get_dashboard_data(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_dashboard_data() RETURNS json
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_user_id UUID;
+    v_enrolled_course_ids UUID[];
+    v_next_class JSON;
+    v_active_live_classes JSON;
+    v_active_live_exams JSON;
+    v_next_exam JSON;
+BEGIN
+    v_user_id := auth.uid();
+
+    -- Get enrolled course IDs (including linked courses if implemented, but for now direct enrollments)
+    -- If you have linked courses logic in SQL, use it. Otherwise, strictly enrollments.
+    SELECT ARRAY_AGG(course_id) INTO v_enrolled_course_ids
+    FROM enrollments
+    WHERE profile_id = v_user_id;
+
+    -- 1. Next Class (First upcoming live class)
+    SELECT json_build_object(
+        'id', c.id,
+        'title', c.title,
+        'start_at', c.start_at,
+        'video_url', c.video_url,
+        'course', json_build_object('name', co.name)
+    ) INTO v_next_class
+    FROM classes c
+    JOIN courses co ON c.course_id = co.id
+    WHERE (c.course_id = ANY(v_enrolled_course_ids) OR c.shared_course_ids && v_enrolled_course_ids)
+      AND c.class_type = 'live'
+      AND c.start_at > NOW()
+    ORDER BY c.start_at ASC
+    LIMIT 1;
+
+    -- 2. Active Live Classes (Happening NOW)
+    SELECT json_agg(
+        json_build_object(
+            'id', c.id,
+            'title', c.title,
+            'start_at', c.start_at,
+            'video_url', c.video_url,
+            'course', json_build_object('name', co.name)
+        ) ORDER BY c.start_at ASC
+    ) INTO v_active_live_classes
+    FROM classes c
+    JOIN courses co ON c.course_id = co.id
+    WHERE (c.course_id = ANY(v_enrolled_course_ids) OR c.shared_course_ids && v_enrolled_course_ids)
+      AND c.class_type = 'live'
+      AND c.start_at <= NOW()
+      AND c.end_at >= NOW();
+
+    -- 3. Active Live Exams (Happening NOW)
+    SELECT json_agg(
+        json_build_object(
+            'id', e.id,
+            'title', e.title,
+            'time_window_end', e.time_window_end,
+            'course', json_build_object('name', co.name)
+        )
+    ) INTO v_active_live_exams
+    FROM exams e
+    JOIN courses co ON e.course_id = co.id
+    WHERE (e.course_id = ANY(v_enrolled_course_ids) OR e.shared_course_ids && v_enrolled_course_ids)
+      AND e.exam_type = 'live'
+      AND e.is_published = true
+      AND e.time_window_start <= NOW()
+      AND e.time_window_end >= NOW();
+
+    -- 4. Next Exam
+    SELECT json_build_object(
+        'id', e.id,
+        'title', e.title,
+        'time_window_start', e.time_window_start,
+        'course', json_build_object('name', co.name)
+    ) INTO v_next_exam
+    FROM exams e
+    JOIN courses co ON e.course_id = co.id
+    WHERE (e.course_id = ANY(v_enrolled_course_ids) OR e.shared_course_ids && v_enrolled_course_ids)
+      AND e.exam_type = 'live'
+      AND e.is_published = true
+      AND e.time_window_start > NOW()
+    ORDER BY e.time_window_start ASC
+    LIMIT 1;
+
+    RETURN json_build_object(
+        'next_class', v_next_class,
+        'active_live_classes', COALESCE(v_active_live_classes, '[]'::json),
+        'active_live_exams', COALESCE(v_active_live_exams, '[]'::json),
+        'next_exam', v_next_exam
+    );
+END;
 $$;
 
 
@@ -177,6 +374,89 @@ $$;
 
 
 --
+-- Name: get_exam_questions_start(uuid, uuid); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_exam_questions_start(p_exam_id uuid, p_user_id uuid DEFAULT auth.uid()) RETURNS TABLE(id uuid, question_text text, option_a text, option_b text, option_c text, option_d text, question_index integer)
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'auth'
+    AS $$
+DECLARE
+  v_exam_course_id uuid;
+  v_is_visible_on_free boolean;
+  v_shared_course_ids uuid[];
+  v_has_access boolean := false;
+BEGIN
+  -- 1. Get Exam Metadata
+  SELECT ex.course_id, ex.is_visible_on_free, ex.shared_course_ids
+  INTO v_exam_course_id, v_is_visible_on_free, v_shared_course_ids
+  FROM public.exams ex
+  WHERE ex.id = p_exam_id;
+
+  -- 2. Check Access Logic
+  IF v_exam_course_id IS NULL THEN
+      -- Case: Public Exam
+      IF v_is_visible_on_free IS TRUE THEN
+          v_has_access := true;
+      END IF;
+  ELSE
+      -- Case: Course Exam
+      
+      -- Check A: Direct Enrollment
+      IF NOT v_has_access THEN
+          SELECT EXISTS (
+              SELECT 1 FROM public.enrollments en
+              WHERE en.profile_id = p_user_id 
+              AND en.course_id = v_exam_course_id
+          ) INTO v_has_access;
+      END IF;
+
+      -- Check B: Linked Course (Extra Course)
+      IF NOT v_has_access THEN
+          SELECT EXISTS (
+              SELECT 1
+              FROM public.enrollments e
+              JOIN public.courses c ON e.course_id = c.id
+              WHERE e.profile_id = p_user_id
+              AND c.linked_course_ids IS NOT NULL
+              -- Compare UUID (v_exam_course_id) against Text Array (linked_course_ids) safely
+              AND v_exam_course_id::text = ANY(COALESCE(c.linked_course_ids, '{}')::text[])
+          ) INTO v_has_access;
+      END IF;
+
+      -- Check C: Shared Course
+      IF NOT v_has_access AND v_shared_course_ids IS NOT NULL THEN
+          SELECT EXISTS (
+              SELECT 1 FROM public.enrollments en_shared
+              WHERE en_shared.profile_id = p_user_id
+              AND en_shared.course_id = ANY(v_shared_course_ids)
+          ) INTO v_has_access;
+      END IF;
+  END IF;
+
+  -- 3. Return Questions if Access Granted
+  IF v_has_access THEN
+      RETURN QUERY
+      SELECT
+        q.id,
+        q.question_text,
+        q.option_a,
+        q.option_b,
+        q.option_c,
+        q.option_d,
+        q.question_index
+      FROM public.exam_questions q
+      WHERE q.exam_id = p_exam_id
+      ORDER BY q.question_index ASC;
+  ELSE
+      -- Return Empty (Access Denied)
+      RETURN;
+  END IF;
+END;
+$$;
+
+
+--
 -- Name: get_pending_payment_count(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -196,6 +476,249 @@ BEGIN
     WHERE status = 'pending';
 
     RETURN v_count;
+END;
+$$;
+
+
+--
+-- Name: get_student_exam_analytics(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_student_exam_analytics() RETURNS jsonb
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_user_id uuid := auth.uid();
+    v_result jsonb;
+    v_enrolled_courses uuid[];
+BEGIN
+    IF v_user_id IS NULL THEN
+        RETURN '[]'::jsonb;
+    END IF;
+
+    -- Fetch enrolled course IDs once
+    SELECT array_agg(course_id) INTO v_enrolled_courses
+    FROM public.enrollments
+    WHERE profile_id = v_user_id;
+
+    WITH relevant_exams AS (
+        SELECT
+            e.id,
+            e.title,
+            e.total_marks,
+            e.time_window_start,
+            e.time_window_end,
+            e.created_at,
+            e.course_id,
+            e.is_archive,
+            c.name as course_name
+        FROM public.exams e
+        LEFT JOIN public.courses c ON e.course_id = c.id
+        WHERE
+            e.is_published = true -- Must be published
+            AND (
+                -- 1. Enrolled Course Exams
+                (e.course_id = ANY(v_enrolled_courses))
+                OR
+                -- 2. Public Active Exams (Not Archive)
+                (e.course_id IS NULL AND (e.is_archive IS NULL OR e.is_archive = false))
+                OR
+                -- 3. Relevant Archived Exams (Shared with Enrolled Courses)
+                (e.is_archive = true AND e.archive_course_ids && v_enrolled_courses)
+            )
+    ),
+    my_attempts AS (
+        SELECT
+            exam_id,
+            attempt_type,
+            score,
+            submitted_at
+        FROM public.exam_attempts
+        WHERE profile_id = v_user_id
+    ),
+    exam_stats AS (
+        SELECT
+            exam_id,
+            attempt_type,
+            MAX(score) as max_score
+        FROM public.exam_attempts
+        WHERE exam_id IN (SELECT id FROM relevant_exams)
+        GROUP BY exam_id, attempt_type
+    ),
+    my_ranks AS (
+         SELECT
+            ma.exam_id,
+            ma.attempt_type,
+            (
+                SELECT COUNT(*) + 1
+                FROM public.exam_attempts ea
+                WHERE ea.exam_id = ma.exam_id
+                  AND ea.attempt_type = ma.attempt_type
+                  AND ea.score > ma.score
+            ) as rank
+         FROM my_attempts ma
+    )
+    SELECT jsonb_agg(
+        jsonb_build_object(
+            'id', e.id,
+            'title', e.title,
+            'total_marks', e.total_marks,
+            'time_window_start', e.time_window_start,
+            'time_window_end', e.time_window_end,
+            'created_at', e.created_at,
+            'course_name', COALESCE(e.course_name, 'Public Exams'),
+            'is_archive', e.is_archive,
+
+            -- Live Attempt Data
+            'live_attempt', (
+               SELECT jsonb_build_object(
+                   'score', ma.score,
+                   'rank', mr.rank,
+                   'highest_score', es.max_score
+               )
+               FROM (SELECT 1) dummy
+               LEFT JOIN my_attempts ma ON ma.exam_id = e.id AND ma.attempt_type = 'live'
+               LEFT JOIN my_ranks mr ON mr.exam_id = e.id AND mr.attempt_type = 'live'
+               LEFT JOIN exam_stats es ON es.exam_id = e.id AND es.attempt_type = 'live'
+               WHERE ma.score IS NOT NULL
+            ),
+
+            -- Practice Attempt Data
+            'practice_attempt', (
+                 SELECT jsonb_build_object(
+                    'score', ma.score,
+                    'rank', mr.rank,
+                    'highest_score', es.max_score
+                )
+                FROM (SELECT 1) dummy
+                LEFT JOIN my_attempts ma ON ma.exam_id = e.id AND ma.attempt_type <> 'live'
+                LEFT JOIN my_ranks mr ON mr.exam_id = e.id AND mr.attempt_type = ma.attempt_type
+                LEFT JOIN exam_stats es ON es.exam_id = e.id AND es.attempt_type = ma.attempt_type
+                WHERE ma.score IS NOT NULL
+            ),
+
+             -- Global High Scores
+            'highest_live_score', (SELECT max_score FROM exam_stats WHERE exam_id = e.id AND attempt_type = 'live'),
+            'highest_practice_score', (SELECT MAX(max_score) FROM exam_stats WHERE exam_id = e.id AND attempt_type <> 'live')
+        ) ORDER BY COALESCE(e.time_window_start, e.created_at) DESC
+    ) INTO v_result
+    FROM relevant_exams e;
+
+    RETURN COALESCE(v_result, '[]'::jsonb);
+END;
+$$;
+
+
+--
+-- Name: get_student_exam_analytics_v2(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.get_student_exam_analytics_v2() RETURNS json
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+    v_user_id uuid;
+    v_exams json;
+BEGIN
+    v_user_id := auth.uid();
+    
+    -- Get exams that are either:
+    -- 1. Enrolled course exams
+    -- 2. Shared course exams
+    -- 3. Public exams (is_visible_on_free = true)
+    -- AND NOT Archive Only (unless enrolled?)
+    -- Actually, if an exam is Archive Only (course_id=null, is_visible_on_free=false), it should NOT show here unless specifically fetched from archive (which this RPC is not for).
+    -- This RPC is for "Exam Analytics" page.
+    -- We want to exclude exams that are "Archive Only" (hidden from public).
+    
+    SELECT json_agg(t) INTO v_exams
+    FROM (
+        SELECT 
+            e.id,
+            e.title,
+            e.total_marks,
+            e.time_window_start,
+            e.time_window_end,
+            e.created_at,
+            c.name as course_name,
+            -- Live Attempt
+            (
+                SELECT json_build_object(
+                    'score', la.score,
+                    'rank', (
+                        SELECT COUNT(*) + 1 
+                        FROM exam_attempts 
+                        WHERE exam_id = e.id 
+                        AND attempt_type = 'live' 
+                        AND score > la.score
+                    ),
+                    'highest_score', (
+                        SELECT MAX(score) 
+                        FROM exam_attempts 
+                        WHERE exam_id = e.id 
+                        AND attempt_type = 'live'
+                    )
+                )
+                FROM exam_attempts la
+                WHERE la.exam_id = e.id 
+                AND la.profile_id = v_user_id 
+                AND la.attempt_type = 'live'
+                LIMIT 1
+            ) as live_attempt,
+            -- Practice Attempt
+            (
+                SELECT json_build_object(
+                    'score', pa.score,
+                    'rank', (
+                        SELECT COUNT(*) + 1 
+                        FROM exam_attempts 
+                        WHERE exam_id = e.id 
+                        AND attempt_type = 'practice' 
+                        AND score > pa.score
+                    ),
+                    'highest_score', (
+                        SELECT MAX(score) 
+                        FROM exam_attempts 
+                        WHERE exam_id = e.id 
+                        AND attempt_type = 'practice'
+                    )
+                )
+                FROM exam_attempts pa
+                WHERE pa.exam_id = e.id 
+                AND pa.profile_id = v_user_id 
+                AND pa.attempt_type = 'practice'
+                ORDER BY pa.score DESC
+                LIMIT 1
+            ) as practice_attempt,
+            -- Highest Scores Global
+            (SELECT MAX(score) FROM exam_attempts WHERE exam_id = e.id AND attempt_type = 'live') as highest_live_score,
+            (SELECT MAX(score) FROM exam_attempts WHERE exam_id = e.id AND attempt_type = 'practice') as highest_practice_score
+        FROM exams e
+        LEFT JOIN courses c ON e.course_id = c.id
+        WHERE 
+            e.is_published = true
+            AND (
+                -- 1. Course Enrolled
+                e.course_id IN (SELECT course_id FROM enrollments WHERE profile_id = v_user_id)
+                -- 2. Shared Course Enrolled
+                OR EXISTS (
+                    SELECT 1 FROM enrollments en 
+                    WHERE en.profile_id = v_user_id 
+                    AND en.course_id = ANY(e.shared_course_ids)
+                )
+                -- 3. Public (Free) AND Visible
+                OR (e.course_id IS NULL AND e.is_visible_on_free = true)
+                -- 4. User has actually attempted it (even if hidden/archived now)
+                OR EXISTS (
+                    SELECT 1 FROM exam_attempts att 
+                    WHERE att.exam_id = e.id 
+                    AND att.profile_id = v_user_id
+                )
+            )
+        ORDER BY e.created_at DESC
+    ) t;
+
+    RETURN COALESCE(v_exams, '[]'::json);
 END;
 $$;
 
@@ -262,6 +785,38 @@ $$;
 
 
 --
+-- Name: handle_approved_payment_insert(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.handle_approved_payment_insert() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+DECLARE
+    v_course_name TEXT;
+BEGIN
+    IF NEW.status = 'approved' THEN
+        -- 1. Create Enrollment
+        INSERT INTO public.enrollments (profile_id, course_id)
+        VALUES (NEW.profile_id, NEW.course_id)
+        ON CONFLICT (profile_id, course_id) DO NOTHING;
+
+        -- 2. Send Notification
+        SELECT name INTO v_course_name FROM public.courses WHERE id = NEW.course_id;
+        
+        INSERT INTO public.user_notifications (user_id, title, body, type)
+        VALUES (
+            NEW.profile_id,
+            'Course Enrollment Approved! 🎉',
+            'Congratulations! Your enrollment for ' || COALESCE(v_course_name, 'the course') || ' has been approved automatically.',
+            'payment_approved'
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+
+--
 -- Name: handle_payment_status_change(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -278,12 +833,18 @@ BEGIN
 
     v_data := to_jsonb(NEW);
 
+    -- Robust check for user_id or profile_id
     IF v_data ? 'user_id' THEN
         v_user_id := (v_data ->> 'user_id')::UUID;
     ELSIF v_data ? 'profile_id' THEN
         v_user_id := (v_data ->> 'profile_id')::UUID;
     END IF;
 
+    IF v_user_id IS NULL THEN 
+        -- Fallback: try to select from table if JSONB conversion failed (rare)
+        v_user_id := NEW.profile_id;
+    END IF;
+    
     IF v_user_id IS NULL THEN RETURN NEW; END IF;
 
     SELECT name INTO v_course_name FROM courses WHERE id = NEW.course_id;
@@ -307,6 +868,23 @@ BEGIN
         );
     END IF;
 
+    RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: handle_promo_payment_request(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.handle_promo_payment_request() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    -- Check if it's a promo-free request
+    IF NEW.trx_id = 'PROMO-FREE-PAID' THEN
+        NEW.status := 'approved';
+    END IF;
     RETURN NEW;
 END;
 $$;
@@ -427,18 +1005,14 @@ BEGIN
         RAISE EXCEPTION 'Not authenticated';
     END IF;
 
-    -- Calculate Attempt Number based on existing logs (before deleting attempt)
+    -- Calculate Attempt Number based on existing logs
     SELECT count(*) + 1 INTO v_attempt_number
     FROM public.study_activity_logs
     WHERE user_id = v_user_id
     AND activity_type = 'exam'
     AND (metadata->>'exam_id')::UUID = p_exam_id;
 
-    -- Delete previous attempts (Single Record Policy)
-    DELETE FROM public.exam_attempts
-    WHERE exam_id = p_exam_id AND profile_id = v_user_id;
-
-    -- Get Exam Details
+    -- Get Exam Details (Moved up to determine attempt type before deletion)
     SELECT COALESCE(negative_mark_per_question, 0), COALESCE(total_marks, 0), exam_type, time_window_end
     INTO v_negative_mark, v_exam_total_marks, v_exam_type, v_time_window_end
     FROM public.exams
@@ -454,6 +1028,12 @@ BEGIN
     ELSE
         v_attempt_type := 'practice';
     END IF;
+
+    -- Delete previous attempts (Scoped to same attempt type)
+    DELETE FROM public.exam_attempts
+    WHERE exam_id = p_exam_id
+    AND profile_id = v_user_id
+    AND attempt_type = v_attempt_type;
 
     -- Calculate Score
     FOR v_answer IN SELECT * FROM jsonb_to_recordset(p_answers) AS x(question_id UUID, selected_option TEXT)
@@ -471,7 +1051,7 @@ BEGIN
         END IF;
     END LOOP;
 
-    -- Second Timer Logic (with robust NULL handling)
+    -- Second Timer Logic
     SELECT COALESCE(is_second_timer, false) INTO v_is_second_timer
     FROM public.profiles
     WHERE id = v_user_id;
@@ -552,6 +1132,61 @@ $$;
 
 
 --
+-- Name: sync_retroactive_enrollments(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.sync_retroactive_enrollments() RETURNS void
+    LANGUAGE plpgsql SECURITY DEFINER
+    AS $$
+DECLARE
+  v_enrollment record;
+  v_course record;
+  v_included_id uuid;
+  v_current_metadata jsonb;
+  v_new_allowed_sections text[];
+BEGIN
+  -- Iterate through ALL enrollments
+  FOR v_enrollment IN SELECT * FROM enrollments LOOP
+    
+    -- Get Course Details
+    SELECT * INTO v_course FROM courses WHERE id = v_enrollment.course_id;
+    
+    IF v_course IS NOT NULL THEN
+        -- 1. Sync Included Courses (Bundles)
+        IF v_course.included_course_ids IS NOT NULL THEN
+            FOREACH v_included_id IN ARRAY v_course.included_course_ids
+            LOOP
+                -- Check if already enrolled, if not insert
+                INSERT INTO enrollments (profile_id, course_id, metadata)
+                VALUES (v_enrollment.profile_id, v_included_id, '{}'::jsonb)
+                ON CONFLICT (profile_id, course_id) DO NOTHING;
+            END LOOP;
+        END IF;
+
+        -- 2. Sync Sections (Metadata)
+        v_current_metadata := v_enrollment.metadata;
+        IF v_current_metadata IS NULL THEN
+            v_current_metadata := '{}'::jsonb;
+        END IF;
+
+        -- If course has sections, ensure they are in metadata
+        IF v_course.sections IS NOT NULL AND array_length(v_course.sections, 1) > 0 THEN
+             -- Merge or Set logic? Let's just set for now to match the course.
+             -- If user had custom sections, this might overwrite.
+             -- But since this feature is new, overwriting is likely desired to sync with course definition.
+             
+             UPDATE enrollments
+             SET metadata = jsonb_set(v_current_metadata, '{allowed_sections}', to_jsonb(v_course.sections))
+             WHERE id = v_enrollment.id;
+        END IF;
+    END IF;
+
+  END LOOP;
+END;
+$$;
+
+
+--
 -- Name: toggle_anti_cheat(boolean); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -584,6 +1219,74 @@ CREATE FUNCTION public.update_updated_at_column() RETURNS trigger
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
+END;
+$$;
+
+
+--
+-- Name: verify_and_reset_password(text, text, text, text, text, text, numeric, text); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.verify_and_reset_password(p_identifier text, p_method text, p_father_name text, p_mother_name text, p_hsc_batch text, p_college_name text DEFAULT NULL::text, p_ssc_gpa numeric DEFAULT NULL::numeric, p_new_password text DEFAULT NULL::text) RETURNS boolean
+    LANGUAGE plpgsql SECURITY DEFINER
+    SET search_path TO 'public', 'extensions', 'auth'
+    AS $$
+DECLARE
+    target_user_id uuid;
+    found_ssc_gpa numeric;
+BEGIN
+    -- 1. Determine Target User ID based on method
+    IF p_method = 'phone' THEN
+        SELECT id INTO target_user_id
+        FROM public.profiles
+        WHERE phone = p_identifier
+          AND LOWER(TRIM(father_name)) = LOWER(TRIM(p_father_name))
+          AND LOWER(TRIM(mother_name)) = LOWER(TRIM(p_mother_name))
+          AND LOWER(TRIM(hsc_batch::text)) = LOWER(TRIM(p_hsc_batch));
+    
+    ELSIF p_method = 'email' THEN
+        -- First find the user ID from auth.users by email
+        -- We join with profiles to verify the details
+        SELECT u.id, p.ssc_gpa INTO target_user_id, found_ssc_gpa
+        FROM auth.users u
+        JOIN public.profiles p ON u.id = p.id
+        WHERE u.email = p_identifier
+          AND LOWER(TRIM(p.father_name)) = LOWER(TRIM(p_father_name))
+          AND LOWER(TRIM(p.mother_name)) = LOWER(TRIM(p_mother_name))
+          AND LOWER(TRIM(p.hsc_batch::text)) = LOWER(TRIM(p_hsc_batch))
+          -- Extra protection for Email users
+          AND LOWER(TRIM(p.college_name)) = LOWER(TRIM(p_college_name));
+        
+        -- Check SSC GPA if user was found (floating point safe comparison)
+        IF target_user_id IS NOT NULL THEN
+             IF p_ssc_gpa IS NULL OR found_ssc_gpa IS NULL OR ABS(found_ssc_gpa - p_ssc_gpa) > 0.01 THEN
+                target_user_id := NULL; -- Invalidate if GPA doesn't match
+             END IF;
+        END IF;
+
+    ELSE
+        -- Invalid method
+        RETURN FALSE;
+    END IF;
+
+    -- 2. If no matching user is found, return false with a delay
+    IF target_user_id IS NULL THEN
+        PERFORM pg_sleep(1);
+        RETURN FALSE;
+    END IF;
+
+    -- 3. Update the password in auth.users
+    IF p_new_password IS NOT NULL THEN
+        UPDATE auth.users
+        SET encrypted_password = extensions.crypt(p_new_password, extensions.gen_salt('bf', 10)),
+            updated_at = NOW(),
+            email_confirmed_at = COALESCE(email_confirmed_at, NOW()),
+            raw_app_meta_data = raw_app_meta_data || '{"provider": "email", "providers": ["email"]}'::jsonb
+        WHERE id = target_user_id;
+    END IF;
+
+    -- 4. Return true to indicate success
+    RETURN TRUE;
 END;
 $$;
 
@@ -640,14 +1343,15 @@ CREATE TABLE public.bookmarks (
 
 CREATE TABLE public.class_notes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    course_id uuid NOT NULL,
+    course_id uuid,
     title text NOT NULL,
     topic text,
     chapter text,
     notes_url text,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     subject text,
-    content text
+    content text,
+    shared_course_ids uuid[] DEFAULT '{}'::uuid[]
 );
 
 
@@ -657,7 +1361,7 @@ CREATE TABLE public.class_notes (
 
 CREATE TABLE public.classes (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    course_id uuid NOT NULL,
+    course_id uuid,
     title text NOT NULL,
     class_type text NOT NULL,
     start_at timestamp with time zone,
@@ -670,6 +1374,11 @@ CREATE TABLE public.classes (
     topic text,
     button_text text,
     button_url text,
+    shared_course_ids uuid[] DEFAULT '{}'::uuid[],
+    archive_course_ids uuid[] DEFAULT '{}'::uuid[],
+    chapter text,
+    is_archive boolean DEFAULT false,
+    is_archived boolean DEFAULT false,
     CONSTRAINT classes_class_type_check CHECK ((class_type = ANY (ARRAY['live'::text, 'recorded'::text])))
 );
 
@@ -693,7 +1402,15 @@ CREATE TABLE public.courses (
     bkash_number text,
     nagad_number text,
     contact_info text,
-    is_public boolean DEFAULT true NOT NULL
+    is_public boolean DEFAULT true NOT NULL,
+    demo_content jsonb DEFAULT '[]'::jsonb,
+    original_price numeric(10,2),
+    category text[] DEFAULT '{}'::text[],
+    sub_category text[] DEFAULT '{}'::text[],
+    priority integer DEFAULT 0,
+    included_course_ids uuid[] DEFAULT '{}'::uuid[],
+    sections text[] DEFAULT '{}'::text[],
+    linked_course_ids uuid[] DEFAULT '{}'::uuid[]
 );
 
 
@@ -707,7 +1424,8 @@ CREATE TABLE public.enrollments (
     course_id uuid NOT NULL,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     valid_from timestamp with time zone DEFAULT now(),
-    valid_until timestamp with time zone
+    valid_until timestamp with time zone,
+    metadata jsonb DEFAULT '{}'::jsonb
 );
 
 
@@ -775,7 +1493,7 @@ CREATE TABLE public.exam_questions (
 
 CREATE TABLE public.exams (
     id uuid DEFAULT gen_random_uuid() NOT NULL,
-    course_id uuid NOT NULL,
+    course_id uuid,
     title text NOT NULL,
     exam_type text NOT NULL,
     duration_minutes integer NOT NULL,
@@ -788,7 +1506,29 @@ CREATE TABLE public.exams (
     created_at timestamp with time zone DEFAULT now() NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
     subject text[] DEFAULT '{}'::text[],
+    restrict_solution boolean DEFAULT false,
+    chapter text,
+    shared_course_ids uuid[] DEFAULT '{}'::uuid[],
+    archive_course_ids uuid[] DEFAULT '{}'::uuid[],
+    is_visible_on_free boolean DEFAULT true,
+    category text[] DEFAULT '{}'::text[],
+    is_archive boolean DEFAULT false,
+    is_readymade boolean DEFAULT false,
+    is_archived boolean DEFAULT false,
+    readymade_course_ids uuid[] DEFAULT '{}'::uuid[],
     CONSTRAINT exams_exam_type_check CHECK ((exam_type = ANY (ARRAY['live'::text, 'practice'::text])))
+);
+
+
+--
+-- Name: global_metadata; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.global_metadata (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    type text NOT NULL,
+    value text NOT NULL,
+    created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 
@@ -840,7 +1580,7 @@ CREATE TABLE public.profiles (
 -- Name: leaderboard_exam_attempts; Type: VIEW; Schema: public; Owner: -
 --
 
-CREATE VIEW public.leaderboard_exam_attempts WITH (security_invoker='true') AS
+CREATE VIEW public.leaderboard_exam_attempts AS
  SELECT a.id,
     a.exam_id,
     a.profile_id,
@@ -849,9 +1589,9 @@ CREATE VIEW public.leaderboard_exam_attempts WITH (security_invoker='true') AS
     a.submitted_at,
     a.attempt_type,
     a.created_at,
-    jsonb_build_object('full_name', p.full_name, 'registration_id', p.registration_id, 'is_second_timer', NULL::boolean) AS profile,
-    row_number() OVER (PARTITION BY a.exam_id, a.profile_id ORDER BY a.submitted_at, a.created_at) AS attempt_number,
-    (EXTRACT(epoch FROM (COALESCE(a.submitted_at, a.created_at) - a.started_at)))::integer AS time_taken_seconds
+    jsonb_build_object('full_name', p.full_name, 'registration_id', p.registration_id, 'is_second_timer', p.is_second_timer) AS profile,
+    a.attempt_number,
+    a.time_taken_seconds
    FROM (public.exam_attempts a
      JOIN public.profiles p ON ((p.id = a.profile_id)));
 
@@ -909,6 +1649,32 @@ CREATE TABLE public.promo_codes (
 
 
 --
+-- Name: question_bank; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.question_bank (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    question_text text NOT NULL,
+    option_a text NOT NULL,
+    option_b text NOT NULL,
+    option_c text NOT NULL,
+    option_d text NOT NULL,
+    correct_option text NOT NULL,
+    explanation text,
+    tags text[] DEFAULT '{}'::text[],
+    subject text,
+    chapter text,
+    topic text,
+    exam_code text,
+    year text,
+    difficulty text DEFAULT 'medium'::text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT question_bank_correct_option_check CHECK ((correct_option = ANY (ARRAY['A'::text, 'B'::text, 'C'::text, 'D'::text])))
+);
+
+
+--
 -- Name: reminder_preferences; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -953,7 +1719,25 @@ CREATE TABLE public.reviews (
     rating integer DEFAULT 5,
     is_featured boolean DEFAULT false,
     created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    post_image_url text,
+    gender text DEFAULT 'male'::text,
+    image_url text,
     CONSTRAINT reviews_rating_check CHECK (((rating >= 1) AND (rating <= 5)))
+);
+
+
+--
+-- Name: routines; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.routines (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    created_at timestamp with time zone DEFAULT now(),
+    course_id uuid,
+    title text NOT NULL,
+    content text,
+    media_urls text[] DEFAULT '{}'::text[],
+    is_visible boolean DEFAULT true
 );
 
 
@@ -1140,6 +1924,22 @@ ALTER TABLE ONLY public.exams
 
 
 --
+-- Name: global_metadata global_metadata_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.global_metadata
+    ADD CONSTRAINT global_metadata_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: global_metadata global_metadata_type_value_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.global_metadata
+    ADD CONSTRAINT global_metadata_type_value_key UNIQUE (type, value);
+
+
+--
 -- Name: heroes heroes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1196,6 +1996,14 @@ ALTER TABLE ONLY public.promo_codes
 
 
 --
+-- Name: question_bank question_bank_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.question_bank
+    ADD CONSTRAINT question_bank_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: reminder_preferences reminder_preferences_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1225,6 +2033,14 @@ ALTER TABLE ONLY public.resources
 
 ALTER TABLE ONLY public.reviews
     ADD CONSTRAINT reviews_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: routines routines_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.routines
+    ADD CONSTRAINT routines_pkey PRIMARY KEY (id);
 
 
 --
@@ -1292,6 +2108,62 @@ ALTER TABLE ONLY public.user_study_data
 
 
 --
+-- Name: idx_classes_is_archive; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_classes_is_archive ON public.classes USING btree (is_archive);
+
+
+--
+-- Name: idx_exam_attempts_stats; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_exam_attempts_stats ON public.exam_attempts USING btree (exam_id, attempt_type, score DESC);
+
+
+--
+-- Name: idx_exams_is_archive; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_exams_is_archive ON public.exams USING btree (is_archive);
+
+
+--
+-- Name: idx_global_metadata_type; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_global_metadata_type ON public.global_metadata USING btree (type);
+
+
+--
+-- Name: idx_question_bank_chapter; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_question_bank_chapter ON public.question_bank USING btree (chapter);
+
+
+--
+-- Name: idx_question_bank_exam_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_question_bank_exam_code ON public.question_bank USING btree (exam_code);
+
+
+--
+-- Name: idx_question_bank_subject; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_question_bank_subject ON public.question_bank USING btree (subject);
+
+
+--
+-- Name: idx_question_bank_topic; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_question_bank_topic ON public.question_bank USING btree (topic);
+
+
+--
 -- Name: idx_study_logs_user_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1303,6 +2175,20 @@ CREATE INDEX idx_study_logs_user_date ON public.study_activity_logs USING btree 
 --
 
 CREATE TRIGGER on_payment_status_change AFTER UPDATE ON public.payment_requests FOR EACH ROW EXECUTE FUNCTION public.handle_payment_status_change();
+
+
+--
+-- Name: payment_requests trigger_auto_approve_promo_before; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_auto_approve_promo_before BEFORE INSERT ON public.payment_requests FOR EACH ROW EXECUTE FUNCTION public.handle_promo_payment_request();
+
+
+--
+-- Name: payment_requests trigger_handle_approved_insert; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trigger_handle_approved_insert AFTER INSERT ON public.payment_requests FOR EACH ROW EXECUTE FUNCTION public.handle_approved_payment_insert();
 
 
 --
@@ -1497,6 +2383,14 @@ ALTER TABLE ONLY public.resources
 
 
 --
+-- Name: routines routines_course_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.routines
+    ADD CONSTRAINT routines_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id) ON DELETE CASCADE;
+
+
+--
 -- Name: study_activity_logs study_activity_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1616,6 +2510,17 @@ CREATE POLICY "Admins can manage resources" ON public.resources USING ((EXISTS (
 
 
 --
+-- Name: reviews Admins can manage reviews; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage reviews" ON public.reviews USING ((( SELECT user_roles.role
+   FROM public.user_roles
+  WHERE (user_roles.user_id = auth.uid())) = 'admin'::public.app_role)) WITH CHECK ((( SELECT user_roles.role
+   FROM public.user_roles
+  WHERE (user_roles.user_id = auth.uid())) = 'admin'::public.app_role));
+
+
+--
 -- Name: app_settings Admins can manage settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -1718,6 +2623,33 @@ CREATE POLICY "Admins manage resources" ON public.resources TO authenticated USI
 --
 
 CREATE POLICY "Admins manage roles" ON public.user_roles USING (public.has_role(auth.uid(), 'admin'::public.app_role)) WITH CHECK (public.has_role(auth.uid(), 'admin'::public.app_role));
+
+
+--
+-- Name: routines Admins/Teachers can delete routines; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins/Teachers can delete routines" ON public.routines FOR DELETE USING ((auth.uid() IN ( SELECT user_roles.user_id
+   FROM public.user_roles
+  WHERE (user_roles.role = ANY (ARRAY['admin'::public.app_role, 'teacher'::public.app_role])))));
+
+
+--
+-- Name: routines Admins/Teachers can insert routines; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins/Teachers can insert routines" ON public.routines FOR INSERT WITH CHECK ((auth.uid() IN ( SELECT user_roles.user_id
+   FROM public.user_roles
+  WHERE (user_roles.role = ANY (ARRAY['admin'::public.app_role, 'teacher'::public.app_role])))));
+
+
+--
+-- Name: routines Admins/Teachers can update routines; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins/Teachers can update routines" ON public.routines FOR UPDATE USING ((auth.uid() IN ( SELECT user_roles.user_id
+   FROM public.user_roles
+  WHERE (user_roles.role = ANY (ARRAY['admin'::public.app_role, 'teacher'::public.app_role])))));
 
 
 --
@@ -1885,6 +2817,20 @@ CREATE POLICY "Public can view courses" ON public.courses FOR SELECT USING (true
 
 
 --
+-- Name: global_metadata Public can view global metadata; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Public can view global metadata" ON public.global_metadata FOR SELECT USING (true);
+
+
+--
+-- Name: exams Public can view public exams; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Public can view public exams" ON public.exams FOR SELECT TO anon USING (((course_id IS NULL) AND (is_published = true)));
+
+
+--
 -- Name: app_settings Public can view settings; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -1899,10 +2845,38 @@ CREATE POLICY "Public classes are viewable by everyone" ON public.classes FOR SE
 
 
 --
+-- Name: exams Public exams are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Public exams are viewable by everyone" ON public.exams FOR SELECT TO authenticated, anon USING ((course_id IS NULL));
+
+
+--
+-- Name: class_notes Public notes are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Public notes are viewable by everyone" ON public.class_notes FOR SELECT TO authenticated, anon USING ((course_id IS NULL));
+
+
+--
+-- Name: reviews Public reviews are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Public reviews are viewable by everyone" ON public.reviews FOR SELECT USING (true);
+
+
+--
 -- Name: resources Resources viewable to authenticated users; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Resources viewable to authenticated users" ON public.resources FOR SELECT TO authenticated USING (true);
+
+
+--
+-- Name: routines Routines are viewable by everyone; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Routines are viewable by everyone" ON public.routines FOR SELECT USING (true);
 
 
 --
@@ -1966,6 +2940,20 @@ CREATE POLICY "Staff can insert resources" ON public.resources FOR INSERT WITH C
 --
 
 CREATE POLICY "Staff can manage class_notes" ON public.class_notes USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+
+--
+-- Name: global_metadata Staff can manage global metadata; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Staff can manage global metadata" ON public.global_metadata USING (public.is_staff()) WITH CHECK (public.is_staff());
+
+
+--
+-- Name: question_bank Staff can manage question bank; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Staff can manage question bank" ON public.question_bank USING (public.is_staff()) WITH CHECK (public.is_staff());
 
 
 --
@@ -2314,6 +3302,12 @@ ALTER TABLE public.exam_questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exams ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: global_metadata; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.global_metadata ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: heroes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2344,6 +3338,12 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.promo_codes ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: question_bank; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.question_bank ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: reminder_preferences; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -2360,6 +3360,12 @@ ALTER TABLE public.resources ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.reviews ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: routines; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.routines ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: study_activity_logs; Type: ROW SECURITY; Schema: public; Owner: -
