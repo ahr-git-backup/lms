@@ -37,6 +37,7 @@ const TakeExam = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const autoSubmitTriggered = useRef(false);
 
   // Use a different key prefix for retakes so we don't conflict with main exam session storage
   const LOCAL_STORAGE_KEY_PREFIX = retakeFromAttemptId
@@ -349,7 +350,8 @@ const TakeExam = () => {
   });
 
   useEffect(() => {
-      if (timeLeft === 0) {
+      if (timeLeft === 0 && !autoSubmitTriggered.current && !submitExamMutation.isPending) {
+          autoSubmitTriggered.current = true;
           submitExamMutation.mutate();
       }
   }, [timeLeft, submitExamMutation]);
