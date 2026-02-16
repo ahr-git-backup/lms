@@ -221,12 +221,12 @@ const Leaderboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[80px] whitespace-nowrap">Rank</TableHead>
+                    <TableHead className="w-[60px] md:w-[80px] whitespace-nowrap">Rank</TableHead>
                     <TableHead className="whitespace-nowrap">Student</TableHead>
-                    <TableHead className="whitespace-nowrap">Reg ID</TableHead>
+                    <TableHead className="whitespace-nowrap hidden md:table-cell">Reg ID</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Score</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Time Taken</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Submitted</TableHead>
+                    <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>
+                    <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -249,7 +249,7 @@ const Leaderboard = () => {
 
                     // Format attempt number
                     const attemptNumber = attempt.attempt_number ? (
-                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground ml-2">
+                        <span className="text-[10px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground ml-2 hidden sm:inline">
                              {attempt.attempt_number}{[1, 21, 31].includes(attempt.attempt_number) ? 'st' : [2, 22, 32].includes(attempt.attempt_number) ? 'nd' : [3, 23, 33].includes(attempt.attempt_number) ? 'rd' : 'th'} attempt
                         </span>
                     ) : null;
@@ -262,18 +262,25 @@ const Leaderboard = () => {
                                 {rankIcon ? <span className="text-lg mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
                             <TableCell className="font-medium whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                    {attempt.profile?.full_name || "Unknown"}
-                                    {isSecondTimer && (
-                                        <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
-                                            <BadgeAlert className="h-3 w-3" />
-                                            2nd Timer
-                                        </div>
-                                    )}
-                                    {attemptNumber}
+                                <div className="flex flex-col">
+                                    <div className="flex items-center gap-2">
+                                        {attempt.profile?.full_name || "Unknown"}
+                                        {isSecondTimer && (
+                                            <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
+                                                <BadgeAlert className="h-3 w-3" />
+                                                <span className="hidden sm:inline">2nd Timer</span>
+                                            </div>
+                                        )}
+                                        {attemptNumber}
+                                    </div>
+                                    <div className="md:hidden text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
+                                        <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
+                                        <span>•</span>
+                                        <span>{formatDuration(attempt.time_taken_seconds)}</span>
+                                    </div>
                                 </div>
                             </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {attempt.profile?.registration_id
                                     ? `${attempt.profile.registration_id.slice(0, 2)}...${attempt.profile.registration_id.slice(-2)}`
                                     : "Unknown"}
@@ -281,10 +288,10 @@ const Leaderboard = () => {
                             <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                                 {attempt.score}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs whitespace-nowrap">
+                            <TableCell className="text-right font-mono text-xs whitespace-nowrap hidden md:table-cell">
                                 {formatDuration(attempt.time_taken_seconds)}
                             </TableCell>
-                            <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap">
+                            <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {new Date(attempt.submitted_at).toLocaleString()}
                             </TableCell>
                         </TableRow>

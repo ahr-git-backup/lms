@@ -496,9 +496,6 @@ const TakeMistakeExam = () => {
                             {Object.keys(answers).length} of {questions.length} answered
                         </p>
                     </div>
-                    <Button onClick={handleFinish} variant="destructive" size="sm">
-                        Finish Now
-                    </Button>
                 </div>
 
                 {questions.map((q, idx) => {
@@ -541,14 +538,21 @@ const TakeMistakeExam = () => {
                                                 <div
                                                     key={optionKey}
                                                     onClick={() => {
-                                                        if (!isAnswered) {
+                                                        if (isThisSelected) {
+                                                            setAnswers(prev => {
+                                                                const next = { ...prev };
+                                                                delete next[q.id];
+                                                                return next;
+                                                            });
+                                                        } else if (!isAnswered) {
                                                             setAnswers(prev => ({ ...prev, [q.id]: optionKey }))
                                                         }
                                                     }}
                                                     className={cn(
                                                         "flex items-start gap-4 group p-2 rounded-lg transition-colors",
-                                                        !isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80",
-                                                        isThisSelected && "bg-primary/5"
+                                                        isThisSelected
+                                                            ? "bg-primary/5 cursor-pointer"
+                                                            : (!isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80")
                                                     )}
                                                 >
                                                     <div className={cn(
@@ -556,12 +560,13 @@ const TakeMistakeExam = () => {
                                                         isThisSelected
                                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                                             : "border-muted-foreground/30 text-muted-foreground",
-                                                        !isAnswered && "group-hover:border-primary/50"
+                                                        !isAnswered && !isThisSelected && "group-hover:border-primary/50"
                                                     )}>
                                                         {optionKey}
                                                     </div>
-                                                    <div className={cn("flex-1 pt-1", isThisSelected && "text-primary font-medium")}>
+                                                    <div className={cn("flex-1 pt-1 flex items-center gap-2", isThisSelected ? "text-primary font-medium" : "text-foreground")}>
                                                         <MathText text={optionText} />
+                                                        {isThisSelected && <Lock className="h-4 w-4 text-primary shrink-0" />}
                                                     </div>
                                                 </div>
                                             );
@@ -574,17 +579,26 @@ const TakeMistakeExam = () => {
                 })}
 
                 <div className="flex justify-center mt-8 pb-12">
-                    <Button size="lg" onClick={handleFinish} className="w-full max-w-sm h-12 rounded-full text-lg bg-green-600 hover:bg-green-700">
-                        Submit Practice
-                    </Button>
+                     {/* Placeholder to ensure scrolling space */}
                 </div>
             </div>
 
-            {/* Navigator FAB */}
+            {/* Floating Submit */}
             <div className="fixed bottom-6 right-6 z-40">
                 <Button
+                    size="lg"
+                    onClick={handleFinish}
+                    className="h-14 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+                >
+                    Submit Practice
+                </Button>
+            </div>
+
+            {/* Navigator FAB */}
+            <div className="fixed top-1/2 right-4 -translate-y-1/2 z-40">
+                <Button
                     size="icon"
-                    className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90"
+                    className="h-12 w-12 rounded-full shadow-xl bg-primary hover:bg-primary/90"
                     onClick={() => setIsNavigatorOpen(true)}
                 >
                     <LayoutGrid className="h-6 w-6" />

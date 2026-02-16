@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2 } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
@@ -652,15 +652,6 @@ const TakeExam = () => {
                 <h1 className="text-2xl font-bold">{exam.title} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
                 <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {questions.length}</p>
              </div>
-             <Button
-                size="sm"
-                onClick={() => {
-                    if (confirm("Are you sure you want to submit?")) submitExamMutation.mutate();
-                }}
-                disabled={submitExamMutation.isPending}
-             >
-                {submitExamMutation.isPending ? "Submitting..." : "Submit Exam"}
-             </Button>
         </div>
 
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -699,7 +690,14 @@ const TakeExam = () => {
                                 >
                                     <div
                                         onClick={() => {
-                                            if (!isAnswered) {
+                                            if (isSelected) {
+                                                // Allow deselecting
+                                                setAnswers((prev) => {
+                                                    const next = { ...prev };
+                                                    delete next[q.id];
+                                                    return next;
+                                                });
+                                            } else if (!isAnswered) {
                                                 setAnswers((prev) => ({ ...prev, [q.id]: optionKey }));
                                             }
                                         }}
@@ -708,16 +706,18 @@ const TakeExam = () => {
                                         isSelected
                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                             : "border-muted-foreground/30 text-muted-foreground",
-                                        !isAnswered && "cursor-pointer group-hover:border-primary/50 group-hover:text-primary",
-                                        isDisabled && "border-muted-foreground/20 text-muted-foreground/50"
+                                        !isAnswered && !isSelected && "cursor-pointer group-hover:border-primary/50 group-hover:text-primary",
+                                        isSelected && "cursor-pointer", // Allow clicking selected to deselect
+                                        isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
                                     )}>
                                         {optionKey}
                                     </div>
                                     <div className={cn(
-                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-2",
                                         isSelected ? "text-primary font-medium" : "text-foreground"
                                     )}>
                                          <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                         {isSelected && <Lock className="h-4 w-4 text-primary shrink-0" />}
                                     </div>
                                 </div>
                             );
@@ -741,11 +741,25 @@ const TakeExam = () => {
         </div>
       </div>
 
-      {/* Floating Navigator Button */}
+      {/* Floating Submit Button */}
       <div className="fixed bottom-6 right-6 z-40">
         <Button
+             size="lg"
+             className="h-14 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+             onClick={() => {
+                if (confirm("Are you sure you want to submit?")) submitExamMutation.mutate();
+             }}
+             disabled={submitExamMutation.isPending}
+        >
+            {submitExamMutation.isPending ? "Submitting..." : "Submit"}
+        </Button>
+      </div>
+
+      {/* Floating Navigator Button - Right Middle */}
+      <div className="fixed top-1/2 right-4 -translate-y-1/2 z-40">
+        <Button
             size="icon"
-            className="h-14 w-14 rounded-full shadow-xl bg-primary hover:bg-primary/90"
+            className="h-12 w-12 rounded-full shadow-xl bg-primary hover:bg-primary/90"
             onClick={() => setIsNavigatorOpen(true)}
         >
             <LayoutGrid className="h-6 w-6" />
