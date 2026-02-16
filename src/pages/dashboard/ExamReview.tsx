@@ -2,12 +2,11 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ExamAttempt, QuestionReview } from "@/types/student";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -125,12 +124,6 @@ const ExamReview = () => {
       }
   });
 
-  // Analytics Calculation
-  const calculateOptionStats = (qId: string) => {
-      // In a real scenario, this would fetch aggregate stats from an RPC or separate table.
-      return null;
-  };
-
   const handleRetakeMistakes = () => {
       if (attempt?.exam_id) {
         navigate(`/dashboard/take-exam/${attempt.exam_id}?retake_from=${attempt.id}`);
@@ -150,6 +143,15 @@ const ExamReview = () => {
   const wrongCount = questions?.filter((q: any) => q.user_answer && !q.is_correct_answer).length || 0;
   const skippedCount = totalQuestions - (correctCount + wrongCount);
   const score = attempt.total_marks !== undefined && attempt.total_marks !== null ? attempt.total_marks : attempt.score;
+
+  // Formula Calculation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const correctMarks = questions?.reduce((sum: number, q: any) => q.is_correct_answer ? sum + (Number(q.marks) || 1) : sum, 0) || 0;
+  const negativeMarks = wrongCount * (Number(exam.negative_mark_per_question) || 0);
+  const rawScore = correctMarks - negativeMarks;
+  const finalScore = attempt.score !== undefined ? Number(attempt.score) : rawScore;
+  // Deduction (if any, e.g. 2nd timer)
+  const deduction = Math.max(0, rawScore - finalScore);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredQuestions = questions?.filter((q: any) => {
@@ -202,7 +204,7 @@ const ExamReview = () => {
                     </div>
                     <div className="flex gap-8 text-center">
                         <div>
-                            <div className="text-3xl font-bold text-primary">{score}</div>
+                            <div className="text-3xl font-bold text-primary">{Number(score).toFixed(2)}</div>
                             <div className="text-xs uppercase font-bold text-muted-foreground">Score</div>
                         </div>
                          <div>
@@ -213,6 +215,81 @@ const ExamReview = () => {
                             <div className="text-3xl font-bold text-red-500">{wrongCount}</div>
                             <div className="text-xs uppercase font-bold text-muted-foreground">Wrong</div>
                         </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+
+        {/* Formula Card */}
+        <Card className="bg-card border-border shadow-sm">
+            <CardContent className="p-4 md:p-6">
+                <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
+                    <Calculator className="h-5 w-5" /> Score Breakdown
+                </h3>
+                {/* Mobile: Grid Layout (Side by Side) */}
+                <div className="grid grid-cols-3 gap-2 md:hidden text-xs">
+                    <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
+                        <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Correct</div>
+                        <div className="text-base font-bold text-green-600 font-mono">+{correctMarks.toFixed(1)}</div>
+                    </div>
+
+                    <div className="p-2 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
+                        <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Negative</div>
+                        <div className="text-base font-bold text-red-500 font-mono">-{negativeMarks.toFixed(1)}</div>
+                    </div>
+
+                    {deduction > 0.01 ? (
+                        <div className="p-2 bg-orange-500/5 rounded-lg border border-orange-500/20 text-center">
+                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Deduct</div>
+                            <div className="text-base font-bold text-orange-500 font-mono">-{deduction.toFixed(1)}</div>
+                        </div>
+                    ) : (
+                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Total</div>
+                            <div className="text-base font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Mobile: Final Score Row if Deduction exists (since grid is 3 cols) */}
+                {deduction > 0.01 && (
+                    <div className="mt-2 md:hidden">
+                         <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 flex justify-between items-center px-4">
+                            <span className="text-xs font-bold uppercase text-muted-foreground">Final Score</span>
+                            <span className="text-lg font-bold text-primary font-mono">{finalScore.toFixed(2)}</span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Desktop: Flex Row */}
+                <div className="hidden md:flex flex-row gap-4 items-center text-sm">
+                    <div className="flex-1 p-3 bg-green-500/5 rounded-xl border border-green-500/20 text-left">
+                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Correct Marks</div>
+                        <div className="text-xl font-bold text-green-600 font-mono">+{correctMarks.toFixed(2)}</div>
+                    </div>
+
+                    <div className="text-muted-foreground font-bold text-xl">-</div>
+
+                    <div className="flex-1 p-3 bg-red-500/5 rounded-xl border border-red-500/20 text-left">
+                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Negative ({wrongCount})</div>
+                        <div className="text-xl font-bold text-red-500 font-mono">-{negativeMarks.toFixed(2)}</div>
+                    </div>
+
+                    {deduction > 0.01 && (
+                        <>
+                            <div className="text-muted-foreground font-bold text-xl">-</div>
+                            <div className="flex-1 p-3 bg-orange-500/5 rounded-xl border border-orange-500/20 text-left">
+                                <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Deduction</div>
+                                <div className="text-xl font-bold text-orange-500 font-mono">-{deduction.toFixed(2)}</div>
+                            </div>
+                        </>
+                    )}
+
+                    <div className="text-muted-foreground font-bold text-xl">=</div>
+
+                    <div className="flex-1 p-3 bg-primary/5 rounded-xl border border-primary/20 text-left">
+                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Final Score</div>
+                        <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
                     </div>
                 </div>
             </CardContent>

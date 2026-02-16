@@ -1,50 +1,29 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEnrollments } from "@/hooks/useEnrollments";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Facebook, Link as LinkIcon, Users, MessageCircle, ExternalLink } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Send, Facebook, Link as LinkIcon, Users, MessageCircle, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 
 const Community = () => {
-  const [selectedCourse, setSelectedCourse] = useState<string>("all");
-  const { data: enrollments } = useEnrollments();
+  const { user } = useAuth();
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 5;
 
   useEffect(() => {
     document.title = "Community – Atlas";
   }, []);
 
-  const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
-
   const { data: links, isLoading } = useQuery({
-    queryKey: ["community-links", selectedCourse, enrolledCourseIds],
+    queryKey: ["student-community-links", user?.id],
     queryFn: async () => {
-      let query = supabase
-        .from("resources")
-        .select("id, title, url, description, resource_type, course_id, course:courses(name)")
-        .eq("resource_type", "Link") // Strictly fetch Links
-        .order("created_at", { ascending: false });
-
-      if (selectedCourse !== "all") {
-        // Double check enrollment if trying to view a specific course
-        if (!enrolledCourseIds.includes(selectedCourse)) return [];
-        query = query.eq("course_id", selectedCourse);
-      } else {
-         // Show public links OR links for enrolled courses
-         if (enrolledCourseIds.length > 0) {
-             query = query.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
-         } else {
-             query = query.is("course_id", null);
-         }
-      }
-
-      const { data, error } = await query;
+      if (!user) return [];
+      const { data, error } = await supabase.rpc("get_student_community_links");
       if (error) throw error;
       return data || [];
-    }
+    },
+    enabled: !!user
   });
 
   const getIcon = (url: string) => {
@@ -77,13 +56,7 @@ const Community = () => {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const renderGrid = (items: any[]) => {
-      if (items.length === 0) {
-          return (
-            <div className="text-center py-12 border rounded-lg bg-muted/10 text-muted-foreground border-dashed">
-                No community links found in this category.
-            </div>
-          );
-      }
+      if (items.length === 0) return null;
       return (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -98,7 +71,7 @@ const Community = () => {
                                 <div>
                                     <CardTitle className="text-base font-semibold leading-tight">{link.title}</CardTitle>
                                     <div className="text-[10px] uppercase font-bold tracking-wider opacity-70 mt-0.5">
-                                        {link.course?.name || getPlatformName(link.url)}
+                                        {getPlatformName(link.url)}
                                     </div>
                                 </div>
                              </div>
@@ -125,65 +98,70 @@ const Community = () => {
       );
   };
 
-  return (
-    <div className="space-y-6">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
-            <p className="text-sm text-muted-foreground">Join our community channels to stay updated.</p>
-        </div>
+  // Group links by course name
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const groupedLinks = (links || []).reduce((acc: Record<string, any[]>, link: any) => {
+      const courseName = link.course_name || "Public Community";
+      if (!acc[courseName]) acc[courseName] = [];
+      acc[courseName].push(link);
+      return acc;
+  }, {});
 
-        {/* Course Filter */}
-        <div className="w-full sm:w-auto">
-            <Select
-                value={selectedCourse}
-                onValueChange={setSelectedCourse}
-            >
-            <SelectTrigger className="w-full sm:w-[250px]">
-                <SelectValue placeholder="All Courses" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
-                {enrollments?.map((enrollment) => (
-                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                    {enrollment.course.name}
-                </SelectItem>
-                ))}
-            </SelectContent>
-            </Select>
-        </div>
+  const courseNames = Object.keys(groupedLinks).sort();
+  const totalPages = Math.ceil(courseNames.length / PAGE_SIZE);
+  const displayedCourses = courseNames.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  return (
+    <div className="space-y-6 pb-20">
+      <header className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
+          <p className="text-sm text-muted-foreground">Join our community channels to stay updated.</p>
       </header>
 
       {isLoading ? (
           <div className="text-muted-foreground py-10 text-center">Loading community links...</div>
+      ) : courseNames.length === 0 ? (
+          <div className="text-center py-12 border rounded-lg bg-muted/10 text-muted-foreground border-dashed">
+             No community links found.
+          </div>
       ) : (
-          <Tabs defaultValue="all" className="w-full space-y-6">
-             <TabsList className="grid w-full grid-cols-4 max-w-xl">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="facebook">Facebook</TabsTrigger>
-                <TabsTrigger value="telegram">Telegram</TabsTrigger>
-                <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-             </TabsList>
+          <div className="space-y-8">
+              {displayedCourses.map((courseName) => (
+                  <div key={courseName} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                          <div className="h-4 w-1 bg-primary rounded-full"></div>
+                          <h2 className="text-lg font-bold">{courseName}</h2>
+                      </div>
+                      {renderGrid(groupedLinks[courseName])}
+                  </div>
+              ))}
+          </div>
+      )}
 
-             <TabsContent value="all" className="space-y-4">
-                {renderGrid(links || [])}
-             </TabsContent>
-
-             <TabsContent value="facebook" className="space-y-4">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {renderGrid(links?.filter((l: any) => l.url.includes("facebook") || l.url.includes("fb.me")) || [])}
-             </TabsContent>
-
-             <TabsContent value="telegram" className="space-y-4">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {renderGrid(links?.filter((l: any) => l.url.includes("t.me")) || [])}
-             </TabsContent>
-
-             <TabsContent value="whatsapp" className="space-y-4">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {renderGrid(links?.filter((l: any) => l.url.includes("wa.me") || l.url.includes("whatsapp")) || [])}
-             </TabsContent>
-          </Tabs>
+      {totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.max(1, p - 1))}
+                      disabled={page === 1}
+                  >
+                      <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+                  </Button>
+                  <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                      disabled={page === totalPages}
+                  >
+                      Next <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+              </div>
+          </div>
       )}
     </div>
   );

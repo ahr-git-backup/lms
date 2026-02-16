@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users, MessageCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 const AdminCommunity = () => {
     const { toast } = useToast();
@@ -63,7 +64,7 @@ const AdminCommunity = () => {
 
     const resources = resourcesData?.data || [];
     const totalCount = resourcesData?.count || 0;
-    const totalPages = Math.ceil(totalCount / 10);
+    // const totalPages = Math.ceil(totalCount / 10);
 
     const getPlatform = (url: string) => {
         if (url.includes("t.me")) return { name: "Telegram", icon: <Send className="h-3 w-3" />, color: "bg-blue-500" };
@@ -121,6 +122,7 @@ const AdminCommunity = () => {
                                 <TableBody>
                                     {resources.map((res) => {
                                         const platform = getPlatform(res.url);
+                                        const extraCount = res.shared_course_ids ? res.shared_course_ids.length : 0;
                                         return (
                                             <TableRow key={res.id}>
                                                 <TableCell>
@@ -131,7 +133,10 @@ const AdminCommunity = () => {
                                                 <TableCell className="font-medium">
                                                     {res.title}
                                                 </TableCell>
-                                                <TableCell>{res.course?.name || "All Courses"}</TableCell>
+                                                <TableCell>
+                                                    {res.course?.name || "All Courses"}
+                                                    {extraCount > 0 && <span className="text-xs text-muted-foreground ml-1">(+{extraCount} others)</span>}
+                                                </TableCell>
                                                 <TableCell className="max-w-[200px] truncate text-muted-foreground">
                                                     <a href={res.url} target="_blank" rel="noreferrer" className="hover:underline hover:text-primary">
                                                         {res.url}
@@ -181,17 +186,32 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState(initialData?.title || "");
     const [url, setUrl] = useState(initialData?.url || "");
-    const [courseId, setCourseId] = useState(initialData?.course_id || "");
+    // const [courseId, setCourseId] = useState(initialData?.course_id || "");
+    const [courseIds, setCourseIds] = useState<string[]>([]);
     const [description, setDescription] = useState(initialData?.description || "");
+
+    useEffect(() => {
+        const ids = [];
+        if (initialData?.course_id) ids.push(initialData.course_id);
+        if (initialData?.shared_course_ids && Array.isArray(initialData.shared_course_ids)) {
+            ids.push(...initialData.shared_course_ids);
+        }
+        // Remove duplicates
+        setCourseIds([...new Set(ids)]);
+    }, [initialData]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
+        const mainCourseId = courseIds.length > 0 ? courseIds[0] : null;
+        const sharedIds = courseIds.length > 1 ? courseIds.slice(1) : [];
+
         const payload = {
             title,
             url,
-            course_id: courseId || null,
+            course_id: mainCourseId,
+            shared_course_ids: sharedIds,
             description,
             resource_type: "Link", // Always Link for Community Manager
             subject: "Community" // Tagging it as Community
@@ -216,6 +236,8 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
         }
     };
 
+    const courseOptions = courses.map(c => ({ label: c.name, value: c.id }));
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -227,19 +249,14 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
                 <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
             </div>
             <div className="space-y-2">
-                <label className="text-sm font-medium">Course (Optional)</label>
-                <Select value={courseId} onValueChange={setCourseId}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="All Courses (Public)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all_courses_placeholder">All Courses (Public)</SelectItem>
-                        {courses.map(c => (
-                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">Select a specific course or leave as 'All Courses' to make it visible to everyone.</p>
+                <label className="text-sm font-medium">Courses (Optional)</label>
+                <MultiSelect
+                    options={courseOptions}
+                    selected={courseIds}
+                    onChange={setCourseIds}
+                    placeholder="Select Courses..."
+                />
+                <p className="text-xs text-muted-foreground">Select one or more courses. Leave empty for All Courses (Public).</p>
             </div>
             <div className="space-y-2">
                 <label className="text-sm font-medium">Description (Optional)</label>
