@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, ChevronLeft, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock } from "lucide-react";
+import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, ChevronLeft, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -25,6 +25,8 @@ interface Question {
     explanation?: string;
     exam_id: string;
     exam_title?: string;
+    marks: number;
+    negative_mark: number;
 }
 
 const TakeMistakeExam = () => {
@@ -52,6 +54,8 @@ const TakeMistakeExam = () => {
         wrongCount: number;
         skippedCount: number;
         timeTaken: number;
+        correctMarks: number;
+        negativeMarks: number;
     } | null>(null);
 
     const { data: loadedQuestions, isLoading, isError } = useQuery({
@@ -64,10 +68,20 @@ const TakeMistakeExam = () => {
             // Process exams in parallel batches of 5 to avoid overwhelming but speed up
             // Or just simpler Promise.all
             const promises = state.examIds.map(async (examId) => {
-                // 1. Get latest attempt
+                // 1. Get Exam Details (Negative Marking)
+                const { data: examData } = await supabase
+                    .from("exams")
+                    .select("title, negative_mark_per_question")
+                    .eq("id", examId)
+                    .single();
+
+                const examTitle = examData?.title || "Unknown Exam";
+                const negativeMark = Number(examData?.negative_mark_per_question) || 0;
+
+                // 2. Get latest attempt
                 const { data: attempts } = await supabase
                     .from("exam_attempts")
-                    .select("id, answers, exams(title)")
+                    .select("id, answers")
                     .eq("exam_id", examId)
                     .eq("profile_id", user?.id)
                     .order("submitted_at", { ascending: false })
@@ -75,24 +89,22 @@ const TakeMistakeExam = () => {
 
                 if (!attempts || attempts.length === 0) return [];
                 const attempt = attempts[0];
-                const examTitle = attempt.exams?.title || "Unknown Exam";
 
-                // 2. Get questions review (to know correct answers for filtering)
+                // 3. Get questions review (to know correct answers for filtering)
                 const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
                     p_attempt_id: attempt.id
                 });
 
                 if (!reviewData) return [];
 
-                // 3. Get full question details
-                // We use get_exam_questions RPC to get text and options
+                // 4. Get full question details
                 const { data: questionDetails } = await supabase.rpc("get_exam_questions", {
                     p_exam_id: examId
                 });
 
                 if (!questionDetails) return [];
 
-                // 4. Filter
+                // 5. Filter
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const questionsToAdd: Question[] = [];
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -122,7 +134,9 @@ const TakeMistakeExam = () => {
                             questionsToAdd.push({
                                 ...detail,
                                 correct_option: correct, // We need correct option for result view later
-                                exam_title: examTitle
+                                exam_title: examTitle,
+                                marks: Number(detail.marks) || 1,
+                                negative_mark: negativeMark
                             });
                         }
                     }
@@ -194,31 +208,38 @@ const TakeMistakeExam = () => {
     const handleFinish = () => {
         setIsFinished(true);
         // Calculate Score
-        let correct = 0;
-        let wrong = 0;
-        let skipped = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+        let skippedCount = 0;
+        let correctMarks = 0;
+        let negativeMarks = 0;
 
         questions.forEach(q => {
             const selected = answers[q.id];
             if (!selected) {
-                skipped++;
+                skippedCount++;
             } else if (selected === q.correct_option) {
-                correct++;
+                correctCount++;
+                correctMarks += q.marks;
             } else {
-                wrong++;
+                wrongCount++;
+                negativeMarks += q.negative_mark;
             }
         });
 
         const total = questions.length;
         const timeTaken = (questions.length * 45) - (timeLeft || 0);
+        const score = Math.max(0, correctMarks - negativeMarks);
 
         setResultData({
-            score: correct, // Raw score for now, user didn't specify marking scheme for practice
+            score,
             total,
-            correctCount: correct,
-            wrongCount: wrong,
-            skippedCount: skipped,
-            timeTaken
+            correctCount,
+            wrongCount,
+            skippedCount,
+            timeTaken,
+            correctMarks,
+            negativeMarks
         });
 
         window.scrollTo(0,0);
@@ -294,8 +315,8 @@ const TakeMistakeExam = () => {
                                 </div>
                                 <div className="flex gap-8 text-center">
                                     <div>
-                                        <div className="text-3xl font-bold text-primary">{Math.round((resultData.correctCount / resultData.total) * 100)}%</div>
-                                        <div className="text-xs uppercase font-bold text-muted-foreground">Accuracy</div>
+                                        <div className="text-3xl font-bold text-primary">{resultData.score.toFixed(2)}</div>
+                                        <div className="text-xs uppercase font-bold text-muted-foreground">Score</div>
                                     </div>
                                      <div>
                                         <div className="text-3xl font-bold text-green-600">{resultData.correctCount}</div>
@@ -305,6 +326,54 @@ const TakeMistakeExam = () => {
                                         <div className="text-3xl font-bold text-red-500">{resultData.wrongCount}</div>
                                         <div className="text-xs uppercase font-bold text-muted-foreground">Wrong</div>
                                     </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Formula Card */}
+                    <Card className="bg-card border-border shadow-sm">
+                        <CardContent className="p-4 md:p-6">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
+                                <Calculator className="h-5 w-5" /> Score Breakdown
+                            </h3>
+                            {/* Mobile: Grid Layout (Side by Side) */}
+                            <div className="grid grid-cols-3 gap-2 md:hidden text-xs">
+                                <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
+                                    <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Correct</div>
+                                    <div className="text-base font-bold text-green-600 font-mono">+{resultData.correctMarks.toFixed(1)}</div>
+                                </div>
+
+                                <div className="p-2 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
+                                    <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Negative</div>
+                                    <div className="text-base font-bold text-red-500 font-mono">-{resultData.negativeMarks.toFixed(1)}</div>
+                                </div>
+
+                                <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                                    <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Total</div>
+                                    <div className="text-base font-bold text-primary font-mono">{resultData.score.toFixed(2)}</div>
+                                </div>
+                            </div>
+
+                            {/* Desktop: Flex Row */}
+                            <div className="hidden md:flex flex-row gap-4 items-center text-sm">
+                                <div className="flex-1 p-3 bg-green-500/5 rounded-xl border border-green-500/20 text-left">
+                                    <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Correct Marks</div>
+                                    <div className="text-xl font-bold text-green-600 font-mono">+{resultData.correctMarks.toFixed(2)}</div>
+                                </div>
+
+                                <div className="text-muted-foreground font-bold text-xl">-</div>
+
+                                <div className="flex-1 p-3 bg-red-500/5 rounded-xl border border-red-500/20 text-left">
+                                    <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Negative ({resultData.wrongCount})</div>
+                                    <div className="text-xl font-bold text-red-500 font-mono">-{resultData.negativeMarks.toFixed(2)}</div>
+                                </div>
+
+                                <div className="text-muted-foreground font-bold text-xl">=</div>
+
+                                <div className="flex-1 p-3 bg-primary/5 rounded-xl border border-primary/20 text-left">
+                                    <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Final Score</div>
+                                    <div className="text-xl font-bold text-primary font-mono">{resultData.score.toFixed(2)}</div>
                                 </div>
                             </div>
                         </CardContent>
