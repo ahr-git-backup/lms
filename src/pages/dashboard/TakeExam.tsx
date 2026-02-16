@@ -690,14 +690,7 @@ const TakeExam = () => {
                                 >
                                     <div
                                         onClick={() => {
-                                            if (isSelected) {
-                                                // Allow deselecting
-                                                setAnswers((prev) => {
-                                                    const next = { ...prev };
-                                                    delete next[q.id];
-                                                    return next;
-                                                });
-                                            } else if (!isAnswered) {
+                                            if (!isAnswered) {
                                                 setAnswers((prev) => ({ ...prev, [q.id]: optionKey }));
                                             }
                                         }}
@@ -707,7 +700,6 @@ const TakeExam = () => {
                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                             : "border-muted-foreground/30 text-muted-foreground",
                                         !isAnswered && !isSelected && "cursor-pointer group-hover:border-primary/50 group-hover:text-primary",
-                                        isSelected && "cursor-pointer", // Allow clicking selected to deselect
                                         isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
                                     )}>
                                         {optionKey}

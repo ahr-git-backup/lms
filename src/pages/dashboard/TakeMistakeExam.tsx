@@ -538,20 +538,14 @@ const TakeMistakeExam = () => {
                                                 <div
                                                     key={optionKey}
                                                     onClick={() => {
-                                                        if (isThisSelected) {
-                                                            setAnswers(prev => {
-                                                                const next = { ...prev };
-                                                                delete next[q.id];
-                                                                return next;
-                                                            });
-                                                        } else if (!isAnswered) {
+                                                        if (!isAnswered) {
                                                             setAnswers(prev => ({ ...prev, [q.id]: optionKey }))
                                                         }
                                                     }}
                                                     className={cn(
                                                         "flex items-start gap-4 group p-2 rounded-lg transition-colors",
                                                         isThisSelected
-                                                            ? "bg-primary/5 cursor-pointer"
+                                                            ? "bg-primary/5"
                                                             : (!isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80")
                                                     )}
                                                 >
