@@ -744,8 +744,8 @@ const TakeExam = () => {
       {/* Floating Submit Button */}
       <div className="fixed bottom-6 right-6 z-40">
         <Button
-             size="lg"
-             className="h-14 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+             size="default"
+             className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
              onClick={() => {
                 if (confirm("Are you sure you want to submit?")) submitExamMutation.mutate();
              }}

@@ -264,7 +264,9 @@ const Leaderboard = () => {
                             <TableCell className="font-medium whitespace-nowrap">
                                 <div className="flex flex-col">
                                     <div className="flex items-center gap-2">
-                                        {attempt.profile?.full_name || "Unknown"}
+                                        {(attempt.profile?.full_name || "Unknown").length > 15
+                                            ? (attempt.profile?.full_name || "Unknown").slice(0, 15) + "..."
+                                            : (attempt.profile?.full_name || "Unknown")}
                                         {isSecondTimer && (
                                             <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
                                                 <BadgeAlert className="h-3 w-3" />

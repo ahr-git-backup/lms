@@ -586,9 +586,9 @@ const TakeMistakeExam = () => {
             {/* Floating Submit */}
             <div className="fixed bottom-6 right-6 z-40">
                 <Button
-                    size="lg"
+                    size="default"
                     onClick={handleFinish}
-                    className="h-14 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-6"
+                    className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
                 >
                     Submit Practice
                 </Button>
