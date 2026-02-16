@@ -1,8 +1,9 @@
 -- 1. Add shared_course_ids to resources
 ALTER TABLE public.resources ADD COLUMN IF NOT EXISTS shared_course_ids uuid[] DEFAULT '{}'::uuid[];
 
--- 2. Create get_student_community_links RPC (Secure)
+-- 2. Create get_student_community_links RPC (Secure & Expanded for Shared Courses)
 DROP FUNCTION IF EXISTS get_student_community_links(uuid);
+DROP FUNCTION IF EXISTS get_student_community_links();
 
 CREATE OR REPLACE FUNCTION get_student_community_links()
 RETURNS TABLE (
@@ -19,24 +20,44 @@ DECLARE
   v_user_id uuid := auth.uid();
 BEGIN
   RETURN QUERY
+  -- 1. Resources linked to Enrolled Courses (Primary OR Shared)
+  -- This joins resources with the user's enrollments to generate a row per enrolled course context
   SELECT
     r.id,
     r.title,
     r.url,
     r.description,
     r.resource_type,
-    r.course_id,
+    c.id as course_id,
     c.name as course_name,
     r.created_at
-  FROM resources r
-  LEFT JOIN courses c ON r.course_id = c.id
-  WHERE r.resource_type = 'Link'
-  AND (
-    r.course_id IS NULL -- Public
-    OR r.course_id IN (SELECT course_id FROM enrollments WHERE profile_id = v_user_id) -- Enrolled Primary
-    OR r.shared_course_ids && (SELECT array_agg(course_id) FROM enrollments WHERE profile_id = v_user_id) -- Enrolled Shared
+  FROM enrollments e
+  JOIN courses c ON e.course_id = c.id
+  JOIN resources r ON (
+      r.course_id = c.id -- Resource belongs to this course primarily
+      OR
+      c.id = ANY(r.shared_course_ids) -- Resource is shared with this course
   )
-  ORDER BY r.created_at DESC;
+  WHERE e.profile_id = v_user_id
+  AND r.resource_type = 'Link'
+
+  UNION ALL
+
+  -- 2. Public Resources (Not tied to any specific course)
+  SELECT
+    r.id,
+    r.title,
+    r.url,
+    r.description,
+    r.resource_type,
+    NULL::uuid as course_id,
+    'Public Community'::text as course_name,
+    r.created_at
+  FROM resources r
+  WHERE r.resource_type = 'Link'
+  AND r.course_id IS NULL
+
+  ORDER BY created_at DESC;
 END;
 $$;
 
