@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import "katex/dist/katex.min.css";
+import { PostEditor } from "@/components/PostEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { Course } from "@/types/admin";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -111,9 +107,6 @@ const AdminCourses = () => {
   // Local state for dropdown options (will be populated from DB)
   const [existingCategories, setExistingCategories] = useState<Option[]>([]);
   const [existingSubCategories, setExistingSubCategories] = useState<Option[]>([]);
-
-  // Preview mode state for the markdown editor
-  const [isPreviewMode, setIsPreviewMode] = useState(false);
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -624,36 +617,14 @@ const AdminCourses = () => {
                 <TabsContent value="content" className="mt-0 space-y-4">
                     <div className="flex justify-between items-center mb-2">
                         <Label htmlFor="what_you_get">
-                            "What you get" Section (Markdown)
+                            "What you get" Section
                         </Label>
-                        <div className="flex items-center gap-2 lg:hidden">
-                            <Label className="text-xs">Preview</Label>
-                            <Switch checked={isPreviewMode} onCheckedChange={setIsPreviewMode} />
-                        </div>
                     </div>
 
-                    <div className="grid lg:grid-cols-2 gap-4 h-[500px]">
-                        <div className={`h-full flex flex-col ${isPreviewMode ? 'hidden lg:flex' : 'flex'}`}>
-                             <Textarea
-                                id="what_you_get"
-                                className="flex-1 font-mono text-sm resize-none"
-                                value={form.what_you_get}
-                                onChange={(e) => setForm((prev) => ({ ...prev, what_you_get: e.target.value }))}
-                                placeholder={"# Course Features\n\n- Feature 1\n- Feature 2\n- **Bold**\n\n$$E=mc^2$$"}
-                            />
-                            <p className="text-xs text-muted-foreground mt-2">Use Markdown & LaTeX for rich text.</p>
-                        </div>
-                        <div className={`h-full overflow-y-auto border rounded-md p-4 bg-card ${!isPreviewMode ? 'hidden lg:block' : 'block'}`}>
-                            <div className="prose prose-sm dark:prose-invert max-w-none">
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
-                                >
-                                    {form.what_you_get || "_No content preview_"}
-                                </ReactMarkdown>
-                            </div>
-                        </div>
-                    </div>
+                    <PostEditor
+                        initialValue={form.what_you_get}
+                        onChange={(val) => setForm((prev) => ({ ...prev, what_you_get: val }))}
+                    />
                 </TabsContent>
 
                 <TabsContent value="demos" className="mt-0 space-y-4">
