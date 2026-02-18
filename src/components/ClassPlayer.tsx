@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useStudyTools } from "@/contexts/StudyToolsContext";
 import { useToast } from "@/hooks/use-toast";
+import { extractVideoId } from "@/lib/videoUtils";
 
 interface ClassPlayerProps {
   videoId: string;
@@ -135,12 +136,6 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
           observer.disconnect();
       };
   }, [watermarkText]);
-
-  // Extract ID if full URL is passed
-  const extractVideoId = (urlOrId: string) => {
-    const match = urlOrId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([^&?]+)/);
-    return match ? match[1] : urlOrId;
-  };
 
   const actualVideoId = extractVideoId(videoId);
 

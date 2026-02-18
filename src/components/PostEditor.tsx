@@ -67,7 +67,7 @@ const SnippetMenu: React.FC<SnippetMenuProps> = React.memo(({ onInsert, isMobile
           <DropdownMenuSubTrigger><ImageIcon className="mr-2 h-4 w-4" /> Media</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem onSelect={() => onInsert('<img src="..." class="img-medium" />', "image")}>Image (Standard)</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onInsert('<div class="video-wrapper">\n  <iframe src="..."></iframe>\n</div>', "video")}>Video Embed</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => onInsert('<div class="video-wrapper">\n  <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>', "video")}>Video Embed</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 

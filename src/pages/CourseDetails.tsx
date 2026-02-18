@@ -16,6 +16,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoContentItem } from "@/types/admin";
 import { PlayCircle, FileText, Lock, CheckCircle2 } from "lucide-react";
+import { getEmbedUrl } from "@/lib/videoUtils";
 
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -74,7 +75,7 @@ const CourseDetails = () => {
                             course?.video_url ? (
                                 <iframe
                                     // @ts-ignore
-                                    src={course.video_url.replace("youtu.be/", "www.youtube.com/embed/").replace("watch?v=", "embed/")}
+                                    src={getEmbedUrl(course.video_url)}
                                     title="Course Intro"
                                     className="w-full h-full"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
