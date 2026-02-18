@@ -12,6 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +24,18 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getEmbedUrl } from "@/lib/videoUtils";
 
 interface PostEditorProps {
   initialValue?: string;
@@ -44,14 +54,15 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 // Standalone SnippetMenu Component
 interface SnippetMenuProps {
   onInsert: (snippet: string, typeLabel?: string) => void;
+  onRequestVideo: () => void;
   isMobile?: boolean;
 }
 
-const SnippetMenu: React.FC<SnippetMenuProps> = React.memo(({ onInsert, isMobile = false }) => {
+const SnippetMenu: React.FC<SnippetMenuProps> = React.memo(({ onInsert, onRequestVideo, isMobile = false }) => {
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className={cn("gap-2", isMobile ? "w-full justify-center" : "")}>
+      <DropdownMenuTrigger asChild type="button">
+        <Button variant="outline" size="sm" className={cn("gap-2", isMobile ? "w-full justify-center" : "")} type="button">
           <Plus className="h-4 w-4" /> <span className={cn(isMobile ? "inline" : "hidden sm:inline")}>Insert Feature</span>
         </Button>
       </DropdownMenuTrigger>
@@ -67,7 +78,7 @@ const SnippetMenu: React.FC<SnippetMenuProps> = React.memo(({ onInsert, isMobile
           <DropdownMenuSubTrigger><ImageIcon className="mr-2 h-4 w-4" /> Media</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
             <DropdownMenuItem onSelect={() => onInsert('<img src="..." class="img-medium" />', "image")}>Image (Standard)</DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => onInsert('<div class="video-wrapper">\n  <iframe src="https://www.youtube.com/embed/VIDEO_ID" title="Video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>\n</div>', "video")}>Video Embed</DropdownMenuItem>
+            <DropdownMenuItem onSelect={onRequestVideo}>Video Embed</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
@@ -120,6 +131,9 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  const [videoDialogOpen, setVideoDialogOpen] = useState(false);
+  const [videoUrlInput, setVideoUrlInput] = useState("");
+  const [activeBlockIdForVideo, setActiveBlockIdForVideo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!initialized) {
@@ -192,10 +206,51 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
     toast.success(`Inserted ${typeLabel}`);
   }, []);
 
+  const handleRequestVideo = useCallback((blockId: string) => {
+      setActiveBlockIdForVideo(blockId);
+      setVideoUrlInput("");
+      setVideoDialogOpen(true);
+  }, []);
+
+  const handleConfirmVideo = () => {
+      if (!activeBlockIdForVideo || !videoUrlInput) return;
+
+      const embedUrl = getEmbedUrl(videoUrlInput);
+      if (!embedUrl) {
+          toast.error("Invalid Video URL");
+          return;
+      }
+
+      const snippet = `<div class="video-wrapper">\n  <iframe src="${embedUrl}" title="Video player" frameborder="0" allowfullscreen></iframe>\n</div>`;
+      handleInsertSnippet(activeBlockIdForVideo)(snippet, "video");
+      setVideoDialogOpen(false);
+  };
+
   const fullContent = blocks.map(b => b.content).join("\n\n");
 
   return (
     <div className="flex flex-col gap-4 w-full animate-in fade-in duration-300">
+      <Dialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Insert Video</DialogTitle>
+                <DialogDescription>
+                    Paste a YouTube link (standard, short, or embed) below.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <Input
+                    value={videoUrlInput}
+                    onChange={(e) => setVideoUrlInput(e.target.value)}
+                    placeholder="https://youtube.com/watch?v=..."
+                />
+            </div>
+            <DialogFooter>
+                <Button variant="outline" onClick={() => setVideoDialogOpen(false)} type="button">Cancel</Button>
+                <Button onClick={handleConfirmVideo} type="button">Insert</Button>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Sticky Header */}
       <div className="sticky top-0 z-40 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-lg border shadow-sm">
         <div className="flex items-center gap-2">
@@ -282,8 +337,11 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
 
                  {/* Bottom Actions for Block */}
                  <div className="p-2 border-t bg-muted/10 rounded-b-lg flex justify-between items-center gap-2">
-                    <SnippetMenu onInsert={handleInsertSnippet(block.id)} />
-                    <Button variant="secondary" size="sm" onClick={() => addBlock(index)} className="gap-2">
+                    <SnippetMenu
+                        onInsert={handleInsertSnippet(block.id)}
+                        onRequestVideo={() => handleRequestVideo(block.id)}
+                    />
+                    <Button variant="secondary" size="sm" onClick={() => addBlock(index)} className="gap-2" type="button">
                        <Plus className="h-3 w-3" /> <span className="hidden sm:inline">Add Below</span>
                     </Button>
                  </div>
