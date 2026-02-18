@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 import "katex/dist/katex.min.css";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoContentItem } from "@/types/admin";
 import { PlayCircle, FileText, Lock, CheckCircle2 } from "lucide-react";
+import { getEmbedUrl } from "@/lib/videoUtils";
 
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();
@@ -31,7 +33,7 @@ const CourseDetails = () => {
 
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, full_description, short_description, price, original_price, image_url, what_you_get, demo_content, slug")
+        .select("id, name, full_description, short_description, price, original_price, image_url, video_url, what_you_get, demo_content, slug")
         .or(`slug.eq.${courseId},id.eq.${courseId}`)
         .maybeSingle();
 
@@ -64,21 +66,33 @@ const CourseDetails = () => {
         {/* Left Column (Content) */}
         <div className="md:col-span-2 space-y-8">
 
-            {/* 1. Course Header & Image */}
+            {/* 1. Course Header & Media */}
             <div className="space-y-4">
                  <div className="w-full rounded-xl overflow-hidden border bg-muted shadow-sm">
                     <AspectRatio ratio={16 / 9}>
-                        {course?.image_url ? (
-                            <img
-                                src={course.image_url}
-                                alt={`${course.name} cover`}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                                No Image Available
-                            </div>
-                        )}
+                        {
+                            // @ts-ignore
+                            course?.video_url ? (
+                                <iframe
+                                    // @ts-ignore
+                                    src={getEmbedUrl(course.video_url)}
+                                    title="Course Intro"
+                                    className="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                />
+                            ) : course?.image_url ? (
+                                <img
+                                    src={course.image_url}
+                                    alt={`${course.name} cover`}
+                                    className="h-full w-full object-cover"
+                                />
+                            ) : (
+                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                    No Media Available
+                                </div>
+                            )
+                        }
                     </AspectRatio>
                 </div>
                 <div>
@@ -97,7 +111,14 @@ const CourseDetails = () => {
                     <CardTitle className="text-xl">Course Description</CardTitle>
                 </CardHeader>
                 <CardContent className="prose prose-stone dark:prose-invert max-w-none text-sm">
-                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex, rehypeRaw]}
+                        components={{
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                            img: ({node, ...props}: any) => <img {...props} className="rounded-lg max-w-full" />
+                        }}
+                    >
                         {course?.full_description || "No description available."}
                     </ReactMarkdown>
                 </CardContent>
@@ -110,7 +131,14 @@ const CourseDetails = () => {
                         <CardTitle className="text-xl">What you will get</CardTitle>
                     </CardHeader>
                     <CardContent className="prose prose-stone dark:prose-invert max-w-none text-sm">
-                         <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+                         <ReactMarkdown
+                            remarkPlugins={[remarkGfm, remarkMath]}
+                            rehypePlugins={[rehypeKatex, rehypeRaw]}
+                            components={{
+                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                img: ({node, ...props}: any) => <img {...props} className="rounded-lg max-w-full" />
+                            }}
+                         >
                             {course.what_you_get.join("\n")}
                         </ReactMarkdown>
                     </CardContent>

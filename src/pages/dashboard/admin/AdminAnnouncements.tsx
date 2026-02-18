@@ -7,8 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { PostEditor } from "@/components/PostEditor";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -193,12 +193,10 @@ const AdminAnnouncements = () => {
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="body">Body</Label>
-              <Textarea
-                id="body"
-                rows={6}
-                value={form.body}
-                onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
-                placeholder={"Exam schedule update..."}
+              <PostEditor
+                key={form.id || 'new'}
+                initialValue={form.body}
+                onChange={(val) => setForm((prev) => ({ ...prev, body: val }))}
               />
             </div>
 

@@ -5,15 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, Plus, Pencil, Trash2, ArrowLeft } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkBreaks from "remark-breaks";
+import { PostEditor } from "@/components/PostEditor";
 import { SUBJECTS } from "@/lib/constants";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -431,23 +428,12 @@ const NoteForm = ({ note, onClose, isFreeMode }: { note?: any, onClose: () => vo
             </Card>
 
             <Card>
-                <CardHeader><CardTitle>Content (Markdown)</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Content</CardTitle></CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-[500px]">
-                        <Textarea
-                            className="h-full font-mono text-sm resize-none"
-                            placeholder="# Write your notes here..."
-                            value={formData.content}
-                            onChange={e => setFormData({...formData, content: e.target.value})}
-                        />
-                        <div className="border rounded-md p-4 overflow-y-auto h-full prose dark:prose-invert max-w-none bg-muted/20">
-                            {formData.content ? (
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>{formData.content}</ReactMarkdown>
-                            ) : (
-                                <p className="text-muted-foreground italic">Preview will appear here...</p>
-                            )}
-                        </div>
-                    </div>
+                    <PostEditor
+                        initialValue={formData.content}
+                        onChange={(val) => setFormData({...formData, content: val})}
+                    />
                 </CardContent>
             </Card>
 
