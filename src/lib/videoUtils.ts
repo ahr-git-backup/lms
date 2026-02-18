@@ -1,9 +1,13 @@
 
 export const extractVideoId = (urlOrId: string) => {
   if (!urlOrId) return null;
-  // Handle various YouTube formats including shorts, live, etc.
-  const match = urlOrId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/))([^&?]+)/);
-  return match ? match[1] : urlOrId;
+  // Handle various YouTube formats including m.youtube.com, shorts, live, etc.
+  // The regex looks for:
+  // 1. standard domains (youtube.com, www.youtube.com, m.youtube.com, youtu.be)
+  // 2. paths like /embed/, /v/, /watch?v=, /shorts/, /live/
+  // 3. extracts the 11 char ID
+  const match = urlOrId.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/|live\/)|m\.youtube\.com\/(?:watch\?v=|v\/))([^&?\/]+)/);
+  return match ? match[1] : (urlOrId.length === 11 ? urlOrId : null);
 };
 
 export const getEmbedUrl = (urlOrId: string) => {
