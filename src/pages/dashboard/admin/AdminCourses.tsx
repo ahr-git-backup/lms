@@ -65,6 +65,7 @@ const courseSchema = z.object({
     .or(z.literal("")),
   demo_content: z.array(demoContentSchema).optional().default([]),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
+  video_url: z.string().trim().optional().or(z.literal("")),
   bkash_number: z.string().trim().max(50).optional().or(z.literal("")),
   nagad_number: z.string().trim().max(50).optional().or(z.literal("")),
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
@@ -88,6 +89,7 @@ const AdminCourses = () => {
     what_you_get: "",
     demo_content: [],
     image_url: "",
+    video_url: "",
     bkash_number: "",
     nagad_number: "",
     contact_info: "",
@@ -223,6 +225,7 @@ const AdminCourses = () => {
           : null,
         demo_content: parsed.demo_content,
         image_url: parsed.image_url || null,
+        video_url: parsed.video_url || null,
         bkash_number: parsed.bkash_number || null,
         nagad_number: parsed.nagad_number || null,
         contact_info: parsed.contact_info || null,
@@ -298,6 +301,8 @@ const AdminCourses = () => {
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
       demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
+      // @ts-ignore
+      video_url: course.video_url ?? "",
       bkash_number: course.bkash_number ?? "",
       nagad_number: course.nagad_number ?? "",
       contact_info: course.contact_info ?? "",
@@ -484,6 +489,16 @@ const AdminCourses = () => {
                             value={form.image_url || ""}
                             onChange={(val) => setForm((prev) => ({ ...prev, image_url: val }))}
                             placeholder="https://... or upload"
+                        />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="video_url">Course Video URL (Optional)</Label>
+                        <Input
+                            id="video_url"
+                            value={form.video_url}
+                            onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
+                            placeholder="https://..."
                         />
                     </div>
 
