@@ -194,6 +194,7 @@ const AdminAnnouncements = () => {
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="body">Body</Label>
               <PostEditor
+                key={form.id || 'new'}
                 initialValue={form.body}
                 onChange={(val) => setForm((prev) => ({ ...prev, body: val }))}
               />

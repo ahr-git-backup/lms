@@ -20,9 +20,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -66,61 +63,49 @@ const SnippetMenu: React.FC<SnippetMenuProps> = React.memo(({ onInsert, onReques
           <Plus className="h-4 w-4" /> <span className={cn(isMobile ? "inline" : "hidden sm:inline")}>Insert Feature</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56 z-50" align="start" sideOffset={5}>
-        <DropdownMenuLabel>Formatting</DropdownMenuLabel>
+      <DropdownMenuContent className="w-64 z-50 max-h-[300px] overflow-y-auto" align="start" sideOffset={5}>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Formatting</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => onInsert("# ")}>H1 Heading</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onInsert("## ")}>H2 Heading</DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => onInsert("**bold**")}>Bold</DropdownMenuItem>
-
-        <DropdownMenuSeparator />
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger><ImageIcon className="mr-2 h-4 w-4" /> Media</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem onSelect={() => onInsert('<img src="..." class="img-medium" />', "image")}>Image (Standard)</DropdownMenuItem>
-            <DropdownMenuItem onSelect={onRequestVideo}>Video Embed</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger><Layout className="mr-2 h-4 w-4" /> Callouts</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-info">\n  <strong>💡 Pro Tip:</strong> ...\n</div>', "callout")}>
-               <Info className="mr-2 h-4 w-4 text-blue-500" /> Info
-             </DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-warning">\n  <strong>⚠️ Warning:</strong> ...\n</div>', "callout")}>
-               <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" /> Warning
-             </DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-success">\n  <strong>✅ Success:</strong> ...\n</div>', "callout")}>
-               <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Success
-             </DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-error">\n  <strong>❌ Error:</strong> ...\n</div>', "callout")}>
-               <XCircle className="mr-2 h-4 w-4 text-red-500" /> Error
-             </DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger><Star className="mr-2 h-4 w-4" /> Marketing</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="feature-card">\n  <div class="feature-icon">🚀</div>\n  <h3>Title</h3>\n  <p>Desc...</p>\n</div>', "feature")}>Feature Card</DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="promo-banner">\n  <div class="promo-content">\n    <span class="promo-badge">NEW</span>\n    <h3>Offer!</h3>\n    <p>...</p>\n  </div>\n  <a href="#" class="promo-cta">Get it</a>\n</div>', "promo")}>Promo Banner</DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="stats-grid">\n  <div class="stat-card">\n    <div class="stat-number">100+</div>\n    <div class="stat-label">Users</div>\n  </div>\n</div>', "stats")}>Stats Grid</DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<div class="testimonial-card">\n  <p class="testimonial-text">"..."</p>\n  <div class="testimonial-author">\n    <strong>Name</strong>\n  </div>\n</div>', "testimonial")}>Testimonial</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger><Layout className="mr-2 h-4 w-4" /> Layouts</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuItem onSelect={() => onInsert('<div class="two-column">\n  <div class="column">Left</div>\n  <div class="column">Right</div>\n</div>', "layout")}>Two Columns</DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<details class="accordion">\n  <summary>Q?</summary>\n  <div class="accordion-content">A...</div>\n</details>', "accordion")}>Accordion</DropdownMenuItem>
-             <DropdownMenuItem onSelect={() => onInsert('<a href="#" class="btn btn-primary">Button</a>', "button")}>Button</DropdownMenuItem>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
-
-        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => onInsert("**bold**")}><Bold className="mr-2 h-4 w-4" /> Bold</DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onInsert("```javascript\n\n```", "code")}><Code className="mr-2 h-4 w-4" /> Code Block</DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Media</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onInsert('<img src="..." class="img-medium" />', "image")}><ImageIcon className="mr-2 h-4 w-4" /> Image (Standard)</DropdownMenuItem>
+        <DropdownMenuItem onSelect={onRequestVideo}><Layout className="mr-2 h-4 w-4" /> Video Embed</DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Callouts</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-info">\n  <strong>💡 Pro Tip:</strong> ...\n</div>', "callout")}>
+            <Info className="mr-2 h-4 w-4 text-blue-500" /> Info
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-warning">\n  <strong>⚠️ Warning:</strong> ...\n</div>', "callout")}>
+            <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" /> Warning
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-success">\n  <strong>✅ Success:</strong> ...\n</div>', "callout")}>
+            <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Success
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="callout callout-error">\n  <strong>❌ Error:</strong> ...\n</div>', "callout")}>
+            <XCircle className="mr-2 h-4 w-4 text-red-500" /> Error
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Marketing Components</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="feature-card">\n  <div class="feature-icon">🚀</div>\n  <h3>Title</h3>\n  <p>Desc...</p>\n</div>', "feature")}><Star className="mr-2 h-4 w-4" /> Feature Card</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="promo-banner">\n  <div class="promo-content">\n    <span class="promo-badge">NEW</span>\n    <h3>Offer!</h3>\n    <p>...</p>\n  </div>\n  <a href="#" class="promo-cta">Get it</a>\n</div>', "promo")}><Gift className="mr-2 h-4 w-4" /> Promo Banner</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="stats-grid">\n  <div class="stat-card">\n    <div class="stat-number">100+</div>\n    <div class="stat-label">Users</div>\n  </div>\n</div>', "stats")}><BarChart2 className="mr-2 h-4 w-4" /> Stats Grid</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="testimonial-card">\n  <p class="testimonial-text">"..."</p>\n  <div class="testimonial-author">\n    <strong>Name</strong>\n  </div>\n</div>', "testimonial")}><MessageSquare className="mr-2 h-4 w-4" /> Testimonial</DropdownMenuItem>
+
+        <DropdownMenuSeparator />
+
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Layouts</DropdownMenuLabel>
+        <DropdownMenuItem onSelect={() => onInsert('<div class="two-column">\n  <div class="column">Left</div>\n  <div class="column">Right</div>\n</div>', "layout")}><Layout className="mr-2 h-4 w-4" /> Two Columns</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<details class="accordion">\n  <summary>Q?</summary>\n  <div class="accordion-content">A...</div>\n</details>', "accordion")}><ArrowDown className="mr-2 h-4 w-4" /> Accordion</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onInsert('<a href="#" class="btn btn-primary">Button</a>', "button")}><Plus className="mr-2 h-4 w-4" /> Button</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
