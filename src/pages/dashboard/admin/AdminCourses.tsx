@@ -603,14 +603,11 @@ const AdminCourses = () => {
                     </div>
 
                     <div className="space-y-2">
-                    <Label htmlFor="full_description">Full description</Label>
-                    <Textarea
-                        id="full_description"
-                        rows={12}
-                        value={form.full_description}
-                        onChange={(e) => setForm((prev) => ({ ...prev, full_description: e.target.value }))}
-                        placeholder="Detailed description of the course..."
-                    />
+                        <Label htmlFor="full_description">Full description</Label>
+                        <PostEditor
+                            initialValue={form.full_description}
+                            onChange={(val) => setForm((prev) => ({ ...prev, full_description: val }))}
+                        />
                     </div>
                 </TabsContent>
 

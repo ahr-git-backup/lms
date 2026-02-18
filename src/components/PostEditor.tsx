@@ -4,11 +4,10 @@ import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { toast } from "sonner";
 import {
-  Bold, Italic, Strikethrough, Code, Highlighter,
-  Image as ImageIcon, Video, Quote, List, ListOrdered, CheckSquare, Minus,
-  Table as TableIcon, Layout, Info, AlertTriangle, CheckCircle, XCircle,
-  Star, Gift, BarChart2, MessageSquare, Link as LinkIcon, HelpCircle,
-  MoreVertical, Trash2, ArrowUp, ArrowDown, Plus, Eye, Edit2, GripVertical
+  Bold, Italic, Code,
+  Image as ImageIcon, Layout, Info, AlertTriangle, CheckCircle, XCircle,
+  Star, Gift, BarChart2, MessageSquare,
+  Trash2, ArrowUp, ArrowDown, Plus, Eye, Edit2, GripVertical, MoreVertical
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -25,8 +24,8 @@ import {
   DropdownMenuSubContent,
 } from "@/components/ui/dropdown-menu";
 import { Card, CardContent } from "@/components/ui/card";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface PostEditorProps {
   initialValue?: string;
@@ -36,7 +35,7 @@ interface PostEditorProps {
 
 interface Block {
   id: string;
-  type: string; // 'markdown', 'html', or specific component types for badge display
+  type: string;
   content: string;
 }
 
@@ -47,14 +46,17 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [initialized, setInitialized] = useState(false);
 
-  // Initialize blocks from initialValue
   useEffect(() => {
     if (!initialized) {
       if (initialValue) {
-        // Try to split by double newline to create blocks, but be careful not to break code blocks
-        // For safety, we'll start with one big block to preserve existing content structure perfectly
-        // User can split it manually if they want
-        setBlocks([{ id: generateId(), type: 'markdown', content: initialValue }]);
+        // Simple splitting logic: split by double newlines to try and reconstruct blocks
+        // This is a best-effort approach to load existing content
+        const splitContent = initialValue.split(/\n\n+/);
+        if (splitContent.length > 0) {
+             setBlocks(splitContent.map(content => ({ id: generateId(), type: 'markdown', content })));
+        } else {
+             setBlocks([{ id: generateId(), type: 'markdown', content: initialValue }]);
+        }
       } else {
         setBlocks([{ id: generateId(), type: 'markdown', content: "" }]);
       }
@@ -62,10 +64,10 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
     }
   }, [initialValue, initialized]);
 
-  // Update parent when blocks change
   useEffect(() => {
     if (initialized) {
       const fullContent = blocks.map(b => b.content).join("\n\n");
+      // Only trigger onChange if content actually differs to prevent loops (though simpler check here is fine)
       onChange(fullContent);
     }
   }, [blocks, onChange, initialized]);
@@ -85,13 +87,11 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
 
   const deleteBlock = (index: number) => {
     if (blocks.length <= 1) {
-      // Don't delete the last block, just clear it
       updateBlock(blocks[0].id, "");
-      toast.info("Cleared the last block instead of deleting it.");
+      toast.info("Cleared the last block.");
       return;
     }
     setBlocks(prev => prev.filter((_, i) => i !== index));
-    toast.success("Block deleted");
   };
 
   const moveBlock = (index: number, direction: 'up' | 'down') => {
@@ -109,7 +109,6 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
   const insertSnippet = (blockId: string, snippet: string, typeLabel: string = "markdown") => {
     setBlocks(prev => prev.map(b => {
       if (b.id === blockId) {
-        // If block is empty, just replace. If not, append.
         const newContent = b.content ? `${b.content}\n${snippet}` : snippet;
         return { ...b, content: newContent, type: typeLabel };
       }
@@ -118,115 +117,69 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
     toast.success(`Inserted ${typeLabel}`);
   };
 
-  const SnippetMenu = ({ blockId }: { blockId: string }) => (
-    <DropdownMenu>
+  // Reusable Snippet Menu
+  const SnippetMenu = ({ blockId, isMobile = false }: { blockId: string, isMobile?: boolean }) => (
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 gap-2">
-          <Plus className="h-4 w-4" /> Insert
+        <Button variant="outline" size="sm" className={cn("gap-2", isMobile ? "w-full justify-center" : "")}>
+          <Plus className="h-4 w-4" /> <span className={cn(isMobile ? "inline" : "hidden sm:inline")}>Insert Feature</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end">
+      <DropdownMenuContent className="w-56 z-50" align="start" sideOffset={5}>
         <DropdownMenuLabel>Formatting</DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "# ")}>
-           H1 Heading
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "## ")}>
-           H2 Heading
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "**bold**")}>
-          <Bold className="mr-2 h-4 w-4" /> Bold
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "*italic*")}>
-          <Italic className="mr-2 h-4 w-4" /> Italic
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => insertSnippet(blockId, "# ")}>H1 Heading</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => insertSnippet(blockId, "## ")}>H2 Heading</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => insertSnippet(blockId, "**bold**")}>Bold</DropdownMenuItem>
+
         <DropdownMenuSeparator />
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <ImageIcon className="mr-2 h-4 w-4" /> Media
-          </DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger><ImageIcon className="mr-2 h-4 w-4" /> Media</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<img src="..." class="img-small" />', "image")}>
-              Small Image
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '![Alt text](...)', "image")}>
-              Medium Image
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<img src="..." class="img-large" />', "image")}>
-              Large Image
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<figure class="img-medium">\n  <img src="..." alt="..." />\n  <figcaption>Caption text</figcaption>\n</figure>', "image")}>
-              Image + Caption
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="video-wrapper">\n  <iframe src="..."></iframe>\n</div>', "video")}>
-              Video Embed
-            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<img src="..." class="img-medium" />', "image")}>Image (Standard)</DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="video-wrapper">\n  <iframe src="..."></iframe>\n</div>', "video")}>Video Embed</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-            <Layout className="mr-2 h-4 w-4" /> Components
-          </DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger><Layout className="mr-2 h-4 w-4" /> Callouts</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="callout callout-info">\n  <strong>💡 Pro Tip:</strong> Your message here\n</div>', "callout")}>
-               <Info className="mr-2 h-4 w-4 text-blue-500" /> Info Box
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="callout callout-info">\n  <strong>💡 Pro Tip:</strong> ...\n</div>', "callout")}>
+               <Info className="mr-2 h-4 w-4 text-blue-500" /> Info
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="callout callout-warning">\n  <strong>⚠️ Warning:</strong> Your message here\n</div>', "callout")}>
-               <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" /> Warning Box
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="callout callout-warning">\n  <strong>⚠️ Warning:</strong> ...\n</div>', "callout")}>
+               <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" /> Warning
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="callout callout-success">\n  <strong>✅ Success:</strong> Your message here\n</div>', "callout")}>
-               <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Success Box
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="callout callout-success">\n  <strong>✅ Success:</strong> ...\n</div>', "callout")}>
+               <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> Success
              </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="callout callout-error">\n  <strong>❌ Error:</strong> Your message here\n</div>', "callout")}>
-               <XCircle className="mr-2 h-4 w-4 text-red-500" /> Error Box
-             </DropdownMenuItem>
-             <DropdownMenuSeparator />
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="feature-card">\n  <div class="feature-icon">🚀</div>\n  <h3>Feature Title</h3>\n  <p>Description...</p>\n</div>', "feature")}>
-               <Star className="mr-2 h-4 w-4" /> Feature Card
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="promo-banner">\n  <div class="promo-content">\n    <span class="promo-badge">NEW</span>\n    <h3>Limited Time Offer!</h3>\n    <p>Details...</p>\n  </div>\n  <a href="#" class="promo-cta">Claim Now →</a>\n</div>', "promo")}>
-               <Gift className="mr-2 h-4 w-4" /> Promo Banner
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="stats-grid">\n  <div class="stat-card">\n    <div class="stat-number">500+</div>\n    <div class="stat-label">Students</div>\n  </div>\n</div>', "stats")}>
-               <BarChart2 className="mr-2 h-4 w-4" /> Stats Grid
-             </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="testimonial-card">\n  <p class="testimonial-text">"Quote..."</p>\n  <div class="testimonial-author">\n    <strong>Name</strong>\n    <span>Title</span>\n  </div>\n</div>', "testimonial")}>
-               <MessageSquare className="mr-2 h-4 w-4" /> Testimonial
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="callout callout-error">\n  <strong>❌ Error:</strong> ...\n</div>', "callout")}>
+               <XCircle className="mr-2 h-4 w-4 text-red-500" /> Error
              </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         <DropdownMenuSub>
-          <DropdownMenuSubTrigger>
-             <Layout className="mr-2 h-4 w-4" /> Layouts
-          </DropdownMenuSubTrigger>
+          <DropdownMenuSubTrigger><Star className="mr-2 h-4 w-4" /> Marketing</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="two-column">\n  <div class="column">Left content</div>\n  <div class="column">Right content</div>\n</div>', "layout")}>
-              Two Columns
-            </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<details class="accordion">\n  <summary>Question?</summary>\n  <div class="accordion-content">Answer...</div>\n</details>', "accordion")}>
-              Accordion / FAQ
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => insertSnippet(blockId, '<div class="steps">\n  <div class="step">\n    <div class="step-number">1</div>\n    <div class="step-content">\n      <h4>Step Title</h4>\n      <p>Description</p>\n    </div>\n  </div>\n</div>', "steps")}>
-              Step Guide
-            </DropdownMenuItem>
-             <DropdownMenuItem onClick={() => insertSnippet(blockId, '<a href="#" class="btn btn-primary">Button</a>', "button")}>
-              Primary Button
-            </DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="feature-card">\n  <div class="feature-icon">🚀</div>\n  <h3>Title</h3>\n  <p>Desc...</p>\n</div>', "feature")}>Feature Card</DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="promo-banner">\n  <div class="promo-content">\n    <span class="promo-badge">NEW</span>\n    <h3>Offer!</h3>\n    <p>...</p>\n  </div>\n  <a href="#" class="promo-cta">Get it</a>\n</div>', "promo")}>Promo Banner</DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="stats-grid">\n  <div class="stat-card">\n    <div class="stat-number">100+</div>\n    <div class="stat-label">Users</div>\n  </div>\n</div>', "stats")}>Stats Grid</DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="testimonial-card">\n  <p class="testimonial-text">"..."</p>\n  <div class="testimonial-author">\n    <strong>Name</strong>\n  </div>\n</div>', "testimonial")}>Testimonial</DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger><Layout className="mr-2 h-4 w-4" /> Layouts</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<div class="two-column">\n  <div class="column">Left</div>\n  <div class="column">Right</div>\n</div>', "layout")}>Two Columns</DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<details class="accordion">\n  <summary>Q?</summary>\n  <div class="accordion-content">A...</div>\n</details>', "accordion")}>Accordion</DropdownMenuItem>
+             <DropdownMenuItem onSelect={() => insertSnippet(blockId, '<a href="#" class="btn btn-primary">Button</a>', "button")}>Button</DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "```javascript\n\n```", "code")}>
-          <Code className="mr-2 h-4 w-4" /> Code Block
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => insertSnippet(blockId, "> ", "quote")}>
-          <Quote className="mr-2 h-4 w-4" /> Quote
-        </DropdownMenuItem>
-         <DropdownMenuItem onClick={() => insertSnippet(blockId, "| Header | Header |\n| --- | --- |\n| Cell | Cell |", "table")}>
-          <TableIcon className="mr-2 h-4 w-4" /> Table
-        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => insertSnippet(blockId, "```javascript\n\n```", "code")}><Code className="mr-2 h-4 w-4" /> Code Block</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -234,42 +187,43 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
   const fullContent = blocks.map(b => b.content).join("\n\n");
 
   return (
-    <div className="flex flex-col gap-4 w-full">
-      {/* Top Toolbar */}
-      <div className="flex items-center justify-between bg-muted/30 p-2 rounded-lg border">
+    <div className="flex flex-col gap-4 w-full animate-in fade-in duration-300">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-40 flex items-center justify-between bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 p-2 rounded-lg border shadow-sm">
         <div className="flex items-center gap-2">
-           <Badge variant="outline" className="bg-background">
+           <Badge variant="secondary" className="font-mono text-xs">
              {blocks.length} Blocks
            </Badge>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
           <Button
-            variant={isPreviewMode ? "secondary" : "ghost"}
+            variant={!isPreviewMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(false)}
-            className="h-8"
+            className="h-7 text-xs px-3"
           >
-            <Edit2 className="mr-2 h-4 w-4" /> Edit
+            <Edit2 className="mr-2 h-3 w-3" /> Edit
           </Button>
           <Button
-            variant={isPreviewMode ? "ghost" : "secondary"}
+            variant={isPreviewMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(true)}
-             className="h-8"
+             className="h-7 text-xs px-3"
           >
-            <Eye className="mr-2 h-4 w-4" /> Preview
+            <Eye className="mr-2 h-3 w-3" /> Preview
           </Button>
         </div>
       </div>
 
       {isPreviewMode ? (
-        <Card style={{ minHeight }}>
-          <CardContent className="p-6 prose dark:prose-invert max-w-none">
+        <Card style={{ minHeight }} className="border-2 border-primary/10 shadow-inner bg-muted/5">
+          <CardContent className="p-6 prose dark:prose-invert max-w-none prose-img:rounded-xl prose-img:shadow-lg">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               rehypePlugins={[rehypeRaw]}
               components={{
-                 img: ({node, ...props}) => <img {...props} className="rounded-lg max-w-full" style={{ maxHeight: '500px' }} />
+                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                 img: ({node, ...props}: any) => <img {...props} className="rounded-lg max-w-full mx-auto" loading="lazy" />
               }}
             >
               {fullContent || "_No content_"}
@@ -277,56 +231,67 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-6 pb-20">
           {blocks.map((block, index) => (
-            <div key={block.id} className="group flex gap-2 items-start animate-in fade-in duration-300">
-               {/* Drag/Controls Handle (Visual only for now unless using dnd-kit) */}
-               <div className="flex flex-col gap-1 mt-2 text-muted-foreground/50">
-                  <div className="p-1 cursor-grab hover:text-foreground">
-                    <GripVertical className="h-4 w-4" />
-                  </div>
-                  <div className="text-[10px] text-center font-mono opacity-50">{index + 1}</div>
-               </div>
+            <div key={block.id} className="group relative">
 
-               <Card className="flex-1 border-muted-foreground/20 shadow-sm group-hover:shadow-md transition-all group-hover:border-primary/20">
-                 <div className="flex items-center justify-between p-2 border-b bg-muted/10 rounded-t-xl">
+               {/* Block Card */}
+               <Card className="border shadow-sm hover:shadow-md transition-all duration-200 overflow-visible group-hover:border-primary/30">
+
+                 {/* Mobile-Friendly Control Bar (Top) */}
+                 <div className="flex items-center justify-between p-2 border-b bg-muted/20 rounded-t-lg">
                     <div className="flex items-center gap-2">
-                       <Badge variant="secondary" className="text-xs font-normal h-6">
+                       <GripVertical className="h-4 w-4 text-muted-foreground/50 cursor-grab active:cursor-grabbing" />
+                       <span className="text-[10px] font-mono text-muted-foreground">#{index + 1}</span>
+                       <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-normal bg-background/50 border-0">
                           {block.type}
                        </Badge>
                     </div>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveBlock(index, 'up')} disabled={index === 0}>
+
+                    {/* Controls Actions */}
+                    <div className="flex items-center gap-1">
+                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'up')} disabled={index === 0}>
                          <ArrowUp className="h-3 w-3" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1}>
+                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1}>
                          <ArrowDown className="h-3 w-3" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(index)}>
+                       <div className="h-4 w-px bg-border mx-1"></div>
+                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(index)}>
                          <Trash2 className="h-3 w-3" />
                        </Button>
                     </div>
                  </div>
-                 <CardContent className="p-3">
+
+                 <CardContent className="p-0">
                     <Textarea
                       value={block.content}
                       onChange={(e) => updateBlock(block.id, e.target.value)}
-                      className="min-h-[120px] font-mono text-sm resize-y border-0 focus-visible:ring-0 p-0 shadow-none"
-                      placeholder="Type markdown or HTML here..."
+                      className="min-h-[150px] font-mono text-sm resize-y border-0 rounded-none focus-visible:ring-0 p-4 shadow-none bg-transparent leading-relaxed"
+                      placeholder="Type Markdown or HTML snippets here..."
                     />
                  </CardContent>
-                 <div className="p-2 border-t bg-muted/5 flex justify-between items-center rounded-b-xl">
+
+                 {/* Bottom Actions for Block */}
+                 <div className="p-2 border-t bg-muted/10 rounded-b-lg flex justify-between items-center gap-2">
                     <SnippetMenu blockId={block.id} />
-                    <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground" onClick={() => addBlock(index)}>
-                      <Plus className="h-3 w-3 mr-1" /> Add Block Below
+                    <Button variant="secondary" size="sm" onClick={() => addBlock(index)} className="gap-2">
+                       <Plus className="h-3 w-3" /> <span className="hidden sm:inline">Add Below</span>
                     </Button>
                  </div>
                </Card>
+
+               {/* Center Add Button Visual Aid */}
+               <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button size="icon" variant="outline" className="h-6 w-6 rounded-full shadow-sm bg-background" onClick={() => addBlock(index)}>
+                    <Plus className="h-3 w-3" />
+                  </Button>
+               </div>
             </div>
           ))}
 
-          <Button variant="outline" className="border-dashed w-full py-8 text-muted-foreground hover:text-primary" onClick={() => addBlock(blocks.length - 1)}>
-            <Plus className="h-5 w-5 mr-2" /> Add New Block
+          <Button variant="outline" className="w-full py-8 border-dashed border-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all" onClick={() => addBlock(blocks.length - 1)}>
+            <Plus className="h-6 w-6 mr-2" /> Add New Block at End
           </Button>
         </div>
       )}
