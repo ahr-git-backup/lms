@@ -440,168 +440,194 @@ const AdminCourses = () => {
         <CardContent className="p-0">
           <form onSubmit={handleSubmit}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="overflow-x-auto border-b bg-muted/5 px-4 pt-2">
-                  <TabsList className="h-auto w-full justify-start gap-2 bg-transparent p-0">
-                    <TabsTrigger value="basic" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Basic Info</TabsTrigger>
-                    <TabsTrigger value="description" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Description</TabsTrigger>
-                    <TabsTrigger value="content" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Curriculum Info</TabsTrigger>
-                    <TabsTrigger value="demos" className="data-[state=active]:bg-background border-b-2 border-transparent data-[state=active]:border-primary rounded-none px-4 py-3">Demo Content</TabsTrigger>
+              <div className="sticky top-0 z-10 overflow-x-auto border-b bg-background px-6 pt-4 pb-0">
+                  <TabsList className="h-auto w-full justify-start gap-6 bg-transparent p-0">
+                    <TabsTrigger value="basic" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-3 font-semibold text-muted-foreground transition-all">Basic Info</TabsTrigger>
+                    <TabsTrigger value="description" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-3 font-semibold text-muted-foreground transition-all">Description</TabsTrigger>
+                    <TabsTrigger value="content" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-3 font-semibold text-muted-foreground transition-all">Curriculum Info</TabsTrigger>
+                    <TabsTrigger value="demos" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-3 font-semibold text-muted-foreground transition-all">Demo Content</TabsTrigger>
                   </TabsList>
               </div>
 
-              <div className="p-6">
-                <TabsContent value="basic" className="mt-0 space-y-4">
-                    <div className="grid gap-6 md:grid-cols-2">
-                    <div className="space-y-2">
-                        <Label htmlFor="name">Course Name</Label>
-                        <Input
-                        id="name"
-                        value={form.name}
-                        onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                        className="text-lg font-medium"
-                        placeholder="e.g. Engineering Admission 2024"
-                        />
-                    </div>
+              <div className="p-6 min-h-[60vh]">
+                <TabsContent value="basic" className="mt-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-                    <div className="space-y-2">
-                        <Label htmlFor="price">Price (৳)</Label>
-                        <Input
-                        id="price"
-                        value={form.price}
-                        onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-                        placeholder="Ex: 3000"
-                        />
-                    </div>
+                    <div className="grid gap-8 md:grid-cols-2">
 
-                    <div className="space-y-2">
-                        <Label htmlFor="original_price">Original / Fake Price (৳)</Label>
-                        <Input
-                        id="original_price"
-                        value={form.original_price}
-                        onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
-                        placeholder="Ex: 5000 (Shows as strikethrough)"
-                        />
-                    </div>
+                    {/* General Info Card */}
+                    <Card className="md:col-span-2 shadow-none border-none p-0">
+                        <div className="space-y-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Course Name</Label>
+                                <Input
+                                id="name"
+                                value={form.name}
+                                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                                className="text-lg font-medium"
+                                placeholder="e.g. Engineering Admission 2024"
+                                />
+                            </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="image_url">Course image URL (optional, 16:9)</Label>
-                        <ImageUploader
-                            value={form.image_url || ""}
-                            onChange={(val) => setForm((prev) => ({ ...prev, image_url: val }))}
-                            placeholder="https://... or upload"
-                        />
-                    </div>
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="price">Price (৳)</Label>
+                                    <Input
+                                    id="price"
+                                    value={form.price}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                                    placeholder="Ex: 3000"
+                                    />
+                                </div>
 
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="video_url">Course Video URL (Optional)</Label>
-                        <Input
-                            id="video_url"
-                            value={form.video_url}
-                            onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
-                            placeholder="https://..."
-                        />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="bkash_number">bKash number (optional)</Label>
-                        <Input
-                        id="bkash_number"
-                        value={form.bkash_number}
-                        onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
-                        placeholder="01XXXXXXXXX"
-                        />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="nagad_number">Nagad number (optional)</Label>
-                        <Input
-                        id="nagad_number"
-                        value={form.nagad_number}
-                        onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
-                        placeholder="01XXXXXXXXX"
-                        />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="contact_info">Contact info for payment confirmation (optional)</Label>
-                        <Input
-                        id="contact_info"
-                        value={form.contact_info}
-                        onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
-                        placeholder="e.g. Telegram @handle or phone number"
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="category">Batch Category (Tags)</Label>
-                        <MultiSelect
-                            options={existingCategories}
-                            selected={form.category}
-                            onChange={(val) => setForm(prev => ({ ...prev, category: val }))}
-                            onCreate={handleCreateCategory}
-                            placeholder="Select batches..."
-                        />
-                        <p className="text-xs text-muted-foreground">Type a new batch name in the search box to create it.</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="sub_category">Type / Sub Category (Tags)</Label>
-                         <MultiSelect
-                            options={existingSubCategories}
-                            selected={form.sub_category}
-                            onChange={(val) => setForm(prev => ({ ...prev, sub_category: val }))}
-                            onCreate={handleCreateSubCategory}
-                            placeholder="Select types..."
-                        />
-                        <p className="text-xs text-muted-foreground">Type a new category name in the search box to create it.</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Include Extra Courses (Bundles)</Label>
-                        <MultiSelect
-                            options={allCoursesList?.filter(c => c.value !== form.id) || []}
-                            selected={form.linked_course_ids}
-                            onChange={(val) => setForm(prev => ({ ...prev, linked_course_ids: val }))}
-                            placeholder="Select courses to include..."
-                        />
-                        <p className="text-xs text-muted-foreground">Users enrolling in this course will also get access to selected courses.</p>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="priority">Priority (Order)</Label>
-                        <Input
-                        id="priority"
-                        type="number"
-                        value={form.priority}
-                        onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
-                        placeholder="0"
-                        />
-                        <p className="text-xs text-muted-foreground">Lower numbers appear first.</p>
-                    </div>
-
-                    <div className="flex items-center gap-4 md:col-span-2 border p-4 rounded-lg bg-muted/20">
-                        <div className="flex items-center gap-2">
-                            <Switch
-                            id="is_active"
-                            checked={form.is_active}
-                            onCheckedChange={(checked) =>
-                                setForm((prev) => ({ ...prev, is_active: checked }))
-                            }
-                            />
-                            <Label htmlFor="is_active">Is Active</Label>
+                                <div className="space-y-2">
+                                    <Label htmlFor="original_price">Original / Fake Price (৳)</Label>
+                                    <Input
+                                    id="original_price"
+                                    value={form.original_price}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
+                                    placeholder="Ex: 5000 (Shows as strikethrough)"
+                                    />
+                                </div>
+                            </div>
                         </div>
-                        <div className="w-px h-6 bg-border mx-2"></div>
-                        <div className="flex items-center gap-2">
-                            <Switch
-                            id="is_public"
-                            checked={form.is_public}
-                            onCheckedChange={(checked) =>
-                                setForm((prev) => ({ ...prev, is_public: checked }))
-                            }
-                            />
-                            <Label htmlFor="is_public">Publicly Listed</Label>
-                        </div>
-                    </div>
+                    </Card>
+
+                    <Card className="md:col-span-2 shadow-sm border bg-muted/10">
+                        <CardHeader className="pb-3"><CardTitle className="text-base">Media</CardTitle></CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="image_url">Course Image</Label>
+                                <ImageUploader
+                                    value={form.image_url || ""}
+                                    onChange={(val) => setForm((prev) => ({ ...prev, image_url: val }))}
+                                    placeholder="Thumbnail URL or upload"
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="video_url">Intro Video URL (YouTube)</Label>
+                                <Input
+                                    id="video_url"
+                                    value={form.video_url}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
+                                    placeholder="https://youtu.be/..."
+                                />
+                                <p className="text-xs text-muted-foreground">Appears at the top of the course details page.</p>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2 shadow-sm border">
+                        <CardHeader className="pb-3"><CardTitle className="text-base">Payment Details</CardTitle></CardHeader>
+                        <CardContent className="grid md:grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="bkash_number">bKash Number</Label>
+                                <Input
+                                id="bkash_number"
+                                value={form.bkash_number}
+                                onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
+                                placeholder="01XXXXXXXXX"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="nagad_number">Nagad Number</Label>
+                                <Input
+                                id="nagad_number"
+                                value={form.nagad_number}
+                                onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
+                                placeholder="01XXXXXXXXX"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="contact_info">Contact Info</Label>
+                                <Input
+                                id="contact_info"
+                                value={form.contact_info}
+                                onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
+                                placeholder="For payment confirmation"
+                                />
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="md:col-span-2 shadow-sm border bg-muted/10">
+                        <CardHeader className="pb-3"><CardTitle className="text-base">Settings & Categorization</CardTitle></CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="category">Batch Category (Tags)</Label>
+                                <MultiSelect
+                                    options={existingCategories}
+                                    selected={form.category}
+                                    onChange={(val) => setForm(prev => ({ ...prev, category: val }))}
+                                    onCreate={handleCreateCategory}
+                                    placeholder="Select batches..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="sub_category">Type / Sub Category</Label>
+                                <MultiSelect
+                                    options={existingSubCategories}
+                                    selected={form.sub_category}
+                                    onChange={(val) => setForm(prev => ({ ...prev, sub_category: val }))}
+                                    onCreate={handleCreateSubCategory}
+                                    placeholder="Select types..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Included Courses (Bundle)</Label>
+                                <MultiSelect
+                                    options={allCoursesList?.filter(c => c.value !== form.id) || []}
+                                    selected={form.linked_course_ids}
+                                    onChange={(val) => setForm(prev => ({ ...prev, linked_course_ids: val }))}
+                                    placeholder="Select courses..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="priority">Sorting Priority</Label>
+                                <Input
+                                id="priority"
+                                type="number"
+                                value={form.priority}
+                                onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                                placeholder="0"
+                                />
+                            </div>
+
+                            <div className="md:col-span-2 flex items-center gap-6 pt-2">
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                    id="is_active"
+                                    checked={form.is_active}
+                                    onCheckedChange={(checked) =>
+                                        setForm((prev) => ({ ...prev, is_active: checked }))
+                                    }
+                                    />
+                                    <div className="grid gap-0.5">
+                                        <Label htmlFor="is_active" className="text-base">Active Status</Label>
+                                        <span className="text-xs text-muted-foreground">Course is active and purchasable</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                    id="is_public"
+                                    checked={form.is_public}
+                                    onCheckedChange={(checked) =>
+                                        setForm((prev) => ({ ...prev, is_public: checked }))
+                                    }
+                                    />
+                                    <div className="grid gap-0.5">
+                                        <Label htmlFor="is_public" className="text-base">Public Visibility</Label>
+                                        <span className="text-xs text-muted-foreground">Visible on public listings</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
                     </div>
                 </TabsContent>
 
