@@ -10,8 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const PAGE_SIZE = 50;
 
@@ -203,7 +201,7 @@ const Leaderboard = () => {
       }
   };
 
-  const handleExportPDF = async () => {
+  const handlePrintPDF = async () => {
       try {
           // 1. Fetch Exam Questions (to grade)
           const { data: questions, error: qError } = await supabase
@@ -240,9 +238,12 @@ const Leaderboard = () => {
                return;
            }
 
-           // 3. Prepare Data
+           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
+
+           // 3. Construct HTML
+           let rowsHtml = '';
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           const rows = attempts.map((attempt: any, index: number) => {
+           attempts.forEach((attempt: any, index: number) => {
                // Calculate Right/Wrong/Blank
                let right = 0;
                let wrong = 0;
@@ -263,110 +264,129 @@ const Leaderboard = () => {
                    }
                });
 
-               // Percentage
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
+               const name = attempt.profile?.full_name || "Unknown";
+               const hsc = attempt.profile?.hsc_batch || "-";
 
-               return [
-                   index + 1, // Position (1st Col)
-                   attempt.profile?.full_name || "Unknown", // Name
-                   attempt.score, // Marks (2nd Col)
-                   percent + '%', // Percent
-                   right,
-                   wrong,
-                   blank,
-                   attempt.profile?.hsc_batch || "-" // HSC Batch (Last Col)
-               ];
+               rowsHtml += `
+               <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
+                   <td class="p-2 border text-center font-bold">${index + 1}</td>
+                   <td class="p-2 border font-medium">${name}</td>
+                   <td class="p-2 border text-center font-bold">${attempt.score}</td>
+                   <td class="p-2 border text-center">${percent}%</td>
+                   <td class="p-2 border text-center text-green-600 font-bold">${right}</td>
+                   <td class="p-2 border text-center text-red-600 font-bold">${wrong}</td>
+                   <td class="p-2 border text-center text-gray-400 font-bold">${blank}</td>
+                   <td class="p-2 border text-center">${hsc}</td>
+               </tr>`;
            });
 
-           // 4. Generate PDF with jsPDF
-           const doc = new jsPDF();
+           const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="bn">
+            <head>
+                <meta charset="UTF-8">
+                <title>${title}</title>
+                <style>
+                    @font-face {
+                        font-family: 'Kalpurush';
+                        src: url('${window.location.origin}/Kalpurush.ttf') format('truetype');
+                    }
+                    body {
+                        font-family: 'Kalpurush', sans-serif;
+                        padding: 20px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .container {
+                        border: 2px solid #10b981; /* Emerald-500 */
+                        border-radius: 15px;
+                        padding: 20px;
+                        min-height: 90vh;
+                    }
+                    h1 {
+                        text-align: center;
+                        color: #10b981;
+                        font-size: 24px;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: separate; /* Required for border-radius on table */
+                        border-spacing: 0;
+                        border: 1px solid #e2e8f0;
+                        border-radius: 10px; /* Rounded corners for table */
+                        overflow: hidden;
+                    }
+                    th {
+                        background-color: #10b981;
+                        color: white;
+                        padding: 10px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e2e8f0;
+                    }
+                    td {
+                        padding: 8px;
+                        border-bottom: 1px solid #e2e8f0;
+                        border-right: 1px solid #e2e8f0;
+                    }
+                    td:last-child {
+                        border-right: none;
+                    }
+                    tr:last-child td {
+                        border-bottom: none;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9fafb;
+                    }
+                    .text-center { text-align: center; }
+                    .text-green-600 { color: #16a34a; }
+                    .text-red-600 { color: #dc2626; }
+                    .text-gray-400 { color: #94a3b8; }
+                    .font-bold { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>${title}</h1>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Name</th>
+                                <th>Marks</th>
+                                <th>Percent</th>
+                                <th>Right</th>
+                                <th>Wrong</th>
+                                <th>Blank</th>
+                                <th>HSC Batch</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+           `;
 
-           // Dynamic Font Loading
-           try {
-               const fontUrl = window.location.origin + '/Kalpurush.ttf';
-               const fontResponse = await fetch(fontUrl);
-
-               if (fontResponse.ok) {
-                   const fontBuffer = await fontResponse.arrayBuffer();
-
-                   // Convert ArrayBuffer to binary string
-                   const fontBinary = new Uint8Array(fontBuffer)
-                     .reduce((data, byte) => data + String.fromCharCode(byte), '');
-
-                   // Add font to VFS
-                   doc.addFileToVFS('Kalpurush.ttf', fontBinary);
-                   doc.addFont('Kalpurush.ttf', 'Kalpurush', 'normal');
-                   doc.setFont('Kalpurush');
-               } else {
-                   console.error("Font loading failed, falling back to default.");
-               }
-           } catch (e) {
-               console.error("Font loading error:", e);
+           const printWindow = window.open('', '_blank');
+           if (printWindow) {
+               printWindow.document.write(htmlContent);
+               printWindow.document.close();
+           } else {
+               alert("Popup blocked! Please allow popups for this site.");
            }
-
-           // Header
-           doc.setFontSize(14);
-           doc.setTextColor(16, 185, 129); // Emerald-600
-           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
-           // Check if current font supports title text, if not, jsPDF might output garbage.
-           // However, if Kalpurush loaded, it should be fine.
-
-           const textWidth = doc.getTextWidth(title);
-           doc.text(title, (doc.internal.pageSize.width - textWidth) / 2, 25); // Center align
-
-           // Table
-           autoTable(doc, {
-               startY: 35,
-               head: [['Pos', 'Name', 'Marks', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
-               body: rows,
-               theme: 'grid',
-               styles: {
-                   font: 'helvetica', // Default to helvetica for robustness with numbers/latin
-                   fontSize: 9,
-                   valign: 'middle',
-                   cellPadding: 3
-               },
-               headStyles: {
-                   fillColor: [16, 185, 129], // Emerald-500
-                   textColor: [255, 255, 255], // White
-                   fontStyle: 'bold',
-                   halign: 'center'
-               },
-               columnStyles: {
-                   0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
-                   1: { cellWidth: 'auto', font: 'Kalpurush' }, // Name - Explicitly use Bangla font here
-                   2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
-                   3: { halign: 'center' }, // Percent
-                   4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
-                   5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
-                   6: { halign: 'center', textColor: [148, 163, 184] }, // Blank (Gray)
-                   7: { halign: 'center' }  // HSC Batch
-               },
-               didParseCell: (data) => {
-                   if (data.section === 'body') {
-                       if (data.row.index % 2 === 0) {
-                           data.cell.styles.fillColor = [255, 255, 255];
-                       } else {
-                           data.cell.styles.fillColor = [250, 250, 250];
-                       }
-                   }
-               }
-           });
-
-           // Footer / Page numbers
-           const pageCount = (doc as any).internal.getNumberOfPages();
-           doc.setFontSize(8);
-           doc.setTextColor(150);
-           for(let i = 1; i <= pageCount; i++) {
-               doc.setPage(i);
-               doc.text('Page ' + String(i) + ' of ' + String(pageCount), doc.internal.pageSize.width / 2, doc.internal.pageSize.height - 15, { align: 'center' });
-           }
-
-           doc.save(`${exam?.title}_result_sheet.pdf`);
 
       } catch (err) {
           console.error(err);
-          alert("Failed to export PDF");
+          alert("Failed to generate PDF");
       }
   };
 
@@ -402,9 +422,9 @@ const Leaderboard = () => {
                     <Download className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <Button variant="outline" size="sm" onClick={handlePrintPDF}>
                     <FileText className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">PDF</span>
+                    <span className="hidden sm:inline">PDF/Print</span>
                 </Button>
               </div>
           )}
