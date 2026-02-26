@@ -231,26 +231,85 @@ const Leaderboard = () => {
            // 4. Generate PDF
            const doc = new jsPDF();
 
-           // Add Font for Bangla support if needed (Standard fonts don't support Bangla well, but we'll use standard for now or assume English names primarily.
-           // If Bangla is strictly required, we'd need to add a font. For this task, we'll try default.)
+           // Visual Configuration
+           const pageWidth = doc.internal.pageSize.width;
+           const pageHeight = doc.internal.pageSize.height;
+           const margin = 14;
 
-           // Header
-           doc.setFontSize(16);
-           doc.text(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`, 14, 20);
+           // 1. Add Background/Border (Rounded Card Look)
+           doc.setDrawColor(230, 230, 230);
+           doc.setFillColor(255, 255, 255);
+           // Draw a large rounded rectangle for the "page container" feel
+           doc.roundedRect(10, 10, pageWidth - 20, pageHeight - 20, 5, 5, 'FD');
 
-           // Table
+           // 2. Header
+           doc.setFontSize(14);
+           doc.setTextColor(30, 41, 59); // Slate-800
+           doc.setFont("helvetica", "bold");
+           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
+           const textWidth = doc.getTextWidth(title);
+           doc.text(title, (pageWidth - textWidth) / 2, 25); // Center align
+
+           // 3. Table
            autoTable(doc, {
-               startY: 30,
-               head: [['NAME', 'Marks', 'Position', 'Percent', 'Right', 'Wrong', 'Blank', 'College']],
+               startY: 35,
+               head: [['NAME', 'Marks', 'Pos', 'Percent', 'Right', 'Wrong', 'Blank', 'College']],
                body: rows,
-               theme: 'grid',
-               headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }, // Light gray header
-               styles: { fontSize: 8, cellPadding: 2 },
+               theme: 'plain', // Cleaner look, we add borders manually via styles if needed, or use grid with lighter lines
+
+               headStyles: {
+                   fillColor: [241, 245, 249], // Slate-100
+                   textColor: [71, 85, 105], // Slate-600
+                   fontStyle: 'bold',
+                   fontSize: 9,
+                   halign: 'center',
+                   valign: 'middle',
+                   minCellHeight: 10
+               },
+
+               bodyStyles: {
+                   textColor: [51, 65, 85], // Slate-700
+                   fontSize: 9,
+                   valign: 'middle',
+                   cellPadding: 3
+               },
+
                columnStyles: {
-                   0: { cellWidth: 40 }, // Name
-                   7: { cellWidth: 40 }  // College
-               }
+                   0: { cellWidth: 40, fontStyle: 'bold' }, // Name
+                   1: { halign: 'center' }, // Marks
+                   2: { halign: 'center' }, // Pos
+                   3: { halign: 'center' }, // Percent
+                   4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
+                   5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
+                   6: { halign: 'center', textColor: [148, 163, 184] }, // Blank (Gray)
+                   7: { cellWidth: 45, fontSize: 8 }  // College
+               },
+
+               // Add bottom border to rows for "striped" feel without full background
+               didParseCell: (data) => {
+                   if (data.section === 'body') {
+                       // Alternate row background slightly
+                       if (data.row.index % 2 === 0) {
+                           data.cell.styles.fillColor = [255, 255, 255];
+                       } else {
+                           data.cell.styles.fillColor = [250, 250, 250]; // Very light gray
+                       }
+                   }
+               },
+
+               // Draw rounded corners for the table header? Hard in autotable.
+               // We will just stick to clean lines.
+               margin: { left: 14, right: 14 }
            });
+
+           // Footer / Page numbers
+           const pageCount = (doc as any).internal.getNumberOfPages();
+           doc.setFontSize(8);
+           doc.setTextColor(150);
+           for(let i = 1; i <= pageCount; i++) {
+               doc.setPage(i);
+               doc.text('Page ' + String(i) + ' of ' + String(pageCount), pageWidth / 2, pageHeight - 15, { align: 'center' });
+           }
 
            doc.save(`${exam?.title}_result_sheet.pdf`);
 
