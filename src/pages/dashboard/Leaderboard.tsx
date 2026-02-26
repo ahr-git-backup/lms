@@ -15,10 +15,18 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 
 // Initialize pdfMake fonts
 // @ts-ignore
-pdfMake.vfs = (pdfFonts && pdfFonts.pdfMake) ? pdfFonts.pdfMake.vfs : (pdfFonts && pdfFonts.vfs ? pdfFonts.vfs : {});
+if (pdfFonts && pdfFonts.pdfMake) {
+    // @ts-ignore
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
+} else if (pdfFonts && pdfFonts.vfs) {
+    // @ts-ignore
+    pdfMake.vfs = pdfFonts.vfs;
+}
 
 // Ensure vfs is defined
+// @ts-ignore
 if (!pdfMake.vfs) {
+    // @ts-ignore
     pdfMake.vfs = {};
 }
 
@@ -316,13 +324,14 @@ const Leaderboard = () => {
            );
 
            // Add to VFS
+           // @ts-ignore
            if (!pdfMake.vfs) pdfMake.vfs = {};
            // @ts-ignore
            pdfMake.vfs["SolaimanLipi.ttf"] = base64Font;
 
            // Define Fonts
            // @ts-ignore
-           pdfMake.fonts = {
+           const fonts = {
                SolaimanLipi: {
                    normal: 'SolaimanLipi.ttf',
                    bold: 'SolaimanLipi.ttf',
@@ -393,7 +402,7 @@ const Leaderboard = () => {
 
            // Generate and Open/Download
            // @ts-ignore
-           pdfMake.createPdf(docDefinition).download(`${exam?.title}_result_sheet.pdf`);
+           pdfMake.createPdf(docDefinition, null, fonts).download(`${exam?.title}_result_sheet.pdf`);
 
       } catch (err) {
           console.error(err);
