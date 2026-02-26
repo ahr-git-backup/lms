@@ -15,7 +15,12 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 
 // Initialize pdfMake fonts
 // @ts-ignore
-pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
+pdfMake.vfs = (pdfFonts && pdfFonts.pdfMake) ? pdfFonts.pdfMake.vfs : (pdfFonts && pdfFonts.vfs ? pdfFonts.vfs : {});
+
+// Ensure vfs is defined
+if (!pdfMake.vfs) {
+    pdfMake.vfs = {};
+}
 
 const PAGE_SIZE = 50;
 
@@ -311,6 +316,7 @@ const Leaderboard = () => {
            );
 
            // Add to VFS
+           if (!pdfMake.vfs) pdfMake.vfs = {};
            // @ts-ignore
            pdfMake.vfs["SolaimanLipi.ttf"] = base64Font;
 
