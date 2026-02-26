@@ -17,22 +17,6 @@ import pdfFonts from "pdfmake/build/vfs_fonts";
 // @ts-ignore
 pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 
-// Register Bangla Font (SolaimanLipi)
-pdfMake.fonts = {
-    SolaimanLipi: {
-        normal: window.location.origin + '/SolaimanLipi.ttf',
-        bold: window.location.origin + '/SolaimanLipi.ttf', // Fallback to normal if bold missing
-        italics: window.location.origin + '/SolaimanLipi.ttf',
-        bolditalics: window.location.origin + '/SolaimanLipi.ttf',
-    },
-    Roboto: {
-        normal: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf',
-        bold: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf',
-        italics: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Italic.ttf',
-        bolditalics: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-MediumItalic.ttf'
-    }
-};
-
 const PAGE_SIZE = 50;
 
 const Podium = ({ topThree }: { topThree: any[] }) => {
@@ -314,7 +298,40 @@ const Leaderboard = () => {
                ]);
            });
 
-           // 4. Generate PDF Definition
+           // 4. Prepare Font VFS
+           const fontUrl = window.location.origin + '/SolaimanLipi.ttf';
+           const fontResponse = await fetch(fontUrl);
+           if (!fontResponse.ok) throw new Error("Failed to load font");
+           const fontBuffer = await fontResponse.arrayBuffer();
+
+           // Convert ArrayBuffer to Base64
+           const base64Font = btoa(
+               new Uint8Array(fontBuffer)
+                 .reduce((data, byte) => data + String.fromCharCode(byte), '')
+           );
+
+           // Add to VFS
+           // @ts-ignore
+           pdfMake.vfs["SolaimanLipi.ttf"] = base64Font;
+
+           // Define Fonts
+           // @ts-ignore
+           pdfMake.fonts = {
+               SolaimanLipi: {
+                   normal: 'SolaimanLipi.ttf',
+                   bold: 'SolaimanLipi.ttf',
+                   italics: 'SolaimanLipi.ttf',
+                   bolditalics: 'SolaimanLipi.ttf'
+               },
+               Roboto: {
+                   normal: 'Roboto-Regular.ttf',
+                   bold: 'Roboto-Medium.ttf',
+                   italics: 'Roboto-Italic.ttf',
+                   bolditalics: 'Roboto-MediumItalic.ttf'
+               }
+           };
+
+           // 5. Generate PDF Definition
            const docDefinition = {
                content: [
                    { text: `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`, style: 'header', alignment: 'center' },
@@ -369,6 +386,7 @@ const Leaderboard = () => {
            };
 
            // Generate and Open/Download
+           // @ts-ignore
            pdfMake.createPdf(docDefinition).download(`${exam?.title}_result_sheet.pdf`);
 
       } catch (err) {
