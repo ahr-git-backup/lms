@@ -344,17 +344,17 @@ const ExamReview = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex gap-4 text-center md:flex-col md:gap-2">
-                         <div>
-                            <div className="text-xl font-bold text-green-600">{correctCount}</div>
+                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-2 text-center">
+                         <div className="flex-1">
+                            <div className="text-lg sm:text-xl font-bold text-green-600">{correctCount}</div>
                             <div className="text-[10px] uppercase font-bold text-muted-foreground">Correct</div>
                         </div>
-                         <div>
-                            <div className="text-xl font-bold text-red-500">{wrongCount}</div>
+                         <div className="flex-1">
+                            <div className="text-lg sm:text-xl font-bold text-red-500">{wrongCount}</div>
                             <div className="text-[10px] uppercase font-bold text-muted-foreground">Wrong</div>
                         </div>
-                         <div>
-                            <div className="text-xl font-bold text-slate-400">{skippedCount}</div>
+                         <div className="flex-1">
+                            <div className="text-lg sm:text-xl font-bold text-slate-400">{skippedCount}</div>
                             <div className="text-[10px] uppercase font-bold text-muted-foreground">Skipped</div>
                         </div>
                     </div>

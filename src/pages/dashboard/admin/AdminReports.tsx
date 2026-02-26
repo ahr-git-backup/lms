@@ -200,8 +200,8 @@ const AdminReports = () => {
 
             <div className="grid gap-6">
                 {reports.map((report) => (
-                    <Card key={report.id} className="border-l-4 border-l-orange-500 shadow-sm">
-                        <CardHeader>
+                    <Card key={report.id} className="border shadow-sm overflow-hidden">
+                        <CardHeader className="bg-muted/30 pb-3">
                             <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                                 <div>
                                     <CardTitle className="text-base font-medium text-muted-foreground">
@@ -216,32 +216,36 @@ const AdminReports = () => {
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="grid md:grid-cols-2 gap-4 p-4">
                             {/* The Report */}
-                            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900">
-                                <h3 className="text-sm font-bold text-orange-800 dark:text-orange-200 mb-2">User Report:</h3>
-                                <p className="text-sm">{report.report_text}</p>
+                            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900 h-full">
+                                <h3 className="text-sm font-bold text-orange-800 dark:text-orange-200 mb-2 flex items-center gap-2">
+                                    <AlertCircle className="h-4 w-4" />
+                                    User Report
+                                </h3>
+                                <p className="text-sm italic">"{report.report_text}"</p>
                                 {report.suggested_correct_option && (
-                                    <p className="text-sm mt-2 font-semibold">
-                                        Suggested Correct Option: <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded">{report.suggested_correct_option}</span>
-                                    </p>
+                                    <div className="mt-3 text-sm">
+                                        <span className="font-semibold text-muted-foreground">Suggested Option: </span>
+                                        <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded font-bold">{report.suggested_correct_option}</span>
+                                    </div>
                                 )}
                             </div>
 
                             {/* The Question */}
-                            <div className="border rounded-lg p-4 bg-card">
-                                <div className="flex gap-2 mb-2">
-                                    <span className="font-bold text-sm bg-muted px-2 py-0.5 rounded">Q{report.question?.question_index}</span>
-                                    <span className="text-sm font-medium">Current Correct: <span className="text-green-600 font-bold">{report.question?.correct_option}</span></span>
+                            <div className="border rounded-lg p-4 bg-card h-full flex flex-col">
+                                <div className="flex justify-between items-center mb-2 pb-2 border-b">
+                                    <span className="font-bold text-xs bg-secondary px-2 py-0.5 rounded">Q{report.question?.question_index}</span>
+                                    <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded">Correct: <strong>{report.question?.correct_option}</strong></span>
                                 </div>
-                                <div className="text-sm mb-4">
+                                <div className="text-sm mb-4 flex-1">
                                     <MathText text={report.question?.question_text || ""} />
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                    <div className={report.question?.correct_option === "A" ? "text-green-600 font-bold" : ""}>A: <MathText text={report.question?.option_a || ""} /></div>
-                                    <div className={report.question?.correct_option === "B" ? "text-green-600 font-bold" : ""}>B: <MathText text={report.question?.option_b || ""} /></div>
-                                    <div className={report.question?.correct_option === "C" ? "text-green-600 font-bold" : ""}>C: <MathText text={report.question?.option_c || ""} /></div>
-                                    <div className={report.question?.correct_option === "D" ? "text-green-600 font-bold" : ""}>D: <MathText text={report.question?.option_d || ""} /></div>
+                                <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground mt-auto">
+                                    <div className={`p-1 rounded ${report.question?.correct_option === "A" ? "bg-green-100 text-green-800 font-bold" : ""}`}>A: <MathText text={report.question?.option_a || ""} /></div>
+                                    <div className={`p-1 rounded ${report.question?.correct_option === "B" ? "bg-green-100 text-green-800 font-bold" : ""}`}>B: <MathText text={report.question?.option_b || ""} /></div>
+                                    <div className={`p-1 rounded ${report.question?.correct_option === "C" ? "bg-green-100 text-green-800 font-bold" : ""}`}>C: <MathText text={report.question?.option_c || ""} /></div>
+                                    <div className={`p-1 rounded ${report.question?.correct_option === "D" ? "bg-green-100 text-green-800 font-bold" : ""}`}>D: <MathText text={report.question?.option_d || ""} /></div>
                                 </div>
                             </div>
                         </CardContent>

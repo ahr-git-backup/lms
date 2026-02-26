@@ -293,6 +293,7 @@ const Leaderboard = () => {
                            const base64Font = (reader.result as string).split(',')[1];
                            doc.addFileToVFS("Kalpurush.ttf", base64Font);
                            doc.addFont("Kalpurush.ttf", "Kalpurush", "normal");
+                           doc.addFont("Kalpurush.ttf", "Kalpurush", "bold");
                            doc.setFont("Kalpurush");
                            resolve(null);
                        };
@@ -317,7 +318,13 @@ const Leaderboard = () => {
            // 2. Header
            doc.setFontSize(14);
            doc.setTextColor(16, 185, 129); // Emerald-600
-           doc.setFont("helvetica", "bold");
+           // Ensure we use the custom font if loaded, otherwise fallback
+           if (doc.getFontList()["Kalpurush"]) {
+               doc.setFont("Kalpurush", "bold");
+           } else {
+               doc.setFont("helvetica", "bold");
+           }
+
            const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
            const textWidth = doc.getTextWidth(title);
            doc.text(title, (pageWidth - textWidth) / 2, 25); // Center align
@@ -345,7 +352,8 @@ const Leaderboard = () => {
                    textColor: [51, 65, 85], // Slate-700
                    fontSize: 9,
                    valign: 'middle',
-                   cellPadding: 3
+                   cellPadding: 3,
+                   font: "Kalpurush" // Use custom font in body for Names
                },
 
                columnStyles: {
