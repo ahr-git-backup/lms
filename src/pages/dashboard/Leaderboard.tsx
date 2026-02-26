@@ -283,7 +283,7 @@ const Leaderboard = () => {
 
            // Add Bangla Font
            try {
-               const fontResponse = await fetch('/Kalpurush.ttf');
+               const fontResponse = await fetch('/SolaimanLipi.ttf');
                if (fontResponse.ok) {
                    const fontBlob = await fontResponse.blob();
                    const reader = new FileReader();
@@ -291,10 +291,10 @@ const Leaderboard = () => {
                    await new Promise((resolve) => {
                        reader.onloadend = () => {
                            const base64Font = (reader.result as string).split(',')[1];
-                           doc.addFileToVFS("Kalpurush.ttf", base64Font);
-                           doc.addFont("Kalpurush.ttf", "Kalpurush", "normal");
-                           doc.addFont("Kalpurush.ttf", "Kalpurush", "bold");
-                           doc.setFont("Kalpurush");
+                           doc.addFileToVFS("SolaimanLipi.ttf", base64Font);
+                           doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "normal");
+                           doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "bold");
+                           doc.setFont("SolaimanLipi");
                            resolve(null);
                        };
                    });
@@ -319,8 +319,8 @@ const Leaderboard = () => {
            doc.setFontSize(14);
            doc.setTextColor(16, 185, 129); // Emerald-600
            // Ensure we use the custom font if loaded, otherwise fallback
-           if (doc.getFontList()["Kalpurush"]) {
-               doc.setFont("Kalpurush", "bold");
+           if (doc.getFontList()["SolaimanLipi"]) {
+               doc.setFont("SolaimanLipi", "bold");
            } else {
                doc.setFont("helvetica", "bold");
            }
@@ -339,7 +339,7 @@ const Leaderboard = () => {
                headStyles: {
                    fillColor: [16, 185, 129], // Emerald-500
                    textColor: [255, 255, 255], // White
-                   font: "Kalpurush", // Use custom font in header
+                   font: "SolaimanLipi", // Use custom font in header
                    fontStyle: 'bold',
                    fontSize: 9,
                    halign: 'center',
@@ -353,7 +353,7 @@ const Leaderboard = () => {
                    fontSize: 9,
                    valign: 'middle',
                    cellPadding: 3,
-                   font: "Kalpurush" // Use custom font in body for Names
+                   font: "SolaimanLipi" // Use custom font in body for Names
                },
 
                columnStyles: {
