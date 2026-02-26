@@ -26,13 +26,21 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
     const reportMutation = useMutation({
         mutationFn: async () => {
             if (!user) throw new Error("Must be logged in");
+
+            // Debug Log
+            console.log("Submitting report:", { questionId, userId: user.id, reportText, suggestedOption });
+
             const { error } = await supabase.from("question_reports").insert({
                 question_id: questionId,
                 user_id: user.id,
                 report_text: reportText,
                 suggested_correct_option: suggestedOption
             });
-            if (error) throw error;
+
+            if (error) {
+                console.error("Report submission error:", error);
+                throw error;
+            }
         },
         onSuccess: () => {
             toast({ title: "Report submitted successfully", description: "Thank you for your feedback." });
@@ -42,6 +50,7 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
             onClose();
         },
         onError: (error) => {
+            console.error("Report mutation error:", error);
             toast({ title: "Failed to submit report", description: error.message, variant: "destructive" });
         }
     });
@@ -476,7 +485,7 @@ const ExamReview = () => {
                         return (
                             <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
                                 <CardContent className="p-5 space-y-2 relative">
-                                    <div className="absolute top-4 right-4 print:hidden flex gap-2">
+                                    <div className="absolute top-3 right-4 print:hidden flex gap-0.5">
                                         <ReportQuestionDialog
                                             questionId={q.id}
                                             questionText={q.question_text}
@@ -493,7 +502,7 @@ const ExamReview = () => {
                                     </div>
 
                                     {/* Question Header */}
-                                    <div className="flex items-start gap-4 pr-20">
+                                    <div className="flex items-start gap-4 pr-12">
                                         <div className={cn(
                                             "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
                                             isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :

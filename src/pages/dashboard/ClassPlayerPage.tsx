@@ -82,7 +82,14 @@ const ClassPlayerPage = () => {
 
   // Check if class hasn't started yet
   const startTime = classItem.start_at ? new Date(classItem.start_at) : null;
+  const endTime = classItem.end_at ? new Date(classItem.end_at) : null;
   const now = new Date();
+
+  // Determine actual live status: It is live ONLY if it's type 'live' AND current time is BEFORE end_at
+  // If end_at is null, we assume it's live indefinitely (or until manual change), but usually end_at is set.
+  // If end_at is passed, we treat it as recorded (isLive=false).
+  const isActuallyLive = classItem.class_type === 'live' && (!endTime || now < endTime);
+
   if (startTime && startTime > now) {
       return (
           <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
@@ -130,7 +137,7 @@ const ClassPlayerPage = () => {
                 videoId={classItem.video_url}
                 title={classItem.title}
                 watermarkText={profile ? `${profile.full_name} (${profile.registration_id})` : undefined}
-                isLive={classItem.class_type === 'live'}
+                isLive={isActuallyLive}
                 startTime={classItem.start_at}
               />
             ) : (

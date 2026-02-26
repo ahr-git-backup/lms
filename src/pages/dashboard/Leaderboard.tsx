@@ -287,14 +287,15 @@ const Leaderboard = () => {
            const margin = 14;
 
            // 1. Add Background/Border (Rounded Card Look)
-           doc.setDrawColor(230, 230, 230);
+           doc.setDrawColor(16, 185, 129); // Emerald-500 Border
+           doc.setLineWidth(0.5);
            doc.setFillColor(255, 255, 255);
            // Draw a large rounded rectangle for the "page container" feel
            doc.roundedRect(10, 10, pageWidth - 20, pageHeight - 20, 5, 5, 'FD');
 
            // 2. Header
            doc.setFontSize(14);
-           doc.setTextColor(30, 41, 59); // Slate-800
+           doc.setTextColor(16, 185, 129); // Emerald-600
            doc.setFont("helvetica", "bold");
            const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
            const textWidth = doc.getTextWidth(title);
@@ -305,16 +306,17 @@ const Leaderboard = () => {
                startY: 35,
                head: [['Pos', 'Marks', 'Name', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
                body: rows,
-               theme: 'plain', // Cleaner look, we add borders manually via styles if needed, or use grid with lighter lines
+               theme: 'grid', // Use grid for better borders
 
                headStyles: {
-                   fillColor: [241, 245, 249], // Slate-100
-                   textColor: [71, 85, 105], // Slate-600
+                   fillColor: [16, 185, 129], // Emerald-500
+                   textColor: [255, 255, 255], // White
                    fontStyle: 'bold',
                    fontSize: 9,
                    halign: 'center',
                    valign: 'middle',
-                   minCellHeight: 10
+                   minCellHeight: 10,
+                   lineWidth: 0
                },
 
                bodyStyles: {
