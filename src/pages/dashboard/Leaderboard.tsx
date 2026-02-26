@@ -285,10 +285,6 @@ const Leaderboard = () => {
                // We will assume for now we just want the scores and names fixed.
                // Note: If `answers` is missing, right/wrong will be 0.
 
-               let right = 0;
-               let wrong = 0;
-               let blank = 0;
-
                if (attempt.answers) {
                    const answersArr = attempt.answers as any[] || [];
                    const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
