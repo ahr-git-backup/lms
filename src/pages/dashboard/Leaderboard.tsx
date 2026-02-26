@@ -329,9 +329,9 @@ const Leaderboard = () => {
            // @ts-ignore
            pdfMake.vfs["SolaimanLipi.ttf"] = base64Font;
 
-           // Define Fonts
+           // Define Fonts globally for this generation
            // @ts-ignore
-           const fonts = {
+           pdfMake.fonts = {
                SolaimanLipi: {
                    normal: 'SolaimanLipi.ttf',
                    bold: 'SolaimanLipi.ttf',
@@ -402,7 +402,7 @@ const Leaderboard = () => {
 
            // Generate and Open/Download
            // @ts-ignore
-           pdfMake.createPdf(docDefinition, null, fonts).download(`${exam?.title}_result_sheet.pdf`);
+           pdfMake.createPdf(docDefinition).download(`${exam?.title}_result_sheet.pdf`);
 
       } catch (err) {
           console.error(err);
