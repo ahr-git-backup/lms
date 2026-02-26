@@ -187,13 +187,13 @@ const AdminReports = () => {
     }
 
     return (
-        <div className="space-y-6 pb-20 p-4 sm:p-8 max-w-6xl mx-auto">
-            <div className="flex items-center justify-between">
+        <div className="space-y-6 pb-20 p-4 sm:p-8 max-w-6xl mx-auto overflow-x-hidden">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Question Reports</h1>
                     <p className="text-sm text-muted-foreground">Manage user reported mistakes.</p>
                 </div>
-                <div className="text-sm font-medium bg-secondary px-3 py-1 rounded-full">
+                <div className="text-sm font-medium bg-secondary px-3 py-1 rounded-full self-start sm:self-auto">
                     {reports.length} Pending
                 </div>
             </div>
@@ -202,7 +202,7 @@ const AdminReports = () => {
                 {reports.map((report) => (
                     <Card key={report.id} className="border-l-4 border-l-orange-500 shadow-sm">
                         <CardHeader>
-                            <div className="flex justify-between items-start">
+                            <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                                 <div>
                                     <CardTitle className="text-base font-medium text-muted-foreground">
                                         Reported by <span className="text-foreground font-bold">{report.reporter?.full_name}</span> ({report.reporter?.registration_id})

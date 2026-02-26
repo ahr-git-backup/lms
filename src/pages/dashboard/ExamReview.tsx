@@ -312,15 +312,15 @@ const ExamReview = () => {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-32 w-32 relative">
+                        <div className="h-40 w-40 relative">
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={pieData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={25}
-                                        outerRadius={40}
+                                        innerRadius={35}
+                                        outerRadius={55}
                                         paddingAngle={2}
                                         dataKey="value"
                                     >

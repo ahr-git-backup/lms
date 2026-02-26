@@ -9,10 +9,57 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const PAGE_SIZE = 50;
+
+const Podium = ({ topThree }: { topThree: any[] }) => {
+    if (!topThree || topThree.length === 0) return null;
+
+    const first = topThree[0];
+    const second = topThree[1];
+    const third = topThree[2];
+
+    const PodiumItem = ({ student, rank, color, height }: { student: any, rank: number, color: string, height: string }) => {
+        if (!student) return <div className="w-24"></div>; // Placeholder space
+
+        return (
+            <div className="flex flex-col items-center justify-end z-10 mx-2">
+                <div className="relative mb-2">
+                    <Avatar className={`w-16 h-16 sm:w-20 sm:h-20 border-4 ${rank === 1 ? 'border-yellow-400' : rank === 2 ? 'border-slate-300' : 'border-orange-400'}`}>
+                        <AvatarImage src={student.profile?.avatar_url} />
+                        <AvatarFallback className="text-xl font-bold bg-muted">
+                            {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${color}`}>
+                        {student.score} pts
+                    </div>
+                </div>
+
+                <div className="text-center mb-1 max-w-[100px]">
+                    <div className="font-bold text-sm truncate" title={student.profile?.full_name}>
+                        {student.profile?.full_name?.split(" ")[0]}
+                    </div>
+                </div>
+
+                <div className={`w-24 sm:w-32 rounded-t-lg shadow-inner flex items-start justify-center pt-2 text-white font-bold text-2xl ${color}`} style={{ height }}>
+                    {rank}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="flex justify-center items-end py-8 mb-4">
+            <PodiumItem student={second} rank={2} color="bg-slate-400" height="80px" />
+            <PodiumItem student={first} rank={1} color="bg-yellow-400" height="110px" />
+            <PodiumItem student={third} rank={3} color="bg-orange-400" height="60px" />
+        </div>
+    );
+};
 
 const Leaderboard = () => {
   const { user, isAdmin, isTeacher } = useAuth();
@@ -96,6 +143,9 @@ const Leaderboard = () => {
   const totalCount = leaderboardData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  // Top 3 for Podium (Only on page 0)
+  const topThree = page === 0 ? leaderboard.slice(0, 3) : [];
+
   const handleExportCSV = async () => {
       try {
           // Fetch ALL records for export, not just paginated
@@ -170,7 +220,7 @@ const Leaderboard = () => {
               .from('exam_attempts')
               .select(`
                 *,
-                profile:profiles(full_name, registration_id, college_name)
+                profile:profiles(full_name, registration_id, hsc_batch)
               `)
               .eq('exam_id', examId);
 
@@ -217,14 +267,14 @@ const Leaderboard = () => {
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
 
                return [
+                   index + 1, // Position (1st Col)
+                   attempt.score, // Marks (2nd Col)
                    attempt.profile?.full_name || "Unknown",
-                   attempt.score,
-                   index + 1, // Position
                    percent,
                    right,
                    wrong,
                    blank,
-                   attempt.profile?.college_name || "N/A"
+                   attempt.profile?.hsc_batch || "-" // HSC Batch (Last Col)
                ];
            });
 
@@ -253,7 +303,7 @@ const Leaderboard = () => {
            // 3. Table
            autoTable(doc, {
                startY: 35,
-               head: [['NAME', 'Marks', 'Pos', 'Percent', 'Right', 'Wrong', 'Blank', 'College']],
+               head: [['Pos', 'Marks', 'Name', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
                body: rows,
                theme: 'plain', // Cleaner look, we add borders manually via styles if needed, or use grid with lighter lines
 
@@ -275,14 +325,14 @@ const Leaderboard = () => {
                },
 
                columnStyles: {
-                   0: { cellWidth: 40, fontStyle: 'bold' }, // Name
-                   1: { halign: 'center' }, // Marks
-                   2: { halign: 'center' }, // Pos
+                   0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
+                   1: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
+                   2: { cellWidth: 'auto' }, // Name
                    3: { halign: 'center' }, // Percent
                    4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
                    5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
                    6: { halign: 'center', textColor: [148, 163, 184] }, // Blank (Gray)
-                   7: { cellWidth: 45, fontSize: 8 }  // College
+                   7: { halign: 'center' }  // HSC Batch
                },
 
                // Add bottom border to rows for "striped" feel without full background
@@ -297,8 +347,6 @@ const Leaderboard = () => {
                    }
                },
 
-               // Draw rounded corners for the table header? Hard in autotable.
-               // We will just stick to clean lines.
                margin: { left: 14, right: 14 }
            });
 
@@ -391,6 +439,9 @@ const Leaderboard = () => {
             </div>
           ) : (
             <>
+            {/* Podium Component */}
+            {topThree.length > 0 && <Podium topThree={topThree} />}
+
             <div className="rounded-md border bg-card overflow-x-auto no-scrollbar scroll-smooth">
               <Table>
                 <TableHeader>
