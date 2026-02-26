@@ -280,12 +280,12 @@ const ExamReview = () => {
             </Button>
             <div className="flex gap-2">
                  {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" onClick={handleRetakeMistakes}>
-                        <RotateCw className="h-4 w-4 mr-2" /> Retake
+                     <Button variant="destructive" onClick={handleRetakeMistakes} className="h-10 px-4 py-2">
+                        <RotateCw className="h-5 w-5 mr-2" /> Retake
                      </Button>
                  )}
-                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)}>
-                    <Trophy className="h-4 w-4 mr-2 text-yellow-500" /> Leaderboard
+                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-4 py-2">
+                    <Trophy className="h-5 w-5 mr-2 text-yellow-500" /> Leaderboard
                  </Button>
             </div>
         </div>
