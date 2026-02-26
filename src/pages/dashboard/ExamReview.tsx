@@ -275,17 +275,17 @@ const ExamReview = () => {
 
         {/* Header */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            <Button variant="ghost" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
+                <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="flex gap-2">
                  {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" size="sm" onClick={handleRetakeMistakes} className="text-xs h-8">
-                        <RotateCw className="h-3.5 w-3.5 mr-1" /> Retake
+                     <Button variant="destructive" onClick={handleRetakeMistakes}>
+                        <RotateCw className="h-4 w-4 mr-2" /> Retake
                      </Button>
                  )}
-                 <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="text-xs h-8">
-                    <Trophy className="h-3.5 w-3.5 mr-1 text-yellow-500" /> Leaderboard
+                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)}>
+                    <Trophy className="h-4 w-4 mr-2 text-yellow-500" /> Leaderboard
                  </Button>
             </div>
         </div>

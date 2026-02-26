@@ -238,7 +238,16 @@ const Leaderboard = () => {
                return;
            }
 
-           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
+           const escapeHtml = (unsafe: string) => {
+               return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+           };
+
+           const title = escapeHtml(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`);
 
            // 3. Construct HTML
            let rowsHtml = '';
@@ -265,8 +274,8 @@ const Leaderboard = () => {
                });
 
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
-               const name = attempt.profile?.full_name || "Unknown";
-               const hsc = attempt.profile?.hsc_batch || "-";
+               const name = escapeHtml(attempt.profile?.full_name || "Unknown");
+               const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
 
                rowsHtml += `
                <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
@@ -289,11 +298,11 @@ const Leaderboard = () => {
                 <title>${title}</title>
                 <style>
                     @font-face {
-                        font-family: 'Kalpurush';
-                        src: url('${window.location.origin}/Kalpurush.ttf') format('truetype');
+                        font-family: 'SolaimanLipi';
+                        src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
                     }
                     body {
-                        font-family: 'Kalpurush', sans-serif;
+                        font-family: 'SolaimanLipi', sans-serif;
                         padding: 20px;
                         -webkit-print-color-adjust: exact;
                         print-color-adjust: exact;
@@ -302,7 +311,7 @@ const Leaderboard = () => {
                         border: 2px solid #10b981; /* Emerald-500 */
                         border-radius: 15px;
                         padding: 20px;
-                        min-height: 90vh;
+                        height: auto;
                     }
                     h1 {
                         text-align: center;
@@ -312,11 +321,17 @@ const Leaderboard = () => {
                     }
                     table {
                         width: 100%;
-                        border-collapse: separate; /* Required for border-radius on table */
+                        border-collapse: collapse;
                         border-spacing: 0;
                         border: 1px solid #e2e8f0;
-                        border-radius: 10px; /* Rounded corners for table */
-                        overflow: hidden;
+                        /* border-radius: 10px; Removed to fix page break overflow */
+                    }
+                    thead {
+                        display: table-header-group;
+                    }
+                    tr {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                     }
                     th {
                         background-color: #10b981;
@@ -332,9 +347,6 @@ const Leaderboard = () => {
                     }
                     td:last-child {
                         border-right: none;
-                    }
-                    tr:last-child td {
-                        border-bottom: none;
                     }
                     tr:nth-child(even) {
                         background-color: #f9fafb;
