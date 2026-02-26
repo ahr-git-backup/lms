@@ -21,6 +21,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 const PAGE_SIZE = 10;
 
@@ -322,6 +323,46 @@ const ExamAnalytics = () => {
     enabled: !!user,
   });
 
+  // Calculate Graph Data (Last 30 Days)
+  const graphData = useMemo(() => {
+      if (!analyticsData) return [];
+
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+      // Filter exams taken/ended in last 30 days
+      const recentExams = analyticsData.filter(exam => {
+          const date = new Date(exam.time_window_start || exam.created_at);
+          return date >= thirtyDaysAgo;
+      });
+
+      // Sort by date ascending
+      recentExams.sort((a, b) => new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime());
+
+      // Map to graph format
+      return recentExams.map(exam => {
+          // Prefer live score if exists, else practice, else 0 (if attended)
+          // Actually, if neither attempt exists, user was Absent, so maybe exclude?
+          // But user wants "1 month marks... improvement or not". Showing 0 for absent might be misleading or motivating.
+          // Let's show score only if attempt exists.
+
+          let score = null;
+          if (exam.live_attempt) score = Number(exam.live_attempt.score);
+          else if (exam.practice_attempt) score = Number(exam.practice_attempt.score);
+
+          if (score === null) return null; // Skip absent exams from graph to avoid cluttering with 0s
+
+          return {
+              name: exam.title.length > 15 ? exam.title.slice(0, 15) + "..." : exam.title,
+              fullTitle: exam.title,
+              date: new Date(exam.time_window_start || exam.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+              score: score,
+              total: exam.total_marks
+          };
+      }).filter(item => item !== null);
+
+  }, [analyticsData]);
+
   const groupedExams = useMemo(() => {
     if (!analyticsData) return {};
 
@@ -390,6 +431,60 @@ const ExamAnalytics = () => {
         </Card>
       ) : (
         <div className="space-y-8">
+
+           {/* Performance Graph */}
+           {graphData.length > 0 && (
+               <Card className="shadow-sm border">
+                   <CardHeader>
+                       <CardTitle>Performance Trend (Last 30 Days)</CardTitle>
+                   </CardHeader>
+                   <CardContent className="h-[300px]">
+                       <ResponsiveContainer width="100%" height="100%">
+                           <LineChart data={graphData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                               <XAxis
+                                   dataKey="date"
+                                   tick={{ fontSize: 12 }}
+                                   tickMargin={10}
+                                   axisLine={false}
+                                   tickLine={false}
+                               />
+                               <YAxis
+                                   tick={{ fontSize: 12 }}
+                                   axisLine={false}
+                                   tickLine={false}
+                               />
+                               <Tooltip
+                                   content={({ active, payload, label }) => {
+                                       if (active && payload && payload.length) {
+                                           const data = payload[0].payload;
+                                           return (
+                                               <div className="bg-background border rounded-lg shadow-lg p-3 text-sm">
+                                                   <p className="font-bold mb-1">{data.fullTitle}</p>
+                                                   <p className="text-muted-foreground mb-2">{label}</p>
+                                                   <p className="font-semibold text-primary">
+                                                       Score: {data.score} / {data.total}
+                                                   </p>
+                                               </div>
+                                           );
+                                       }
+                                       return null;
+                                   }}
+                               />
+                               <Line
+                                   type="monotone"
+                                   dataKey="score"
+                                   stroke="#2563eb"
+                                   strokeWidth={3}
+                                   dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
+                                   activeDot={{ r: 6 }}
+                               />
+                           </LineChart>
+                       </ResponsiveContainer>
+                   </CardContent>
+               </Card>
+           )}
+
            <div className="grid gap-4 md:grid-cols-3">
             <Card className="border border-foreground/20 shadow-sm bg-muted/20">
               <CardHeader className="pb-2">

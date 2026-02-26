@@ -6,9 +6,109 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+
+// Report Dialog Component
+const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
+    const { toast } = useToast();
+    const [reportText, setReportText] = useState("");
+    const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
+    const [isOpen, setIsOpen] = useState(false);
+    const { user } = useAuth();
+
+    const reportMutation = useMutation({
+        mutationFn: async () => {
+            if (!user) throw new Error("Must be logged in");
+
+            // Debug Log
+            console.log("Submitting report:", { questionId, userId: user.id, reportText, suggestedOption });
+
+            const { error } = await supabase.from("question_reports").insert({
+                question_id: questionId,
+                user_id: user.id,
+                report_text: reportText,
+                suggested_correct_option: suggestedOption
+            });
+
+            if (error) {
+                console.error("Report submission error:", error);
+                throw error;
+            }
+        },
+        onSuccess: () => {
+            toast({ title: "Report submitted successfully", description: "Thank you for your feedback." });
+            setReportText("");
+            setSuggestedOption(undefined);
+            setIsOpen(false);
+            onClose();
+        },
+        onError: (error) => {
+            console.error("Report mutation error:", error);
+            toast({ title: "Failed to submit report", description: error.message, variant: "destructive" });
+        }
+    });
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500">
+                    <Flag className="h-5 w-5" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Report Mistake</DialogTitle>
+                    <DialogDescription>
+                        Found an error in this question? Let us know.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="text-sm text-muted-foreground line-clamp-2 italic bg-muted p-2 rounded">
+                        <MathText text={questionText} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Describe the issue</Label>
+                        <Textarea
+                            placeholder="Explain what is wrong..."
+                            value={reportText}
+                            onChange={(e) => setReportText(e.target.value)}
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Suggested Correct Option (Optional)</Label>
+                        <Select value={suggestedOption} onValueChange={setSuggestedOption}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select correct option" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="A">Option A</SelectItem>
+                                <SelectItem value="B">Option B</SelectItem>
+                                <SelectItem value="C">Option C</SelectItem>
+                                <SelectItem value="D">Option D</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+                    <Button
+                        onClick={() => reportMutation.mutate()}
+                        disabled={!reportText.trim() || reportMutation.isPending}
+                    >
+                        {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 const ExamReview = () => {
   const { attemptId } = useParams();
@@ -162,37 +262,33 @@ const ExamReview = () => {
       return true;
   });
 
+  // Data for Pie Chart
+  const pieData = [
+    { name: 'Correct', value: correctCount, color: '#16a34a' }, // green-600
+    { name: 'Wrong', value: wrongCount, color: '#ef4444' }, // red-500
+    { name: 'Skipped', value: skippedCount, color: '#94a3b8' }, // slate-400
+  ].filter(d => d.value > 0);
+
   return (
     <div className="min-h-screen bg-background font-sans pb-20">
       <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
             <Button variant="ghost" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exams
+                <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="flex gap-2">
                  {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" onClick={handleRetakeMistakes}>
-                        <RotateCw className="h-4 w-4 mr-2" /> Retake Mistakes
+                     <Button variant="destructive" onClick={handleRetakeMistakes} className="h-10 px-4 py-2">
+                        <RotateCw className="h-5 w-5 mr-2" /> Retake
                      </Button>
                  )}
-                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)}>
-                    <Trophy className="h-4 w-4 mr-2 text-yellow-500" /> Leaderboard
+                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-4 py-2">
+                    <Trophy className="h-5 w-5 mr-2 text-yellow-500" /> Leaderboard
                  </Button>
             </div>
         </div>
-
-        {/* Warning for Second Timers */}
-        {profile?.is_second_timer && (
-            <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 text-yellow-800 dark:text-yellow-200 text-sm">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                <p>
-                    <strong>Second Timer Deduction Applied:</strong> As you are a second timer,
-                    marks have been deducted from your raw score (if applicable based on question count).
-                </p>
-            </div>
-        )}
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
@@ -202,18 +298,53 @@ const ExamReview = () => {
                         <h1 className="text-2xl font-bold mb-1">{attempt.exam.title}</h1>
                         <p className="text-sm text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
-                    <div className="flex gap-8 text-center">
-                        <div>
-                            <div className="text-3xl font-bold text-primary">{Number(score).toFixed(2)}</div>
-                            <div className="text-xs uppercase font-bold text-muted-foreground">Score</div>
+
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-1 md:my-0">
+                        {/* Marks */}
+                        <div className="text-center">
+                             <div className="text-4xl font-bold text-primary">
+                                {Number(score).toFixed(2)}
+                                <span className="text-lg text-muted-foreground font-normal"> / {exam.total_marks}</span>
+                             </div>
+                             <div className="text-xs uppercase font-bold text-muted-foreground mt-1">Marks Obtained</div>
                         </div>
-                         <div>
-                            <div className="text-3xl font-bold text-green-600">{correctCount}</div>
-                            <div className="text-xs uppercase font-bold text-muted-foreground">Correct</div>
+
+                        {/* Pie Chart */}
+                        <div className="h-40 w-40 relative flex-shrink-0 -my-2 md:my-0">
+                             <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={pieData}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={35}
+                                        outerRadius={55}
+                                        paddingAngle={2}
+                                        dataKey="value"
+                                    >
+                                        {pieData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
                         </div>
-                         <div>
-                            <div className="text-3xl font-bold text-red-500">{wrongCount}</div>
-                            <div className="text-xs uppercase font-bold text-muted-foreground">Wrong</div>
+                    </div>
+
+                    {/* Stats */}
+                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-2 text-center">
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Correct</div>
+                            <div className="text-lg sm:text-xl font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
+                        </div>
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Wrong</div>
+                            <div className="text-lg sm:text-xl font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
+                        </div>
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Skipped</div>
+                            <div className="text-lg sm:text-xl font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
                         </div>
                     </div>
                 </div>
@@ -292,6 +423,16 @@ const ExamReview = () => {
                         <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
                     </div>
                 </div>
+
+                {/* Second Timer Warning in Breakdown */}
+                {profile?.is_second_timer && (
+                    <div className="mt-4 pt-4 border-t border-dashed flex items-start gap-2 text-xs text-muted-foreground">
+                        <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                        <p>
+                            সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
+                        </p>
+                    </div>
+                )}
             </CardContent>
         </Card>
 
@@ -310,7 +451,7 @@ const ExamReview = () => {
         ) : (
             <>
                 {/* Filters */}
-                <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                <div className="flex flex-wrap gap-2 pb-2">
                     {[
                         { label: "All", value: "all", count: totalQuestions },
                         { label: "Correct", value: "correct", count: correctCount },
@@ -321,7 +462,7 @@ const ExamReview = () => {
                             key={f.value}
                             onClick={() => setFilter(f.value as any)}
                             className={cn(
-                                "px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap border transition-colors",
+                                "px-3 py-1 rounded-full text-xs sm:text-sm font-medium border transition-colors",
                                 filter === f.value
                                     ? "bg-primary text-primary-foreground border-primary"
                                     : "bg-background text-muted-foreground border-border hover:bg-muted"
@@ -343,7 +484,12 @@ const ExamReview = () => {
                         return (
                             <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
                                 <CardContent className="p-5 space-y-2 relative">
-                                    <div className="absolute top-4 right-4 print:hidden">
+                                    <div className="absolute top-3 right-4 print:hidden flex gap-0.5">
+                                        <ReportQuestionDialog
+                                            questionId={q.id}
+                                            questionText={q.question_text}
+                                            onClose={() => {}}
+                                        />
                                         <Button
                                             variant="ghost"
                                             size="icon"
@@ -355,7 +501,7 @@ const ExamReview = () => {
                                     </div>
 
                                     {/* Question Header */}
-                                    <div className="flex items-start gap-4 pr-10">
+                                    <div className="flex items-start gap-4 pr-12">
                                         <div className={cn(
                                             "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
                                             isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :

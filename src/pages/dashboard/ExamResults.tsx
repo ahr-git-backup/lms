@@ -38,22 +38,22 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col flex-1">
-            <div className="flex gap-2 mt-auto">
+            <div className="flex gap-1.5 mt-auto">
                 <Button
                     size="sm"
-                    className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"
+                    className="flex-1 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-7 px-2"
                     onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
                 >
-                    Review & Retake
+                    Review
                 </Button>
                 <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
                     title="View Leaderboard"
-                    className="rounded-full hover:bg-emerald-100 text-emerald-700"
+                    className="rounded-full hover:bg-emerald-100 text-emerald-700 h-7 w-7 p-0 shrink-0"
                 >
-                    <Trophy className="h-4 w-4" />
+                    <Trophy className="h-3.5 w-3.5" />
                 </Button>
             </div>
         </CardContent>

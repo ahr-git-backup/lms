@@ -448,6 +448,9 @@ export const DashboardLayout = () => {
                             <Link to="/dashboard/admin/reviews" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Megaphone className="h-4 w-4 text-pink-600" /> Reviews
                             </Link>
+                            <Link to="/dashboard/admin/reports" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                                <ShieldAlert className="h-4 w-4 text-red-500" /> Reports
+                            </Link>
                           </>
                         )}
                       </>

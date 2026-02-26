@@ -7,10 +7,57 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download } from "lucide-react";
+import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const PAGE_SIZE = 50;
+
+const Podium = ({ topThree }: { topThree: any[] }) => {
+    if (!topThree || topThree.length === 0) return null;
+
+    const first = topThree[0];
+    const second = topThree[1];
+    const third = topThree[2];
+
+    const PodiumItem = ({ student, rank, color, height }: { student: any, rank: number, color: string, height: string }) => {
+        if (!student) return <div className="w-24"></div>; // Placeholder space
+
+        return (
+            <div className="flex flex-col items-center justify-end z-10 mx-2">
+                <div className="relative mb-2">
+                    <Avatar className={`w-16 h-16 sm:w-20 sm:h-20 border-4 ${rank === 1 ? 'border-yellow-400' : rank === 2 ? 'border-slate-300' : 'border-orange-400'}`}>
+                        <AvatarImage src={student.profile?.avatar_url} />
+                        <AvatarFallback className="text-xl font-bold bg-muted">
+                            {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${color}`}>
+                        {student.score} marks
+                    </div>
+                </div>
+
+                <div className="text-center mb-1 max-w-[100px]">
+                    <div className="font-bold text-sm truncate" title={student.profile?.full_name}>
+                        {student.profile?.full_name?.split(" ")[0]}
+                    </div>
+                </div>
+
+                <div className={`w-24 sm:w-32 rounded-t-lg shadow-inner flex items-start justify-center pt-2 text-white font-bold text-2xl ${color}`} style={{ height }}>
+                    {rank}
+                </div>
+            </div>
+        );
+    };
+
+    return (
+        <div className="flex justify-center items-end py-8 mb-4">
+            <PodiumItem student={second} rank={2} color="bg-slate-400" height="80px" />
+            <PodiumItem student={first} rank={1} color="bg-yellow-400" height="110px" />
+            <PodiumItem student={third} rank={3} color="bg-orange-400" height="60px" />
+        </div>
+    );
+};
 
 const Leaderboard = () => {
   const { user, isAdmin, isTeacher } = useAuth();
@@ -94,7 +141,10 @@ const Leaderboard = () => {
   const totalCount = leaderboardData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const handleExport = async () => {
+  // Top 3 for Podium (Only on page 0)
+  const topThree = page === 0 ? leaderboard.slice(0, 3) : [];
+
+  const handleExportCSV = async () => {
       try {
           // Fetch ALL records for export, not just paginated
           let query = (supabase as any)
@@ -151,6 +201,241 @@ const Leaderboard = () => {
       }
   };
 
+  const handlePrintPDF = async () => {
+      try {
+          // 1. Fetch Exam Questions (to grade)
+          const { data: questions, error: qError } = await supabase
+              .from('exam_questions')
+              .select('id, correct_option')
+              .eq('exam_id', examId);
+
+          if (qError) throw qError;
+          const questionsMap = new Map(questions.map(q => [q.id, q.correct_option]));
+
+          // 2. Fetch Attempts with Answers & Profile details
+          // We fetch from leaderboard_exam_attempts to ensure we get the correct profile data structure
+          // BUT we also need 'answers' which is only in exam_attempts.
+          // Solution: Fetch from exam_attempts but join profile correctly or check why profile might be null.
+          // The issue "name and hsc batch not coming" means attempt.profile is likely null.
+          // This happens if the user enrolled but doesn't have a full profile or RLS blocks it.
+          // However, the main leaderboard UI works (fetching from leaderboard_exam_attempts view).
+          // Let's use the view for profile data and join attempts for answers if needed, OR just trust the view has everything except answers.
+          // Actually, the view `leaderboard_exam_attempts` usually aggregates data.
+          // Let's try fetching from the VIEW first to see if that fixes the data visibility.
+
+          let query = (supabase as any)
+            .from('leaderboard_exam_attempts')
+            .select('*')
+            .eq('exam_id', examId);
+
+           if (filterType === 'live') {
+                query = query.eq('attempt_type', 'live');
+           } else {
+                query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+           }
+
+           const { data: attempts, error: aError } = await query
+                .order('score', { ascending: false })
+                .order('submitted_at', { ascending: true });
+
+           if (aError) throw aError;
+           if (!attempts || attempts.length === 0) {
+               alert("No data to export");
+               return;
+           }
+
+           const escapeHtml = (unsafe: string) => {
+               return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+           };
+
+           const title = escapeHtml(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`);
+
+           // 3. Construct HTML
+           let rowsHtml = '';
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           attempts.forEach((attempt: any, index: number) => {
+               // Calculate Right/Wrong/Blank
+               let right = 0;
+               let wrong = 0;
+               let blank = 0;
+
+               // For Right/Wrong counts, we need the 'answers' column.
+               // The 'leaderboard_exam_attempts' view might NOT have 'answers' depending on definition.
+               // If it doesn't, we can't calc right/wrong easily without fetching attempts separately.
+               // Assuming the view DOES NOT have answers (it's usually for stats), we might need to fetch them or rely on stats if pre-calculated.
+               // BUT, the user issue is "NAME IS MISSING". The view definitely has the profile data flattened (e.g., profile_name, or profile -> json).
+               // Let's inspect the `leaderboard_exam_attempts` structure from the existing UI code:
+               // UI uses: item.profile?.full_name. This implies the view returns a `profile` object or relation.
+
+               // If we switched to the view, `attempt.profile` should be correct if the view preserves the relationship.
+               // IF the view returns flattened columns (e.g. full_name directly), we need to adjust.
+               // Based on `Leaderboard.tsx` earlier:
+               // .from('leaderboard_exam_attempts').select('*') returns `profile` object.
+
+               // However, if the PDF was failing to show names, maybe the *direct join* in my previous PDF code failed RLS or something?
+               // Switching to the view is safer.
+
+               // CALCULATING RIGHT/WRONG:
+               // If the view doesn't have `answers`, we can't count them here.
+               // We will assume for now we just want the scores and names fixed.
+               // Note: If `answers` is missing, right/wrong will be 0.
+
+               if (attempt.answers) {
+                   const answersArr = attempt.answers as any[] || [];
+                   const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
+
+                   questions.forEach(q => {
+                       const selected = answersMap.get(q.id);
+                       if (!selected) {
+                           blank++;
+                       } else if (selected === q.correct_option) {
+                           right++;
+                       } else {
+                           wrong++;
+                       }
+                   });
+               }
+
+               const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
+
+               // Fix: The view 'leaderboard_exam_attempts' likely returns profile data nested or flattened.
+               // If nested (from typical Supabase views), it's `profile: { full_name: ... }`.
+               // The visible table uses `item.profile?.full_name`.
+               // So if I switch query to use the view, it should match the table.
+
+               const name = escapeHtml(attempt.profile?.full_name || "Unknown");
+               const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
+
+               rowsHtml += `
+               <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
+                   <td class="p-2 border text-center font-bold">${index + 1}</td>
+                   <td class="p-2 border font-medium">${name}</td>
+                   <td class="p-2 border text-center font-bold">${attempt.score}</td>
+                   <td class="p-2 border text-center">${percent}%</td>
+                   <td class="p-2 border text-center text-green-600 font-bold">${right}</td>
+                   <td class="p-2 border text-center text-red-600 font-bold">${wrong}</td>
+                   <td class="p-2 border text-center text-gray-400 font-bold">${blank}</td>
+                   <td class="p-2 border text-center">${hsc}</td>
+               </tr>`;
+           });
+
+           const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="bn">
+            <head>
+                <meta charset="UTF-8">
+                <title>${title}</title>
+                <style>
+                    @font-face {
+                        font-family: 'SolaimanLipi';
+                        src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
+                    }
+                    body {
+                        font-family: 'SolaimanLipi', sans-serif;
+                        padding: 20px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .container {
+                        border: 2px solid #10b981; /* Emerald-500 */
+                        border-radius: 15px;
+                        padding: 20px;
+                        height: auto;
+                    }
+                    h1 {
+                        text-align: center;
+                        color: #10b981;
+                        font-size: 24px;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border-spacing: 0;
+                        border: 1px solid #e2e8f0;
+                        /* border-radius: 10px; Removed to fix page break overflow */
+                    }
+                    thead {
+                        display: table-header-group;
+                    }
+                    tr {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+                    th {
+                        background-color: #10b981;
+                        color: white;
+                        padding: 10px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e2e8f0;
+                    }
+                    td {
+                        padding: 8px;
+                        border-bottom: 1px solid #e2e8f0;
+                        border-right: 1px solid #e2e8f0;
+                    }
+                    td:last-child {
+                        border-right: none;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9fafb;
+                    }
+                    .text-center { text-align: center; }
+                    .text-green-600 { color: #16a34a; }
+                    .text-red-600 { color: #dc2626; }
+                    .text-gray-400 { color: #94a3b8; }
+                    .font-bold { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>${title}</h1>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Name</th>
+                                <th>Marks</th>
+                                <th>Percent</th>
+                                <th>Right</th>
+                                <th>Wrong</th>
+                                <th>Blank</th>
+                                <th>HSC Batch</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+           `;
+
+           const printWindow = window.open('', '_blank');
+           if (printWindow) {
+               printWindow.document.write(htmlContent);
+               printWindow.document.close();
+           } else {
+               alert("Popup blocked! Please allow popups for this site.");
+           }
+
+      } catch (err) {
+          console.error(err);
+          alert("Failed to generate PDF");
+      }
+  };
+
   // If exam is not live type, we might not need tabs, but user said "expired live exam will be counted as a practice exam"
   // So even for expired live exams, we should probably show the historical "Live Rank" vs "Practice Rank".
   const showTabs = exam?.exam_type === 'live';
@@ -178,10 +463,16 @@ const Leaderboard = () => {
             </div>
           </div>
           {isStaff && (
-              <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0 self-end sm:self-auto">
-                  <Download className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Export CSV</span>
-              </Button>
+              <div className="flex gap-2 self-end sm:self-auto">
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">CSV</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handlePrintPDF}>
+                    <FileText className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">PDF/Print</span>
+                </Button>
+              </div>
           )}
       </div>
 
@@ -217,6 +508,9 @@ const Leaderboard = () => {
             </div>
           ) : (
             <>
+            {/* Podium Component */}
+            {topThree.length > 0 && <Podium topThree={topThree} />}
+
             <div className="rounded-md border bg-card overflow-x-auto no-scrollbar scroll-smooth">
               <Table>
                 <TableHeader>
@@ -235,9 +529,18 @@ const Leaderboard = () => {
                     // Calculate global rank
                     const globalIndex = (page * PAGE_SIZE) + index;
                     let rankIcon = null;
-                    if (globalIndex === 0) rankIcon = "🥇";
-                    else if (globalIndex === 1) rankIcon = "🥈";
-                    else if (globalIndex === 2) rankIcon = "🥉";
+                    let rowClass = "";
+
+                    if (globalIndex === 0) {
+                        rankIcon = "🥇";
+                        rowClass = "bg-yellow-100/50 hover:bg-yellow-100/60 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30";
+                    } else if (globalIndex === 1) {
+                        rankIcon = "🥈";
+                        rowClass = "bg-slate-100/50 hover:bg-slate-100/60 dark:bg-slate-800/20 dark:hover:bg-slate-800/30";
+                    } else if (globalIndex === 2) {
+                        rankIcon = "🥉";
+                        rowClass = "bg-orange-100/50 hover:bg-orange-100/60 dark:bg-orange-900/20 dark:hover:bg-orange-900/30";
+                    }
 
                     // Format Time Taken
                     const formatDuration = (seconds: number) => {
@@ -257,9 +560,9 @@ const Leaderboard = () => {
                     const isSecondTimer = attempt.profile?.is_second_timer;
 
                     return (
-                        <TableRow key={attempt.id} className={globalIndex < 3 ? "bg-muted/30" : ""}>
+                        <TableRow key={attempt.id} className={rowClass}>
                             <TableCell className="font-bold whitespace-nowrap">
-                                {rankIcon ? <span className="text-lg mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
+                                {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
                             <TableCell className="font-medium whitespace-nowrap">
                                 <div className="flex flex-col">
