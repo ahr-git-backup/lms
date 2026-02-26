@@ -58,6 +58,7 @@ import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import AdminReviews from "./pages/dashboard/admin/AdminReviews";
+import AdminReports from "./pages/dashboard/admin/AdminReports";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
 import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
@@ -179,6 +180,7 @@ const App = () => {
                 <Route path="admin/promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
                 <Route path="admin/heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
                 <Route path="admin/reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
+                <Route path="admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

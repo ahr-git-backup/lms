@@ -527,6 +527,51 @@ export type Database = {
         }
         Relationships: []
       }
+      question_reports: {
+        Row: {
+          id: string
+          question_id: string
+          user_id: string
+          report_text: string
+          suggested_correct_option: string | null
+          created_at: string
+          status: string | null
+        }
+        Insert: {
+          id?: string
+          question_id: string
+          user_id: string
+          report_text: string
+          suggested_correct_option?: string | null
+          created_at?: string
+          status?: string | null
+        }
+        Update: {
+          id?: string
+          question_id?: string
+          user_id?: string
+          report_text?: string
+          suggested_correct_option?: string | null
+          created_at?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_reports_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "exam_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reminder_preferences: {
         Row: {
           created_at: string

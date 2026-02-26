@@ -705,11 +705,11 @@ const TakeExam = () => {
                                         {optionKey}
                                     </div>
                                     <div className={cn(
-                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth flex items-center gap-2",
-                                        isSelected ? "text-primary font-medium" : "text-foreground"
+                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth flex items-center justify-between gap-2 p-2 rounded-lg transition-colors",
+                                        isSelected ? "text-primary font-medium bg-primary/5 border border-primary/20" : "text-foreground"
                                     )}>
                                          <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
-                                         {isSelected && <Lock className="h-4 w-4 text-primary shrink-0" />}
+                                         {isSelected && <Lock className="h-4 w-4 text-primary shrink-0 ml-auto" />}
                                     </div>
                                 </div>
                             );

@@ -7,8 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download } from "lucide-react";
+import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const PAGE_SIZE = 50;
 
@@ -94,7 +96,7 @@ const Leaderboard = () => {
   const totalCount = leaderboardData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const handleExport = async () => {
+  const handleExportCSV = async () => {
       try {
           // Fetch ALL records for export, not just paginated
           let query = (supabase as any)
@@ -151,6 +153,113 @@ const Leaderboard = () => {
       }
   };
 
+  const handleExportPDF = async () => {
+      try {
+          // 1. Fetch Exam Questions (to grade)
+          const { data: questions, error: qError } = await supabase
+              .from('exam_questions')
+              .select('id, correct_option')
+              .eq('exam_id', examId);
+
+          if (qError) throw qError;
+          const questionsMap = new Map(questions.map(q => [q.id, q.correct_option]));
+
+          // 2. Fetch Attempts with Answers & Profile details
+          // We query exam_attempts directly to get 'answers' column
+          let query = supabase
+              .from('exam_attempts')
+              .select(`
+                *,
+                profile:profiles(full_name, registration_id, college_name)
+              `)
+              .eq('exam_id', examId);
+
+           if (filterType === 'live') {
+                query = query.eq('attempt_type', 'live');
+           } else {
+                query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+           }
+
+           const { data: attempts, error: aError } = await query
+                .order('score', { ascending: false })
+                .order('submitted_at', { ascending: true });
+
+           if (aError) throw aError;
+           if (!attempts || attempts.length === 0) {
+               alert("No data to export");
+               return;
+           }
+
+           // 3. Prepare Data
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           const rows = attempts.map((attempt: any, index: number) => {
+               // Calculate Right/Wrong/Blank
+               let right = 0;
+               let wrong = 0;
+               let blank = 0;
+
+               // Answers is JSON array: [{question_id, selected_option}]
+               const answersArr = attempt.answers as any[] || [];
+               const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
+
+               questions.forEach(q => {
+                   const selected = answersMap.get(q.id);
+                   if (!selected) {
+                       blank++;
+                   } else if (selected === q.correct_option) {
+                       right++;
+                   } else {
+                       wrong++;
+                   }
+               });
+
+               // Percentage
+               const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
+
+               return [
+                   attempt.profile?.full_name || "Unknown",
+                   attempt.score,
+                   index + 1, // Position
+                   percent,
+                   right,
+                   wrong,
+                   blank,
+                   attempt.profile?.college_name || "N/A"
+               ];
+           });
+
+           // 4. Generate PDF
+           const doc = new jsPDF();
+
+           // Add Font for Bangla support if needed (Standard fonts don't support Bangla well, but we'll use standard for now or assume English names primarily.
+           // If Bangla is strictly required, we'd need to add a font. For this task, we'll try default.)
+
+           // Header
+           doc.setFontSize(16);
+           doc.text(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`, 14, 20);
+
+           // Table
+           autoTable(doc, {
+               startY: 30,
+               head: [['NAME', 'Marks', 'Position', 'Percent', 'Right', 'Wrong', 'Blank', 'College']],
+               body: rows,
+               theme: 'grid',
+               headStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: 'bold' }, // Light gray header
+               styles: { fontSize: 8, cellPadding: 2 },
+               columnStyles: {
+                   0: { cellWidth: 40 }, // Name
+                   7: { cellWidth: 40 }  // College
+               }
+           });
+
+           doc.save(`${exam?.title}_result_sheet.pdf`);
+
+      } catch (err) {
+          console.error(err);
+          alert("Failed to export PDF");
+      }
+  };
+
   // If exam is not live type, we might not need tabs, but user said "expired live exam will be counted as a practice exam"
   // So even for expired live exams, we should probably show the historical "Live Rank" vs "Practice Rank".
   const showTabs = exam?.exam_type === 'live';
@@ -178,10 +287,16 @@ const Leaderboard = () => {
             </div>
           </div>
           {isStaff && (
-              <Button variant="outline" size="sm" onClick={handleExport} className="shrink-0 self-end sm:self-auto">
-                  <Download className="h-4 w-4 sm:mr-2" />
-                  <span className="hidden sm:inline">Export CSV</span>
-              </Button>
+              <div className="flex gap-2 self-end sm:self-auto">
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                    <Download className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">CSV</span>
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                    <FileText className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">PDF</span>
+                </Button>
+              </div>
           )}
       </div>
 
@@ -235,9 +350,18 @@ const Leaderboard = () => {
                     // Calculate global rank
                     const globalIndex = (page * PAGE_SIZE) + index;
                     let rankIcon = null;
-                    if (globalIndex === 0) rankIcon = "🥇";
-                    else if (globalIndex === 1) rankIcon = "🥈";
-                    else if (globalIndex === 2) rankIcon = "🥉";
+                    let rowClass = "";
+
+                    if (globalIndex === 0) {
+                        rankIcon = "🥇";
+                        rowClass = "bg-yellow-100/50 hover:bg-yellow-100/60 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30";
+                    } else if (globalIndex === 1) {
+                        rankIcon = "🥈";
+                        rowClass = "bg-slate-100/50 hover:bg-slate-100/60 dark:bg-slate-800/20 dark:hover:bg-slate-800/30";
+                    } else if (globalIndex === 2) {
+                        rankIcon = "🥉";
+                        rowClass = "bg-orange-100/50 hover:bg-orange-100/60 dark:bg-orange-900/20 dark:hover:bg-orange-900/30";
+                    }
 
                     // Format Time Taken
                     const formatDuration = (seconds: number) => {
@@ -257,9 +381,9 @@ const Leaderboard = () => {
                     const isSecondTimer = attempt.profile?.is_second_timer;
 
                     return (
-                        <TableRow key={attempt.id} className={globalIndex < 3 ? "bg-muted/30" : ""}>
+                        <TableRow key={attempt.id} className={rowClass}>
                             <TableCell className="font-bold whitespace-nowrap">
-                                {rankIcon ? <span className="text-lg mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
+                                {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
                             <TableCell className="font-medium whitespace-nowrap">
                                 <div className="flex flex-col">

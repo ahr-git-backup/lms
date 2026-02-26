@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift } from "lucide-react";
+import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -52,6 +52,7 @@ const adminItems = [
   { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
   { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
   { title: "Reviews", url: "/dashboard/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
+  { title: "Reports", url: "/dashboard/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
 ];
 
 export function AppSidebar() {
