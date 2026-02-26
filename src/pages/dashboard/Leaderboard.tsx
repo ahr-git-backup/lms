@@ -10,8 +10,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import pdfMake from "pdfmake/build/pdfmake";
+import pdfFonts from "pdfmake/build/vfs_fonts";
+
+// Initialize pdfMake fonts
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
+// Register Bangla Font (SolaimanLipi)
+pdfMake.fonts = {
+    SolaimanLipi: {
+        normal: window.location.origin + '/SolaimanLipi.ttf',
+        bold: window.location.origin + '/SolaimanLipi.ttf', // Fallback to normal if bold missing
+        italics: window.location.origin + '/SolaimanLipi.ttf',
+        bolditalics: window.location.origin + '/SolaimanLipi.ttf',
+    },
+    Roboto: {
+        normal: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf',
+        bold: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf',
+        italics: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Italic.ttf',
+        bolditalics: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-MediumItalic.ttf'
+    }
+};
 
 const PAGE_SIZE = 50;
 
@@ -240,9 +259,24 @@ const Leaderboard = () => {
                return;
            }
 
-           // 3. Prepare Data
+           // 3. Prepare Table Body
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           const rows = attempts.map((attempt: any, index: number) => {
+           const body = [];
+           // Header Row
+           body.push([
+               { text: 'Pos', style: 'tableHeader', alignment: 'center' },
+               { text: 'Name', style: 'tableHeader' },
+               { text: 'Marks', style: 'tableHeader', alignment: 'center' },
+               { text: 'Percent', style: 'tableHeader', alignment: 'center' },
+               { text: 'Right', style: 'tableHeader', alignment: 'center' },
+               { text: 'Wrong', style: 'tableHeader', alignment: 'center' },
+               { text: 'Blank', style: 'tableHeader', alignment: 'center' },
+               { text: 'HSC Batch', style: 'tableHeader', alignment: 'center' }
+           ]);
+
+           // Data Rows
+           // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           attempts.forEach((attempt: any, index: number) => {
                // Calculate Right/Wrong/Blank
                let right = 0;
                let wrong = 0;
@@ -266,132 +300,75 @@ const Leaderboard = () => {
                // Percentage
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
 
-               return [
-                   index + 1, // Position (1st Col)
-                   attempt.score, // Marks (2nd Col)
-                   attempt.profile?.full_name || "Unknown",
-                   percent,
-                   right,
-                   wrong,
-                   blank,
-                   attempt.profile?.hsc_batch || "-" // HSC Batch (Last Col)
-               ];
+               // Row Data
+               body.push([
+                   { text: (index + 1).toString(), alignment: 'center', style: 'tableCell' },
+                   { text: attempt.profile?.full_name || "Unknown", style: 'tableCell' },
+                   { text: attempt.score.toString(), alignment: 'center', style: 'tableCell' },
+                   { text: percent + '%', alignment: 'center', style: 'tableCell' },
+                   { text: right.toString(), alignment: 'center', color: '#16a34a', style: 'tableCell' },
+                   { text: wrong.toString(), alignment: 'center', color: '#dc2626', style: 'tableCell' },
+                   { text: blank.toString(), alignment: 'center', color: '#94a3b8', style: 'tableCell' },
+                   { text: attempt.profile?.hsc_batch || "-", alignment: 'center', style: 'tableCell' }
+               ]);
            });
 
-           // 4. Generate PDF
-           const doc = new jsPDF();
-
-           // Add Bangla Font
-           try {
-               const fontResponse = await fetch('/SolaimanLipi.ttf');
-               if (fontResponse.ok) {
-                   const fontBlob = await fontResponse.blob();
-                   const reader = new FileReader();
-                   reader.readAsDataURL(fontBlob);
-                   await new Promise((resolve) => {
-                       reader.onloadend = () => {
-                           const base64Font = (reader.result as string).split(',')[1];
-                           doc.addFileToVFS("SolaimanLipi.ttf", base64Font);
-                           doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "normal");
-                           doc.addFont("SolaimanLipi.ttf", "SolaimanLipi", "bold");
-                           doc.setFont("SolaimanLipi");
-                           resolve(null);
-                       };
-                   });
-               }
-           } catch (e) {
-               console.error("Failed to load font", e);
-           }
-
-           // Visual Configuration
-           const pageWidth = doc.internal.pageSize.width;
-           const pageHeight = doc.internal.pageSize.height;
-           const margin = 14;
-
-           // 1. Add Background/Border (Rounded Card Look)
-           doc.setDrawColor(16, 185, 129); // Emerald-500 Border
-           doc.setLineWidth(0.5);
-           doc.setFillColor(255, 255, 255);
-           // Draw a large rounded rectangle for the "page container" feel
-           doc.roundedRect(10, 10, pageWidth - 20, pageHeight - 20, 5, 5, 'FD');
-
-           // 2. Header
-           doc.setFontSize(14);
-           doc.setTextColor(16, 185, 129); // Emerald-600
-           // Ensure we use the custom font if loaded, otherwise fallback
-           if (doc.getFontList()["SolaimanLipi"]) {
-               doc.setFont("SolaimanLipi", "bold");
-           } else {
-               doc.setFont("helvetica", "bold");
-           }
-
-           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
-           const textWidth = doc.getTextWidth(title);
-           doc.text(title, (pageWidth - textWidth) / 2, 25); // Center align
-
-           // 3. Table
-           autoTable(doc, {
-               startY: 35,
-               head: [['Pos', 'Name', 'Marks', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
-               body: rows.map(r => [r[0], r[2], r[1], r[3], r[4], r[5], r[6], r[7]]), // Reorder row data: Pos, Name(2), Marks(1), ...
-               theme: 'grid', // Use grid for better borders
-
-               headStyles: {
-                   fillColor: [16, 185, 129], // Emerald-500
-                   textColor: [255, 255, 255], // White
-                   font: "SolaimanLipi", // Use custom font in header
-                   fontStyle: 'bold',
-                   fontSize: 9,
-                   halign: 'center',
-                   valign: 'middle',
-                   minCellHeight: 10,
-                   lineWidth: 0
-               },
-
-               bodyStyles: {
-                   textColor: [51, 65, 85], // Slate-700
-                   fontSize: 9,
-                   valign: 'middle',
-                   cellPadding: 3,
-                   font: "SolaimanLipi" // Use custom font in body for Names
-               },
-
-               columnStyles: {
-                   0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
-                   1: { cellWidth: 'auto' }, // Name
-                   2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
-                   3: { halign: 'center' }, // Percent
-                   4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
-                   5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
-                   6: { halign: 'center', textColor: [148, 163, 184] }, // Blank (Gray)
-                   7: { halign: 'center' }  // HSC Batch
-               },
-
-               // Add bottom border to rows for "striped" feel without full background
-               didParseCell: (data) => {
-                   if (data.section === 'body') {
-                       // Alternate row background slightly
-                       if (data.row.index % 2 === 0) {
-                           data.cell.styles.fillColor = [255, 255, 255];
-                       } else {
-                           data.cell.styles.fillColor = [250, 250, 250]; // Very light gray
+           // 4. Generate PDF Definition
+           const docDefinition = {
+               content: [
+                   { text: `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`, style: 'header', alignment: 'center' },
+                   {
+                       style: 'tableExample',
+                       table: {
+                           headerRows: 1,
+                           widths: [30, '*', 40, 45, 30, 30, 30, 50],
+                           body: body
+                       },
+                       layout: {
+                           fillColor: function (rowIndex: number) {
+                               return (rowIndex % 2 === 0) ? '#f8f9fa' : null;
+                           },
+                           hLineWidth: function (i: number, node: any) {
+                               return (i === 0 || i === node.table.body.length) ? 0 : 1;
+                           },
+                           vLineWidth: function (i: number) {
+                               return 0;
+                           },
+                           hLineColor: function (i: number) {
+                               return '#e2e8f0';
+                           }
                        }
                    }
+               ],
+               styles: {
+                   header: {
+                       fontSize: 16,
+                       bold: true,
+                       margin: [0, 0, 0, 10],
+                       color: '#10b981',
+                       font: 'SolaimanLipi'
+                   },
+                   tableHeader: {
+                       bold: true,
+                       fontSize: 10,
+                       color: 'white',
+                       fillColor: '#10b981',
+                       margin: [2, 4, 2, 4],
+                       font: 'SolaimanLipi'
+                   },
+                   tableCell: {
+                       fontSize: 10,
+                       margin: [2, 4, 2, 4],
+                       font: 'SolaimanLipi'
+                   }
                },
+               defaultStyle: {
+                   font: 'SolaimanLipi'
+               }
+           };
 
-               margin: { left: 14, right: 14 }
-           });
-
-           // Footer / Page numbers
-           const pageCount = (doc as any).internal.getNumberOfPages();
-           doc.setFontSize(8);
-           doc.setTextColor(150);
-           for(let i = 1; i <= pageCount; i++) {
-               doc.setPage(i);
-               doc.text('Page ' + String(i) + ' of ' + String(pageCount), pageWidth / 2, pageHeight - 15, { align: 'center' });
-           }
-
-           doc.save(`${exam?.title}_result_sheet.pdf`);
+           // Generate and Open/Download
+           pdfMake.createPdf(docDefinition).download(`${exam?.title}_result_sheet.pdf`);
 
       } catch (err) {
           console.error(err);

@@ -290,16 +290,6 @@ const ExamReview = () => {
             </div>
         </div>
 
-        {/* Warning for Second Timers */}
-        {profile?.is_second_timer && (
-            <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 text-yellow-800 dark:text-yellow-200 text-sm">
-                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                <p>
-                    সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
-                </p>
-            </div>
-        )}
-
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-6">
@@ -433,6 +423,16 @@ const ExamReview = () => {
                         <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
                     </div>
                 </div>
+
+                {/* Second Timer Warning in Breakdown */}
+                {profile?.is_second_timer && (
+                    <div className="mt-4 pt-4 border-t border-dashed flex items-start gap-2 text-xs text-muted-foreground">
+                        <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                        <p>
+                            সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
+                        </p>
+                    </div>
+                )}
             </CardContent>
         </Card>
 
