@@ -107,7 +107,7 @@ const AdminReports = () => {
         return (
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="default" size="sm">
+                    <Button variant="default" size="sm" className="w-full sm:w-auto">
                         <Check className="h-4 w-4 mr-2" />
                         Edit & Resolve
                     </Button>
@@ -187,7 +187,7 @@ const AdminReports = () => {
     }
 
     return (
-        <div className="space-y-6 pb-20 p-4 sm:p-8 max-w-6xl mx-auto overflow-x-hidden">
+        <div className="space-y-6 pb-20 p-2 sm:p-4 mx-auto overflow-x-hidden w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold tracking-tight">Question Reports</h1>
@@ -249,10 +249,11 @@ const AdminReports = () => {
                                 </div>
                             </div>
                         </CardContent>
-                        <CardFooter className="flex justify-end gap-2 bg-muted/20 py-3">
+                        <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 bg-muted/20 py-3">
                             <Button
                                 variant="destructive"
                                 size="sm"
+                                className="w-full sm:w-auto"
                                 onClick={() => {
                                     if(confirm("Are you sure you want to decline this report? It will be deleted.")) {
                                         deleteReportMutation.mutate(report.id);

@@ -295,8 +295,7 @@ const ExamReview = () => {
             <div className="bg-yellow-100 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-900/50 p-4 rounded-lg flex items-center gap-3 text-yellow-800 dark:text-yellow-200 text-sm">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
                 <p>
-                    <strong>Second Timer Deduction Applied:</strong> As you are a second timer,
-                    marks have been deducted from your raw score (if applicable based on question count).
+                    সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
                 </p>
             </div>
         )}
@@ -310,7 +309,7 @@ const ExamReview = () => {
                         <p className="text-sm text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-4 md:my-0">
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-1 md:my-0">
                         {/* Marks */}
                         <div className="text-center">
                              <div className="text-4xl font-bold text-primary">
@@ -345,17 +344,17 @@ const ExamReview = () => {
 
                     {/* Stats */}
                     <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-2 text-center">
-                         <div className="flex-1">
-                            <div className="text-lg sm:text-xl font-bold text-green-600">{correctCount}</div>
-                            <div className="text-[10px] uppercase font-bold text-muted-foreground">Correct</div>
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Correct</div>
+                            <div className="text-lg sm:text-xl font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
                         </div>
-                         <div className="flex-1">
-                            <div className="text-lg sm:text-xl font-bold text-red-500">{wrongCount}</div>
-                            <div className="text-[10px] uppercase font-bold text-muted-foreground">Wrong</div>
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Wrong</div>
+                            <div className="text-lg sm:text-xl font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
                         </div>
-                         <div className="flex-1">
-                            <div className="text-lg sm:text-xl font-bold text-slate-400">{skippedCount}</div>
-                            <div className="text-[10px] uppercase font-bold text-muted-foreground">Skipped</div>
+                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                            <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Skipped</div>
+                            <div className="text-lg sm:text-xl font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
                         </div>
                     </div>
                 </div>

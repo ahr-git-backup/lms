@@ -332,8 +332,8 @@ const Leaderboard = () => {
            // 3. Table
            autoTable(doc, {
                startY: 35,
-               head: [['Pos', 'Marks', 'Name', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
-               body: rows,
+               head: [['Pos', 'Name', 'Marks', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
+               body: rows.map(r => [r[0], r[2], r[1], r[3], r[4], r[5], r[6], r[7]]), // Reorder row data: Pos, Name(2), Marks(1), ...
                theme: 'grid', // Use grid for better borders
 
                headStyles: {
@@ -358,8 +358,8 @@ const Leaderboard = () => {
 
                columnStyles: {
                    0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
-                   1: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
-                   2: { cellWidth: 'auto' }, // Name
+                   1: { cellWidth: 'auto' }, // Name
+                   2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
                    3: { halign: 'center' }, // Percent
                    4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
                    5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
