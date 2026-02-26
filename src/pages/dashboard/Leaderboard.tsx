@@ -282,24 +282,35 @@ const Leaderboard = () => {
            const doc = new jsPDF();
 
            // Dynamic Font Loading
-           const fontUrl = window.location.origin + '/SolaimanLipi.ttf';
-           const fontResponse = await fetch(fontUrl);
-           if (!fontResponse.ok) throw new Error("Failed to load font");
-           const fontBuffer = await fontResponse.arrayBuffer();
+           try {
+               const fontUrl = window.location.origin + '/Kalpurush.ttf';
+               const fontResponse = await fetch(fontUrl);
 
-           // Convert ArrayBuffer to binary string
-           const fontBinary = new Uint8Array(fontBuffer)
-             .reduce((data, byte) => data + String.fromCharCode(byte), '');
+               if (fontResponse.ok) {
+                   const fontBuffer = await fontResponse.arrayBuffer();
 
-           // Add font to VFS
-           doc.addFileToVFS('SolaimanLipi.ttf', fontBinary);
-           doc.addFont('SolaimanLipi.ttf', 'SolaimanLipi', 'normal');
-           doc.setFont('SolaimanLipi');
+                   // Convert ArrayBuffer to binary string
+                   const fontBinary = new Uint8Array(fontBuffer)
+                     .reduce((data, byte) => data + String.fromCharCode(byte), '');
+
+                   // Add font to VFS
+                   doc.addFileToVFS('Kalpurush.ttf', fontBinary);
+                   doc.addFont('Kalpurush.ttf', 'Kalpurush', 'normal');
+                   doc.setFont('Kalpurush');
+               } else {
+                   console.error("Font loading failed, falling back to default.");
+               }
+           } catch (e) {
+               console.error("Font loading error:", e);
+           }
 
            // Header
            doc.setFontSize(14);
            doc.setTextColor(16, 185, 129); // Emerald-600
            const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
+           // Check if current font supports title text, if not, jsPDF might output garbage.
+           // However, if Kalpurush loaded, it should be fine.
+
            const textWidth = doc.getTextWidth(title);
            doc.text(title, (doc.internal.pageSize.width - textWidth) / 2, 25); // Center align
 
@@ -310,8 +321,7 @@ const Leaderboard = () => {
                body: rows,
                theme: 'grid',
                styles: {
-                   font: 'SolaimanLipi',
-                   fontStyle: 'normal',
+                   font: 'helvetica', // Default to helvetica for robustness with numbers/latin
                    fontSize: 9,
                    valign: 'middle',
                    cellPadding: 3
@@ -324,7 +334,7 @@ const Leaderboard = () => {
                },
                columnStyles: {
                    0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
-                   1: { cellWidth: 'auto' }, // Name
+                   1: { cellWidth: 'auto', font: 'Kalpurush' }, // Name - Explicitly use Bangla font here
                    2: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
                    3: { halign: 'center' }, // Percent
                    4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
