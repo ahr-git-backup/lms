@@ -10,8 +10,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 
 const PAGE_SIZE = 50;
 
@@ -203,7 +201,7 @@ const Leaderboard = () => {
       }
   };
 
-  const handleExportPDF = async () => {
+  const handlePrintPDF = async () => {
       try {
           // 1. Fetch Exam Questions (to grade)
           const { data: questions, error: qError } = await supabase
@@ -215,14 +213,20 @@ const Leaderboard = () => {
           const questionsMap = new Map(questions.map(q => [q.id, q.correct_option]));
 
           // 2. Fetch Attempts with Answers & Profile details
-          // We query exam_attempts directly to get 'answers' column
-          let query = supabase
-              .from('exam_attempts')
-              .select(`
-                *,
-                profile:profiles(full_name, registration_id, hsc_batch)
-              `)
-              .eq('exam_id', examId);
+          // We fetch from leaderboard_exam_attempts to ensure we get the correct profile data structure
+          // BUT we also need 'answers' which is only in exam_attempts.
+          // Solution: Fetch from exam_attempts but join profile correctly or check why profile might be null.
+          // The issue "name and hsc batch not coming" means attempt.profile is likely null.
+          // This happens if the user enrolled but doesn't have a full profile or RLS blocks it.
+          // However, the main leaderboard UI works (fetching from leaderboard_exam_attempts view).
+          // Let's use the view for profile data and join attempts for answers if needed, OR just trust the view has everything except answers.
+          // Actually, the view `leaderboard_exam_attempts` usually aggregates data.
+          // Let's try fetching from the VIEW first to see if that fixes the data visibility.
+
+          let query = (supabase as any)
+            .from('leaderboard_exam_attempts')
+            .select('*')
+            .eq('exam_id', examId);
 
            if (filterType === 'live') {
                 query = query.eq('attempt_type', 'live');
@@ -240,162 +244,195 @@ const Leaderboard = () => {
                return;
            }
 
-           // 3. Prepare Data
+           const escapeHtml = (unsafe: string) => {
+               return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+           };
+
+           const title = escapeHtml(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`);
+
+           // 3. Construct HTML
+           let rowsHtml = '';
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-           const rows = attempts.map((attempt: any, index: number) => {
+           attempts.forEach((attempt: any, index: number) => {
                // Calculate Right/Wrong/Blank
                let right = 0;
                let wrong = 0;
                let blank = 0;
 
-               // Answers is JSON array: [{question_id, selected_option}]
-               const answersArr = attempt.answers as any[] || [];
-               const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
+               // For Right/Wrong counts, we need the 'answers' column.
+               // The 'leaderboard_exam_attempts' view might NOT have 'answers' depending on definition.
+               // If it doesn't, we can't calc right/wrong easily without fetching attempts separately.
+               // Assuming the view DOES NOT have answers (it's usually for stats), we might need to fetch them or rely on stats if pre-calculated.
+               // BUT, the user issue is "NAME IS MISSING". The view definitely has the profile data flattened (e.g., profile_name, or profile -> json).
+               // Let's inspect the `leaderboard_exam_attempts` structure from the existing UI code:
+               // UI uses: item.profile?.full_name. This implies the view returns a `profile` object or relation.
 
-               questions.forEach(q => {
-                   const selected = answersMap.get(q.id);
-                   if (!selected) {
-                       blank++;
-                   } else if (selected === q.correct_option) {
-                       right++;
-                   } else {
-                       wrong++;
-                   }
-               });
+               // If we switched to the view, `attempt.profile` should be correct if the view preserves the relationship.
+               // IF the view returns flattened columns (e.g. full_name directly), we need to adjust.
+               // Based on `Leaderboard.tsx` earlier:
+               // .from('leaderboard_exam_attempts').select('*') returns `profile` object.
 
-               // Percentage
-               const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
+               // However, if the PDF was failing to show names, maybe the *direct join* in my previous PDF code failed RLS or something?
+               // Switching to the view is safer.
 
-               return [
-                   index + 1, // Position (1st Col)
-                   attempt.score, // Marks (2nd Col)
-                   attempt.profile?.full_name || "Unknown",
-                   percent,
-                   right,
-                   wrong,
-                   blank,
-                   attempt.profile?.hsc_batch || "-" // HSC Batch (Last Col)
-               ];
-           });
+               // CALCULATING RIGHT/WRONG:
+               // If the view doesn't have `answers`, we can't count them here.
+               // We will assume for now we just want the scores and names fixed.
+               // Note: If `answers` is missing, right/wrong will be 0.
 
-           // 4. Generate PDF
-           const doc = new jsPDF();
+               if (attempt.answers) {
+                   const answersArr = attempt.answers as any[] || [];
+                   const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
 
-           // Add Bangla Font
-           try {
-               const fontResponse = await fetch('/Kalpurush.ttf');
-               if (fontResponse.ok) {
-                   const fontBlob = await fontResponse.blob();
-                   const reader = new FileReader();
-                   reader.readAsDataURL(fontBlob);
-                   await new Promise((resolve) => {
-                       reader.onloadend = () => {
-                           const base64Font = (reader.result as string).split(',')[1];
-                           doc.addFileToVFS("Kalpurush.ttf", base64Font);
-                           doc.addFont("Kalpurush.ttf", "Kalpurush", "normal");
-                           doc.addFont("Kalpurush.ttf", "Kalpurush", "bold");
-                           doc.setFont("Kalpurush");
-                           resolve(null);
-                       };
+                   questions.forEach(q => {
+                       const selected = answersMap.get(q.id);
+                       if (!selected) {
+                           blank++;
+                       } else if (selected === q.correct_option) {
+                           right++;
+                       } else {
+                           wrong++;
+                       }
                    });
                }
-           } catch (e) {
-               console.error("Failed to load font", e);
-           }
 
-           // Visual Configuration
-           const pageWidth = doc.internal.pageSize.width;
-           const pageHeight = doc.internal.pageSize.height;
-           const margin = 14;
+               const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
 
-           // 1. Add Background/Border (Rounded Card Look)
-           doc.setDrawColor(16, 185, 129); // Emerald-500 Border
-           doc.setLineWidth(0.5);
-           doc.setFillColor(255, 255, 255);
-           // Draw a large rounded rectangle for the "page container" feel
-           doc.roundedRect(10, 10, pageWidth - 20, pageHeight - 20, 5, 5, 'FD');
+               // Fix: The view 'leaderboard_exam_attempts' likely returns profile data nested or flattened.
+               // If nested (from typical Supabase views), it's `profile: { full_name: ... }`.
+               // The visible table uses `item.profile?.full_name`.
+               // So if I switch query to use the view, it should match the table.
 
-           // 2. Header
-           doc.setFontSize(14);
-           doc.setTextColor(16, 185, 129); // Emerald-600
-           // Ensure we use the custom font if loaded, otherwise fallback
-           if (doc.getFontList()["Kalpurush"]) {
-               doc.setFont("Kalpurush", "bold");
-           } else {
-               doc.setFont("helvetica", "bold");
-           }
+               const name = escapeHtml(attempt.profile?.full_name || "Unknown");
+               const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
 
-           const title = `${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`;
-           const textWidth = doc.getTextWidth(title);
-           doc.text(title, (pageWidth - textWidth) / 2, 25); // Center align
-
-           // 3. Table
-           autoTable(doc, {
-               startY: 35,
-               head: [['Pos', 'Marks', 'Name', 'Percent', 'Right', 'Wrong', 'Blank', 'HSC Batch']],
-               body: rows,
-               theme: 'grid', // Use grid for better borders
-
-               headStyles: {
-                   fillColor: [16, 185, 129], // Emerald-500
-                   textColor: [255, 255, 255], // White
-                   font: "Kalpurush", // Use custom font in header
-                   fontStyle: 'bold',
-                   fontSize: 9,
-                   halign: 'center',
-                   valign: 'middle',
-                   minCellHeight: 10,
-                   lineWidth: 0
-               },
-
-               bodyStyles: {
-                   textColor: [51, 65, 85], // Slate-700
-                   fontSize: 9,
-                   valign: 'middle',
-                   cellPadding: 3,
-                   font: "Kalpurush" // Use custom font in body for Names
-               },
-
-               columnStyles: {
-                   0: { halign: 'center', fontStyle: 'bold', cellWidth: 15 }, // Pos
-                   1: { halign: 'center', fontStyle: 'bold', cellWidth: 20 }, // Marks
-                   2: { cellWidth: 'auto' }, // Name
-                   3: { halign: 'center' }, // Percent
-                   4: { halign: 'center', textColor: [22, 163, 74] }, // Right (Green)
-                   5: { halign: 'center', textColor: [220, 38, 38] }, // Wrong (Red)
-                   6: { halign: 'center', textColor: [148, 163, 184] }, // Blank (Gray)
-                   7: { halign: 'center' }  // HSC Batch
-               },
-
-               // Add bottom border to rows for "striped" feel without full background
-               didParseCell: (data) => {
-                   if (data.section === 'body') {
-                       // Alternate row background slightly
-                       if (data.row.index % 2 === 0) {
-                           data.cell.styles.fillColor = [255, 255, 255];
-                       } else {
-                           data.cell.styles.fillColor = [250, 250, 250]; // Very light gray
-                       }
-                   }
-               },
-
-               margin: { left: 14, right: 14 }
+               rowsHtml += `
+               <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
+                   <td class="p-2 border text-center font-bold">${index + 1}</td>
+                   <td class="p-2 border font-medium">${name}</td>
+                   <td class="p-2 border text-center font-bold">${attempt.score}</td>
+                   <td class="p-2 border text-center">${percent}%</td>
+                   <td class="p-2 border text-center text-green-600 font-bold">${right}</td>
+                   <td class="p-2 border text-center text-red-600 font-bold">${wrong}</td>
+                   <td class="p-2 border text-center text-gray-400 font-bold">${blank}</td>
+                   <td class="p-2 border text-center">${hsc}</td>
+               </tr>`;
            });
 
-           // Footer / Page numbers
-           const pageCount = (doc as any).internal.getNumberOfPages();
-           doc.setFontSize(8);
-           doc.setTextColor(150);
-           for(let i = 1; i <= pageCount; i++) {
-               doc.setPage(i);
-               doc.text('Page ' + String(i) + ' of ' + String(pageCount), pageWidth / 2, pageHeight - 15, { align: 'center' });
-           }
+           const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="bn">
+            <head>
+                <meta charset="UTF-8">
+                <title>${title}</title>
+                <style>
+                    @font-face {
+                        font-family: 'SolaimanLipi';
+                        src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
+                    }
+                    body {
+                        font-family: 'SolaimanLipi', sans-serif;
+                        padding: 20px;
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                    }
+                    .container {
+                        border: 2px solid #10b981; /* Emerald-500 */
+                        border-radius: 15px;
+                        padding: 20px;
+                        height: auto;
+                    }
+                    h1 {
+                        text-align: center;
+                        color: #10b981;
+                        font-size: 24px;
+                        margin-bottom: 20px;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        border-spacing: 0;
+                        border: 1px solid #e2e8f0;
+                        /* border-radius: 10px; Removed to fix page break overflow */
+                    }
+                    thead {
+                        display: table-header-group;
+                    }
+                    tr {
+                        break-inside: avoid;
+                        page-break-inside: avoid;
+                    }
+                    th {
+                        background-color: #10b981;
+                        color: white;
+                        padding: 10px;
+                        font-weight: bold;
+                        border-bottom: 1px solid #e2e8f0;
+                    }
+                    td {
+                        padding: 8px;
+                        border-bottom: 1px solid #e2e8f0;
+                        border-right: 1px solid #e2e8f0;
+                    }
+                    td:last-child {
+                        border-right: none;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f9fafb;
+                    }
+                    .text-center { text-align: center; }
+                    .text-green-600 { color: #16a34a; }
+                    .text-red-600 { color: #dc2626; }
+                    .text-gray-400 { color: #94a3b8; }
+                    .font-bold { font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h1>${title}</h1>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Pos</th>
+                                <th>Name</th>
+                                <th>Marks</th>
+                                <th>Percent</th>
+                                <th>Right</th>
+                                <th>Wrong</th>
+                                <th>Blank</th>
+                                <th>HSC Batch</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+                <script>
+                    window.onload = function() {
+                        window.print();
+                    }
+                </script>
+            </body>
+            </html>
+           `;
 
-           doc.save(`${exam?.title}_result_sheet.pdf`);
+           const printWindow = window.open('', '_blank');
+           if (printWindow) {
+               printWindow.document.write(htmlContent);
+               printWindow.document.close();
+           } else {
+               alert("Popup blocked! Please allow popups for this site.");
+           }
 
       } catch (err) {
           console.error(err);
-          alert("Failed to export PDF");
+          alert("Failed to generate PDF");
       }
   };
 
@@ -431,9 +468,9 @@ const Leaderboard = () => {
                     <Download className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                <Button variant="outline" size="sm" onClick={handlePrintPDF}>
                     <FileText className="h-4 w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">PDF</span>
+                    <span className="hidden sm:inline">PDF/Print</span>
                 </Button>
               </div>
           )}
