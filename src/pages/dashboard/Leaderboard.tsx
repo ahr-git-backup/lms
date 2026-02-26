@@ -14,7 +14,8 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 
 // Initialize pdfMake fonts
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+// @ts-ignore
+pdfMake.vfs = pdfFonts.pdfMake ? pdfFonts.pdfMake.vfs : pdfFonts.vfs;
 
 // Register Bangla Font (SolaimanLipi)
 pdfMake.fonts = {
