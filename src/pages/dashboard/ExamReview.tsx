@@ -274,18 +274,18 @@ const ExamReview = () => {
       <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-            <Button variant="ghost" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exams
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
+                <ArrowLeft className="h-4 w-4 mr-1" /> Back
             </Button>
             <div className="flex gap-2">
                  {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" onClick={handleRetakeMistakes}>
-                        <RotateCw className="h-4 w-4 mr-2" /> Retake Mistakes
+                     <Button variant="destructive" size="sm" onClick={handleRetakeMistakes} className="text-xs h-8">
+                        <RotateCw className="h-3.5 w-3.5 mr-1" /> Retake
                      </Button>
                  )}
-                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)}>
-                    <Trophy className="h-4 w-4 mr-2 text-yellow-500" /> Leaderboard
+                 <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="text-xs h-8">
+                    <Trophy className="h-3.5 w-3.5 mr-1 text-yellow-500" /> Leaderboard
                  </Button>
             </div>
         </div>
@@ -310,7 +310,7 @@ const ExamReview = () => {
                         <p className="text-sm text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-8">
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-4 md:my-0">
                         {/* Marks */}
                         <div className="text-center">
                              <div className="text-4xl font-bold text-primary">
@@ -321,7 +321,7 @@ const ExamReview = () => {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-40 w-40 relative">
+                        <div className="h-40 w-40 relative flex-shrink-0 -my-2 md:my-0">
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie

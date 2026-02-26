@@ -35,7 +35,7 @@ const Podium = ({ topThree }: { topThree: any[] }) => {
                         </AvatarFallback>
                     </Avatar>
                     <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${color}`}>
-                        {student.score} pts
+                        {student.score} marks
                     </div>
                 </div>
 
@@ -281,6 +281,27 @@ const Leaderboard = () => {
            // 4. Generate PDF
            const doc = new jsPDF();
 
+           // Add Bangla Font
+           try {
+               const fontResponse = await fetch('/Kalpurush.ttf');
+               if (fontResponse.ok) {
+                   const fontBlob = await fontResponse.blob();
+                   const reader = new FileReader();
+                   reader.readAsDataURL(fontBlob);
+                   await new Promise((resolve) => {
+                       reader.onloadend = () => {
+                           const base64Font = (reader.result as string).split(',')[1];
+                           doc.addFileToVFS("Kalpurush.ttf", base64Font);
+                           doc.addFont("Kalpurush.ttf", "Kalpurush", "normal");
+                           doc.setFont("Kalpurush");
+                           resolve(null);
+                       };
+                   });
+               }
+           } catch (e) {
+               console.error("Failed to load font", e);
+           }
+
            // Visual Configuration
            const pageWidth = doc.internal.pageSize.width;
            const pageHeight = doc.internal.pageSize.height;
@@ -311,6 +332,7 @@ const Leaderboard = () => {
                headStyles: {
                    fillColor: [16, 185, 129], // Emerald-500
                    textColor: [255, 255, 255], // White
+                   font: "Kalpurush", // Use custom font in header
                    fontStyle: 'bold',
                    fontSize: 9,
                    halign: 'center',
