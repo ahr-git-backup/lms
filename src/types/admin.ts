@@ -58,6 +58,7 @@ export interface Course {
   sub_category?: string[];
   priority?: number;
   linked_course_ids?: string[];
+  access_unlimited_practice?: boolean;
 }
 
 export interface Class {

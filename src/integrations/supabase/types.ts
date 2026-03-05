@@ -190,6 +190,7 @@ export type Database = {
           slug: string | null
           updated_at: string
           what_you_get: string[] | null
+          access_unlimited_practice: boolean | null
         }
         Insert: {
           bkash_number?: string | null
@@ -206,6 +207,7 @@ export type Database = {
           slug?: string | null
           updated_at?: string
           what_you_get?: string[] | null
+          access_unlimited_practice?: boolean | null
         }
         Update: {
           bkash_number?: string | null
@@ -222,6 +224,7 @@ export type Database = {
           slug?: string | null
           updated_at?: string
           what_you_get?: string[] | null
+          access_unlimited_practice?: boolean | null
         }
         Relationships: []
       }

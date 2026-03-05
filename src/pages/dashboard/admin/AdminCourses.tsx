@@ -67,6 +67,7 @@ const courseSchema = z.object({
   sub_category: z.array(z.string()).default([]),
   priority: z.number().optional().default(0),
   linked_course_ids: z.array(z.string()).default([]),
+  access_unlimited_practice: z.boolean().optional().default(false),
 });
 
 const PAGE_SIZE = 10;
@@ -91,6 +92,7 @@ const AdminCourses = () => {
     sub_category: [],
     priority: 0,
     linked_course_ids: [],
+    access_unlimited_practice: false,
   });
   const [page, setPage] = useState(0);
   const [isCouponDialogOpen, setIsCouponDialogOpen] = useState(false);
@@ -198,6 +200,7 @@ const AdminCourses = () => {
       sub_category: [],
       priority: 0,
       linked_course_ids: [],
+      access_unlimited_practice: false,
     });
     setActiveTab("basic");
   };
@@ -227,6 +230,7 @@ const AdminCourses = () => {
         sub_category: parsed.sub_category,
         priority: parsed.priority ?? 0,
         linked_course_ids: parsed.linked_course_ids,
+        access_unlimited_practice: parsed.access_unlimited_practice ?? false,
       };
 
       if (parsed.id) {
@@ -304,6 +308,7 @@ const AdminCourses = () => {
       priority: course.priority ?? 0,
       // @ts-ignore
       linked_course_ids: course.linked_course_ids || [],
+      access_unlimited_practice: course.access_unlimited_practice ?? false,
     });
     // Scroll to top to see the form
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -612,6 +617,19 @@ const AdminCourses = () => {
                                     <div className="grid gap-0.5">
                                         <Label htmlFor="is_public" className="text-base cursor-pointer">Public Visibility</Label>
                                         <span className="text-xs text-muted-foreground">Visible on public listings</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Switch
+                                    id="access_unlimited_practice"
+                                    checked={form.access_unlimited_practice}
+                                    onCheckedChange={(checked) =>
+                                        setForm((prev) => ({ ...prev, access_unlimited_practice: checked }))
+                                    }
+                                    />
+                                    <div className="grid gap-0.5">
+                                        <Label htmlFor="access_unlimited_practice" className="text-base cursor-pointer">Access Unlimited Practice</Label>
+                                        <span className="text-xs text-muted-foreground">Allow unlimited practice website</span>
                                     </div>
                                 </div>
                             </div>
