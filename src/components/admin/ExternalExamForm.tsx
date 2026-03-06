@@ -12,10 +12,40 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { MultiSelect } from "@/components/ui/multi-select";
 
+import { Textarea } from "@/components/ui/textarea";
+import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
+
 const externalExamSchema = z.object({
   id: z.string().optional(),
   course_id: z.string().nullable().optional(),
+  shared_course_ids: z.array(z.string()).default([]),
+  archive_course_ids: z.array(z.string()).default([]),
   title: z.string().trim().min(1, "Title is required"),
+  subject: z.array(z.string()).default([]),
+  chapter: z.string().trim().optional().or(z.literal("")),
+  exam_type: z.enum(["live", "practice"]),
+  duration_minutes: z
+    .string()
+    .trim()
+    .min(1, "Duration is required")
+    .refine((val) => !isNaN(Number(val)), { message: "Duration must be a number" }),
+  total_marks: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Total marks must be a number" }),
+  negative_mark_per_question: z
+    .string()
+    .trim()
+    .optional()
+    .or(z.literal(""))
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Negative mark must be a number" }),
+  instructions: z.string().trim().max(4000).optional().or(z.literal("")),
+  time_window_start: z.string().optional(),
+  time_window_end: z.string().optional(),
   external_exam_link: z.string().trim().min(1, "External Link is required").url("Must be a valid URL"),
   is_published: z.boolean().optional().default(false),
   is_archive: z.boolean().optional().default(false),
@@ -34,9 +64,28 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: globalMeta } = useGlobalMetadata() as any;
+    const addMetadata = useAddGlobalMetadata();
+
+    const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+        addMetadata.mutate({ type, value });
+    };
+
     const [form, setForm] = useState<z.infer<typeof externalExamSchema>>({
         course_id: "",
+        shared_course_ids: [],
+        archive_course_ids: [],
         title: "",
+        subject: [],
+        chapter: "",
+        exam_type: "live",
+        duration_minutes: "60",
+        total_marks: "",
+        negative_mark_per_question: "0",
+        instructions: "",
+        time_window_start: "",
+        time_window_end: "",
         external_exam_link: "",
         is_published: false,
         is_archive: false,
@@ -45,10 +94,33 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
 
     useEffect(() => {
         if (exam) {
+            let subjects: string[] = [];
+            if (Array.isArray(exam.subject)) {
+                subjects = exam.subject;
+            } else if (typeof exam.subject === 'string' && exam.subject) {
+                subjects = [exam.subject];
+            }
+
             setForm({
                 id: exam.id,
                 course_id: exam.course_id || "",
+                // @ts-ignore
+                shared_course_ids: exam.shared_course_ids || [],
+                // @ts-ignore
+                archive_course_ids: exam.archive_course_ids || [],
                 title: exam.title ?? "",
+                subject: subjects,
+                chapter: exam.chapter || "",
+                exam_type: exam.exam_type === "practice" ? "practice" : "live",
+                duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "60",
+                total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
+                negative_mark_per_question:
+                    exam.negative_mark_per_question != null
+                    ? String(exam.negative_mark_per_question)
+                    : "0",
+                instructions: exam.instructions ?? "",
+                time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
+                time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 external_exam_link: exam.external_exam_link || "",
                 is_published: exam.is_published ?? false,
                 is_archive: exam.is_archive ?? false,
@@ -72,14 +144,26 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
 
           const payload: Partial<Exam> = {
             course_id: isFreeMode ? null : (parsed.course_id || null),
+            // @ts-ignore
+            shared_course_ids: parsed.shared_course_ids,
+            // @ts-ignore
+            archive_course_ids: parsed.archive_course_ids,
             title: parsed.title,
+            subject: parsed.subject,
+            chapter: parsed.chapter || null,
+            exam_type: parsed.exam_type,
+            duration_minutes: Number(parsed.duration_minutes),
+            total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
+            negative_mark_per_question: parsed.negative_mark_per_question
+              ? Number(parsed.negative_mark_per_question)
+              : 0,
+            instructions: parsed.instructions || null,
+            time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
+            time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             external_exam_link: parsed.external_exam_link,
             is_published: parsed.is_published ?? false,
             is_archive: parsed.is_archive ?? false,
             is_readymade: parsed.is_readymade ?? false,
-            exam_type: "practice", // default to practice
-            duration_minutes: 0,
-            negative_mark_per_question: 0,
           };
 
           if (parsed.id) {
@@ -103,7 +187,18 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
           if (!exam) {
               setForm({
                 course_id: "",
+                shared_course_ids: [],
+                archive_course_ids: [],
                 title: "",
+                subject: [],
+                chapter: "",
+                exam_type: "live",
+                duration_minutes: "60",
+                total_marks: "",
+                negative_mark_per_question: "0",
+                instructions: "",
+                time_window_start: "",
+                time_window_end: "",
                 external_exam_link: "",
                 is_published: false,
                 is_archive: false,
@@ -172,12 +267,144 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
                   </div>
               )}
 
-              <div className="space-y-2 md:col-span-2">
+              {!isFreeMode && form.course_id && (
+                  <div className="space-y-2">
+                      <Label>Also Share With (Optional)</Label>
+                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      <MultiSelect
+                          options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                          selected={form.shared_course_ids}
+                          onChange={(vals) => setForm(prev => ({ ...prev, shared_course_ids: vals }))}
+                          placeholder="Select additional courses..."
+                      />
+                  </div>
+              )}
+
+              <div className="space-y-2">
+                  <Label>Add to Archive of (Optional)</Label>
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  <MultiSelect
+                      options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                      selected={form.archive_course_ids}
+                      onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
+                      placeholder="Select courses to archive for..."
+                  />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_exam_type">Exam type</Label>
+                <Select
+                  value={form.exam_type}
+                  onValueChange={(value) =>
+                    setForm((prev) => ({ ...prev, exam_type: value as "live" | "practice" }))
+                  }
+                >
+                  <SelectTrigger id="ext_exam_type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="live">Live exam</SelectItem>
+                    <SelectItem value="practice">Practice exam</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
                 <Label htmlFor="ext_title">Title</Label>
                 <Input
                   id="ext_title"
                   value={form.title}
                   onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_subject">Subjects</Label>
+                <MultiSelect
+                    options={globalMeta?.subject || []}
+                    selected={form.subject}
+                    onChange={(selected) => setForm((prev) => ({ ...prev, subject: selected }))}
+                    onCreate={(val) => {
+                         handleCreateMeta('subject', val);
+                         setForm(prev => ({ ...prev, subject: [...prev.subject, val] }));
+                    }}
+                    placeholder="Select or Create subjects..."
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_chapter">Chapter</Label>
+                <CreatableSelect
+                  options={globalMeta?.chapter || []}
+                  value={form.chapter || ""}
+                  onChange={(val) => setForm((prev) => ({ ...prev, chapter: val }))}
+                  onCreate={(val) => {
+                      handleCreateMeta('chapter', val);
+                      setForm((prev) => ({ ...prev, chapter: val }));
+                  }}
+                  placeholder="Select or Create Chapter"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_duration_minutes">Duration (minutes)</Label>
+                <Input
+                  id="ext_duration_minutes"
+                  value={form.duration_minutes}
+                  onChange={(e) => setForm((prev) => ({ ...prev, duration_minutes: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_total_marks">Total Marks (Optional)</Label>
+                <Input
+                  id="ext_total_marks"
+                  value={form.total_marks}
+                  onChange={(e) => setForm((prev) => ({ ...prev, total_marks: e.target.value }))}
+                  placeholder="Ex: 100"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_negative_mark_per_question">Negative mark per wrong answer</Label>
+                <Input
+                  id="ext_negative_mark_per_question"
+                  value={form.negative_mark_per_question}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, negative_mark_per_question: e.target.value }))
+                  }
+                  placeholder="Ex: 0.25"
+                />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ext_instructions">Instructions</Label>
+                <Textarea
+                  id="ext_instructions"
+                  rows={3}
+                  value={form.instructions}
+                  onChange={(e) => setForm((prev) => ({ ...prev, instructions: e.target.value }))}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_time_window_start">Time window start</Label>
+                <Input
+                  id="ext_time_window_start"
+                  type="datetime-local"
+                  value={form.time_window_start}
+                  onChange={(e) => setForm((prev) => ({ ...prev, time_window_start: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ext_time_window_end">Time window end</Label>
+                <Input
+                  id="ext_time_window_end"
+                  type="datetime-local"
+                  value={form.time_window_end}
+                  onChange={(e) => setForm((prev) => ({ ...prev, time_window_end: e.target.value }))}
                 />
               </div>
 
