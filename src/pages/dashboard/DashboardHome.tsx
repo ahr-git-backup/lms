@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp } from "lucide-react";
+import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -147,6 +147,7 @@ const DashboardHome = () => {
 
   const navigationItems = [
       { title: "Notice", icon: Bell, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/announcements" },
+      { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
       { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
       { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
@@ -415,12 +416,25 @@ const DashboardHome = () => {
                {navigationItems.map((item, index) => (
                    <Card
                         key={index}
-                        className="group hover:shadow-md transition-all cursor-pointer border-muted-foreground/20 hover:border-primary/50"
-                        onClick={() => navigate(item.url)}
+                        className={`group hover:shadow-md transition-all cursor-pointer ${
+                            item.isExternal
+                                ? 'border-violet-500/50 hover:border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.2)] dark:shadow-[0_0_15px_rgba(139,92,246,0.3)]'
+                                : 'border-muted-foreground/20 hover:border-primary/50'
+                        }`}
+                        onClick={() => {
+                            if (item.isExternal) {
+                                window.open(item.url, "_blank");
+                            } else {
+                                navigate(item.url);
+                            }
+                        }}
                     >
                        <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
-                           <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300`}>
-                               <item.icon className={`h-6 w-6 ${item.color}`} />
+                           <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300 relative`}>
+                               {item.isExternal && (
+                                   <div className="absolute inset-0 rounded-full bg-violet-400/20 animate-ping" />
+                               )}
+                               <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : ''}`} />
                            </div>
                            <p className="font-medium text-sm">{item.title}</p>
                        </CardContent>
