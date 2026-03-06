@@ -464,6 +464,9 @@ const TakeExam = () => {
       );
   }
 
+  // Handle External Exam Redirects *after* ensuring the exam has started
+
+
   // 2. Check previous attempts logic (only if NOT retaking mistakes)
   if (!isExpiredLive && existingAttempts && existingAttempts.length > 0 && !retakeFromAttemptId) {
       if (isLive) {
@@ -485,7 +488,7 @@ const TakeExam = () => {
       }
   }
 
-  if (!questions || questions.length === 0) {
+  if (!exam.external_exam_link && (!questions || questions.length === 0)) {
     return (
         <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] gap-4">
             <div className="bg-muted p-4 rounded-full">
@@ -522,7 +525,7 @@ const TakeExam = () => {
                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-xl font-bold text-primary">{questions.length}</span>
+                              <span className="text-xl font-bold text-primary">{exam.external_exam_link ? 'N/A' : questions?.length}</span>
                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Questions</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
@@ -581,7 +584,13 @@ const TakeExam = () => {
                           </Button>
                           <Button
                               className="flex-[2] h-11 rounded-xl font-semibold shadow-md"
-                              onClick={() => setHasStarted(true)}
+                              onClick={() => {
+                                  if (exam.external_exam_link) {
+                                      window.location.replace(exam.external_exam_link);
+                                  } else {
+                                      setHasStarted(true);
+                                  }
+                              }}
                               disabled={!agreedToInstructions}
                           >
                               Start Exam
