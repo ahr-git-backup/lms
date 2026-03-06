@@ -120,34 +120,49 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 placeholder="Search..."
                                 className="pl-8 h-9"
                                 value={search}
-                                onChange={(e) => setSearch(e.target.value)}
+                                onChange={(e) => {
+                                    setSearch(e.target.value);
+                                    setPage(1);
+                                }}
                             />
                         </div>
                         <CreatableSelect
                             options={[{ label: "All Subjects", value: "all" }, ...(globalMeta?.subject || [])]}
                             value={filters.subject}
-                            onChange={(val) => setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }))}
+                            onChange={(val) => {
+                                setFilters(prev => ({ ...prev, subject: val === 'all' ? '' : val }));
+                                setPage(1);
+                            }}
                             placeholder="Subject"
                             className="h-9"
                         />
                         <CreatableSelect
                             options={[{ label: "All Chapters", value: "all" }, ...(globalMeta?.chapter || [])]}
                             value={filters.chapter}
-                            onChange={(val) => setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }))}
+                            onChange={(val) => {
+                                setFilters(prev => ({ ...prev, chapter: val === 'all' ? '' : val }));
+                                setPage(1);
+                            }}
                             placeholder="Chapter"
                             className="h-9"
                         />
                         <CreatableSelect
                             options={[{ label: "All Codes", value: "all" }, ...(globalMeta?.exam_code || [])]}
                             value={filters.exam_code}
-                            onChange={(val) => setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }))}
+                            onChange={(val) => {
+                                setFilters(prev => ({ ...prev, exam_code: val === 'all' ? '' : val }));
+                                setPage(1);
+                            }}
                             placeholder="Code"
                             className="h-9"
                         />
                         <CreatableSelect
                             options={[{ label: "All Years", value: "all" }, ...(globalMeta?.year || [])]}
                             value={filters.year}
-                            onChange={(val) => setFilters(prev => ({ ...prev, year: val === 'all' ? '' : val }))}
+                            onChange={(val) => {
+                                setFilters(prev => ({ ...prev, year: val === 'all' ? '' : val }));
+                                setPage(1);
+                            }}
                             placeholder="Year"
                             className="h-9"
                         />
