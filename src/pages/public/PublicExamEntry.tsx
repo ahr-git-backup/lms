@@ -170,7 +170,7 @@ const PublicExamEntry = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Button onClick={() => navigate(`/dashboard/take-exam/${examId}`)} className="w-full h-12 text-lg" size="lg">
+                    <Button onClick={() => { navigate(`/dashboard/take-exam/${examId}`); }} className="w-full h-12 text-lg" size="lg">
                         Start Exam
                     </Button>
                 </CardContent>

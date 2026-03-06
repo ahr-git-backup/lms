@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useSearchParams } from "react-router-dom";
 import { ExamForm } from "@/components/admin/ExamForm";
+import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 
 const PAGE_SIZE = 10;
 
@@ -36,6 +37,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("editId");
   const [editingExam, setEditingExam] = useState<any>(null);
+  const [editingExternalExam, setEditingExternalExam] = useState<any>(null);
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
@@ -134,7 +136,11 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     if (editId && exams.length > 0) {
         const examToEdit = exams.find((e: Exam) => e.id === editId);
         if (examToEdit) {
-            setEditingExam(examToEdit);
+            if (examToEdit.external_exam_link) {
+                 setEditingExternalExam(examToEdit);
+            } else {
+                 setEditingExam(examToEdit);
+            }
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
     }
@@ -162,7 +168,14 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         <ExamForm
             exam={editingExam}
             onSuccess={() => setEditingExam(null)}
-            onCancel={() => setEditingExam(null)}
+            onCancel={editingExam ? () => setEditingExam(null) : undefined}
+            isFreeMode={isFreeMode}
+        />
+
+        <ExternalExamForm
+            exam={editingExternalExam}
+            onSuccess={() => setEditingExternalExam(null)}
+            onCancel={editingExternalExam ? () => setEditingExternalExam(null) : undefined}
             isFreeMode={isFreeMode}
         />
 
@@ -286,7 +299,14 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                     variant="ghost"
                                     className="h-8 w-8"
                                     title="Edit Details"
-                                    onClick={() => { setEditingExam(exam); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                    onClick={() => {
+                                        if (exam.external_exam_link) {
+                                             setEditingExternalExam(exam);
+                                        } else {
+                                             setEditingExam(exam);
+                                        }
+                                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                                    }}
                                 >
                                     <Edit className="h-4 w-4" />
                                 </Button>
@@ -421,16 +441,20 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                <DropdownMenuItem onClick={() => { setEditingExam(exam); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                                                <DropdownMenuItem onClick={() => {
+                                                    if (exam.external_exam_link) {
+                                                        setEditingExternalExam(exam);
+                                                    } else {
+                                                        setEditingExam(exam);
+                                                    }
+                                                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                                                }}>
                                                     <Edit className="mr-2 h-4 w-4" /> Edit Details
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}>
                                                     <Trophy className="mr-2 h-4 w-4" /> Leaderboard
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => {
-                                                     const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`;
-                                                     window.open(path, '_blank');
-                                                }}>
+                                                <DropdownMenuItem onClick={() => { const path = exam.external_exam_link ? exam.external_exam_link : (exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`); window.open(path, "_blank"); }}>
                                                     <ExternalLink className="mr-2 h-4 w-4" /> Open Exam
                                                 </DropdownMenuItem>
                                                 {isAdmin && (
