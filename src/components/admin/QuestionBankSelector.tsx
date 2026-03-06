@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Loader2 } from "lucide-react";
 import MathText from "@/components/MathText";
@@ -12,13 +11,11 @@ import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 
 interface QuestionBankSelectorProps {
-    open: boolean;
-    onClose: () => void;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onSelect: (questions: any[]) => void;
 }
 
-export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSelectorProps) => {
+export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) => {
     const [search, setSearch] = useState("");
     const [filters, setFilters] = useState({
         subject: "",
@@ -28,7 +25,7 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
         year: "",
     });
     const [page, setPage] = useState(1);
-    const PAGE_SIZE = 5;
+    const PAGE_SIZE = 50;
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
     // Global Metadata Hook
@@ -61,8 +58,7 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
 
             if (error) throw error;
             return { data, count };
-        },
-        enabled: open
+        }
     });
 
     const handleToggle = (id: string) => {
@@ -104,7 +100,6 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
             }));
 
             onSelect(mapped);
-            onClose();
             setSelectedIds(new Set());
         };
 
@@ -112,14 +107,12 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
     };
 
     return (
-        <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle>Select Questions from Bank</DialogTitle>
-                    <DialogDescription>Filter and select questions to import into the exam.</DialogDescription>
-                </DialogHeader>
+        <div className="flex flex-col h-full bg-card border rounded-xl shadow-sm overflow-hidden">
+            <div className="p-4 border-b bg-muted/20">
+                <h2 className="text-lg font-semibold mb-1">Question Bank</h2>
+                <p className="text-sm text-muted-foreground mb-4">Filter and select questions to import into the exam.</p>
 
-                <div className="space-y-4 py-4">
+                <div className="space-y-4">
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                         <div className="col-span-2 md:col-span-1 relative">
                             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -159,8 +152,11 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
                             className="h-9"
                         />
                     </div>
+                </div>
+            </div>
 
-                    <div className="border rounded-md min-h-[300px] max-h-[400px] overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0 bg-background/50">
+                <div className="p-4">
                         {isLoading ? (
                             <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
                         ) : (
@@ -189,28 +185,28 @@ export const QuestionBankSelector = ({ open, onClose, onSelect }: QuestionBankSe
                                 ))}
                             </div>
                         )}
-                    </div>
+                </div>
+            </div>
+
+            <div className="p-4 border-t bg-muted/20">
                      {questionsData && questionsData.count > PAGE_SIZE && (
-                        <div className="flex justify-center gap-2 pt-2">
+                        <div className="flex justify-center gap-2 pb-4">
                             <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
                             <span className="flex items-center text-sm">Page {page}</span>
                             <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= questionsData.count}>Next</Button>
                         </div>
                     )}
-                </div>
-
-                <DialogFooter className="flex justify-between sm:justify-between w-full">
-                    <div className="text-sm text-muted-foreground self-center">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center w-full gap-4">
+                    <div className="text-sm font-medium">
                         {selectedIds.size} selected
                     </div>
                     <div className="flex gap-2">
-                         <Button variant="outline" onClick={onClose}>Cancel</Button>
-                         <Button onClick={handleConfirm} disabled={selectedIds.size === 0}>
+                         <Button className="w-full sm:w-auto" onClick={handleConfirm} disabled={selectedIds.size === 0}>
                             Add Selected ({selectedIds.size})
                          </Button>
                     </div>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+                </div>
+            </div>
+        </div>
     );
 };

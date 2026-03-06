@@ -550,10 +550,10 @@ const ExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 font-sans overflow-x-hidden">
+    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background p-4 md:p-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="mx-auto max-w-[1400px] space-y-8 w-full max-w-full">
-        {/* Header */}
+      <div className="grid lg:grid-cols-12 gap-6 w-full h-full max-w-full">
+        <div className="lg:col-span-7 xl:col-span-8 h-full flex flex-col space-y-6 lg:overflow-y-auto pr-2 pb-8 lg:pb-24 relative">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -750,13 +750,12 @@ const ExamCreator = () => {
                 </div>
             ))}
         </div>
-      </div>
+        </div>
 
-      <QuestionBankSelector
-        open={showBankSelector}
-        onClose={() => setShowBankSelector(false)}
-        onSelect={handleBankImport}
-      />
+        <div className="lg:col-span-5 xl:col-span-4 h-[700px] lg:h-[calc(100vh-8rem)] lg:sticky lg:top-0">
+            <QuestionBankSelector onSelect={handleBankImport} />
+        </div>
+      </div>
     </div>
   );
 };
