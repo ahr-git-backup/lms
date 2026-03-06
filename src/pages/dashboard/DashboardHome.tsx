@@ -332,7 +332,7 @@ const DashboardHome = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                       <Button size="sm" onClick={() => { if (exam?.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${exam?.id}`); } }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Take Exam
                        </Button>
                     </CardContent>

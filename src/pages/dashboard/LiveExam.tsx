@@ -123,7 +123,7 @@ const LiveExam = () => {
                 <Button variant="outline" onClick={() => setSelectedExamForPopup(null)}>
                     Cancel
                 </Button>
-                <Button onClick={() => navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`)}>
+                <Button onClick={() => { if (selectedExamForPopup?.external_exam_link) { window.open(selectedExamForPopup.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`); } }}>
                     Start Exam
                 </Button>
             </DialogFooter>

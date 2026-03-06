@@ -283,7 +283,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${exam.id}`); } }}>
                             Start Exam
                         </Button>
                     </CardFooter>
@@ -328,7 +328,7 @@ const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${exam.id}`); } }}>
                             Start Exam
                         </Button>
                     </CardFooter>
@@ -414,7 +414,7 @@ const ArchiveExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${exam.id}`); } }}>
                             Start Exam
                         </Button>
                     </CardFooter>

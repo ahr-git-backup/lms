@@ -65,7 +65,7 @@ const PublicExamEntry = () => {
         if (error) throw error;
 
         toast({ title: "Welcome back!", description: "Starting exam..." });
-        navigate(`/dashboard/take-exam/${examId}`);
+        if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${examId}`); }
     } catch (err: any) {
         toast({ title: "Login Failed", description: err.message, variant: "destructive" });
     } finally {
@@ -141,7 +141,7 @@ const PublicExamEntry = () => {
             }
 
             toast({ title: "Registered!", description: "Starting exam..." });
-            navigate(`/dashboard/take-exam/${examId}`);
+            if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${examId}`); }
         } else {
              toast({ title: "Check your email", description: "Verification link sent." });
         }
@@ -170,7 +170,7 @@ const PublicExamEntry = () => {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <Button onClick={() => navigate(`/dashboard/take-exam/${examId}`)} className="w-full h-12 text-lg" size="lg">
+                    <Button onClick={() => { if (exam.external_exam_link) { window.open(exam.external_exam_link, "_blank"); } else { navigate(`/dashboard/take-exam/${examId}`); } }} className="w-full h-12 text-lg" size="lg">
                         Start Exam
                     </Button>
                 </CardContent>

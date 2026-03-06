@@ -31,6 +31,7 @@ export interface Exam {
   questions_csv?: string;
   is_archive?: boolean;
   is_readymade?: boolean;
+  external_exam_link?: string | null;
   course?: {
     name: string;
   } | null;
