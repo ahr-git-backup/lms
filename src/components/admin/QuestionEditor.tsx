@@ -1,32 +1,15 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Check, Save, Image as ImageIcon } from "lucide-react";
-import { ExpandableRichTextEditor } from "@/components/ui/expandable-rich-text-editor";
+import { Check, Save, Image as ImageIcon, Plus, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { FormulaEditorDialog } from "@/components/ui/formula-editor-dialog";
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-import Cropper from "react-cropper";
-
-// Helper to convert base64 to Blob
-const base64ToBlob = (base64: string) => {
-    try {
-        const parts = base64.split(';base64,');
-        if (parts.length !== 2) throw new Error("Invalid base64 format");
-
-        const contentType = parts[0].split(':')[1] || 'image/png';
-        const raw = window.atob(parts[1].trim());
-        const rawLength = raw.length;
-        const uInt8Array = new Uint8Array(rawLength);
-        for (let i = 0; i < rawLength; ++i) {
-            uInt8Array[i] = raw.charCodeAt(i);
-        }
-        return new Blob([uInt8Array], { type: contentType });
-    } catch (e) {
-        console.error("Base64 parsing error:", e);
-        return null;
-    }
-};
+import { CreatableSelect } from "@/components/ui/creatable-select";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface QuestionData {
     id?: string;
@@ -34,6 +17,13 @@ export interface QuestionData {
     options: { [key: string]: string };
     correct_answer: string;
     explanation: string;
+    subject?: string;
+    chapter?: string;
+    topic?: string;
+    exam_code?: string;
+    year?: string;
+    difficulty?: string;
+    tags?: string[];
 }
 
 interface QuestionEditorProps {
@@ -45,16 +35,63 @@ interface QuestionEditorProps {
 
 export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEditorProps) => {
     // Formula Editor State
-    const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetQuill: any | null }>({
+    const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetId: string | null }>({
         isOpen: false,
-        targetQuill: null
+        targetId: null
     });
 
-    // Image Cropper State
-    const [showCropModal, setShowCropModal] = useState(false);
-    const [cropImage, setCropImage] = useState<string>("");
-    const [currentQuillRef, setCurrentQuillRef] = useState<any>(null);
-    const [cropper, setCropper] = useState<any>();
+    // Global Metadata Hook
+    const { data: globalMeta } = useGlobalMetadata() as any;
+    const addMetadata = useAddGlobalMetadata();
+
+    const { data: distinctMetadata } = useQuery({
+        queryKey: ["question-bank-metadata"],
+        queryFn: async () => {
+            const { data } = await supabase.from("question_bank").select("subject, chapter, topic");
+            return data || [];
+        }
+    });
+
+    const subjectOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.subject?.forEach((s: any) => set.add(s.value));
+        distinctMetadata?.forEach((item: any) => {
+             if (item.subject) set.add(item.subject);
+        });
+        return Array.from(set).sort().map(s => ({ label: s, value: s }));
+    }, [globalMeta, distinctMetadata]);
+
+    const chapterOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.chapter?.forEach((c: any) => set.add(c.value));
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.chapter) return;
+            if (data.subject && item.subject !== data.subject) return;
+            set.add(item.chapter);
+        });
+        return Array.from(set).sort().map(c => ({ label: c, value: c }));
+    }, [globalMeta, distinctMetadata, data.subject]);
+
+    const topicOptions = React.useMemo(() => {
+        const set = new Set<string>();
+        globalMeta?.topic?.forEach((t: any) => set.add(t.value));
+        distinctMetadata?.forEach((item: any) => {
+            if (!item.topic) return;
+            if (data.chapter && item.chapter !== data.chapter) return;
+            set.add(item.topic);
+        });
+        return Array.from(set).sort().map(t => ({ label: t, value: t }));
+    }, [globalMeta, distinctMetadata, data.chapter]);
+
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag', value: string) => {
+        addMetadata.mutate({ type, value });
+        if (type === 'tag') {
+            onChange({ ...data, tags: [...(data.tags || []), value] });
+        } else {
+            onChange({ ...data, [type]: value });
+        }
+    };
+
 
     // MathLive setup
     useEffect(() => {
@@ -77,201 +114,184 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
         onChange({ ...data, options: { ...data.options, [key]: val } });
     };
 
-    // Image Upload Handler
-    const handleImageUpload = useCallback((quillRef: any) => {
-        const input = document.createElement('input');
-        input.setAttribute('type', 'file');
-        input.setAttribute('accept', 'image/*');
-        input.click();
-        input.onchange = async () => {
-            const file = input.files?.[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (e: any) => {
-                    setCropImage(e.target.result);
-                    setCurrentQuillRef(quillRef);
-                    setShowCropModal(true);
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-    }, []);
-
-    const insertCroppedImage = () => {
-        if (typeof cropper !== "undefined" && currentQuillRef) {
-            const editor = currentQuillRef.getEditor();
-            const range = editor.getSelection(true);
-            const index = range ? range.index : editor.getLength();
-
-            editor.insertEmbed(index, "image", cropper.getCroppedCanvas().toDataURL());
-            setShowCropModal(false);
-            setCropImage("");
-        }
+    const handleOpenFormula = (id: string) => {
+        setFormulaState({ isOpen: true, targetId: id });
     };
-
-    // Formula Handlers
-    const handleOpenFormula = useCallback((quillRef: any) => {
-        setFormulaState({ isOpen: true, targetQuill: quillRef });
-    }, []);
 
     const handleFormulaInsert = (latex: string) => {
-        if (formulaState.targetQuill) {
-            const editor = formulaState.targetQuill.getEditor();
-            const range = editor.getSelection(true);
-            const index = range ? range.index : editor.getLength();
+        if (formulaState.targetId) {
+            const id = formulaState.targetId;
+            const insertText = `$${latex}$ `;
 
-            editor.insertText(index, `$${latex}$ `);
-
-            // Move cursor after the inserted formula and space
-            // FIX: Increased timeout to 100ms to ensure editor regains focus after dialog close
-            setTimeout(() => {
-                editor.setSelection(index + latex.length + 3);
-                editor.focus();
-            }, 100);
-        }
-        setFormulaState({ isOpen: false, targetQuill: null });
-    };
-
-    const modules = useCallback((quillRef: any) => ({
-        toolbar: {
-            container: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-                [{ 'script': 'sub'}, { 'script': 'super' }],
-                ['formula'],
-                ['link', 'image', 'clean']
-            ],
-            handlers: {
-                image: () => handleImageUpload(quillRef),
-                formula: () => handleOpenFormula(quillRef)
+            if (id === 'question') {
+                onChange({ ...data, question: data.question + insertText });
+            } else if (id === 'explanation') {
+                onChange({ ...data, explanation: data.explanation + insertText });
+            } else if (id.startsWith('option_')) {
+                const opt = id.split('_')[1];
+                onChange({ ...data, options: { ...data.options, [opt]: data.options[opt] + insertText } });
             }
         }
-    }), [handleImageUpload, handleOpenFormula]);
+        setFormulaState({ isOpen: false, targetId: null });
+    };
 
     return (
-        <div className="space-y-8">
-             <div className="space-y-3">
+        <div className="space-y-4 max-w-2xl mx-auto w-full">
+            {/* Question Box */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Question Text</Label>
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula(null)} className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
-                        Math Formula Helper (Manual)
+                    <Label className="text-sm font-semibold text-foreground/80">Question <span className="text-destructive">*</span></Label>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('question')} className="text-xs h-7 px-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground">
+                        + Math
                     </Button>
                 </div>
-                <ExpandableRichTextEditor
+                <Textarea
                     value={data.question}
-                    onChange={(val: string) => update('question', val)}
-                    modulesGenerator={modules}
-                    onImageUpload={handleImageUpload}
-                    placeholder="Type your question here... (Click to edit)"
-                    minHeight="150px"
+                    onChange={(e) => update('question', e.target.value)}
+                    placeholder="Enter the question text (LaTeX allowed)..."
+                    className="min-h-[100px] rounded-[12px] resize-y text-sm focus-visible:ring-1"
                 />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {['A', 'B', 'C', 'D'].map((opt) => (
-                    <div key={opt} className={`space-y-3 p-4 rounded-xl border-2 transition-all ${
-                        data.correct_answer === opt
-                        ? 'border-green-500 bg-green-50/20 shadow-sm'
-                        : 'border-border/50 hover:border-primary/30 hover:bg-muted/20'
-                    }`}>
-                        <div className="flex items-center justify-between mb-2">
-                            <Label className="font-bold flex items-center gap-3 cursor-pointer select-none">
-                                <div className="relative flex items-center justify-center">
-                                    <input
-                                        type="radio"
-                                        name="correct_opt"
-                                        checked={data.correct_answer === opt}
-                                        onChange={() => update('correct_answer', opt)}
-                                        className="peer sr-only"
-                                    />
-                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                                        data.correct_answer === opt
-                                        ? 'border-green-600 bg-green-600 text-white'
-                                        : 'border-muted-foreground'
-                                    }`}>
-                                        {data.correct_answer === opt && <Check className="h-3 w-3" />}
-                                    </div>
-                                </div>
-                                <span>Option {opt}</span>
-                            </Label>
-                            {data.correct_answer === opt && <span className="text-xs font-bold text-green-600 bg-green-100 px-2 py-1 rounded-full">Correct Answer</span>}
+            {/* Options Box with Inline Correct Answer Selection */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                    <Label className="text-sm font-semibold text-foreground/80">Options & Correct Answer <span className="text-destructive">*</span></Label>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Tap letter to mark correct</span>
+                </div>
+                {['A', 'B', 'C', 'D'].map((opt) => {
+                    const isCorrect = data.correct_answer === opt;
+                    return (
+                        <div key={opt} className={`flex items-center gap-2 sm:gap-3 p-1 rounded-[14px] transition-colors border ${isCorrect ? 'border-green-500 bg-green-50/50 dark:bg-green-900/10' : 'border-transparent hover:border-border/50'}`}>
+                            {/* Clickable Letter Box */}
+                            <button
+                                type="button"
+                                onClick={() => update('correct_answer', opt)}
+                                className={`w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border cursor-pointer ${
+                                    isCorrect
+                                    ? 'bg-green-500 text-white border-green-600 shadow-sm'
+                                    : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary'
+                                }`}
+                                title={`Mark option ${opt} as correct`}
+                            >
+                                {opt}
+                            </button>
+
+                            {/* Input Field */}
+                            <Input
+                                value={data.options[opt]}
+                                onChange={(e) => updateOption(opt, e.target.value)}
+                                placeholder={`Option ${opt}`}
+                                className={`rounded-[10px] flex-1 text-sm h-9 sm:h-10 transition-colors ${isCorrect ? 'border-green-200 focus-visible:ring-green-500 dark:border-green-800' : 'focus-visible:ring-1'}`}
+                            />
+
+                            {/* Math Button */}
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenFormula(`option_${opt}`)} className="text-xs shrink-0 text-muted-foreground h-8 w-8 rounded-full hover:bg-secondary/80">
+                               <ImageIcon className="h-4 w-4" />
+                            </Button>
                         </div>
-                        <ExpandableRichTextEditor
-                            value={data.options[opt]}
-                            onChange={(val: string) => updateOption(opt, val)}
-                            modulesGenerator={modules}
-                            onImageUpload={handleImageUpload}
-                            minHeight="80px"
-                            placeholder={`Option ${opt} text...`}
+                    );
+                })}
+            </div>
+
+            {/* Explanation Box */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm flex flex-col gap-2">
+                 <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold text-foreground/80">Explanation</Label>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('explanation')} className="text-xs h-7 px-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground">
+                        + Math
+                    </Button>
+                </div>
+                <Textarea
+                    value={data.explanation}
+                    onChange={(e) => update('explanation', e.target.value)}
+                    placeholder="Provide an explanation (optional)..."
+                    className="min-h-[80px] rounded-[12px] resize-y text-sm focus-visible:ring-1"
+                />
+            </div>
+
+            {/* Metadata / Tags - Compact Grid */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm">
+                <Label className="text-sm font-semibold text-foreground/80 block mb-3">Metadata & Tags</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
+                     <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Subject</Label>
+                        <CreatableSelect
+                            options={subjectOptions}
+                            value={data.subject || ""}
+                            onChange={(val) => update('subject', val)}
+                            onCreate={(val) => handleCreateMeta('subject', val)}
+                            placeholder="Subject"
                         />
                     </div>
-                ))}
-            </div>
-
-            <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                    <Label className="text-base font-semibold">Explanation (Optional)</Label>
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Chapter</Label>
+                        <CreatableSelect
+                            options={chapterOptions}
+                            value={data.chapter || ""}
+                            onChange={(val) => update('chapter', val)}
+                            onCreate={(val) => handleCreateMeta('chapter', val)}
+                            placeholder="Chapter"
+                        />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 md:col-span-1">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Topic</Label>
+                        <CreatableSelect
+                            options={topicOptions}
+                            value={data.topic || ""}
+                            onChange={(val) => update('topic', val)}
+                            onCreate={(val) => handleCreateMeta('topic', val)}
+                            placeholder="Topic"
+                        />
+                    </div>
+                     <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Exam Code</Label>
+                        <CreatableSelect
+                            options={globalMeta?.exam_code || []}
+                            value={data.exam_code || ""}
+                            onChange={(val) => update('exam_code', val)}
+                            onCreate={(val) => handleCreateMeta('exam_code', val)}
+                            placeholder="Code"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Year</Label>
+                        <CreatableSelect
+                            options={globalMeta?.year || []}
+                            value={data.year || ""}
+                            onChange={(val) => update('year', val)}
+                            onCreate={(val) => handleCreateMeta('year', val)}
+                            placeholder="Year"
+                        />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 md:col-span-3">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Tags</Label>
+                        <MultiSelect
+                            options={globalMeta?.tag || []}
+                            selected={data.tags || []}
+                            onChange={(val) => update('tags', val)}
+                            onCreate={(val) => handleCreateMeta('tag', val)}
+                            placeholder="Add tags..."
+                        />
+                    </div>
                 </div>
-                <ExpandableRichTextEditor
-                    value={data.explanation}
-                    onChange={(val: string) => update('explanation', val)}
-                    modulesGenerator={modules}
-                    onImageUpload={handleImageUpload}
-                    minHeight="100px"
-                    placeholder="Explain the answer here..."
-                />
             </div>
 
-            <div className="flex gap-4 pt-6 border-t mt-4">
-                <Button onClick={onSave} className="w-full sm:w-auto min-w-[150px] shadow-md">
-                    <Save className="mr-2 h-4 w-4" /> Save Question
-                </Button>
-                <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2 justify-end">
+                <Button variant="ghost" onClick={onCancel} className="rounded-full px-6 h-10 font-medium text-muted-foreground hover:bg-secondary">
                     Cancel
+                </Button>
+                <Button onClick={onSave} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 h-10 font-medium shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+                    Save Question
                 </Button>
             </div>
 
             <FormulaEditorDialog
                 isOpen={formulaState.isOpen}
-                onClose={() => setFormulaState({ isOpen: false, targetQuill: null })}
+                onClose={() => setFormulaState({ isOpen: false, targetId: null })}
                 onInsert={handleFormulaInsert}
             />
-
-            {/* Crop Modal */}
-            {showCropModal && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-                    <div className="bg-card border rounded-xl shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-xl font-bold">Crop Image</h3>
-                            <Button variant="ghost" size="sm" onClick={() => setShowCropModal(false)}>✕</Button>
-                        </div>
-
-                        <div className="flex-1 overflow-hidden bg-black/5 rounded-lg border min-h-[300px]">
-                            <Cropper
-                                src={cropImage}
-                                style={{ height: 400, width: "100%" }}
-                                initialAspectRatio={NaN}
-                                guides={true}
-                                viewMode={1}
-                                minCropBoxHeight={10}
-                                minCropBoxWidth={10}
-                                background={false}
-                                responsive={true}
-                                autoCropArea={1}
-                                checkOrientation={false}
-                                onInitialized={(instance: any) => setCropper(instance)}
-                            />
-                        </div>
-
-                        <div className="flex gap-3 mt-6 justify-end">
-                            <Button variant="outline" onClick={() => setShowCropModal(false)}>Cancel</Button>
-                            <Button onClick={insertCroppedImage}>
-                                <ImageIcon className="mr-2 h-4 w-4" /> Insert Image
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

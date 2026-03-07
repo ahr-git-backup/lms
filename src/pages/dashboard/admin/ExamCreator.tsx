@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+
 import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,117 +15,10 @@ import MathText from "@/components/MathText";
 import { QuestionEditor, QuestionData } from "@/components/admin/QuestionEditor";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 
-// Helper to sanitize HTML import
-const sanitizeHtml = (html: string) => {
-    if (!html) return "";
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
 
-    // Remove scripts
-    const scripts = doc.querySelectorAll('script');
-    scripts.forEach(script => script.remove());
 
-    // Remove unsafe tags and attributes
-    const all = doc.querySelectorAll('*');
-    all.forEach(el => {
-        // Remove event handlers
-        Array.from(el.attributes).forEach(attr => {
-            if (attr.name.startsWith('on')) {
-                el.removeAttribute(attr.name);
-            }
-            if (attr.name.startsWith('javascript:')) {
-                el.removeAttribute(attr.name);
-            }
-        });
 
-        // Remove potentially dangerous tags
-        if (['IFRAME', 'OBJECT', 'EMBED', 'FORM'].includes(el.tagName)) {
-            el.remove();
-        }
-    });
-    return doc.body.innerHTML;
-};
 
-// Helper to convert base64 to Blob with robust parsing
-const base64ToBlob = (base64: string) => {
-    try {
-        const parts = base64.split(';base64,');
-        if (parts.length !== 2) throw new Error("Invalid base64 format");
-
-        const contentType = parts[0].split(':')[1] || 'image/png';
-        const raw = window.atob(parts[1].trim());
-        const rawLength = raw.length;
-        const uInt8Array = new Uint8Array(rawLength);
-        for (let i = 0; i < rawLength; ++i) {
-            uInt8Array[i] = raw.charCodeAt(i);
-        }
-        return new Blob([uInt8Array], { type: contentType });
-    } catch (e) {
-        console.error("Base64 parsing error:", e);
-        return null;
-    }
-};
-
-// Image Upload Function
-const uploadImage = async (base64: string) => {
-    try {
-        const blob = base64ToBlob(base64);
-        if (!blob) return null;
-
-        const formData = new FormData();
-        // Use filename with extension matching content type if possible, default to png
-        const ext = blob.type.split('/')[1] || 'png';
-        formData.append('file', blob, `image.${ext}`);
-
-        const res = await fetch('https://imagehost-sigma-five.vercel.app/api/upload', {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Bearer jm4rt3hbicI7u0cutBmdQYNC95PCXvzN'
-            },
-            body: formData
-        });
-
-        if (!res.ok) {
-            const text = await res.text();
-            console.error(`Upload failed: ${res.status} ${res.statusText}`, text);
-            throw new Error(`API Error: ${res.status}`);
-        }
-
-        const data = await res.json();
-        return data.direct_url;
-    } catch (error) {
-        console.error("Image upload failed:", error);
-        return null;
-    }
-};
-
-const processHtmlContent = async (html: string) => {
-    if (!html || !html.includes('data:image')) return { html, hasErrors: false };
-
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-    const images = doc.querySelectorAll('img');
-    let hasChanges = false;
-    let hasErrors = false;
-
-    // Convert NodeList to Array to use for...of with await
-    for (const img of Array.from(images)) {
-        if (img.src.startsWith('data:image')) {
-            const newUrl = await uploadImage(img.src);
-            if (newUrl) {
-                img.src = newUrl;
-                hasChanges = true;
-            } else {
-                hasErrors = true;
-            }
-        }
-    }
-
-    return {
-        html: hasChanges ? doc.body.innerHTML : html,
-        hasErrors
-    };
-};
 
 const ExamCreator = () => {
   const { examId } = useParams();
@@ -181,7 +75,14 @@ const ExamCreator = () => {
                         D: q.option_d,
                     },
                     correct_answer: q.correct_option,
-                    explanation: q.explanation || ""
+                    explanation: q.explanation || "",
+                    subject: q.subject || "",
+                    chapter: q.chapter || "",
+                    topic: q.topic || "",
+                    exam_code: q.exam_code || "",
+                    year: q.year || "",
+                    difficulty: q.difficulty || "",
+                    tags: q.tags || []
                 }));
                 setQuestions(loadedQuestions);
             }
@@ -246,75 +147,28 @@ const ExamCreator = () => {
   };
 
   const handleExport = async () => {
-      setIsExporting(true);
-      setExportProgress("Preparing to export...");
+    setIsExporting(true);
+    setExportProgress("Preparing to export...");
 
-      try {
-          const processedQuestions = [];
-          const total = questions.length;
-          let failedUploads = false;
+    try {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questions, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", (examTitle || "quiz") + ".json");
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
 
-          for (let i = 0; i < total; i++) {
-              setExportProgress(`Processing question ${i + 1} of ${total} (Uploading images)...`);
+        toast({ title: "Export Success", description: "Exam exported successfully." });
 
-              const q = questions[i];
-
-              // Process Question Text
-              const qResult = await processHtmlContent(q.question);
-              if (qResult.hasErrors) failedUploads = true;
-
-              // Process Options
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const options: any = {};
-              for (const [key, val] of Object.entries(q.options)) {
-                  const optResult = await processHtmlContent(val);
-                  options[key] = optResult.html;
-                  if (optResult.hasErrors) failedUploads = true;
-              }
-
-              // Process Explanation
-              const expResult = await processHtmlContent(q.explanation);
-              if (expResult.hasErrors) failedUploads = true;
-
-              processedQuestions.push({
-                  ...q,
-                  question: qResult.html,
-                  options,
-                  explanation: expResult.html
-              });
-          }
-
-          if (failedUploads) {
-              toast({
-                  title: "Export Aborted",
-                  description: "Image upload failed. Please ensure the API is accessible.",
-                  variant: "destructive"
-              });
-              setIsExporting(false);
-              setExportProgress("");
-              return; // Stop here
-          }
-
-          setQuestions(processedQuestions);
-
-          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processedQuestions, null, 2));
-          const downloadAnchorNode = document.createElement('a');
-          downloadAnchorNode.setAttribute("href",     dataStr);
-          downloadAnchorNode.setAttribute("download", (examTitle || "quiz") + ".json");
-          document.body.appendChild(downloadAnchorNode);
-          downloadAnchorNode.click();
-          downloadAnchorNode.remove();
-
-          toast({ title: "Export Success", description: "Exam exported with hosted images." });
-
-      } catch (error) {
-          console.error("Export failed", error);
-          toast({ title: "Export Failed", description: "An error occurred during export.", variant: "destructive" });
-      } finally {
-          setIsExporting(false);
-          setExportProgress("");
-      }
-  };
+    } catch (error) {
+        console.error("Export failed", error);
+        toast({ title: "Export Failed", description: "An error occurred during export.", variant: "destructive" });
+    } finally {
+        setIsExporting(false);
+        setExportProgress("");
+    }
+};
 
   const handleSaveToDatabase = async () => {
       if (!examId) return;
@@ -347,7 +201,14 @@ const ExamCreator = () => {
               option_d: q.options.D,
               correct_option: q.correct_answer,
               explanation: q.explanation,
-              marks: 1
+              marks: 1,
+              subject: q.subject || null,
+              chapter: q.chapter || null,
+              topic: q.topic || null,
+              exam_code: q.exam_code || null,
+              year: q.year || null,
+              difficulty: q.difficulty || null,
+              tags: q.tags || []
           }));
 
           // 3. Delete Removed Questions
@@ -378,7 +239,14 @@ const ExamCreator = () => {
                 question: q.question_text,
                 options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
                 correct_answer: q.correct_option,
-                explanation: q.explanation || ""
+                explanation: q.explanation || "",
+                subject: q.subject || "",
+                chapter: q.chapter || "",
+                topic: q.topic || "",
+                exam_code: q.exam_code || "",
+                year: q.year || "",
+                difficulty: q.difficulty || "",
+                tags: q.tags || []
              }));
              setQuestions(loaded);
           }
@@ -420,7 +288,14 @@ const ExamCreator = () => {
               option_d: q.options.D,
               correct_option: q.correct_answer,
               explanation: q.explanation,
-              marks: 1
+              marks: 1,
+              subject: q.subject || null,
+              chapter: q.chapter || null,
+              topic: q.topic || null,
+              exam_code: q.exam_code || null,
+              year: q.year || null,
+              difficulty: q.difficulty || null,
+              tags: q.tags || []
           }));
 
           if (insertData.length > 0) {
@@ -446,7 +321,14 @@ const ExamCreator = () => {
                 question: q.question_text,
                 options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
                 correct_answer: q.correct_option,
-                explanation: q.explanation || ""
+                explanation: q.explanation || "",
+                subject: q.subject || "",
+                chapter: q.chapter || "",
+                topic: q.topic || "",
+                exam_code: q.exam_code || "",
+                year: q.year || "",
+                difficulty: q.difficulty || "",
+                tags: q.tags || []
              }));
              setQuestions(loaded);
           }
@@ -468,67 +350,18 @@ const ExamCreator = () => {
     reader.onload = (event) => {
         try {
             const content = event.target?.result as string;
-            if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
-                const parsed = JSON.parse(content);
-                if (Array.isArray(parsed)) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const normalized = parsed.map((q: any) => {
-                        const question = q.question || q.question_text || "";
-                        const explanation = q.explanation || "";
-
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        let options: any = { A: "", B: "", C: "", D: "" };
-                        if (q.options && typeof q.options === 'object' && !Array.isArray(q.options)) {
-                            const keys = Object.keys(q.options);
-                            if (keys.includes('A')) options = q.options;
-                            else {
-                                const vals = Object.values(q.options);
-                                options = {
-                                    A: vals[0] || "",
-                                    B: vals[1] || "",
-                                    C: vals[2] || "",
-                                    D: vals[3] || ""
-                                };
-                            }
-                        } else if (q.option_a || q.option1) {
-                            options = {
-                                A: q.option_a || q.option1 || "",
-                                B: q.option_b || q.option2 || "",
-                                C: q.option_c || q.option3 || "",
-                                D: q.option_d || q.option4 || ""
-                            };
-                        }
-
-                        let correct_answer = "";
-                        if (q.correct_answer) correct_answer = q.correct_answer;
-                        else if (q.correct_option) correct_answer = q.correct_option;
-                        else if (q.answer) {
-                            const num = Number(q.answer);
-                            if (!isNaN(num)) {
-                                correct_answer = ["A", "B", "C", "D"][num - 1] || "";
-                            }
-                        }
-
-                        return {
-                            question: sanitizeHtml(String(question)),
-                            options: {
-                                A: sanitizeHtml(options.A),
-                                B: sanitizeHtml(options.B),
-                                C: sanitizeHtml(options.C),
-                                D: sanitizeHtml(options.D),
-                            },
-                            correct_answer: String(correct_answer).toUpperCase(),
-                            explanation: sanitizeHtml(String(explanation))
-                        };
-                    });
-
-                    setQuestions(prev => [...prev, ...normalized]);
-                    toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
-                } else {
-                    toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
-                }
+            const parsed = JSON.parse(content);
+            if (Array.isArray(parsed)) {
+                const normalized = parsed.map((q: any) => ({
+                    question: String(q.question || q.question_text || ""),
+                    options: q.options || { A: "", B: "", C: "", D: "" },
+                    correct_answer: String(q.correct_answer || q.correct_option || "").toUpperCase(),
+                    explanation: String(q.explanation || "")
+                }));
+                setQuestions(prev => [...prev, ...normalized]);
+                toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
             } else {
-                toast({ title: "CSV Import", description: "CSV import is supported via copy-paste or implement if needed." });
+                toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
             }
         } catch (err) {
             console.error(err);
@@ -537,7 +370,7 @@ const ExamCreator = () => {
     };
     reader.readAsText(file);
     e.target.value = "";
-  };
+};
 
   const handleBankImport = (selectedQuestions: QuestionData[]) => {
       const cleanQuestions = selectedQuestions.map(q => ({
@@ -549,11 +382,10 @@ const ExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background p-4 md:p-6 font-sans lg:overflow-hidden">
+    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="grid lg:grid-cols-12 gap-6 w-full h-full max-w-full">
-        <div className="lg:col-span-7 xl:col-span-8 h-full flex flex-col space-y-6 lg:overflow-y-auto pr-2 pb-8 lg:pb-24 relative">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
+      <div className="w-full h-full max-w-5xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-6 shadow-sm border border-border/60">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
@@ -628,33 +460,27 @@ const ExamCreator = () => {
             </div>
         </div>
 
-        {/* Active Form */}
-        {activeForm && (
-            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="border border-primary/40 shadow-lg overflow-hidden rounded-md my-4">
-                    <div className="p-6 bg-secondary/30 border-b border-border flex items-center justify-between">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
-                            {activeForm.type === 'edit' ? <Edit2 className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
-                            {activeForm.type === 'edit' ? 'Edit Question' : 'New Question'}
-                        </h2>
-                        <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
-                    </div>
-                    <div className="p-6 md:p-8 space-y-6 bg-card">
-                        <QuestionEditor
-                            data={activeForm.data}
-                            onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
-                            onSave={handleSaveQuestion}
-                            onCancel={() => setActiveForm(null)}
-                        />
-                    </div>
+        {/* Collapsible Question Bank */}
+        {showBankSelector && (
+            <div className="border border-border/60 rounded-[20px] bg-card p-5 sm:p-7 shadow-sm flex flex-col w-full mx-auto animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50 shrink-0">
+                     <h3 className="font-bold text-xl flex items-center gap-2">
+                        <BookOpen className="h-5 w-5 text-primary" /> Select from Question Bank
+                     </h3>
+                     <Button variant="ghost" size="icon" onClick={() => setShowBankSelector(false)} className="rounded-full h-8 w-8 hover:bg-secondary">
+                        <Trash2 className="h-4 w-4" />
+                     </Button>
+                </div>
+                <div className="h-[60vh] max-h-[600px] overflow-hidden flex flex-col rounded-xl border border-border/50">
+                    <QuestionBankSelector onSelect={handleBankImport} />
                 </div>
             </div>
         )}
 
         {/* Questions List */}
-        <div className="space-y-4 pb-32">
+        <div className="space-y-6 pb-32 pt-2">
             {questions.length === 0 && !activeForm && (
-                <div className="text-center py-20 rounded-md border border-dashed border-muted-foreground/20 bg-muted/5">
+                <div className="text-center py-20 rounded-3xl border border-dashed border-muted-foreground/30 bg-card">
                     <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                         <Plus className="h-8 w-8 text-muted-foreground" />
                     </div>
@@ -667,87 +493,150 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border-b border-border/50 pb-8 last:border-0 hover:bg-muted/10 transition-colors rounded-sm -mx-4 px-4 pt-4">
-                    {/* Add Above Button */}
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 py-2">
-                         <Button size="sm" className="rounded-full shadow-lg bg-background border hover:bg-muted" onClick={() => handleShowForm(i, 'above')}>
-                            <Plus className="h-3 w-3 mr-1" /> Insert Above
-                         </Button>
-                    </div>
-
-                    <div className="relative">
-                        <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background" onClick={() => handleShowForm(i, 'edit')}>
+                <div key={i} className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] p-5 sm:p-7 bg-card shadow-sm w-full mx-auto">
+                    {/* Inline Form Edit Mode */}
+                    {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
+                         <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-4 border-b pb-4">
+                                <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+                                    <Edit2 className="h-5 w-5" /> Edit Question {i + 1}
+                                </h2>
+                                <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
+                            </div>
+                            <QuestionEditor
+                                data={activeForm.data}
+                                onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                                onSave={handleSaveQuestion}
+                                onCancel={() => setActiveForm(null)}
+                            />
+                         </div>
+                    ) : (
+                    <div className="relative flex flex-col md:flex-row gap-6">
+                        {/* Left side: Question & Options */}
+                        <div className="flex-1 space-y-5">
+                            <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
                                     <Edit2 className="h-4 w-4 mr-1" /> Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" className="h-8 shadow-sm" onClick={() => handleDeleteQuestion(i)}>
+                                <Button size="sm" variant="destructive" className="h-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)}>
                                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                                 </Button>
+                            </div>
+
+                            <div className="flex gap-2 sm:gap-3 items-start">
+                                <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
+                                <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
+                            </div>
+
+                            <div className="flex flex-col gap-2 pl-5 sm:pl-8 mt-3">
+                                {Object.entries(q.options).map(([key, val]) => {
+                                    const isCorrect = q.correct_answer === key;
+                                    return (
+                                        <div
+                                            key={key}
+                                            className={`relative p-3 rounded-2xl transition-all duration-200 flex gap-3 items-start border-transparent ${
+                                                isCorrect
+                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10'
+                                                : 'hover:bg-secondary/30'
+                                            }`}
+                                        >
+                                            <div className="flex items-start gap-2 pt-0.5">
+                                                <span className={`text-[15px] sm:text-[16px] font-bold shrink-0 ${
+                                                    isCorrect
+                                                    ? 'text-[#2BA25C]'
+                                                    : 'text-foreground/80'
+                                                }`}>
+                                                    {key})
+                                                </span>
+                                                <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90">
+                                                    <MathText text={String(val)} />
+                                                </div>
+                                            </div>
+                                            {isCorrect && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <div className="bg-[#2BA25C] rounded-full p-[3px] shadow-sm">
+                                                        <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Tags / Meta Display (if present) on Mobile (Hidden on Desktop, shown in right column) */}
+                            <div className="md:hidden">
+                                {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
+                                    <div className="flex flex-wrap gap-2 mt-4 ml-5 sm:ml-8 pt-4 border-t border-border/40">
+                                        {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
+                                        {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
+                                        {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
+                                        {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
+                                        {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
+                                        {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex gap-3">
-                                <span className="font-bold text-lg leading-tight mt-[2px]">{i + 1}.</span>
-                                <MathText className="prose prose-sm md:prose-base max-w-none dark:prose-invert" text={q.question} />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pl-6">
-                                {Object.entries(q.options).map(([key, val]) => (
-                                    <div
-                                        key={key}
-                                        className={`relative p-2 rounded-md transition-all duration-200 flex gap-3 items-start ${
-                                            q.correct_answer === key
-                                            ? 'bg-green-50 dark:bg-green-900/20 font-medium'
-                                            : 'hover:bg-muted/30'
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-2 pt-0.5">
-                                            <span className={`text-sm font-bold shrink-0 ${
-                                                q.correct_answer === key
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-muted-foreground'
-                                            }`}>
-                                                {key})
-                                            </span>
-                                            <div className="prose prose-sm max-w-none dark:prose-invert break-words overflow-hidden">
-                                                <MathText text={val} />
-                                            </div>
-                                        </div>
-                                        {q.correct_answer === key && (
-                                            <div className="absolute -top-2 -right-2">
-                                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-green-600 px-2 py-0.5 rounded-full shadow-sm uppercase tracking-wider">
-                                                    <Check className="h-3 w-3" />
-                                                </span>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
+                        {/* Right side: Explanation & Metadata (Desktop) */}
+                        <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
                             {q.explanation && (
-                                <div className="mt-4 p-4 ml-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-md border border-blue-100 dark:border-blue-900/30 text-sm">
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Explanation
-                                    </p>
-                                    <MathText className="prose prose-sm max-w-none dark:prose-invert" text={q.explanation} />
+                                <div className="p-4 sm:p-5 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm h-full flex flex-col">
+                                    <div className="flex items-center gap-2.5 mb-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
+                                        <span className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-[0.15em]">
+                                            Explanation
+                                        </span>
+                                    </div>
+                                    <div className="flex-1 overflow-y-auto pr-1">
+                                        <MathText className="prose prose-sm max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
+                                    </div>
                                 </div>
                             )}
-                        </div>
-                    </div>
 
-                    {/* Add Below Button */}
-                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 py-2">
-                         <Button size="sm" className="rounded-full shadow-lg bg-background border hover:bg-muted" onClick={() => handleShowForm(i, 'below')}>
-                            <Plus className="h-3 w-3 mr-1" /> Insert Below
-                         </Button>
+                             {/* Metadata for Desktop */}
+                            <div className="hidden md:flex flex-wrap gap-2 content-start">
+                                {q.subject && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.subject}</span>}
+                                {q.chapter && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.chapter}</span>}
+                                {q.topic && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.topic}</span>}
+                                {q.exam_code && <span className="text-[11px] bg-primary/10 text-primary px-3 py-1.5 rounded-full">{q.exam_code}</span>}
+                                {q.year && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.year}</span>}
+                                {q.tags && q.tags.map((t: string) => <span key={t} className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">#{t}</span>)}
+                            </div>
+                        </div>
+
                     </div>
+                    )}
                 </div>
             ))}
-        </div>
-        </div>
 
-        <div className="lg:col-span-5 xl:col-span-4 h-[700px] lg:h-[calc(100vh-8rem)] lg:sticky lg:top-0">
-            <QuestionBankSelector onSelect={handleBankImport} />
+            {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
+                 <div className="border-2 border-primary/30 shadow-md overflow-hidden rounded-[30px] my-5 bg-card w-full mx-auto">
+                    <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
+                            <Plus className="h-5 w-5" /> New Question
+                        </h2>
+                        <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => setActiveForm(null)}>Cancel</Button>
+                    </div>
+                    <div className="p-5 sm:p-7 bg-card">
+                        <QuestionEditor
+                            data={activeForm.data}
+                            onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                            onSave={handleSaveQuestion}
+                            onCancel={() => setActiveForm(null)}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {!activeForm && questions.length > 0 && (
+                <div className="flex justify-center mt-4 w-full">
+                    <Button onClick={() => handleShowForm(questions.length - 1, 'below')} className="shadow-md rounded-full px-8 h-12 text-base transition-transform hover:-translate-y-0.5 w-full sm:w-auto">
+                        <Plus className="mr-2 h-5 w-5" /> Add New Question
+                    </Button>
+                </div>
+            )}
         </div>
       </div>
     </div>
