@@ -384,7 +384,7 @@ const ExamCreator = () => {
   return (
     <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background px-1.5 py-4 md:px-2 md:py-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full max-w-3xl mx-auto flex flex-col space-y-4 lg:overflow-y-auto pb-8 lg:pb-24 relative">
+      <div className="w-full h-full max-w-2xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -477,7 +477,7 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/40 hover:border-primary/20 pb-6 mb-5 transition-colors rounded-[24px] p-4 sm:p-6 bg-card shadow-sm w-full">
+                <div key={i} className="group relative border border-border/40 hover:border-border/80 pb-6 mb-5 transition-all rounded-[30px] p-5 sm:p-7 bg-card shadow-sm w-full">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -511,22 +511,22 @@ const ExamCreator = () => {
                                 <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
                             </div>
 
-                            <div className="flex flex-col gap-2 pl-6 sm:pl-8">
+                            <div className="flex flex-col gap-2 pl-5 sm:pl-7 mt-3">
                                 {Object.entries(q.options).map(([key, val]) => {
                                     const isCorrect = q.correct_answer === key;
                                     return (
                                         <div
                                             key={key}
-                                            className={`relative p-3 rounded-xl transition-all duration-200 flex gap-3 items-start ${
+                                            className={`relative p-3 rounded-2xl transition-all duration-200 flex gap-3 items-start border-transparent ${
                                                 isCorrect
-                                                ? 'bg-green-50/80 dark:bg-green-900/20'
-                                                : ''
+                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10'
+                                                : 'hover:bg-secondary/30'
                                             }`}
                                         >
-                                            <div className="flex items-start gap-2">
-                                                <span className={`text-sm sm:text-base font-bold shrink-0 ${
+                                            <div className="flex items-start gap-2 pt-0.5">
+                                                <span className={`text-[15px] sm:text-[16px] font-bold shrink-0 ${
                                                     isCorrect
-                                                    ? 'text-green-700 dark:text-green-400'
+                                                    ? 'text-[#2BA25C]'
                                                     : 'text-foreground/80'
                                                 }`}>
                                                     {key})
@@ -537,8 +537,8 @@ const ExamCreator = () => {
                                             </div>
                                             {isCorrect && (
                                                 <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <div className="bg-green-500 rounded-full p-1">
-                                                        <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                                                    <div className="bg-[#2BA25C] rounded-full p-[3px] shadow-sm">
+                                                        <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
                                                     </div>
                                                 </div>
                                             )}
@@ -548,14 +548,14 @@ const ExamCreator = () => {
                             </div>
 
                             {q.explanation && (
-                                <div className="mt-4 p-4 sm:p-5 ml-6 sm:ml-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 text-sm">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
-                                            EXPLANATION
+                                <div className="mt-5 p-4 sm:p-5 ml-5 sm:ml-7 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
+                                    <div className="flex items-center gap-2.5 mb-2.5">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
+                                        <span className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-[0.15em]">
+                                            Explanation
                                         </span>
                                     </div>
-                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert text-foreground/80" text={q.explanation} />
+                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
                                 </div>
                             )}
 
