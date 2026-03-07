@@ -623,8 +623,8 @@ const ExamCreator = () => {
                             />
                          </div>
                     ) : (
-                    <div className="relative flex flex-col md:flex-row gap-6">
-                        {/* Left side: Question & Options */}
+                    <div className="relative flex flex-col gap-3">
+                        {/* Main Content */}
                         <div className="flex-1 flex flex-col">
                             <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                                 <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
@@ -636,11 +636,13 @@ const ExamCreator = () => {
                             </div>
 
                             <div className="flex gap-2 sm:gap-3 items-start mb-2">
-                                <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
-                                <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
+                                <span className="font-bold text-lg sm:text-xl leading-snug shrink-0">{i + 1}.</span>
+                                <div className="flex-1">
+                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-1 pl-5 sm:pl-8 mb-4">
+                            <div className="flex flex-col gap-1 mb-3">
                                 {Object.entries(q.options).map(([key, val]) => {
                                     const isCorrect = q.correct_answer === key;
                                     return (
@@ -672,7 +674,7 @@ const ExamCreator = () => {
 
                             {/* Explanation Inline */}
                             {q.explanation && (
-                                <div className="ml-5 sm:ml-8 mt-1 p-3 sm:p-4 bg-[#f8fafc] dark:bg-slate-900/30 rounded-2xl border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
+                                <div className="mt-1 p-3 sm:p-4 bg-[#f8fafc] dark:bg-slate-900/30 rounded-2xl border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
                                     <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
                                         <span className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-[0.1em]">
@@ -687,7 +689,7 @@ const ExamCreator = () => {
 
                             {/* Tags / Meta Display */}
                             {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
-                                <div className="flex flex-wrap gap-1.5 mt-3 ml-5 sm:ml-8 pt-3 border-t border-border/40">
+                                <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/40">
                                     {q.subject && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.subject}</span>}
                                     {q.chapter && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.chapter}</span>}
                                     {q.topic && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.topic}</span>}
