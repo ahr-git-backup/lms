@@ -156,7 +156,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'json' | 'csv') => {
         const file = e.target.files?.[0];
         if (!file) return;
+        processFile(file, type);
+        e.target.value = '';
+    };
 
+    const processFile = (file: File, type: 'json' | 'csv') => {
         const reader = new FileReader();
         reader.onload = (event) => {
           const content = event.target?.result as string;
@@ -168,7 +172,32 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           toast({ title: `Loaded ${type.toUpperCase()} file successfully` });
         };
         reader.readAsText(file);
-        e.target.value = '';
+    };
+
+    const [isDraggingJSON, setIsDraggingJSON] = useState(false);
+    const [isDraggingCSV, setIsDraggingCSV] = useState(false);
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>, type: 'json' | 'csv') => {
+        e.preventDefault();
+        if (type === 'json') setIsDraggingJSON(true);
+        else setIsDraggingCSV(true);
+    };
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>, type: 'json' | 'csv') => {
+        e.preventDefault();
+        if (type === 'json') setIsDraggingJSON(false);
+        else setIsDraggingCSV(false);
+    };
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>, type: 'json' | 'csv') => {
+        e.preventDefault();
+        if (type === 'json') setIsDraggingJSON(false);
+        else setIsDraggingCSV(false);
+
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+            processFile(file, type);
+        }
     };
 
     const upsertExamMutation = useMutation({
@@ -238,6 +267,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
               const explanation = typeof q.explanation === "string" ? q.explanation : null;
 
+              let tags = q.tags || [];
+              if (typeof tags === 'string') {
+                  tags = tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+              }
+
               return {
                 question_text: questionText,
                 option_a: optionA,
@@ -249,6 +283,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 explanation,
                 question_type: q.type != null ? String(q.type) : null,
                 section: q.section != null ? String(q.section) : null,
+                subject: q.subject != null ? String(q.subject) : null,
+                chapter: q.chapter != null ? String(q.chapter) : null,
+                topic: q.topic != null ? String(q.topic) : null,
+                exam_code: q.exam_code != null ? String(q.exam_code) : null,
+                year: q.year != null ? String(q.year) : null,
+                difficulty: q.difficulty != null ? String(q.difficulty) : null,
+                tags: Array.isArray(tags) ? tags : []
               };
             });
           };
@@ -704,16 +745,23 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     </Button>
                   </div>
                 </div>
-                <Textarea
-                  id="questions_json"
-                  rows={6}
-                  value={form.questions_json}
-                  onChange={(e) => setForm((prev) => ({ ...prev, questions_json: e.target.value }))}
-                  placeholder={
-                    "Paste an array of JSON questions. Supported formats include your coaching JSON with options A–D and correct_answer."
-                  }
-                  className="w-full"
-                />
+                <div
+                  className={`relative ${isDraggingJSON ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
+                  onDragOver={(e) => handleDragOver(e, 'json')}
+                  onDragLeave={(e) => handleDragLeave(e, 'json')}
+                  onDrop={(e) => handleDrop(e, 'json')}
+                >
+                    <Textarea
+                      id="questions_json"
+                      rows={6}
+                      value={form.questions_json}
+                      onChange={(e) => setForm((prev) => ({ ...prev, questions_json: e.target.value }))}
+                      placeholder={
+                        "Paste an array of JSON questions, or drag and drop a .json file here. Supported formats include your coaching JSON with options A–D and correct_answer."
+                      }
+                      className="w-full"
+                    />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   On create, questions will be imported into exam_questions. Editing an existing exam does not change existing
                   questions yet.
@@ -736,16 +784,23 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     </Button>
                   </div>
                 </div>
-                <Textarea
-                  id="questions_csv"
-                  rows={6}
-                  value={form.questions_csv}
-                  onChange={(e) => setForm((prev) => ({ ...prev, questions_csv: e.target.value }))}
-                  placeholder={
-                    'Header: "questions","option1","option2","option3","option4","option5","answer","explanation","type","section"'
-                  }
-                  className="w-full"
-                />
+                <div
+                  className={`relative ${isDraggingCSV ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
+                  onDragOver={(e) => handleDragOver(e, 'csv')}
+                  onDragLeave={(e) => handleDragLeave(e, 'csv')}
+                  onDrop={(e) => handleDrop(e, 'csv')}
+                >
+                    <Textarea
+                      id="questions_csv"
+                      rows={6}
+                      value={form.questions_csv}
+                      onChange={(e) => setForm((prev) => ({ ...prev, questions_csv: e.target.value }))}
+                      placeholder={
+                        'Paste CSV content, or drag and drop a .csv file here. Header: "questions","option1","option2","option3","option4","option5","answer","explanation","type","section"'
+                      }
+                      className="w-full"
+                    />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   One question per line. Answer is 1–4 mapping to option1–4. Explanation, type, and section are optional.
                 </p>

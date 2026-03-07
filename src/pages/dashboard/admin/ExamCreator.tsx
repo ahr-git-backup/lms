@@ -14,6 +14,7 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 import MathText from "@/components/MathText";
 import { QuestionEditor, QuestionData } from "@/components/admin/QuestionEditor";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import Papa from "papaparse";
 
 
 
@@ -343,34 +344,136 @@ const ExamCreator = () => {
       }
   };
 
+  const processImportedData = (data: any[], type: 'json' | 'csv') => {
+        try {
+            const normalized = data.map((q: any) => {
+                let options = q.options || { A: "", B: "", C: "", D: "" };
+                let correct_answer = String(q.correct_answer || q.correct_option || q.answer || "").toUpperCase();
+                let question_text = String(q.question || q.question_text || q.questions || "");
+
+                // If it's CSV, handle the specific format requested by user
+                if (type === 'csv') {
+                    // Try to parse options if it's a JSON string
+                    if (typeof q.options === 'string') {
+                        try {
+                            options = JSON.parse(q.options);
+                        } catch {
+                            // ignore, fallback to column parsing
+                        }
+                    }
+
+                    // If options are empty strings, build from column format: option1, option2, option3, option4
+                    if (options.A === "" && options.B === "") {
+                         options = {
+                            A: q.option1 || q.option_a || q.A || q["Option A"] || "",
+                            B: q.option2 || q.option_b || q.B || q["Option B"] || "",
+                            C: q.option3 || q.option_c || q.C || q["Option C"] || "",
+                            D: q.option4 || q.option_d || q.D || q["Option D"] || ""
+                        };
+                    }
+
+                    // Map answer number to letter (1->A, 2->B, 3->C, 4->D)
+                    if (correct_answer === "1") correct_answer = "A";
+                    else if (correct_answer === "2") correct_answer = "B";
+                    else if (correct_answer === "3") correct_answer = "C";
+                    else if (correct_answer === "4") correct_answer = "D";
+                }
+
+                // Parse tags if it's a string in CSV
+                let tags = q.tags || [];
+                if (type === 'csv' && typeof q.tags === 'string') {
+                    tags = q.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+                }
+
+                return {
+                    question: question_text,
+                    options,
+                    correct_answer,
+                    explanation: String(q.explanation || ""),
+                    subject: q.subject || "",
+                    chapter: q.chapter || "",
+                    topic: q.topic || "",
+                    exam_code: q.exam_code || "",
+                    year: q.year || "",
+                    difficulty: q.difficulty || "",
+                    tags
+                };
+            });
+            setQuestions(prev => [...prev, ...normalized]);
+            toast({ title: "Import Successful", description: `Imported ${normalized.length} questions.` });
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Import Failed", description: "Could not parse questions properly.", variant: "destructive" });
+        }
+  };
+
   const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-        try {
-            const content = event.target?.result as string;
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed)) {
-                const normalized = parsed.map((q: any) => ({
-                    question: String(q.question || q.question_text || ""),
-                    options: q.options || { A: "", B: "", C: "", D: "" },
-                    correct_answer: String(q.correct_answer || q.correct_option || "").toUpperCase(),
-                    explanation: String(q.explanation || "")
-                }));
-                setQuestions(prev => [...prev, ...normalized]);
-                toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
-            } else {
-                toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
-            }
-        } catch (err) {
-            console.error(err);
-            toast({ title: "Import Failed", description: "Could not parse file.", variant: "destructive" });
-        }
-    };
-    reader.readAsText(file);
+
+    handleFileImport(file);
     e.target.value = "";
-};
+  };
+
+  const handleFileImport = (file: File) => {
+    if (file.name.endsWith(".json")) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const content = event.target?.result as string;
+                const parsed = JSON.parse(content);
+                if (Array.isArray(parsed)) {
+                    processImportedData(parsed, 'json');
+                } else {
+                    toast({ title: "Invalid Format", description: "Expected an array of questions in JSON.", variant: "destructive" });
+                }
+            } catch (err) {
+                console.error(err);
+                toast({ title: "Import Failed", description: "Could not parse JSON file.", variant: "destructive" });
+            }
+        };
+        reader.readAsText(file);
+    } else if (file.name.endsWith(".csv")) {
+        Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+                if (results.data && results.data.length > 0) {
+                     processImportedData(results.data, 'csv');
+                } else {
+                     toast({ title: "Invalid Format", description: "Could not read data from CSV.", variant: "destructive" });
+                }
+            },
+            error: (error) => {
+                console.error("CSV parse error:", error);
+                toast({ title: "Import Failed", description: "Could not parse CSV file.", variant: "destructive" });
+            }
+        });
+    } else {
+         toast({ title: "Invalid File Type", description: "Please upload a JSON or CSV file.", variant: "destructive" });
+    }
+  };
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      setIsDragging(false);
+      const file = e.dataTransfer.files?.[0];
+      if (file) {
+          handleFileImport(file);
+      }
+  };
 
   const handleBankImport = (selectedQuestions: QuestionData[]) => {
       const cleanQuestions = selectedQuestions.map(q => ({
@@ -382,36 +485,43 @@ const ExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden">
+    <div
+        className={`min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden relative w-full max-w-none ${isDragging ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-4 after:border-primary/50 after:border-dashed after:z-50 after:rounded-xl" : ""}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+    >
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full max-w-5xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-6 shadow-sm border border-border/60">
-            <div className="space-y-2">
+      <div className="w-full h-full flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-4 sm:p-6 shadow-sm border border-border/60 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
-                        <ArrowLeft className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full h-8 w-8 sm:h-10 sm:w-10 shrink-0">
+                        <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-                        Quiz Maker Studio
-                    </h1>
+                    <div>
+                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                            Quiz Maker Studio
+                        </h1>
+                        <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
+                            {examId ? `Editing: ${examTitle}` : "Create, edit, and export questions"}
+                        </p>
+                    </div>
                 </div>
-                <p className="text-sm text-muted-foreground pl-11">
-                    {examId ? `Editing: ${examTitle}` : "Create, edit, and export professional quiz questions"}
-                </p>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
                 <Input
                     value={examTitle}
                     onChange={e => setExamTitle(e.target.value)}
-                    className="w-[250px] font-medium"
+                    className="w-full sm:w-[200px] font-medium h-9"
                     placeholder="Exam Title"
                     disabled={!!examId}
                 />
+            </div>
 
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {questions.length === 0 && !activeForm && (
-                     <Button onClick={() => handleShowForm(0, 'initial')} className="shadow-lg shadow-primary/20">
-                        <Plus className="mr-2 h-4 w-4" /> Add First Question
+                     <Button onClick={() => handleShowForm(0, 'initial')} size="sm" className="shadow-sm">
+                        <Plus className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Add Question</span><span className="sm:hidden">Add</span>
                      </Button>
                 )}
 
@@ -420,39 +530,41 @@ const ExamCreator = () => {
                         <Button
                             onClick={handleSaveToDatabase}
                             disabled={isSaving}
-                            className="bg-green-600 hover:bg-green-700 shadow-lg shadow-green-600/20"
+                            size="sm"
+                            className="bg-green-600 hover:bg-green-700 shadow-sm"
                         >
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
-                            Save
+                            {isSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Database className="mr-1 h-4 w-4" />}
+                            <span className="hidden sm:inline">Save</span>
                         </Button>
                         <Button
                             variant="destructive"
                             onClick={handleReplaceAllQuestions}
                             disabled={isSaving}
+                            size="sm"
                             title="Delete all questions & Re-upload (Cleaner)"
                         >
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                            Replace All
+                            {isSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
+                            <span className="hidden sm:inline">Replace</span>
                         </Button>
                     </>
                 ) : (
-                    <Button variant="outline" onClick={handleExport}>
-                        <Download className="mr-2 h-4 w-4" /> Export JSON
+                    <Button variant="outline" size="sm" onClick={handleExport}>
+                        <Download className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Export</span>
                     </Button>
                 )}
 
                 <div className="relative">
-                    <Button variant="outline" onClick={() => document.getElementById('impf')?.click()}>
-                        <Upload className="mr-2 h-4 w-4" /> Import File
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById('impf')?.click()}>
+                        <Upload className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Import</span>
                     </Button>
                     <input type="file" id="impf" className="hidden" accept=".json,.csv" onChange={handleImport} />
                 </div>
 
-                 <Button variant="secondary" onClick={() => setShowBankSelector(true)}>
-                    <BookOpen className="mr-2 h-4 w-4" /> Question Bank
+                 <Button variant="secondary" size="sm" onClick={() => setShowBankSelector(true)}>
+                    <BookOpen className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Bank</span>
                 </Button>
 
-                <Button variant="destructive" size="icon" onClick={() => {
+                <Button variant="destructive" size="sm" className="px-2" onClick={() => {
                     if (confirm("Are you sure you want to clear all questions?")) setQuestions([]);
                 }}>
                     <Trash2 className="h-4 w-4" />
@@ -511,51 +623,47 @@ const ExamCreator = () => {
                             />
                          </div>
                     ) : (
-                    <div className="relative flex flex-col md:flex-row gap-6">
-                        {/* Left side: Question & Options */}
-                        <div className="flex-1 space-y-5">
+                    <div className="relative flex flex-col gap-3">
+                        {/* Main Content */}
+                        <div className="flex-1 flex flex-col">
                             <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
-                                    <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                <Button size="icon" variant="outline" className="h-8 w-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')} title="Edit">
+                                    <Edit2 className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="destructive" className="h-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)}>
-                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)} title="Delete">
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
 
-                            <div className="flex gap-2 sm:gap-3 items-start">
-                                <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
-                                <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
+                            <div className="flex gap-2 sm:gap-3 items-start mb-2">
+                                <span className="font-bold text-lg sm:text-xl leading-snug shrink-0">{i + 1}.</span>
+                                <div className="flex-1">
+                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-2 pl-5 sm:pl-8 mt-3">
+                            <div className="flex flex-col gap-1 mb-3">
                                 {Object.entries(q.options).map(([key, val]) => {
                                     const isCorrect = q.correct_answer === key;
                                     return (
                                         <div
                                             key={key}
-                                            className={`relative p-3 rounded-2xl transition-all duration-200 flex gap-3 items-start border-transparent ${
+                                            className={`relative px-3 py-1.5 rounded-xl transition-all duration-200 flex gap-3 items-center border-transparent ${
                                                 isCorrect
-                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10'
+                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10 text-[#2BA25C]'
                                                 : 'hover:bg-secondary/30'
                                             }`}
                                         >
-                                            <div className="flex items-start gap-2 pt-0.5">
-                                                <span className={`text-[15px] sm:text-[16px] font-bold shrink-0 ${
-                                                    isCorrect
-                                                    ? 'text-[#2BA25C]'
-                                                    : 'text-foreground/80'
-                                                }`}>
-                                                    {key})
-                                                </span>
-                                                <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90">
-                                                    <MathText text={String(val)} />
-                                                </div>
+                                            <div className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 font-bold text-sm ${isCorrect ? 'bg-[#2BA25C] text-white' : 'text-foreground/80'}`}>
+                                                {key}
+                                            </div>
+                                            <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90 flex-1">
+                                                <MathText text={String(val)} />
                                             </div>
                                             {isCorrect && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <div className="bg-[#2BA25C] rounded-full p-[3px] shadow-sm">
-                                                        <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                                                <div className="shrink-0">
+                                                    <div className="bg-[#2BA25C] rounded-full p-0.5 shadow-sm">
+                                                        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                                                     </div>
                                                 </div>
                                             )}
@@ -564,46 +672,32 @@ const ExamCreator = () => {
                                 })}
                             </div>
 
-                            {/* Tags / Meta Display (if present) on Mobile (Hidden on Desktop, shown in right column) */}
-                            <div className="md:hidden">
-                                {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
-                                    <div className="flex flex-wrap gap-2 mt-4 ml-5 sm:ml-8 pt-4 border-t border-border/40">
-                                        {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
-                                        {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
-                                        {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
-                                        {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
-                                        {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
-                                        {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Right side: Explanation & Metadata (Desktop) */}
-                        <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
+                            {/* Explanation Inline */}
                             {q.explanation && (
-                                <div className="p-4 sm:p-5 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm h-full flex flex-col">
-                                    <div className="flex items-center gap-2.5 mb-3">
+                                <div className="mt-1 p-3 sm:p-4 bg-[#f8fafc] dark:bg-slate-900/30 rounded-2xl border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
+                                    <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
-                                        <span className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-[0.15em]">
+                                        <span className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-[0.1em]">
                                             Explanation
                                         </span>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto pr-1">
+                                    <div className="pl-3.5 border-l-2 border-[#3b82f6]/20 py-0.5">
                                         <MathText className="prose prose-sm max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
                                     </div>
                                 </div>
                             )}
 
-                             {/* Metadata for Desktop */}
-                            <div className="hidden md:flex flex-wrap gap-2 content-start">
-                                {q.subject && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.subject}</span>}
-                                {q.chapter && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.chapter}</span>}
-                                {q.topic && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.topic}</span>}
-                                {q.exam_code && <span className="text-[11px] bg-primary/10 text-primary px-3 py-1.5 rounded-full">{q.exam_code}</span>}
-                                {q.year && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.year}</span>}
-                                {q.tags && q.tags.map((t: string) => <span key={t} className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">#{t}</span>)}
-                            </div>
+                            {/* Tags / Meta Display */}
+                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
+                                <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-border/40">
+                                    {q.subject && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.subject}</span>}
+                                    {q.chapter && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.chapter}</span>}
+                                    {q.topic && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.topic}</span>}
+                                    {q.exam_code && <span className="text-[9px] sm:text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">{q.exam_code}</span>}
+                                    {q.year && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.year}</span>}
+                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">#{t}</span>)}
+                                </div>
+                            )}
                         </div>
 
                     </div>
