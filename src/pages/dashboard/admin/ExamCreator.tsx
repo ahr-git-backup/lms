@@ -486,14 +486,14 @@ const ExamCreator = () => {
 
   return (
     <div
-        className={`min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden relative ${isDragging ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-4 after:border-primary/50 after:border-dashed after:z-50 after:rounded-xl" : ""}`}
+        className={`min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden relative w-full max-w-none ${isDragging ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-4 after:border-primary/50 after:border-dashed after:z-50 after:rounded-xl" : ""}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
     >
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-4 sm:p-6 shadow-sm border border-border/60">
+      <div className="w-full h-full flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-4 sm:p-6 shadow-sm border border-border/60 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full h-8 w-8 sm:h-10 sm:w-10 shrink-0">
