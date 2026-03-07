@@ -382,10 +382,9 @@ const ExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background p-4 md:p-6 font-sans lg:overflow-hidden">
+    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background px-1.5 py-4 md:px-2 md:py-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="grid lg:grid-cols-12 gap-0 lg:gap-6 w-full h-full max-w-full">
-        <div className="lg:col-span-7 xl:col-span-8 h-full flex flex-col space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-0 sm:px-2">
+      <div className="w-full h-full max-w-3xl mx-auto flex flex-col space-y-4 lg:overflow-y-auto pb-8 lg:pb-24 relative">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -478,7 +477,7 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/40 hover:border-primary/20 pb-6 mb-6 transition-colors rounded-[30px] p-5 sm:p-6 bg-card shadow-sm max-w-2xl mx-auto w-full">
+                <div key={i} className="group relative border border-border/40 hover:border-primary/20 pb-6 mb-5 transition-colors rounded-[24px] p-4 sm:p-6 bg-card shadow-sm w-full">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -578,7 +577,7 @@ const ExamCreator = () => {
             ))}
 
             {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
-                 <div className="border border-primary/30 shadow-sm overflow-hidden rounded-[30px] my-6 bg-card max-w-2xl mx-auto w-full">
+                 <div className="border border-primary/30 shadow-sm overflow-hidden rounded-[24px] my-5 bg-card w-full">
                     <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-secondary/10">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
                             <Plus className="h-4 w-4" /> New Question
@@ -597,17 +596,12 @@ const ExamCreator = () => {
             )}
 
             {!activeForm && questions.length > 0 && (
-                <div className="flex justify-center mt-6 max-w-2xl mx-auto w-full">
+                <div className="flex justify-center mt-4 w-full">
                     <Button onClick={() => handleShowForm(questions.length - 1, 'below')} className="shadow-md rounded-full px-8 h-12 text-base transition-transform hover:-translate-y-0.5 w-full sm:w-auto">
                         <Plus className="mr-2 h-5 w-5" /> Add New Question
                     </Button>
                 </div>
             )}
-        </div>
-        </div>
-
-        <div className="lg:col-span-5 xl:col-span-4 h-[700px] lg:h-[calc(100vh-8rem)] lg:sticky lg:top-0">
-            <QuestionBankSelector onSelect={handleBankImport} />
         </div>
       </div>
     </div>
