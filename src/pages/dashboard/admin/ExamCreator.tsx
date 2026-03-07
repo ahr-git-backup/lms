@@ -382,10 +382,10 @@ const ExamCreator = () => {
   };
 
   return (
-    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background px-1.5 py-4 md:px-2 md:py-6 font-sans lg:overflow-hidden">
+    <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full max-w-2xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
+      <div className="w-full h-full max-w-5xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-6 shadow-sm border border-border/60">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
@@ -462,7 +462,7 @@ const ExamCreator = () => {
 
         {/* Collapsible Question Bank */}
         {showBankSelector && (
-            <div className="border border-border/60 rounded-[30px] bg-card p-5 sm:p-7 shadow-sm h-[700px] flex flex-col w-full mx-auto max-w-2xl animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
+            <div className="border border-border/60 rounded-[20px] bg-card p-5 sm:p-7 shadow-sm flex flex-col w-full mx-auto animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50 shrink-0">
                      <h3 className="font-bold text-xl flex items-center gap-2">
                         <BookOpen className="h-5 w-5 text-primary" /> Select from Question Bank
@@ -471,16 +471,16 @@ const ExamCreator = () => {
                         <Trash2 className="h-4 w-4" />
                      </Button>
                 </div>
-                <div className="flex-1 overflow-hidden">
+                <div className="h-[60vh] max-h-[600px] overflow-hidden flex flex-col rounded-xl border border-border/50">
                     <QuestionBankSelector onSelect={handleBankImport} />
                 </div>
             </div>
         )}
 
         {/* Questions List */}
-        <div className="space-y-4 pb-32">
+        <div className="space-y-6 pb-32 pt-2">
             {questions.length === 0 && !activeForm && (
-                <div className="text-center py-20 rounded-md border border-dashed border-muted-foreground/20 bg-muted/5">
+                <div className="text-center py-20 rounded-3xl border border-dashed border-muted-foreground/30 bg-card">
                     <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                         <Plus className="h-8 w-8 text-muted-foreground" />
                     </div>
@@ -493,7 +493,7 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/40 hover:border-border/80 pb-6 mb-5 transition-all rounded-[30px] p-5 sm:p-7 bg-card shadow-sm w-full">
+                <div key={i} className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] p-5 sm:p-7 bg-card shadow-sm w-full mx-auto">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -511,23 +511,24 @@ const ExamCreator = () => {
                             />
                          </div>
                     ) : (
-                    <div className="relative">
-                        <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                    <div className="relative flex flex-col md:flex-row gap-6">
+                        {/* Left side: Question & Options */}
+                        <div className="flex-1 space-y-5">
+                            <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                                 <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
                                     <Edit2 className="h-4 w-4 mr-1" /> Edit
                                 </Button>
                                 <Button size="sm" variant="destructive" className="h-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)}>
                                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                                 </Button>
-                        </div>
+                            </div>
 
-                        <div className="space-y-5">
                             <div className="flex gap-2 sm:gap-3 items-start">
                                 <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
                                 <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
                             </div>
 
-                            <div className="flex flex-col gap-2 pl-5 sm:pl-7 mt-3">
+                            <div className="flex flex-col gap-2 pl-5 sm:pl-8 mt-3">
                                 {Object.entries(q.options).map(([key, val]) => {
                                     const isCorrect = q.correct_answer === key;
                                     return (
@@ -563,44 +564,62 @@ const ExamCreator = () => {
                                 })}
                             </div>
 
+                            {/* Tags / Meta Display (if present) on Mobile (Hidden on Desktop, shown in right column) */}
+                            <div className="md:hidden">
+                                {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
+                                    <div className="flex flex-wrap gap-2 mt-4 ml-5 sm:ml-8 pt-4 border-t border-border/40">
+                                        {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
+                                        {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
+                                        {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
+                                        {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
+                                        {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
+                                        {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Right side: Explanation & Metadata (Desktop) */}
+                        <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
                             {q.explanation && (
-                                <div className="mt-5 p-4 sm:p-5 ml-5 sm:ml-7 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
-                                    <div className="flex items-center gap-2.5 mb-2.5">
+                                <div className="p-4 sm:p-5 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm h-full flex flex-col">
+                                    <div className="flex items-center gap-2.5 mb-3">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
                                         <span className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-[0.15em]">
                                             Explanation
                                         </span>
                                     </div>
-                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
+                                    <div className="flex-1 overflow-y-auto pr-1">
+                                        <MathText className="prose prose-sm max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Tags / Meta Display (if present) */}
-                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
-                                <div className="flex flex-wrap gap-2 mt-4 ml-6 sm:ml-8 pt-4 border-t border-border/40">
-                                    {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
-                                    {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
-                                    {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
-                                    {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
-                                    {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
-                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
-                                </div>
-                            )}
+                             {/* Metadata for Desktop */}
+                            <div className="hidden md:flex flex-wrap gap-2 content-start">
+                                {q.subject && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.subject}</span>}
+                                {q.chapter && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.chapter}</span>}
+                                {q.topic && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.topic}</span>}
+                                {q.exam_code && <span className="text-[11px] bg-primary/10 text-primary px-3 py-1.5 rounded-full">{q.exam_code}</span>}
+                                {q.year && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.year}</span>}
+                                {q.tags && q.tags.map((t: string) => <span key={t} className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">#{t}</span>)}
+                            </div>
                         </div>
+
                     </div>
                     )}
                 </div>
             ))}
 
             {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
-                 <div className="border border-primary/30 shadow-sm overflow-hidden rounded-[24px] my-5 bg-card w-full">
-                    <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-secondary/10">
+                 <div className="border-2 border-primary/30 shadow-md overflow-hidden rounded-[30px] my-5 bg-card w-full mx-auto">
+                    <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
-                            <Plus className="h-4 w-4" /> New Question
+                            <Plus className="h-5 w-5" /> New Question
                         </h2>
                         <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => setActiveForm(null)}>Cancel</Button>
                     </div>
-                    <div className="p-4 sm:p-6 bg-card">
+                    <div className="p-5 sm:p-7 bg-card">
                         <QuestionEditor
                             data={activeForm.data}
                             onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
