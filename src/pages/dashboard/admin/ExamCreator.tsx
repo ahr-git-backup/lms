@@ -627,11 +627,11 @@ const ExamCreator = () => {
                         {/* Main Content */}
                         <div className="flex-1 flex flex-col">
                             <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
-                                    <Edit2 className="h-4 w-4 mr-1" /> Edit
+                                <Button size="icon" variant="outline" className="h-8 w-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')} title="Edit">
+                                    <Edit2 className="h-4 w-4" />
                                 </Button>
-                                <Button size="sm" variant="destructive" className="h-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)}>
-                                    <Trash2 className="h-4 w-4 mr-1" /> Delete
+                                <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)} title="Delete">
+                                    <Trash2 className="h-4 w-4" />
                                 </Button>
                             </div>
 
