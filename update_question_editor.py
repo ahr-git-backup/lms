@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect } from "react";
+import re
+
+with open('src/components/admin/QuestionEditor.tsx', 'r') as f:
+    content = f.read()
+
+# I will write the replacement code in a python script to avoid git merge diff syntax errors if any.
+new_imports = """import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Check, Save, Image as ImageIcon, Plus, X } from "lucide-react";
@@ -10,8 +16,23 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+"""
 
-export interface QuestionData {
+content = re.sub(r'import React,.*?import Cropper from "react-cropper";\n', new_imports, content, flags=re.DOTALL)
+
+# Delete base64ToBlob
+content = re.sub(r'// Helper to convert base64 to Blob\nconst base64ToBlob =.*?};\n\n', '', content, flags=re.DOTALL)
+
+# Update QuestionData interface
+old_interface = """export interface QuestionData {
+    id?: string;
+    question: string;
+    options: { [key: string]: string };
+    correct_answer: string;
+    explanation: string;
+}"""
+
+new_interface = """export interface QuestionData {
     id?: string;
     question: string;
     options: { [key: string]: string };
@@ -24,16 +45,25 @@ export interface QuestionData {
     year?: string;
     difficulty?: string;
     tags?: string[];
-}
+}"""
 
-interface QuestionEditorProps {
-    data: QuestionData;
-    onChange: (data: QuestionData) => void;
-    onSave: () => void;
-    onCancel: () => void;
-}
+content = content.replace(old_interface, new_interface)
 
-export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEditorProps) => {
+# Update Component Body
+old_body_start = """export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEditorProps) => {
+    // Formula Editor State
+    const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetQuill: any | null }>({
+        isOpen: false,
+        targetQuill: null
+    });
+
+    // Image Cropper State
+    const [showCropModal, setShowCropModal] = useState(false);
+    const [cropImage, setCropImage] = useState<string>("");
+    const [currentQuillRef, setCurrentQuillRef] = useState<any>(null);
+    const [cropper, setCropper] = useState<any>();"""
+
+new_body_start = """export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEditorProps) => {
     // Formula Editor State
     const [formulaState, setFormulaState] = useState<{ isOpen: boolean; targetId: string | null }>({
         isOpen: false,
@@ -91,30 +121,83 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
             onChange({ ...data, [type]: value });
         }
     };
+"""
 
+content = content.replace(old_body_start, new_body_start)
 
-    // MathLive setup
-    useEffect(() => {
-        if (!document.getElementById("mathlive-script")) {
-            const script = document.createElement("script");
-            script.id = "mathlive-script";
-            script.src = "https://unpkg.com/mathlive";
-            script.type = "module";
-            document.body.appendChild(script);
-        }
+# Replace image upload and formula logic
+logic_to_replace = """    // Image Upload Handler
+    const handleImageUpload = useCallback((quillRef: any) => {
+        const input = document.createElement('input');
+        input.setAttribute('type', 'file');
+        input.setAttribute('accept', 'image/*');
+        input.click();
+        input.onchange = async () => {
+            const file = input.files?.[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e: any) => {
+                    setCropImage(e.target.result);
+                    setCurrentQuillRef(quillRef);
+                    setShowCropModal(true);
+                };
+                reader.readAsDataURL(file);
+            }
+        };
     }, []);
 
-    const update = (field: string, val: any) => {
-        if (data[field as keyof QuestionData] === val) return;
-        onChange({ ...data, [field]: val });
+    const insertCroppedImage = () => {
+        if (typeof cropper !== "undefined" && currentQuillRef) {
+            const editor = currentQuillRef.getEditor();
+            const range = editor.getSelection(true);
+            const index = range ? range.index : editor.getLength();
+
+            editor.insertEmbed(index, "image", cropper.getCroppedCanvas().toDataURL());
+            setShowCropModal(false);
+            setCropImage("");
+        }
     };
 
-    const updateOption = (key: string, val: string) => {
-        if (data.options[key] === val) return;
-        onChange({ ...data, options: { ...data.options, [key]: val } });
+    // Formula Handlers
+    const handleOpenFormula = useCallback((quillRef: any) => {
+        setFormulaState({ isOpen: true, targetQuill: quillRef });
+    }, []);
+
+    const handleFormulaInsert = (latex: string) => {
+        if (formulaState.targetQuill) {
+            const editor = formulaState.targetQuill.getEditor();
+            const range = editor.getSelection(true);
+            const index = range ? range.index : editor.getLength();
+
+            editor.insertText(index, `$${latex}$ `);
+
+            // Move cursor after the inserted formula and space
+            // FIX: Increased timeout to 100ms to ensure editor regains focus after dialog close
+            setTimeout(() => {
+                editor.setSelection(index + latex.length + 3);
+                editor.focus();
+            }, 100);
+        }
+        setFormulaState({ isOpen: false, targetQuill: null });
     };
 
-    const handleOpenFormula = (id: string) => {
+    const modules = useCallback((quillRef: any) => ({
+        toolbar: {
+            container: [
+                ['bold', 'italic', 'underline', 'strike'],
+                [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+                [{ 'script': 'sub'}, { 'script': 'super' }],
+                ['formula'],
+                ['link', 'image', 'clean']
+            ],
+            handlers: {
+                image: () => handleImageUpload(quillRef),
+                formula: () => handleOpenFormula(quillRef)
+            }
+        }
+    }), [handleImageUpload, handleOpenFormula]);"""
+
+new_logic = """    const handleOpenFormula = (id: string) => {
         setFormulaState({ isOpen: true, targetId: id });
     };
 
@@ -133,9 +216,14 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
             }
         }
         setFormulaState({ isOpen: false, targetId: null });
-    };
+    };"""
 
-    return (
+content = content.replace(logic_to_replace, new_logic)
+
+# Re-write the return block
+return_block_pattern = r'return \(\n        <div className="space-y-8">.*?\);'
+
+new_return_block = """return (
         <div className="space-y-6">
             <div className="space-y-2 border rounded-[20px] p-6 bg-card shadow-sm">
                 <div className="flex items-center justify-between mb-2">
@@ -277,5 +365,9 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
                 onInsert={handleFormulaInsert}
             />
         </div>
-    );
-};
+    );"""
+
+content = re.sub(return_block_pattern, new_return_block, content, flags=re.DOTALL)
+
+with open('src/components/admin/QuestionEditor.tsx', 'w') as f:
+    f.write(content)

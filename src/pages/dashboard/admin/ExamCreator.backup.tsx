@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-
 import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,10 +14,117 @@ import MathText from "@/components/MathText";
 import { QuestionEditor, QuestionData } from "@/components/admin/QuestionEditor";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 
+// Helper to sanitize HTML import
+const sanitizeHtml = (html: string) => {
+    if (!html) return "";
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
 
+    // Remove scripts
+    const scripts = doc.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
 
+    // Remove unsafe tags and attributes
+    const all = doc.querySelectorAll('*');
+    all.forEach(el => {
+        // Remove event handlers
+        Array.from(el.attributes).forEach(attr => {
+            if (attr.name.startsWith('on')) {
+                el.removeAttribute(attr.name);
+            }
+            if (attr.name.startsWith('javascript:')) {
+                el.removeAttribute(attr.name);
+            }
+        });
 
+        // Remove potentially dangerous tags
+        if (['IFRAME', 'OBJECT', 'EMBED', 'FORM'].includes(el.tagName)) {
+            el.remove();
+        }
+    });
+    return doc.body.innerHTML;
+};
 
+// Helper to convert base64 to Blob with robust parsing
+const base64ToBlob = (base64: string) => {
+    try {
+        const parts = base64.split(';base64,');
+        if (parts.length !== 2) throw new Error("Invalid base64 format");
+
+        const contentType = parts[0].split(':')[1] || 'image/png';
+        const raw = window.atob(parts[1].trim());
+        const rawLength = raw.length;
+        const uInt8Array = new Uint8Array(rawLength);
+        for (let i = 0; i < rawLength; ++i) {
+            uInt8Array[i] = raw.charCodeAt(i);
+        }
+        return new Blob([uInt8Array], { type: contentType });
+    } catch (e) {
+        console.error("Base64 parsing error:", e);
+        return null;
+    }
+};
+
+// Image Upload Function
+const uploadImage = async (base64: string) => {
+    try {
+        const blob = base64ToBlob(base64);
+        if (!blob) return null;
+
+        const formData = new FormData();
+        // Use filename with extension matching content type if possible, default to png
+        const ext = blob.type.split('/')[1] || 'png';
+        formData.append('file', blob, `image.${ext}`);
+
+        const res = await fetch('https://imagehost-sigma-five.vercel.app/api/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer jm4rt3hbicI7u0cutBmdQYNC95PCXvzN'
+            },
+            body: formData
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            console.error(`Upload failed: ${res.status} ${res.statusText}`, text);
+            throw new Error(`API Error: ${res.status}`);
+        }
+
+        const data = await res.json();
+        return data.direct_url;
+    } catch (error) {
+        console.error("Image upload failed:", error);
+        return null;
+    }
+};
+
+const processHtmlContent = async (html: string) => {
+    if (!html || !html.includes('data:image')) return { html, hasErrors: false };
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const images = doc.querySelectorAll('img');
+    let hasChanges = false;
+    let hasErrors = false;
+
+    // Convert NodeList to Array to use for...of with await
+    for (const img of Array.from(images)) {
+        if (img.src.startsWith('data:image')) {
+            const newUrl = await uploadImage(img.src);
+            if (newUrl) {
+                img.src = newUrl;
+                hasChanges = true;
+            } else {
+                hasErrors = true;
+            }
+        }
+    }
+
+    return {
+        html: hasChanges ? doc.body.innerHTML : html,
+        hasErrors
+    };
+};
 
 const ExamCreator = () => {
   const { examId } = useParams();
@@ -75,14 +181,7 @@ const ExamCreator = () => {
                         D: q.option_d,
                     },
                     correct_answer: q.correct_option,
-                    explanation: q.explanation || "",
-                    subject: q.subject || "",
-                    chapter: q.chapter || "",
-                    topic: q.topic || "",
-                    exam_code: q.exam_code || "",
-                    year: q.year || "",
-                    difficulty: q.difficulty || "",
-                    tags: q.tags || []
+                    explanation: q.explanation || ""
                 }));
                 setQuestions(loadedQuestions);
             }
@@ -147,28 +246,75 @@ const ExamCreator = () => {
   };
 
   const handleExport = async () => {
-    setIsExporting(true);
-    setExportProgress("Preparing to export...");
+      setIsExporting(true);
+      setExportProgress("Preparing to export...");
 
-    try {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(questions, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", (examTitle || "quiz") + ".json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
+      try {
+          const processedQuestions = [];
+          const total = questions.length;
+          let failedUploads = false;
 
-        toast({ title: "Export Success", description: "Exam exported successfully." });
+          for (let i = 0; i < total; i++) {
+              setExportProgress(`Processing question ${i + 1} of ${total} (Uploading images)...`);
 
-    } catch (error) {
-        console.error("Export failed", error);
-        toast({ title: "Export Failed", description: "An error occurred during export.", variant: "destructive" });
-    } finally {
-        setIsExporting(false);
-        setExportProgress("");
-    }
-};
+              const q = questions[i];
+
+              // Process Question Text
+              const qResult = await processHtmlContent(q.question);
+              if (qResult.hasErrors) failedUploads = true;
+
+              // Process Options
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              const options: any = {};
+              for (const [key, val] of Object.entries(q.options)) {
+                  const optResult = await processHtmlContent(val);
+                  options[key] = optResult.html;
+                  if (optResult.hasErrors) failedUploads = true;
+              }
+
+              // Process Explanation
+              const expResult = await processHtmlContent(q.explanation);
+              if (expResult.hasErrors) failedUploads = true;
+
+              processedQuestions.push({
+                  ...q,
+                  question: qResult.html,
+                  options,
+                  explanation: expResult.html
+              });
+          }
+
+          if (failedUploads) {
+              toast({
+                  title: "Export Aborted",
+                  description: "Image upload failed. Please ensure the API is accessible.",
+                  variant: "destructive"
+              });
+              setIsExporting(false);
+              setExportProgress("");
+              return; // Stop here
+          }
+
+          setQuestions(processedQuestions);
+
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processedQuestions, null, 2));
+          const downloadAnchorNode = document.createElement('a');
+          downloadAnchorNode.setAttribute("href",     dataStr);
+          downloadAnchorNode.setAttribute("download", (examTitle || "quiz") + ".json");
+          document.body.appendChild(downloadAnchorNode);
+          downloadAnchorNode.click();
+          downloadAnchorNode.remove();
+
+          toast({ title: "Export Success", description: "Exam exported with hosted images." });
+
+      } catch (error) {
+          console.error("Export failed", error);
+          toast({ title: "Export Failed", description: "An error occurred during export.", variant: "destructive" });
+      } finally {
+          setIsExporting(false);
+          setExportProgress("");
+      }
+  };
 
   const handleSaveToDatabase = async () => {
       if (!examId) return;
@@ -201,14 +347,7 @@ const ExamCreator = () => {
               option_d: q.options.D,
               correct_option: q.correct_answer,
               explanation: q.explanation,
-              marks: 1,
-              subject: q.subject || null,
-              chapter: q.chapter || null,
-              topic: q.topic || null,
-              exam_code: q.exam_code || null,
-              year: q.year || null,
-              difficulty: q.difficulty || null,
-              tags: q.tags || []
+              marks: 1
           }));
 
           // 3. Delete Removed Questions
@@ -239,14 +378,7 @@ const ExamCreator = () => {
                 question: q.question_text,
                 options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
                 correct_answer: q.correct_option,
-                explanation: q.explanation || "",
-                subject: q.subject || "",
-                chapter: q.chapter || "",
-                topic: q.topic || "",
-                exam_code: q.exam_code || "",
-                year: q.year || "",
-                difficulty: q.difficulty || "",
-                tags: q.tags || []
+                explanation: q.explanation || ""
              }));
              setQuestions(loaded);
           }
@@ -288,14 +420,7 @@ const ExamCreator = () => {
               option_d: q.options.D,
               correct_option: q.correct_answer,
               explanation: q.explanation,
-              marks: 1,
-              subject: q.subject || null,
-              chapter: q.chapter || null,
-              topic: q.topic || null,
-              exam_code: q.exam_code || null,
-              year: q.year || null,
-              difficulty: q.difficulty || null,
-              tags: q.tags || []
+              marks: 1
           }));
 
           if (insertData.length > 0) {
@@ -321,14 +446,7 @@ const ExamCreator = () => {
                 question: q.question_text,
                 options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
                 correct_answer: q.correct_option,
-                explanation: q.explanation || "",
-                subject: q.subject || "",
-                chapter: q.chapter || "",
-                topic: q.topic || "",
-                exam_code: q.exam_code || "",
-                year: q.year || "",
-                difficulty: q.difficulty || "",
-                tags: q.tags || []
+                explanation: q.explanation || ""
              }));
              setQuestions(loaded);
           }
@@ -350,18 +468,67 @@ const ExamCreator = () => {
     reader.onload = (event) => {
         try {
             const content = event.target?.result as string;
-            const parsed = JSON.parse(content);
-            if (Array.isArray(parsed)) {
-                const normalized = parsed.map((q: any) => ({
-                    question: String(q.question || q.question_text || ""),
-                    options: q.options || { A: "", B: "", C: "", D: "" },
-                    correct_answer: String(q.correct_answer || q.correct_option || "").toUpperCase(),
-                    explanation: String(q.explanation || "")
-                }));
-                setQuestions(prev => [...prev, ...normalized]);
-                toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
+            if (content.trim().startsWith('[') || content.trim().startsWith('{')) {
+                const parsed = JSON.parse(content);
+                if (Array.isArray(parsed)) {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const normalized = parsed.map((q: any) => {
+                        const question = q.question || q.question_text || "";
+                        const explanation = q.explanation || "";
+
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        let options: any = { A: "", B: "", C: "", D: "" };
+                        if (q.options && typeof q.options === 'object' && !Array.isArray(q.options)) {
+                            const keys = Object.keys(q.options);
+                            if (keys.includes('A')) options = q.options;
+                            else {
+                                const vals = Object.values(q.options);
+                                options = {
+                                    A: vals[0] || "",
+                                    B: vals[1] || "",
+                                    C: vals[2] || "",
+                                    D: vals[3] || ""
+                                };
+                            }
+                        } else if (q.option_a || q.option1) {
+                            options = {
+                                A: q.option_a || q.option1 || "",
+                                B: q.option_b || q.option2 || "",
+                                C: q.option_c || q.option3 || "",
+                                D: q.option_d || q.option4 || ""
+                            };
+                        }
+
+                        let correct_answer = "";
+                        if (q.correct_answer) correct_answer = q.correct_answer;
+                        else if (q.correct_option) correct_answer = q.correct_option;
+                        else if (q.answer) {
+                            const num = Number(q.answer);
+                            if (!isNaN(num)) {
+                                correct_answer = ["A", "B", "C", "D"][num - 1] || "";
+                            }
+                        }
+
+                        return {
+                            question: sanitizeHtml(String(question)),
+                            options: {
+                                A: sanitizeHtml(options.A),
+                                B: sanitizeHtml(options.B),
+                                C: sanitizeHtml(options.C),
+                                D: sanitizeHtml(options.D),
+                            },
+                            correct_answer: String(correct_answer).toUpperCase(),
+                            explanation: sanitizeHtml(String(explanation))
+                        };
+                    });
+
+                    setQuestions(prev => [...prev, ...normalized]);
+                    toast({ title: "Import Successful", description: `Imported ${normalized.length} questions from JSON.` });
+                } else {
+                    toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
+                }
             } else {
-                toast({ title: "Invalid Format", description: "Expected an array of questions.", variant: "destructive" });
+                toast({ title: "CSV Import", description: "CSV import is supported via copy-paste or implement if needed." });
             }
         } catch (err) {
             console.error(err);
@@ -370,7 +537,7 @@ const ExamCreator = () => {
     };
     reader.readAsText(file);
     e.target.value = "";
-};
+  };
 
   const handleBankImport = (selectedQuestions: QuestionData[]) => {
       const cleanQuestions = selectedQuestions.map(q => ({
@@ -461,6 +628,28 @@ const ExamCreator = () => {
             </div>
         </div>
 
+        {/* Active Form */}
+        {activeForm && (
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="border border-primary/40 shadow-lg overflow-hidden rounded-md my-4">
+                    <div className="p-6 bg-secondary/30 border-b border-border flex items-center justify-between">
+                        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
+                            {activeForm.type === 'edit' ? <Edit2 className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+                            {activeForm.type === 'edit' ? 'Edit Question' : 'New Question'}
+                        </h2>
+                        <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
+                    </div>
+                    <div className="p-6 md:p-8 space-y-6 bg-card">
+                        <QuestionEditor
+                            data={activeForm.data}
+                            onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                            onSave={handleSaveQuestion}
+                            onCancel={() => setActiveForm(null)}
+                        />
+                    </div>
+                </div>
+            </div>
+        )}
 
         {/* Questions List */}
         <div className="space-y-4 pb-32">
@@ -478,30 +667,20 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/50 hover:border-primary/30 pb-6 mb-6 transition-colors rounded-[30px] p-6 bg-card shadow-sm">
-                    {/* Inline Form Edit Mode */}
-                    {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
-                         <div className="space-y-4">
-                            <div className="flex items-center justify-between mb-4 border-b pb-4">
-                                <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
-                                    <Edit2 className="h-5 w-5" /> Edit Question {i + 1}
-                                </h2>
-                                <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
-                            </div>
-                            <QuestionEditor
-                                data={activeForm.data}
-                                onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
-                                onSave={handleSaveQuestion}
-                                onCancel={() => setActiveForm(null)}
-                            />
-                         </div>
-                    ) : (
+                <div key={i} className="group relative border-b border-border/50 pb-8 last:border-0 hover:bg-muted/10 transition-colors rounded-sm -mx-4 px-4 pt-4">
+                    {/* Add Above Button */}
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 py-2">
+                         <Button size="sm" className="rounded-full shadow-lg bg-background border hover:bg-muted" onClick={() => handleShowForm(i, 'above')}>
+                            <Plus className="h-3 w-3 mr-1" /> Insert Above
+                         </Button>
+                    </div>
+
                     <div className="relative">
                         <div className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
-                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
+                                <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background" onClick={() => handleShowForm(i, 'edit')}>
                                     <Edit2 className="h-4 w-4 mr-1" /> Edit
                                 </Button>
-                                <Button size="sm" variant="destructive" className="h-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)}>
+                                <Button size="sm" variant="destructive" className="h-8 shadow-sm" onClick={() => handleDeleteQuestion(i)}>
                                     <Trash2 className="h-4 w-4 mr-1" /> Delete
                                 </Button>
                         </div>
@@ -516,7 +695,7 @@ const ExamCreator = () => {
                                 {Object.entries(q.options).map(([key, val]) => (
                                     <div
                                         key={key}
-                                        className={`relative p-2 rounded-xl transition-all duration-200 flex gap-3 items-start ${
+                                        className={`relative p-2 rounded-md transition-all duration-200 flex gap-3 items-start ${
                                             q.correct_answer === key
                                             ? 'bg-green-50 dark:bg-green-900/20 font-medium'
                                             : 'hover:bg-muted/30'
@@ -531,7 +710,7 @@ const ExamCreator = () => {
                                                 {key})
                                             </span>
                                             <div className="prose prose-sm max-w-none dark:prose-invert break-words overflow-hidden">
-                                                <MathText text={String(val)} />
+                                                <MathText text={val} />
                                             </div>
                                         </div>
                                         {q.correct_answer === key && (
@@ -546,58 +725,24 @@ const ExamCreator = () => {
                             </div>
 
                             {q.explanation && (
-                                <div className="mt-4 p-4 ml-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 text-sm">
+                                <div className="mt-4 p-4 ml-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-md border border-blue-100 dark:border-blue-900/30 text-sm">
                                     <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Explanation
                                     </p>
                                     <MathText className="prose prose-sm max-w-none dark:prose-invert" text={q.explanation} />
                                 </div>
                             )}
-
-                            {/* Tags / Meta Display (if present) */}
-                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty) && (
-                                <div className="flex flex-wrap gap-2 mt-4 ml-6 pt-3 border-t border-border/50">
-                                    {q.subject && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.subject}</span>}
-                                    {q.chapter && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.chapter}</span>}
-                                    {q.topic && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.topic}</span>}
-                                    {q.exam_code && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">{q.exam_code}</span>}
-                                    {q.year && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.year}</span>}
-                                    {q.difficulty && <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-1 rounded-md">{q.difficulty}</span>}
-                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-xs bg-secondary px-2 py-1 rounded-md">#{t}</span>)}
-                                </div>
-                            )}
                         </div>
                     </div>
-                    )}
+
+                    {/* Add Below Button */}
+                    <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 py-2">
+                         <Button size="sm" className="rounded-full shadow-lg bg-background border hover:bg-muted" onClick={() => handleShowForm(i, 'below')}>
+                            <Plus className="h-3 w-3 mr-1" /> Insert Below
+                         </Button>
+                    </div>
                 </div>
             ))}
-
-            {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
-                 <div className="border border-primary/40 shadow-sm overflow-hidden rounded-[30px] my-6 bg-card">
-                    <div className="p-6 border-b border-border flex items-center justify-between">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
-                            <Plus className="h-5 w-5" /> New Question
-                        </h2>
-                        <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
-                    </div>
-                    <div className="p-6 md:p-8 space-y-6 bg-card">
-                        <QuestionEditor
-                            data={activeForm.data}
-                            onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
-                            onSave={handleSaveQuestion}
-                            onCancel={() => setActiveForm(null)}
-                        />
-                    </div>
-                </div>
-            )}
-
-            {!activeForm && questions.length > 0 && (
-                <div className="flex justify-center mt-6">
-                    <Button onClick={() => handleShowForm(questions.length - 1, 'below')} className="shadow-sm rounded-full px-8">
-                        <Plus className="mr-2 h-4 w-4" /> Add Another Question
-                    </Button>
-                </div>
-            )}
         </div>
         </div>
 
