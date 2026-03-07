@@ -492,7 +492,7 @@ const ExamCreator = () => {
         onDrop={handleDrop}
     >
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full max-w-5xl mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+      <div className="w-full h-full mx-auto flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-4 sm:p-6 shadow-sm border border-border/60">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2">
