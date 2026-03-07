@@ -384,8 +384,8 @@ const ExamCreator = () => {
   return (
     <div className="min-h-screen lg:h-[calc(100vh-4rem)] bg-background p-4 md:p-6 font-sans lg:overflow-hidden">
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="grid lg:grid-cols-12 gap-6 w-full h-full max-w-full">
-        <div className="lg:col-span-7 xl:col-span-8 h-full flex flex-col space-y-6 lg:overflow-y-auto pr-2 pb-8 lg:pb-24 relative">
+      <div className="grid lg:grid-cols-12 gap-0 lg:gap-6 w-full h-full max-w-full">
+        <div className="lg:col-span-7 xl:col-span-8 h-full flex flex-col space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-0 sm:px-2">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between rounded-xl bg-card p-6 shadow-md border border-border">
             <div className="space-y-2">
                 <div className="flex items-center gap-2">
@@ -478,7 +478,7 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/50 hover:border-primary/30 pb-6 mb-6 transition-colors rounded-[30px] p-6 bg-card shadow-sm">
+                <div key={i} className="group relative border border-border/40 hover:border-primary/20 pb-6 mb-6 transition-colors rounded-[30px] p-5 sm:p-6 bg-card shadow-sm max-w-2xl mx-auto w-full">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -506,64 +506,69 @@ const ExamCreator = () => {
                                 </Button>
                         </div>
 
-                        <div className="space-y-4">
-                            <div className="flex gap-3">
-                                <span className="font-bold text-lg leading-tight mt-[2px]">{i + 1}.</span>
-                                <MathText className="prose prose-sm md:prose-base max-w-none dark:prose-invert" text={q.question} />
+                        <div className="space-y-5">
+                            <div className="flex gap-2 sm:gap-3 items-start">
+                                <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
+                                <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
                             </div>
 
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2 pl-6">
-                                {Object.entries(q.options).map(([key, val]) => (
-                                    <div
-                                        key={key}
-                                        className={`relative p-2 rounded-xl transition-all duration-200 flex gap-3 items-start ${
-                                            q.correct_answer === key
-                                            ? 'bg-green-50 dark:bg-green-900/20 font-medium'
-                                            : 'hover:bg-muted/30'
-                                        }`}
-                                    >
-                                        <div className="flex items-start gap-2 pt-0.5">
-                                            <span className={`text-sm font-bold shrink-0 ${
-                                                q.correct_answer === key
-                                                ? 'text-green-600 dark:text-green-400'
-                                                : 'text-muted-foreground'
-                                            }`}>
-                                                {key})
-                                            </span>
-                                            <div className="prose prose-sm max-w-none dark:prose-invert break-words overflow-hidden">
-                                                <MathText text={String(val)} />
-                                            </div>
-                                        </div>
-                                        {q.correct_answer === key && (
-                                            <div className="absolute -top-2 -right-2">
-                                                <span className="flex items-center gap-1 text-[10px] font-bold text-white bg-green-600 px-2 py-0.5 rounded-full shadow-sm uppercase tracking-wider">
-                                                    <Check className="h-3 w-3" />
+                            <div className="flex flex-col gap-2 pl-6 sm:pl-8">
+                                {Object.entries(q.options).map(([key, val]) => {
+                                    const isCorrect = q.correct_answer === key;
+                                    return (
+                                        <div
+                                            key={key}
+                                            className={`relative p-3 rounded-xl transition-all duration-200 flex gap-3 items-start ${
+                                                isCorrect
+                                                ? 'bg-green-50/80 dark:bg-green-900/20'
+                                                : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-start gap-2">
+                                                <span className={`text-sm sm:text-base font-bold shrink-0 ${
+                                                    isCorrect
+                                                    ? 'text-green-700 dark:text-green-400'
+                                                    : 'text-foreground/80'
+                                                }`}>
+                                                    {key})
                                                 </span>
+                                                <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90">
+                                                    <MathText text={String(val)} />
+                                                </div>
                                             </div>
-                                        )}
-                                    </div>
-                                ))}
+                                            {isCorrect && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <div className="bg-green-500 rounded-full p-1">
+                                                        <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
 
                             {q.explanation && (
-                                <div className="mt-4 p-4 ml-6 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30 text-sm">
-                                    <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Explanation
-                                    </p>
-                                    <MathText className="prose prose-sm max-w-none dark:prose-invert" text={q.explanation} />
+                                <div className="mt-4 p-4 sm:p-5 ml-6 sm:ml-8 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 text-sm">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                                        <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                                            EXPLANATION
+                                        </span>
+                                    </div>
+                                    <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert text-foreground/80" text={q.explanation} />
                                 </div>
                             )}
 
                             {/* Tags / Meta Display (if present) */}
-                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty) && (
-                                <div className="flex flex-wrap gap-2 mt-4 ml-6 pt-3 border-t border-border/50">
-                                    {q.subject && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.subject}</span>}
-                                    {q.chapter && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.chapter}</span>}
-                                    {q.topic && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.topic}</span>}
-                                    {q.exam_code && <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-md">{q.exam_code}</span>}
-                                    {q.year && <span className="text-xs bg-muted px-2 py-1 rounded-md">{q.year}</span>}
-                                    {q.difficulty && <span className="text-xs bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-1 rounded-md">{q.difficulty}</span>}
-                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-xs bg-secondary px-2 py-1 rounded-md">#{t}</span>)}
+                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
+                                <div className="flex flex-wrap gap-2 mt-4 ml-6 sm:ml-8 pt-4 border-t border-border/40">
+                                    {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
+                                    {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
+                                    {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
+                                    {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
+                                    {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
+                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
                                 </div>
                             )}
                         </div>
@@ -573,14 +578,14 @@ const ExamCreator = () => {
             ))}
 
             {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
-                 <div className="border border-primary/40 shadow-sm overflow-hidden rounded-[30px] my-6 bg-card">
-                    <div className="p-6 border-b border-border flex items-center justify-between">
-                        <h2 className="text-xl font-bold flex items-center gap-2 text-primary">
-                            <Plus className="h-5 w-5" /> New Question
+                 <div className="border border-primary/30 shadow-sm overflow-hidden rounded-[30px] my-6 bg-card max-w-2xl mx-auto w-full">
+                    <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-secondary/10">
+                        <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
+                            <Plus className="h-4 w-4" /> New Question
                         </h2>
-                        <Button variant="ghost" size="sm" onClick={() => setActiveForm(null)}>Cancel</Button>
+                        <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => setActiveForm(null)}>Cancel</Button>
                     </div>
-                    <div className="p-6 md:p-8 space-y-6 bg-card">
+                    <div className="p-4 sm:p-6 bg-card">
                         <QuestionEditor
                             data={activeForm.data}
                             onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
@@ -592,9 +597,9 @@ const ExamCreator = () => {
             )}
 
             {!activeForm && questions.length > 0 && (
-                <div className="flex justify-center mt-6">
-                    <Button onClick={() => handleShowForm(questions.length - 1, 'below')} className="shadow-sm rounded-full px-8">
-                        <Plus className="mr-2 h-4 w-4" /> Add Another Question
+                <div className="flex justify-center mt-6 max-w-2xl mx-auto w-full">
+                    <Button onClick={() => handleShowForm(questions.length - 1, 'below')} className="shadow-md rounded-full px-8 h-12 text-base transition-transform hover:-translate-y-0.5 w-full sm:w-auto">
+                        <Plus className="mr-2 h-5 w-5" /> Add New Question
                     </Button>
                 </div>
             )}

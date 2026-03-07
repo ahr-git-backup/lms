@@ -136,138 +136,154 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
     };
 
     return (
-        <div className="space-y-6">
-            <div className="space-y-2 border rounded-[20px] p-6 bg-card shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                    <Label className="text-base font-semibold">প্রশ্ন (Question) *</Label>
-                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('question')} className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
-                        Insert Math Formula
+        <div className="space-y-4 max-w-2xl mx-auto w-full">
+            {/* Question Box */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold text-foreground/80">Question <span className="text-destructive">*</span></Label>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('question')} className="text-xs h-7 px-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground">
+                        + Math
                     </Button>
                 </div>
                 <Textarea
                     value={data.question}
                     onChange={(e) => update('question', e.target.value)}
                     placeholder="Enter the question text (LaTeX allowed)..."
-                    className="min-h-[120px] rounded-[15px] resize-y"
+                    className="min-h-[100px] rounded-[12px] resize-y text-sm focus-visible:ring-1"
                 />
             </div>
 
-            <div className="border rounded-[20px] p-6 bg-card shadow-sm space-y-4">
-                <Label className="text-base font-semibold block mb-4">অপশনসমূহ (Options)</Label>
-                {['A', 'B', 'C', 'D'].map((opt) => (
-                    <div key={opt} className="flex items-center gap-4">
-                        <div className="w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-secondary/50 font-bold text-sm border">
-                            {opt}
+            {/* Options Box with Inline Correct Answer Selection */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm space-y-3">
+                <div className="flex items-center justify-between mb-1">
+                    <Label className="text-sm font-semibold text-foreground/80">Options & Correct Answer <span className="text-destructive">*</span></Label>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Tap letter to mark correct</span>
+                </div>
+                {['A', 'B', 'C', 'D'].map((opt) => {
+                    const isCorrect = data.correct_answer === opt;
+                    return (
+                        <div key={opt} className={`flex items-center gap-2 sm:gap-3 p-1 rounded-[14px] transition-colors border ${isCorrect ? 'border-green-500 bg-green-50/50 dark:bg-green-900/10' : 'border-transparent hover:border-border/50'}`}>
+                            {/* Clickable Letter Box */}
+                            <button
+                                type="button"
+                                onClick={() => update('correct_answer', opt)}
+                                className={`w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border cursor-pointer ${
+                                    isCorrect
+                                    ? 'bg-green-500 text-white border-green-600 shadow-sm'
+                                    : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary'
+                                }`}
+                                title={`Mark option ${opt} as correct`}
+                            >
+                                {opt}
+                            </button>
+
+                            {/* Input Field */}
+                            <Input
+                                value={data.options[opt]}
+                                onChange={(e) => updateOption(opt, e.target.value)}
+                                placeholder={`Option ${opt}`}
+                                className={`rounded-[10px] flex-1 text-sm h-9 sm:h-10 transition-colors ${isCorrect ? 'border-green-200 focus-visible:ring-green-500 dark:border-green-800' : 'focus-visible:ring-1'}`}
+                            />
+
+                            {/* Math Button */}
+                            <Button variant="ghost" size="icon" onClick={() => handleOpenFormula(`option_${opt}`)} className="text-xs shrink-0 text-muted-foreground h-8 w-8 rounded-full hover:bg-secondary/80">
+                               <ImageIcon className="h-4 w-4" />
+                            </Button>
                         </div>
-                        <Input
-                            value={data.options[opt]}
-                            onChange={(e) => updateOption(opt, e.target.value)}
-                            placeholder={`Option ${opt}`}
-                            className="rounded-[12px] flex-1"
+                    );
+                })}
+            </div>
+
+            {/* Explanation Box */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm flex flex-col gap-2">
+                 <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold text-foreground/80">Explanation</Label>
+                    <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('explanation')} className="text-xs h-7 px-2 rounded-full bg-secondary/50 hover:bg-secondary text-foreground">
+                        + Math
+                    </Button>
+                </div>
+                <Textarea
+                    value={data.explanation}
+                    onChange={(e) => update('explanation', e.target.value)}
+                    placeholder="Provide an explanation (optional)..."
+                    className="min-h-[80px] rounded-[12px] resize-y text-sm focus-visible:ring-1"
+                />
+            </div>
+
+            {/* Metadata / Tags - Compact Grid */}
+            <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm">
+                <Label className="text-sm font-semibold text-foreground/80 block mb-3">Metadata & Tags</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-x-3 gap-y-4">
+                     <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Subject</Label>
+                        <CreatableSelect
+                            options={subjectOptions}
+                            value={data.subject || ""}
+                            onChange={(val) => update('subject', val)}
+                            onCreate={(val) => handleCreateMeta('subject', val)}
+                            placeholder="Subject"
                         />
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenFormula(`option_${opt}`)} className="text-xs shrink-0 text-muted-foreground">
-                           <ImageIcon className="h-4 w-4" /> {/* Math icon equivalent maybe */}
-                        </Button>
                     </div>
-                ))}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <div className="space-y-2 border rounded-[20px] p-6 bg-card shadow-sm">
-                    <Label className="text-base font-semibold text-green-600 block mb-2">সঠিক উত্তর *</Label>
-                    <Input
-                        value={data.correct_answer}
-                        onChange={(e) => update('correct_answer', e.target.value)}
-                        placeholder="e.g., A, B or 1, 2"
-                        className="rounded-[12px]"
-                    />
-                </div>
-
-                <div className="space-y-2 border rounded-[20px] p-6 bg-card shadow-sm">
-                     <div className="flex items-center justify-between mb-2">
-                        <Label className="text-base font-semibold">ব্যাখ্যা (Explanation)</Label>
-                        <Button variant="ghost" size="sm" onClick={() => handleOpenFormula('explanation')} className="text-xs h-8 bg-secondary/50 hover:bg-secondary text-foreground">
-                            Math
-                        </Button>
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Chapter</Label>
+                        <CreatableSelect
+                            options={chapterOptions}
+                            value={data.chapter || ""}
+                            onChange={(val) => update('chapter', val)}
+                            onCreate={(val) => handleCreateMeta('chapter', val)}
+                            placeholder="Chapter"
+                        />
                     </div>
-                    <Textarea
-                        value={data.explanation}
-                        onChange={(e) => update('explanation', e.target.value)}
-                        placeholder="Provide explanation..."
-                        className="min-h-[60px] rounded-[12px] resize-y"
-                    />
+                    <div className="space-y-1.5 col-span-2 md:col-span-1">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Topic</Label>
+                        <CreatableSelect
+                            options={topicOptions}
+                            value={data.topic || ""}
+                            onChange={(val) => update('topic', val)}
+                            onCreate={(val) => handleCreateMeta('topic', val)}
+                            placeholder="Topic"
+                        />
+                    </div>
+                     <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Exam Code</Label>
+                        <CreatableSelect
+                            options={globalMeta?.exam_code || []}
+                            value={data.exam_code || ""}
+                            onChange={(val) => update('exam_code', val)}
+                            onCreate={(val) => handleCreateMeta('exam_code', val)}
+                            placeholder="Code"
+                        />
+                    </div>
+                    <div className="space-y-1.5">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Year</Label>
+                        <CreatableSelect
+                            options={globalMeta?.year || []}
+                            value={data.year || ""}
+                            onChange={(val) => update('year', val)}
+                            onCreate={(val) => handleCreateMeta('year', val)}
+                            placeholder="Year"
+                        />
+                    </div>
+                    <div className="space-y-1.5 col-span-2 md:col-span-3">
+                        <Label className="text-[11px] text-muted-foreground uppercase tracking-wider">Tags</Label>
+                        <MultiSelect
+                            options={globalMeta?.tag || []}
+                            selected={data.tags || []}
+                            onChange={(val) => update('tags', val)}
+                            onCreate={(val) => handleCreateMeta('tag', val)}
+                            placeholder="Add tags..."
+                        />
+                    </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 border rounded-[20px] p-6 bg-card shadow-sm">
-                 <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Subject</Label>
-                    <CreatableSelect
-                        options={subjectOptions}
-                        value={data.subject || ""}
-                        onChange={(val) => update('subject', val)}
-                        onCreate={(val) => handleCreateMeta('subject', val)}
-                        placeholder="e.g., Physics"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Chapter</Label>
-                    <CreatableSelect
-                        options={chapterOptions}
-                        value={data.chapter || ""}
-                        onChange={(val) => update('chapter', val)}
-                        onCreate={(val) => handleCreateMeta('chapter', val)}
-                        placeholder="e.g., 5"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Topic</Label>
-                    <CreatableSelect
-                        options={topicOptions}
-                        value={data.topic || ""}
-                        onChange={(val) => update('topic', val)}
-                        onCreate={(val) => handleCreateMeta('topic', val)}
-                        placeholder="Select Topic"
-                    />
-                </div>
-                 <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Exam Code</Label>
-                    <CreatableSelect
-                        options={globalMeta?.exam_code || []}
-                        value={data.exam_code || ""}
-                        onChange={(val) => update('exam_code', val)}
-                        onCreate={(val) => handleCreateMeta('exam_code', val)}
-                        placeholder="e.g., DU"
-                    />
-                </div>
-                <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Year</Label>
-                    <CreatableSelect
-                        options={globalMeta?.year || []}
-                        value={data.year || ""}
-                        onChange={(val) => update('year', val)}
-                        onCreate={(val) => handleCreateMeta('year', val)}
-                        placeholder="Select Year"
-                    />
-                </div>
-                <div className="space-y-2 lg:col-span-3">
-                    <Label className="text-xs text-muted-foreground">Tags</Label>
-                    <MultiSelect
-                        options={globalMeta?.tag || []}
-                        selected={data.tags || []}
-                        onChange={(val) => update('tags', val)}
-                        onCreate={(val) => handleCreateMeta('tag', val)}
-                        placeholder="Select Tags"
-                    />
-                </div>
-            </div>
-
-            <div className="flex gap-4 pt-4 justify-center md:justify-end">
-                <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto rounded-[10px] min-w-[120px]">
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2 justify-end">
+                <Button variant="ghost" onClick={onCancel} className="rounded-full px-6 h-10 font-medium text-muted-foreground hover:bg-secondary">
                     Cancel
                 </Button>
-                <Button onClick={onSave} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white rounded-[10px] min-w-[150px] shadow-md">
-                    <Save className="mr-2 h-4 w-4" /> Update
+                <Button onClick={onSave} className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-8 h-10 font-medium shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5">
+                    Save Question
                 </Button>
             </div>
 
