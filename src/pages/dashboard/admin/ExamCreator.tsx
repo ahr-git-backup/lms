@@ -625,7 +625,7 @@ const ExamCreator = () => {
                     ) : (
                     <div className="relative flex flex-col md:flex-row gap-6">
                         {/* Left side: Question & Options */}
-                        <div className="flex-1 space-y-5">
+                        <div className="flex-1 flex flex-col">
                             <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
                                 <Button size="sm" variant="outline" className="h-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')}>
                                     <Edit2 className="h-4 w-4 mr-1" /> Edit
@@ -635,39 +635,33 @@ const ExamCreator = () => {
                                 </Button>
                             </div>
 
-                            <div className="flex gap-2 sm:gap-3 items-start">
+                            <div className="flex gap-2 sm:gap-3 items-start mb-2">
                                 <span className="font-bold text-lg sm:text-xl leading-snug">{i + 1}.</span>
                                 <MathText className="prose prose-sm sm:prose-base max-w-none dark:prose-invert font-medium mt-[1px]" text={q.question} />
                             </div>
 
-                            <div className="flex flex-col gap-2 pl-5 sm:pl-8 mt-3">
+                            <div className="flex flex-col gap-1 pl-5 sm:pl-8 mb-4">
                                 {Object.entries(q.options).map(([key, val]) => {
                                     const isCorrect = q.correct_answer === key;
                                     return (
                                         <div
                                             key={key}
-                                            className={`relative p-3 rounded-2xl transition-all duration-200 flex gap-3 items-start border-transparent ${
+                                            className={`relative px-3 py-1.5 rounded-xl transition-all duration-200 flex gap-3 items-center border-transparent ${
                                                 isCorrect
-                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10'
+                                                ? 'bg-[#f0fdf4] dark:bg-green-900/10 text-[#2BA25C]'
                                                 : 'hover:bg-secondary/30'
                                             }`}
                                         >
-                                            <div className="flex items-start gap-2 pt-0.5">
-                                                <span className={`text-[15px] sm:text-[16px] font-bold shrink-0 ${
-                                                    isCorrect
-                                                    ? 'text-[#2BA25C]'
-                                                    : 'text-foreground/80'
-                                                }`}>
-                                                    {key})
-                                                </span>
-                                                <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90">
-                                                    <MathText text={String(val)} />
-                                                </div>
+                                            <div className={`flex items-center justify-center w-6 h-6 rounded-full shrink-0 font-bold text-sm ${isCorrect ? 'bg-[#2BA25C] text-white' : 'text-foreground/80'}`}>
+                                                {key}
+                                            </div>
+                                            <div className="prose prose-sm sm:prose-base max-w-none dark:prose-invert break-words overflow-hidden text-foreground/90 flex-1">
+                                                <MathText text={String(val)} />
                                             </div>
                                             {isCorrect && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                                    <div className="bg-[#2BA25C] rounded-full p-[3px] shadow-sm">
-                                                        <Check className="h-3 w-3 text-white" strokeWidth={3.5} />
+                                                <div className="shrink-0">
+                                                    <div className="bg-[#2BA25C] rounded-full p-0.5 shadow-sm">
+                                                        <Check className="h-3.5 w-3.5 text-white" strokeWidth={3} />
                                                     </div>
                                                 </div>
                                             )}
@@ -676,46 +670,32 @@ const ExamCreator = () => {
                                 })}
                             </div>
 
-                            {/* Tags / Meta Display (if present) on Mobile (Hidden on Desktop, shown in right column) */}
-                            <div className="md:hidden">
-                                {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
-                                    <div className="flex flex-wrap gap-2 mt-4 ml-5 sm:ml-8 pt-4 border-t border-border/40">
-                                        {q.subject && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.subject}</span>}
-                                        {q.chapter && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.chapter}</span>}
-                                        {q.topic && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.topic}</span>}
-                                        {q.exam_code && <span className="text-[10px] sm:text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{q.exam_code}</span>}
-                                        {q.year && <span className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">{q.year}</span>}
-                                        {q.tags && q.tags.map((t: string) => <span key={t} className="text-[10px] sm:text-xs bg-secondary/60 text-secondary-foreground px-2.5 py-1 rounded-full">#{t}</span>)}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Right side: Explanation & Metadata (Desktop) */}
-                        <div className="w-full md:w-80 shrink-0 flex flex-col gap-4">
+                            {/* Explanation Inline */}
                             {q.explanation && (
-                                <div className="p-4 sm:p-5 bg-[#f8fafc] dark:bg-slate-900/30 rounded-[20px] border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm h-full flex flex-col">
-                                    <div className="flex items-center gap-2.5 mb-3">
+                                <div className="ml-5 sm:ml-8 mt-1 p-3 sm:p-4 bg-[#f8fafc] dark:bg-slate-900/30 rounded-2xl border border-[#e2e8f0]/80 dark:border-slate-800/50 text-sm">
+                                    <div className="flex items-center gap-2 mb-1.5">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#3b82f6] shadow-[0_0_4px_rgba(59,130,246,0.6)]"></div>
-                                        <span className="text-[11px] font-bold text-[#3b82f6] uppercase tracking-[0.15em]">
+                                        <span className="text-[10px] font-bold text-[#3b82f6] uppercase tracking-[0.1em]">
                                             Explanation
                                         </span>
                                     </div>
-                                    <div className="flex-1 overflow-y-auto pr-1">
+                                    <div className="pl-3.5 border-l-2 border-[#3b82f6]/20 py-0.5">
                                         <MathText className="prose prose-sm max-w-none dark:prose-invert text-foreground/85 leading-relaxed" text={q.explanation} />
                                     </div>
                                 </div>
                             )}
 
-                             {/* Metadata for Desktop */}
-                            <div className="hidden md:flex flex-wrap gap-2 content-start">
-                                {q.subject && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.subject}</span>}
-                                {q.chapter && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.chapter}</span>}
-                                {q.topic && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.topic}</span>}
-                                {q.exam_code && <span className="text-[11px] bg-primary/10 text-primary px-3 py-1.5 rounded-full">{q.exam_code}</span>}
-                                {q.year && <span className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">{q.year}</span>}
-                                {q.tags && q.tags.map((t: string) => <span key={t} className="text-[11px] bg-secondary/60 text-secondary-foreground px-3 py-1.5 rounded-full">#{t}</span>)}
-                            </div>
+                            {/* Tags / Meta Display */}
+                            {(q.subject || q.chapter || q.topic || q.exam_code || q.year || q.difficulty || (q.tags && q.tags.length > 0)) && (
+                                <div className="flex flex-wrap gap-1.5 mt-3 ml-5 sm:ml-8 pt-3 border-t border-border/40">
+                                    {q.subject && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.subject}</span>}
+                                    {q.chapter && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.chapter}</span>}
+                                    {q.topic && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.topic}</span>}
+                                    {q.exam_code && <span className="text-[9px] sm:text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-md">{q.exam_code}</span>}
+                                    {q.year && <span className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">{q.year}</span>}
+                                    {q.tags && q.tags.map((t: string) => <span key={t} className="text-[9px] sm:text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-md">#{t}</span>)}
+                                </div>
+                            )}
                         </div>
 
                     </div>
