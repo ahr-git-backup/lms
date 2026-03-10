@@ -329,9 +329,12 @@ const AdminStudents = () => {
                     <Select
                     value={selectedCourseFilter}
                     onValueChange={(v) => {
-                        setSelectedCourseFilter(v);
+                        setSearchParams(prev => {
+                            prev.set("course", v);
+                            prev.set("page", "0");
+                            return prev;
+                        });
                         setListFilter('paid'); // Auto switch to showing list when course selected
-                        setPage(0);
                     }}
                     >
                     <SelectTrigger className="w-full sm:w-56">

@@ -56,6 +56,7 @@ const examSchema = z.object({
   is_archive: z.boolean().optional().default(false),
   is_readymade: z.boolean().optional().default(false),
   readymade_course_ids: z.array(z.string()).default([]),
+  is_omr: z.boolean().optional().default(false),
 });
 
 interface ExamFormProps {
@@ -100,6 +101,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         restrict_solution: false,
         questions_json: "",
         questions_csv: "",
+        is_omr: false,
     });
 
     useEffect(() => {
@@ -140,6 +142,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 questions_csv: "",
             is_archive: exam.is_archive || isArchiveMode,
             is_readymade: exam.is_readymade ?? false,
+            is_omr: exam.is_omr ?? false,
             });
         }
     }, [exam]);
@@ -229,6 +232,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
             is_readymade: parsed.is_readymade ?? false,
+            is_omr: parsed.is_omr ?? false,
           };
 
           // Helper functions for questions (copied from original)
@@ -688,6 +692,22 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     <span>Restrict Solution (Solvesheet)</span>
                     <span className="text-xs text-muted-foreground font-normal">
                         If enabled, students cannot see the detailed solution or correct answers after the exam. They will only see their marks and stats.
+                    </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-violet-50 dark:bg-violet-900/10 border-violet-200">
+                <Switch
+                  id="is_omr"
+                  checked={form.is_omr}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, is_omr: checked }))
+                  }
+                />
+                <Label htmlFor="is_omr" className="flex flex-col">
+                    <span>Enable OMR Scanner</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                        If enabled, the Exam Creator will show an OMR Scanner section to scan answer sheets and auto-fill answers.
                     </span>
                 </Label>
               </div>

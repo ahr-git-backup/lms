@@ -32,6 +32,7 @@ export interface Exam {
   is_archive?: boolean;
   is_readymade?: boolean;
   external_exam_link?: string | null;
+  is_omr?: boolean;
   course?: {
     name: string;
   } | null;

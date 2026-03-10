@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -28,11 +28,31 @@ const CourseBuy = () => {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [searchParams] = useSearchParams();
 
   // Promo Code State
   const [promoCode, setPromoCode] = useState("");
+  const [appliedCouponCode, setAppliedCouponCode] = useState<string | null>(null);
   const [discount, setDiscount] = useState<{ amount: number; type: 'flat' | 'percentage'; id: string } | null>(null);
   const [checkingPromo, setCheckingPromo] = useState(false);
+
+  // Read coupon from URL params (passed from CourseDetails)
+  useEffect(() => {
+    const couponFromUrl = searchParams.get('coupon');
+    const couponId = searchParams.get('coupon_id');
+    const discountAmount = searchParams.get('discount_amount');
+    const discountType = searchParams.get('discount_type');
+
+    if (couponFromUrl && couponId && discountAmount && discountType) {
+      setAppliedCouponCode(couponFromUrl);
+      setPromoCode(couponFromUrl);
+      setDiscount({
+        amount: Number(discountAmount),
+        type: discountType as 'flat' | 'percentage',
+        id: couponId,
+      });
+    }
+  }, [searchParams]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -156,6 +176,7 @@ const CourseBuy = () => {
                   type: data.discount_type,
                   id: data.id
               });
+              setAppliedCouponCode(data.code || promoCode.toUpperCase());
               toast.success("Promo code applied!");
           } else {
               setDiscount(null);
@@ -300,7 +321,15 @@ const CourseBuy = () => {
                              <span className="text-3xl font-bold">৳{Number(course?.price).toLocaleString("en-BD")}</span>
                         )}
                     </div>
-                    {discount && <p className="text-xs text-green-600 font-medium mt-1">Promo code applied!</p>}
+                    {discount && appliedCouponCode && (
+                      <div className="mt-2 inline-flex items-center gap-2 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full px-3 py-1">
+                        <Tag className="h-3 w-3 text-green-600" />
+                        <span className="text-xs font-semibold text-green-700 dark:text-green-400">{appliedCouponCode}</span>
+                        <span className="text-xs text-green-600">
+                          {discount.type === 'percentage' ? `${discount.amount}% off` : `৳${discount.amount} off`}
+                        </span>
+                      </div>
+                    )}
                 </div>
 
                 {/* Promo Code Input */}
@@ -320,7 +349,7 @@ const CourseBuy = () => {
                         </div>
                     </div>
                     {discount ? (
-                        <Button variant="outline" onClick={() => { setDiscount(null); setPromoCode(""); }}>Remove</Button>
+                        <Button variant="outline" onClick={() => { setDiscount(null); setPromoCode(""); setAppliedCouponCode(null); }}>Remove</Button>
                     ) : (
                         <Button onClick={checkPromoCode} disabled={!promoCode || checkingPromo}>
                             {checkingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}

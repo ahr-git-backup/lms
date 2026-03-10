@@ -231,7 +231,7 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
             {classes.map((cls: any) => (
                 <Card key={cls.id} className="flex flex-col">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{cls.title}</CardTitle>
+                        <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                             <Clock className="h-3 w-3" />
                             {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
@@ -275,7 +275,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                 <Card key={exam.id} className="flex flex-col">
                     <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
-                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            <CardTitle className="text-sm leading-snug">{exam.title}</CardTitle>
                             {exam.exam_type === 'live' && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">LIVE</span>}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -320,7 +320,7 @@ const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
                 <Card key={exam.id} className="flex flex-col border-blue-100 bg-blue-50/20">
                     <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
-                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            <CardTitle className="text-sm leading-snug">{exam.title}</CardTitle>
                             <Badge variant="outline" className="text-[10px] border-blue-200 text-blue-600">Readymade</Badge>
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -362,7 +362,7 @@ const ArchiveClassList = ({ courseId, subject, chapter }: any) => {
             {classes.map((cls: any) => (
                 <Card key={cls.id} className="flex flex-col border-emerald-100 bg-emerald-50/20">
                     <CardHeader className="pb-2">
-                        <CardTitle className="text-base">{cls.title}</CardTitle>
+                        <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
                         <div className="text-xs text-muted-foreground flex items-center gap-2">
                              <Badge variant="outline" className="text-[10px]">Archive</Badge>
                              <Clock className="h-3 w-3" />
@@ -406,7 +406,7 @@ const ArchiveExamList = ({ courseId, subject, chapter }: any) => {
                 <Card key={exam.id} className="flex flex-col border-emerald-100 bg-emerald-50/20">
                     <CardHeader className="pb-2">
                          <div className="flex justify-between items-start">
-                            <CardTitle className="text-base">{exam.title}</CardTitle>
+                            <CardTitle className="text-sm leading-snug">{exam.title}</CardTitle>
                             <Badge variant="outline" className="text-[10px]">Archive</Badge>
                         </div>
                         <div className="text-xs text-muted-foreground">

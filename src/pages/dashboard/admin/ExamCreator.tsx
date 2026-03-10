@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import "react-quill/dist/quill.snow.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft, Download, Upload, Trash2, Plus, Edit2,
@@ -14,6 +16,14 @@ import { LoadingScreen } from "@/components/ui/loading-screen";
 import MathText from "@/components/MathText";
 import { QuestionEditor, QuestionData } from "@/components/admin/QuestionEditor";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import { OmrScanner } from "@/components/admin/OmrScanner";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useQuery } from "@tanstack/react-query";
+import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import { fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import Papa from "papaparse";
 
 
@@ -33,6 +43,45 @@ const ExamCreator = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
+  const [isOmr, setIsOmr] = useState(false);
+  const [showSaveToWeb, setShowSaveToWeb] = useState(false);
+  const [saveWebForm, setSaveWebForm] = useState({
+    course_id: "",
+    shared_course_ids: [] as string[],
+    archive_course_ids: [] as string[],
+    readymade_course_ids: [] as string[],
+    subject: [] as string[],
+    chapter: "",
+    exam_type: "practice",
+    duration_minutes: "30",
+    total_marks: "",
+    negative_mark_per_question: "0",
+    instructions: "",
+    time_window_start: "",
+    time_window_end: "",
+    is_published: false,
+    is_visible_on_free: true,
+    restrict_solution: false,
+    is_readymade: false,
+    is_omr_enabled: false,
+  });
+
+  // Fetch courses for Save to Website
+  const { data: courses } = useQuery({
+    queryKey: ["admin-courses-for-quiz"],
+    queryFn: async () => {
+      const { data } = await supabase.from("courses").select("id, name").order("name");
+      return data || [];
+    }
+  });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: globalMeta } = useGlobalMetadata() as any;
+  const addMetadata = useAddGlobalMetadata();
+  const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+    addMetadata.mutate({ type, value });
+  };
+  const courseOptions = courses?.map((c: any) => ({ label: c.name, value: c.id })) || [];
 
   // MathLive setup
   useEffect(() => {
@@ -56,6 +105,7 @@ const ExamCreator = () => {
                 .eq("id", examId)
                 .single();
             if (exam) setExamTitle(exam.title);
+            if (exam) setIsOmr(exam.is_omr ?? false);
 
             // Fetch Questions
             const { data: qData } = await supabase
@@ -344,6 +394,87 @@ const ExamCreator = () => {
       }
   };
 
+  const handleSaveToWebsite = async () => {
+    if (questions.length === 0) {
+      toast({ title: "No Questions", description: "Add at least one question before saving.", variant: "destructive" });
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const f = saveWebForm;
+      // 1. Create the exam with all fields
+      const examPayload: any = {
+        title: examTitle || "New Exam",
+        course_id: f.course_id || null,
+        shared_course_ids: f.shared_course_ids,
+        archive_course_ids: f.archive_course_ids,
+        readymade_course_ids: f.readymade_course_ids,
+        subject: f.subject,
+        chapter: f.chapter || null,
+        exam_type: f.exam_type,
+        duration_minutes: Number(f.duration_minutes) || 30,
+        total_marks: f.total_marks ? Number(f.total_marks) : questions.length,
+        negative_mark_per_question: f.negative_mark_per_question ? Number(f.negative_mark_per_question) : 0,
+        instructions: f.instructions || null,
+        time_window_start: f.time_window_start ? fromDhakaTimeToUTC(f.time_window_start) : null,
+        time_window_end: f.time_window_end ? fromDhakaTimeToUTC(f.time_window_end) : null,
+        is_published: f.is_published,
+        is_visible_on_free: f.is_visible_on_free,
+        restrict_solution: f.restrict_solution,
+        is_readymade: f.is_readymade,
+        is_omr: f.is_omr_enabled,
+      };
+
+      const { data: newExam, error: examError } = await supabase
+        .from("exams")
+        .insert(examPayload)
+        .select("id")
+        .single();
+
+      if (examError) throw examError;
+      if (!newExam?.id) throw new Error("Failed to create exam");
+
+      // 2. Insert all questions
+      const insertData = questions.map((q, idx) => ({
+        exam_id: newExam.id,
+        question_index: idx + 1,
+        question_text: q.question,
+        option_a: q.options.A,
+        option_b: q.options.B,
+        option_c: q.options.C,
+        option_d: q.options.D,
+        correct_option: q.correct_answer,
+        explanation: q.explanation,
+        marks: 1,
+        subject: q.subject || null,
+        chapter: q.chapter || null,
+        topic: q.topic || null,
+        exam_code: q.exam_code || null,
+        year: q.year || null,
+        difficulty: q.difficulty || null,
+        tags: q.tags || []
+      }));
+
+      const { error: insertError } = await supabase.from("exam_questions").insert(insertData);
+      if (insertError) throw insertError;
+
+      toast({ title: "Exam Created!", description: `"${examTitle}" saved with ${questions.length} questions. You can now publish it from Exams page.` });
+      setShowSaveToWeb(false);
+
+      // Navigate to the new exam's question maker for further editing
+      navigate(`/dashboard/admin/exams/question-maker/${newExam.id}`);
+
+    } catch (err) {
+      console.error("Save to website error:", err);
+      if (err instanceof Error) {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const processImportedData = (data: any[], type: 'json' | 'csv') => {
         try {
             const normalized = data.map((q: any) => {
@@ -484,6 +615,10 @@ const ExamCreator = () => {
       toast({ title: "Imported", description: `Added ${cleanQuestions.length} questions from Question Bank.` });
   };
 
+  const handleOmrImport = (scannedQuestions: QuestionData[]) => {
+      setQuestions(prev => [...prev, ...scannedQuestions]);
+  };
+
   return (
     <div
         className={`min-h-screen lg:h-[calc(100vh-4rem)] bg-muted/20 px-1.5 py-4 md:px-4 md:py-6 font-sans lg:overflow-hidden relative w-full max-w-none ${isDragging ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-4 after:border-primary/50 after:border-dashed after:z-50 after:rounded-xl" : ""}`}
@@ -548,9 +683,21 @@ const ExamCreator = () => {
                         </Button>
                     </>
                 ) : (
+                    <>
                     <Button variant="outline" size="sm" onClick={handleExport}>
                         <Download className="mr-1 h-4 w-4" /> <span className="hidden sm:inline">Export</span>
                     </Button>
+                    <Button
+                        size="sm"
+                        className="bg-green-600 hover:bg-green-700 shadow-sm"
+                        onClick={() => setShowSaveToWeb(true)}
+                        disabled={questions.length === 0}
+                    >
+                        <Database className="mr-1 h-4 w-4" />
+                        <span className="hidden sm:inline">Save to Website</span>
+                        <span className="sm:hidden">Save</span>
+                    </Button>
+                    </>
                 )}
 
                 <div className="relative">
@@ -572,6 +719,218 @@ const ExamCreator = () => {
             </div>
         </div>
 
+        {/* Save to Website — Full Exam Form */}
+        {showSaveToWeb && (
+            <div className="border-2 border-green-300/50 rounded-[20px] bg-card p-5 sm:p-7 shadow-sm w-full mx-auto animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50">
+                    <h3 className="font-bold text-xl flex items-center gap-2">
+                        <Database className="h-5 w-5 text-green-600" /> Save Exam to Website
+                    </h3>
+                    <Button variant="ghost" size="icon" onClick={() => setShowSaveToWeb(false)} className="rounded-full h-8 w-8">
+                        <Trash2 className="h-4 w-4" />
+                    </Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Title */}
+                    <div className="space-y-2">
+                        <Label>Exam Title</Label>
+                        <Input value={examTitle} onChange={e => setExamTitle(e.target.value)} placeholder="Exam Title" />
+                    </div>
+
+                    {/* Course */}
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Course (Optional)</Label>
+                            {saveWebForm.course_id && (
+                                <Button type="button" variant="ghost" size="sm" className="h-5 px-2 text-xs" onClick={() => setSaveWebForm(prev => ({ ...prev, course_id: "" }))}>
+                                    Clear
+                                </Button>
+                            )}
+                        </div>
+                        <Select value={saveWebForm.course_id || ""} onValueChange={v => setSaveWebForm(prev => ({ ...prev, course_id: v }))}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Public (No Course)" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {courses?.map(c => (
+                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        {!saveWebForm.course_id && <p className="text-[10px] text-muted-foreground">This exam will be public (no course restriction).</p>}
+                    </div>
+
+                    {/* Shared Courses */}
+                    {saveWebForm.course_id && (
+                        <div className="space-y-2">
+                            <Label>Also Share With (Optional)</Label>
+                            <MultiSelect
+                                options={courseOptions}
+                                selected={saveWebForm.shared_course_ids}
+                                onChange={vals => setSaveWebForm(prev => ({ ...prev, shared_course_ids: vals }))}
+                                placeholder="Select additional courses..."
+                            />
+                        </div>
+                    )}
+
+                    {/* Archive For Courses */}
+                    <div className="space-y-2">
+                        <Label>Add to Archive of (Optional)</Label>
+                        <MultiSelect
+                            options={courseOptions}
+                            selected={saveWebForm.archive_course_ids}
+                            onChange={vals => setSaveWebForm(prev => ({ ...prev, archive_course_ids: vals }))}
+                            placeholder="Select courses to archive for..."
+                        />
+                    </div>
+
+                    {/* Exam Type */}
+                    <div className="space-y-2">
+                        <Label>Exam Type</Label>
+                        <Select value={saveWebForm.exam_type} onValueChange={v => setSaveWebForm(prev => ({ ...prev, exam_type: v }))}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="live">Live Exam</SelectItem>
+                                <SelectItem value="practice">Practice Exam</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Subject */}
+                    <div className="space-y-2">
+                        <Label>Subjects</Label>
+                        <MultiSelect
+                            options={globalMeta?.subject || []}
+                            selected={saveWebForm.subject}
+                            onChange={selected => setSaveWebForm(prev => ({ ...prev, subject: selected }))}
+                            onCreate={val => {
+                                handleCreateMeta('subject', val);
+                                setSaveWebForm(prev => ({ ...prev, subject: [...prev.subject, val] }));
+                            }}
+                            placeholder="Select or Create subjects..."
+                        />
+                    </div>
+
+                    {/* Chapter */}
+                    <div className="space-y-2">
+                        <Label>Chapter</Label>
+                        <CreatableSelect
+                            options={globalMeta?.chapter || []}
+                            value={saveWebForm.chapter}
+                            onChange={val => setSaveWebForm(prev => ({ ...prev, chapter: val }))}
+                            onCreate={val => {
+                                handleCreateMeta('chapter', val);
+                                setSaveWebForm(prev => ({ ...prev, chapter: val }));
+                            }}
+                            placeholder="Select or Create Chapter"
+                        />
+                    </div>
+
+                    {/* Duration */}
+                    <div className="space-y-2">
+                        <Label>Duration (minutes)</Label>
+                        <Input type="number" value={saveWebForm.duration_minutes} onChange={e => setSaveWebForm(prev => ({ ...prev, duration_minutes: e.target.value }))} />
+                    </div>
+
+                    {/* Total Marks */}
+                    <div className="space-y-2">
+                        <Label>Total Marks (Manual Override)</Label>
+                        <Input value={saveWebForm.total_marks} onChange={e => setSaveWebForm(prev => ({ ...prev, total_marks: e.target.value }))} placeholder={`Auto: ${questions.length} (1 per question)`} />
+                    </div>
+
+                    {/* Negative Marks */}
+                    <div className="space-y-2">
+                        <Label>Negative mark per wrong answer</Label>
+                        <Input value={saveWebForm.negative_mark_per_question} onChange={e => setSaveWebForm(prev => ({ ...prev, negative_mark_per_question: e.target.value }))} placeholder="Ex: 0.25" />
+                    </div>
+
+                    {/* Instructions */}
+                    <div className="space-y-2 md:col-span-2">
+                        <Label>Instructions</Label>
+                        <Textarea rows={3} value={saveWebForm.instructions} onChange={e => setSaveWebForm(prev => ({ ...prev, instructions: e.target.value }))} className="w-full" />
+                    </div>
+
+                    {/* Time Window Start */}
+                    <div className="space-y-2">
+                        <Label>Time window start</Label>
+                        <Input type="datetime-local" value={saveWebForm.time_window_start} onChange={e => setSaveWebForm(prev => ({ ...prev, time_window_start: e.target.value }))} />
+                    </div>
+
+                    {/* Time Window End */}
+                    <div className="space-y-2">
+                        <Label>Time window end</Label>
+                        <Input type="datetime-local" value={saveWebForm.time_window_end} onChange={e => setSaveWebForm(prev => ({ ...prev, time_window_end: e.target.value }))} />
+                    </div>
+
+                    {/* Toggle: Published */}
+                    <div className="flex items-center gap-2 md:col-span-2">
+                        <Switch checked={saveWebForm.is_published} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, is_published: checked }))} />
+                        <Label>Exam is published / visible to students</Label>
+                    </div>
+
+                    {/* Toggle: Visible on Free */}
+                    {!saveWebForm.course_id && (
+                        <div className="flex items-center gap-2 md:col-span-2">
+                            <Switch checked={saveWebForm.is_visible_on_free} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, is_visible_on_free: checked }))} />
+                            <Label>Show on "Free Exams" Page (Public)</Label>
+                        </div>
+                    )}
+
+                    {/* Toggle: Restrict Solution */}
+                    <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
+                        <Switch checked={saveWebForm.restrict_solution} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, restrict_solution: checked }))} />
+                        <Label className="flex flex-col">
+                            <span>Restrict Solution (Solvesheet)</span>
+                            <span className="text-xs text-muted-foreground font-normal">If enabled, students cannot see the detailed solution or correct answers after the exam.</span>
+                        </Label>
+                    </div>
+
+                    {/* Toggle: OMR */}
+                    <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-violet-50 dark:bg-violet-900/10 border-violet-200">
+                        <Switch checked={saveWebForm.is_omr_enabled} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, is_omr_enabled: checked }))} />
+                        <Label className="flex flex-col">
+                            <span>Enable OMR Scanner</span>
+                            <span className="text-xs text-muted-foreground font-normal">If enabled, the Exam Creator will show an OMR Scanner section.</span>
+                        </Label>
+                    </div>
+
+                    {/* Toggle: Readymade */}
+                    <div className="md:col-span-2 border p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border-blue-200 space-y-4">
+                        <div className="flex items-center gap-2">
+                            <Switch checked={saveWebForm.is_readymade} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, is_readymade: checked }))} />
+                            <Label className="flex flex-col">
+                                <span>Is Readymade Exam?</span>
+                                <span className="text-xs text-muted-foreground font-normal">Enable to show in "Readymade" section.</span>
+                            </Label>
+                        </div>
+                        {saveWebForm.is_readymade && (
+                            <div className="space-y-2">
+                                <Label>Readymade For Specific Courses (Optional)</Label>
+                                <MultiSelect
+                                    options={courseOptions}
+                                    selected={saveWebForm.readymade_course_ids}
+                                    onChange={vals => setSaveWebForm(prev => ({ ...prev, readymade_course_ids: vals }))}
+                                    placeholder="Select courses..."
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+                    <Button variant="ghost" onClick={() => setShowSaveToWeb(false)}>Cancel</Button>
+                    <Button
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={handleSaveToWebsite}
+                        disabled={isSaving}
+                    >
+                        {isSaving ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <Database className="mr-1 h-4 w-4" />}
+                        Create Exam ({questions.length} Questions)
+                    </Button>
+                </div>
+            </div>
+        )}
+
         {/* Collapsible Question Bank */}
         {showBankSelector && (
             <div className="border border-border/60 rounded-[20px] bg-card p-5 sm:p-7 shadow-sm flex flex-col w-full mx-auto animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
@@ -587,6 +946,11 @@ const ExamCreator = () => {
                     <QuestionBankSelector onSelect={handleBankImport} />
                 </div>
             </div>
+        )}
+
+        {/* OMR Scanner Section */}
+        {isOmr && (
+            <OmrScanner onImportQuestions={handleOmrImport} />
         )}
 
         {/* Questions List */}
