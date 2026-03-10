@@ -6,9 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users, MessageCircle } from "lucide-react";
+import { Plus, Trash2, Edit2, Link as LinkIcon, Facebook, Send, Users, MessageCircle, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -17,9 +16,9 @@ const AdminCommunity = () => {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
     const [selectedCourse, setSelectedCourse] = useState<string>("all");
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingResource, setEditingResource] = useState<any>(null);
+    const [showForm, setShowForm] = useState(false);
 
     // Fetch Courses
     const { data: courses } = useQuery({
@@ -64,13 +63,24 @@ const AdminCommunity = () => {
 
     const resources = resourcesData?.data || [];
     const totalCount = resourcesData?.count || 0;
-    // const totalPages = Math.ceil(totalCount / 10);
 
     const getPlatform = (url: string) => {
         if (url.includes("t.me")) return { name: "Telegram", icon: <Send className="h-3 w-3" />, color: "bg-blue-500" };
         if (url.includes("facebook") || url.includes("fb.me")) return { name: "Facebook", icon: <Facebook className="h-3 w-3" />, color: "bg-indigo-600" };
         if (url.includes("wa.me") || url.includes("whatsapp")) return { name: "WhatsApp", icon: <MessageCircle className="h-3 w-3" />, color: "bg-green-600" };
         return { name: "Link", icon: <LinkIcon className="h-3 w-3" />, color: "bg-gray-500" };
+    };
+
+    const handleEdit = (res: any) => {
+        setEditingResource(res);
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const handleAddNew = () => {
+        setEditingResource(null);
+        setShowForm(true);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     return (
@@ -80,10 +90,41 @@ const AdminCommunity = () => {
                     <h1 className="text-3xl font-bold tracking-tight">Community Manager</h1>
                     <p className="text-muted-foreground">Manage Telegram, Facebook, and other community links for your courses.</p>
                 </div>
-                <Button onClick={() => { setEditingResource(null); setIsCreateOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Add Community Link
-                </Button>
+                {!showForm && (
+                    <Button onClick={handleAddNew}>
+                        <Plus className="mr-2 h-4 w-4" /> Add Community Link
+                    </Button>
+                )}
             </div>
+
+            {/* Inline Form */}
+            {showForm && (
+                <Card className="border-primary/30 border-2">
+                    <CardHeader>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <CardTitle>{editingResource ? "Edit Community Link" : "Add Community Link"}</CardTitle>
+                                <CardDescription>Add links to Telegram channels, Facebook groups, or other social platforms.</CardDescription>
+                            </div>
+                            <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); setEditingResource(null); }}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <ResourceForm
+                            initialData={editingResource}
+                            courses={courses || []}
+                            onSuccess={() => {
+                                setShowForm(false);
+                                setEditingResource(null);
+                                queryClient.invalidateQueries({ queryKey: ["admin-community-resources"] });
+                            }}
+                            onCancel={() => { setShowForm(false); setEditingResource(null); }}
+                        />
+                    </CardContent>
+                </Card>
+            )}
 
             <Card>
                 <CardHeader>
@@ -144,7 +185,7 @@ const AdminCommunity = () => {
                                                 </TableCell>
                                                 <TableCell className="text-right">
                                                     <div className="flex justify-end gap-2">
-                                                        <Button variant="ghost" size="icon" onClick={() => { setEditingResource(res); setIsCreateOpen(true); }}>
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEdit(res)}>
                                                             <Edit2 className="h-4 w-4" />
                                                         </Button>
                                                         <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { if(confirm("Delete this link?")) deleteResource.mutate(res.id); }}>
@@ -161,21 +202,6 @@ const AdminCommunity = () => {
                     )}
                 </CardContent>
             </Card>
-
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>{editingResource ? "Edit Community Link" : "Add Community Link"}</DialogTitle>
-                        <DialogDescription>Add links to Telegram channels, Facebook groups, or other social platforms.</DialogDescription>
-                    </DialogHeader>
-                    <ResourceForm
-                        initialData={editingResource}
-                        courses={courses || []}
-                        onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-community-resources"] }); }}
-                        onCancel={() => setIsCreateOpen(false)}
-                    />
-                </DialogContent>
-            </Dialog>
         </div>
     );
 };
@@ -186,7 +212,6 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState(initialData?.title || "");
     const [url, setUrl] = useState(initialData?.url || "");
-    // const [courseId, setCourseId] = useState(initialData?.course_id || "");
     const [courseIds, setCourseIds] = useState<string[]>([]);
     const [description, setDescription] = useState(initialData?.description || "");
 
@@ -240,27 +265,31 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Official Telegram Channel" required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Title</label>
+                    <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Official Telegram Channel" required />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">URL</label>
+                    <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
+                </div>
             </div>
-            <div className="space-y-2">
-                <label className="text-sm font-medium">URL</label>
-                <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Courses (Optional)</label>
-                <MultiSelect
-                    options={courseOptions}
-                    selected={courseIds}
-                    onChange={setCourseIds}
-                    placeholder="Select Courses..."
-                />
-                <p className="text-xs text-muted-foreground">Select one or more courses. Leave empty for All Courses (Public).</p>
-            </div>
-            <div className="space-y-2">
-                <label className="text-sm font-medium">Description (Optional)</label>
-                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Courses (Optional)</label>
+                    <MultiSelect
+                        options={courseOptions}
+                        selected={courseIds}
+                        onChange={setCourseIds}
+                        placeholder="Select Courses..."
+                    />
+                    <p className="text-xs text-muted-foreground">Select one or more courses. Leave empty for All Courses (Public).</p>
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Description (Optional)</label>
+                    <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." />
+                </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>

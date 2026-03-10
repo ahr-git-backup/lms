@@ -5,7 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -16,26 +16,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, Trash2, Edit, Tag } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, Tag, X, Copy } from "lucide-react";
+import { MultiSelect } from "@/components/ui/multi-select";
+import { Badge } from "@/components/ui/badge";
 
 const promoSchema = z.object({
   code: z.string().min(3, "Code must be at least 3 characters").toUpperCase().trim(),
   discount_amount: z.coerce.number().min(1, "Amount must be positive"),
   discount_type: z.enum(["flat", "percentage"]),
-  course_id: z.string().optional().or(z.literal("")),
+  course_ids: z.array(z.string()).default([]),
   usage_limit: z.coerce.number().optional().or(z.literal("")), // optional number
   is_active: z.boolean().default(true),
+  special_discount_text: z.string().optional().or(z.literal("")),
+  special_discount_deadline: z.string().optional().or(z.literal("")),
 });
 
 type PromoFormValues = z.infer<typeof promoSchema>;
@@ -43,7 +39,7 @@ type PromoFormValues = z.infer<typeof promoSchema>;
 const AdminPromoCodes = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -56,9 +52,11 @@ const AdminPromoCodes = () => {
       code: "",
       discount_amount: 0,
       discount_type: "flat",
-      course_id: "all",
+      course_ids: [],
       usage_limit: "",
       is_active: true,
+      special_discount_text: "",
+      special_discount_deadline: "",
     },
   });
 
@@ -82,15 +80,23 @@ const AdminPromoCodes = () => {
     }
   });
 
+  const courseOptions = courses?.map(c => ({ label: c.name, value: c.id })) || [];
+
   const upsertMutation = useMutation({
     mutationFn: async (values: PromoFormValues) => {
-      const payload = {
+      // Use first course_id for legacy column, rest in course_ids
+      const firstCourseId = values.course_ids.length > 0 ? values.course_ids[0] : null;
+
+      const payload: any = {
         code: values.code,
         discount_amount: values.discount_amount,
         discount_type: values.discount_type,
-        course_id: (values.course_id === "" || values.course_id === "all") ? null : values.course_id,
+        course_id: firstCourseId,
+        course_ids: values.course_ids,
         usage_limit: (values.usage_limit === "" || values.usage_limit === null || isNaN(Number(values.usage_limit))) ? null : Number(values.usage_limit),
         is_active: values.is_active,
+        special_discount_text: values.special_discount_text || null,
+        special_discount_deadline: values.special_discount_deadline || null,
       };
 
       if (editingId) {
@@ -109,7 +115,7 @@ const AdminPromoCodes = () => {
     onSuccess: () => {
       toast({ title: editingId ? "Promo code updated" : "Promo code created" });
       queryClient.invalidateQueries({ queryKey: ["admin-promos"] });
-      setIsDialogOpen(false);
+      setShowForm(false);
       form.reset();
       setEditingId(null);
     },
@@ -146,15 +152,28 @@ const AdminPromoCodes = () => {
 
   const handleEdit = (promo: any) => {
     setEditingId(promo.id);
+    // Build course_ids from both legacy course_id and new course_ids
+    let ids: string[] = [];
+    if (promo.course_ids && Array.isArray(promo.course_ids) && promo.course_ids.length > 0) {
+      ids = promo.course_ids;
+    } else if (promo.course_id) {
+      ids = [promo.course_id];
+    }
+
     form.reset({
       code: promo.code,
       discount_amount: promo.discount_amount,
       discount_type: promo.discount_type,
-      course_id: promo.course_id || "all",
+      course_ids: ids,
       usage_limit: promo.usage_limit || "",
       is_active: promo.is_active,
+      special_discount_text: promo.special_discount_text || "",
+      special_discount_deadline: promo.special_discount_deadline
+        ? new Date(promo.special_discount_deadline).toISOString().slice(0, 16)
+        : "",
     });
-    setIsDialogOpen(true);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleAddNew = () => {
@@ -163,11 +182,26 @@ const AdminPromoCodes = () => {
       code: "",
       discount_amount: 0,
       discount_type: "flat",
-      course_id: "all",
+      course_ids: [],
       usage_limit: "",
       is_active: true,
+      special_discount_text: "",
+      special_discount_deadline: "",
     });
-    setIsDialogOpen(true);
+    setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getCourseName = (promo: any) => {
+    const ids = promo.course_ids && Array.isArray(promo.course_ids) && promo.course_ids.length > 0
+      ? promo.course_ids
+      : (promo.course_id ? [promo.course_id] : []);
+
+    if (ids.length === 0) return "All Courses";
+
+    const names = ids.map((id: string) => courses?.find(c => c.id === id)?.name || id).slice(0, 2);
+    const extra = ids.length - 2;
+    return names.join(", ") + (extra > 0 ? ` +${extra} more` : "");
   };
 
   return (
@@ -177,20 +211,31 @@ const AdminPromoCodes = () => {
           <h2 className="text-2xl font-bold tracking-tight">Promo Codes</h2>
           <p className="text-muted-foreground">Manage discount codes for courses.</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        {!showForm && (
           <Button onClick={handleAddNew}>
             <Plus className="mr-2 h-4 w-4" /> Create Promo
           </Button>
-          <DialogContent className="sm:max-w-[500px]">
-            <DialogHeader>
-              <DialogTitle>{editingId ? "Edit Promo Code" : "Create Promo Code"}</DialogTitle>
-              <DialogDescription>
-                Set up the discount details.
-              </DialogDescription>
-            </DialogHeader>
+        )}
+      </div>
+
+      {/* Inline Form */}
+      {showForm && (
+        <Card className="border-primary/30 border-2">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>{editingId ? "Edit Promo Code" : "Create Promo Code"}</CardTitle>
+                <CardDescription>Set up the discount details. Coupon codes are case-insensitive.</CardDescription>
+              </div>
+              <Button variant="ghost" size="icon" onClick={() => { setShowForm(false); setEditingId(null); form.reset(); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                     control={form.control}
                     name="code"
@@ -206,37 +251,32 @@ const AdminPromoCodes = () => {
                     />
                     <FormField
                     control={form.control}
-                    name="course_id"
+                    name="course_ids"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Course (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                            <SelectTrigger>
-                                <SelectValue placeholder="All Courses" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                <SelectItem value="all">All Courses</SelectItem>
-                                {courses?.map((c: any) => (
-                                    <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <FormLabel>Courses (Optional — leave empty for all)</FormLabel>
+                        <FormControl>
+                            <MultiSelect
+                                options={courseOptions}
+                                selected={field.value}
+                                onChange={field.onChange}
+                                placeholder="All Courses"
+                            />
+                        </FormControl>
                         <FormMessage />
                         </FormItem>
                     )}
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                     control={form.control}
                     name="discount_type"
                     render={({ field }) => (
                         <FormItem>
                         <FormLabel>Type</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                             <SelectTrigger>
                                 <SelectValue />
@@ -264,9 +304,6 @@ const AdminPromoCodes = () => {
                         </FormItem>
                     )}
                     />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                     <FormField
                     control={form.control}
                     name="usage_limit"
@@ -280,34 +317,73 @@ const AdminPromoCodes = () => {
                         </FormItem>
                     )}
                     />
-                     <FormField
+                </div>
+
+                {/* Special Discount Section */}
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="text-sm font-semibold mb-3">Special Discount Banner (Optional)</h4>
+                  <p className="text-xs text-muted-foreground mb-3">
+                    If set, this text will appear as a promotional banner on the Course Details page.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="special_discount_text"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Discount Banner Text</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g. 🎉 Special 50% off! Use code SUMMER24" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="special_discount_deadline"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Deadline (BD Time)</FormLabel>
+                          <FormControl>
+                            <Input type="datetime-local" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-4">
+                    <FormField
                         control={form.control}
                         name="is_active"
                         render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-auto">
-                                <div className="space-y-0.5">
-                                    <FormLabel>Active Status</FormLabel>
-                                </div>
+                            <FormItem className="flex flex-row items-center gap-3">
                                 <FormControl>
                                     <Switch
                                         checked={field.value}
                                         onCheckedChange={field.onChange}
                                     />
                                 </FormControl>
+                                <FormLabel className="!mt-0">Active</FormLabel>
                             </FormItem>
                         )}
                     />
+                    <div className="flex gap-2">
+                      <Button type="button" variant="ghost" onClick={() => { setShowForm(false); setEditingId(null); form.reset(); }}>Cancel</Button>
+                      <Button type="submit" disabled={upsertMutation.isPending}>
+                        {upsertMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        {editingId ? "Update Promo" : "Create Promo"}
+                      </Button>
+                    </div>
                 </div>
-
-                <Button type="submit" className="w-full" disabled={upsertMutation.isPending}>
-                  {upsertMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {editingId ? "Update Promo" : "Create Promo"}
-                </Button>
               </form>
             </Form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -316,8 +392,9 @@ const AdminPromoCodes = () => {
               <TableRow>
                 <TableHead>Code</TableHead>
                 <TableHead>Discount</TableHead>
-                <TableHead>Course</TableHead>
+                <TableHead>Courses</TableHead>
                 <TableHead>Usage</TableHead>
+                <TableHead>Special Offer</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -325,31 +402,53 @@ const AdminPromoCodes = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8">
+                  <TableCell colSpan={7} className="text-center py-8">
                     <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : promos?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     No promo codes found. Create one to get started.
                   </TableCell>
                 </TableRow>
               ) : (
                 promos?.map((promo) => (
                   <TableRow key={promo.id}>
-                    <TableCell className="font-mono font-bold flex items-center gap-2">
-                        <Tag className="h-3 w-3 text-muted-foreground" />
-                        {promo.code}
+                    <TableCell className="font-mono font-bold">
+                        <div className="flex items-center gap-2">
+                            <Tag className="h-3 w-3 text-muted-foreground" />
+                            {promo.code}
+                            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                                navigator.clipboard.writeText(promo.code);
+                                toast({ title: "Code copied!" });
+                            }}>
+                                <Copy className="h-3 w-3" />
+                            </Button>
+                        </div>
                     </TableCell>
                     <TableCell>
                         {promo.discount_type === 'flat' ? `৳${promo.discount_amount}` : `${promo.discount_amount}%`}
                     </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                        {promo.course ? promo.course.name : "All Courses"}
+                    <TableCell className="text-xs text-muted-foreground max-w-[200px]">
+                        {getCourseName(promo)}
                     </TableCell>
                     <TableCell>
                         {promo.used_count} / {promo.usage_limit || "∞"}
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[150px]">
+                        {promo.special_discount_text ? (
+                            <div>
+                                <span className="text-primary font-medium truncate block">{promo.special_discount_text.substring(0, 30)}...</span>
+                                {promo.special_discount_deadline && (
+                                    <span className="text-muted-foreground">
+                                        Until {new Date(promo.special_discount_deadline).toLocaleDateString('en-BD')}
+                                    </span>
+                                )}
+                            </div>
+                        ) : (
+                            <span className="text-muted-foreground">—</span>
+                        )}
                     </TableCell>
                     <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${promo.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>

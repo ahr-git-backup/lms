@@ -14,6 +14,7 @@ import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyTools } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
+import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 
 const TakeExam = () => {
   useAntiCheat();
@@ -212,6 +213,12 @@ const TakeExam = () => {
   // Shuffle Questions Effect
   useEffect(() => {
     if (questions && questions.length > 0 && shuffledQuestions.length === 0) {
+        // If the exam is an OMR exam, DO NOT SHUFFLE so the question numbers align with the OMR sheet
+        if (exam?.is_omr_enabled || exam?.is_omr) {
+            setShuffledQuestions([...questions]);
+            return;
+        }
+
         // Simple Fisher-Yates shuffle
         const shuffled = [...questions];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -220,7 +227,7 @@ const TakeExam = () => {
         }
         setShuffledQuestions(shuffled);
     }
-  }, [questions, shuffledQuestions.length]);
+  }, [questions, shuffledQuestions.length, exam]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
@@ -662,6 +669,17 @@ const TakeExam = () => {
                 <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {questions.length}</p>
              </div>
         </div>
+
+        {/* OMR Scanner Section - only for OMR-enabled exams */}
+        {exam.is_omr && displayQuestions && displayQuestions.length > 0 && (
+            <OmrExamScanner
+                questionIds={displayQuestions.map((q: any) => q.id)}
+                answers={answers}
+                onFillAnswers={(filledAnswers) => {
+                    setAnswers(prev => ({ ...prev, ...filledAnswers }));
+                }}
+            />
+        )}
 
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
         {displayQuestions.map((q: any, idx: number) => (

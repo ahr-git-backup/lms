@@ -259,57 +259,10 @@ const Leaderboard = () => {
            let rowsHtml = '';
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
            attempts.forEach((attempt: any, index: number) => {
-               // Calculate Right/Wrong/Blank
-               let right = 0;
-               let wrong = 0;
-               let blank = 0;
-
-               // For Right/Wrong counts, we need the 'answers' column.
-               // The 'leaderboard_exam_attempts' view might NOT have 'answers' depending on definition.
-               // If it doesn't, we can't calc right/wrong easily without fetching attempts separately.
-               // Assuming the view DOES NOT have answers (it's usually for stats), we might need to fetch them or rely on stats if pre-calculated.
-               // BUT, the user issue is "NAME IS MISSING". The view definitely has the profile data flattened (e.g., profile_name, or profile -> json).
-               // Let's inspect the `leaderboard_exam_attempts` structure from the existing UI code:
-               // UI uses: item.profile?.full_name. This implies the view returns a `profile` object or relation.
-
-               // If we switched to the view, `attempt.profile` should be correct if the view preserves the relationship.
-               // IF the view returns flattened columns (e.g. full_name directly), we need to adjust.
-               // Based on `Leaderboard.tsx` earlier:
-               // .from('leaderboard_exam_attempts').select('*') returns `profile` object.
-
-               // However, if the PDF was failing to show names, maybe the *direct join* in my previous PDF code failed RLS or something?
-               // Switching to the view is safer.
-
-               // CALCULATING RIGHT/WRONG:
-               // If the view doesn't have `answers`, we can't count them here.
-               // We will assume for now we just want the scores and names fixed.
-               // Note: If `answers` is missing, right/wrong will be 0.
-
-               if (attempt.answers) {
-                   const answersArr = attempt.answers as any[] || [];
-                   const answersMap = new Map(answersArr.map(a => [a.question_id, a.selected_option]));
-
-                   questions.forEach(q => {
-                       const selected = answersMap.get(q.id);
-                       if (!selected) {
-                           blank++;
-                       } else if (selected === q.correct_option) {
-                           right++;
-                       } else {
-                           wrong++;
-                       }
-                   });
-               }
-
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
-
-               // Fix: The view 'leaderboard_exam_attempts' likely returns profile data nested or flattened.
-               // If nested (from typical Supabase views), it's `profile: { full_name: ... }`.
-               // The visible table uses `item.profile?.full_name`.
-               // So if I switch query to use the view, it should match the table.
-
                const name = escapeHtml(attempt.profile?.full_name || "Unknown");
                const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
+               const college = escapeHtml(attempt.profile?.college_name || attempt.profile?.school || "-");
 
                rowsHtml += `
                <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
@@ -317,10 +270,8 @@ const Leaderboard = () => {
                    <td class="p-2 border font-medium">${name}</td>
                    <td class="p-2 border text-center font-bold">${attempt.score}</td>
                    <td class="p-2 border text-center">${percent}%</td>
-                   <td class="p-2 border text-center text-green-600 font-bold">${right}</td>
-                   <td class="p-2 border text-center text-red-600 font-bold">${wrong}</td>
-                   <td class="p-2 border text-center text-gray-400 font-bold">${blank}</td>
                    <td class="p-2 border text-center">${hsc}</td>
+                   <td class="p-2 border text-center">${college}</td>
                </tr>`;
            });
 
@@ -402,10 +353,8 @@ const Leaderboard = () => {
                                 <th>Name</th>
                                 <th>Marks</th>
                                 <th>Percent</th>
-                                <th>Right</th>
-                                <th>Wrong</th>
-                                <th>Blank</th>
                                 <th>HSC Batch</th>
+                                <th>College</th>
                             </tr>
                         </thead>
                         <tbody>

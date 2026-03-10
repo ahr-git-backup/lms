@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import ReactMarkdown from "react-markdown";
@@ -12,15 +12,74 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoContentItem } from "@/types/admin";
-import { PlayCircle, FileText, Lock, CheckCircle2 } from "lucide-react";
+import { PlayCircle, FileText, Lock, CheckCircle2, Tag, Clock, Gift, Copy, Check, Loader2, Timer } from "lucide-react";
 import { getEmbedUrl } from "@/lib/videoUtils";
+import { useToast } from "@/hooks/use-toast";
+
+// Live countdown timer component
+const CountdownTimer = ({ deadline }: { deadline: string }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date().getTime();
+      const end = new Date(deadline).getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setExpired(true);
+        setTimeLeft("Expired");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${mins}m ${secs}s`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${mins}m ${secs}s`);
+      } else {
+        setTimeLeft(`${mins}m ${secs}s`);
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  if (expired) return null;
+
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-xs font-bold tabular-nums">
+      <Timer className="h-3 w-3" />
+      {timeLeft}
+    </span>
+  );
+};
 
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [couponCode, setCouponCode] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discount_amount: number;
+    discount_type: string;
+    id: string;
+  } | null>(null);
+  const [couponError, setCouponError] = useState("");
 
   const {
     data: course,
@@ -43,6 +102,18 @@ const CourseDetails = () => {
     enabled: !!courseId,
   });
 
+  // Fetch special discounts for this course
+  const { data: specialDiscounts } = useQuery({
+    queryKey: ["special-discounts", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return [];
+      const { data, error } = await supabase.rpc("get_special_discounts", { p_course_id: course.id });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
   useEffect(() => {
     if (course?.name) {
       document.title = `${course.name} – Atlas`;
@@ -57,8 +128,115 @@ const CourseDetails = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const demoContent: DemoContentItem[] = (course?.demo_content as any) || [];
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim() || !course?.id) return;
+    setCouponLoading(true);
+    setCouponError("");
+
+    try {
+      const { data, error } = await supabase.rpc("check_promo_code", {
+        p_code: couponCode.trim(),
+        p_course_id: course.id,
+      });
+
+      if (error) throw error;
+
+      if (data?.valid) {
+        setAppliedCoupon({
+          code: data.code || couponCode.trim().toUpperCase(),
+          discount_amount: data.discount_amount,
+          discount_type: data.discount_type,
+          id: data.id,
+        });
+        toast({ title: "Coupon applied!", description: `Discount: ${data.discount_type === 'percentage' ? `${data.discount_amount}%` : `৳${data.discount_amount}`}` });
+      } else {
+        setCouponError(data?.message || "Invalid coupon code");
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      setCouponError("Failed to check coupon. Please try again.");
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const getDiscountedPrice = () => {
+    if (!course?.price || !appliedCoupon) return null;
+    const price = Number(course.price);
+    if (appliedCoupon.discount_type === "percentage") {
+      return Math.max(0, price - (price * appliedCoupon.discount_amount / 100));
+    }
+    return Math.max(0, price - appliedCoupon.discount_amount);
+  };
+
+  const discountedPrice = getDiscountedPrice();
+
+  const formatBDTime = (isoDate: string) => {
+    try {
+      return new Date(isoDate).toLocaleString("en-BD", {
+        timeZone: "Asia/Dhaka",
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+    } catch {
+      return new Date(isoDate).toLocaleString();
+    }
+  };
+
+  // Build enrollment URL with coupon params
+  const getEnrollUrl = () => {
+    const base = idOrSlug ? `/courses/${idOrSlug}/buy` : "#";
+    if (appliedCoupon) {
+      return `${base}?coupon=${encodeURIComponent(appliedCoupon.code)}&coupon_id=${appliedCoupon.id}&discount_amount=${appliedCoupon.discount_amount}&discount_type=${appliedCoupon.discount_type}`;
+    }
+    return base;
+  };
+
+  const CouponSection = ({ compact = false }: { compact?: boolean }) => (
+    <div className={`space-y-2 ${compact ? "" : "border-t pt-4"}`}>
+      {appliedCoupon ? (
+        <div className="flex items-center justify-between bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg p-3">
+          <div className="flex items-center gap-2">
+            <Check className="h-4 w-4 text-green-600" />
+            <div>
+              <span className="text-sm font-semibold text-green-700 dark:text-green-400">{appliedCoupon.code}</span>
+              <span className="text-xs text-green-600 dark:text-green-500 ml-2">
+                {appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.discount_amount}% off` : `৳${appliedCoupon.discount_amount} off`}
+              </span>
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setAppliedCoupon(null); setCouponCode(""); setCouponError(""); }}>
+            Remove
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <Input
+              value={couponCode}
+              onChange={(e) => { setCouponCode(e.target.value); setCouponError(""); }}
+              placeholder="Enter coupon code"
+              className="text-sm"
+              onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleApplyCoupon}
+              disabled={couponLoading || !couponCode.trim()}
+              className="shrink-0"
+            >
+              {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+            </Button>
+          </div>
+          {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="min-h-screen bg-background text-foreground pb-24 md:pb-16">
+    <div className="min-h-screen bg-background text-foreground pb-28 md:pb-16">
       <PublicHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -96,13 +274,48 @@ const CourseDetails = () => {
                     </AspectRatio>
                 </div>
                 <div>
-                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                     <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
                         {isLoading ? "Loading..." : course?.name ?? "Course not found"}
                     </h1>
                      {!isLoading && !isError && course?.short_description && (
-                        <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{course.short_description}</p>
+                        <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{course.short_description}</p>
                      )}
                 </div>
+            </div>
+
+            {/* Mobile-only: Special Discount + Coupon + Price Card */}
+            <div className="md:hidden space-y-3">
+              {/* Discount banners */}
+              {specialDiscounts && specialDiscounts.length > 0 && specialDiscounts.map((discount: any, idx: number) => (
+                <div key={idx} className="rounded-lg border border-amber-200 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 p-3">
+                  <div className="flex items-start gap-2.5">
+                    <Gift className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-amber-900 dark:text-amber-200 leading-snug">{discount.special_discount_text}</p>
+                      <div className="flex items-center justify-between mt-2">
+                        {discount.special_discount_deadline && (
+                          <span className="text-red-600 dark:text-red-400"><CountdownTimer deadline={discount.special_discount_deadline} /></span>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs border-amber-300 hover:bg-amber-100 text-amber-800"
+                          onClick={() => {
+                            navigator.clipboard.writeText(discount.code);
+                            toast({ title: "Copied!", description: `"${discount.code}" copied to clipboard.` });
+                          }}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          {discount.code}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Coupon input */}
+              <CouponSection />
             </div>
 
             {/* 2. Course Description Card */}
@@ -190,26 +403,70 @@ const CourseDetails = () => {
         {/* Right Column (Sticky Enrollment Card) */}
         <div className="hidden md:block">
             <div className="sticky top-24 space-y-4">
+
+                {/* Special Discount Banners — above price */}
+                {specialDiscounts && specialDiscounts.length > 0 && specialDiscounts.map((discount: any, idx: number) => (
+                  <div key={idx} className="relative overflow-hidden rounded-xl border-2 border-amber-300/50 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/30 p-3 shadow-sm">
+                    <div className="flex items-start gap-2">
+                      <Gift className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-sm text-amber-900 dark:text-amber-200 leading-snug">{discount.special_discount_text}</p>
+                        {discount.special_discount_deadline && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <span className="text-xs text-amber-700 dark:text-amber-400">Ends in:</span>
+                            <span className="text-red-600 dark:text-red-400"><CountdownTimer deadline={discount.special_discount_deadline} /></span>
+                          </div>
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-2 h-7 text-xs w-full border-amber-300 hover:bg-amber-100 text-amber-800"
+                          onClick={() => {
+                            navigator.clipboard.writeText(discount.code);
+                            toast({ title: "Code copied!", description: `"${discount.code}" copied to clipboard.` });
+                          }}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy: {discount.code}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
                 <Card className="border-primary/20 shadow-lg overflow-hidden">
                     <div className="bg-primary/5 p-4 border-b border-primary/10 text-center">
                         <p className="text-sm text-muted-foreground font-medium">Enrolling in</p>
                         <h3 className="font-bold text-primary line-clamp-1" title={course?.name}>{course?.name || "..."}</h3>
                     </div>
-                    <CardContent className="p-6 space-y-6">
+                    <CardContent className="p-6 space-y-4">
                         <div className="text-center">
                             {course?.original_price && (
                                 <p className="text-sm text-muted-foreground line-through">
                                     ৳{Number(course.original_price).toLocaleString("en-BD")}
                                 </p>
                             )}
-                            <div className="text-4xl font-extrabold text-primary">
-                                {course?.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Free"}
-                            </div>
+                            {discountedPrice != null && appliedCoupon ? (
+                              <>
+                                <p className="text-sm text-muted-foreground line-through">
+                                    ৳{Number(course?.price).toLocaleString("en-BD")}
+                                </p>
+                                <div className="text-4xl font-extrabold text-green-600">
+                                    {discountedPrice === 0 ? "Free!" : `৳${discountedPrice.toLocaleString("en-BD")}`}
+                                </div>
+                              </>
+                            ) : (
+                              <div className="text-4xl font-extrabold text-primary">
+                                  {course?.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Free"}
+                              </div>
+                            )}
                             <p className="text-xs text-muted-foreground mt-1">One-time payment</p>
                         </div>
 
+                        <CouponSection />
+
                         <Button asChild size="lg" className="w-full text-lg font-bold shadow-md hover:shadow-lg transition-all" disabled={!course && !isLoading}>
-                            <a href={idOrSlug ? `/courses/${idOrSlug}/buy` : "#"}>Enroll Now</a>
+                            <a href={getEnrollUrl()}>Enroll Now</a>
                         </Button>
 
                         <div className="space-y-2 text-sm text-muted-foreground">
@@ -221,7 +478,6 @@ const CourseDetails = () => {
                                  <CheckCircle2 className="w-4 h-4 text-green-500" />
                                  <span>Premium Support</span>
                              </div>
-                             
                         </div>
                     </CardContent>
                 </Card>
@@ -230,21 +486,32 @@ const CourseDetails = () => {
 
       </main>
 
-      {/* Sticky Bottom Bar for Mobile */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-lg border-t z-50 md:hidden flex items-center justify-between gap-4 shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
-          <div className="flex flex-col">
-              {course?.original_price && (
-                  <span className="text-[10px] text-muted-foreground line-through">
-                      ৳{Number(course.original_price).toLocaleString("en-BD")}
-                  </span>
-              )}
-              <span className="text-xl font-bold text-primary">
-                  {course?.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Free"}
-              </span>
+      {/* Sticky Bottom Bar for Mobile — minimal: price + enroll only */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t z-50 md:hidden shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="px-4 py-3 flex items-center gap-3">
+              <div className="flex flex-col min-w-0">
+                  {course?.original_price && (
+                      <span className="text-[10px] text-muted-foreground line-through leading-none">
+                          ৳{Number(course.original_price).toLocaleString("en-BD")}
+                      </span>
+                  )}
+                  {discountedPrice != null && appliedCoupon ? (
+                    <div className="flex items-baseline gap-1.5">
+                      <span className="text-sm text-muted-foreground line-through">৳{Number(course?.price).toLocaleString("en-BD")}</span>
+                      <span className="text-lg font-bold text-green-600 leading-tight">
+                          {discountedPrice === 0 ? "Free!" : `৳${discountedPrice.toLocaleString("en-BD")}`}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-lg font-bold text-primary leading-tight">
+                        {course?.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "Free"}
+                    </span>
+                  )}
+              </div>
+              <Button asChild size="lg" className="flex-1 shadow-md font-bold" disabled={!course && !isLoading}>
+                  <a href={getEnrollUrl()}>Enroll Now</a>
+              </Button>
           </div>
-          <Button asChild size="lg" className="flex-1 shadow-md" disabled={!course && !isLoading}>
-              <a href={idOrSlug ? `/courses/${idOrSlug}/buy` : "#"}>Enroll Now</a>
-          </Button>
       </div>
     </div>
   );
