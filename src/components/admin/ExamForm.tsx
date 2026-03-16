@@ -56,6 +56,7 @@ const examSchema = z.object({
   is_archive: z.boolean().optional().default(false),
   is_readymade: z.boolean().optional().default(false),
   readymade_course_ids: z.array(z.string()).default([]),
+  readymade_topic: z.string().trim().optional().or(z.literal("")),
   is_omr: z.boolean().optional().default(false),
 });
 
@@ -77,7 +78,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const { data: globalMeta } = useGlobalMetadata() as any;
     const addMetadata = useAddGlobalMetadata();
 
-    const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'readymade_topic', value: string) => {
         addMetadata.mutate({ type, value });
     };
 
@@ -101,6 +102,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         restrict_solution: false,
         questions_json: "",
         questions_csv: "",
+        readymade_topic: "",
         is_omr: false,
     });
 
@@ -142,6 +144,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 questions_csv: "",
             is_archive: exam.is_archive || isArchiveMode,
             is_readymade: exam.is_readymade ?? false,
+            readymade_topic: exam.readymade_topic || "",
             is_omr: exam.is_omr ?? false,
             });
         }
@@ -232,6 +235,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
             is_readymade: parsed.is_readymade ?? false,
+            readymade_topic: parsed.readymade_topic || null,
             is_omr: parsed.is_omr ?? false,
           };
 
@@ -424,6 +428,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 restrict_solution: false,
                 questions_json: "",
                 questions_csv: "",
+                readymade_topic: "",
               });
           }
           onSuccess();
@@ -731,6 +736,20 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       </div>
 
                       {form.is_readymade && (
+                           <>
+                           <div className="space-y-2">
+                                <Label htmlFor="readymade_topic">Parent Readymade Topic</Label>
+                                <CreatableSelect
+                                    options={globalMeta?.readymade_topic || []}
+                                    value={form.readymade_topic || ""}
+                                    onChange={(val) => setForm((prev) => ({ ...prev, readymade_topic: val }))}
+                                    onCreate={(val) => {
+                                        handleCreateMeta('readymade_topic', val);
+                                        setForm((prev) => ({ ...prev, readymade_topic: val }));
+                                    }}
+                                    placeholder="Select or Create Parent Topic"
+                                />
+                           </div>
                            <div className="space-y-2">
                                 <Label>Readymade For Specific Courses (Optional)</Label>
                                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -745,6 +764,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                                     If empty and public, it may be visible to all.
                                 </p>
                            </div>
+                           </>
                       )}
                   </div>
               )}

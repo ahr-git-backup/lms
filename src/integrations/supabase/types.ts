@@ -427,6 +427,7 @@ export type Database = {
           instructions: string | null
           is_published: boolean
           negative_mark_per_question: number
+          readymade_topic: string | null
           time_window_end: string | null
           time_window_start: string | null
           title: string
@@ -442,6 +443,7 @@ export type Database = {
           instructions?: string | null
           is_published?: boolean
           negative_mark_per_question?: number
+          readymade_topic?: string | null
           time_window_end?: string | null
           time_window_start?: string | null
           title: string
@@ -457,6 +459,7 @@ export type Database = {
           instructions?: string | null
           is_published?: boolean
           negative_mark_per_question?: number
+          readymade_topic?: string | null
           time_window_end?: string | null
           time_window_start?: string | null
           title?: string
