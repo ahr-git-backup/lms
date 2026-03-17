@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClassForm } from "@/components/admin/ClassForm";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 15;
 
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
@@ -56,6 +56,7 @@ const AdminClasses = () => {
       let query = supabase
         .from("classes")
         .select("*, course:courses(name)", { count: 'exact' })
+        .order("sort_order", { ascending: false })
         .order("start_at", { ascending: false });
 
       if (subjectFilter !== "all") {

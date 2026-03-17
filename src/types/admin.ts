@@ -76,6 +76,7 @@ export interface Class {
   notes_url?: string | null;
   class_type: "live" | "recorded";
   is_archive?: boolean;
+  sort_order?: number;
   course?: {
     name: string;
   };

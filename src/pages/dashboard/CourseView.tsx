@@ -218,6 +218,7 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
                 .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
+                .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false });
             return data || [];
         }
@@ -349,6 +350,7 @@ const ArchiveClassList = ({ courseId, subject, chapter }: any) => {
                 .contains("archive_course_ids", [courseId])
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
+                .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false });
             return data || [];
         }

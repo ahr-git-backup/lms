@@ -10,7 +10,7 @@ import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLef
 import { useNavigate } from "react-router-dom";
 import { MultiSelect } from "@/components/ui/multi-select";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 15;
 
 const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);

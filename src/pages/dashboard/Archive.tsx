@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 15;
 
 const Archive = () => {
   const [activeTab, setActiveTab] = useState("classes");
@@ -116,6 +116,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .select("*, course:courses(name)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
                 .or(`title.ilike.%${safeQuery}%,topic.ilike.%${safeQuery}%`)
+                .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -179,6 +180,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .overlaps("archive_course_ids", courseIds)
                 .contains("subject", [selectedSubject])
                 .eq("chapter", selectedChapter)
+                .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 

@@ -32,6 +32,7 @@ const classSchema = z.object({
   button_text: z.string().trim().optional().or(z.literal("")),
   button_url: z.string().trim().optional().or(z.literal("")),
   is_archive: z.boolean().optional().default(false),
+  sort_order: z.number().optional().default(0),
 });
 
 interface ClassFormProps {
@@ -69,6 +70,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
         class_type: "live",
         button_text: "",
         button_url: "",
+        sort_order: 0,
     });
 
     useEffect(() => {
@@ -99,6 +101,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: classItem.button_text || "",
                 button_url: classItem.button_url || "",
             is_archive: classItem.is_archive || isArchiveMode,
+            sort_order: classItem.sort_order ?? 0,
             });
         } else {
              setForm({
@@ -117,6 +120,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: "",
                 button_url: "",
             is_archive: isArchiveMode,
+            sort_order: 0,
             });
         }
     }, [classItem]);
@@ -221,6 +225,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: parsed.button_text || null,
                 button_url: parsed.button_url || null,
                 is_archive: parsed.is_archive,
+                sort_order: parsed.sort_order,
             };
 
             if (parsed.id) {
@@ -251,6 +256,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     class_type: "live",
                     button_text: "",
                     button_url: "",
+                    sort_order: 0,
                 });
             }
             onSuccess();
@@ -370,6 +376,17 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             value={form.title}
                             onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
                             className="w-full"
+                        />
+                    </div>
+
+                    <div className="space-y-2 min-w-0">
+                        <Label htmlFor="sort_order">Sort Order Index</Label>
+                        <Input
+                            id="sort_order"
+                            type="number"
+                            value={form.sort_order}
+                            onChange={(e) => setForm((prev) => ({ ...prev, sort_order: Number(e.target.value) }))}
+                            placeholder="Higher number = First"
                         />
                     </div>
 

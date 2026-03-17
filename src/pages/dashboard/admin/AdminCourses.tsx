@@ -170,6 +170,7 @@ const AdminCourses = () => {
             .from("classes")
             .select("id, title, class_type, start_at")
             .eq("course_id", form.id)
+            .order("sort_order", { ascending: false })
             .order("start_at", { ascending: true });
         if (error) throw error;
         return data;

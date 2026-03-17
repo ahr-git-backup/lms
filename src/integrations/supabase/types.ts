@@ -135,6 +135,7 @@ export type Database = {
           video_url: string | null
           button_text: string | null
           button_url: string | null
+          sort_order: number | null
         }
         Insert: {
           class_type: string
@@ -149,6 +150,7 @@ export type Database = {
           video_url?: string | null
           button_text?: string | null
           button_url?: string | null
+          sort_order?: number | null
         }
         Update: {
           class_type?: string
@@ -163,6 +165,7 @@ export type Database = {
           video_url?: string | null
           button_text?: string | null
           button_url?: string | null
+          sort_order?: number | null
         }
         Relationships: [
           {
