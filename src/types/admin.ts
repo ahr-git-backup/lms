@@ -51,6 +51,7 @@ export interface Course {
   demo_content?: DemoContentItem[] | null;
   image_url?: string | null;
   video_url?: string | null;
+  routine_url?: string | null;
   bkash_number?: string | null;
   nagad_number?: string | null;
   contact_info?: string | null;

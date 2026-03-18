@@ -212,9 +212,9 @@ const TakeExam = () => {
 
   // Shuffle Questions Effect
   useEffect(() => {
-    if (questions && questions.length > 0 && shuffledQuestions.length === 0) {
+    if (exam && questions && questions.length > 0 && shuffledQuestions.length === 0) {
         // If the exam is an OMR exam, DO NOT SHUFFLE so the question numbers align with the OMR sheet
-        if (exam?.is_omr_enabled || exam?.is_omr) {
+        if (exam.is_omr_enabled || exam.is_omr) {
             setShuffledQuestions([...questions]);
             return;
         }

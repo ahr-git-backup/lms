@@ -14,16 +14,18 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
+import { AdminCourseView } from "@/components/admin/AdminCourseView";
 
 const PAGE_SIZE = 15;
 
@@ -38,6 +40,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const editId = searchParams.get("editId");
   const [editingExam, setEditingExam] = useState<any>(null);
   const [editingExternalExam, setEditingExternalExam] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [showExternalForm, setShowExternalForm] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "course">("list");
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
@@ -158,28 +163,71 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                 Configure exams and optionally bulk-import questions from JSON.
                 </p>
             </div>
-            <Button onClick={() => navigate("/dashboard/admin/exams/question-maker")}>
-                Open Question Maker
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                {!isFreeMode && (
+                    <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full sm:w-auto">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="list"><List className="h-4 w-4 mr-2" /> List</TabsTrigger>
+                            <TabsTrigger value="course"><LayoutGrid className="h-4 w-4 mr-2" /> Courses</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                )}
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant={showForm || showExternalForm || editingExam || editingExternalExam ? "secondary" : "default"}>
+                            {showForm || showExternalForm || editingExam || editingExternalExam ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Create Exam</>}
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                            if (showForm || showExternalForm || editingExam || editingExternalExam) {
+                                setShowForm(false); setShowExternalForm(false); setEditingExam(null); setEditingExternalExam(null);
+                            } else {
+                                setShowForm(true); setShowExternalForm(false); setEditingExam(null); setEditingExternalExam(null);
+                            }
+                        }}>
+                            {showForm || showExternalForm || editingExam || editingExternalExam ? "Cancel Action" : "Standard Exam"}
+                        </DropdownMenuItem>
+                        {!(showForm || showExternalForm || editingExam || editingExternalExam) && (
+                            <DropdownMenuItem onClick={() => { setShowExternalForm(true); setShowForm(false); setEditingExam(null); setEditingExternalExam(null); }}>
+                                External Exam
+                            </DropdownMenuItem>
+                        )}
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" onClick={() => navigate("/dashboard/admin/exams/question-maker")}>
+                    Question Maker
+                </Button>
+            </div>
         </div>
       </header>
 
       <div className="grid gap-6">
-        <ExamForm
-            exam={editingExam}
-            onSuccess={() => setEditingExam(null)}
-            onCancel={editingExam ? () => setEditingExam(null) : undefined}
-            isFreeMode={isFreeMode}
-        />
+        {(showForm || editingExam) && (
+            <div className="bg-card border rounded-lg shadow-sm mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <ExamForm
+                    exam={editingExam}
+                    onSuccess={() => { setEditingExam(null); setShowForm(false); queryClient.invalidateQueries({ queryKey: ["admin-exams"] }); }}
+                    onCancel={() => { setEditingExam(null); setShowForm(false); }}
+                    isFreeMode={isFreeMode}
+                />
+            </div>
+        )}
 
-        <ExternalExamForm
-            exam={editingExternalExam}
-            onSuccess={() => setEditingExternalExam(null)}
-            onCancel={editingExternalExam ? () => setEditingExternalExam(null) : undefined}
-            isFreeMode={isFreeMode}
-        />
+        {(showExternalForm || editingExternalExam) && (
+            <div className="bg-card border rounded-lg shadow-sm mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <ExternalExamForm
+                    exam={editingExternalExam}
+                    onSuccess={() => { setEditingExternalExam(null); setShowExternalForm(false); queryClient.invalidateQueries({ queryKey: ["admin-exams"] }); }}
+                    onCancel={() => { setEditingExternalExam(null); setShowExternalForm(false); }}
+                    isFreeMode={isFreeMode}
+                />
+            </div>
+        )}
 
-        {/* Exams List */}
+        {!isFreeMode && viewMode === "course" ? (
+            <AdminCourseView resourceType="exams" />
+        ) : (
         <Card className="border border-foreground/60 overflow-hidden">
         <div className="p-6 space-y-4">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -506,6 +554,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
             )}
         </div>
         </Card>
+        )}
       </div>
     </section>
   );

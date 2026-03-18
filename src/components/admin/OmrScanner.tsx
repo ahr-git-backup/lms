@@ -25,7 +25,6 @@ import {
   X,
   Check,
 } from "lucide-react";
-import Cropper, { ReactCropperElement } from "react-cropper";
 import { QuestionData } from "@/components/admin/QuestionEditor";
 
 // OMR API URL — set this to your Render deployment
@@ -76,10 +75,19 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
 
   // Image & crop
   const [rawImage, setRawImage] = useState<string | null>(null);
-  const [croppedBlob, setCroppedBlob] = useState<Blob | null>(null);
-  const cropperRef = useRef<ReactCropperElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const overlayRef = useRef<SVGSVGElement>(null);
+
+  // 4 points for perspective crop (percentages 0-100)
+  const [points, setPoints] = useState([
+    { x: 10, y: 10 }, // TL
+    { x: 90, y: 10 }, // TR
+    { x: 90, y: 90 }, // BR
+    { x: 10, y: 90 }, // BL
+  ]);
+  const [draggingPoint, setDraggingPoint] = useState<number | null>(null);
 
   // Scanning
   const [isScanning, setIsScanning] = useState(false);
@@ -135,36 +143,83 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
     e.target.value = "";
   };
 
-  // Crop and proceed to scan
-  const handleCrop = () => {
-    const cropper = cropperRef.current?.cropper;
-    if (!cropper) return;
-
-    cropper.getCroppedCanvas().toBlob(
-      (blob) => {
-        if (blob) {
-          setCroppedBlob(blob);
-          handleScan(blob);
-        }
-      },
-      "image/jpeg",
-      0.9
-    );
+  // Pointer events for dragging SVG points
+  const handlePointerDown = (index: number) => {
+    setDraggingPoint(index);
   };
 
-  // Skip crop - use full image
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (draggingPoint === null || !imageRef.current) return;
+    const rect = imageRef.current.getBoundingClientRect();
+    let x = ((e.clientX - rect.left) / rect.width) * 100;
+    let y = ((e.clientY - rect.top) / rect.height) * 100;
+    
+    // Clamp to 0-100
+    x = Math.max(0, Math.min(100, x));
+    y = Math.max(0, Math.min(100, y));
+
+    const newPoints = [...points];
+    newPoints[draggingPoint] = { x, y };
+    setPoints(newPoints);
+  };
+
+  const handlePointerUp = () => {
+    setDraggingPoint(null);
+  };
+
+  // Helper to normalize image rotation and size via Canvas
+  const getNormalizedImageBlob = (img: HTMLImageElement, callback: (blob: Blob, width: number, height: number) => void) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    
+    // Scale down if huge (improves performance & fixes EXIF rotation bugs)
+    const MAX_DIM = 1600;
+    let width = img.naturalWidth;
+    let height = img.naturalHeight;
+    
+    if (width > MAX_DIM || height > MAX_DIM) {
+      if (width > height) {
+        height = Math.round((height * MAX_DIM) / width);
+        width = MAX_DIM;
+      } else {
+        width = Math.round((width * MAX_DIM) / height);
+        height = MAX_DIM;
+      }
+    }
+    
+    canvas.width = width;
+    canvas.height = height;
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    canvas.toBlob((blob) => {
+      if (blob) callback(blob, width, height);
+    }, "image/jpeg", 0.85);
+  };
+
+  // Skip crop - send full image without perspective corners
   const handleSkipCrop = () => {
-    if (!rawImage) return;
-    fetch(rawImage)
-      .then((res) => res.blob())
-      .then((blob) => {
-        setCroppedBlob(blob);
-        handleScan(blob);
-      });
+    if (!rawImage || !imageRef.current) return;
+    getNormalizedImageBlob(imageRef.current, (blob) => {
+      handleScan(blob, null);
+    });
+  };
+
+  // Apply perspective crop
+  const handleCrop = () => {
+    if (!rawImage || !imageRef.current) return;
+    
+    getNormalizedImageBlob(imageRef.current, (blob, width, height) => {
+      const corners = points.map(p => ({
+        x: (p.x / 100) * width,
+        y: (p.y / 100) * height
+      }));
+      handleScan(blob, corners);
+    });
   };
 
   // Send to API
-  const handleScan = async (imageBlob: Blob) => {
+  const handleScan = async (imageBlob: Blob, corners: any[] | null) => {
     setStep("scanning");
     setIsScanning(true);
     setScanError(null);
@@ -173,6 +228,9 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
       const formData = new FormData();
       formData.append("file", imageBlob, "omr.jpg");
       formData.append("max_questions", maxQuestions);
+      if (corners) {
+        formData.append("corners", JSON.stringify(corners));
+      }
 
       const response = await fetch(`${OMR_API_URL}/api/v1/scan-omr`, {
         method: "POST",
@@ -182,6 +240,15 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
       const data = await response.json();
 
       if (data.error) {
+        if (data.warped_image) {
+          setRawImage(data.warped_image);
+          setPoints([
+            { x: 0, y: 0 },
+            { x: 100, y: 0 },
+            { x: 100, y: 100 },
+            { x: 0, y: 100 },
+          ]);
+        }
         throw new Error(data.error);
       }
 
@@ -221,10 +288,14 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
       setHistoryArray([JSON.stringify(newApiData.results)]);
       setHistoryIndex(0);
 
-      // Load image for canvas — use state so React re-renders when loaded
+      // Load warped image for canvas
       const img = new Image();
       img.onload = () => { setBaseImage(img); };
-      img.src = URL.createObjectURL(imageBlob);
+      if (data.warped_image) {
+        img.src = data.warped_image;
+      } else {
+        img.src = URL.createObjectURL(imageBlob);
+      }
 
       setStep("results");
       toast({ title: "Scan Complete", description: `Detected ${data.extracted_nodes.length} questions.` });
@@ -235,7 +306,8 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
           ? err.message
           : "Could not connect to OMR server.";
       setScanError(msg);
-      setStep("upload");
+      // Stay on crop to show warped image
+      setStep(rawImage ? "crop" : "upload");
       toast({
         title: "Scan Failed",
         description: msg,
@@ -387,12 +459,17 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
   // Reset to start
   const handleReset = () => {
     setRawImage(null);
-    setCroppedBlob(null);
     setApiData(null);
     setBaseImage(null);
     setHistoryArray([]);
     setHistoryIndex(-1);
     setScanError(null);
+    setPoints([
+      { x: 10, y: 10 },
+      { x: 90, y: 10 },
+      { x: 90, y: 90 },
+      { x: 10, y: 90 },
+    ]);
     setStep("upload");
   };
 
@@ -493,6 +570,17 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
           )}
         </div>
 
+        {/* Error Alert available in upload and crop steps */}
+        {scanError && (step === "upload" || step === "crop") && (
+          <div className="flex items-start gap-2 p-3 mb-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 text-xs text-red-700 dark:text-red-400">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Scan Failed</p>
+              <p>{scanError}</p>
+            </div>
+          </div>
+        )}
+
         {/* Step: Upload */}
         {step === "upload" && (
           <div className="space-y-4">
@@ -545,33 +633,62 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                 onChange={handleImageSelect}
               />
             </div>
-
-            {scanError && (
-              <div className="flex items-start gap-2 p-3 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 text-xs text-red-700 dark:text-red-400">
-                <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold">Scan Failed</p>
-                  <p>{scanError}</p>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
         {/* Step: Crop */}
         {step === "crop" && rawImage && (
           <div className="space-y-4">
-            <div className="rounded-xl overflow-hidden border border-border/60 bg-black/5">
-              <Cropper
-                ref={cropperRef}
-                src={rawImage}
-                style={{ height: 400, width: "100%" }}
-                guides={true}
-                viewMode={1}
-                responsive={true}
-                autoCropArea={0.9}
-                background={false}
-              />
+             <div className="rounded-xl border border-border/60 bg-black/5 relative select-none flex justify-center items-center p-3">
+              <div className="relative inline-flex max-w-full max-h-[60vh] shadow-sm ring-1 ring-border/50">
+                <img
+                  ref={imageRef}
+                  src={rawImage}
+                  alt="Upload preview"
+                  className="max-h-[60vh] w-auto max-w-full pointer-events-none block"
+                  style={{ userSelect: "none" }}
+                />
+                <svg
+                  ref={overlayRef}
+                  className="absolute inset-0 w-full h-full touch-none"
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerLeave={handlePointerUp}
+                >
+                  {/* Polygon showing the cropped area */}
+                  <polygon
+                    points={points.map(p => `${p.x}%,${p.y}%`).join(" ")}
+                    fill="rgba(59, 130, 246, 0.2)"
+                    stroke="rgba(59, 130, 246, 0.8)"
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                  />
+                  
+                  {/* 4 Draggable corner handles with bullseyes */}
+                  {points.map((p, i) => (
+                    <g key={i}>
+                      {/* Bullseye lines */}
+                      <line x1={`${p.x}%`} y1={`${p.y - 5}%`} x2={`${p.x}%`} y2={`${p.y + 5}%`} stroke="white" strokeWidth="2" className="pointer-events-none opacity-50" />
+                      <line x1={`${p.x - 5}%`} y1={`${p.y}%`} x2={`${p.x + 5}%`} y2={`${p.y}%`} stroke="white" strokeWidth="2" className="pointer-events-none opacity-50" />
+                      
+                      {/* Handle */}
+                      <circle
+                        cx={`${p.x}%`}
+                        cy={`${p.y}%`}
+                        r="14"
+                        fill="rgba(255,255,255,0.7)"
+                        stroke="rgba(59, 130, 246, 1)"
+                        strokeWidth="3"
+                        className="cursor-move"
+                        onPointerDown={() => handlePointerDown(i)}
+                      />
+                      
+                      {/* Center crosshair dot */}
+                      <circle cx={`${p.x}%`} cy={`${p.y}%`} r="3" fill="rgba(59, 130, 246, 1)" className="pointer-events-none" />
+                    </g>
+                  ))}
+                </svg>
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <Button
@@ -597,9 +714,9 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                 <Button
                   size="sm"
                   onClick={handleCrop}
-                  className="rounded-full px-6"
+                  className="rounded-full px-6 bg-primary hover:bg-primary/90"
                 >
-                  <Crop className="h-4 w-4 mr-2" />
+                  <ScanLine className="h-4 w-4 mr-2" />
                   Crop & Scan
                 </Button>
               </div>

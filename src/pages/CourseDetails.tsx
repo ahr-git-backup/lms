@@ -19,6 +19,7 @@ import { DemoContentItem } from "@/types/admin";
 import { PlayCircle, FileText, Lock, CheckCircle2, Tag, Clock, Gift, Copy, Check, Loader2, Timer } from "lucide-react";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { useToast } from "@/hooks/use-toast";
+import SEO from "@/components/SEO";
 
 // Live countdown timer component
 const CountdownTimer = ({ deadline }: { deadline: string }) => {
@@ -92,7 +93,7 @@ const CourseDetails = () => {
 
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, full_description, short_description, price, original_price, image_url, video_url, what_you_get, demo_content, slug")
+        .select("id, name, full_description, short_description, price, original_price, image_url, video_url, routine_url, what_you_get, demo_content, slug")
         .or(`slug.eq.${courseId},id.eq.${courseId}`)
         .maybeSingle();
 
@@ -237,6 +238,10 @@ const CourseDetails = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-28 md:pb-16">
+      <SEO 
+        title={course?.name || "Loading"} 
+        description={course?.short_description || undefined}
+      />
       <PublicHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -279,6 +284,18 @@ const CourseDetails = () => {
                     </h1>
                      {!isLoading && !isError && course?.short_description && (
                         <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{course.short_description}</p>
+                     )}
+                     
+                     {/* Routine Button */}
+                     {!isLoading && course?.routine_url && (
+                        <div className="mt-4">
+                            <Button variant="secondary" size="sm" asChild className="rounded-full shadow-sm">
+                                <a href={course.routine_url} target="_blank" rel="noopener noreferrer">
+                                    <FileText className="w-4 h-4 mr-2" />
+                                    Show Routine
+                                </a>
+                            </Button>
+                        </div>
                      )}
                 </div>
             </div>

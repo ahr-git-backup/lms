@@ -58,6 +58,7 @@ const courseSchema = z.object({
   demo_content: z.array(demoContentSchema).optional().default([]),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
   video_url: z.string().trim().optional().or(z.literal("")),
+  routine_url: z.string().trim().optional().or(z.literal("")),
   bkash_number: z.string().trim().max(50).optional().or(z.literal("")),
   nagad_number: z.string().trim().max(50).optional().or(z.literal("")),
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
@@ -83,6 +84,7 @@ const AdminCourses = () => {
     demo_content: [],
     image_url: "",
     video_url: "",
+    routine_url: "",
     bkash_number: "",
     nagad_number: "",
     contact_info: "",
@@ -222,6 +224,7 @@ const AdminCourses = () => {
         demo_content: parsed.demo_content,
         image_url: parsed.image_url || null,
         video_url: parsed.video_url || null,
+        routine_url: parsed.routine_url || null,
         bkash_number: parsed.bkash_number || null,
         nagad_number: parsed.nagad_number || null,
         contact_info: parsed.contact_info || null,
@@ -299,6 +302,7 @@ const AdminCourses = () => {
       demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
       video_url: course.video_url ?? "",
+      routine_url: (course as any).routine_url ?? "",
       bkash_number: course.bkash_number ?? "",
       nagad_number: course.nagad_number ?? "",
       contact_info: course.contact_info ?? "",
@@ -510,10 +514,20 @@ const AdminCourses = () => {
                         </div>
                     </div>
 
-                    {/* Payment Details */}
+                    {/* Links & Payment Details */}
                     <div className="md:col-span-2 space-y-4">
-                        <h3 className="text-base font-semibold border-b pb-2">Payment Details</h3>
-                        <div className="grid md:grid-cols-3 gap-6">
+                        <h3 className="text-base font-semibold border-b pb-2">Additional Links & Payment Details</h3>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="routine_url">Course Routine (Drive Link)</Label>
+                                <Input
+                                id="routine_url"
+                                value={form.routine_url}
+                                onChange={(e) => setForm((prev) => ({ ...prev, routine_url: e.target.value }))}
+                                placeholder="https://drive.google.com/..."
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="bkash_number">bKash Number</Label>
                                 <Input

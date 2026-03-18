@@ -136,6 +136,7 @@ export type Database = {
           button_text: string | null
           button_url: string | null
           sort_order: number | null
+          subject: string[] | null
         }
         Insert: {
           class_type: string
@@ -151,6 +152,7 @@ export type Database = {
           button_text?: string | null
           button_url?: string | null
           sort_order?: number | null
+          subject?: string[] | null
         }
         Update: {
           class_type?: string
@@ -166,6 +168,7 @@ export type Database = {
           button_text?: string | null
           button_url?: string | null
           sort_order?: number | null
+          subject?: string[] | null
         }
         Relationships: [
           {
@@ -194,6 +197,8 @@ export type Database = {
           updated_at: string
           what_you_get: string[] | null
           access_unlimited_practice: boolean | null
+          priority: number | null
+          routine_url: string | null
         }
         Insert: {
           bkash_number?: string | null
@@ -211,6 +216,8 @@ export type Database = {
           updated_at?: string
           what_you_get?: string[] | null
           access_unlimited_practice?: boolean | null
+          priority?: number | null
+          routine_url?: string | null
         }
         Update: {
           bkash_number?: string | null
@@ -228,6 +235,8 @@ export type Database = {
           updated_at?: string
           what_you_get?: string[] | null
           access_unlimited_practice?: boolean | null
+          priority?: number | null
+          routine_url?: string | null
         }
         Relationships: []
       }
@@ -436,6 +445,9 @@ export type Database = {
           title: string
           total_marks: number | null
           updated_at: string
+          subject: string[] | null
+          external_exam_link: string | null
+          restrict_solution: boolean | null
         }
         Insert: {
           course_id: string
@@ -452,6 +464,9 @@ export type Database = {
           title: string
           total_marks?: number | null
           updated_at?: string
+          subject?: string[] | null
+          external_exam_link?: string | null
+          restrict_solution?: boolean | null
         }
         Update: {
           course_id?: string
@@ -468,6 +483,9 @@ export type Database = {
           title?: string
           total_marks?: number | null
           updated_at?: string
+          subject?: string[] | null
+          external_exam_link?: string | null
+          restrict_solution?: boolean | null
         }
         Relationships: [
           {
