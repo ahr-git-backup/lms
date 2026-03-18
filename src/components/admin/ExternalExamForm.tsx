@@ -50,6 +50,7 @@ const externalExamSchema = z.object({
   is_published: z.boolean().optional().default(false),
   is_archive: z.boolean().optional().default(false),
   is_readymade: z.boolean().optional().default(false),
+  readymade_topic: z.string().trim().optional().or(z.literal("")),
 });
 
 interface ExternalExamFormProps {
@@ -68,7 +69,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
     const { data: globalMeta } = useGlobalMetadata() as any;
     const addMetadata = useAddGlobalMetadata();
 
-    const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'readymade_topic', value: string) => {
         addMetadata.mutate({ type, value });
     };
 
@@ -90,6 +91,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
         is_published: false,
         is_archive: false,
         is_readymade: false,
+        readymade_topic: "",
     });
 
     useEffect(() => {
@@ -125,6 +127,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
                 is_published: exam.is_published ?? false,
                 is_archive: exam.is_archive ?? false,
                 is_readymade: exam.is_readymade ?? false,
+                readymade_topic: exam.readymade_topic || "",
             });
         }
     }, [exam]);
@@ -164,6 +167,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
             is_published: parsed.is_published ?? false,
             is_archive: parsed.is_archive ?? false,
             is_readymade: parsed.is_readymade ?? false,
+            readymade_topic: parsed.readymade_topic || null,
           };
 
           if (parsed.id) {
@@ -203,6 +207,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
                 is_published: false,
                 is_archive: false,
                 is_readymade: false,
+                readymade_topic: "",
               });
           }
           onSuccess();
@@ -441,15 +446,32 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
                 <Label htmlFor="ext_is_archive">Is Archive?</Label>
               </div>
 
-              <div className="flex items-center gap-2 md:col-span-2">
-                <Switch
-                  id="ext_is_readymade"
-                  checked={form.is_readymade}
-                  onCheckedChange={(checked) =>
-                    setForm((prev) => ({ ...prev, is_readymade: checked }))
-                  }
-                />
-                <Label htmlFor="ext_is_readymade">Is Readymade Exam?</Label>
+              <div className="flex flex-col gap-2 md:col-span-2 border p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 border-blue-200">
+                <div className="flex items-center gap-2">
+                    <Switch
+                    id="ext_is_readymade"
+                    checked={form.is_readymade}
+                    onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, is_readymade: checked }))
+                    }
+                    />
+                    <Label htmlFor="ext_is_readymade">Is Readymade Exam?</Label>
+                </div>
+                {form.is_readymade && (
+                    <div className="space-y-2 mt-2">
+                        <Label htmlFor="ext_readymade_topic">Parent Readymade Topic</Label>
+                        <CreatableSelect
+                            options={globalMeta?.readymade_topic || []}
+                            value={form.readymade_topic || ""}
+                            onChange={(val) => setForm((prev) => ({ ...prev, readymade_topic: val }))}
+                            onCreate={(val) => {
+                                handleCreateMeta('readymade_topic', val);
+                                setForm((prev) => ({ ...prev, readymade_topic: val }));
+                            }}
+                            placeholder="Select or Create Parent Topic"
+                        />
+                    </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 md:col-span-2 mt-4">

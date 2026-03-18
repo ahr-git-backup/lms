@@ -14,11 +14,14 @@ import { SUBJECTS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ClassForm } from "@/components/admin/ClassForm";
+import { ClassSortableList } from "@/components/admin/ClassSortableList";
+import { ArrowUpDown } from "lucide-react";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 30;
 
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
+  const [isReordering, setIsReordering] = useState(false);
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -56,6 +59,7 @@ const AdminClasses = () => {
       let query = supabase
         .from("classes")
         .select("*, course:courses(name)", { count: 'exact' })
+        .order("sort_order", { ascending: false })
         .order("start_at", { ascending: false });
 
       if (subjectFilter !== "all") {
@@ -151,6 +155,9 @@ const AdminClasses = () => {
                         onChange={e => setSearchQuery(e.target.value)}
                         className="w-full sm:w-[200px]"
                      />
+                     <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
+                         <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
+                     </Button>
                  </div>
              </div>
 
@@ -158,6 +165,8 @@ const AdminClasses = () => {
                 <div className="text-sm text-muted-foreground">Loading...</div>
              ) : !classes || classes.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No classes found.</div>
+             ) : isReordering ? (
+                <ClassSortableList classes={classes} onClose={() => setIsReordering(false)} />
              ) : (
                 <>
                 {/* Desktop Table */}

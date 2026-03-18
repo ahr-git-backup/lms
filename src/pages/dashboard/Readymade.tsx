@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { MultiSelect } from "@/components/ui/multi-select";
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 15;
 
 const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -18,9 +19,40 @@ const Readymade = () => {
   const navigate = useNavigate();
 
   // Search & Pagination State
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
+
+  // Topics filtering
+  const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
+
+  // Fetch unique topics
+  const { data: parentTopics } = useQuery({
+      queryKey: ["readymade-parent-topics", enrollments?.map((e: any) => e.course_id).join(',')],
+      queryFn: async () => {
+          const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
+          let query = supabase
+              .from("exams")
+              .select("readymade_topic")
+              .eq("is_readymade", true)
+              .eq("is_published", true)
+              .not("readymade_topic", "is", null);
+
+          if (enrolledIds.length > 0) {
+              query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
+          } else {
+              query = query.is("course_id", null);
+          }
+
+          const { data } = await query;
+          const unique = new Set<string>();
+          data?.forEach(row => {
+              if (row.readymade_topic) unique.add(row.readymade_topic);
+          });
+          return Array.from(unique).sort().map(topic => ({ label: topic, value: topic }));
+      }
+  });
 
   useEffect(() => {
     document.title = "Readymade – Atlas";
@@ -41,15 +73,45 @@ const Readymade = () => {
         <p className="text-sm text-muted-foreground">Pre-configured practice exams for your courses.</p>
       </header>
 
-      <div className="flex justify-end">
-          <div className="relative w-full sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                  placeholder="Search exams..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-              />
+      <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-2">
+          {parentTopics && parentTopics.length > 0 && (
+              <div className="w-full sm:w-64">
+                  <MultiSelect
+                      options={parentTopics}
+                      selected={selectedParentTopics}
+                      onChange={setSelectedParentTopics}
+                      placeholder="Select Topics..."
+                  />
+              </div>
+          )}
+          <div className="relative w-full sm:w-auto flex items-center justify-end">
+              {isSearchExpanded ? (
+                  <div className="flex items-center w-full sm:w-64 relative animate-in fade-in zoom-in duration-200">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                          placeholder="Search exams..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-9 pr-8"
+                          autoFocus
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 h-9 w-9"
+                        onClick={() => {
+                            setSearchQuery("");
+                            setIsSearchExpanded(false);
+                        }}
+                      >
+                          <X className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                  </div>
+              ) : (
+                  <Button variant="outline" size="icon" onClick={() => setIsSearchExpanded(true)}>
+                      <Search className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+              )}
           </div>
       </div>
 
@@ -63,16 +125,17 @@ const Readymade = () => {
             searchQuery={debouncedSearch}
             page={page}
             setPage={setPage}
+            selectedParentTopics={selectedParentTopics}
       />
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, selectedParentTopics }: any) => {
 
     const { data: searchResults, isLoading: searching } = useQuery({
-        queryKey: ["readymade-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
+        queryKey: ["readymade-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page, selectedParentTopics],
         queryFn: async () => {
             // Must have enrollments or be public (though readymade usually implies curated)
             // Logic: Is readymade AND (public OR enrolled OR shared)
@@ -90,6 +153,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
+            if (selectedParentTopics && selectedParentTopics.length > 0) {
+                query = query.in("readymade_topic", selectedParentTopics);
+            }
+
             // Filter by access: Enrolled course must be in course_id, OR shared_course_ids, OR readymade_course_ids, OR null (public)
             if (enrolledIds.length > 0) {
                  query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
@@ -105,7 +172,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     });
 
     const { data: subjects, isLoading: loadingSubjects } = useQuery({
-        queryKey: ["readymade-exams-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["readymade-exams-subjects", enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
         queryFn: async () => {
             const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
             let query = supabase
@@ -114,11 +181,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 .eq("is_readymade", true)
                 .eq("is_published", true);
 
-             // Since we can't easily do complex OR logic in one select for subjects without RPC,
-             // we'll fetch metadata for relevant exams.
-             // But simpler: just fetch subjects of readymade exams. RLS handles visibility?
-             // Assuming RLS allows viewing exams if enrolled.
-             // If not using RLS for visibility but logic:
+             if (selectedParentTopics && selectedParentTopics.length > 0) {
+                 query = query.in("readymade_topic", selectedParentTopics);
+             }
 
              if (enrolledIds.length > 0) {
                  query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
@@ -142,7 +207,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     });
 
     const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["readymade-exams-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["readymade-exams-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
         queryFn: async () => {
             if (!selectedSubject) return [];
             const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
@@ -153,6 +218,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 .eq("is_readymade", true)
                 .eq("is_published", true)
                 .contains("subject", [selectedSubject]);
+
+             if (selectedParentTopics && selectedParentTopics.length > 0) {
+                 query = query.in("readymade_topic", selectedParentTopics);
+             }
 
              if (enrolledIds.length > 0) {
                  query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);
@@ -173,7 +242,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     });
 
     const { data: examsData, isLoading: loadingExams } = useQuery({
-        queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
         queryFn: async () => {
              if (!selectedSubject || !selectedChapter) return { data: [], count: 0 };
              const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
@@ -187,6 +256,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                  .eq("chapter", selectedChapter)
                  .order("created_at", { ascending: false })
                  .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+             if (selectedParentTopics && selectedParentTopics.length > 0) {
+                 query = query.in("readymade_topic", selectedParentTopics);
+             }
 
              if (enrolledIds.length > 0) {
                  query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);

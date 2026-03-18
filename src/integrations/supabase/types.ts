@@ -135,6 +135,7 @@ export type Database = {
           video_url: string | null
           button_text: string | null
           button_url: string | null
+          sort_order: number | null
         }
         Insert: {
           class_type: string
@@ -149,6 +150,7 @@ export type Database = {
           video_url?: string | null
           button_text?: string | null
           button_url?: string | null
+          sort_order?: number | null
         }
         Update: {
           class_type?: string
@@ -163,6 +165,7 @@ export type Database = {
           video_url?: string | null
           button_text?: string | null
           button_url?: string | null
+          sort_order?: number | null
         }
         Relationships: [
           {
@@ -427,6 +430,7 @@ export type Database = {
           instructions: string | null
           is_published: boolean
           negative_mark_per_question: number
+          readymade_topic: string | null
           time_window_end: string | null
           time_window_start: string | null
           title: string
@@ -442,6 +446,7 @@ export type Database = {
           instructions?: string | null
           is_published?: boolean
           negative_mark_per_question?: number
+          readymade_topic?: string | null
           time_window_end?: string | null
           time_window_start?: string | null
           title: string
@@ -457,6 +462,7 @@ export type Database = {
           instructions?: string | null
           is_published?: boolean
           negative_mark_per_question?: number
+          readymade_topic?: string | null
           time_window_end?: string | null
           time_window_start?: string | null
           title?: string

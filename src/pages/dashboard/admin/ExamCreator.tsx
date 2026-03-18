@@ -63,6 +63,7 @@ const ExamCreator = () => {
     is_visible_on_free: true,
     restrict_solution: false,
     is_readymade: false,
+    readymade_topic: "",
     is_omr_enabled: false,
   });
 
@@ -78,7 +79,7 @@ const ExamCreator = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: globalMeta } = useGlobalMetadata() as any;
   const addMetadata = useAddGlobalMetadata();
-  const handleCreateMeta = (type: 'subject' | 'chapter', value: string) => {
+  const handleCreateMeta = (type: 'subject' | 'chapter' | 'readymade_topic', value: string) => {
     addMetadata.mutate({ type, value });
   };
   const courseOptions = courses?.map((c: any) => ({ label: c.name, value: c.id })) || [];
@@ -423,6 +424,7 @@ const ExamCreator = () => {
         is_visible_on_free: f.is_visible_on_free,
         restrict_solution: f.restrict_solution,
         is_readymade: f.is_readymade,
+        readymade_topic: f.readymade_topic || null,
         is_omr: f.is_omr_enabled,
       };
 
@@ -904,6 +906,20 @@ const ExamCreator = () => {
                             </Label>
                         </div>
                         {saveWebForm.is_readymade && (
+                            <>
+                            <div className="space-y-2">
+                                <Label htmlFor="readymade_topic">Parent Readymade Topic</Label>
+                                <CreatableSelect
+                                    options={globalMeta?.readymade_topic || []}
+                                    value={saveWebForm.readymade_topic}
+                                    onChange={val => setSaveWebForm(prev => ({ ...prev, readymade_topic: val }))}
+                                    onCreate={val => {
+                                        handleCreateMeta('readymade_topic', val);
+                                        setSaveWebForm(prev => ({ ...prev, readymade_topic: val }));
+                                    }}
+                                    placeholder="Select or Create Parent Topic"
+                                />
+                            </div>
                             <div className="space-y-2">
                                 <Label>Readymade For Specific Courses (Optional)</Label>
                                 <MultiSelect
@@ -913,6 +929,7 @@ const ExamCreator = () => {
                                     placeholder="Select courses..."
                                 />
                             </div>
+                            </>
                         )}
                     </div>
                 </div>

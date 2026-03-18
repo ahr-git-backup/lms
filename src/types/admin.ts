@@ -31,6 +31,7 @@ export interface Exam {
   questions_csv?: string;
   is_archive?: boolean;
   is_readymade?: boolean;
+  readymade_topic?: string | null;
   external_exam_link?: string | null;
   is_omr?: boolean;
   course?: {
@@ -75,6 +76,7 @@ export interface Class {
   notes_url?: string | null;
   class_type: "live" | "recorded";
   is_archive?: boolean;
+  sort_order?: number;
   course?: {
     name: string;
   };

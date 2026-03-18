@@ -25,7 +25,7 @@ import { useSearchParams } from "react-router-dom";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 15;
 
 interface ExamsManagerProps {
     isFreeMode?: boolean;
