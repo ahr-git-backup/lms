@@ -97,7 +97,7 @@ const AdminReviews = () => {
   return (
       <div className="space-y-6">
           <header className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Admin: Reviews</h1>
+            <h1 className="text-xl font-semibold tracking-tight">Admin: Reviews</h1>
             <p className="text-sm text-muted-foreground">Manage student reviews displayed on the homepage.</p>
           </header>
 

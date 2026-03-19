@@ -423,7 +423,7 @@ const AdminCourses = () => {
         </DialogContent>
       </Dialog>
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
+        <h1 className="text-xl font-bold tracking-tight">Courses</h1>
         <p className="text-muted-foreground">
           Create and manage courses shown on the public site and dashboard.
         </p>

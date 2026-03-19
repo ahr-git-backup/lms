@@ -88,7 +88,7 @@ const AdminRoutines = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Routine Manager</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Routine Manager</h1>
                     <p className="text-muted-foreground">Create and manage daily routines and schedules for courses.</p>
                 </div>
                 <Button onClick={() => { setEditingRoutine(null); setIsCreateOpen(true); }}>

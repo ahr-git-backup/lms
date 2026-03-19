@@ -39,7 +39,7 @@ const ArchiveManager = () => {
         <div className="space-y-6">
             <header className="flex justify-between items-start">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Archive Manager</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Archive Manager</h1>
                     <p className="text-muted-foreground">Manage archived content visibility for courses. Assign past content to current courses as archive material.</p>
                 </div>
             </header>

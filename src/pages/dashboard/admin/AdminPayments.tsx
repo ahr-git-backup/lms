@@ -105,7 +105,7 @@ const AdminPayments = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight">Payment Requests</h1>
+            <h1 className="text-xl font-bold tracking-tight">Payment Requests</h1>
             <p className="text-sm text-muted-foreground">Review and approve student enrollments.</p>
         </div>
         <div className="flex gap-2">
