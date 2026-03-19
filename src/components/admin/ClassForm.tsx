@@ -40,9 +40,10 @@ interface ClassFormProps {
     onSuccess: () => void;
     onCancel?: () => void;
     isArchiveMode?: boolean;
+    defaultCourseId?: string;
 }
 
-export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = false }: ClassFormProps) => {
+export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = false, defaultCourseId }: ClassFormProps) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -56,7 +57,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
     };
 
     const [form, setForm] = useState<z.infer<typeof classSchema>>({
-        course_id: "",
+        course_id: defaultCourseId || "",
         shared_course_ids: [],
         archive_course_ids: [],
         title: "",
@@ -105,7 +106,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             });
         } else {
              setForm({
-                course_id: "",
+                course_id: defaultCourseId || "",
                 shared_course_ids: [],
                 archive_course_ids: [],
                 title: "",
@@ -242,7 +243,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
             if (!classItem) {
                 setForm({
-                    course_id: "",
+                    course_id: defaultCourseId || "",
                     shared_course_ids: [],
                     archive_course_ids: [],
                     title: "",

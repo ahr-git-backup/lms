@@ -34,6 +34,7 @@ const LiveExam = () => {
         .eq("is_published", true)
         .eq("exam_type", "live") // Ensure only Live exams
         .gt("time_window_end", now) // Only show exams that haven't ended
+        .order("sort_order", { ascending: false })
         .order("created_at", { ascending: false });
 
       if (selectedCourse !== "all") {

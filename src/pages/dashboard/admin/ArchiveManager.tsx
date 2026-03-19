@@ -45,7 +45,7 @@ const ArchiveManager = () => {
             </header>
 
             <Tabs defaultValue="classes" className="space-y-4">
-                <TabsList>
+                <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="classes" className="gap-2"><Video className="h-4 w-4" /> Classes</TabsTrigger>
                     <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
                 </TabsList>
@@ -191,28 +191,27 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
                         {isApplying && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                         <Save className="mr-2 h-4 w-4" /> Apply
                     </Button>
-                    <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="secondary" className="shrink-0">
-                                <Plus className="mr-2 h-4 w-4" /> New {type === 'classes' ? 'Class' : 'Exam'}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                            <DialogHeader>
-                                <DialogTitle>Create New {type === 'classes' ? 'Class' : 'Exam'} for Archive</DialogTitle>
-                                <DialogDescription>
-                                    Create a new item and assign it directly to archives.
-                                </DialogDescription>
-                            </DialogHeader>
-                            {type === 'classes' ? (
-                                <ClassForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
-                            ) : (
-                                <ExamForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
-                            )}
-                        </DialogContent>
-                    </Dialog>
+                    <Button onClick={() => setIsCreateOpen(!isCreateOpen)} variant={isCreateOpen ? "secondary" : "default"} className="shrink-0">
+                        {isCreateOpen ? "Cancel Creation" : <><Plus className="mr-2 h-4 w-4" /> New {type === 'classes' ? 'Class' : 'Exam'}</>}
+                    </Button>
                 </div>
             </div>
+            
+            {isCreateOpen && (
+                <div className="bg-card border rounded-lg shadow-sm p-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="mb-4">
+                        <h2 className="text-lg font-semibold">Create New {type === 'classes' ? 'Class' : 'Exam'} for Archive</h2>
+                        <p className="text-sm text-muted-foreground">Create a new item and assign it directly to archives.</p>
+                    </div>
+                    <div className="max-h-[70vh] overflow-y-auto pr-2">
+                        {type === 'classes' ? (
+                            <ClassForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
+                        ) : (
+                            <ExamForm onSuccess={() => { setIsCreateOpen(false); queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] }); }} isArchiveMode={true} />
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="border rounded-md">
                 {isLoading ? (

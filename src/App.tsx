@@ -17,6 +17,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
+import Reviews from "./pages/Reviews";
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -67,9 +68,11 @@ import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
 import DemoClassPlayerPage from "./pages/dashboard/DemoClassPlayerPage";
 import Program from "./pages/dashboard/Program";
 import UnifiedContentCreator from "./pages/dashboard/admin/UnifiedContentCreator";
+import CourseDashboard from "./pages/dashboard/admin/CourseDashboard";
 import PublicExamEntry from "./pages/public/PublicExamEntry";
 import FreeClass from "./pages/public/FreeClass";
 import FreeExam from "./pages/public/FreeExam";
+import StudentProfileView from "./pages/dashboard/admin/StudentProfileView";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 const queryClient = new QueryClient({
@@ -135,6 +138,7 @@ const App = () => {
                 <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
                 <Route path="/free-class" element={<FreeClass />} />
                 <Route path="/free-exam" element={<FreeExam />} />
+                <Route path="/reviews" element={<Reviews />} />
               </Route>
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
@@ -165,26 +169,7 @@ const App = () => {
                 <Route path="extra-courses" element={<ExtraCourses />} />
                 <Route path="course/:courseId" element={<CourseView />} />
 
-                <Route path="admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminDashboardHome /></ProtectedRoute>} />
-                <Route path="admin/courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
-                <Route path="admin/students" element={<ProtectedRoute requireAdmin><AdminStudents /></ProtectedRoute>} />
-                <Route path="admin/classes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminClasses /></ProtectedRoute>} />
-                <Route path="admin/routines" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminRoutines /></ProtectedRoute>} />
-                <Route path="admin/exams" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExams /></ProtectedRoute>} />
-                <Route path="admin/exams/question-maker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><ExamCreator /></ProtectedRoute>} />
-                <Route path="admin/exams/question-maker/:examId" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><ExamCreator /></ProtectedRoute>} />
-                <Route path="admin/question-bank" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><QuestionBank /></ProtectedRoute>} />
-                <Route path="admin/announcements" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAnnouncements /></ProtectedRoute>} />
-                <Route path="admin/community" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminCommunity /></ProtectedRoute>} />
-                <Route path="admin/notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
-                <Route path="admin/archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
-                <Route path="admin/free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
-                <Route path="admin/payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
-                <Route path="admin/mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
-                <Route path="admin/promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
-                <Route path="admin/heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
-                <Route path="admin/reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
-                <Route path="admin/reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
+
               </Route>
 
               <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminLayout /></ProtectedRoute>}>
@@ -209,6 +194,8 @@ const App = () => {
                 <Route path="reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
+                <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />
+                <Route path="student/:studentId" element={<ProtectedRoute requireAdmin><StudentProfileView /></ProtectedRoute>} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

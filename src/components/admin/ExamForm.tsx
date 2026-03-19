@@ -67,9 +67,10 @@ interface ExamFormProps {
     onCancel?: () => void;
     isFreeMode?: boolean;
     isArchiveMode?: boolean;
+    defaultCourseId?: string;
 }
 
-export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArchiveMode = false }: ExamFormProps) => {
+export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArchiveMode = false, defaultCourseId }: ExamFormProps) => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -83,7 +84,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     };
 
     const [form, setForm] = useState<z.infer<typeof examSchema>>({
-        course_id: "",
+        course_id: defaultCourseId || "",
         shared_course_ids: [],
         archive_course_ids: [],
         readymade_course_ids: [],
@@ -409,7 +410,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           queryClient.invalidateQueries({ queryKey: ["global-metadata"] }); // Invalidate global metadata
           if (!exam) {
               setForm({
-                course_id: "",
+                course_id: defaultCourseId || "",
                 shared_course_ids: [],
                 archive_course_ids: [],
                 readymade_course_ids: [],

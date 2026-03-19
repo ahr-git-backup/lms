@@ -28,6 +28,7 @@ const AdminAnnouncements = () => {
     body: "",
     course_id: null,
   });
+  const [isFormVisible, setIsFormVisible] = useState(false);
   const [page, setPage] = useState(0);
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -72,6 +73,7 @@ const AdminAnnouncements = () => {
       body: "",
       course_id: null,
     });
+    setIsFormVisible(false);
   };
 
   const upsertMutation = useMutation({
@@ -133,6 +135,7 @@ const AdminAnnouncements = () => {
       body: announcement.body ?? "",
       course_id: announcement.course_id ?? null,
     });
+    setIsFormVisible(true);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -142,14 +145,26 @@ const AdminAnnouncements = () => {
 
   return (
     <section className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">Admin: Announcements</h1>
-        <p className="text-sm text-muted-foreground">
-          Publish and update announcements for all students or specific courses.
-        </p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Admin: Announcements</h1>
+          <p className="text-sm text-muted-foreground">
+            Publish and update announcements for all students or specific courses.
+          </p>
+        </div>
+        <Button onClick={() => {
+            if (isFormVisible) {
+                resetForm();
+            } else {
+                setIsFormVisible(true);
+            }
+        }} variant={isFormVisible ? "secondary" : "default"} className="shrink-0">
+            {isFormVisible ? "Cancel" : "+ New Notice"}
+        </Button>
       </header>
 
-      <Card className="border border-foreground/60">
+      {isFormVisible && (
+        <Card className="border border-foreground/60 animate-in fade-in slide-in-from-top-4 duration-300">
         <CardHeader>
           <CardTitle className="text-base">
             {form.id ? "Edit announcement" : "Create new announcement"}
@@ -223,6 +238,7 @@ const AdminAnnouncements = () => {
           </form>
         </CardContent>
       </Card>
+      )}
 
       <Card className="border border-foreground/60">
         <CardHeader>

@@ -19,6 +19,8 @@ interface Review {
     gender: string;
     image_url?: string;
     post_image_url?: string;
+    category?: string;
+    images?: string[];
 }
 
 const AdminReviews = () => {
@@ -33,25 +35,30 @@ const AdminReviews = () => {
       rating: 5,
       gender: "male",
       image_url: "",
-      post_image_url: ""
+      post_image_url: "",
+      category: "classes",
+      images: []
   });
 
   const { data: reviews, isLoading } = useQuery({
       queryKey: ["admin-reviews"],
       queryFn: async () => {
+          // @ts-ignore
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
           if (error) throw error;
-          return data as Review[];
+          return data as unknown as Review[];
       }
   });
 
   const upsertMutation = useMutation({
       mutationFn: async (values: Partial<Review>) => {
           if (editingId) {
+              // @ts-ignore
               const { error } = await supabase.from("reviews").update(values).eq("id", editingId);
               if (error) throw error;
           } else {
+              // @ts-ignore
               const { error } = await supabase.from("reviews").insert(values);
               if (error) throw error;
           }
@@ -65,7 +72,9 @@ const AdminReviews = () => {
               rating: 5,
               gender: "male",
               image_url: "",
-              post_image_url: ""
+              post_image_url: "",
+              category: "classes",
+              images: []
           });
           setEditingId(null);
           queryClient.invalidateQueries({ queryKey: ["admin-reviews"] });
@@ -78,6 +87,7 @@ const AdminReviews = () => {
 
   const deleteMutation = useMutation({
       mutationFn: async (id: string | number) => {
+          // @ts-ignore
           const { error } = await supabase.from("reviews").delete().eq("id", id);
           if (error) throw error;
       },
@@ -145,12 +155,29 @@ const AdminReviews = () => {
                           />
                       </div>
                       <div className="space-y-2">
-                          <Label>Post Image URL (Evidence/Screenshot)</Label>
-                          <Input
-                              value={form.post_image_url || ""}
-                              onChange={e => setForm({...form, post_image_url: e.target.value})}
-                              placeholder="https://..."
+                          <Label>Category</Label>
+                          <select
+                              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                              value={form.category || "classes"}
+                              onChange={e => setForm({...form, category: e.target.value})}
+                          >
+                              <option value="classes">Class Reviews</option>
+                              <option value="website">Platform Experience</option>
+                              <option value="exams">Exam System</option>
+                          </select>
+                      </div>
+                      <div className="col-span-1 md:col-span-2 space-y-2">
+                          <Label>Album Images (One URL per line)</Label>
+                          <Textarea
+                              className="h-24"
+                              value={form.images?.join('\n') || form.post_image_url || ""}
+                              onChange={e => {
+                                  const lines = e.target.value.split('\n').map(l => l.trim()).filter(Boolean);
+                                  setForm({...form, images: lines, post_image_url: lines.length > 0 ? lines[0] : ""});
+                              }}
+                              placeholder="https://image1.jpg&#10;https://image2.jpg"
                           />
+                          <p className="text-[10px] text-muted-foreground">Add multiple image URLs here to create an album. One on each line.</p>
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-2">
                           <Label>Review Text</Label>
@@ -204,9 +231,15 @@ const AdminReviews = () => {
                               ))}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-3 mb-2">"{review.review_text}"</p>
-                          {review.post_image_url && (
-                              <img src={review.post_image_url} alt="Post" className="w-full h-32 object-cover rounded-md mt-2" />
-                          )}
+                          <div className="flex gap-1 overflow-x-auto mt-2 pb-2">
+                              {review.images && review.images.length > 0 ? (
+                                  review.images.map((img, idx) => (
+                                      <img key={idx} src={img} alt={`Post ${idx}`} className="h-16 w-16 object-cover rounded-md flex-shrink-0 border" />
+                                  ))
+                              ) : review.post_image_url ? (
+                                  <img src={review.post_image_url} alt="Post" className="h-16 w-16 object-cover rounded-md flex-shrink-0 border" />
+                              ) : null}
+                          </div>
                       </CardContent>
                   </Card>
               ))}

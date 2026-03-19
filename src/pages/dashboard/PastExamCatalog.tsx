@@ -15,6 +15,7 @@ import ReactMarkdown from "react-markdown";
 const PastExamCatalog = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<string>("default");
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +25,7 @@ const PastExamCatalog = () => {
   }, []);
 
   const { data: exams, isLoading: examsLoading } = useQuery({
-    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject],
+    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject, sortOrder],
     queryFn: async () => {
         if (!user || !enrollments || enrollments.length === 0) return [];
 
@@ -37,8 +38,15 @@ const PastExamCatalog = () => {
             .or(`course_id.in.(${courseIds.join(',')}),shared_course_ids.ov.{${courseIds.join(',')}}`)
             .eq("is_published", true)
             // Filter: Either practice exam OR (live exam AND window ended)
-            .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`)
-            .order("created_at", { ascending: false });
+            .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`);
+
+        if (sortOrder === "recent") {
+            query = query.order("time_window_start", { ascending: false }).order("created_at", { ascending: false });
+        } else if (sortOrder === "old") {
+            query = query.order("time_window_start", { ascending: true }).order("created_at", { ascending: true });
+        } else {
+            query = query.order("sort_order", { ascending: false }).order("created_at", { ascending: false });
+        }
 
         const { data, error } = await query;
         if (error) throw error;
@@ -138,6 +146,20 @@ const PastExamCatalog = () => {
                   {enrollment.course.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Sort</div>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default Order</SelectItem>
+              <SelectItem value="recent">Recent to Old</SelectItem>
+              <SelectItem value="old">Old to Recent</SelectItem>
             </SelectContent>
           </Select>
         </div>

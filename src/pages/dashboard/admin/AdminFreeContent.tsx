@@ -15,7 +15,7 @@ const AdminFreeContent = () => {
                 <p className="text-muted-foreground">Manage free classes (notes) and exams visible to everyone.</p>
             </header>
             <Tabs defaultValue="notes" className="space-y-4">
-                <TabsList>
+                <TabsList className="flex flex-wrap h-auto">
                     <TabsTrigger value="notes">Free Classes (Notes)</TabsTrigger>
                     <TabsTrigger value="exams">Free Exams</TabsTrigger>
                 </TabsList>

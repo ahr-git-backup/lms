@@ -370,7 +370,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                 .overlaps("archive_course_ids", courseIds)
                 .eq("is_published", true)
-                .ilike("title", `%${safeQuery}%`)
+                .order("sort_order", { ascending: false })
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -437,6 +437,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
                  .eq("is_published", true)
+                 .order("sort_order", { ascending: false })
                  .order("created_at", { ascending: false })
                  .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
              if (error) throw error;

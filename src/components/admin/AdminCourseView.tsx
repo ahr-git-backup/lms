@@ -23,6 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useNavigate } from "react-router-dom";
+import { CourseItemsManagerDialog } from "./CourseItemsManagerDialog";
 
 interface CourseWithCounts {
   id: string;
@@ -31,7 +32,7 @@ interface CourseWithCounts {
   itemCount: number;
 }
 
-function SortableCourseCard({ course, resourceType }: { course: CourseWithCounts, resourceType: "classes" | "exams" }) {
+function SortableCourseCard({ course, resourceType, onSelectCourse }: { course: CourseWithCounts, resourceType: "classes" | "exams", onSelectCourse: (id: string, name: string) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: course.id });
   const navigate = useNavigate();
 
@@ -43,11 +44,16 @@ function SortableCourseCard({ course, resourceType }: { course: CourseWithCounts
   };
 
   return (
-    <Card ref={setNodeRef} style={style} className={`cursor-default ${isDragging ? 'shadow-lg border-primary/50' : 'hover:border-primary/30'} flex flex-col h-full`}>
+    <Card 
+      ref={setNodeRef} 
+      style={style} 
+      onClick={() => { if (!isDragging) onSelectCourse(course.id, course.name) }}
+      className={`cursor-pointer ${isDragging ? 'shadow-lg border-primary/50' : 'hover:border-primary/50'} flex flex-col h-full active:scale-[0.99] transition-transform`}
+    >
       <CardContent className="p-5 flex flex-col h-full gap-4">
         <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 max-w-full min-w-0">
-                <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground shrink-0 active:cursor-grabbing p-1 bg-muted/50 rounded-md">
+                <div {...attributes} {...listeners} onClick={(e) => e.stopPropagation()} className="cursor-grab text-muted-foreground hover:text-foreground shrink-0 active:cursor-grabbing p-1 bg-muted/50 rounded-md">
                     <GripVertical className="h-4 w-4" />
                 </div>
                 <h3 className="font-semibold text-base leading-tight truncate px-1" title={course.name}>
@@ -77,6 +83,8 @@ interface AdminCourseViewProps {
 export function AdminCourseView({ resourceType }: AdminCourseViewProps) {
   const [items, setItems] = useState<CourseWithCounts[]>([]);
   const [isModified, setIsModified] = useState(false);
+  const [selectedCourseDialogId, setSelectedCourseDialogId] = useState<string | null>(null);
+  const [selectedCourseDialogName, setSelectedCourseDialogName] = useState("");
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -198,11 +206,26 @@ export function AdminCourseView({ resourceType }: AdminCourseViewProps) {
         <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {items.map((item) => (
-              <SortableCourseCard key={item.id} course={item} resourceType={resourceType} />
+              <SortableCourseCard 
+                key={item.id} 
+                course={item} 
+                resourceType={resourceType} 
+                onSelectCourse={(id, name) => {
+                    setSelectedCourseDialogId(id);
+                    setSelectedCourseDialogName(name);
+                }}
+              />
             ))}
           </div>
         </SortableContext>
       </DndContext>
+
+      <CourseItemsManagerDialog 
+        courseId={selectedCourseDialogId} 
+        courseName={selectedCourseDialogName} 
+        resourceType={resourceType} 
+        onClose={() => setSelectedCourseDialogId(null)} 
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 const Recordings = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
+  const [sortOrder, setSortOrder] = useState<string>("default");
   const { data: enrollments } = useEnrollments();
   const navigate = useNavigate();
 
@@ -19,16 +20,22 @@ const Recordings = () => {
   }, []);
 
   const { data: classes, isLoading } = useQuery({
-    queryKey: ["recordings-list", selectedCourse, selectedSubject],
+    queryKey: ["recordings-list", selectedCourse, selectedSubject, sortOrder],
     queryFn: async () => {
       const now = new Date().toISOString();
       let query = supabase
         .from("classes")
         .select("*, course:courses(*)")
         .or(`class_type.eq.recorded,and(class_type.eq.live,end_at.lt.${now})`)
-        .not("is_archive", "is", true)
-        .order("sort_order", { ascending: false })
-        .order("start_at", { ascending: false });
+        .not("is_archive", "is", true);
+
+      if (sortOrder === "recent") {
+        query = query.order("start_at", { ascending: false });
+      } else if (sortOrder === "old") {
+        query = query.order("start_at", { ascending: true });
+      } else {
+        query = query.order("sort_order", { ascending: false }).order("start_at", { ascending: false });
+      }
 
       if (selectedCourse !== "all") {
         // Match course_id directly OR check shared_course_ids
@@ -95,6 +102,20 @@ const Recordings = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Sort</div>
+          <Select value={sortOrder} onValueChange={setSortOrder}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="default">Default Order</SelectItem>
+              <SelectItem value="recent">Recent to Old</SelectItem>
+              <SelectItem value="old">Old to Recent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center gap-2">
           <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
           <Select value={selectedSubject} onValueChange={setSelectedSubject}>
             <SelectTrigger className="w-[200px]">
@@ -122,7 +143,8 @@ const Recordings = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredClasses.map((classItem) => (
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {filteredClasses.map((classItem: any) => (
             <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">

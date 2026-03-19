@@ -18,36 +18,28 @@ export default function UnifiedContentCreator() {
       </header>
       
       <Tabs value={activeType} onValueChange={setActiveType} className="w-full">
-        <TabsList className="flex flex-wrap h-auto gap-1 bg-transparent border-b pb-1 w-full justify-start">
-          <TabsTrigger value="classes" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5 text-xs sm:text-sm">Live Classes / Recordings</TabsTrigger>
-          <TabsTrigger value="exams" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5 text-xs sm:text-sm">Exams</TabsTrigger>
-          <TabsTrigger value="readymade" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5 text-xs sm:text-sm">Readymade / Free Content</TabsTrigger>
-          <TabsTrigger value="archive" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground rounded-full px-4 py-1.5 text-xs sm:text-sm">Archive Manager</TabsTrigger>
+        <TabsList className="flex flex-wrap h-auto gap-1 bg-muted p-1 rounded-md w-full justify-start mb-4">
+          <TabsTrigger value="classes" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-sm px-4 py-1.5 text-xs sm:text-sm">Live Classes / Recordings</TabsTrigger>
+          <TabsTrigger value="exams" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-sm px-4 py-1.5 text-xs sm:text-sm">Exams</TabsTrigger>
+          <TabsTrigger value="readymade" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-sm px-4 py-1.5 text-xs sm:text-sm">Free Content</TabsTrigger>
+          <TabsTrigger value="archive" className="data-[state=active]:bg-background data-[state=active]:text-foreground rounded-sm px-4 py-1.5 text-xs sm:text-sm">Archive Manager</TabsTrigger>
         </TabsList>
         
-        <div className="mt-4">
+        <div>
           <TabsContent value="classes" className="mt-0">
-              <div className="[&>div>header]:hidden">
-                  <AdminClasses />
-              </div>
+             <AdminClasses />
           </TabsContent>
 
           <TabsContent value="exams" className="mt-0">
-              <div className="[&>section>header]:hidden">
-                  <AdminExams />
-              </div>
+             <AdminExams />
           </TabsContent>
 
           <TabsContent value="readymade" className="mt-0">
-              <div className="[&>div>header]:hidden">
-                  <AdminFreeContent />
-              </div>
+             <AdminFreeContent />
           </TabsContent>
 
           <TabsContent value="archive" className="mt-0">
-              <div className="[&>div>header]:hidden">
-                  <AdminArchiveManager />
-              </div>
+             <AdminArchiveManager />
           </TabsContent>
         </div>
       </Tabs>
