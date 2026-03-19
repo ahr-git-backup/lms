@@ -87,7 +87,7 @@ const AdminCommunity = () => {
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Community Manager</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Community Manager</h1>
                     <p className="text-muted-foreground">Manage Telegram, Facebook, and other community links for your courses.</p>
                 </div>
                 {!showForm && (

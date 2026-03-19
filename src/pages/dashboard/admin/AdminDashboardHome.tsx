@@ -49,7 +49,7 @@ const AdminDashboardHome = () => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">Dashboard Overview</h2>
+      <h2 className="text-xl font-bold tracking-tight">Dashboard Overview</h2>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -57,7 +57,7 @@ const AdminDashboardHome = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats?.students}</div>
+            <div className="text-xl font-bold">{isLoading ? "..." : stats?.students}</div>
             <p className="text-xs text-muted-foreground">Registered users</p>
           </CardContent>
         </Card>
@@ -67,7 +67,7 @@ const AdminDashboardHome = () => {
             <GraduationCap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats?.courses}</div>
+            <div className="text-xl font-bold">{isLoading ? "..." : stats?.courses}</div>
             <p className="text-xs text-muted-foreground">Publicly available</p>
           </CardContent>
         </Card>
@@ -77,7 +77,7 @@ const AdminDashboardHome = () => {
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : stats?.pendingPayments}</div>
+            <div className="text-xl font-bold">{isLoading ? "..." : stats?.pendingPayments}</div>
             <p className="text-xs text-muted-foreground">Requires approval</p>
           </CardContent>
         </Card>
@@ -88,7 +88,7 @@ const AdminDashboardHome = () => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">---</div>
+            <div className="text-xl font-bold">---</div>
             <p className="text-xs text-muted-foreground">Lifetime earnings</p>
           </CardContent>
         </Card>

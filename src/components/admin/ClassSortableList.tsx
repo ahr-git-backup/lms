@@ -35,12 +35,12 @@ function SortableItem({ item }: { item: Class }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 p-3 border rounded-md bg-card mb-2"
+      className="flex items-center gap-3 p-3 border rounded-md bg-card mb-2 w-full max-w-[100vw] overflow-hidden"
     >
-      <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground">
+      <div {...attributes} {...listeners} className="cursor-grab text-muted-foreground hover:text-foreground touch-none">
         <GripVertical className="h-5 w-5" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 overflow-hidden">
         <p className="font-medium truncate">{item.title}</p>
         <p className="text-xs text-muted-foreground truncate">{item.course?.name || "No Course"} • {item.subject}</p>
       </div>
@@ -115,13 +115,13 @@ export function ClassSortableList({ classes: initialClasses, onClose }: ClassSor
   });
 
   return (
-    <div className="space-y-4 border rounded-md p-4 bg-muted/20">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-lg font-medium">Reorder Classes (Current Page)</h3>
-          <p className="text-xs text-muted-foreground">Drag and drop items to adjust their sort order index. Top items get a higher priority number.</p>
+    <div className="space-y-4 border rounded-md p-4 bg-muted/20 w-full max-w-[100vw] overflow-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-medium truncate">Reorder Classes (Current Page)</h3>
+          <p className="text-xs text-muted-foreground break-words">Drag and drop items to adjust their sort order index. Top items get a higher priority number.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm" onClick={onClose} disabled={saveOrderMutation.isPending}>
             <X className="h-4 w-4 mr-2" /> Cancel
           </Button>

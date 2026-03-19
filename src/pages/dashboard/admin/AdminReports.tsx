@@ -190,7 +190,7 @@ const AdminReports = () => {
         <div className="space-y-6 pb-20 p-2 sm:p-4 mx-auto overflow-x-hidden w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Question Reports</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Question Reports</h1>
                     <p className="text-sm text-muted-foreground">Manage user reported mistakes.</p>
                 </div>
                 <div className="text-sm font-medium bg-secondary px-3 py-1 rounded-full self-start sm:self-auto">

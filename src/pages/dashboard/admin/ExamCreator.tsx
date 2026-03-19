@@ -637,7 +637,7 @@ const ExamCreator = () => {
                         <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
                     <div>
-                        <h1 className="text-xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                        <h1 className="text-xl sm:text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                             Quiz Maker Studio
                         </h1>
                         <p className="text-xs sm:text-sm text-muted-foreground hidden sm:block">
