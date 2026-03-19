@@ -35,7 +35,7 @@ const AdminRoutines = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<"list" | "create" | "edit">("list");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingRoutine, setEditingRoutine] = useState<any>(null);
 
@@ -91,11 +91,31 @@ const AdminRoutines = () => {
                     <h1 className="text-xl font-bold tracking-tight">Routine Manager</h1>
                     <p className="text-muted-foreground">Create and manage daily routines and schedules for courses.</p>
                 </div>
-                <Button onClick={() => { setEditingRoutine(null); setIsCreateOpen(true); }}>
-                    <Plus className="mr-2 h-4 w-4" /> Create Routine
-                </Button>
+                {viewMode === "list" ? (
+                    <Button onClick={() => { setEditingRoutine(null); setViewMode("create"); }}>
+                        <Plus className="mr-2 h-4 w-4" /> Create Routine
+                    </Button>
+                ) : (
+                    <Button variant="outline" onClick={() => setViewMode("list")}>
+                        <X className="mr-2 h-4 w-4" /> Cancel
+                    </Button>
+                )}
             </div>
 
+            {viewMode !== "list" ? (
+                <div className="bg-card border rounded-xl p-4 md:p-6 shadow-sm mt-4">
+                    <h2 className="text-lg font-semibold mb-4">{viewMode === "edit" ? "Edit Routine" : "Create New Routine"}</h2>
+                    <RoutineForm
+                        initialData={editingRoutine}
+                        courses={courses || []}
+                        onSuccess={() => {
+                            setViewMode("list");
+                            queryClient.invalidateQueries({ queryKey: ["admin-routines"] });
+                        }}
+                        onCancel={() => setViewMode("list")}
+                    />
+                </div>
+            ) : (
             <Card>
                 <CardHeader>
                     <CardTitle>Routines List</CardTitle>
@@ -151,7 +171,7 @@ const AdminRoutines = () => {
                                                     size="icon"
                                                     onClick={() => {
                                                         setEditingRoutine(routine);
-                                                        setIsCreateOpen(true);
+                                                        setViewMode("edit");
                                                     }}
                                                 >
                                                     <Edit2 className="h-4 w-4" />
@@ -200,29 +220,7 @@ const AdminRoutines = () => {
                     </div>
                 </CardContent>
             </Card>
-
-             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{editingRoutine ? "Edit Routine" : "Create New Routine"}</DialogTitle>
-                        <DialogDescription>
-                           Use the form below to publish a new routine or schedule update.
-                        </DialogDescription>
-                    </DialogHeader>
-                    {/* Routine Form */}
-                    {isCreateOpen && (
-                        <RoutineForm
-                            initialData={editingRoutine}
-                            courses={courses || []}
-                            onSuccess={() => {
-                                setIsCreateOpen(false);
-                                queryClient.invalidateQueries({ queryKey: ["admin-routines"] });
-                            }}
-                            onCancel={() => setIsCreateOpen(false)}
-                        />
-                    )}
-                </DialogContent>
-            </Dialog>
+            )}
         </div>
     );
 };
