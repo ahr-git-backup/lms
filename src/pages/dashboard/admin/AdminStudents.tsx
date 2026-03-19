@@ -233,7 +233,7 @@ const AdminStudents = () => {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Admin: Students</h1>
+        <h1 className="text-xl font-semibold tracking-tight">Admin: Students</h1>
         <p className="text-sm text-muted-foreground">
           Manage students, roles, and course enrollments.
         </p>
@@ -251,7 +251,7 @@ const AdminStudents = () => {
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{stats?.paid ?? "-"}</div>
+                  <div className="text-xl font-bold">{stats?.paid ?? "-"}</div>
                   <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
@@ -266,7 +266,7 @@ const AdminStudents = () => {
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{stats?.free ?? "-"}</div>
+                  <div className="text-xl font-bold">{stats?.free ?? "-"}</div>
                   <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
@@ -281,7 +281,7 @@ const AdminStudents = () => {
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{stats?.teachers ?? "-"}</div>
+                  <div className="text-xl font-bold">{stats?.teachers ?? "-"}</div>
               </CardContent>
           </Card>
 
@@ -295,7 +295,7 @@ const AdminStudents = () => {
                   </CardTitle>
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{stats?.admins ?? "-"}</div>
+                  <div className="text-xl font-bold">{stats?.admins ?? "-"}</div>
               </CardContent>
           </Card>
       </div>

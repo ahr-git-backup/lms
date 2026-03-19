@@ -161,7 +161,7 @@ const AdminMentors = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Founder & Teacher Panel</h2>
+          <h2 className="text-xl font-bold tracking-tight">Founder & Teacher Panel</h2>
           <p className="text-muted-foreground">Manage the mentors displayed on the homepage.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

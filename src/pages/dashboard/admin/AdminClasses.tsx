@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Class } from "@/types/admin";
@@ -13,14 +12,18 @@ import { Trash2, Calendar, Edit, ChevronLeft, ChevronRight } from "lucide-react"
 import { SUBJECTS } from "@/lib/constants";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassForm } from "@/components/admin/ClassForm";
 import { ClassSortableList } from "@/components/admin/ClassSortableList";
-import { ArrowUpDown } from "lucide-react";
+import { AdminCourseView } from "@/components/admin/AdminCourseView";
+import { ArrowUpDown, Plus, List, LayoutGrid } from "lucide-react";
 
 const PAGE_SIZE = 30;
 
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -96,20 +99,40 @@ const AdminClasses = () => {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Admin: Class Schedule</h1>
-        <p className="text-sm text-muted-foreground">Manage live and recorded classes.</p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 className="text-xl font-semibold tracking-tight">Admin: Class Schedule</h1>
+            <p className="text-sm text-muted-foreground">Manage live and recorded classes.</p>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+            <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full sm:w-auto">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="list"><List className="h-4 w-4 mr-2" /> List</TabsTrigger>
+                    <TabsTrigger value="course"><LayoutGrid className="h-4 w-4 mr-2" /> Courses</TabsTrigger>
+                </TabsList>
+            </Tabs>
+            <Button onClick={() => setShowForm(!showForm)} className="shrink-0" variant={showForm || editingClass ? "secondary" : "default"}>
+                {showForm || editingClass ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Add Class</>}
+            </Button>
+        </div>
       </header>
 
       <div className="grid gap-6">
-        <ClassForm
-            classItem={editingClass}
-            onSuccess={() => setEditingClass(null)}
-            onCancel={() => setEditingClass(null)}
-        />
+        {(showForm || editingClass) && (
+            <div className="bg-card border rounded-lg shadow-sm mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <ClassForm
+                    classItem={editingClass}
+                    onSuccess={() => { setEditingClass(null); setShowForm(false); }}
+                    onCancel={() => { setEditingClass(null); setShowForm(false); }}
+                />
+            </div>
+        )}
 
-        {/* Classes List */}
+        {viewMode === "course" ? (
+            <AdminCourseView resourceType="classes" />
+        ) : (
         <div className="space-y-4">
+             {/* Classes List */}
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                  <h2 className="text-lg font-semibold">Scheduled Classes</h2>
                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -297,6 +320,7 @@ const AdminClasses = () => {
             </>
              )}
         </div>
+        )}
       </div>
     </div>
   );

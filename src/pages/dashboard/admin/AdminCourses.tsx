@@ -58,6 +58,7 @@ const courseSchema = z.object({
   demo_content: z.array(demoContentSchema).optional().default([]),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
   video_url: z.string().trim().optional().or(z.literal("")),
+  routine_url: z.string().trim().optional().or(z.literal("")),
   bkash_number: z.string().trim().max(50).optional().or(z.literal("")),
   nagad_number: z.string().trim().max(50).optional().or(z.literal("")),
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
@@ -73,6 +74,7 @@ const courseSchema = z.object({
 const PAGE_SIZE = 10;
 
 const AdminCourses = () => {
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<z.infer<typeof courseSchema>>({
     name: "",
     short_description: "",
@@ -83,6 +85,7 @@ const AdminCourses = () => {
     demo_content: [],
     image_url: "",
     video_url: "",
+    routine_url: "",
     bkash_number: "",
     nagad_number: "",
     contact_info: "",
@@ -222,6 +225,7 @@ const AdminCourses = () => {
         demo_content: parsed.demo_content,
         image_url: parsed.image_url || null,
         video_url: parsed.video_url || null,
+        routine_url: parsed.routine_url || null,
         bkash_number: parsed.bkash_number || null,
         nagad_number: parsed.nagad_number || null,
         contact_info: parsed.contact_info || null,
@@ -279,6 +283,7 @@ const AdminCourses = () => {
   });
 
   const handleEdit = (course: Course) => {
+    setShowForm(true);
     // Handle array or string for category/sub_category legacy compatibility
     const cats = Array.isArray(course.category)
         ? course.category
@@ -299,6 +304,7 @@ const AdminCourses = () => {
       demo_content: course.demo_content ?? [],
       image_url: course.image_url ?? "",
       video_url: course.video_url ?? "",
+      routine_url: (course as any).routine_url ?? "",
       bkash_number: course.bkash_number ?? "",
       nagad_number: course.nagad_number ?? "",
       contact_info: course.contact_info ?? "",
@@ -418,19 +424,53 @@ const AdminCourses = () => {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
-        <p className="text-muted-foreground">
-          Create and manage courses shown on the public site and dashboard.
-        </p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Courses</h1>
+          <p className="text-muted-foreground">
+            Create and manage courses shown on the public site and dashboard.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {!showForm && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Course
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Main Form Section - Removed Card Wrapper */}
-      <div className="space-y-6">
+      {showForm && (
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
              <h2 className="text-lg font-semibold">
                 {form.id ? "Edit Course" : "Create New Course"}
              </h2>
+             <Button variant="ghost" size="sm" onClick={() => {
+                 setForm({
+                    name: "",
+                    short_description: "",
+                    full_description: "",
+                    price: "",
+                    original_price: "",
+                    image_url: "",
+                    video_url: "",
+                    is_active: false,
+                    is_extra: false,
+                    subject: [],
+                    enrollment_status: "open",
+                    demo_content: [],
+                    categories: [],
+                    sub_categories: [],
+                    linked_course_ids: [],
+                    access_unlimited_practice: false,
+                 });
+                 setShowForm(false);
+             }}>
+                 <X className="h-4 w-4 mr-2" /> Cancel
+             </Button>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -510,10 +550,20 @@ const AdminCourses = () => {
                         </div>
                     </div>
 
-                    {/* Payment Details */}
+                    {/* Links & Payment Details */}
                     <div className="md:col-span-2 space-y-4">
-                        <h3 className="text-base font-semibold border-b pb-2">Payment Details</h3>
-                        <div className="grid md:grid-cols-3 gap-6">
+                        <h3 className="text-base font-semibold border-b pb-2">Additional Links & Payment Details</h3>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="routine_url">Course Routine (Drive Link)</Label>
+                                <Input
+                                id="routine_url"
+                                value={form.routine_url}
+                                onChange={(e) => setForm((prev) => ({ ...prev, routine_url: e.target.value }))}
+                                placeholder="https://drive.google.com/..."
+                                />
+                            </div>
+
                             <div className="space-y-2">
                                 <Label htmlFor="bkash_number">bKash Number</Label>
                                 <Input
@@ -787,7 +837,8 @@ const AdminCourses = () => {
               </div>
             </Tabs>
           </form>
-      </div>
+        </div>
+      )}
 
       {/* Courses List Section - Removed Card Wrapper */}
       <div className="space-y-4 pt-8 border-t">

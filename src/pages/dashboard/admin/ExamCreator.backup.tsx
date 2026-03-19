@@ -559,7 +559,7 @@ const ExamCreator = () => {
                     <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                    <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                         Quiz Maker Studio
                     </h1>
                 </div>

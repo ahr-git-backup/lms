@@ -162,7 +162,7 @@ const AdminHeroes = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Site Heroes</h2>
+          <h2 className="text-xl font-bold tracking-tight">Site Heroes</h2>
           <p className="text-muted-foreground">Manage the main landing page banners.</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
