@@ -251,7 +251,7 @@ const QuestionBank = () => {
                     <Button variant="ghost" size="icon" onClick={() => setViewMode('list')}>
                         <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <h1 className="text-2xl font-bold">{editingId ? "Edit Question" : "Create Question"}</h1>
+                    <h1 className="text-xl font-bold">{editingId ? "Edit Question" : "Create Question"}</h1>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-card p-6 rounded-xl border shadow-sm">
@@ -346,7 +346,7 @@ const QuestionBank = () => {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Question Bank</h1>
+                    <h1 className="text-xl font-bold tracking-tight">Question Bank</h1>
                     <p className="text-muted-foreground">Manage your reusable questions database.</p>
                 </div>
                 <Button onClick={handleCreate}>

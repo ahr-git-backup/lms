@@ -10,8 +10,10 @@ const AdminFreeContent = () => {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight">Free Content Manager</h1>
-            <p className="text-muted-foreground">Manage free classes (notes) and exams visible to everyone.</p>
+            <header className="space-y-1">
+                <h1 className="text-xl font-bold tracking-tight">Free Content Manager</h1>
+                <p className="text-muted-foreground">Manage free classes (notes) and exams visible to everyone.</p>
+            </header>
             <Tabs defaultValue="notes" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="notes">Free Classes (Notes)</TabsTrigger>

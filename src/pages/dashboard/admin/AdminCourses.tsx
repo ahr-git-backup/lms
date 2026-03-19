@@ -74,6 +74,7 @@ const courseSchema = z.object({
 const PAGE_SIZE = 10;
 
 const AdminCourses = () => {
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<z.infer<typeof courseSchema>>({
     name: "",
     short_description: "",
@@ -282,6 +283,7 @@ const AdminCourses = () => {
   });
 
   const handleEdit = (course: Course) => {
+    setShowForm(true);
     // Handle array or string for category/sub_category legacy compatibility
     const cats = Array.isArray(course.category)
         ? course.category
@@ -422,19 +424,53 @@ const AdminCourses = () => {
             </DialogFooter>
         </DialogContent>
       </Dialog>
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Courses</h1>
-        <p className="text-muted-foreground">
-          Create and manage courses shown on the public site and dashboard.
-        </p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">Courses</h1>
+          <p className="text-muted-foreground">
+            Create and manage courses shown on the public site and dashboard.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          {!showForm && (
+            <Button onClick={() => setShowForm(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Create New Course
+            </Button>
+          )}
+        </div>
       </header>
 
       {/* Main Form Section - Removed Card Wrapper */}
-      <div className="space-y-6">
+      {showForm && (
+        <div className="space-y-6">
           <div className="flex items-center justify-between">
              <h2 className="text-lg font-semibold">
                 {form.id ? "Edit Course" : "Create New Course"}
              </h2>
+             <Button variant="ghost" size="sm" onClick={() => {
+                 setForm({
+                    name: "",
+                    short_description: "",
+                    full_description: "",
+                    price: "",
+                    original_price: "",
+                    image_url: "",
+                    video_url: "",
+                    is_active: false,
+                    is_extra: false,
+                    subject: [],
+                    enrollment_status: "open",
+                    demo_content: [],
+                    categories: [],
+                    sub_categories: [],
+                    linked_course_ids: [],
+                    access_unlimited_practice: false,
+                 });
+                 setShowForm(false);
+             }}>
+                 <X className="h-4 w-4 mr-2" /> Cancel
+             </Button>
           </div>
 
           <form onSubmit={handleSubmit}>
@@ -801,7 +837,8 @@ const AdminCourses = () => {
               </div>
             </Tabs>
           </form>
-      </div>
+        </div>
+      )}
 
       {/* Courses List Section - Removed Card Wrapper */}
       <div className="space-y-4 pt-8 border-t">

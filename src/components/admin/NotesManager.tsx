@@ -96,7 +96,7 @@ const NotesManager = ({ isFreeMode = false }: NotesManagerProps) => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-xl font-bold tracking-tight">
             {isFreeMode ? "Manage Free Classes (Notes)" : "Manage Notes"}
         </h1>
         <Button onClick={() => setIsEditing(true)}>
