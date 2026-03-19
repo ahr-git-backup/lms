@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -58,7 +59,18 @@ const Login = () => {
       });
       setLoading(false);
     } else {
-        navigate("/dashboard");
+        // Fetch user roles quickly to decide redirect
+        const { data: profileData } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', (await supabase.auth.getUser()).data.user?.id)
+            .single();
+            
+        if (profileData && (profileData.role === 'admin' || profileData.role === 'teacher')) {
+            navigate("/admin");
+        } else {
+            navigate("/dashboard");
+        }
     }
   };
 

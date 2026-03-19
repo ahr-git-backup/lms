@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink } from "lucide-react";
 import {
   Dialog,
@@ -109,6 +110,7 @@ const AdminCourses = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Admin – Courses – Atlas";
@@ -476,7 +478,7 @@ const AdminCourses = () => {
           <form onSubmit={handleSubmit}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="border-b overflow-x-auto pb-px mb-6">
-                  <TabsList className="h-auto w-full justify-start gap-8 bg-transparent p-0">
+                  <TabsList className="flex flex-wrap h-auto w-full justify-start gap-8 bg-transparent p-0">
                     <TabsTrigger value="basic" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Basic Info</TabsTrigger>
                     <TabsTrigger value="description" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Description</TabsTrigger>
                     <TabsTrigger value="content" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Curriculum Info</TabsTrigger>
@@ -865,7 +867,7 @@ const AdminCourses = () => {
                 </TableHeader>
                 <TableBody>
                     {courses.map((course: Course) => (
-                    <TableRow key={course.id} className="hover:bg-muted/50">
+                    <TableRow key={course.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/admin/course-dashboard/${course.id}`)}>
                         <TableCell className="font-medium whitespace-nowrap">{course.name}</TableCell>
                         <TableCell>
                         {course.price != null ? `৳${course.price}` : <span className="text-xs text-muted-foreground">Not set</span>}
@@ -886,7 +888,7 @@ const AdminCourses = () => {
                                 type="button"
                                 size="icon"
                                 variant="ghost"
-                                onClick={() => handleEdit(course)}
+                                onClick={(e) => { e.stopPropagation(); handleEdit(course); }}
                                 title="Edit Course"
                             >
                                 <Edit2 className="h-4 w-4" />

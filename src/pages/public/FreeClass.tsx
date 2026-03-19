@@ -225,7 +225,7 @@ const FreeClass = () => {
                       />
                   </div>
                   {isAdmin && (
-                      <Button onClick={() => navigate("/dashboard/admin/notes")}>
+                      <Button onClick={() => navigate("/admin/notes")}>
                           <Plus className="mr-2 h-4 w-4" /> Add
                       </Button>
                   )}
@@ -585,7 +585,7 @@ const FreeClass = () => {
                                         size="sm"
                                         onClick={(e) => {
                                             e.stopPropagation();
-                                            navigate(`/dashboard/admin/notes?editId=${note.id}`);
+                                            navigate(`/admin/notes?editId=${note.id}`);
                                         }}
                                      >
                                          <Edit className="h-4 w-4" />

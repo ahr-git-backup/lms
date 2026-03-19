@@ -393,62 +393,62 @@ export const DashboardLayout = () => {
                         <p className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">{isAdmin ? "Admin" : "Teacher"}</p>
 
                         {/* Common Links for Admin & Teacher */}
-                        <Link to="/dashboard/admin" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <LayoutDashboard className="h-4 w-4 text-blue-600" /> Overview
                         </Link>
-                        <Link to="/dashboard/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/classes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Video className="h-4 w-4 text-red-600" /> Classes
                         </Link>
-                        <Link to="/dashboard/admin/routines" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/routines" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Calendar className="h-4 w-4 text-indigo-600" /> Routine Manager
                         </Link>
-                        <Link to="/dashboard/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/exams" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <PenTool className="h-4 w-4 text-orange-600" /> Exams
                         </Link>
-                        <Link to="/dashboard/admin/question-bank" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/question-bank" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Database className="h-4 w-4 text-blue-600" /> Question Bank
                         </Link>
-                        <Link to="/dashboard/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/announcements" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Megaphone className="h-4 w-4 text-yellow-600" /> Notice
                         </Link>
-                        <Link to="/dashboard/admin/community" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/community" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <Users className="h-4 w-4 text-teal-600" /> Community Manager
                         </Link>
-                        <Link to="/dashboard/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/notes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <StickyNote className="h-4 w-4 text-pink-600" /> Notes Manager
                         </Link>
-                        <Link to="/dashboard/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                        <Link to="/admin/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                             <BookOpen className="h-4 w-4 text-purple-500" /> Archive Manager
                         </Link>
 
                         {/* Admin Only Links */}
                         {isAdmin && (
                           <>
-                            <Link to="/dashboard/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/free-content" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <StickyNote className="h-4 w-4 text-indigo-500" /> Free Manager
                             </Link>
-                            <Link to="/dashboard/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/courses" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Settings className="h-4 w-4 text-green-600" /> Courses
                             </Link>
-                            <Link to="/dashboard/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/students" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Users className="h-4 w-4 text-purple-600" /> Students
                             </Link>
-                            <Link to="/dashboard/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/payments" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <CreditCard className="h-4 w-4 text-emerald-600" /> Payments
                             </Link>
-                            <Link to="/dashboard/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/promos" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Tag className="h-4 w-4 text-cyan-600" /> Promo Codes
                             </Link>
-                            <Link to="/dashboard/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/heroes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <LayoutTemplate className="h-4 w-4 text-indigo-600" /> Site Heroes
                             </Link>
-                            <Link to="/dashboard/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/mentors" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <PenTool className="h-4 w-4 text-violet-600" /> Mentors/Founders
                             </Link>
-                            <Link to="/dashboard/admin/reviews" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/reviews" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <Megaphone className="h-4 w-4 text-pink-600" /> Reviews
                             </Link>
-                            <Link to="/dashboard/admin/reports" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
+                            <Link to="/admin/reports" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                                 <ShieldAlert className="h-4 w-4 text-red-500" /> Reports
                             </Link>
                           </>

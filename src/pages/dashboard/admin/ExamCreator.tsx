@@ -465,7 +465,7 @@ const ExamCreator = () => {
       setShowSaveToWeb(false);
 
       // Navigate to the new exam's question maker for further editing
-      navigate(`/dashboard/admin/exams/question-maker/${newExam.id}`);
+      navigate(`/admin/exams/question-maker/${newExam.id}`);
 
     } catch (err) {
       console.error("Save to website error:", err);

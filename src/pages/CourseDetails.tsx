@@ -286,17 +286,7 @@ const CourseDetails = () => {
                         <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{course.short_description}</p>
                      )}
                      
-                     {/* Routine Button */}
-                     {!isLoading && course?.routine_url && (
-                        <div className="mt-4">
-                            <Button variant="secondary" size="sm" asChild className="rounded-full shadow-sm">
-                                <a href={course.routine_url} target="_blank" rel="noopener noreferrer">
-                                    <FileText className="w-4 h-4 mr-2" />
-                                    Show Routine
-                                </a>
-                            </Button>
-                        </div>
-                     )}
+
                 </div>
             </div>
 
@@ -414,6 +404,18 @@ const CourseDetails = () => {
                         ))}
                      </CardContent>
                  </Card>
+            )}
+
+            {/* Routine Button (Moved Below) */}
+            {!isLoading && course?.routine_url && (
+                <div className="flex justify-center mt-6 mb-4">
+                    <Button variant="default" size="lg" asChild className="w-full md:w-auto font-bold text-base shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <a href={course.routine_url} target="_blank" rel="noopener noreferrer">
+                            <FileText className="w-5 h-5 mr-2" />
+                            Download Routine
+                        </a>
+                    </Button>
+                </div>
             )}
         </div>
 

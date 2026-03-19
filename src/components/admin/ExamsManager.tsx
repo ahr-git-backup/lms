@@ -166,7 +166,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                 {!isFreeMode && (
                     <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full sm:w-auto">
-                        <TabsList className="grid w-full grid-cols-2">
+                        <TabsList className="flex flex-wrap h-auto w-full justify-start">
                             <TabsTrigger value="list"><List className="h-4 w-4 mr-2" /> List</TabsTrigger>
                             <TabsTrigger value="course"><LayoutGrid className="h-4 w-4 mr-2" /> Courses</TabsTrigger>
                         </TabsList>
@@ -195,7 +195,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         )}
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="outline" onClick={() => navigate("/dashboard/admin/exams/question-maker")}>
+                <Button variant="outline" onClick={() => navigate("/admin/exams/question-maker")}>
                     Question Maker
                 </Button>
             </div>
@@ -377,7 +377,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                     size="sm"
                                     variant="ghost"
                                     className="h-8"
-                                    onClick={() => navigate(`/dashboard/admin/exams/question-maker/${exam.id}`)}
+                                    onClick={() => navigate(`/admin/exams/question-maker/${exam.id}`)}
                                 >
                                     <FileQuestion className="h-4 w-4 mr-1" /> Questions
                                 </Button>
@@ -461,7 +461,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                         size="sm"
                                         variant="outline"
                                         className="h-8 text-xs"
-                                        onClick={() => navigate(`/dashboard/admin/exams/question-maker/${exam.id}`)}
+                                        onClick={() => navigate(`/admin/exams/question-maker/${exam.id}`)}
                                     >
                                         <FileQuestion className="h-3 w-3 mr-1" /> Questions
                                     </Button>

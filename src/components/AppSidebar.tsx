@@ -35,24 +35,24 @@ const studentItems = [
 ];
 
 const adminItems = [
-  { title: "Overview", url: "/dashboard/admin", icon: LayoutDashboard, roles: ["admin", "teacher"], color: "text-blue-600" },
-  { title: "Courses", url: "/dashboard/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
-  { title: "Students", url: "/dashboard/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
-  { title: "Class Schedule", url: "/dashboard/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-red-600" },
-  { title: "Routine Manager", url: "/dashboard/admin/routines", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-indigo-600" },
-  { title: "Exams", url: "/dashboard/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
-  { title: "Question Bank", url: "/dashboard/admin/question-bank", icon: Database, roles: ["admin", "teacher"], color: "text-blue-500" },
-  { title: "Notice", url: "/dashboard/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
-  { title: "Community Manager", url: "/dashboard/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
-  { title: "Notes Manager", url: "/dashboard/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
-  { title: "Archive Manager", url: "/dashboard/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
-  { title: "Free Manager", url: "/dashboard/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
-  { title: "Payments", url: "/dashboard/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
-  { title: "Promo Codes", url: "/dashboard/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
-  { title: "Site Heroes", url: "/dashboard/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
-  { title: "Mentors/Founders", url: "/dashboard/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
-  { title: "Reviews", url: "/dashboard/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
-  { title: "Reports", url: "/dashboard/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
+  { title: "Overview", url: "/admin", icon: LayoutDashboard, roles: ["admin", "teacher"], color: "text-blue-600" },
+  { title: "Courses", url: "/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
+  { title: "Students", url: "/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
+  { title: "Class Schedule", url: "/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-red-600" },
+  { title: "Routine Manager", url: "/admin/routines", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-indigo-600" },
+  { title: "Exams", url: "/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
+  { title: "Question Bank", url: "/admin/question-bank", icon: Database, roles: ["admin", "teacher"], color: "text-blue-500" },
+  { title: "Notice", url: "/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
+  { title: "Community Manager", url: "/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
+  { title: "Notes Manager", url: "/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
+  { title: "Archive Manager", url: "/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
+  { title: "Free Manager", url: "/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
+  { title: "Payments", url: "/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
+  { title: "Promo Codes", url: "/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
+  { title: "Site Heroes", url: "/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
+  { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
+  { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
+  { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
 ];
 
 export function AppSidebar() {
@@ -63,7 +63,7 @@ export function AppSidebar() {
 
   const isActive = (path: string) => {
       // Exact match for dashboard root to avoid highlighting on sub-routes unless intended
-      if (path === "/dashboard/admin") {
+      if (path === "/admin") {
           return currentPath === path;
       }
       return currentPath.startsWith(path);

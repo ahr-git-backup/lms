@@ -138,7 +138,7 @@ const FreeExam = () => {
                       />
                   </div>
                   {isAdmin && (
-                      <Button onClick={() => navigate("/dashboard/admin/exams")}>
+                      <Button onClick={() => navigate("/admin/exams")}>
                           <Plus className="mr-2 h-4 w-4" /> Add
                       </Button>
                   )}
@@ -429,7 +429,7 @@ const FreeExam = () => {
                                             className="h-6 w-6 p-0"
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                navigate(`/dashboard/admin/exams?editId=${exam.id}`);
+                                                navigate(`/admin/exams?editId=${exam.id}`);
                                             }}
                                         >
                                             <Edit className="h-4 w-4" />

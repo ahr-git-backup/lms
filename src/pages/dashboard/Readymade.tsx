@@ -150,6 +150,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 .eq("is_readymade", true)
                 .eq("is_published", true)
                 .ilike("title", `%${safeQuery}%`)
+                .order("sort_order", { ascending: false })
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -254,6 +255,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                  .eq("is_published", true)
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
+                 .order("sort_order", { ascending: false })
                  .order("created_at", { ascending: false })
                  .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 

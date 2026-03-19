@@ -106,7 +106,7 @@ const AdminClasses = () => {
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
             <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as any)} className="w-full sm:w-auto">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="flex flex-wrap h-auto w-full justify-start">
                     <TabsTrigger value="list"><List className="h-4 w-4 mr-2" /> List</TabsTrigger>
                     <TabsTrigger value="course"><LayoutGrid className="h-4 w-4 mr-2" /> Courses</TabsTrigger>
                 </TabsList>
