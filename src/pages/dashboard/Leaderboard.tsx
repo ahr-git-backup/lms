@@ -148,7 +148,7 @@ const Leaderboard = () => {
 
       const { data, error, count } = await query
         .order('score', { ascending: false })
-        .order('time_taken_seconds', { ascending: true })
+        .order('time_taken_seconds', { ascending: true, nullsFirst: false })
         .order('submitted_at', { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -189,7 +189,7 @@ const Leaderboard = () => {
 
           const { data, error } = await query
             .order('score', { ascending: false })
-            .order('time_taken_seconds', { ascending: true })
+            .order('time_taken_seconds', { ascending: true, nullsFirst: false })
             .order('submitted_at', { ascending: true });
 
           if (error) throw error;
@@ -272,7 +272,7 @@ const Leaderboard = () => {
 
            const { data: attempts, error: aError } = await query
                 .order('score', { ascending: false })
-                .order('time_taken_seconds', { ascending: true })
+                .order('time_taken_seconds', { ascending: true, nullsFirst: false })
                 .order('submitted_at', { ascending: true });
 
            if (aError) throw aError;
