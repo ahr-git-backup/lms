@@ -296,13 +296,20 @@ const Leaderboard = () => {
            let rowsHtml = '';
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
            attempts.forEach((attempt: any, index: number) => {
-               const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
+               // const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00"; // This line is removed
                const name = escapeHtml(attempt.profile?.full_name || "Unknown");
-               const regIdRaw = attempt.profile?.registration_id || "";
+               const regIdRaw = attempt.profile?.registration_id || ""
                const regIdMasked = regIdRaw.length >= 4 ? "**" + regIdRaw.slice(-4) : (regIdRaw || "-");
                const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
                const college = escapeHtml(attempt.profile?.college_name || attempt.profile?.school || "-");
                const warnings = attempt.violation_count || 0;
+
+               const formatDurationPrint = (seconds: number) => {
+                   if (!seconds) return "-";
+                   const m = Math.floor(seconds / 60);
+                   const s = seconds % 60;
+                   return `${m}m ${s}s`;
+               };
 
                rowsHtml += `
                <tr>
@@ -310,7 +317,7 @@ const Leaderboard = () => {
                    <td style="font-weight: 600;">${name}</td>
                    <td class="text-center font-mono text-xs" style="color: #6b7280;">${regIdMasked}</td>
                    <td class="text-center font-bold" style="color: #10b981;">${attempt.score}</td>
-                   <td class="text-center">${percent}%</td>
+                   <td class="text-center font-mono text-xs" style="color: #6b7280;">${formatDurationPrint(attempt.time_taken_seconds)}</td>
                    <td class="text-center" style="color: #6b7280;">${hsc}</td>
                    <td class="text-center" style="color: #4b5563;">${college}</td>
                    <td class="text-center" style="color: ${warnings > 0 ? '#ef4444' : '#9ca3af'}; font-weight: ${warnings > 0 ? 'bold' : 'normal'};">${warnings > 0 ? warnings : '-'}</td>
@@ -331,6 +338,12 @@ const Leaderboard = () => {
                     @page {
                         size: A4;
                         margin: 15mm;
+                        @bottom-right {
+                            content: "Page " counter(page) " of " counter(pages);
+                            font-family: sans-serif;
+                            font-size: 10px;
+                            color: #9ca3af;
+                        }
                     }
                     body {
                         font-family: 'SolaimanLipi', sans-serif;
@@ -457,16 +470,6 @@ const Leaderboard = () => {
                         border-top: 1px solid #d1d5db;
                         padding-top: 12px;
                     }
-                    
-                    /* Page Numbers setup for modern print handlers */
-                    @page {
-                        @bottom-right {
-                            content: "Page " counter(page) " of " counter(pages);
-                            font-family: sans-serif;
-                            font-size: 10px;
-                            color: #9ca3af;
-                        }
-                    }
                 </style>
             </head>
             <body>
@@ -487,7 +490,7 @@ const Leaderboard = () => {
                             <th style="width: 25%;">Student Name</th>
                             <th style="width: 12%;">Reg ID</th>
                             <th style="width: 9%;">Score</th>
-                            <th style="width: 9%;">Percent</th>
+                            <th style="width: 9%;">Time</th>
                             <th style="width: 12%;">HSC Batch</th>
                             <th style="width: 17%;">College</th>
                             <th style="width: 8%;">Warnings</th>
