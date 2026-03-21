@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText } from "lucide-react";
+import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -20,41 +20,69 @@ const Podium = ({ topThree }: { topThree: any[] }) => {
     const second = topThree[1];
     const third = topThree[2];
 
-    const PodiumItem = ({ student, rank, color, height }: { student: any, rank: number, color: string, height: string }) => {
-        if (!student) return <div className="w-24"></div>; // Placeholder space
+    const PodiumItem = ({ student, rank, color, height, glowColor, zIndex, CrownIcon }: { student: any, rank: number, color: string, height: string, glowColor: string, zIndex: number, CrownIcon?: boolean }) => {
+        if (!student) return <div className="w-24 sm:w-32 hidden md:block"></div>;
 
         return (
-            <div className="flex flex-col items-center justify-end z-10 mx-2">
-                <div className="relative mb-2">
-                    <Avatar className={`w-16 h-16 sm:w-20 sm:h-20 border-4 ${rank === 1 ? 'border-yellow-400' : rank === 2 ? 'border-slate-300' : 'border-orange-400'}`}>
-                        <AvatarImage src={student.profile?.avatar_url} />
-                        <AvatarFallback className="text-xl font-bold bg-muted">
-                            {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-xs font-bold text-white shadow-sm whitespace-nowrap ${color}`}>
-                        {student.score} marks
+            <div className={`flex flex-col items-center justify-end mx-1 sm:mx-2 md:mx-4`} style={{ zIndex }}>
+                <div className="relative mb-3 flex flex-col items-center group">
+                    {/* Crown for 1st place */}
+                    {CrownIcon && (
+                         <div className="absolute -top-7 text-yellow-400 drop-shadow-md z-20 animate-bounce">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.956-.734L2.02 6.02a.5.5 0 0 1 .798-.518l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
+                         </div>
+                    )}
+                    
+                    {/* Avatar with glowing ring */}
+                    <div className={`relative p-1 rounded-full bg-gradient-to-br ${color} shadow-lg transition-transform duration-300 group-hover:scale-110`}>
+                        <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 border-4 border-background bg-background shadow-inner">
+                            <AvatarImage src={student.profile?.avatar_url} />
+                            <AvatarFallback className="text-xl font-bold bg-muted text-foreground">
+                                {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
+                            </AvatarFallback>
+                        </Avatar>
+                        
+                        {/* Score badge overlapping the avatar */}
+                        <div className={`absolute -bottom-3 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-bold text-white shadow-md whitespace-nowrap bg-gradient-to-r ${color}`}>
+                            {student.score} marks
+                        </div>
                     </div>
                 </div>
 
-                <div className="text-center mb-1 max-w-[100px]">
-                    <div className="font-bold text-sm truncate" title={student.profile?.full_name}>
+                <div className="text-center mb-3 max-w-[100px] sm:max-w-[120px]">
+                    <div className="font-bold text-sm sm:text-base text-foreground truncate drop-shadow-sm" title={student.profile?.full_name}>
                         {student.profile?.full_name?.split(" ")[0]}
                     </div>
+                    {student.time_taken_seconds && (
+                         <div className="text-[10px] text-muted-foreground font-mono">
+                             {Math.floor(student.time_taken_seconds / 60)}m {student.time_taken_seconds % 60}s
+                         </div>
+                    )}
                 </div>
 
-                <div className={`w-24 sm:w-32 rounded-t-lg shadow-inner flex items-start justify-center pt-2 text-white font-bold text-2xl ${color}`} style={{ height }}>
-                    {rank}
+                {/* The 3D Podium Block */}
+                <div 
+                    className={`w-24 sm:w-32 lg:w-40 rounded-t-lg relative flex items-start justify-center pt-4 sm:pt-6 transition-all duration-500 hover:brightness-110 overflow-hidden text-white shadow-[0_-5px_25px_-5px_rgba(0,0,0,0.1)] bg-gradient-to-b ${color}`} 
+                    style={{ height, boxShadow: `0 -5px 25px -5px ${glowColor}` }}
+                >
+                    {/* Glossy overlay effect */}
+                    <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none"></div>
+                    <span className="font-black text-4xl sm:text-5xl lg:text-7xl drop-shadow-md z-10 opacity-90">{rank}</span>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="flex justify-center items-end py-8 mb-4">
-            <PodiumItem student={second} rank={2} color="bg-slate-400" height="80px" />
-            <PodiumItem student={first} rank={1} color="bg-yellow-400" height="110px" />
-            <PodiumItem student={third} rank={3} color="bg-orange-400" height="60px" />
+        <div className="relative flex justify-center items-end pt-12 pb-6 px-4 mb-4 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-900/50 rounded-2xl mx-auto overflow-hidden">
+            {/* Background decorations */}
+            <div className="absolute top-10 left-10 text-yellow-300 opacity-50"><Star size={24} fill="currentColor" /></div>
+            <div className="absolute top-20 right-12 text-blue-300 opacity-40"><Star size={16} fill="currentColor" /></div>
+            <div className="absolute top-5 right-1/4 text-pink-300 opacity-60"><Star size={20} fill="currentColor" /></div>
+            
+            <PodiumItem student={second} rank={2} color="from-slate-400 to-slate-500" glowColor="rgba(148, 163, 184, 0.5)" height="120px" zIndex={20} />
+            <PodiumItem student={first} rank={1} color="from-yellow-400 to-amber-500" glowColor="rgba(250, 204, 21, 0.6)" height="160px" zIndex={30} CrownIcon={true} />
+            <PodiumItem student={third} rank={3} color="from-orange-400 to-orange-600" glowColor="rgba(249, 115, 22, 0.5)" height="90px" zIndex={10} />
         </div>
     );
 };
@@ -120,6 +148,7 @@ const Leaderboard = () => {
 
       const { data, error, count } = await query
         .order('score', { ascending: false })
+        .order('time_taken_seconds', { ascending: true })
         .order('submitted_at', { ascending: true })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -160,6 +189,7 @@ const Leaderboard = () => {
 
           const { data, error } = await query
             .order('score', { ascending: false })
+            .order('time_taken_seconds', { ascending: true })
             .order('submitted_at', { ascending: true });
 
           if (error) throw error;
@@ -169,17 +199,23 @@ const Leaderboard = () => {
           }
 
           // Generate CSV
-          const headers = ["Rank", "Name", "Registration ID", "Score", "Time Taken (sec)", "Submitted At", "Attempt No"];
+          const headers = ["Rank", "Name", "Registration ID", "Score", "Time Taken (sec)", "Submitted At", "Attempt No", "Warnings"];
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const rows = data.map((item: any, idx: number) => [
-              idx + 1,
-              item.profile?.full_name || "Unknown",
-              item.profile?.registration_id || "",
-              item.score,
-              item.time_taken_seconds,
-              new Date(item.submitted_at).toLocaleString(),
-              item.attempt_number || 1
-          ]);
+          const rows = data.map((item: any, idx: number) => {
+              const regId = item.profile?.registration_id || "";
+              const maskedRegId = regId.length >= 4 ? "**" + regId.slice(-4) : regId;
+
+              return [
+                idx + 1,
+                item.profile?.full_name || "Unknown",
+                maskedRegId,
+                item.score,
+                item.time_taken_seconds || "-",
+                new Date(item.submitted_at).toLocaleString(),
+                item.attempt_number || 1,
+                item.violation_count || 0
+              ];
+          });
 
           const csvContent = [
               headers.join(","),
@@ -236,6 +272,7 @@ const Leaderboard = () => {
 
            const { data: attempts, error: aError } = await query
                 .order('score', { ascending: false })
+                .order('time_taken_seconds', { ascending: true })
                 .order('submitted_at', { ascending: true });
 
            if (aError) throw aError;
@@ -261,17 +298,22 @@ const Leaderboard = () => {
            attempts.forEach((attempt: any, index: number) => {
                const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00";
                const name = escapeHtml(attempt.profile?.full_name || "Unknown");
+               const regIdRaw = attempt.profile?.registration_id || "";
+               const regIdMasked = regIdRaw.length >= 4 ? "**" + regIdRaw.slice(-4) : (regIdRaw || "-");
                const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
                const college = escapeHtml(attempt.profile?.college_name || attempt.profile?.school || "-");
+               const warnings = attempt.violation_count || 0;
 
                rowsHtml += `
-               <tr class="${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}">
-                   <td class="p-2 border text-center font-bold">${index + 1}</td>
-                   <td class="p-2 border font-medium">${name}</td>
-                   <td class="p-2 border text-center font-bold">${attempt.score}</td>
-                   <td class="p-2 border text-center">${percent}%</td>
-                   <td class="p-2 border text-center">${hsc}</td>
-                   <td class="p-2 border text-center">${college}</td>
+               <tr>
+                   <td class="text-center"><span class="rank-badge">${index + 1}</span></td>
+                   <td style="font-weight: 600;">${name}</td>
+                   <td class="text-center font-mono text-xs" style="color: #6b7280;">${regIdMasked}</td>
+                   <td class="text-center font-bold" style="color: #10b981;">${attempt.score}</td>
+                   <td class="text-center">${percent}%</td>
+                   <td class="text-center" style="color: #6b7280;">${hsc}</td>
+                   <td class="text-center" style="color: #4b5563;">${college}</td>
+                   <td class="text-center" style="color: ${warnings > 0 ? '#ef4444' : '#9ca3af'}; font-weight: ${warnings > 0 ? 'bold' : 'normal'};">${warnings > 0 ? warnings : '-'}</td>
                </tr>`;
            });
 
@@ -286,85 +328,183 @@ const Leaderboard = () => {
                         font-family: 'SolaimanLipi';
                         src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
                     }
+                    @page {
+                        size: A4;
+                        margin: 15mm;
+                    }
                     body {
                         font-family: 'SolaimanLipi', sans-serif;
-                        padding: 20px;
-                        -webkit-print-color-adjust: exact;
-                        print-color-adjust: exact;
+                        margin: 0;
+                        padding: 0;
+                        color: #1f2937;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        position: relative;
                     }
-                    .container {
-                        border: 2px solid #10b981; /* Emerald-500 */
-                        border-radius: 15px;
-                        padding: 20px;
-                        height: auto;
+                    
+                    /* The Watermark */
+                    .watermark {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 70%;
+                        height: 70%;
+                        background-image: url('${window.location.origin}/logo.png');
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-size: contain;
+                        opacity: 0.10; /* Making it more visible */
+                        z-index: -1;
+                        pointer-events: none;
                     }
-                    h1 {
-                        text-align: center;
+
+                    .header-container {
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        border-bottom: 2px solid #e5e7eb;
+                        padding-bottom: 16px;
+                        margin-bottom: 24px;
+                    }
+                    .header-left h1 {
                         color: #10b981;
-                        font-size: 24px;
-                        margin-bottom: 20px;
+                        font-size: 26px;
+                        margin: 0 0 4px 0;
+                        font-weight: 800;
                     }
+                    .header-left p {
+                        margin: 0;
+                        color: #6b7280;
+                        font-size: 13px;
+                    }
+                    .header-right {
+                        text-align: right;
+                    }
+                    .header-right img {
+                        height: 48px;
+                        object-fit: contain;
+                    }
+
                     table {
                         width: 100%;
                         border-collapse: collapse;
-                        border-spacing: 0;
-                        border: 1px solid #e2e8f0;
-                        /* border-radius: 10px; Removed to fix page break overflow */
+                        font-size: 13px;
                     }
-                    thead {
-                        display: table-header-group;
-                    }
+                    thead { display: table-header-group; }
+                    tfoot { display: table-footer-group; }
                     tr {
                         break-inside: avoid;
                         page-break-inside: avoid;
                     }
+                    
+                    /* Modern Table Styling */
                     th {
-                        background-color: #10b981;
-                        color: white;
-                        padding: 10px;
-                        font-weight: bold;
-                        border-bottom: 1px solid #e2e8f0;
+                        background-color: #f3f4f6 !important;
+                        color: #374151 !important;
+                        padding: 8px 6px; /* Reduced gap */
+                        font-weight: 700;
+                        text-align: center;
+                        border-bottom: 2px solid #d1d5db !important;
+                        text-transform: uppercase;
+                        font-size: 11px;
+                        letter-spacing: 0.05em;
                     }
+                    th:first-child { border-top-left-radius: 6px; border-bottom-left-radius: 6px; }
+                    th:last-child { border-top-right-radius: 6px; border-bottom-right-radius: 6px; }
+                    th:nth-child(2) { text-align: left; }
+                    
                     td {
-                        padding: 8px;
-                        border-bottom: 1px solid #e2e8f0;
-                        border-right: 1px solid #e2e8f0;
+                        padding: 8px 6px; /* Reduced gap */
+                        border-bottom: 1px solid #d1d5db !important; /* Made divider darker and forced */
+                        color: #111827;
                     }
-                    td:last-child {
-                        border-right: none;
+                    td:nth-child(2) { text-align: left; font-weight: 500; }
+                    
+                    body table tbody tr {
+                        background-color: transparent !important;
                     }
-                    tr:nth-child(even) {
-                        background-color: #f9fafb;
-                    }
+
+                    /* Top 3 Highlighting */
+                    tbody tr:nth-child(1) td { background-color: rgba(16, 185, 129, 0.12) !important; border-bottom: 1px solid #d1d5db !important; }
+                    tbody tr:nth-child(2) td { background-color: rgba(16, 185, 129, 0.06) !important; border-bottom: 1px solid #d1d5db !important; }
+                    tbody tr:nth-child(3) td { background-color: rgba(16, 185, 129, 0.03) !important; border-bottom: 1px solid #d1d5db !important; }
+
                     .text-center { text-align: center; }
-                    .text-green-600 { color: #16a34a; }
-                    .text-red-600 { color: #dc2626; }
-                    .text-gray-400 { color: #94a3b8; }
-                    .font-bold { font-weight: bold; }
+                    
+                    /* Rank badges */
+                    .rank-badge {
+                        display: inline-block;
+                        width: 20px;
+                        height: 20px;
+                        line-height: 20px;
+                        text-align: center;
+                        border-radius: 50%;
+                        background-color: #f3f4f6;
+                        color: #374151;
+                        font-weight: bold;
+                        font-size: 10px;
+                    }
+                    tbody tr:nth-child(1) .rank-badge { background-color: #fbbf24 !important; color: white !important; }
+                    tbody tr:nth-child(2) .rank-badge { background-color: #9ca3af !important; color: white !important; }
+                    tbody tr:nth-child(3) .rank-badge { background-color: #f97316 !important; color: white !important; }
+
+                    .footer {
+                        margin-top: 30px;
+                        text-align: center;
+                        font-size: 11px;
+                        color: #6b7280;
+                        border-top: 1px solid #d1d5db;
+                        padding-top: 12px;
+                    }
+                    
+                    /* Page Numbers setup for modern print handlers */
+                    @page {
+                        @bottom-right {
+                            content: "Page " counter(page) " of " counter(pages);
+                            font-family: sans-serif;
+                            font-size: 10px;
+                            color: #9ca3af;
+                        }
+                    }
                 </style>
             </head>
             <body>
-                <div class="container">
-                    <h1>${title}</h1>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Pos</th>
-                                <th>Name</th>
-                                <th>Marks</th>
-                                <th>Percent</th>
-                                <th>HSC Batch</th>
-                                <th>College</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rowsHtml}
-                        </tbody>
-                    </table>
+                <div class="watermark"></div>
+                <div class="header-container">
+                    <div class="header-left">
+                        <h1>${title}</h1>
+                        <p>Generated on ${new Date().toLocaleString()}</p>
+                    </div>
+                    <div class="header-right">
+                        <img src="${window.location.origin}/logo.png" alt="Logo" />
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 8%;">Rank</th>
+                            <th style="width: 25%;">Student Name</th>
+                            <th style="width: 12%;">Reg ID</th>
+                            <th style="width: 9%;">Score</th>
+                            <th style="width: 9%;">Percent</th>
+                            <th style="width: 12%;">HSC Batch</th>
+                            <th style="width: 17%;">College</th>
+                            <th style="width: 8%;">Warnings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rowsHtml}
+                    </tbody>
+                </table>
+                <div class="footer">
+                    Powered by ATLAS LMS • Official Exam Result Sheet
                 </div>
                 <script>
                     window.onload = function() {
-                        window.print();
+                        setTimeout(() => {
+                            window.print();
+                        }, 500);
                     }
                 </script>
             </body>
@@ -469,6 +609,7 @@ const Leaderboard = () => {
                     <TableHead className="whitespace-nowrap hidden md:table-cell">Reg ID</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Score</TableHead>
                     <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>
+                    <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Warnings</TableHead>
                     <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -544,6 +685,13 @@ const Leaderboard = () => {
                             </TableCell>
                             <TableCell className="text-right font-mono text-xs whitespace-nowrap hidden md:table-cell">
                                 {formatDuration(attempt.time_taken_seconds)}
+                            </TableCell>
+                            <TableCell className="text-right text-xs whitespace-nowrap hidden md:table-cell">
+                                {attempt.violation_count > 0 ? (
+                                    <span className="text-red-600 font-bold flex items-center justify-end gap-1"><BadgeAlert className="h-3 w-3"/> {attempt.violation_count}</span>
+                                ) : (
+                                    <span className="text-muted-foreground">-</span>
+                                )}
                             </TableCell>
                             <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {new Date(attempt.submitted_at).toLocaleString()}
