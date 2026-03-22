@@ -471,6 +471,22 @@ const TakeExam = () => {
       );
   }
 
+  // 1.5 Expired Only-Live
+  if (isExpiredLive && exam.is_only_live) {
+      return (
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto">
+              <div className="bg-red-100 dark:bg-red-900/20 p-4 rounded-full mb-4">
+                  <Lock className="h-10 w-10 text-red-600 dark:text-red-500" />
+              </div>
+              <h2 className="text-2xl font-bold mb-2">Exam Has Ended</h2>
+              <p className="text-muted-foreground mb-6">This was a live-only exam and the time window has closed. It is no longer available for practice.</p>
+              <Button size="lg" onClick={() => navigate(-1)}>
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Go Back
+              </Button>
+          </div>
+      );
+  }
+
   // Handle External Exam Redirects *after* ensuring the exam has started
 
 

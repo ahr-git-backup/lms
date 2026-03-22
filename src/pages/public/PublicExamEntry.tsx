@@ -24,6 +24,14 @@ const PublicExamEntry = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSecondTimer, setIsSecondTimer] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+  const [hscBatch, setHscBatch] = useState("2025");
+  const [hscGpa, setHscGpa] = useState("");
+
+  useEffect(() => {
+    if (hscBatch === "2026" || hscBatch === "2027") {
+        setHscGpa("5.00");
+    }
+  }, [hscBatch]);
 
   // Fetch Exam Details
   useEffect(() => {
@@ -89,6 +97,12 @@ const PublicExamEntry = () => {
     const hscGpa = formData.get("hscGpa") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (collegeName.trim().length < 10) {
+      toast({ title: "Registration failed", description: "Please provide your Full college name", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       toast({ title: "Registration failed", description: "Passwords do not match", variant: "destructive" });
@@ -184,7 +198,11 @@ const PublicExamEntry = () => {
             <Card className="w-full max-w-xl border-2 border-primary/20 shadow-lg">
                 <CardHeader className="text-center pb-2">
                     <CardTitle className="text-2xl font-bold text-primary">{exam.title}</CardTitle>
-                    <CardDescription>Please login or register to take this exam.</CardDescription>
+                    <CardDescription>
+                        Please login or register to take this exam.
+                        <br />
+                        <span className="text-red-500 font-medium">If wrong info given then the gift will be void.</span>
+                    </CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -229,9 +247,10 @@ const PublicExamEntry = () => {
                         <TabsContent value="register">
                             <form onSubmit={handleRegister} className="space-y-4">
                                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="fullName">Full Name</Label>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="fullName">Own Full Name</Label>
                                         <Input id="fullName" name="fullName" required placeholder="Your full name" />
+                                        <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full name.</p>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="phone">Phone Number</Label>
@@ -241,29 +260,54 @@ const PublicExamEntry = () => {
                                         <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
                                         <Input id="email" name="email" type="email" required placeholder="user@example.com" />
                                     </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="fatherName">Father's Name</Label>
-                                        <Input id="fatherName" name="fatherName" required placeholder="Father's name" />
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="fatherName">Father's Full Name</Label>
+                                        <Input id="fatherName" name="fatherName" required placeholder="Father's full name" />
+                                        <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide father's full name.</p>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <Label htmlFor="motherName">Mother's Full Name</Label>
+                                        <Input id="motherName" name="motherName" required placeholder="Mother's full name" />
+                                        <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide mother's full name.</p>
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="motherName">Mother's Name</Label>
-                                        <Input id="motherName" name="motherName" required placeholder="Mother's name" />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="collegeName">College Name</Label>
-                                        <Input id="collegeName" name="collegeName" required placeholder="Your college" />
+                                        <Label htmlFor="collegeName">Full College Name</Label>
+                                        <Input id="collegeName" name="collegeName" required placeholder="Your full college name" />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="hscBatch">HSC Batch</Label>
-                                        <Input id="hscBatch" name="hscBatch" required placeholder="e.g. 2024" />
+                                        <select 
+                                            id="hscBatch" 
+                                            name="hscBatch" 
+                                            value={hscBatch}
+                                            onChange={(e) => setHscBatch(e.target.value)}
+                                            required 
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <option value="2025">2025</option>
+                                            <option value="2026">2026</option>
+                                            <option value="2027">2027</option>
+                                            <option value="2028">2028</option>
+                                        </select>
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="sscGpa">SSC GPA</Label>
                                         <Input id="sscGpa" name="sscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
                                     </div>
-                                    <div className="space-y-2">
+                                    <div className="space-y-1.5">
                                         <Label htmlFor="hscGpa">HSC GPA (Optional)</Label>
-                                        <Input id="hscGpa" name="hscGpa" type="number" step="0.01" max="5.00" min="0.00" placeholder="5.00" />
+                                        <Input 
+                                            id="hscGpa" 
+                                            name="hscGpa" 
+                                            type="number" 
+                                            step="0.01" 
+                                            max="5.00" 
+                                            min="0.00" 
+                                            placeholder="5.00" 
+                                            value={hscGpa}
+                                            onChange={(e) => setHscGpa(e.target.value)}
+                                        />
+                                        <p className="text-[11px] text-orange-600/90 dark:text-orange-400">If you have not given HSC exam yet, please fill 5.00</p>
                                     </div>
                                 </div>
 
@@ -275,6 +319,16 @@ const PublicExamEntry = () => {
                                     />
                                     <Label htmlFor="isSecondTimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                         I am a Second Timer Student
+                                    </Label>
+                                </div>
+
+                                <div className="flex items-start space-x-2 py-2">
+                                    <Checkbox
+                                        id="acknowledgement"
+                                        required
+                                    />
+                                    <Label htmlFor="acknowledgement" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                                        আমি স্বীকার করছি যে উপরে দেওয়া সকল তথ্য সঠিক এবং আমি সকল নিয়মাবলী ও নির্দেশনা মেনে চলব। (I acknowledge that all the information provided above is accurate and I will follow all rules and instructions.)
                                     </Label>
                                 </div>
 

@@ -13,7 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const PAGE_SIZE = 50;
 
-const Podium = ({ topThree }: { topThree: any[] }) => {
+const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) => {
     if (!topThree || topThree.length === 0) return null;
 
     const first = topThree[0];
@@ -53,7 +53,7 @@ const Podium = ({ topThree }: { topThree: any[] }) => {
                     <div className="font-bold text-sm sm:text-base text-foreground truncate drop-shadow-sm" title={student.profile?.full_name}>
                         {student.profile?.full_name?.split(" ")[0]}
                     </div>
-                    {student.time_taken_seconds && (
+                    {isStaff && student.time_taken_seconds && (
                          <div className="text-[10px] text-muted-foreground font-mono">
                              {Math.floor(student.time_taken_seconds / 60)}m {student.time_taken_seconds % 60}s
                          </div>
@@ -203,7 +203,7 @@ const Leaderboard = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const rows = data.map((item: any, idx: number) => {
               const regId = item.profile?.registration_id || "";
-              const maskedRegId = regId.length >= 4 ? "**" + regId.slice(-4) : regId;
+              const maskedRegId = isStaff ? regId : (regId.length >= 4 ? "**" + regId.slice(-4) : regId);
 
               return [
                 idx + 1,
@@ -237,7 +237,7 @@ const Leaderboard = () => {
       }
   };
 
-  const handlePrintPDF = async () => {
+  const handlePrintPDF = async (isFullAdminReport = false) => {
       try {
           // 1. Fetch Exam Questions (to grade)
           const { data: questions, error: qError } = await supabase
@@ -290,16 +290,15 @@ const Leaderboard = () => {
                     .replace(/'/g, "&#039;");
            };
 
-           const title = escapeHtml(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})`);
+           const title = escapeHtml(`${exam?.title} (${filterType === 'live' ? 'Live Exam' : 'Practice Exam'})${isFullAdminReport ? ' - Full Admin Report' : ''}`);
 
            // 3. Construct HTML
            let rowsHtml = '';
            // eslint-disable-next-line @typescript-eslint/no-explicit-any
            attempts.forEach((attempt: any, index: number) => {
-               // const percent = exam?.total_marks ? ((attempt.score / exam.total_marks) * 100).toFixed(2) : "0.00"; // This line is removed
                const name = escapeHtml(attempt.profile?.full_name || "Unknown");
                const regIdRaw = attempt.profile?.registration_id || ""
-               const regIdMasked = regIdRaw.length >= 4 ? "**" + regIdRaw.slice(-4) : (regIdRaw || "-");
+               const regIdMasked = isFullAdminReport ? regIdRaw : (regIdRaw.length >= 4 ? "**" + regIdRaw.slice(-4) : (regIdRaw || "-"));
                const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
                const college = escapeHtml(attempt.profile?.college_name || attempt.profile?.school || "-");
                const warnings = attempt.violation_count || 0;
@@ -317,10 +316,10 @@ const Leaderboard = () => {
                    <td style="font-weight: 600;">${name}</td>
                    <td class="text-center font-mono text-xs" style="color: #6b7280;">${regIdMasked}</td>
                    <td class="text-center font-bold" style="color: #10b981;">${attempt.score}</td>
-                   <td class="text-center font-mono text-xs" style="color: #6b7280;">${formatDurationPrint(attempt.time_taken_seconds)}</td>
+                   ${isFullAdminReport ? `<td class="text-center font-mono text-xs" style="color: #6b7280;">${formatDurationPrint(attempt.time_taken_seconds)}</td>` : ''}
                    <td class="text-center" style="color: #6b7280;">${hsc}</td>
                    <td class="text-center" style="color: #4b5563;">${college}</td>
-                   <td class="text-center" style="color: ${warnings > 0 ? '#ef4444' : '#9ca3af'}; font-weight: ${warnings > 0 ? 'bold' : 'normal'};">${warnings > 0 ? warnings : '-'}</td>
+                   ${isFullAdminReport ? `<td class="text-center" style="color: ${warnings > 0 ? '#ef4444' : '#9ca3af'}; font-weight: ${warnings > 0 ? 'bold' : 'normal'};">${warnings > 0 ? warnings : '-'}</td>` : ''}
                </tr>`;
            });
 
@@ -490,10 +489,10 @@ const Leaderboard = () => {
                             <th style="width: 25%;">Student Name</th>
                             <th style="width: 12%;">Reg ID</th>
                             <th style="width: 9%;">Score</th>
-                            <th style="width: 9%;">Time</th>
+                            ${isFullAdminReport ? `<th style="width: 9%;">Time</th>` : ''}
                             <th style="width: 12%;">HSC Batch</th>
                             <th style="width: 17%;">College</th>
-                            <th style="width: 8%;">Warnings</th>
+                            ${isFullAdminReport ? `<th style="width: 8%;">Warnings</th>` : ''}
                         </tr>
                     </thead>
                     <tbody>
@@ -554,18 +553,26 @@ const Leaderboard = () => {
                 </p>
             </div>
           </div>
-          {isStaff && (
-              <div className="flex gap-2 self-end sm:self-auto">
+          <div className="flex gap-2 self-end sm:self-auto flex-wrap justify-end">
+            {isStaff && (
                 <Button variant="outline" size="sm" onClick={handleExportCSV}>
                     <Download className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">CSV</span>
                 </Button>
-                <Button variant="outline" size="sm" onClick={handlePrintPDF}>
+            )}
+            {isStaff && (
+                <Button variant="outline" size="sm" onClick={() => handlePrintPDF(false)}>
                     <FileText className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">PDF/Print</span>
                 </Button>
-              </div>
-          )}
+            )}
+            {isStaff && (
+                <Button variant="default" size="sm" onClick={() => handlePrintPDF(true)}>
+                    <FileText className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Admin PDF</span>
+                </Button>
+            )}
+          </div>
       </div>
 
       <Card className="border-0 shadow-none bg-transparent md:border md:border-yellow-500/20 md:bg-yellow-50/10 md:shadow-sm">
@@ -601,7 +608,7 @@ const Leaderboard = () => {
           ) : (
             <>
             {/* Podium Component */}
-            {topThree.length > 0 && <Podium topThree={topThree} />}
+            {topThree.length > 0 && <Podium topThree={topThree} isStaff={isStaff} />}
 
             <div className="rounded-md border bg-card overflow-x-auto no-scrollbar scroll-smooth">
               <Table>
@@ -611,8 +618,8 @@ const Leaderboard = () => {
                     <TableHead className="whitespace-nowrap">Student</TableHead>
                     <TableHead className="whitespace-nowrap hidden md:table-cell">Reg ID</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Score</TableHead>
-                    <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>
-                    <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Warnings</TableHead>
+                    {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>}
+                    {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Warnings</TableHead>}
                     <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -673,8 +680,12 @@ const Leaderboard = () => {
                                     </div>
                                     <div className="md:hidden text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
                                         <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
-                                        <span>•</span>
-                                        <span>{formatDuration(attempt.time_taken_seconds)}</span>
+                                        {isStaff && (
+                                            <>
+                                                <span>•</span>
+                                                <span>{formatDuration(attempt.time_taken_seconds)}</span>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             </TableCell>
@@ -686,16 +697,20 @@ const Leaderboard = () => {
                             <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                                 {attempt.score}
                             </TableCell>
-                            <TableCell className="text-right font-mono text-xs whitespace-nowrap hidden md:table-cell">
-                                {formatDuration(attempt.time_taken_seconds)}
-                            </TableCell>
-                            <TableCell className="text-right text-xs whitespace-nowrap hidden md:table-cell">
-                                {attempt.violation_count > 0 ? (
-                                    <span className="text-red-600 font-bold flex items-center justify-end gap-1"><BadgeAlert className="h-3 w-3"/> {attempt.violation_count}</span>
-                                ) : (
-                                    <span className="text-muted-foreground">-</span>
-                                )}
-                            </TableCell>
+                            {isStaff && (
+                                <TableCell className="text-right font-mono text-xs whitespace-nowrap hidden md:table-cell">
+                                    {formatDuration(attempt.time_taken_seconds)}
+                                </TableCell>
+                            )}
+                            {isStaff && (
+                                <TableCell className="text-right text-xs whitespace-nowrap hidden md:table-cell">
+                                    {attempt.violation_count > 0 ? (
+                                        <span className="text-red-600 font-bold flex items-center justify-end gap-1"><BadgeAlert className="h-3 w-3"/> {attempt.violation_count}</span>
+                                    ) : (
+                                        <span className="text-muted-foreground">-</span>
+                                    )}
+                                </TableCell>
+                            )}
                             <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {new Date(attempt.submitted_at).toLocaleString()}
                             </TableCell>

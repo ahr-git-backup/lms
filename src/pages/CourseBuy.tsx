@@ -15,7 +15,53 @@ import PublicHeader from "@/components/PublicHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag } from "lucide-react";
+import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag, Gift, Timer } from "lucide-react";
+
+// Live countdown timer component
+const CountdownTimer = ({ deadline }: { deadline: string }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+  const [expired, setExpired] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const now = new Date().getTime();
+      const end = new Date(deadline).getTime();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setExpired(true);
+        setTimeLeft("Expired");
+        return;
+      }
+
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeLeft(`${days}d ${hours}h ${mins}m ${secs}s`);
+      } else if (hours > 0) {
+        setTimeLeft(`${hours}h ${mins}m ${secs}s`);
+      } else {
+        setTimeLeft(`${mins}m ${secs}s`);
+      }
+    };
+
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  if (expired) return null;
+
+  return (
+    <span className="inline-flex items-center gap-1 font-mono text-xs font-bold tabular-nums">
+      <Timer className="h-3 w-3" />
+      {timeLeft}
+    </span>
+  );
+};
 
 const formSchema = z.object({
   trx_id: z.string().min(5, "Transaction ID is too short"),
@@ -84,6 +130,18 @@ const CourseBuy = () => {
     enabled: !!courseId,
   });
 
+  // Fetch special discounts for this course
+  const { data: specialDiscounts } = useQuery({
+    queryKey: ["special-discounts", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return [];
+      const { data, error } = await (supabase.rpc as any)("get_special_discounts", { p_course_id: course.id });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
   const freeEnrollMutation = useMutation({
     mutationFn: async () => {
         if (!course?.id || !user?.id) throw new Error("Course not found or user not logged in");
@@ -94,7 +152,7 @@ const CourseBuy = () => {
             if (error) throw error;
         } else {
             // If price is 0 due to promo, submit a payment request with special flag
-            const { error } = await supabase.from("payment_requests").insert({
+            const { error } = await (supabase.from as any)("payment_requests").insert({
                 profile_id: user.id,
                 course_id: course.id,
                 trx_id: 'PROMO-FREE',
@@ -163,10 +221,11 @@ const CourseBuy = () => {
       if (!promoCode || !course?.id) return;
       setCheckingPromo(true);
       try {
-          const { data, error } = await supabase.rpc('check_promo_code', {
+          const { data: rawData, error } = await (supabase.rpc as any)('check_promo_code', {
               p_code: promoCode,
               p_course_id: course.id
           });
+          const data = rawData as any;
 
           if (error) throw error;
 
@@ -194,7 +253,7 @@ const CourseBuy = () => {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
         if (!user || !course) throw new Error("Authentication required");
 
-        const { error } = await supabase.from("payment_requests").insert({
+        const { data } = await (supabase.from as any)("payment_requests").insert({
             profile_id: user.id,
             course_id: course.id,
             trx_id: values.trx_id,
@@ -308,6 +367,40 @@ const CourseBuy = () => {
                 </div>
             ) : (
                 <>
+                {/* Special Discount Banners */}
+                {specialDiscounts && specialDiscounts.length > 0 && !appliedCouponCode && (
+                  <div className="space-y-3 mb-4">
+                    {specialDiscounts.map((discount: any, idx: number) => (
+                      <div key={idx} className="relative overflow-hidden rounded-xl border-2 border-amber-300/50 bg-gradient-to-r from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-yellow-950/30 p-3 shadow-sm">
+                        <div className="flex items-start gap-2">
+                          <Gift className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-amber-900 dark:text-amber-200 leading-snug">{discount.special_discount_text}</p>
+                            {discount.special_discount_deadline && (
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-xs text-amber-700 dark:text-amber-400">Ends in:</span>
+                                <span className="text-red-600 dark:text-red-400"><CountdownTimer deadline={discount.special_discount_deadline} /></span>
+                              </div>
+                            )}
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="mt-2 h-7 text-xs w-full max-w-[200px] border-amber-300 hover:bg-amber-100 text-amber-800"
+                              onClick={() => {
+                                navigator.clipboard.writeText(discount.code);
+                                toast.success(`"${discount.code}" copied to clipboard.`);
+                              }}
+                            >
+                              <Copy className="h-3 w-3 mr-1" />
+                              Copy: {discount.code}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Price Display */}
                 <div className="text-center py-4 bg-muted/30 rounded-lg border">
                     <p className="text-muted-foreground text-xs uppercase tracking-widest mb-1">Total Payable Amount</p>
