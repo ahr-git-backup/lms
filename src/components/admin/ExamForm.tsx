@@ -58,6 +58,8 @@ const examSchema = z.object({
   readymade_course_ids: z.array(z.string()).default([]),
   readymade_topic: z.string().trim().optional().or(z.literal("")),
   is_omr: z.boolean().optional().default(false),
+  disable_second_timer_deduction: z.boolean().optional().default(false),
+  is_only_live: z.boolean().optional().default(false),
 });
 
 interface ExamFormProps {
@@ -105,6 +107,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         questions_csv: "",
         readymade_topic: "",
         is_omr: false,
+        disable_second_timer_deduction: false,
+        is_only_live: false,
     });
 
     useEffect(() => {
@@ -147,6 +151,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_readymade: exam.is_readymade ?? false,
             readymade_topic: exam.readymade_topic || "",
             is_omr: exam.is_omr ?? false,
+            disable_second_timer_deduction: exam.disable_second_timer_deduction ?? false,
+            is_only_live: exam.is_only_live ?? false,
             });
         }
     }, [exam]);
@@ -211,7 +217,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         mutationFn: async (values: z.infer<typeof examSchema>) => {
           const parsed = examSchema.parse(values);
 
-          const payload: Partial<Exam> = {
+          const payload: any = {
             course_id: isFreeMode ? null : (parsed.course_id || null),
             // @ts-ignore
             shared_course_ids: parsed.shared_course_ids,
@@ -238,6 +244,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_readymade: parsed.is_readymade ?? false,
             readymade_topic: parsed.readymade_topic || null,
             is_omr: parsed.is_omr ?? false,
+            disable_second_timer_deduction: parsed.disable_second_timer_deduction ?? false,
+            is_only_live: parsed.is_only_live ?? false,
           };
 
           // Helper functions for questions (copied from original)
@@ -304,11 +312,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           };
 
           const parseCsvQuestions = (csv: string) => {
-            const { data, errors } = Papa.parse(csv, {
+            const result = Papa.parse(csv, {
               header: true,
               skipEmptyLines: true,
               newline: "",
-            });
+            }) as any;
+            const data = result.data;
+            const errors = result.errors;
 
             if (errors.length > 0) {
               console.warn("CSV parse errors:", errors);
@@ -430,6 +440,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 questions_json: "",
                 questions_csv: "",
                 readymade_topic: "",
+                disable_second_timer_deduction: false,
+                is_only_live: false,
               });
           }
           onSuccess();
@@ -698,6 +710,38 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     <span>Restrict Solution (Solvesheet)</span>
                     <span className="text-xs text-muted-foreground font-normal">
                         If enabled, students cannot see the detailed solution or correct answers after the exam. They will only see their marks and stats.
+                    </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-red-50 dark:bg-red-900/10 border-red-200">
+                <Switch
+                  id="disable_second_timer_deduction"
+                  checked={form.disable_second_timer_deduction}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, disable_second_timer_deduction: checked }))
+                  }
+                />
+                <Label htmlFor="disable_second_timer_deduction" className="flex flex-col">
+                    <span>Disable Second Timer Deduction</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                        If enabled, students marked as Second Timers will NOT have marks deducted for this specific exam.
+                    </span>
+                </Label>
+              </div>
+
+              <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-orange-50 dark:bg-orange-900/10 border-orange-200">
+                <Switch
+                  id="is_only_live"
+                  checked={form.is_only_live}
+                  onCheckedChange={(checked) =>
+                    setForm((prev) => ({ ...prev, is_only_live: checked }))
+                  }
+                />
+                <Label htmlFor="is_only_live" className="flex flex-col">
+                    <span>Only Live (No Practice)</span>
+                    <span className="text-xs text-muted-foreground font-normal">
+                        If enabled, the exam cannot be attempted in Practice mode after the live period ends.
                     </span>
                 </Label>
               </div>

@@ -72,6 +72,23 @@ const Index = () => {
     },
   });
 
+  const { data: specialExams } = useQuery({
+    queryKey: ["public-special-exams"],
+    queryFn: async () => {
+      // @ts-ignore
+      const { data, error } = await supabase
+        .from("special_exam_cards")
+        .select("*")
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
+      if (error) {
+        if (error.code === '42P01') return [];
+        throw error;
+      };
+      return data || [];
+    },
+  });
+
   const { data: reviews } = useQuery({
     queryKey: ["public-reviews"],
     queryFn: async () => {
@@ -140,6 +157,64 @@ const Index = () => {
       </div>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
+
+        {/* Special Exams Section */}
+        {specialExams && specialExams.length > 0 && (
+            <section id="special-exams" className="space-y-6">
+                <div className="text-center md:text-left">
+                    <h2 className="text-2xl font-semibold tracking-tight text-primary">স্পেশাল এক্সাম মডেল টেস্ট</h2>
+                    <p className="text-sm text-muted-foreground">আপনার প্রস্তুতি যাচাই করুন স্পেশাল এক্সামের মাধ্যমে।</p>
+                </div>
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {specialExams.map((exam: any) => (
+                        <Card key={exam.id} className="overflow-hidden flex flex-col border-2 border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300">
+                            {exam.image_url && (
+                                <div className="h-40 w-full overflow-hidden bg-muted">
+                                    <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover hover:scale-105 transition-transform duration-500" />
+                                </div>
+                            )}
+                            <CardHeader className="pb-3 border-b bg-primary/5">
+                                <CardTitle className="text-xl font-bold">{exam.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex flex-grow flex-col gap-2 pt-3">
+                                {exam.details && (
+                                    <div className="space-y-1.5">
+                                        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                                            <FileText className="h-3.5 w-3.5 text-primary" />
+                                            ডিটেইলস
+                                        </h4>
+                                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                                            {exam.details.split(/[,|\n]+/).filter((d:string) => d.trim().length > 0).map((detail: string, i: number) => (
+                                                <div key={i} className="flex items-start gap-1">
+                                                    <Check className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                                                    <span className="text-[11px] leading-tight">{detail.trim()}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {exam.instructions && (
+                                    <div className="mt-2 text-sm bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex items-start gap-3">
+                                        <Lightbulb className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
+                                        <p className="text-yellow-700 dark:text-yellow-500/90 text-xs leading-snug font-medium">
+                                            {exam.instructions}
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                            <CardFooter className="pt-2 pb-3">
+                                <Button asChild className="w-full text-sm h-9" size="sm">
+                                    <a href={exam.action_link || "#"}>
+                                        Join Exam <ArrowRight className="ml-2 h-4 w-4" />
+                                    </a>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+        )}
 
         {/* Paid Courses Section (Grid View) */}
         <CourseSection />

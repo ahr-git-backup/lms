@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search } from "lucide-react";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -137,9 +137,109 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     },
   });
 
+  const handleGenerateSolvesheet = async (examId: string, examTitle: string) => {
+    try {
+        const { data: questions, error } = await supabase
+            .from("exam_questions")
+            .select("*")
+            .eq("exam_id", examId)
+            .order("question_index", { ascending: true });
+
+        if (error) throw error;
+        if (!questions || questions.length === 0) {
+            toast({ title: "No questions found", variant: "destructive" });
+            return;
+        }
+
+        const escapeHtml = (unsafe: string) => {
+            if (!unsafe) return "";
+            return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        };
+
+        const questionsHtml = questions.map(q => `
+          <div class="question-block">
+              <div class="q-text"><strong>${q.question_index}.</strong> ${escapeHtml(q.question_text)}</div>
+              <div class="options">
+                  <div>A) ${escapeHtml(q.option_a)}</div>
+                  <div>B) ${escapeHtml(q.option_b)}</div>
+                  <div>C) ${escapeHtml(q.option_c)}</div>
+                  <div>D) ${escapeHtml(q.option_d)}</div>
+              </div>
+              <div class="answer"><strong>Correct Answer:</strong> Option ${q.correct_option}</div>
+              ${q.explanation ? `<div class="explanation"><strong>Explanation:</strong> ${escapeHtml(q.explanation)}</div>` : ''}
+          </div>
+        `).join('');
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>${escapeHtml(examTitle)} - Solvesheet</title>
+            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+            <style>
+                body { font-family: sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
+                h1 { text-align: center; color: #10b981; }
+                .question-block { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+                .q-text { font-size: 16px; margin-bottom: 10px; line-height: 1.5; }
+                .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; font-size: 14px; }
+                .answer { color: #16a34a; font-size: 14px; margin-bottom: 5px; }
+                .explanation { font-size: 13px; color: #666; background: #f9f9f9; padding: 8px; border-radius: 4px; line-height: 1.5; }
+                @media print {
+                    body { padding: 0; }
+                    .question-block { border-bottom: none; border-top: 1px solid #ccc; padding-top: 15px; }
+                    .question-block:first-of-type { border-top: none; }
+                }
+            </style>
+        </head>
+        <body>
+            <h1>${escapeHtml(examTitle)} - Solvesheet</h1>
+            ${questionsHtml}
+            <script>
+                window.onload = function() {
+                    setTimeout(function() {
+                        window.print();
+                    }, 2500); // give MathJax time to render
+                }
+            </script>
+        </body>
+        </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(htmlContent);
+            printWindow.document.close();
+        } else {
+            toast({ title: "Popup blocked", description: "Allow popups to print solvesheet", variant: "destructive" });
+        }
+    } catch (err: any) {
+        console.error(err);
+        toast({ title: "Failed to generate Solvesheet", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleRecalculateResults = async (examId: string) => {
+    if (!window.confirm("Are you sure you want to recalculate all results for this exam? This will update all student scores based on the current answer key.")) return;
+    
+    try {
+        const { error } = await (supabase.rpc as any)("recalculate_exam_results", { p_exam_id: examId });
+        if (error) throw error;
+        toast({ title: "Success", description: "All results have been recalculated." });
+    } catch (err: any) {
+        toast({ title: "Recalculation failed", description: err.message, variant: "destructive" });
+    }
+  };
+
   useEffect(() => {
     if (editId && exams.length > 0) {
-        const examToEdit = exams.find((e: Exam) => e.id === editId);
+        const examToEdit = exams.find((e: any) => e.id === editId);
         if (examToEdit) {
             if (examToEdit.external_exam_link) {
                  setEditingExternalExam(examToEdit);
@@ -312,7 +412,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {exams.map((exam: Exam) => (
+                        {exams.map((exam: any) => (
                             <TableRow key={exam.id} className="hover:bg-muted/50 transition-colors">
                             {!isFreeMode && (
                                 <TableCell className="whitespace-nowrap font-medium">
@@ -365,7 +465,8 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                     className="h-8 w-8 text-blue-500"
                                     title="Copy Exam Link"
                                     onClick={() => {
-                                        const url = `${window.location.origin}/dashboard/take-exam/${exam.id}`;
+                                        const path = exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`;
+                                        const url = `${window.location.origin}${path}`;
                                         navigator.clipboard.writeText(url);
                                         toast({ title: "Copied!", description: "Exam link copied to clipboard." });
                                     }}
@@ -390,6 +491,27 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 >
                                     <Trophy className="h-4 w-4 mr-1 text-yellow-500" /> Rank
                                 </Button>
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 text-emerald-600"
+                                    onClick={() => handleGenerateSolvesheet(exam.id, exam.title)}
+                                >
+                                    <FileText className="h-4 w-4 mr-1" /> Solution
+                                </Button>
+                                {isAdmin && (
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-orange-600"
+                                        title="Recalculate Results"
+                                        onClick={() => handleRecalculateResults(exam.id)}
+                                    >
+                                        <RotateCw className="h-4 w-4" />
+                                    </Button>
+                                )}
                                 {isAdmin && (
                                   <Button
                                       type="button"
@@ -415,7 +537,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
                 {/* Mobile Card View */}
                 <div className="md:hidden grid gap-4">
-                    {exams.map((exam: Exam) => (
+                    {exams.map((exam: any) => (
                         <Card key={exam.id} className="hover:border-primary/50 transition-colors">
                             <CardContent className="p-4 space-y-3">
                                 <div className="flex justify-between items-start">
@@ -500,11 +622,22 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                                     <Edit className="mr-2 h-4 w-4" /> Edit Details
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}>
-                                                    <Trophy className="mr-2 h-4 w-4" /> Leaderboard
+                                                    <Trophy className="mr-2 h-4 w-4 text-yellow-500" /> Leaderboard
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => { const path = exam.external_exam_link ? exam.external_exam_link : (exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`); window.open(path, "_blank"); }}>
+                                                <DropdownMenuItem onClick={() => {
+                                                    const path = exam.external_exam_link ? exam.external_exam_link : (exam.course_id ? `/dashboard/take-exam/${exam.id}` : `/open-exam/${exam.id}`);
+                                                    window.open(path, "_blank");
+                                                }}>
                                                     <ExternalLink className="mr-2 h-4 w-4" /> Open Exam
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleGenerateSolvesheet(exam.id, exam.title)}>
+                                                    <FileText className="mr-2 h-4 w-4 text-emerald-600" /> Print Solution
+                                                </DropdownMenuItem>
+                                                {isAdmin && (
+                                                    <DropdownMenuItem onClick={() => handleRecalculateResults(exam.id)}>
+                                                        <RotateCw className="mr-2 h-4 w-4 text-orange-600" /> Recalculate
+                                                    </DropdownMenuItem>
+                                                )}
                                                 {isAdmin && (
                                                   <>
                                                     <DropdownMenuSeparator />

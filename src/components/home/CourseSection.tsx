@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
+import { Check, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
@@ -29,6 +29,35 @@ export const CourseSection = () => {
           if (error) throw error;
           return data || [];
         },
+    });
+
+    const { data: activeDiscounts } = useQuery({
+        queryKey: ["active-special-discounts-all"],
+        queryFn: async () => {
+             const { data, error } = await (supabase.from as any)("promo_codes")
+                 .select("course_id, course_ids")
+                 .eq("is_active", true)
+                 .not("special_discount_text", "is", null)
+                 .neq("special_discount_text", "")
+                 .or(`special_discount_deadline.is.null,special_discount_deadline.gt.${new Date().toISOString()}`);
+             
+             if (error) {
+                 console.error("Error fetching active discounts:", error);
+                 return [];
+             }
+
+             // Flatten results since promo_codes can have either course_id (legacy) or course_ids (array)
+             const discountMeta = data?.flatMap(d => {
+                 const ids = [];
+                 if (d.course_id) ids.push(d.course_id);
+                 if (d.course_ids && Array.isArray(d.course_ids)) {
+                     ids.push(...d.course_ids);
+                 }
+                 return ids;
+             }) || [];
+
+             return Array.from(new Set(discountMeta)).map(id => ({ course_id: id }));
+        }
     });
 
     // Extract unique categories and subcategories flattened from arrays
@@ -210,6 +239,13 @@ export const CourseSection = () => {
                                         alt={`${course.name} cover`}
                                         className="absolute inset-0 h-full w-full object-cover"
                                     />
+                                    {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
+                                        <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
+                                            <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 text-center truncate rotate-[-45deg] flex items-center justify-center gap-1 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] border-y border-red-400">
+                                                <Tag className="w-3 h-3 fill-white" /> SALE
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                                         {categoryBadges.map((cat: string) => (
                                             <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
