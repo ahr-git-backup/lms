@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, Loader2, AlertTriangle, LogOut, LayoutDashboard } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const PublicExamEntry = () => {
   const { examId } = useParams();
@@ -26,6 +27,7 @@ const PublicExamEntry = () => {
   const [activeTab, setActiveTab] = useState("login");
   const [hscBatch, setHscBatch] = useState("2025");
   const [hscGpa, setHscGpa] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
@@ -68,7 +70,8 @@ const PublicExamEntry = () => {
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
-            password
+            password,
+            options: { captchaToken }
         });
         if (error) throw error;
 
@@ -117,6 +120,7 @@ const PublicExamEntry = () => {
             email,
             password,
             options: {
+                captchaToken,
                 data: {
                     full_name: fullName,
                     father_name: fatherName,
@@ -238,7 +242,13 @@ const PublicExamEntry = () => {
                                         </Button>
                                     </div>
                                 </div>
-                                <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                                <div className="flex justify-center py-2">
+                                    <Turnstile
+                                        siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                                        onSuccess={(token) => setCaptchaToken(token)}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full" size="lg" disabled={loading || !captchaToken}>
                                     {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Login & Start Exam"}
                                 </Button>
                             </form>
@@ -387,7 +397,13 @@ const PublicExamEntry = () => {
                                     </div>
                                 </div>
 
-                                <Button type="submit" className="w-full" size="lg" disabled={loading}>
+                                <div className="flex justify-center py-2">
+                                    <Turnstile
+                                        siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                                        onSuccess={(token) => setCaptchaToken(token)}
+                                    />
+                                </div>
+                                <Button type="submit" className="w-full" size="lg" disabled={loading || !captchaToken}>
                                     {loading ? <Loader2 className="animate-spin mr-2 h-4 w-4" /> : "Register & Start Exam"}
                                 </Button>
                             </form>

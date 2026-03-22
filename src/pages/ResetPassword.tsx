@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const ResetPassword = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     document.title = "Reset Password – Atlas";
@@ -63,7 +65,7 @@ const ResetPassword = () => {
     try {
       const { error } = await supabase.auth.updateUser({
         password: newPassword
-      });
+      }, { captchaToken });
 
       if (error) throw error;
 
@@ -136,7 +138,14 @@ const ResetPassword = () => {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
+              <div className="flex justify-center py-2">
+                <Turnstile
+                  siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                  onSuccess={(token) => setCaptchaToken(token)}
+                />
+              </div>
+
+              <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
                 {loading ? "Updating Password..." : "Update Password"}
               </Button>
             </form>

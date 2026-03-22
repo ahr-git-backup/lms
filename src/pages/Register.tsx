@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const Register = () => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const Register = () => {
   const [isSecondTimer, setIsSecondTimer] = useState(false);
   const [hscBatch, setHscBatch] = useState("2025");
   const [hscGpa, setHscGpa] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
@@ -115,6 +117,7 @@ const Register = () => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/login`,
+          captchaToken,
           data: {
             full_name: fullName,
             father_name: fatherName,
@@ -339,7 +342,14 @@ const Register = () => {
                   </div>
               </div>
 
-              <Button type="submit" className="mt-4 w-full" disabled={loading}>
+              <div className="flex justify-center py-2">
+                <Turnstile
+                  siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                  onSuccess={(token) => setCaptchaToken(token)}
+                />
+              </div>
+
+              <Button type="submit" className="mt-4 w-full" disabled={loading || !captchaToken}>
                 {loading ? "Creating Account..." : "Register"}
               </Button>
             </form>

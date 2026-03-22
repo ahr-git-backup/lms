@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { ArrowLeft, Mail } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const ForgotPassword = () => {
   const [step, setStep] = useState<"email-input" | "email-sent">("email-input");
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     document.title = "Recover Account – Atlas";
@@ -27,6 +29,7 @@ const ForgotPassword = () => {
       try {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
              redirectTo: window.location.origin + "/reset-password",
+             captchaToken,
         });
         if (error) throw error;
         setStep("email-sent");
@@ -75,7 +78,13 @@ const ForgotPassword = () => {
                                 onChange={(e) => setEmail(e.target.value)}
                             />
                         </div>
-                        <Button type="submit" className="w-full" disabled={loading}>
+                        <div className="flex justify-center py-2">
+                             <Turnstile
+                                siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                                onSuccess={(token) => setCaptchaToken(token)}
+                             />
+                        </div>
+                        <Button type="submit" className="w-full" disabled={loading || !captchaToken}>
                             {loading ? "Sending Link..." : "Send Reset Link"}
                         </Button>
                      </form>

@@ -32,7 +32,7 @@ interface AuthContextType {
   isTeacher: boolean;
   loading: boolean;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  signIn: (identifier: string, password: string) => Promise<{ error: any }>;
+  signIn: (identifier: string, password: string, captchaToken?: string) => Promise<{ error: any }>;
   signOut: (forced?: boolean) => Promise<void>;
 }
 
@@ -166,7 +166,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = useCallback(async (identifier: string, password: string) => {
+  const signIn = useCallback(async (identifier: string, password: string, captchaToken?: string) => {
     try {
       let email = identifier;
       // If it looks like a registration ID (no @ symbol), format it as an internal email
@@ -177,6 +177,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
+        options: { captchaToken }
       });
 
       if (error) {

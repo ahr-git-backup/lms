@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle } from "lucide-react";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { startOfWeek, startOfMonth } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Link } from "react-router-dom";
@@ -50,6 +51,7 @@ const StudentProfile = () => {
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [updatingEmail, setUpdatingEmail] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     document.title = "Student Profile – Atlas";
@@ -198,7 +200,11 @@ const StudentProfile = () => {
     try {
         const { error } = await supabase.auth.updateUser(
             { email: newEmail },
-            { emailRedirectTo: `${window.location.origin}/dashboard/profile` }
+            { 
+                emailRedirectTo: `${window.location.origin}/dashboard/profile`,
+                // @ts-ignore
+                captchaToken 
+            }
         );
         if (error) throw error;
         
@@ -535,7 +541,13 @@ const StudentProfile = () => {
                     <Label>New Email Address</Label>
                     <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} type="email" placeholder="new.email@gmail.com" />
                 </div>
-                <Button onClick={handleEmailChange} disabled={updatingEmail} className="w-full">
+                <div className="flex justify-center py-2">
+                    <Turnstile
+                        siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                        onSuccess={(token) => setCaptchaToken(token)}
+                    />
+                </div>
+                <Button onClick={handleEmailChange} disabled={updatingEmail || !captchaToken} className="w-full">
                     {updatingEmail ? "Sending Verification..." : "Send Verification Link"}
                 </Button>
             </div>
