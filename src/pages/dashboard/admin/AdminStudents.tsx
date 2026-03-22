@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -25,6 +26,8 @@ const AdminStudents = () => {
   const [listFilter, setListFilter] = useState<ListFilter>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [updateEmailUserId, setUpdateEmailUserId] = useState<string | null>(null);
 
   const setPage = (newPage: number) => {
       setSearchParams(prev => {
@@ -444,6 +447,12 @@ const AdminStudents = () => {
                                       <Ban className="h-4 w-4" />
                                   </Button>
                               )}
+                              <Button variant="ghost" size="icon" className="text-blue-500" onClick={() => setResetPasswordUserId(student.id)} title="Reset Password">
+                                  <Key className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-amber-500" onClick={() => setUpdateEmailUserId(student.id)} title="Force Update Email">
+                                  <Mail className="h-4 w-4" />
+                              </Button>
                               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { if(confirm("Delete this user?")) deleteUserMutation.mutate(student.id) }} title="Delete">
                                   <Trash2 className="h-4 w-4" />
                               </Button>
@@ -484,10 +493,113 @@ const AdminStudents = () => {
           )}
         </CardContent>
       </Card>
+      
+      {/* Reset Password Dialog */}
+      <ResetPasswordDialog userId={resetPasswordUserId} onClose={() => setResetPasswordUserId(null)} />
+
+      {/* Update Email Dialog */}
+      <UpdateEmailDialog userId={updateEmailUserId} onClose={() => setUpdateEmailUserId(null)} />
     </section>
   );
 };
 
+const ResetPasswordDialog = ({ userId, onClose }: { userId: string | null, onClose: () => void }) => {
+    const [newPass, setNewPass] = useState("");
+    const { toast } = useToast();
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const resetMutation = useMutation<any, any, string>({
+        mutationFn: async (password: string) => {
+             // @ts-expect-error RPC not in types yet
+             const { data, error } = await supabase.rpc('admin_reset_password', {
+                p_user_id: userId,
+                p_new_password: password
+             });
+             if (error) throw error;
+             return data;
+        },
+        onSuccess: () => {
+            toast({ title: "Password Reset Successful" });
+            onClose();
+            setNewPass("");
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onError: (err: any) => {
+            toast({ title: "Failed to reset password", description: err.message, variant: "destructive" });
+        }
+    });
+
+    return (
+        <Dialog open={!!userId} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Reset Student Password</DialogTitle>
+                    <DialogDescription>Enter a new password for this user below.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>New Password</Label>
+                        <Input value={newPass} onChange={e => setNewPass(e.target.value)} placeholder="Minimum 6 characters" type="text" />
+                    </div>
+                    <Button onClick={() => resetMutation.mutate(newPass)} disabled={resetMutation.isPending || newPass.length < 6} className="w-full">
+                        {resetMutation.isPending ? "Resetting..." : "Force Reset Password"}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
+
+const UpdateEmailDialog = ({ userId, onClose }: { userId: string | null, onClose: () => void }) => {
+    const [newEmail, setNewEmail] = useState("");
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateEmailMutation = useMutation<any, any, string>({
+        mutationFn: async (email: string) => {
+             // @ts-expect-error RPC not in types yet
+             const { data, error } = await supabase.rpc('admin_update_user_email', {
+                p_user_id: userId,
+                p_new_email: email
+             });
+             if (error) throw error;
+             return data;
+        },
+        onSuccess: () => {
+            toast({ title: "Email Force-Updated Successfully" });
+            queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+            onClose();
+            setNewEmail("");
+        },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onError: (err: any) => {
+            toast({ title: "Failed to update email", description: err.message, variant: "destructive" });
+        }
+    });
+
+    return (
+        <Dialog open={!!userId} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Force Update Email</DialogTitle>
+                    <DialogDescription>
+                        Instantly update a student's email in Auth. This bypasses all confirmation links.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                        <Label>New Email Address</Label>
+                        <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new.student@gmail.com" type="email" />
+                    </div>
+                    <Button onClick={() => updateEmailMutation.mutate(newEmail)} disabled={updateEmailMutation.isPending || !newEmail.includes('@')} className="w-full">
+                        {updateEmailMutation.isPending ? "Updating..." : "Force Update Email"}
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[] }) => {
     const [registrationId, setRegistrationId] = useState("");
