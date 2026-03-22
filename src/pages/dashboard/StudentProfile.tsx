@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Clock, BookOpen, PenTool, CheckCircle, Flame, Target, Calculator, PlusCircle, ArrowRight } from "lucide-react";
+import { PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle } from "lucide-react";
 import { startOfWeek, startOfMonth } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Link } from "react-router-dom";
@@ -39,13 +40,16 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 const StudentProfile = () => {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const [timeRange, setTimeRange] = useState("daily");
   const [isEditing, setIsEditing] = useState(false);
+  const [isChangingEmail, setIsChangingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [updatingEmail, setUpdatingEmail] = useState(false);
 
   useEffect(() => {
     document.title = "Student Profile – Atlas";
@@ -184,6 +188,62 @@ const StudentProfile = () => {
     });
   };
 
+  const handleEmailChange = async () => {
+    if (!newEmail || !newEmail.includes('@')) {
+        toast({ title: "Invalid Email", variant: "destructive" });
+        return;
+    }
+    if (!profile) return;
+    setUpdatingEmail(true);
+    try {
+        const { error } = await supabase.auth.updateUser(
+            { email: newEmail },
+            { emailRedirectTo: `${window.location.origin}/dashboard/profile` }
+        );
+        if (error) throw error;
+        
+        // @ts-expect-error New column not yet in DB types
+        const { error: dbError } = await supabase.from('profiles').update({ has_changed_email: true }).eq('id', profile.id);
+        if (dbError) throw dbError;
+        
+        toast({ title: "Verification Sent", description: "Please check your new email's inbox to verify the change." });
+        setIsChangingEmail(false);
+        // temporarily update locally so button hides without refresh
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (profile as any).has_changed_email = true;
+    } catch (e: any) {
+        toast({ title: "Error changing email", description: e.message, variant: "destructive" });
+    } finally {
+        setUpdatingEmail(false);
+    }
+  };
+
+  const cancelEmailChange = async () => {
+    if (!profile || !user) return;
+    setUpdatingEmail(true);
+    try {
+        // Resetting back to current email cancels the pending quest in Supabase
+        const { error } = await supabase.auth.updateUser({ email: user.email });
+        if (error) throw error;
+
+        // Reset the flag so they can try again
+        const { error: dbError } = await supabase.from('profiles').update({ has_changed_email: false }).eq('id', profile.id);
+        if (dbError) throw dbError;
+
+        toast({ title: "Change Canceled", description: "Pending email change has been cleared." });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (profile as any).has_changed_email = false;
+        
+        // Refresh local session
+        await supabase.auth.refreshSession();
+        window.location.reload();
+    } catch (e: any) {
+        toast({ title: "Failed to cancel", description: e.message, variant: "destructive" });
+    } finally {
+        setUpdatingEmail(false);
+    }
+  };
+
   const formatDuration = (minutes: number) => {
       if (!minutes) return "0m";
       const h = Math.floor(minutes / 60);
@@ -302,6 +362,49 @@ const StudentProfile = () => {
                             <span className="font-medium">{profile.full_name || "-"}</span>
                          </div>
                          <div>
+                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Email</span>
+                            <div className="flex items-center gap-2">
+                                <div className="flex flex-col gap-1">
+                                    <span className="font-medium">{user?.email || "-"}</span>
+                                    {user?.new_email && (
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] text-amber-600 font-medium">
+                                                Pending: {user.new_email}
+                                            </span>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-4 w-4" 
+                                                onClick={async () => {
+                                                    await supabase.auth.refreshSession();
+                                                    window.location.reload();
+                                                }}
+                                                title="Check if verified"
+                                            >
+                                                <RefreshCw className="h-3 w-3" />
+                                            </Button>
+                                            <Button 
+                                                variant="ghost" 
+                                                size="icon" 
+                                                className="h-4 w-4" 
+                                                onClick={cancelEmailChange}
+                                                disabled={updatingEmail}
+                                                title="Cancel pending change"
+                                            >
+                                                <XCircle className="h-3 w-3 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                {!(profile as any).has_changed_email && (
+                                    <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => setIsChangingEmail(true)}>
+                                        Change Email
+                                    </Button>
+                                )}
+                            </div>
+                         </div>
+                         <div>
                             <span className="block text-muted-foreground text-xs uppercase tracking-wide">Registration ID</span>
                             <span className="font-medium">{profile.registration_id}</span>
                          </div>
@@ -414,6 +517,30 @@ const StudentProfile = () => {
             </div>
         </div>
       </div>
+
+      <Dialog open={isChangingEmail} onOpenChange={setIsChangingEmail}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Change Email Address</DialogTitle>
+                <DialogDescription>
+                    You can change your email address only <strong>once</strong>. A verification link will be sent to your new email. 
+                    <br /><br />
+                    <strong>Note:</strong> Your User ID and Password will remain exactly the same. Only the email used for login and notifications will be updated.
+                    <br /><br />
+                    <span className="text-xs text-muted-foreground italic">Stuck? If you don't receive the email, please contact the admin to force-update your email.</span>
+                </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                    <Label>New Email Address</Label>
+                    <Input value={newEmail} onChange={e => setNewEmail(e.target.value)} type="email" placeholder="new.email@gmail.com" />
+                </div>
+                <Button onClick={handleEmailChange} disabled={updatingEmail} className="w-full">
+                    {updatingEmail ? "Sending Verification..." : "Send Verification Link"}
+                </Button>
+            </div>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };

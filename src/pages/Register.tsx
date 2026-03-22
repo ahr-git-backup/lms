@@ -33,6 +33,14 @@ const Register = () => {
     document.title = "Register – Atlas";
   }, []);
 
+  const convertToEnglishDigits = (str: string) => {
+    const bengaliToEnglish: Record<string, string> = {
+        '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+        '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+    };
+    return str.split('').map(char => bengaliToEnglish[char] || char).join('');
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
@@ -42,7 +50,8 @@ const Register = () => {
     const fatherName = formData.get("fatherName") as string;
     const motherName = formData.get("motherName") as string;
     // const registrationId = formData.get("registrationId") as string; // Optional or generated
-    const phone = formData.get("phone") as string;
+    const rawPhone = formData.get("phone") as string;
+    const phone = convertToEnglishDigits(rawPhone).trim();
     const emailInput = formData.get("email") as string;
     const hscBatch = formData.get("hscBatch") as string;
     const collegeName = formData.get("collegeName") as string;
@@ -71,16 +80,33 @@ const Register = () => {
       return;
     }
 
+    const validPrefixes = ['013', '014', '015', '016', '017', '018', '019'];
+    if (phone.length !== 11 || !validPrefixes.some(prefix => phone.startsWith(prefix))) {
+      toast({
+        title: "Registration failed",
+        description: "Please enter a valid 11-digit phone number starting with a recognized prefix.",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     try {
       // 1. Determine Auth Email Strategy
       // If user provided a real email, use it. Otherwise, fallback to phone logic?
       // Requirement: "Real Email" preferred. We make email mandatory in UI now.
 
-      const email = emailInput;
+      const email = emailInput.trim().toLowerCase();
 
       // Check if email is valid format roughly
       if (!email || !email.includes('@')) {
           throw new Error("Please provide a valid email address.");
+      }
+      
+      const emailDomain = email.split('@')[1];
+      const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
+      if (!allowedDomains.includes(emailDomain)) {
+          throw new Error("Only Gmail, Yahoo, Outlook, or Hotmail accounts are allowed.");
       }
 
       // 2. Create the user in Supabase Auth
@@ -88,6 +114,7 @@ const Register = () => {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/login`,
           data: {
             full_name: fullName,
             father_name: fatherName,
@@ -110,38 +137,9 @@ const Register = () => {
         throw new Error("No user returned from sign up. Please check your email for verification.");
       }
 
-      // 3. Attempt to insert into profiles if we have a session.
-      // Note: If email confirmation is on, we won't have a session yet.
-      // But usually `profiles` is inserted via Trigger on server side for security.
-      // The existing code was doing client-side insert. Let's keep it for now if session exists.
+      // Note: The public.profiles insertion is now handled safely by a database trigger (handle_new_user)
+      // which automatically runs when the user is created in Supabase Auth. This prevents issues when email verification is required.
 
-      if (authData.session) {
-        const { error: profileError } = await supabase
-        .from("profiles")
-        .insert({
-          id: authData.user.id,
-          registration_id: phone, // Still using phone as the "ID" for admin/legacy purposes
-          full_name: fullName,
-          father_name: fatherName,
-          mother_name: motherName,
-          phone: phone,
-          hsc_batch: hscBatch,
-          college_name: collegeName,
-          ssc_gpa: parseFloat(sscGpa) || 0,
-          hsc_gpa: parseFloat(hscGpaForm) || 0,
-          is_second_timer: isSecondTimer,
-          extra_time_multiplier: 1,
-        });
-
-        if (profileError) {
-          console.error("Profile creation during register failed:", profileError);
-          toast({
-            title: "Registration Warning",
-            description: "Account created but profile setup failed. Please contact support.",
-            variant: "destructive",
-          });
-        }
-      }
 
       toast({
         title: "Registration successful",
@@ -272,7 +270,7 @@ const Register = () => {
                     required
                   />
                   <Label htmlFor="acknowledgement" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    আমি স্বীকার করছি যে উপরে দেওয়া সকল তথ্য সঠিক এবং আমি সকল নিয়মাবলী ও নির্দেশনা মেনে চলব। (I acknowledge that all the information provided above is accurate and I will follow all rules and instructions.)
+                    আমি স্বীকার করছি যে উপরে দেওয়া সকল তথ্য সঠিক। ভুয়া বা ভুল নম্বর ও তথ্য দিলে জরিমানা বা একাউন্ট বাতিল হতে পারে। (I acknowledge that providing fake information may result in fine or account suspension.)
                   </Label>
               </div>
 

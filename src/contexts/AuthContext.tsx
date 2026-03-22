@@ -134,6 +134,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
+      if (event === 'PASSWORD_RECOVERY') {
+          // Force redirect to reset password page when they click the email link
+          navigate('/reset-password', { replace: true });
+      }
+
       if (session?.user) {
         setTimeout(() => {
           fetchProfile(session.user.id);
@@ -283,6 +288,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     return () => clearInterval(interval);
   }, [user, loading, checkSessionValidity]);
+  useEffect(() => {
+      // Check for messages/errors in URL fragment (Supabase redirect standard)
+      const handleHashMessages = () => {
+          const hash = window.location.hash;
+          if (!hash || !hash.startsWith('#')) return;
+
+          const params = new URLSearchParams(hash.substring(1));
+          const message = params.get('message');
+          const errorDesc = params.get('error_description');
+
+          if (message) {
+              const decoded = decodeURIComponent(message).replace(/\+/g, ' ');
+              
+              // Professional, context-aware success messages
+              if (decoded.toLowerCase().includes('confirmation') || decoded.toLowerCase().includes('confirmed')) {
+                  toast({
+                      title: "Welcome Aboard! ✨",
+                      description: "Your account is now verified. Welcome to Atlas Courses.",
+                      variant: "default",
+                  });
+              } else if (decoded.toLowerCase().includes('email')) {
+                  toast({
+                      title: "Email Fully Updated! 🛡️",
+                      description: "Your login address has been successfully changed to the new email.",
+                      variant: "default",
+                  });
+              } else {
+                  toast({
+                      title: "Action Successful ✅",
+                      description: decoded,
+                      variant: "default",
+                  });
+              }
+
+              // Clear hash to prevent repeat Toast on refresh
+              window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          } else if (errorDesc) {
+              const decodedErr = decodeURIComponent(errorDesc).replace(/\+/g, ' ');
+              toast({
+                  title: "Verification Issue ⚠️",
+                  description: decodedErr,
+                  variant: "destructive",
+              });
+              window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          }
+      };
+
+      handleHashMessages();
+  }, [location.pathname, toast]);
+
   // ----------------------------------
 
   return (
