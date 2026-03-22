@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, LayoutDashboard, LogOut, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Login = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | undefined>();
 
   useEffect(() => {
     document.title = "Login – Atlas";
@@ -49,7 +51,7 @@ const Login = () => {
         email = `${identifier}@beshijoss.com`;
     }
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email, password, captchaToken);
     
     if (error) {
       toast({
@@ -145,7 +147,14 @@ const Login = () => {
                     </Button>
                     </div>
                 </div>
-                <Button type="submit" className="mt-2 w-full" disabled={loading}>
+                <div className="flex justify-center py-2">
+                  <Turnstile
+                    siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                    onSuccess={(token) => setCaptchaToken(token)}
+                  />
+                </div>
+
+                <Button type="submit" className="mt-2 w-full" disabled={loading || !captchaToken}>
                     {loading ? "Logging in..." : "Login"}
                 </Button>
 
