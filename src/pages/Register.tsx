@@ -27,7 +27,7 @@ const Register = () => {
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
-        setHscGpa("5.00");
+      setHscGpa("5.00");
     }
   }, [hscBatch]);
 
@@ -37,8 +37,8 @@ const Register = () => {
 
   const convertToEnglishDigits = (str: string) => {
     const bengaliToEnglish: Record<string, string> = {
-        '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
-        '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
+      '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4',
+      '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
     };
     return str.split('').map(char => bengaliToEnglish[char] || char).join('');
   };
@@ -102,13 +102,13 @@ const Register = () => {
 
       // Check if email is valid format roughly
       if (!email || !email.includes('@')) {
-          throw new Error("Please provide a valid email address.");
+        throw new Error("Please provide a valid email address.");
       }
-      
+
       const emailDomain = email.split('@')[1];
       const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
       if (!allowedDomains.includes(emailDomain)) {
-          throw new Error("Only Gmail, Yahoo, Outlook, or Hotmail accounts are allowed.");
+        throw new Error("Only Gmail, Yahoo, Outlook, or Hotmail accounts are allowed.");
       }
 
       // 2. Create the user in Supabase Auth
@@ -150,16 +150,16 @@ const Register = () => {
       });
 
       if (authData.session) {
-          navigate(location.state?.from || "/dashboard", { replace: true });
+        navigate(location.state?.from || "/dashboard", { replace: true });
       } else {
-          // If no session (email verification required)
-           toast({
-            title: "Check your email",
-            description: "We sent you a verification link. Please verify your email to login.",
-          });
-          setTimeout(() => {
-            navigate("/login", { state: { from: location.state?.from } });
-          }, 3000);
+        // If no session (email verification required)
+        toast({
+          title: "Check your email",
+          description: "We sent you a verification link. Please verify your email to login.",
+        });
+        setTimeout(() => {
+          navigate("/login", { state: { from: location.state?.from } });
+        }, 3000);
       }
 
     } catch (error: any) {
@@ -194,7 +194,7 @@ const Register = () => {
                   <Input id="fullName" name="fullName" required placeholder="Your full name" />
                   <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full name.</p>
                 </div>
-                 <div className="space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
                 </div>
@@ -217,15 +217,16 @@ const Register = () => {
                 <div className="space-y-2">
                   <Label htmlFor="collegeName">Full College Name</Label>
                   <Input id="collegeName" name="collegeName" required placeholder="Your full college name" />
+                  <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full college name.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hscBatch">HSC Batch</Label>
-                  <select 
-                    id="hscBatch" 
-                    name="hscBatch" 
+                  <select
+                    id="hscBatch"
+                    name="hscBatch"
                     value={hscBatch}
                     onChange={(e) => setHscBatch(e.target.value)}
-                    required 
+                    required
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <option value="2025">2025</option>
@@ -241,14 +242,14 @@ const Register = () => {
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="hscGpa">HSC GPA (Optional)</Label>
-                  <Input 
-                    id="hscGpa" 
-                    name="hscGpa" 
-                    type="number" 
-                    step="0.01" 
-                    max="5.00" 
-                    min="0.00" 
-                    placeholder="5.00" 
+                  <Input
+                    id="hscGpa"
+                    name="hscGpa"
+                    type="number"
+                    step="0.01"
+                    max="5.00"
+                    min="0.00"
+                    placeholder="5.00"
                     value={hscGpa}
                     onChange={(e) => setHscGpa(e.target.value)}
                   />
@@ -257,24 +258,24 @@ const Register = () => {
               </div>
 
               <div className="flex items-center space-x-2 py-2">
-                  <Checkbox
-                    id="isSecondTimer"
-                    checked={isSecondTimer}
-                    onCheckedChange={(checked) => setIsSecondTimer(checked as boolean)}
-                  />
-                  <Label htmlFor="isSecondTimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    I am a Second Timer Student
-                  </Label>
+                <Checkbox
+                  id="isSecondTimer"
+                  checked={isSecondTimer}
+                  onCheckedChange={(checked) => setIsSecondTimer(checked as boolean)}
+                />
+                <Label htmlFor="isSecondTimer" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  I am a Second Timer Student
+                </Label>
               </div>
 
               <div className="flex items-start space-x-2 py-2">
-                  <Checkbox
-                    id="acknowledgement"
-                    required
-                  />
-                  <Label htmlFor="acknowledgement" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    আমি স্বীকার করছি যে উপরে দেওয়া সকল তথ্য সঠিক। ভুয়া বা ভুল নম্বর ও তথ্য দিলে জরিমানা বা একাউন্ট বাতিল হতে পারে। (I acknowledge that providing fake information may result in fine or account suspension.)
-                  </Label>
+                <Checkbox
+                  id="acknowledgement"
+                  required
+                />
+                <Label htmlFor="acknowledgement" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  আমি স্বীকার করছি যে উপরে দেওয়া সকল তথ্য সঠিক। ভুয়া বা ভুল নম্বর ও তথ্য দিলে জরিমানা বা একাউন্ট বাতিল হতে পারে। (I acknowledge that providing fake information may result in fine or account suspension.)
+                </Label>
               </div>
 
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -333,13 +334,13 @@ const Register = () => {
               </div>
 
               <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
-                  <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                      <div className="text-sm text-yellow-800 dark:text-yellow-400">
-                          <p className="font-bold mb-1">সতর্কবার্তা!</p>
-                          <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
-                      </div>
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                  <div className="text-sm text-yellow-800 dark:text-yellow-400">
+                    <p className="font-bold mb-1">সতর্কবার্তা!</p>
+                    <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
                   </div>
+                </div>
               </div>
 
               <div className="flex justify-center py-2">
