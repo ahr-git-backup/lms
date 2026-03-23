@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 
 const PAGE_SIZE = 15;
 
@@ -16,7 +18,10 @@ const Archive = () => {
   const [activeTab, setActiveTab] = useState("classes");
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const { data: enrollments } = useEnrollments();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   const navigate = useNavigate();
 
   // Search & Pagination State (Global for this page context, reset when tab changes)
@@ -70,6 +75,14 @@ const Archive = () => {
           </div>
       </div>
 
+      {isAdmin && selectedChapter && (
+          <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
+              <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+              <Button variant="outline" size="sm" onClick={() => setManageType("classes")}>Manage Classes Order</Button>
+              <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
+          </div>
+      )}
+
       {activeTab === "classes" ? (
         <ArchiveClassView
             enrollments={enrollments}
@@ -93,6 +106,17 @@ const Archive = () => {
             searchQuery={debouncedSearch}
             page={page}
             setPage={setPage}
+        />
+      )}
+
+      {manageType && (
+        <CourseItemsManagerDialog
+          courseId={enrollments?.[0]?.course_id}
+          courseName="Archive Classes"
+          subjectFilter={selectedSubject}
+          chapterFilter={selectedChapter}
+          resourceType={manageType}
+          onClose={() => setManageType(null)}
         />
       )}
     </div>
