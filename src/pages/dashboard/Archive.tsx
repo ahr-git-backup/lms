@@ -11,6 +11,7 @@ import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, S
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
+import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
 const PAGE_SIZE = 15;
 
@@ -19,6 +20,8 @@ const Archive = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
+  const [manageChapters, setManageChapters] = useState(false);
+  const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -93,6 +96,7 @@ const Archive = () => {
             searchQuery={debouncedSearch}
             page={page}
             setPage={setPage}
+            setCurrentChaptersList={setCurrentChaptersList}
         />
       ) : (
         <ArchiveExamView
@@ -105,6 +109,7 @@ const Archive = () => {
             searchQuery={debouncedSearch}
             page={page}
             setPage={setPage}
+            setCurrentChaptersList={setCurrentChaptersList}
         />
       )}
 
@@ -118,12 +123,22 @@ const Archive = () => {
           onClose={() => setManageType(null)}
         />
       )}
+
+      {manageChapters && selectedSubject && (
+        <ChapterSortDialog
+          courseId={enrollments?.[0]?.course_id || null}
+          subject={selectedSubject}
+          chapters={currentChaptersList}
+          contextName={"Archive"}
+          onClose={() => setManageChapters(false)}
+        />
+      )}
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
+const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList }: any) => {
 
     // Move all hooks to top level
     const { data: searchResults, isLoading: searching } = useQuery({
@@ -184,6 +199,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
+
+            const settingsKey = `chapter_order_${courseIds[0] || 'global'}_${selectedSubject}`;
+            const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data?.forEach((row: any) => {
                 if (row.chapter) {
@@ -196,6 +216,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 }
             });
             return Array.from(unique).sort((a, b) => {
+                const idxA = savedOrder.indexOf(a);
+                const idxB = savedOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
                 const orderA = orderMap.get(a) || 0;
                 const orderB = orderMap.get(b) || 0;
                 if (orderA !== orderB) return orderB - orderA; // higher first
@@ -204,6 +229,12 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         },
         enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });
+
+    useEffect(() => {
+        if (chapters) {
+            setCurrentChaptersList(chapters);
+        }
+    }, [chapters, setCurrentChaptersList]);
 
     const { data: classesData, isLoading: loadingClasses } = useQuery({
         queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page],
@@ -391,7 +422,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage }: any) => {
+const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList }: any) => {
 
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
@@ -453,6 +484,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
 
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
+
+            const settingsKey = `chapter_order_${courseIds[0] || 'global'}_${selectedSubject}`;
+            const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data?.forEach((row: any) => {
                 if (row.chapter) {
@@ -465,6 +501,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 }
             });
             return Array.from(unique).sort((a, b) => {
+                const idxA = savedOrder.indexOf(a);
+                const idxB = savedOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
                 const orderA = orderMap.get(a) || 0;
                 const orderB = orderMap.get(b) || 0;
                 if (orderA !== orderB) return orderB - orderA;
@@ -473,6 +514,12 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         },
         enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });
+
+    useEffect(() => {
+        if (chapters) {
+            setCurrentChaptersList(chapters);
+        }
+    }, [chapters, setCurrentChaptersList]);
 
     const { data: examsData, isLoading: loadingExams } = useQuery({
         queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page],
