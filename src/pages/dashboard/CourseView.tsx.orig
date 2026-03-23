@@ -15,7 +15,8 @@ const CourseView = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { data: enrollments } = useEnrollments();
-  const { isAdmin } = useAuth();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
 
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
