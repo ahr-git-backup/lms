@@ -130,7 +130,7 @@ const Index = () => {
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
               <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
-                <a href={hero.cta_link || "#"} className="block relative w-full h-auto aspect-video md:aspect-auto md:h-[calc(100vh-64px)] overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity">
+                <a href={hero.cta_link || "#"} className="block relative w-full h-auto aspect-video md:aspect-auto md:h-[500px] overflow-hidden bg-black/5 cursor-pointer hover:opacity-95 transition-opacity">
                    {hero.image_url ? (
                      <div className="h-full w-full relative">
                         {/* Blurred background for fill */}
@@ -167,7 +167,7 @@ const Index = () => {
                 </div>
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {specialExams.map((exam: any) => (
-                        <Card key={exam.id} className="overflow-hidden flex flex-col border-2 border-primary/20 shadow-lg hover:shadow-xl transition-all duration-300">
+                        <Card key={exam.id} className="overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-300">
                             {exam.image_url && (
                                 <div className="h-40 w-full overflow-hidden bg-muted">
                                     <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover hover:scale-105 transition-transform duration-500" />

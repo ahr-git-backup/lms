@@ -105,7 +105,7 @@ export const StudyToolsProvider = ({ children }: { children: ReactNode }) => {
         } else if (Notification.permission !== "denied") {
           Notification.requestPermission().then(permission => {
             if (permission === "granted") {
-              new Notification(title, { body, icon: "/public/favicon.png" });
+              new Notification(title, { body, icon: "/favicon.png" });
             }
           });
         }

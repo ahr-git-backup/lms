@@ -231,7 +231,7 @@ export const CourseSection = () => {
                             : (course.category ? [course.category] : []);
 
                         return (
-                            <Card key={course.id} className="overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow flex flex-col h-full min-w-0 w-full max-w-full">
+                            <Card key={course.id} className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full hover:-translate-y-1 transition-all duration-300">
                                 {/* Course Image */}
                                 <div className="w-full aspect-video relative">
                                     <img
