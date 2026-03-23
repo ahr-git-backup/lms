@@ -12,7 +12,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail, AlertTriangle } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
@@ -28,6 +29,8 @@ const AdminStudents = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [updateEmailUserId, setUpdateEmailUserId] = useState<string | null>(null);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
   const setPage = (newPage: number) => {
       setSearchParams(prev => {
@@ -73,8 +76,8 @@ const AdminStudents = () => {
              .from("user_roles")
              .select("role");
 
-          const adminCount = roles?.filter(r => r.role === 'admin').length || 0;
-          const teacherCount = roles?.filter(r => r.role === 'teacher').length || 0;
+          const adminCount = roles?.filter(r => (r.role as any) === 'admin').length || 0;
+          const teacherCount = roles?.filter(r => (r.role as any) === 'teacher').length || 0;
 
           return {
               total: totalProfiles || 0,
@@ -104,7 +107,7 @@ const AdminStudents = () => {
       if (!listFilter && !debouncedSearch && selectedCourseFilter === 'all') return { data: [], count: 0 };
 
       // Base query setup
-      let query = supabase
+      let query: any = supabase
         .from("profiles")
         .select("id, registration_id, full_name, batch_year, created_at, status, enrollments:enrollments(id, course_id, courses(name))", { count: 'exact' });
 
@@ -121,7 +124,7 @@ const AdminStudents = () => {
                 query = query.not("id", "in", `(${Array.from(distinctEnrolled).join(',')})`);
            }
       } else if (listFilter === 'admin' || listFilter === 'teacher') {
-             const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", listFilter);
+             const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", listFilter as any);
              const ids = roleData?.map(r => r.user_id) || [];
              if (ids.length === 0) return { data: [], count: 0 };
              query = query.in("id", ids);
@@ -176,7 +179,7 @@ const AdminStudents = () => {
     },
   });
 
-  const students = studentsData?.data || [];
+  const students = (studentsData?.data as Profile[]) || [];
   const totalCount = studentsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -196,10 +199,10 @@ const AdminStudents = () => {
   const toggleTeacherRoleMutation = useMutation({
       mutationFn: async ({ userId, isPromoting }: { userId: string, isPromoting: boolean }) => {
           if (isPromoting) {
-              const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "teacher" });
+              const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "teacher" as any });
               if (error) throw error;
           } else {
-              const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "teacher");
+              const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "teacher" as any);
               if (error) throw error;
           }
       },
@@ -212,7 +215,7 @@ const AdminStudents = () => {
 
   const toggleBanMutation = useMutation({
       mutationFn: async ({ userId, status }: { userId: string, status: string }) => {
-          const { error } = await supabase.from("profiles").update({ status }).eq("id", userId);
+          const { error } = await supabase.from("profiles").update({ status } as any).eq("id", userId);
           if (error) throw error;
       },
       onSuccess: () => {
@@ -223,15 +226,57 @@ const AdminStudents = () => {
 
   const deleteUserMutation = useMutation({
       mutationFn: async (userId: string) => {
-          const { error } = await supabase.from("profiles").delete().eq("id", userId);
+          // @ts-expect-error RPC not in types yet
+          const { error } = await supabase.rpc('admin_delete_user', {
+              p_user_id: userId
+          });
           if (error) throw error;
       },
       onSuccess: () => {
-          toast({ title: "User data removed" });
+          toast({ title: "User deleted from everywhere" });
           queryClient.invalidateQueries({ queryKey: ["admin-students"] });
           queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
       },
+      onError: (err: any) => {
+          toast({ title: "Failed to delete user", description: err.message, variant: "destructive" });
+      }
   });
+
+  const bulkDeleteMutation = useMutation({
+      mutationFn: async (userIds: string[]) => {
+          // @ts-expect-error RPC not in types yet
+          const { error } = await supabase.rpc('admin_bulk_delete_users', {
+              p_user_ids: userIds
+          });
+          if (error) throw error;
+      },
+      onSuccess: () => {
+          toast({ title: `${selectedUserIds.length} users deleted from everywhere` });
+          setSelectedUserIds([]);
+          setIsBulkDeleteDialogOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+          queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
+      },
+      onError: (err: any) => {
+          toast({ title: "Bulk deletion failed", description: err.message, variant: "destructive" });
+      }
+  });
+
+  const toggleSelectAll = () => {
+      if (selectedUserIds.length === students.length && students.length > 0) {
+          setSelectedUserIds([]);
+      } else {
+          setSelectedUserIds(students.map(s => s.id));
+      }
+  };
+
+  const toggleSelectUser = (userId: string) => {
+      setSelectedUserIds(prev => 
+          prev.includes(userId) 
+            ? prev.filter(id => id !== userId) 
+            : [...prev, userId]
+      );
+  };
 
   return (
     <section className="space-y-6">
@@ -321,8 +366,22 @@ const AdminStudents = () => {
               <span>Student List {listFilter ? `(${listFilter.toUpperCase()})` : ""}</span>
               {listFilter && <Button variant="ghost" size="sm" onClick={() => setListFilter(null)}>Clear Filter</Button>}
           </CardTitle>
-          <CardDescription>
-            {listFilter ? "Showing filtered results." : "Select a category above or search to view students."}
+          <CardDescription className="flex justify-between items-center">
+            <span>{listFilter ? "Showing filtered results." : "Select a category above or search to view students."}</span>
+            {selectedUserIds.length > 0 && (
+                <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-destructive">{selectedUserIds.length} selected</span>
+                    <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        className="h-8"
+                        onClick={() => setIsBulkDeleteDialogOpen(true)}
+                    >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Bulk Delete
+                    </Button>
+                </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -378,6 +437,12 @@ const AdminStudents = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]">
+                        <Checkbox 
+                            checked={students.length > 0 && selectedUserIds.length === students.length}
+                            onCheckedChange={toggleSelectAll}
+                        />
+                    </TableHead>
                     <TableHead>Registration ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Courses (Access)</TableHead>
@@ -388,7 +453,13 @@ const AdminStudents = () => {
                 </TableHeader>
                 <TableBody>
                   {students.map((student: Profile) => (
-                    <TableRow key={student.id} className={student.status === 'banned' ? "bg-red-50 dark:bg-red-900/10" : ""}>
+                    <TableRow key={student.id} className={`${student.status === 'banned' ? "bg-red-50 dark:bg-red-900/10" : ""} ${selectedUserIds.includes(student.id) ? "bg-primary/5" : ""}`}>
+                      <TableCell>
+                          <Checkbox 
+                            checked={selectedUserIds.includes(student.id)}
+                            onCheckedChange={() => toggleSelectUser(student.id)}
+                          />
+                      </TableCell>
                       <TableCell className="font-mono text-xs whitespace-nowrap">{student.registration_id}</TableCell>
                       <TableCell className="whitespace-nowrap">{student.full_name}</TableCell>
                       <TableCell className="text-xs min-w-[200px]">
@@ -499,6 +570,41 @@ const AdminStudents = () => {
 
       {/* Update Email Dialog */}
       <UpdateEmailDialog userId={updateEmailUserId} onClose={() => setUpdateEmailUserId(null)} />
+       {/* Bulk Delete Dialog */}
+      <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-destructive">
+                        <AlertTriangle className="h-5 w-5" />
+                        Extreme Caution Required
+                    </DialogTitle>
+                    <DialogDescription>
+                        You are about to permanently delete <strong>{selectedUserIds.length}</strong> user accounts.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="bg-destructive/10 p-4 rounded-md border border-destructive/20 text-sm space-y-2">
+                    <p className="font-semibold text-destructive">This action is irreversible and will:</p>
+                    <ul className="list-disc list-inside space-y-1 text-destructive/80">
+                        <li>Remove users from Supabase Auth (Authentication)</li>
+                        <li>Delete all profile data and registration history</li>
+                        <li>Wipe all course enrollments and progress</li>
+                        <li>Delete all exam attempts and result certificates</li>
+                    </ul>
+                </div>
+                <div className="flex justify-end gap-3 mt-4">
+                    <Button variant="outline" onClick={() => setIsBulkDeleteDialogOpen(false)} disabled={bulkDeleteMutation.isPending}>
+                        Cancel
+                    </Button>
+                    <Button 
+                        variant="destructive" 
+                        onClick={() => bulkDeleteMutation.mutate(selectedUserIds)}
+                        disabled={bulkDeleteMutation.isPending}
+                    >
+                        {bulkDeleteMutation.isPending ? "Deleting..." : `Yes, Delete ${selectedUserIds.length} Users`}
+                    </Button>
+                </div>
+          </DialogContent>
+      </Dialog>
     </section>
   );
 };

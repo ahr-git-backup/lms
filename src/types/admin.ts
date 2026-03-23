@@ -112,8 +112,10 @@ export interface Profile {
   phone?: string | null;
   school?: string | null;
   batch_year?: number | null;
+  status?: string | null;
   created_at?: string;
   enrollments?: Enrollment[];
+  roles?: string[];
 }
 
 export interface Enrollment {
