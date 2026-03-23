@@ -10,6 +10,7 @@ import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight,
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
+import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
 const CourseView = () => {
   const { courseId } = useParams();
@@ -20,6 +21,7 @@ const CourseView = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
+  const [manageChapters, setManageChapters] = useState(false);
 
   const enrollment = enrollments?.find((e: any) => e.course_id === courseId);
 
@@ -86,8 +88,13 @@ const CourseView = () => {
         .contains("subject", [selectedSubject])
         .eq("is_published", true);
 
+      const settingsKey = `chapter_order_${courseId || 'global'}_${selectedSubject}`;
+      const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+
       const unique = new Set<string>();
       const orderMap = new Map<string, number>();
+
+      const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 
       const processChapters = (data: any[]) => {
           data?.forEach(row => {
@@ -106,6 +113,13 @@ const CourseView = () => {
       processChapters(examData || []);
 
       return Array.from(unique).sort((a, b) => {
+          // First respect the saved order
+          const idxA = savedOrder.indexOf(a);
+          const idxB = savedOrder.indexOf(b);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          // Fallback to item priority
           const orderA = orderMap.get(a) || 0;
           const orderB = orderMap.get(b) || 0;
           if (orderA !== orderB) return orderB - orderA; // higher first
@@ -152,6 +166,13 @@ const CourseView = () => {
               <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
               <Button variant="outline" size="sm" onClick={() => setManageType("classes")}>Manage Classes Order</Button>
               <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
+          </div>
+      )}
+
+      {isAdmin && !selectedChapter && selectedSubject && chapters && chapters.length > 0 && (
+          <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
+              <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+              <Button variant="outline" size="sm" onClick={() => setManageChapters(true)}>Manage Chapters Order</Button>
           </div>
       )}
 
@@ -203,6 +224,16 @@ const CourseView = () => {
           chapterFilter={selectedChapter}
           resourceType={manageType}
           onClose={() => setManageType(null)}
+        />
+      )}
+
+      {manageChapters && (
+        <ChapterSortDialog
+          courseId={courseId!}
+          subject={selectedSubject!}
+          chapters={chapters || []}
+          contextName={enrollment?.course?.name || "Course"}
+          onClose={() => setManageChapters(false)}
         />
       )}
     </div>

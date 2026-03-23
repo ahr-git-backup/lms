@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Loader2, ArrowLeft, Calendar, BookOpen, Presentation, FileText, CheckCircle2, XCircle, MinusCircle, User } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
 export default function StudentProfileView() {
   const { studentId } = useParams();
@@ -44,31 +45,33 @@ export default function StudentProfileView() {
       // 2. Fetch all exams belonging to these courses to know total pool
       const { data: exams } = await supabase
         .from("exams")
-        .select("id, course_id, title, exam_type")
-        .in("course_id", courseIds.length > 0 ? courseIds : ['']);
+        .select("id, course_id, shared_course_ids, title, exam_type");
 
       // 3. Fetch all classes
       const { data: classes } = await supabase
         .from("classes")
-        .select("id, course_id, title")
-        .in("course_id", courseIds.length > 0 ? courseIds : ['']);
+        .select("id, course_id, shared_course_ids, title");
 
       // 4. Fetch all exam attempts
       const { data: attempts } = await supabase
         .from("exam_attempts")
-        .select("id, exam_id, score, created_at")
-        .eq("user_id", studentId)
+        .select("id, exam_id, score, created_at, exams(total_marks)")
+        .eq("profile_id", studentId)
         .order("created_at", { ascending: false });
 
       // Group by course
       const courseProgress = enrollments?.map(enrollment => {
-        const courseExams = exams?.filter(e => e.course_id === enrollment.course_id) || [];
-        const courseClasses = classes?.filter(c => c.course_id === enrollment.course_id) || [];
+        const courseExams = exams?.filter(e => e.course_id === enrollment.course_id || (e.shared_course_ids && e.shared_course_ids.includes(enrollment.course_id))) || [];
+        const courseClasses = classes?.filter(c => c.course_id === enrollment.course_id || (c.shared_course_ids && c.shared_course_ids.includes(enrollment.course_id))) || [];
         
         const liveExams = courseExams.filter(e => e.exam_type === 'live');
         const practiceExams = courseExams.filter(e => e.exam_type === 'practice');
 
         const courseAttempts = attempts?.filter(a => courseExams.some(ce => ce.id === a.exam_id)) || [];
+
+        // Calculate actual live attempts taken
+        const liveExamsTaken = new Set(courseAttempts.filter(a => liveExams.some(le => le.id === a.exam_id)).map(a => a.exam_id)).size;
+        const practiceExamsTaken = courseAttempts.filter(a => practiceExams.some(pe => pe.id === a.exam_id)).length;
         
         // Count unique exams attempted
         const attemptedExamsCount = new Set(courseAttempts.map(a => a.exam_id)).size;
@@ -83,8 +86,21 @@ export default function StudentProfileView() {
           liveExamsTotal: liveExams.length,
           practiceExamsTotal: practiceExams.length,
           attempts: courseAttempts,
+          liveExamsTaken,
+          practiceExamsTaken,
           progressPercentage
         };
+      }) || [];
+
+      const allAttemptsMapped = attempts?.map(a => {
+          const examInfo = exams?.find(e => e.id === a.exam_id);
+          const tm = (a as any).exams?.total_marks || 1;
+          return {
+              ...a,
+              examTitle: examInfo?.title || 'Unknown Exam',
+              examType: examInfo?.exam_type || 'Unknown',
+              percent: tm > 0 ? Math.round(((a.score || 0) / tm) * 100) : 0
+          };
       }) || [];
 
       return {
@@ -93,14 +109,12 @@ export default function StudentProfileView() {
           totalEnrolled: enrollments?.length || 0,
           totalAttempts: attempts?.length || 0
         },
-        recentAttempts: attempts?.slice(0, 10).map(a => {
-            const examInfo = exams?.find(e => e.id === a.exam_id);
-            return {
-                ...a,
-                examTitle: examInfo?.title || 'Unknown Exam',
-                examType: examInfo?.exam_type || 'Unknown'
-            }
-        }) || []
+        recentAttempts: allAttemptsMapped.slice(0, 10),
+        chartData: allAttemptsMapped.slice(0, 20).reverse().map((a, i) => ({
+            name: format(new Date(a.created_at), 'MMM dd'),
+            score: a.percent,
+            title: a.examTitle
+        }))
       };
     },
     enabled: !!studentId,
@@ -155,8 +169,11 @@ export default function StudentProfileView() {
                       <div className="h-24 w-24 bg-secondary rounded-full flex items-center justify-center text-4xl mb-3 shadow-inner text-muted-foreground">
                           {profile.full_name?.charAt(0) || <User />}
                       </div>
-                      <div className="text-sm font-medium">{profile.school || 'College not provided'}</div>
-                      <div className="text-xs text-muted-foreground">Batch {profile.batch_year || 'N/A'}</div>
+                      <div className="text-sm font-medium text-center">{profile.college_name || profile.school || 'College not provided'}</div>
+                      <div className="text-xs text-muted-foreground text-center">
+                          Batch {profile.hsc_batch || 'N/A'}
+                          {profile.is_second_timer && <span className="ml-1 text-red-500">(2nd Timer)</span>}
+                      </div>
                   </div>
                   
                   <div className="space-y-3 text-sm">
@@ -229,14 +246,14 @@ export default function StudentProfileView() {
                                       <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md border text-sm">
                                           <FileText className="h-4 w-4 text-orange-500" />
                                           <div>
-                                              <span className="font-semibold">{course.attempts.filter(a => course.liveExamsTotal > 0).length}</span> Live Exams Taken
+                                              <span className="font-semibold">{course.liveExamsTaken}</span> Live Exams Taken
                                               <p className="text-[10px] text-muted-foreground leading-none mt-1">Out of {course.liveExamsTotal} available</p>
                                           </div>
                                       </div>
                                       <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-md border text-sm">
                                           <FileText className="h-4 w-4 text-purple-500" />
                                           <div>
-                                              <span className="font-semibold">{course.attempts.filter(a => course.practiceExamsTotal > 0).length}</span> Practice Exams
+                                              <span className="font-semibold">{course.practiceExamsTaken}</span> Practice Exams
                                               <p className="text-[10px] text-muted-foreground leading-none mt-1">Multiple attempts logged</p>
                                           </div>
                                       </div>
@@ -246,6 +263,39 @@ export default function StudentProfileView() {
                       )}
                   </CardContent>
               </Card>
+
+              {/* Improvement Graph */}
+              {analytics?.chartData && analytics.chartData.length > 1 && (
+                  <Card className="shadow-sm">
+                      <CardHeader>
+                          <CardTitle>Performance Trend (Last 20 Exams)</CardTitle>
+                          <CardDescription>Percentage score improvement over time.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                          <div className="h-[250px] w-full mt-4">
+                              <ResponsiveContainer width="100%" height="100%">
+                                  <AreaChart data={analytics.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                      <defs>
+                                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                          </linearGradient>
+                                      </defs>
+                                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+                                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dy={10} />
+                                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6b7280' }} dx={-10} domain={[0, 100]} />
+                                      <Tooltip
+                                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                        labelStyle={{ fontWeight: 'bold', color: '#374151' }}
+                                        formatter={(value: any, name: string, props: any) => [`${value}%`, props.payload.title]}
+                                      />
+                                      <Area type="monotone" dataKey="score" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
+                                  </AreaChart>
+                              </ResponsiveContainer>
+                          </div>
+                      </CardContent>
+                  </Card>
+              )}
 
               {/* Recent Activity Log */}
               <Card className="shadow-sm">

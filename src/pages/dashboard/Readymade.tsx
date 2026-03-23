@@ -11,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
+import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
 const PAGE_SIZE = 15;
 
@@ -18,6 +19,8 @@ const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
+  const [manageChapters, setManageChapters] = useState(false);
+  const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -126,6 +129,13 @@ const Readymade = () => {
           </div>
       )}
 
+      {isAdmin && !selectedChapter && selectedSubject && currentChaptersList.length > 0 && (
+          <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
+              <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+              <Button variant="outline" size="sm" onClick={() => setManageChapters(true)}>Manage Chapters Order</Button>
+          </div>
+      )}
+
       <ReadymadeExamView
             enrollments={enrollments}
             selectedSubject={selectedSubject}
@@ -137,6 +147,7 @@ const Readymade = () => {
             page={page}
             setPage={setPage}
             selectedParentTopics={selectedParentTopics}
+            setCurrentChaptersList={setCurrentChaptersList}
       />
 
       {manageType && (
@@ -149,12 +160,22 @@ const Readymade = () => {
           onClose={() => setManageType(null)}
         />
       )}
+
+      {manageChapters && selectedSubject && (
+        <ChapterSortDialog
+          courseId={enrollments?.[0]?.course_id || null}
+          subject={selectedSubject}
+          chapters={currentChaptersList}
+          contextName="Readymade Exams"
+          onClose={() => setManageChapters(false)}
+        />
+      )}
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, selectedParentTopics }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, selectedParentTopics, setCurrentChaptersList }: any) => {
 
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ["readymade-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page, selectedParentTopics],
@@ -256,6 +277,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
+
+            const settingsKey = `chapter_order_${enrolledIds[0] || 'global'}_${selectedSubject}`;
+            const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data?.forEach((row: any) => {
                 if (row.chapter) {
@@ -268,6 +294,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 }
             });
             return Array.from(unique).sort((a, b) => {
+                const idxA = savedOrder.indexOf(a);
+                const idxB = savedOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
                 const orderA = orderMap.get(a) || 0;
                 const orderB = orderMap.get(b) || 0;
                 if (orderA !== orderB) return orderB - orderA;
@@ -276,6 +307,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         },
         enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });
+
+    useEffect(() => {
+        if (chapters) {
+            setCurrentChaptersList(chapters);
+        }
+    }, [chapters, setCurrentChaptersList]);
 
     const { data: examsData, isLoading: loadingExams } = useQuery({
         queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
