@@ -79,21 +79,30 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
   const queryClient = useQueryClient();
 
   const { data: fetchedItems, isLoading, isError } = useQuery({
-    queryKey: ["admin-course-items", courseId, resourceType],
+    queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, courseName],
     queryFn: async () => {
-      if (!courseId) return [];
+      // Allow passing without courseId if we are managing global readymade/archive exams
+      if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return [];
       
       let query = supabase.from(resourceType).select("*");
       
-      // We want to fetch items where course_id = courseId 
-      // OR shared_course_ids contains courseId 
-      // OR archive_course_ids contains courseId
-      // For exams, wait, do exams have shared_course_ids?
-      // Let's just fetch everything for this courseId. If columns don't exist, it might error, but we'll try safely.
-      if (resourceType === 'classes') {
-          query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}}`);
+      if (courseId) {
+          if (courseName === "Readymade Exams" && resourceType === "exams") {
+              query = query.eq("is_readymade", true).or(`course_id.eq.${courseId},course_id.is.null,shared_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
+          } else {
+              if (resourceType === 'classes') {
+                  query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}}`);
+              } else {
+                  query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
+              }
+          }
       } else {
-          query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
+          // Fallback if courseId is null but we're in specific global views
+          if (courseName === "Readymade Exams" && resourceType === "exams") {
+              query = query.eq("is_readymade", true);
+          } else if (courseName === "Archive Classes" && resourceType === "classes") {
+              // Can't effectively fetch "all archives" efficiently without a flag, but usually courseId is provided.
+          }
       }
 
       if (subjectFilter) {
