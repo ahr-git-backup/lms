@@ -237,7 +237,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
             let query = supabase
                 .from("exams")
-                .select("chapter, course_id, shared_course_ids")
+                .select("chapter, course_id, shared_course_ids, sort_order")
                 .eq("is_readymade", true)
                 .eq("is_published", true)
                 .contains("subject", [selectedSubject]);
@@ -255,11 +255,24 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             const { data } = await query;
 
             const unique = new Set<string>();
+            const orderMap = new Map<string, number>();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data?.forEach((row: any) => {
-                if (row.chapter) unique.add(row.chapter);
+                if (row.chapter) {
+                    unique.add(row.chapter);
+                    const currentMax = orderMap.get(row.chapter) || 0;
+                    const itemOrder = row.sort_order || 0;
+                    if (itemOrder > currentMax) {
+                        orderMap.set(row.chapter, itemOrder);
+                    }
+                }
             });
-            return Array.from(unique).sort();
+            return Array.from(unique).sort((a, b) => {
+                const orderA = orderMap.get(a) || 0;
+                const orderB = orderMap.get(b) || 0;
+                if (orderA !== orderB) return orderB - orderA;
+                return a.localeCompare(b);
+            });
         },
         enabled: !!selectedSubject && !selectedChapter && !searchQuery
     });

@@ -74,30 +74,43 @@ const CourseView = () => {
       // Fetch chapters from classes
       const { data: classData } = await supabase
         .from("classes")
-        .select("chapter")
+        .select("chapter, sort_order")
         .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
         .contains("subject", [selectedSubject]);
 
       // Fetch chapters from exams
       const { data: examData } = await supabase
         .from("exams")
-        .select("chapter")
+        .select("chapter, sort_order")
         .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
         .contains("subject", [selectedSubject])
         .eq("is_published", true);
 
       const unique = new Set<string>();
+      const orderMap = new Map<string, number>();
 
       const processChapters = (data: any[]) => {
           data?.forEach(row => {
-              if (row.chapter) unique.add(row.chapter);
+              if (row.chapter) {
+                  unique.add(row.chapter);
+                  const currentMax = orderMap.get(row.chapter) || 0;
+                  const itemOrder = row.sort_order || 0;
+                  if (itemOrder > currentMax) {
+                      orderMap.set(row.chapter, itemOrder);
+                  }
+              }
           });
       };
 
       processChapters(classData || []);
       processChapters(examData || []);
 
-      return Array.from(unique).sort();
+      return Array.from(unique).sort((a, b) => {
+          const orderA = orderMap.get(a) || 0;
+          const orderB = orderMap.get(b) || 0;
+          if (orderA !== orderB) return orderB - orderA; // higher first
+          return a.localeCompare(b); // fallback to alphabetical
+      });
     },
     enabled: !!courseId && !!selectedSubject
   });
