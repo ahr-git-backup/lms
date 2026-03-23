@@ -121,8 +121,7 @@ const Readymade = () => {
       </div>
 
       {isAdmin && selectedChapter && (
-          <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
-              <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+          <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
           </div>
       )}
