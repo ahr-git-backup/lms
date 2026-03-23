@@ -123,7 +123,15 @@ export default function CourseDashboard() {
             id,
             full_name,
             registration_id,
-            phone
+            phone,
+            school,
+            college_name,
+            hsc_batch,
+            is_second_timer,
+            father_name,
+            mother_name,
+            ssc_gpa,
+            hsc_gpa
           )
         `)
         .eq("course_id", courseId)
@@ -358,6 +366,9 @@ export default function CourseDashboard() {
                   <thead className="bg-muted/50 text-xs uppercase">
                     <tr>
                       <th className="px-4 py-3">Student Name</th>
+                      <th className="px-4 py-3 hidden md:table-cell">Contact</th>
+                      <th className="px-4 py-3 hidden lg:table-cell">College</th>
+                      <th className="px-4 py-3 hidden xl:table-cell">Batch Info</th>
                       <th className="px-4 py-3">Enrollment Date</th>
                       <th className="px-4 py-3 text-right">Details</th>
                     </tr>
@@ -369,6 +380,16 @@ export default function CourseDashboard() {
                         <td className="px-4 py-3">
                            <div className="font-medium">{enrollment.profile?.full_name || "Unknown"}</div>
                            <div className="text-xs text-muted-foreground mt-0.5">ID: {enrollment.profile?.registration_id || "N/A"}</div>
+                        </td>
+                        <td className="px-4 py-3 hidden md:table-cell">
+                            <div className="text-sm">{enrollment.profile?.phone || "N/A"}</div>
+                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-sm">
+                            {enrollment.profile?.college_name || enrollment.profile?.school || "N/A"}
+                        </td>
+                        <td className="px-4 py-3 hidden xl:table-cell">
+                            <div className="text-sm">Batch: {enrollment.profile?.hsc_batch || "N/A"}</div>
+                            {enrollment.profile?.is_second_timer && <span className="text-xs text-red-500 font-medium">2nd Timer</span>}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-right">

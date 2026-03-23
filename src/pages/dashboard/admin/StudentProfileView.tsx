@@ -45,12 +45,13 @@ export default function StudentProfileView() {
       // 2. Fetch all exams belonging to these courses to know total pool
       const { data: exams } = await supabase
         .from("exams")
-        .select("id, course_id, shared_course_ids, title, exam_type");
+        .select("id, course_id, shared_course_ids, is_readymade, readymade_course_ids, title, exam_type")
+        .eq("is_published", true);
 
       // 3. Fetch all classes
       const { data: classes } = await supabase
         .from("classes")
-        .select("id, course_id, shared_course_ids, title");
+        .select("id, course_id, shared_course_ids, archive_course_ids, title");
 
       // 4. Fetch all exam attempts
       const { data: attempts } = await supabase
@@ -61,8 +62,8 @@ export default function StudentProfileView() {
 
       // Group by course
       const courseProgress = enrollments?.map(enrollment => {
-        const courseExams = exams?.filter(e => e.course_id === enrollment.course_id || (e.shared_course_ids && e.shared_course_ids.includes(enrollment.course_id))) || [];
-        const courseClasses = classes?.filter(c => c.course_id === enrollment.course_id || (c.shared_course_ids && c.shared_course_ids.includes(enrollment.course_id))) || [];
+        const courseExams = exams?.filter(e => e.course_id === enrollment.course_id || (e.shared_course_ids && e.shared_course_ids.includes(enrollment.course_id)) || (e.is_readymade && (!e.course_id || e.readymade_course_ids?.includes(enrollment.course_id)))) || [];
+        const courseClasses = classes?.filter(c => c.course_id === enrollment.course_id || (c.shared_course_ids && c.shared_course_ids.includes(enrollment.course_id)) || (c.archive_course_ids && c.archive_course_ids.includes(enrollment.course_id))) || [];
         
         const liveExams = courseExams.filter(e => e.exam_type === 'live');
         const practiceExams = courseExams.filter(e => e.exam_type === 'practice');
@@ -309,7 +310,11 @@ export default function StudentProfileView() {
                       ) : (
                           <div className="space-y-4">
                               {analytics?.recentAttempts.map((attempt) => (
-                                  <div key={attempt.id} className="flex justify-between items-center p-3 border rounded-lg bg-card">
+                                  <div
+                                    key={attempt.id}
+                                    className="flex justify-between items-center p-3 border rounded-lg bg-card cursor-pointer hover:bg-muted/50 transition-colors"
+                                    onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
+                                  >
                                       <div>
                                           <div className="font-semibold flex items-center gap-2">
                                               <span>{attempt.examTitle}</span>
@@ -323,6 +328,7 @@ export default function StudentProfileView() {
                                       </div>
                                       <div className="text-right">
                                           <div className="font-bold text-lg text-primary">{attempt.score?.toFixed(2)} Score</div>
+                                          <div className="text-xs text-primary font-medium mt-0.5">View details →</div>
                                       </div>
                                   </div>
                               ))}

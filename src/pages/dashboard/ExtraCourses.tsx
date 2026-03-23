@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { Gift, BookOpen } from "lucide-react";
+import { Gift, BookOpen, Search } from "lucide-react";
 
 const ExtraCourses = () => {
   const { data: enrollments, isLoading } = useEnrollments();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     document.title = "Extra Courses – Atlas";
@@ -32,16 +34,35 @@ const ExtraCourses = () => {
     );
   }
 
+  const filteredCourses = extraCourses.filter((enrollment: any) =>
+      enrollment.course?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      enrollment.course?.short_description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Extra Courses</h1>
-        <p className="text-sm text-muted-foreground">Bonus content included with your enrollments.</p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Extra Courses</h1>
+          <p className="text-sm text-muted-foreground">Bonus content included with your enrollments.</p>
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+              placeholder="Search extra courses..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </header>
 
+      {filteredCourses.length === 0 && searchQuery ? (
+          <div className="text-center py-12 text-muted-foreground">No extra courses found matching "{searchQuery}".</div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-        {extraCourses.map((enrollment: any) => (
+        {filteredCourses.map((enrollment: any) => (
           <Card key={enrollment.id} className="flex flex-col h-full transition-all duration-300 hover:shadow-md hover:border-purple-500 group">
              <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-purple-50 dark:bg-purple-950/20 relative flex items-center justify-center">
                 {enrollment.course?.image_url ? (
@@ -79,6 +100,7 @@ const ExtraCourses = () => {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 };

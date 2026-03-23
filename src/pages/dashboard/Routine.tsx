@@ -14,6 +14,19 @@ const Routine = () => {
 
   const { data: enrollments } = useEnrollments();
 
+  const { data: courseRoutinesCount } = useQuery({
+    queryKey: ["all-routines-count", enrollments?.map(e => e.course_id)],
+    queryFn: async () => {
+        if (!enrollments || enrollments.length === 0) return {};
+        const courseIds = enrollments.map(e => e.course_id);
+        const { data } = await supabase.from("routines").select("course_id").in("course_id", courseIds);
+        const counts: Record<string, number> = {};
+        data?.forEach(r => counts[r.course_id] = (counts[r.course_id] || 0) + 1);
+        return counts;
+    },
+    enabled: !!enrollments && enrollments.length > 0
+  });
+
   useEffect(() => {
     document.title = "Routine – Atlas";
   }, []);
@@ -41,9 +54,13 @@ const Routine = () => {
 
             {!enrollments || enrollments.length === 0 ? (
                  <div className="text-center py-12 text-muted-foreground">You are not enrolled in any courses.</div>
-            ) : (
+            ) : courseRoutinesCount && Object.keys(courseRoutinesCount).length === 0 ? (
+                 <div className="text-center py-12 text-muted-foreground">No routines available for your enrolled courses yet.</div>
+            ) : courseRoutinesCount ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {enrollments.map((enrollment) => (
+                    {enrollments
+                        .filter(enrollment => courseRoutinesCount[enrollment.course_id] > 0)
+                        .map((enrollment) => (
                         <Card
                             key={enrollment.course_id}
                             className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
@@ -56,7 +73,7 @@ const Routine = () => {
                                 <CardTitle className="text-lg group-hover:text-primary transition-colors">
                                     {enrollment.course.name}
                                 </CardTitle>
-                                <CardDescription>Click to view routines</CardDescription>
+                                <CardDescription>{courseRoutinesCount[enrollment.course_id]} Routine(s) available</CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex justify-end">
@@ -66,6 +83,8 @@ const Routine = () => {
                         </Card>
                     ))}
                 </div>
+            ) : (
+                <div className="text-center py-12 text-muted-foreground">Loading routines...</div>
             )}
         </div>
     );

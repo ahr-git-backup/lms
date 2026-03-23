@@ -11,7 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Loader2, Check, X, RefreshCw, Inbox, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Check, X, RefreshCw, Inbox, ChevronLeft, ChevronRight, Volume2, VolumeX, Search } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -21,6 +22,16 @@ const AdminPayments = () => {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          if (searchQuery !== debouncedSearch) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     // Check for pending payments and beep
@@ -46,17 +57,23 @@ const AdminPayments = () => {
   }, [isMuted]);
 
   const { data: requestsData, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ["admin-payment-requests", page],
+    queryKey: ["admin-payment-requests", page, debouncedSearch],
     queryFn: async () => {
       // Fetch requests with relations
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("payment_requests")
         .select(`
             id, created_at, phone, trx_id, payment_method, status, profile_id, course_id,
             profiles (full_name, registration_id),
             courses (name, price)
         `, { count: 'exact' })
-        .eq("status", "pending")
+        .eq("status", "pending");
+
+      if (debouncedSearch) {
+          query = query.or(`trx_id.ilike.%${debouncedSearch}%,phone.ilike.%${debouncedSearch}%`);
+      }
+
+      const { data, error, count } = await query
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
@@ -103,32 +120,43 @@ const AdminPayments = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-card p-4 rounded-lg border shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-card p-4 rounded-lg border shadow-sm gap-4">
         <div>
             <h1 className="text-xl font-bold tracking-tight">Payment Requests</h1>
             <p className="text-sm text-muted-foreground">Review and approve student enrollments.</p>
         </div>
-        <div className="flex gap-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsMuted(!isMuted)}
-                className="gap-2"
-                title={isMuted ? "Unmute notification sound" : "Mute notification sound"}
-            >
-                {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                {isMuted ? "Muted" : "Sound On"}
-            </Button>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => refetch()}
-                disabled={isRefetching}
-                className="gap-2"
-            >
-                <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
-                Refresh
-            </Button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-end sm:items-center">
+            <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search TrxID or Phone..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 h-9"
+                />
+            </div>
+            <div className="flex gap-2 shrink-0">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsMuted(!isMuted)}
+                    className="gap-2 h-9"
+                    title={isMuted ? "Unmute notification sound" : "Mute notification sound"}
+                >
+                    {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                    <span className="hidden sm:inline">{isMuted ? "Muted" : "Sound On"}</span>
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setPage(0); refetch(); }}
+                    disabled={isRefetching || isLoading}
+                    className="gap-2 h-9"
+                >
+                    <RefreshCw className={`h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Refresh</span>
+                </Button>
+            </div>
         </div>
       </div>
 

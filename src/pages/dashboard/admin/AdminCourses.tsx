@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink, Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -103,6 +103,8 @@ const AdminCourses = () => {
   const [selectedCourseForCoupon, setSelectedCourseForCoupon] = useState<Course | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   // Local state for dropdown options (will be populated from DB)
   const [existingCategories, setExistingCategories] = useState<Option[]>([]);
@@ -113,15 +115,29 @@ const AdminCourses = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+      const timer = setTimeout(() => {
+          setDebouncedSearch(searchQuery);
+          if (searchQuery !== debouncedSearch) setPage(0);
+      }, 500);
+      return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  useEffect(() => {
     document.title = "Admin – Courses – Atlas";
   }, []);
 
   const { data: coursesData, isLoading } = useQuery({
-    queryKey: ["admin-courses", page],
+    queryKey: ["admin-courses", page, debouncedSearch],
     queryFn: async () => {
-      const { data, error, count } = await supabase
+      let query = supabase
         .from("courses")
-        .select("*", { count: 'exact' })
+        .select("*", { count: 'exact' });
+
+      if (debouncedSearch) {
+          query = query.ilike("name", `%${debouncedSearch}%`);
+      }
+
+      const { data, error, count } = await query
         .order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
@@ -844,8 +860,17 @@ const AdminCourses = () => {
 
       {/* Courses List Section - Removed Card Wrapper */}
       <div className="space-y-4 pt-8 border-t">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">All Courses</h2>
+            <div className="relative w-full sm:w-96">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                    placeholder="Search courses by name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9"
+                />
+            </div>
         </div>
 
         {isLoading ? (
