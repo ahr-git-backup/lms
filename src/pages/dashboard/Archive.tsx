@@ -20,8 +20,7 @@ const Archive = () => {
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const { data: enrollments } = useEnrollments();
-  const { profile } = useAuth();
-  const isAdmin = profile?.role === "admin";
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   // Search & Pagination State (Global for this page context, reset when tab changes)
@@ -76,7 +75,8 @@ const Archive = () => {
       </div>
 
       {isAdmin && selectedChapter && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
+              <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
               <Button variant="outline" size="sm" onClick={() => setManageType("classes")}>Manage Classes Order</Button>
               <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
           </div>
