@@ -67,6 +67,7 @@ const formSchema = z.object({
   trx_id: z.string().min(5, "Transaction ID is too short"),
   phone: z.string().min(11, "Phone number must be at least 11 digits"),
   payment_method: z.enum(["bkash", "nagad"], { required_error: "Please select a payment method" }),
+  google_form_filled: z.boolean().refine(val => val === true, { message: "You must fill the google form first." }),
 });
 
 const CourseBuy = () => {
@@ -106,6 +107,7 @@ const CourseBuy = () => {
       trx_id: "",
       phone: profile?.phone || "",
       payment_method: "bkash",
+      google_form_filled: false,
     },
   });
 
@@ -253,7 +255,7 @@ const CourseBuy = () => {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
         if (!user || !course) throw new Error("Authentication required");
 
-        const { data } = await (supabase.from as any)("payment_requests").insert({
+        const { data, error } = await (supabase.from as any)("payment_requests").insert({
             profile_id: user.id,
             course_id: course.id,
             trx_id: values.trx_id,
@@ -495,7 +497,19 @@ const CourseBuy = () => {
                 <div className="space-y-4">
                     <div className="flex items-center gap-2 text-base font-bold text-primary">
                         <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
-                        Step 2: Submit Details
+                        Step 2: Fill out Google Form
+                    </div>
+                    <div className="bg-muted/50 p-6 rounded-lg border space-y-4">
+                        <p className="text-sm font-medium">সেন্ড মানি করার পর নিচের ফর্মটি ফিলাপ করো:</p>
+                        <Button asChild variant="default" className="w-full sm:w-auto">
+                            <a href="https://forms.gle/9qWistyLQgJL4K3v9" target="_blank" rel="noopener noreferrer">Open Google Form</a>
+                        </Button>
+                        <p className="text-xs text-muted-foreground mt-2">[ফর্ম ফিলাপ করে ফর্মে দেওয়া নির্দেশনা ফলো করবা]</p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-base font-bold text-primary mt-6">
+                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">3</span>
+                        Step 3: Submit Details
                     </div>
 
                     {!user ? (
@@ -537,6 +551,29 @@ const CourseBuy = () => {
                     ) : (
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border p-6 rounded-lg bg-card shadow-sm">
+                                <FormField
+                                    control={form.control}
+                                    name="google_form_filled"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/20">
+                                            <FormControl>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={field.value}
+                                                    onChange={field.onChange}
+                                                    className="w-4 h-4 mt-1 border-primary rounded text-primary focus:ring-primary"
+                                                />
+                                            </FormControl>
+                                            <div className="space-y-1 leading-none flex-1">
+                                                <FormLabel className="font-semibold cursor-pointer">I have selected and filled out the Google Form completely.</FormLabel>
+                                                <FormMessage />
+                                            </div>
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {form.watch('google_form_filled') && (
+                                    <>
                                 <FormField
                                 control={form.control}
                                 name="payment_method"
@@ -604,6 +641,8 @@ const CourseBuy = () => {
                                     {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Submit Payment Proof
                                 </Button>
+                                    </>
+                                )}
                             </form>
                         </Form>
                     )}

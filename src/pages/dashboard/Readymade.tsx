@@ -9,13 +9,18 @@ import { Input } from "@/components/ui/input";
 import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { useAuth } from "@/contexts/AuthContext";
+import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 
 const PAGE_SIZE = 15;
 
 const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const { data: enrollments } = useEnrollments();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
   const navigate = useNavigate();
 
   // Search & Pagination State
@@ -115,6 +120,12 @@ const Readymade = () => {
           </div>
       </div>
 
+      {isAdmin && selectedChapter && (
+          <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
+          </div>
+      )}
+
       <ReadymadeExamView
             enrollments={enrollments}
             selectedSubject={selectedSubject}
@@ -127,6 +138,17 @@ const Readymade = () => {
             setPage={setPage}
             selectedParentTopics={selectedParentTopics}
       />
+
+      {manageType && (
+        <CourseItemsManagerDialog
+          courseId={enrollments?.[0]?.course_id}
+          courseName="Readymade Exams"
+          subjectFilter={selectedSubject}
+          chapterFilter={selectedChapter}
+          resourceType={manageType}
+          onClose={() => setManageType(null)}
+        />
+      )}
     </div>
   );
 };
