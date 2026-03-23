@@ -38,7 +38,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
     if (permission === "granted") {
       new Notification(title, {
-          icon: "/public/favicon.png", // Assuming a favicon exists, or use a logo URL
+          icon: "/favicon.png", // Assuming a favicon exists, or use a logo URL
           ...options
       });
     } else {

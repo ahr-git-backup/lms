@@ -120,7 +120,8 @@
 
 @layer base {
   html {
-      font-size: 17px;
+      /* Fluid typography: base 16px, scales with viewport, max 22px */
+      font-size: clamp(16px, 1.2vw + 12px, 22px);
   }
   * {
     @apply border-border;
@@ -137,9 +138,9 @@
       @apply bg-card text-card-foreground shadow-sm rounded-lg border;
   }
 
-  /* Global fix for cards to ensure they resize properly */
+  /* Global fix for cards to ensure they resize properly and have better visibility */
   .card, [class*="card"] {
-      @apply break-words min-w-0;
+      @apply break-words min-w-0 shadow-sm hover:shadow-lg transition-all duration-300 border-2 border-primary/5 hover:border-primary/20 bg-card;
       overflow-wrap: break-word;
       word-break: normal; /* Fixed: 'break-word' was causing aggressive breaking */
   }
