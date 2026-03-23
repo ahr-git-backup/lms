@@ -40,6 +40,46 @@ export default function CourseDashboard() {
     enabled: !!courseId,
   });
 
+  // Fetch exam attempts for this course
+  const { data: attemptsStats } = useQuery({
+    queryKey: ["course-attempts-stats", courseId],
+    queryFn: async () => {
+      if (!courseId) return null;
+
+      const { data: examsInCourse } = await supabase
+        .from("exams")
+        .select("id")
+        .eq("course_id", courseId);
+
+      if (!examsInCourse || examsInCourse.length === 0) return { avgScore: 0, totalAttempts: 0 };
+
+      const examIds = examsInCourse.map(e => e.id);
+
+      const { data: attempts } = await supabase
+        .from("exam_attempts")
+        .select("score, total_marks")
+        .in("exam_id", examIds);
+
+      if (!attempts || attempts.length === 0) return { avgScore: 0, totalAttempts: 0 };
+
+      let totalPercent = 0;
+      let validAttempts = 0;
+
+      attempts.forEach(a => {
+        if (a.total_marks > 0) {
+          totalPercent += (a.score / a.total_marks) * 100;
+          validAttempts++;
+        }
+      });
+
+      return {
+        avgScore: validAttempts > 0 ? Math.round(totalPercent / validAttempts) : 0,
+        totalAttempts: attempts.length
+      };
+    },
+    enabled: !!courseId,
+  });
+
   // Fetch classes
   const { data: classes, isLoading: loadingClasses } = useQuery({
     queryKey: ["course-classes", courseId],
@@ -147,39 +187,32 @@ export default function CourseDashboard() {
         </Card>
         <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 hover:shadow-md transition-all border-none">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Completion</CardTitle>
+            <CardTitle className="text-sm font-medium">Avg. Score</CardTitle>
             <TrendingUp className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">64%</div>
-            <p className="text-xs text-muted-foreground mt-1">Acros all enrolled students</p>
+            <div className="text-2xl font-bold">{attemptsStats?.avgScore || 0}%</div>
+            <p className="text-xs text-muted-foreground mt-1">Avg Score in Exams</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-6 md:grid-cols-7">
-        <Card className="md:col-span-4 border-none shadow-sm bg-card/50 backdrop-blur-sm">
+        <Card className="md:col-span-4 border-none shadow-sm bg-card/50 backdrop-blur-sm flex flex-col">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" /> Engagement Analytics
             </CardTitle>
             <CardDescription>
-              Student engagement and content consumption over time (Mock Data)
+              Student engagement and content consumption overview
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full flex items-end justify-between gap-2 pt-4 px-2">
-              {[40, 70, 45, 90, 65, 85, 100].map((height, i) => (
-                <div key={i} className="w-full flex flex-col items-center gap-2 group">
-                  <div 
-                    className="w-full bg-primary/20 hover:bg-primary/40 rounded-t-sm transition-all relative overflow-hidden" 
-                    style={{ height: `${height}%` }}
-                  >
-                     <div className="absolute inset-x-0 bottom-0 bg-primary/40" style={{ height: `${height * 0.6}%`}} />
-                  </div>
-                  <span className="text-xs text-muted-foreground">Day {i + 1}</span>
+          <CardContent className="flex-1 flex flex-col justify-center">
+            <div className="h-[200px] w-full flex items-center justify-center p-4 text-center">
+                <div>
+                    <p className="text-5xl font-bold text-primary mb-2">{attemptsStats?.totalAttempts || 0}</p>
+                    <p className="text-muted-foreground">Total Exam Attempts from All Students</p>
                 </div>
-              ))}
             </div>
           </CardContent>
         </Card>

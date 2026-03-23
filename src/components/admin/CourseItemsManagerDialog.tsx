@@ -27,6 +27,8 @@ interface CourseItemsManagerDialogProps {
   courseId: string | null;
   courseName: string;
   resourceType: "classes" | "exams";
+  subjectFilter?: string | null;
+  chapterFilter?: string | null;
   onClose: () => void;
 }
 
@@ -70,7 +72,7 @@ function SortableListItem({ item, index }: { item: ItemBase; index: number }) {
   );
 }
 
-export function CourseItemsManagerDialog({ courseId, courseName, resourceType, onClose }: CourseItemsManagerDialogProps) {
+export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, onClose }: CourseItemsManagerDialogProps) {
   const [items, setItems] = useState<ItemBase[]>([]);
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
@@ -91,7 +93,14 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, o
       if (resourceType === 'classes') {
           query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}}`);
       } else {
-          query = query.or(`course_id.eq.${courseId}`);
+          query = query.or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}},archive_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
+      }
+
+      if (subjectFilter) {
+          query = query.contains("subject", [subjectFilter]);
+      }
+      if (chapterFilter) {
+          query = query.eq("chapter", chapterFilter);
       }
       
       const { data, error } = await query;

@@ -8,14 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
+import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 
 const CourseView = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { data: enrollments } = useEnrollments();
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === "admin";
 
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
 
   const enrollment = enrollments?.find((e: any) => e.course_id === courseId);
 
@@ -130,6 +135,13 @@ const CourseView = () => {
           </div>
       </div>
 
+      {isAdmin && selectedChapter && (
+          <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setManageType("classes")}>Manage Classes Order</Button>
+              <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
+          </div>
+      )}
+
       {!selectedSubject ? (
           <div className="space-y-4">
               <h2 className="text-lg font-semibold">Subjects</h2>
@@ -168,6 +180,17 @@ const CourseView = () => {
           </div>
       ) : (
           <CourseContentTabs courseId={courseId!} subject={selectedSubject} chapter={selectedChapter} />
+      )}
+
+      {manageType && (
+        <CourseItemsManagerDialog
+          courseId={courseId!}
+          courseName={enrollment?.course?.name || "Course"}
+          subjectFilter={selectedSubject}
+          chapterFilter={selectedChapter}
+          resourceType={manageType}
+          onClose={() => setManageType(null)}
+        />
       )}
     </div>
   );
