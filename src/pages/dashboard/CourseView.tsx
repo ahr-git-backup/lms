@@ -62,7 +62,17 @@ const CourseView = () => {
       processSubjects(classData || []);
       processSubjects(examData || []);
 
-      return Array.from(unique).sort();
+      const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
+            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+
+            return Array.from(unique).sort((a, b) => {
+                const idxA = savedOrder.indexOf(a);
+                const idxB = savedOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b);
+            });
     },
     enabled: !!courseId
   });
@@ -88,7 +98,7 @@ const CourseView = () => {
         .contains("subject", [selectedSubject])
         .eq("is_published", true);
 
-      const settingsKey = `chapter_order_${courseId || 'global'}_${selectedSubject}`;
+      const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
 
       const unique = new Set<string>();

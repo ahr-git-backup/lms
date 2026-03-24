@@ -65,7 +65,7 @@ export function ChapterSortDialog({ courseId, subject, chapters, contextName, on
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const settingsKey = `chapter_order_${courseId || 'global'}_${subject}`;
+  const settingsKey = `chapter_order_global_${subject}`;
 
   useEffect(() => {
     setItems([...chapters]);
