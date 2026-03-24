@@ -278,7 +278,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
 
-            const settingsKey = `chapter_order_${enrolledIds[0] || 'global'}_${selectedSubject}`;
+            const settingsKey = `chapter_order_global_${selectedSubject}`;
             const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
             const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 

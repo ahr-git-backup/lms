@@ -88,7 +88,7 @@ const CourseView = () => {
         .contains("subject", [selectedSubject])
         .eq("is_published", true);
 
-      const settingsKey = `chapter_order_${courseId || 'global'}_${selectedSubject}`;
+      const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
 
       const unique = new Set<string>();

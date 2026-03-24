@@ -200,7 +200,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
 
-            const settingsKey = `chapter_order_${courseIds[0] || 'global'}_${selectedSubject}`;
+            const settingsKey = `chapter_order_global_${selectedSubject}`;
             const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
             const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 
@@ -485,7 +485,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             const unique = new Set<string>();
             const orderMap = new Map<string, number>();
 
-            const settingsKey = `chapter_order_${courseIds[0] || 'global'}_${selectedSubject}`;
+            const settingsKey = `chapter_order_global_${selectedSubject}`;
             const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
             const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 
