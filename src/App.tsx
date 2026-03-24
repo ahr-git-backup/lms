@@ -73,6 +73,7 @@ import PublicExamEntry from "./pages/public/PublicExamEntry";
 import FreeClass from "./pages/public/FreeClass";
 import FreeExam from "./pages/public/FreeExam";
 import StudentProfileView from "./pages/dashboard/admin/StudentProfileView";
+import StudentCourseResults from "./pages/dashboard/admin/StudentCourseResults";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 const queryClient = new QueryClient({
@@ -196,6 +197,7 @@ const App = () => {
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
                 <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />
                 <Route path="student/:studentId" element={<ProtectedRoute requireAdmin><StudentProfileView /></ProtectedRoute>} />
+                <Route path="student/:studentId/course-results/:courseId" element={<ProtectedRoute requireAdmin><StudentCourseResults /></ProtectedRoute>} />
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

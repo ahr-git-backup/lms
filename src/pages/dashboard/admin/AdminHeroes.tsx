@@ -49,6 +49,8 @@ const specialExamSchema = z.object({
   instructions: z.string().optional(),
   image_url: z.string().optional(),
   action_link: z.string().optional(),
+  button_text: z.string().optional(),
+  card_type: z.enum(['exam', 'announcement']).default('exam'),
   display_order: z.coerce.number().default(0),
   is_active: z.boolean().default(true),
 });
@@ -87,6 +89,8 @@ const AdminHeroes = () => {
       instructions: "",
       image_url: "",
       action_link: "",
+      button_text: "বিস্তারিত দেখুন",
+      card_type: "exam",
       display_order: 0,
       is_active: true,
     },
@@ -96,7 +100,7 @@ const AdminHeroes = () => {
     queryKey: ["admin-heroes"],
     queryFn: async () => {
       // @ts-ignore
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("heroes")
         .select("*")
         .order("display_order", { ascending: true });
@@ -112,7 +116,7 @@ const AdminHeroes = () => {
     queryKey: ["admin-special-exams"],
     queryFn: async () => {
       // @ts-ignore
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("special_exam_cards")
         .select("*")
         .order("display_order", { ascending: true });
@@ -128,14 +132,14 @@ const AdminHeroes = () => {
     mutationFn: async (values: HeroFormValues) => {
       if (editingId) {
         // @ts-ignore
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("heroes")
           .update(values)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         // @ts-ignore
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("heroes")
           .insert(values);
         if (error) throw error;
@@ -161,14 +165,14 @@ const AdminHeroes = () => {
     mutationFn: async (values: SpecialExamFormValues) => {
       if (editingId) {
         // @ts-ignore
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("special_exam_cards")
           .update(values)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         // @ts-ignore
-        const { error } = await supabase
+        const { error } = await (supabase as any)
           .from("special_exam_cards")
           .insert(values);
         if (error) throw error;
@@ -258,6 +262,8 @@ const AdminHeroes = () => {
       instructions: exam.instructions || "",
       image_url: exam.image_url || "",
       action_link: exam.action_link || "",
+      button_text: exam.button_text || "বিস্তারিত দেখুন",
+      card_type: exam.card_type || "exam",
       display_order: exam.display_order,
       is_active: exam.is_active,
     });
@@ -285,7 +291,9 @@ const AdminHeroes = () => {
       details: "",
       instructions: "",
       image_url: "",
-      action_link: "/open-exam/",
+      action_link: "",
+      button_text: "বিস্তারিত দেখুন",
+      card_type: "exam",
       display_order: 0,
       is_active: true,
     });
@@ -297,14 +305,14 @@ const AdminHeroes = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold tracking-tight">Manage Landing Page content</h2>
-          <p className="text-muted-foreground">Manage the main banners and special exam cards.</p>
+          <p className="text-muted-foreground">Manage the main banners and special announcements.</p>
         </div>
       </div>
 
       <Tabs defaultValue="heroes">
         <TabsList className="mb-4">
           <TabsTrigger value="heroes">Main Banners</TabsTrigger>
-          <TabsTrigger value="exams">Special Exam Cards</TabsTrigger>
+          <TabsTrigger value="exams">Special Announcements</TabsTrigger>
         </TabsList>
 
         <TabsContent value="heroes" className="space-y-4">
@@ -528,14 +536,14 @@ const AdminHeroes = () => {
             <Dialog open={isSpecialExamDialogOpen} onOpenChange={setIsSpecialExamDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={handleAddNewSpecialExam}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Special Exam
+                  <Plus className="mr-2 h-4 w-4" /> Add Announcement
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                  <DialogTitle>{editingId ? "Edit Special Exam" : "Add Special Exam"}</DialogTitle>
+                  <DialogTitle>{editingId ? "Edit Announcement" : "Add Announcement"}</DialogTitle>
                   <DialogDescription>
-                    Configure the special exam card to display on the landing page immediately under the banners.
+                    Configure the announcement card to display on the landing page immediately under the banners.
                   </DialogDescription>
                 </DialogHeader>
                 <Form {...specialExamForm}>
@@ -559,15 +567,35 @@ const AdminHeroes = () => {
                       )}
                     />
 
+                    <FormField
+                      control={specialExamForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                              <Input placeholder="বিশেষ ঘোষণা..." {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
                     <div className="grid grid-cols-2 gap-4">
                         <FormField
                         control={specialExamForm.control}
-                        name="title"
+                        name="card_type"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Exam Name</FormLabel>
+                            <FormLabel>Card Type</FormLabel>
                             <FormControl>
-                                <Input placeholder="HSC 25 Special Model Test" {...field} />
+                                <select
+                                  {...field}
+                                  className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                                >
+                                  <option value="exam">📋 Exam Card</option>
+                                  <option value="announcement">📢 Announcement Card</option>
+                                </select>
                             </FormControl>
                             <FormMessage />
                             </FormItem>
@@ -593,7 +621,7 @@ const AdminHeroes = () => {
                       name="details"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Exam Details (Bullets)</FormLabel>
+                          <FormLabel>Announcement Details (Bullets)</FormLabel>
                           <FormDescription>Enter details separated by commas or newlines. Will display with icons.</FormDescription>
                           <FormControl>
                             <Textarea placeholder="100 Marks, Negative Marking -0.25, Leaderboard Enabled..." {...field} />
@@ -617,19 +645,34 @@ const AdminHeroes = () => {
                       )}
                     />
 
-                    <FormField
-                    control={specialExamForm.control}
-                    name="action_link"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel>Exam Link (Action Button)</FormLabel>
-                        <FormControl>
-                            <Input placeholder="/open-exam/uuid" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                        control={specialExamForm.control}
+                        name="action_link"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Action Link (Optional)</FormLabel>
+                            <FormControl>
+                                <Input placeholder="https://..." {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                        <FormField
+                        control={specialExamForm.control}
+                        name="button_text"
+                        render={({ field }) => (
+                            <FormItem>
+                            <FormLabel>Button Text</FormLabel>
+                            <FormControl>
+                                <Input placeholder="বিস্তারিত দেখুন" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                            </FormItem>
+                        )}
+                        />
+                    </div>
 
                     <FormField
                         control={specialExamForm.control}
@@ -654,7 +697,7 @@ const AdminHeroes = () => {
 
                     <Button type="submit" className="w-full" disabled={upsertSpecialExamMutation.isPending}>
                       {upsertSpecialExamMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      {editingId ? "Update Exam Card" : "Create Exam Card"}
+                      {editingId ? "Update Announcement" : "Create Announcement"}
                     </Button>
                   </form>
                 </Form>

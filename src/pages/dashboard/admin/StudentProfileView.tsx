@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -12,6 +12,17 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianG
 export default function StudentProfileView() {
   const { studentId } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromCourse = searchParams.get("fromCourse");
+  const fromTab = searchParams.get("fromTab");
+
+  const handleBack = () => {
+    if (fromCourse) {
+      navigate(`/admin/course-dashboard/${fromCourse}?tab=${fromTab || 'students'}`);
+    } else {
+      navigate(-1);
+    }
+  };
 
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ["admin-student-profile", studentId],
@@ -62,8 +73,8 @@ export default function StudentProfileView() {
 
       // Group by course
       const courseProgress = enrollments?.map(enrollment => {
-        const courseExams = exams?.filter(e => e.course_id === enrollment.course_id || (e.shared_course_ids && e.shared_course_ids.includes(enrollment.course_id)) || (e.is_readymade && (!e.course_id || e.readymade_course_ids?.includes(enrollment.course_id)))) || [];
-        const courseClasses = classes?.filter(c => c.course_id === enrollment.course_id || (c.shared_course_ids && c.shared_course_ids.includes(enrollment.course_id)) || (c.archive_course_ids && c.archive_course_ids.includes(enrollment.course_id))) || [];
+        const courseExams = (exams as any)?.filter((e: any) => e.course_id === enrollment.course_id || (e.shared_course_ids && e.shared_course_ids.includes(enrollment.course_id)) || (e.is_readymade && (!e.course_id || e.readymade_course_ids?.includes(enrollment.course_id)))) || [];
+        const courseClasses = (classes as any)?.filter((c: any) => c.course_id === enrollment.course_id || (c.shared_course_ids && c.shared_course_ids.includes(enrollment.course_id)) || (c.archive_course_ids && c.archive_course_ids.includes(enrollment.course_id))) || [];
         
         const liveExams = courseExams.filter(e => e.exam_type === 'live');
         const practiceExams = courseExams.filter(e => e.exam_type === 'practice');
@@ -94,7 +105,7 @@ export default function StudentProfileView() {
       }) || [];
 
       const allAttemptsMapped = attempts?.map(a => {
-          const examInfo = exams?.find(e => e.id === a.exam_id);
+          const examInfo = (exams as any)?.find((e: any) => e.id === a.exam_id);
           const tm = (a as any).exams?.total_marks || 1;
           return {
               ...a,
@@ -146,7 +157,7 @@ export default function StudentProfileView() {
     <div className="space-y-6 pb-12 w-full">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate(-1)} className="h-9 w-9">
+          <Button variant="outline" size="icon" onClick={handleBack} className="h-9 w-9">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -201,21 +212,21 @@ export default function StudentProfileView() {
                               </div>
                           </div>
                       )}
-                      {profile.fathers_name && (
+                      {profile.father_name && (
                           <div className="flex items-center gap-3">
                               <User className="h-4 w-4 text-muted-foreground" />
                               <div>
                                   <div className="text-xs text-muted-foreground">Father's Name</div>
-                                  <div className="font-medium">{profile.fathers_name}</div>
+                                  <div className="font-medium">{profile.father_name}</div>
                               </div>
                           </div>
                       )}
-                      {profile.mothers_name && (
+                      {profile.mother_name && (
                           <div className="flex items-center gap-3">
                               <User className="h-4 w-4 text-muted-foreground" />
                               <div>
                                   <div className="text-xs text-muted-foreground">Mother's Name</div>
-                                  <div className="font-medium">{profile.mothers_name}</div>
+                                  <div className="font-medium">{profile.mother_name}</div>
                               </div>
                           </div>
                       )}
@@ -300,9 +311,20 @@ export default function StudentProfileView() {
                                           <FileText className="h-4 w-4 text-purple-500" />
                                           <div>
                                               <span className="font-semibold">{course.practiceExamsTaken}</span> Practice Exams
-                                              <p className="text-[10px] text-muted-foreground leading-none mt-1">Multiple attempts logged</p>
                                           </div>
                                       </div>
+                                  </div>
+
+                                  <div className="flex justify-center pt-2">
+                                      <Button 
+                                        variant="outline" 
+                                        size="sm" 
+                                        className="text-[10px] h-8 text-primary border-primary/20 hover:bg-primary/5 w-full flex items-center gap-2"
+                                        onClick={() => navigate(`/admin/student/${studentId}/course-results/${course.courseId}`)}
+                                      >
+                                          <FileText className="h-3.5 w-3.5" />
+                                          View Full Exam History
+                                      </Button>
                                   </div>
                               </div>
                           ))
