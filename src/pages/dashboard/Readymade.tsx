@@ -245,7 +245,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                  if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
                  else if (typeof row.subject === 'string') unique.add(row.subject);
             });
-            return Array.from(unique).sort();
+            const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
+            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+
+            return Array.from(unique).sort((a, b) => {
+                const idxA = savedOrder.indexOf(a);
+                const idxB = savedOrder.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b);
+            });
         },
         enabled: !selectedSubject && !searchQuery
     });
