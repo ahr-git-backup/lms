@@ -1,13 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Gift } from "lucide-react";
+import { BookOpen, GraduationCap, Gift, Search } from "lucide-react";
 
 const MyCourses = () => {
   const { data: enrollments, isLoading } = useEnrollments();
   const navigate = useNavigate();
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     document.title = "My Courses – Atlas";
@@ -28,15 +30,34 @@ const MyCourses = () => {
     );
   }
 
+  const filteredEnrollments = enrollments.filter((enrollment: any) =>
+      enrollment.course?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      enrollment.course?.short_description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">My Courses</h1>
-        <p className="text-sm text-muted-foreground">Access your enrolled courses and content.</p>
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">My Courses</h1>
+          <p className="text-sm text-muted-foreground">Access your enrolled courses and content.</p>
+        </div>
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+              placeholder="Search my courses..."
+              className="pl-9"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </header>
 
+      {filteredEnrollments.length === 0 && searchQuery ? (
+          <div className="text-center py-12 text-muted-foreground">No courses found matching "{searchQuery}".</div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {enrollments.map((enrollment: any) => (
+        {filteredEnrollments.map((enrollment: any) => (
           <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50">
             <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-muted/20 relative">
                 {enrollment.course?.image_url ? (
@@ -82,6 +103,7 @@ const MyCourses = () => {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 };

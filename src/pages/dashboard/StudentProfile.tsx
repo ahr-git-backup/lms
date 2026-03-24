@@ -478,45 +478,49 @@ const StudentProfile = () => {
         {/* Enrolled Courses Section */}
         <div className="md:col-span-2 space-y-4">
             <h2 className="text-xl font-semibold tracking-tight">My Enrolled Courses</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="space-y-3">
                 {enrollments?.map((enrollment) => (
-                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group">
-                        <div className="aspect-video bg-muted relative overflow-hidden">
+                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group flex flex-col sm:flex-row items-start sm:items-center p-4 gap-4">
+                        <div className="h-16 w-16 sm:h-14 sm:w-14 bg-muted relative overflow-hidden rounded-md shrink-0">
                              {enrollment.course?.image_url ? (
                                 <img src={enrollment.course.image_url} alt={enrollment.course.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
                              ) : (
                                 <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                    <BookOpen className="h-10 w-10 text-primary/40" />
+                                    <BookOpen className="h-6 w-6 text-primary/40" />
                                 </div>
                              )}
-                             <div className="absolute top-2 right-2 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
-                                Active
-                             </div>
                         </div>
-                        <CardContent className="p-4 space-y-3">
-                            <h3 className="font-bold line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                <span>Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}</span>
+                        <div className="flex-1 space-y-1 w-full min-w-0">
+                            <div className="flex items-center gap-2">
+                                <h3 className="font-bold text-base sm:text-lg line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
+                                <span className="bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
+                                    Active
+                                </span>
                             </div>
-                            <Button asChild variant="outline" size="sm" className="w-full mt-2">
-                                <Link to={`/dashboard/class-notes`}>
-                                    Continue Learning
-                                </Link>
-                            </Button>
-                        </CardContent>
+                            <div className="text-xs text-muted-foreground">
+                                Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}
+                            </div>
+                        </div>
+                        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
+                            <Link to={`/dashboard/course/${enrollment.course_id}`}>
+                                Continue Learning <ArrowRight className="ml-2 h-3 w-3" />
+                            </Link>
+                        </Button>
                     </Card>
                 ))}
 
                 {/* Buy More Card */}
-                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col items-center justify-center text-center p-6 gap-4 cursor-pointer min-h-[250px] bg-muted/10" onClick={() => window.location.href = "/"}>
-                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <PlusCircle className="h-6 w-6" />
+                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col sm:flex-row items-center justify-between p-4 gap-4 cursor-pointer bg-muted/10 group" onClick={() => window.location.href = "/"}>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                            <PlusCircle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-bold mb-1">Enroll in New Course</h3>
+                            <p className="text-sm text-muted-foreground line-clamp-2 max-w-sm">Explore our catalog and boost your preparation.</p>
+                        </div>
                     </div>
-                    <div>
-                        <h3 className="font-semibold">Enroll in New Course</h3>
-                        <p className="text-xs text-muted-foreground mt-1 max-w-[150px] mx-auto">Explore premium courses and boost your preparation.</p>
-                    </div>
-                    <Button variant="ghost" size="sm" className="gap-1">
+                    <Button variant="ghost" size="sm" className="gap-1 hidden sm:flex">
                         Browse Courses <ArrowRight className="h-3 w-3" />
                     </Button>
                 </Card>
