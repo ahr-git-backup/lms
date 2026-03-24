@@ -175,19 +175,18 @@ const ExamReview = () => {
       let rpcErr: any = null;
 
       if (isAdmin) {
-         // Admin: fetch questions directly from exam_questions + question_bank
+         // Admin: fetch questions directly from exam_questions
          const { data: eqData, error: eqError } = await supabase
             .from("exam_questions")
-            .select("question_index, question_id, question_bank(id, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation)")
+            .select("id, question_index, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation")
             .eq("exam_id", attempt.exam_id)
             .order("question_index", { ascending: true });
 
          if (eqError) { console.error("Admin question fetch error:", eqError); }
 
          qData = eqData?.map((eq: any) => ({
-             ...eq.question_bank,
-             question_id: eq.question_id,
-             question_index: eq.question_index
+             ...eq,
+             question_id: eq.id
          })) || [];
       } else {
           const { data, error } = await supabase.rpc("get_student_exam_review", {
