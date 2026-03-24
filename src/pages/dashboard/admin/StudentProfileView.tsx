@@ -192,6 +192,51 @@ export default function StudentProfileView() {
                               <div className="font-medium">{analytics?.globalStats.totalEnrolled || 0} enrolled</div>
                           </div>
                       </div>
+                      {profile.phone && (
+                          <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                  <div className="text-xs text-muted-foreground">Phone</div>
+                                  <div className="font-medium">{profile.phone}</div>
+                              </div>
+                          </div>
+                      )}
+                      {profile.fathers_name && (
+                          <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                  <div className="text-xs text-muted-foreground">Father's Name</div>
+                                  <div className="font-medium">{profile.fathers_name}</div>
+                              </div>
+                          </div>
+                      )}
+                      {profile.mothers_name && (
+                          <div className="flex items-center gap-3">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                  <div className="text-xs text-muted-foreground">Mother's Name</div>
+                                  <div className="font-medium">{profile.mothers_name}</div>
+                              </div>
+                          </div>
+                      )}
+                      {profile.ssc_gpa && (
+                          <div className="flex items-center gap-3">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                  <div className="text-xs text-muted-foreground">SSC GPA</div>
+                                  <div className="font-medium">{profile.ssc_gpa}</div>
+                              </div>
+                          </div>
+                      )}
+                      {profile.hsc_gpa && (
+                          <div className="flex items-center gap-3">
+                              <FileText className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                  <div className="text-xs text-muted-foreground">HSC GPA</div>
+                                  <div className="font-medium">{profile.hsc_gpa}</div>
+                              </div>
+                          </div>
+                      )}
                   </div>
               </CardContent>
           </Card>

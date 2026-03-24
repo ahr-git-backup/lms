@@ -163,11 +163,38 @@ const ExamReview = () => {
       if (!attempt?.id) return [];
 
       // 1. Fetch questions securely via RPC
-      const { data: qData, error: qError } = await supabase.rpc("get_student_exam_review", {
-        p_attempt_id: attempt.id
-      });
+      let qData: any[] = [];
+      let qError: any = null;
 
-      if (qError) throw qError;
+      // If user is admin, directly query. Else use RPC.
+      let rpcData: any = null;
+      let rpcErr: any = null;
+      if (!isAdmin) {
+          const { data, error } = await supabase.rpc("get_student_exam_review", {
+            p_attempt_id: attempt.id
+          });
+          rpcData = data;
+          rpcErr = error;
+      }
+
+      if (isAdmin || (rpcErr && rpcErr.message.includes("Unauthorized") && isAdmin)) {
+         // Admin fallback: fetch questions manually since RPC blocks non-owners
+         const { data: eqData } = await supabase
+            .from("exam_questions")
+            .select("question_index, question_id, question_bank(id, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation)")
+            .eq("exam_id", attempt.exam_id)
+            .order("question_index", { ascending: true });
+
+         qData = eqData?.map((eq: any) => ({
+             ...eq.question_bank,
+             question_id: eq.question_id,
+             question_index: eq.question_index
+         })) || [];
+      } else if (rpcErr) {
+         throw rpcErr;
+      } else {
+         qData = rpcData || [];
+      }
 
       // 2. Fetch bookmarks for this user and these questions
       // We need IDs first
