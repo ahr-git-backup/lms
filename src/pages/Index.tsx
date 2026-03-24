@@ -156,32 +156,79 @@ const Index = () => {
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (
             <section id="special-exams" className="space-y-6">
-                <div className="text-center md:text-left">
-                    <h2 className="text-2xl font-semibold tracking-tight text-primary">স্পেশাল এক্সাম মডেল টেস্ট</h2>
-                    <p className="text-sm text-muted-foreground">আপনার প্রস্তুতি যাচাই করুন স্পেশাল এক্সামের মাধ্যমে।</p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold tracking-tight">বিশেষ ঘোষণা</h2>
+                        <p className="text-sm text-muted-foreground mt-1">গুরুত্বপূর্ণ আপডেট এবং বিশেষ ঘোষণা সমূহ।</p>
+                    </div>
+                    <span className="hidden sm:flex items-center gap-1.5 text-xs font-semibold bg-primary/10 text-primary px-3 py-1.5 rounded-full">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        লাইভ আপডেট
+                    </span>
                 </div>
-                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {specialExams.map((exam: any) => (
-                        <Card key={exam.id} className="overflow-hidden flex flex-col hover:-translate-y-1 transition-all duration-300">
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {(specialExams as any[]).map((exam: any) => {
+                      const isAnnouncement = exam.card_type === 'announcement';
+
+                      if (isAnnouncement) {
+                        return (
+                          <div key={exam.id} className="relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group">
+                            {/* Accent gradient top bar */}
+                            <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
                             {exam.image_url && (
-                                <div className="h-40 w-full overflow-hidden bg-muted">
-                                    <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover hover:scale-105 transition-transform duration-500" />
+                              <div className="h-48 w-full overflow-hidden">
+                                <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                              </div>
+                            )}
+                            <div className="flex flex-grow flex-col gap-3 p-5">
+                              {/* Card badge */}
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20">📢 বিজ্ঞপ্তি</span>
+                              </div>
+                              <h3 className="text-lg font-bold leading-tight text-foreground">{exam.title}</h3>
+                              {exam.details && (
+                                <p className="text-sm text-muted-foreground leading-relaxed">{exam.details}</p>
+                              )}
+                              {exam.instructions && (
+                                <div className="mt-auto rounded-xl bg-white/60 dark:bg-white/5 border border-violet-200/50 dark:border-violet-500/20 px-4 py-3 backdrop-blur-sm">
+                                  <p className="text-xs text-violet-700 dark:text-violet-300 leading-snug font-medium">{exam.instructions}</p>
+                                </div>
+                              )}
+                              {exam.action_link && (
+                                <a
+                                  href={exam.action_link}
+                                  className="mt-2 inline-flex items-center justify-center gap-2 text-sm font-semibold bg-violet-600 hover:bg-violet-700 text-white px-4 py-2 rounded-xl transition-colors"
+                                >
+                                  {exam.button_text || "বিস্তারিত দেখুন"} <ArrowRight className="h-3.5 w-3.5" />
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // ── Exam Card ─────────────────────────────────────────────────
+                      return (
+                        <Card key={exam.id} className="overflow-hidden flex flex-col hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 border-primary/10 hover:border-primary/30 group rounded-2xl">
+                            {exam.image_url && (
+                                <div className="h-44 w-full overflow-hidden bg-muted">
+                                    <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
                                 </div>
                             )}
-                            <CardHeader className="pb-3 border-b bg-primary/5">
-                                <CardTitle className="text-xl font-bold">{exam.title}</CardTitle>
+                            <div className="h-1.5 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
+                            <CardHeader className="pb-3">
+                                <div className="flex items-start gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 mt-0.5">📋 বিশেষ পরীক্ষা</span>
+                                </div>
+                                <CardTitle className="text-xl font-bold mt-2">{exam.title}</CardTitle>
                             </CardHeader>
-                            <CardContent className="flex flex-grow flex-col gap-2 pt-3">
+                            <CardContent className="flex flex-grow flex-col gap-2 pt-0">
                                 {exam.details && (
                                     <div className="space-y-1.5">
-                                        <h4 className="text-xs font-semibold flex items-center gap-1.5">
-                                            <FileText className="h-3.5 w-3.5 text-primary" />
-                                            ডিটেইলস
-                                        </h4>
-                                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs text-muted-foreground">
-                                            {exam.details.split(/[,|\n]+/).filter((d:string) => d.trim().length > 0).map((detail: string, i: number) => (
-                                                <div key={i} className="flex items-start gap-1">
-                                                    <Check className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />
+                                        <div className="grid grid-cols-1 gap-y-1 text-xs text-muted-foreground">
+                                            {exam.details.split(/[,|\n]+/).filter((d: string) => d.trim().length > 0).map((detail: string, i: number) => (
+                                                <div key={i} className="flex items-start gap-2 bg-muted/40 rounded-lg px-3 py-1.5">
+                                                    <Check className="h-3.5 w-3.5 text-green-500 mt-0.5 shrink-0" />
                                                     <span className="text-[11px] leading-tight">{detail.trim()}</span>
                                                 </div>
                                             ))}
@@ -190,7 +237,7 @@ const Index = () => {
                                 )}
                                 
                                 {exam.instructions && (
-                                    <div className="mt-2 text-sm bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex items-start gap-3">
+                                    <div className="mt-2 text-sm bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-xl flex items-start gap-3">
                                         <Lightbulb className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
                                         <p className="text-yellow-700 dark:text-yellow-500/90 text-xs leading-snug font-medium">
                                             {exam.instructions}
@@ -198,18 +245,22 @@ const Index = () => {
                                     </div>
                                 )}
                             </CardContent>
-                            <CardFooter className="pt-2 pb-3">
-                                <Button asChild className="w-full text-sm h-9" size="sm">
-                                    <a href={exam.action_link || "#"}>
-                                        Join Exam <ArrowRight className="ml-2 h-4 w-4" />
-                                    </a>
-                                </Button>
-                            </CardFooter>
+                            {exam.action_link && (
+                                <CardFooter className="pt-2 pb-4">
+                                    <Button asChild className="w-full text-sm h-10 rounded-xl" size="sm">
+                                        <a href={exam.action_link}>
+                                            {exam.button_text || "বিস্তারিত দেখুন"} <ArrowRight className="ml-2 h-4 w-4" />
+                                        </a>
+                                    </Button>
+                                </CardFooter>
+                            )}
                         </Card>
-                    ))}
+                      );
+                    })}
                 </div>
             </section>
         )}
+
 
         {/* Paid Courses Section (Grid View) */}
         <CourseSection />

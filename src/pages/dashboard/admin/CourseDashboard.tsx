@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { ExamForm } from "@/components/admin/ExamForm";
 export default function CourseDashboard() {
   const { courseId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "classes";
   const queryClient = useQueryClient();
   
   const [showClassForm, setShowClassForm] = useState(false);
@@ -57,7 +59,7 @@ export default function CourseDashboard() {
 
       const { data: attempts } = await supabase
         .from("exam_attempts")
-        .select("score, total_marks")
+        .select("score, exams(total_marks)")
         .in("exam_id", examIds);
 
       if (!attempts || attempts.length === 0) return { avgScore: 0, totalAttempts: 0 };
@@ -65,9 +67,10 @@ export default function CourseDashboard() {
       let totalPercent = 0;
       let validAttempts = 0;
 
-      attempts.forEach(a => {
-        if (a.total_marks > 0) {
-          totalPercent += (a.score / a.total_marks) * 100;
+      attempts.forEach((a: any) => {
+        const tm = a.exams?.total_marks || 0;
+        if (tm > 0) {
+          totalPercent += (a.score / tm) * 100;
           validAttempts++;
         }
       });
@@ -250,7 +253,7 @@ export default function CourseDashboard() {
         </Card>
       </div>
 
-      <Tabs defaultValue="classes" className="w-full">
+      <Tabs value={activeTab} onValueChange={(val) => setSearchParams({ tab: val })} className="w-full">
         <TabsList className="flex flex-wrap h-auto bg-muted/50 p-1 w-full justify-start border-b rounded-none rounded-t-lg">
           <TabsTrigger value="classes" className="data-[state=active]:bg-background">Classes</TabsTrigger>
           <TabsTrigger value="exams" className="data-[state=active]:bg-background">Exams</TabsTrigger>
@@ -396,7 +399,7 @@ export default function CourseDashboard() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => navigate(`/admin/student/${enrollment.profile?.id}`)}
+                            onClick={() => navigate(`/admin/student/${enrollment.profile?.id}?fromCourse=${courseId}&fromTab=students`)}
                           >
                             <TrendingUp className="h-4 w-4 mr-2" /> View Details
                           </Button>

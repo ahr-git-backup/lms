@@ -621,6 +621,7 @@ const Leaderboard = () => {
                     {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>}
                     {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Warnings</TableHead>}
                     <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
+                    {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Action</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -714,6 +715,13 @@ const Leaderboard = () => {
                             <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {new Date(attempt.submitted_at).toLocaleString()}
                             </TableCell>
+                            {isStaff && (
+                                <TableCell className="text-right whitespace-nowrap hidden md:table-cell">
+                                    <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                        Review
+                                    </Button>
+                                </TableCell>
+                            )}
                         </TableRow>
                     );
                   })}

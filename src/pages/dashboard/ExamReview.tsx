@@ -148,7 +148,11 @@ const ExamReview = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!attemptId,
   });
+
+  // Detect if admin is reviewing a different student's attempt
+  const isViewingOtherUser = isAdmin && attempt && attempt.profile_id !== user?.id;
 
   // Calculate restriction status
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,7 +162,7 @@ const ExamReview = () => {
   const shouldRestrict = (isRestrictedByConfig || isLiveAndActive) && !isAdmin;
 
   const { data: questions, isLoading: questionsLoading } = useQuery({
-    queryKey: ["exam-review-questions", attempt?.id], // Changed key to attempt.id
+    queryKey: ["exam-review-questions", attempt?.id, isAdmin], // isAdmin in key ensures refetch when role loads
     queryFn: async () => {
       if (!attempt?.id) return [];
 
@@ -169,43 +173,45 @@ const ExamReview = () => {
       // If user is admin, directly query. Else use RPC.
       let rpcData: any = null;
       let rpcErr: any = null;
-      if (!isAdmin) {
-          const { data, error } = await supabase.rpc("get_student_exam_review", {
-            p_attempt_id: attempt.id
-          });
-          rpcData = data;
-          rpcErr = error;
-      }
 
-      if (isAdmin || (rpcErr && rpcErr.message.includes("Unauthorized") && isAdmin)) {
-         // Admin fallback: fetch questions manually since RPC blocks non-owners
-         const { data: eqData } = await supabase
+      if (isAdmin) {
+         // Admin: fetch questions directly from exam_questions + question_bank
+         const { data: eqData, error: eqError } = await supabase
             .from("exam_questions")
             .select("question_index, question_id, question_bank(id, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation)")
             .eq("exam_id", attempt.exam_id)
             .order("question_index", { ascending: true });
+
+         if (eqError) { console.error("Admin question fetch error:", eqError); }
 
          qData = eqData?.map((eq: any) => ({
              ...eq.question_bank,
              question_id: eq.question_id,
              question_index: eq.question_index
          })) || [];
-      } else if (rpcErr) {
-         throw rpcErr;
       } else {
-         qData = rpcData || [];
+          const { data, error } = await supabase.rpc("get_student_exam_review", {
+            p_attempt_id: attempt.id
+          });
+          rpcData = data;
+          rpcErr = error;
+
+          if (rpcErr) {
+             throw rpcErr;
+          } else {
+             qData = rpcData || [];
+          }
       }
 
-      // 2. Fetch bookmarks for this user and these questions
-      // We need IDs first
+      // 2. Fetch bookmarks — always use the current logged-in user's bookmarks
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const questionIds = qData.map((q: any) => q.question_id || q.id); // RPC returns question_id
 
-      const { data: bData } = await supabase
+      const { data: bData } = questionIds.length > 0 ? await supabase
         .from("bookmarks")
         .select("question_id")
         .eq("profile_id", user!.id)
-        .in("question_id", questionIds);
+        .in("question_id", questionIds) : { data: [] };
 
       const bookmarkedIds = new Set(bData?.map(b => b.question_id));
 
