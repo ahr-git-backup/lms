@@ -8,8 +8,8 @@ from fastapi import FastAPI, File, UploadFile, Form, Header, HTTPException, Depe
 from fastapi.middleware.cors import CORSMiddleware
 
 # Get environment variables
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
-OMR_API_KEY = os.getenv("OMR_API_KEY", "your-fallback-api-key-here")
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https:/atlascourses.com,http://localhost:5173,http://localhost:8080").split(",")
+OMR_API_KEY = os.getenv("OMR_API_KEY", "beshijoss_omr_secure_ak_82535346565632343542673")
 
 app = FastAPI(title="BeshiJoss OMR API")
 
