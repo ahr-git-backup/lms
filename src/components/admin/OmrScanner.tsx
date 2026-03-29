@@ -1,18 +1,10 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Camera,
   Upload,
-  Crop,
   ScanLine,
   Loader2,
   ChevronDown,
@@ -24,20 +16,13 @@ import {
   Info,
   X,
   Check,
+  Hash,
 } from "lucide-react";
 import { QuestionData } from "@/components/admin/QuestionEditor";
 
 // OMR API URL — set this to your Render deployment
 const OMR_API_URL =
   import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
-
-const QUESTION_OPTIONS = [
-  { value: "25", label: "25 Questions", columns: 1 },
-  { value: "30", label: "30 Questions", columns: 2 },
-  { value: "50", label: "50 Questions", columns: 2 },
-  { value: "60", label: "60 Questions", columns: 3 },
-  { value: "100", label: "100 Questions", columns: 4 },
-];
 
 interface OmrScannerProps {
   onImportQuestions: (questions: QuestionData[]) => void;
@@ -63,6 +48,8 @@ interface ApiData {
   radius: number;
   results: OmrResult[];
   bubble_map: BubbleData[];
+  roll_no: string;
+  reg_no: string;
 }
 
 type ScannerStep = "upload" | "crop" | "scanning" | "results";
@@ -70,7 +57,6 @@ type ScannerStep = "upload" | "crop" | "scanning" | "results";
 export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
   const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [maxQuestions, setMaxQuestions] = useState("100");
   const [step, setStep] = useState<ScannerStep>("upload");
 
   // Image & crop
@@ -101,25 +87,6 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
   // Canvas for bubble visualization
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
-
-  const selectedOption = QUESTION_OPTIONS.find(
-    (o) => o.value === maxQuestions
-  );
-
-  // Column layout description
-  const getColumnLayout = (total: number) => {
-    const cols = [];
-    let remaining = total;
-    let colIdx = 1;
-    while (remaining > 0) {
-      const count = Math.min(25, remaining);
-      const start = (colIdx - 1) * 25 + 1;
-      cols.push(`Col ${colIdx}: Q${start}-${start + count - 1}`);
-      remaining -= count;
-      colIdx++;
-    }
-    return cols.join(" • ");
-  };
 
   // Handle file selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -227,7 +194,6 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
     try {
       const formData = new FormData();
       formData.append("file", imageBlob, "omr.jpg");
-      formData.append("max_questions", maxQuestions);
       if (corners) {
         formData.append("corners", JSON.stringify(corners));
       }
@@ -282,6 +248,8 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
         radius: data.radius,
         results: data.extracted_nodes,
         bubble_map: decodedBubbleMap,
+        roll_no: data.roll_no || "",
+        reg_no: data.reg_no || "",
       };
 
       setApiData(newApiData);
@@ -439,9 +407,8 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
   const handleImport = () => {
     if (!apiData) return;
 
-    const maxQ = parseInt(maxQuestions);
     const questions: QuestionData[] = apiData.results
-      .filter((r) => parseInt(r.question) <= maxQ)
+      .filter((r) => parseInt(r.question) <= 100)
       .map((r) => ({
         question: `Question ${r.question}`,
         options: { A: "", B: "", C: "", D: "" },
@@ -489,7 +456,7 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                 OMR Scanner
               </h3>
               <p className="text-xs text-muted-foreground">
-                Scan OMR sheet to auto-fill answers
+                Scan OMR sheet to auto-fill answers (100 Questions)
               </p>
             </div>
           </div>
@@ -510,7 +477,7 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
           <div>
             <h3 className="font-bold text-base sm:text-lg">OMR Scanner</h3>
             <p className="text-xs text-muted-foreground">
-              Upload or capture OMR sheet image
+              Upload or capture OMR sheet image • 100 Questions • 4 Columns
             </p>
           </div>
         </div>
@@ -534,40 +501,17 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
               <li>Ensure proper lighting — avoid shadows and glare</li>
               <li>Keep the OMR sheet flat and fully visible</li>
               <li>Use a clear, high-resolution image</li>
-              <li>Poor quality images will not be processed</li>
+              <li>Corner squares must be visible for auto-alignment</li>
             </ul>
           </div>
         </div>
 
-        {/* Question Count Selector */}
-        <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-          <div className="flex-1 space-y-1.5">
-            <label className="text-sm font-medium">
-              Number of Questions in Exam
-            </label>
-            <Select value={maxQuestions} onValueChange={setMaxQuestions}>
-              <SelectTrigger className="w-full sm:w-[220px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {QUESTION_OPTIONS.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>
-                    {opt.label} ({parseInt(opt.value) * 4} bubbles)
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {selectedOption && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
-              <Info className="h-3.5 w-3.5 shrink-0" />
-              <span>
-                {getColumnLayout(parseInt(maxQuestions))} •{" "}
-                {selectedOption.columns} column
-                {selectedOption.columns > 1 ? "s" : ""} • 25 Q/column
-              </span>
-            </div>
-          )}
+        {/* Sheet Info */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-secondary/50 rounded-lg px-3 py-2">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          <span>
+            Col 1: Q1-25 • Col 2: Q26-50 • Col 3: Q51-75 • Col 4: Q76-100 • 4 columns • 25 Q/column
+          </span>
         </div>
 
         {/* Error Alert available in upload and crop steps */}
@@ -731,7 +675,7 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
             <div className="text-center">
               <p className="font-semibold">Scanning OMR Sheet...</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Detecting bubbles and reading answers
+                Detecting bubbles, reading Roll No & Reg No
               </p>
             </div>
           </div>
@@ -740,6 +684,27 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
         {/* Step: Results */}
         {step === "results" && apiData && (
           <div className="space-y-4">
+            {/* Roll No & Reg No Display */}
+            {(apiData.roll_no || apiData.reg_no) && (
+              <div className="flex flex-wrap items-center gap-4 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30">
+                <Hash className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                <div className="flex flex-wrap gap-4 text-sm">
+                  {apiData.roll_no && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Roll No: </span>
+                      <span className="font-bold text-blue-700 dark:text-blue-300 font-mono tracking-wider">{apiData.roll_no}</span>
+                    </div>
+                  )}
+                  {apiData.reg_no && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Reg No: </span>
+                      <span className="font-bold text-blue-700 dark:text-blue-300 font-mono tracking-wider">{apiData.reg_no}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               <Button
@@ -810,17 +775,17 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                       apiData.results.filter(
                         (r) =>
                           r.correct_answer !== "" &&
-                          parseInt(r.question) <= parseInt(maxQuestions)
+                          parseInt(r.question) <= 100
                       ).length
                     }
-                    /{maxQuestions} answered
+                    /100 answered
                   </span>
                 </div>
                 <div className="max-h-[440px] overflow-y-auto p-3">
                   <div className="grid grid-cols-5 gap-2">
                     {apiData.results
                       .filter(
-                        (r) => parseInt(r.question) <= parseInt(maxQuestions)
+                        (r) => parseInt(r.question) <= 100
                       )
                       .map((r) => {
                         const hasAnswer = r.correct_answer !== "";

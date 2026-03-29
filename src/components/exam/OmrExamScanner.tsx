@@ -1,18 +1,11 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectTrigger,
-  SelectContent,
-  SelectItem,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Camera,
   Upload,
-  Crop,
   ScanLine,
   Loader2,
   ChevronDown,
@@ -23,19 +16,14 @@ import {
   Info,
   X,
   Check,
+  Hash,
+  ShieldCheck,
+  ShieldX,
 } from "lucide-react";
 
 // OMR API URL — set this to your Render deployment
 const OMR_API_URL =
   import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
-
-const QUESTION_OPTIONS = [
-  { value: "25", label: "25 Questions", columns: 1 },
-  { value: "30", label: "30 Questions", columns: 2 },
-  { value: "50", label: "50 Questions", columns: 2 },
-  { value: "60", label: "60 Questions", columns: 3 },
-  { value: "100", label: "100 Questions", columns: 4 },
-];
 
 interface OmrExamScannerProps {
   /** Ordered question IDs from the exam, used to map scanned Q1→questions[0].id etc. */
@@ -66,21 +54,16 @@ interface ApiData {
   radius: number;
   results: OmrResult[];
   bubble_map: BubbleData[];
+  roll_no: string;
+  reg_no: string;
 }
 
 type ScannerStep = "upload" | "crop" | "scanning" | "results";
 
 export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamScannerProps) => {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [maxQuestions, setMaxQuestions] = useState(() => {
-    // Auto-detect from question count
-    const count = questionIds.length;
-    const closest = QUESTION_OPTIONS.reduce((prev, curr) =>
-      Math.abs(parseInt(curr.value) - count) < Math.abs(parseInt(prev.value) - count) ? curr : prev
-    );
-    return closest.value;
-  });
   const [step, setStep] = useState<ScannerStep>("upload");
 
   // Image & crop
@@ -112,8 +95,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   // Canvas for bubble visualization
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
-
-  const selectedOption = QUESTION_OPTIONS.find(o => o.value === maxQuestions);
 
   // Handle file selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -163,7 +144,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
-    // Scale down if huge (improves performance & fixes EXIF rotation bugs)
     const MAX_DIM = 1600;
     let width = img.naturalWidth;
     let height = img.naturalHeight;
@@ -208,6 +188,30 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     });
   };
 
+  // Verify Roll/Reg against logged-in user
+  const verifyCredentials = (scannedRoll: string, scannedReg: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const profileAny = profile as any;
+    const userRoll = profileAny?.omr_roll_no || "";
+    const userReg = profileAny?.omr_reg_no || "";
+
+    if (!userRoll || !userReg) {
+      return { status: "no_credentials" as const, message: "You haven't generated OMR credentials yet" };
+    }
+
+    const rollMatch = scannedRoll === userRoll;
+    const regMatch = scannedReg === userReg;
+
+    if (rollMatch && regMatch) {
+      return { status: "verified" as const, message: "Roll & Reg No verified ✅" };
+    } else {
+      const mismatches = [];
+      if (!rollMatch && scannedRoll) mismatches.push(`Roll: scanned ${scannedRoll} ≠ yours ${userRoll}`);
+      if (!regMatch && scannedReg) mismatches.push(`Reg: scanned ${scannedReg} ≠ yours ${userReg}`);
+      return { status: "mismatch" as const, message: mismatches.join(" • ") || "Could not read Roll/Reg from sheet" };
+    }
+  };
+
   // Send to API
   const handleScan = async (imageBlob: Blob, corners: any[] | null) => {
     setStep("scanning");
@@ -217,7 +221,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     try {
       const formData = new FormData();
       formData.append("file", imageBlob, "omr.jpg");
-      formData.append("max_questions", maxQuestions);
       if (corners) {
         formData.append("corners", JSON.stringify(corners));
       }
@@ -262,6 +265,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         radius: data.radius,
         results: data.extracted_nodes,
         bubble_map: decodedBubbleMap,
+        roll_no: data.roll_no || "",
+        reg_no: data.reg_no || "",
       };
 
       setApiData(newApiData);
@@ -299,7 +304,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       console.error("OMR scan error:", err);
       const msg = err instanceof Error ? err.message : "Could not connect to OMR server.";
       setScanError(msg);
-      // Stay on crop to show warped image
       setStep(rawImage ? "crop" : "upload");
       toast({ title: "Scan Failed", description: msg, variant: "destructive" });
     } finally {
@@ -457,6 +461,9 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     setStep("upload");
   };
 
+  // Compute verification status
+  const verificationResult = apiData ? verifyCredentials(apiData.roll_no, apiData.reg_no) : null;
+
   // Collapsed view
   if (!isExpanded) {
     return (
@@ -471,7 +478,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
             </div>
             <div>
               <h3 className="font-semibold text-sm">📷 OMR Scanner</h3>
-              <p className="text-xs text-muted-foreground">Scan OMR sheet to auto-fill your answers</p>
+              <p className="text-xs text-muted-foreground">Scan OMR sheet to auto-fill your answers (100 Questions)</p>
             </div>
           </div>
           <ChevronDown className="h-5 w-5 text-muted-foreground" />
@@ -490,7 +497,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
           </div>
           <div>
             <h3 className="font-bold text-sm">📷 OMR Scanner</h3>
-            <p className="text-xs text-muted-foreground">Upload or capture your filled OMR sheet</p>
+            <p className="text-xs text-muted-foreground">Upload or capture your filled OMR sheet • 100 Questions</p>
           </div>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full h-8 w-8">
@@ -504,29 +511,14 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
           <div className="text-xs text-amber-800 dark:text-amber-300 space-y-0.5">
             <p className="font-semibold">Tips for best results:</p>
-            <p>• Good lighting, no shadows • Flat sheet, fully visible • Clear, focused photo</p>
+            <p>• Good lighting, no shadows • Flat sheet, fully visible • Clear, focused photo • Corner squares visible</p>
           </div>
         </div>
 
-        {/* Question count selector */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-          <label className="text-xs font-medium">Questions on OMR:</label>
-          <Select value={maxQuestions} onValueChange={setMaxQuestions}>
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {QUESTION_OPTIONS.map(opt => (
-                <SelectItem key={opt.value} value={opt.value}>
-                  {opt.label} ({parseInt(opt.value) * 4} bubbles)
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-            <Info className="h-3 w-3" />
-            {selectedOption?.columns} column{(selectedOption?.columns ?? 0) > 1 ? "s" : ""} • 25 Q/col
-          </span>
+        {/* Sheet Info */}
+        <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-secondary/50 rounded-lg px-3 py-1.5">
+          <Info className="h-3 w-3 shrink-0" />
+          <span>4 columns • 25 Q/col • 100 Questions total</span>
         </div>
 
         {/* Error Alert available in upload and crop steps */}
@@ -634,7 +626,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
             <Loader2 className="h-8 w-8 text-violet-500 animate-spin" />
             <div className="text-center">
               <p className="font-semibold text-sm">Scanning OMR Sheet...</p>
-              <p className="text-xs text-muted-foreground mt-1">Detecting bubbles and reading answers</p>
+              <p className="text-xs text-muted-foreground mt-1">Detecting bubbles, reading Roll & Reg No</p>
             </div>
           </div>
         )}
@@ -642,6 +634,52 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         {/* Step: Results */}
         {step === "results" && apiData && (
           <div className="space-y-3">
+            {/* Roll/Reg & Verification */}
+            {(apiData.roll_no || apiData.reg_no) && (
+              <div className={`flex flex-wrap items-center gap-3 p-3 rounded-xl border ${
+                verificationResult?.status === "verified" 
+                  ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
+                  : verificationResult?.status === "mismatch"
+                  ? "bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/30"
+                  : "bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800/30"
+              }`}>
+                {verificationResult?.status === "verified" ? (
+                  <ShieldCheck className="h-4 w-4 text-green-600 dark:text-green-400 shrink-0" />
+                ) : verificationResult?.status === "mismatch" ? (
+                  <ShieldX className="h-4 w-4 text-red-600 dark:text-red-400 shrink-0" />
+                ) : (
+                  <Hash className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    {apiData.roll_no && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">Roll: </span>
+                        <span className="font-bold font-mono tracking-wider">{apiData.roll_no}</span>
+                      </div>
+                    )}
+                    {apiData.reg_no && (
+                      <div>
+                        <span className="text-xs text-muted-foreground">Reg: </span>
+                        <span className="font-bold font-mono tracking-wider">{apiData.reg_no}</span>
+                      </div>
+                    )}
+                  </div>
+                  {verificationResult && (
+                    <p className={`text-[10px] mt-1 font-medium ${
+                      verificationResult.status === "verified" 
+                        ? "text-green-700 dark:text-green-400" 
+                        : verificationResult.status === "mismatch"
+                        ? "text-red-700 dark:text-red-400"
+                        : "text-muted-foreground"
+                    }`}>
+                      {verificationResult.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Toolbar */}
             <div className="flex flex-wrap items-center gap-2">
               <Button variant="outline" size="sm" onClick={handleUndo} disabled={historyIndex <= 0} className="rounded-full text-xs h-7">
