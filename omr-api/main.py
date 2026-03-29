@@ -8,17 +8,23 @@ from fastapi import FastAPI, File, UploadFile, Form, Header, HTTPException, Depe
 from fastapi.middleware.cors import CORSMiddleware
 
 # Get environment variables
-ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "https:/atlascourses.com,http://localhost:5173,http://localhost:8080").split(",")
-OMR_API_KEY = os.getenv("OMR_API_KEY", "beshijoss_omr_secure_ak_82535346565632343542673")
+raw_origins = os.getenv("ALLOWED_ORIGINS", "https://atlascourses.com,http://localhost:5173,http://localhost:8080,https://atlasedu.vercel.app")
+if raw_origins == "*":
+    ALLOWED_ORIGINS = ["*"]
+else:
+    # Strip whitespace and trailing slashes for standard origin matching
+    ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()]
+
+OMR_API_KEY = os.getenv("OMR_API_KEY", "beshijoss_omr_secure_ak_8273")
 
 app = FastAPI(title="BeshiJoss OMR API")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
-    allow_headers=["*"]
+    allow_headers=["*", "X-API-Key"]
 )
 
 async def verify_api_key(x_api_key: str = Header(None)):
