@@ -1,14 +1,30 @@
-from fastapi import FastAPI, File, UploadFile, Form
-from fastapi.middleware.cors import CORSMiddleware
+import os
 import cv2
 import numpy as np
 import base64
 import json
 import random
+from fastapi import FastAPI, File, UploadFile, Form, Header, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+
+# Get environment variables
+ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").split(",")
+OMR_API_KEY = os.getenv("OMR_API_KEY", "your-fallback-api-key-here")
 
 app = FastAPI(title="BeshiJoss OMR API")
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True,
-                   allow_methods=["*"], allow_headers=["*"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+async def verify_api_key(x_api_key: str = Header(None)):
+    if OMR_API_KEY and x_api_key != OMR_API_KEY:
+        raise HTTPException(status_code=403, detail="Invalid API Key")
+    return x_api_key
 
 def process_omr_logic(image_bytes, corners=None):
     np_arr = np.frombuffer(image_bytes, np.uint8)
@@ -243,7 +259,7 @@ def process_omr_logic(image_bytes, corners=None):
     }
 
 
-@app.post("/api/v1/scan-omr")
+@app.post("/api/v1/scan-omr", dependencies=[Depends(verify_api_key)])
 async def scan_omr(file: UploadFile = File(...), corners: str = Form(default=None)):
     parsed = None
     if corners:
