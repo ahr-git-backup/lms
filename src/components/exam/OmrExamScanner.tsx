@@ -22,8 +22,8 @@ import {
 } from "lucide-react";
 
 // OMR API URL — set this to your Render deployment
-const OMR_API_URL =
-  import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
+const OMR_API_URL = import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
+const OMR_API_KEY = import.meta.env.VITE_OMR_API_KEY || "";
 
 interface OmrExamScannerProps {
   /** Ordered question IDs from the exam, used to map scanned Q1→questions[0].id etc. */
@@ -227,6 +227,9 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
       const response = await fetch(`${OMR_API_URL}/api/v1/scan-omr`, {
         method: "POST",
+        headers: {
+          "X-API-Key": OMR_API_KEY,
+        },
         body: formData,
       });
 

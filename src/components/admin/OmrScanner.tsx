@@ -21,8 +21,8 @@ import {
 import { QuestionData } from "@/components/admin/QuestionEditor";
 
 // OMR API URL — set this to your Render deployment
-const OMR_API_URL =
-  import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
+const OMR_API_URL = import.meta.env.VITE_OMR_API_URL || "http://127.0.0.1:8000";
+const OMR_API_KEY = import.meta.env.VITE_OMR_API_KEY || "";
 
 interface OmrScannerProps {
   onImportQuestions: (questions: QuestionData[]) => void;
@@ -200,6 +200,9 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
 
       const response = await fetch(`${OMR_API_URL}/api/v1/scan-omr`, {
         method: "POST",
+        headers: {
+          "X-API-Key": OMR_API_KEY,
+        },
         body: formData,
       });
 
