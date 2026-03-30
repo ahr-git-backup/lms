@@ -1,3 +1,9 @@
+UPDATE auth.users
+SET email_confirmed_at = now(),
+    confirmed_at = now()
+WHERE email = 'user@example.com';
+
+
 # Atlas
 
 **Atlas** is a modern, commercial-grade Learning Management System (LMS) designed for coaching centers and educational institutions in Bangladesh. It features a complete ecosystem for online exams, live classes, resource distribution, and manual payment verification.

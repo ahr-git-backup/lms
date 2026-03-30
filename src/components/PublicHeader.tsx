@@ -40,6 +40,9 @@ export const PublicHeader = () => {
           <a href="/free-exam" className="underline-offset-4 hover:underline">
             ফ্রি এক্সাম
           </a>
+          <a href="/tutorial" className="underline-offset-4 hover:underline">
+            টিউটোরিয়াল
+          </a>
           <a href="/login" className="underline-offset-4 hover:underline">
             লগইন
           </a>
@@ -88,6 +91,9 @@ export const PublicHeader = () => {
                   </a>
                   <a href="/free-exam" className="text-lg font-medium hover:text-primary">
                     ফ্রি এক্সাম
+                  </a>
+                  <a href="/tutorial" className="text-lg font-medium hover:text-primary">
+                    টিউটোরিয়াল
                   </a>
                   <a href="/login" className="text-lg font-medium hover:text-primary">
                     লগইন

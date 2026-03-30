@@ -18,6 +18,7 @@ import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
 import Reviews from "./pages/Reviews";
+import Tutorial from "./pages/public/Tutorial";
 import PublicLayout from "./layouts/PublicLayout";
 import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -139,6 +140,7 @@ const App = () => {
                 <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
                 <Route path="/free-class" element={<FreeClass />} />
                 <Route path="/free-exam" element={<FreeExam />} />
+                <Route path="/tutorial" element={<Tutorial />} />
                 <Route path="/reviews" element={<Reviews />} />
               </Route>
 
