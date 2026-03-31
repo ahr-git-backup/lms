@@ -1,7 +1,6 @@
 ```
 UPDATE auth.users
-SET email_confirmed_at = now(),
-    confirmed_at = now()
+SET email_confirmed_at = NOW()
 WHERE email = 'user@example.com';
 ```
 
