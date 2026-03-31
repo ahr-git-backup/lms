@@ -11,7 +11,6 @@ import {
   Settings,
   Maximize,
   Minimize,
-  AlertOctagon,
   MonitorPlay
 } from "lucide-react";
 import {
@@ -34,7 +33,6 @@ interface ClassPlayerProps {
   videoId: string;
   title?: string;
   onEnded?: () => void;
-  watermarkText?: string;
   isLive?: boolean;
   startTime?: string | null;
 }
@@ -47,35 +45,9 @@ declare global {
   }
 }
 
-const WatermarkOverlay = ({ text }: { text: string }) => {
-    const [position, setPosition] = useState({ top: '10%', left: '10%' });
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            const top = Math.floor(Math.random() * 80) + 10 + '%';
-            const left = Math.floor(Math.random() * 80) + 10 + '%';
-            setPosition({ top, left });
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
 
-    return (
-        <div
-            id="secure-overlay-wm"
-            className="absolute z-[100] pointer-events-none select-none text-white whitespace-nowrap font-mono text-sm font-bold bg-black/10 px-2 rounded backdrop-blur-[1px]"
-            style={{
-                top: position.top,
-                left: position.left,
-                opacity: 0.15,
-                transition: 'top 5s linear, left 5s linear'
-            }}
-        >
-            {text}
-        </div>
-    );
-};
-
-const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime }: ClassPlayerProps) => {
+const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayerProps) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,50 +64,9 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
   const [showControls, setShowControls] = useState(true);
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [currentQuality, setCurrentQuality] = useState<string>("auto");
-  const [securityViolation, setSecurityViolation] = useState(false);
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
 
-  // Security Check Logic
-  useEffect(() => {
-      if (!watermarkText) return;
 
-      const checkWatermark = () => {
-          const wm = document.getElementById('secure-overlay-wm');
-          if (!wm) {
-              setSecurityViolation(true);
-              return;
-          }
-          const style = window.getComputedStyle(wm);
-          if (style.opacity === '0' || style.display === 'none' || style.visibility === 'hidden') {
-              setSecurityViolation(true);
-          }
-      };
-
-      const interval = setInterval(checkWatermark, 1000);
-
-      const observer = new MutationObserver((mutations) => {
-          mutations.forEach((mutation) => {
-              if (mutation.type === 'childList') {
-                  const removedNodes = Array.from(mutation.removedNodes);
-                  const isWatermarkRemoved = removedNodes.some(
-                      (node) => node instanceof HTMLElement && node.id === 'secure-overlay-wm'
-                  );
-                  if (isWatermarkRemoved) {
-                      setSecurityViolation(true);
-                  }
-              }
-          });
-      });
-
-      if (containerRef.current) {
-          observer.observe(containerRef.current, { childList: true, subtree: true });
-      }
-
-      return () => {
-          clearInterval(interval);
-          observer.disconnect();
-      };
-  }, [watermarkText]);
 
   const actualVideoId = extractVideoId(videoId);
 
@@ -420,18 +351,7 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
   }, [isPlaying, currentTime, isMuted, volume]);
 
 
-  if (securityViolation) {
-      return (
-          <div className="w-full aspect-video bg-black flex flex-col items-center justify-center text-destructive p-6 text-center animate-in zoom-in">
-              <AlertOctagon className="h-12 w-12 mb-2" />
-              <h3 className="text-xl font-bold">Playback Suspended</h3>
-              <p className="text-sm">Security violation detected. Please refresh.</p>
-              <Button onClick={() => window.location.reload()} variant="destructive" size="sm" className="mt-4">
-                  Reload
-              </Button>
-          </div>
-      );
-  }
+
 
   return (
     <TooltipProvider>
@@ -442,7 +362,7 @@ const ClassPlayer = ({ videoId, title, onEnded, watermarkText, isLive, startTime
           onMouseLeave={() => isPlaying && setShowControls(false)}
           onDoubleClick={toggleFullscreen}
       >
-        {watermarkText && <WatermarkOverlay text={watermarkText} />}
+
 
         <div id="youtube-player" className="w-full h-full pointer-events-none" />
 

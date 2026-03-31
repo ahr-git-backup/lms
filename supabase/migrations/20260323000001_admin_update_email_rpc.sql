@@ -7,7 +7,7 @@ CREATE OR REPLACE FUNCTION public.admin_update_user_email(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER -- Runs with superuser privileges to access auth schema
-SET search_path = public
+SET search_path = public, extensions, auth
 AS $$
 DECLARE
   v_caller_id UUID;
@@ -36,7 +36,7 @@ BEGIN
     email = p_new_email,
     email_confirmed_at = now(), -- Mark as verified immediately
     updated_at = now(),
-    new_email = NULL, -- Clear any pending changes
+    email_change = '', -- Clear any pending changes with empty string (avoid NULL scan error)
     email_change_sent_at = NULL
   WHERE id = p_user_id;
 

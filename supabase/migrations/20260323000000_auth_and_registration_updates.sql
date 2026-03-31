@@ -48,23 +48,23 @@ CREATE OR REPLACE FUNCTION public.admin_reset_password(p_user_id UUID, p_new_pas
 RETURNS BOOLEAN
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, extensions, auth
 AS $$
 BEGIN
   -- Verify caller is admin
   IF NOT EXISTS (
-    SELECT 1 FROM user_roles WHERE user_id = auth.uid() AND role = 'admin'
+    SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role = 'admin'
   ) THEN
     RAISE EXCEPTION 'Not authorized';
   END IF;
 
-  -- Ensure password has sufficient length (this is also checked on client side, but good for DB safety)
+  -- Ensure password has sufficient length
   IF length(p_new_password) < 6 THEN
     RAISE EXCEPTION 'Password must be at least 6 characters.';
   END IF;
 
   UPDATE auth.users
-  SET encrypted_password = crypt(p_new_password, gen_salt('bf'))
+  SET encrypted_password = extensions.crypt(p_new_password, extensions.gen_salt('bf'))
   WHERE id = p_user_id;
 
   RETURN TRUE;

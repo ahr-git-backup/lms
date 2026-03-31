@@ -136,7 +136,6 @@ const ClassPlayerPage = () => {
               <ClassPlayer
                 videoId={classItem.video_url}
                 title={classItem.title}
-                watermarkText={profile ? `${profile.full_name} (${profile.registration_id})` : undefined}
                 isLive={isActuallyLive}
                 startTime={classItem.start_at}
               />
