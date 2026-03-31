@@ -6,7 +6,7 @@ WHERE email = 'user@example.com';
 
 # Atlas
 
-**Atlas** is a modern, commercial-grade Learning Management System (LMS) designed for coaching centers and educational institutions in Bangladesh. It features a complete ecosystem for online exams, live classes, resource distribution, and manual payment verification.
+**Atlas** is a modern, commercial-grade Learning Management System (LMS) designed for coaching centers and educational institutions in Bangladesh. It features a complete ecosystem for online exams, live classes, resource distribution, and manual payment verification..
 
 ## 🚀 Features
 
