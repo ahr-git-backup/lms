@@ -43,8 +43,7 @@ def process_omr_logic(image_bytes, corners=None):
     # ==========================================
     # STEP 1: PERFECT PERSPECTIVE WARP
     # ==========================================
-    processing_mat = image.copy()
-
+    # Phase A: Initial Warp/Crop (if corners provided)
     if corners and len(corners) == 4:
         tl = [corners[0]['x'], corners[0]['y']]
         tr = [corners[1]['x'], corners[1]['y']]
@@ -60,43 +59,53 @@ def process_omr_logic(image_bytes, corners=None):
         M = cv2.getPerspectiveTransform(srcPts, dstPts)
         processing_mat = cv2.warpPerspective(image, M, (dstWidth, dstHeight))
     else:
-        thresh_dark = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-        cnts, _ = cv2.findContours(thresh_dark, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        processing_mat = image.copy()
+
+    # Phase B: Precise Anchor Refinement (Always try this on processing_mat)
+    # Use adaptive threshold + morphology for shadow resilience
+    temp_gray = cv2.cvtColor(processing_mat, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(temp_gray, (5, 5), 0)
+    thresh_dark = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 51, 10)
+    morph_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
+    thresh_dark = cv2.morphologyEx(thresh_dark, cv2.MORPH_OPEN, morph_kernel)
+    cnts, _ = cv2.findContours(thresh_dark, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    anchor_rects = []
+    p_h, p_w = processing_mat.shape[:2]
+    p_area = p_h * p_w
+    
+    for c in cnts:
+        area = cv2.contourArea(c)
+        # Use relaxed area constraints (0.02% to 10.0%) to handle both full and cropped photos
+        if p_area * 0.0002 < area < p_area * 0.10:
+            x, y, w, h = cv2.boundingRect(c)
+            aspect = w / float(h)
+            extent = area / float(w * h)
+            if 0.7 < aspect < 1.3 and extent > 0.75:
+                anchor_rects.append((x, y, w, h))
+    
+    if len(anchor_rects) >= 4:
+        anchor_rects.sort(key=lambda r: r[0] + r[1])
+        tl_rect = anchor_rects[0]
+        br_rect = anchor_rects[-1]
         
-        anchor_rects = []
-        orig_area = image.shape[0] * image.shape[1]
-        
-        for c in cnts:
-            area = cv2.contourArea(c)
-            if orig_area * 0.0002 < area < orig_area * 0.02:
-                x, y, w, h = cv2.boundingRect(c)
-                aspect = w / float(h)
-                extent = area / float(w * h)
-                if 0.7 < aspect < 1.3 and extent > 0.75:
-                    anchor_rects.append((x, y, w, h))
-        
-        if len(anchor_rects) >= 4:
-            anchor_rects.sort(key=lambda r: r[0] + r[1])
-            tl_rect = anchor_rects[0]
-            br_rect = anchor_rects[-1]
-            
-            anchor_rects.sort(key=lambda r: r[0] - r[1])
-            bl_rect = anchor_rects[0]
-            tr_rect = anchor_rects[-1]
+        anchor_rects.sort(key=lambda r: r[0] - r[1])
+        bl_rect = anchor_rects[0]
+        tr_rect = anchor_rects[-1]
 
-            tl = [tl_rect[0], tl_rect[1]]
-            tr = [tr_rect[0] + tr_rect[2], tr_rect[1]]
-            bl = [bl_rect[0], bl_rect[1] + bl_rect[3]]
-            br = [br_rect[0] + br_rect[2], br_rect[1] + br_rect[3]]
+        tl = [tl_rect[0], tl_rect[1]]
+        tr = [tr_rect[0] + tr_rect[2], tr_rect[1]]
+        bl = [bl_rect[0], bl_rect[1] + bl_rect[3]]
+        br = [br_rect[0] + br_rect[2], br_rect[1] + br_rect[3]]
 
-            dstWidth = max(int(np.hypot(tr[0]-tl[0], tr[1]-tl[1])), int(np.hypot(br[0]-bl[0], br[1]-bl[1])))
-            dstHeight = max(int(np.hypot(bl[0]-tl[0], bl[1]-tl[1])), int(np.hypot(br[0]-tr[0], br[1]-tr[1])))
+        dstWidth = max(int(np.hypot(tr[0]-tl[0], tr[1]-tl[1])), int(np.hypot(br[0]-bl[0], br[1]-bl[1])))
+        dstHeight = max(int(np.hypot(bl[0]-tl[0], bl[1]-tl[1])), int(np.hypot(br[0]-tr[0], br[1]-tr[1])))
 
-            srcPts = np.float32([tl, tr, br, bl])
-            dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
+        srcPts = np.float32([tl, tr, br, bl])
+        dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
 
-            M = cv2.getPerspectiveTransform(srcPts, dstPts)
-            processing_mat = cv2.warpPerspective(image, M, (dstWidth, dstHeight))
+        M = cv2.getPerspectiveTransform(srcPts, dstPts)
+        processing_mat = cv2.warpPerspective(processing_mat, M, (dstWidth, dstHeight))
 
     # ==========================================
     # STEP 2: 6 MAIN BLOCKS EXTRACTION
@@ -141,7 +150,7 @@ def process_omr_logic(image_bytes, corners=None):
     # STEP 3: RELATIVE INTENSITY MATH
     # ==========================================
     debug_img = processing_mat.copy()
-    quiz_data, bubble_map = [], []
+    quiz_data, bubble_map, all_bubbles = [], [], []
 
     SHRINK = 0.20
 
@@ -213,6 +222,10 @@ def process_omr_logic(image_bytes, corners=None):
                 val = get_mean_darkness(col_x, row_y, opt_w, row_h)
                 means.append({'opt': opt, 'val': val, 'x': col_x})
             
+            # Always record all 4 bubble positions for this question
+            for m in means:
+                all_bubbles.append({"q": current_q, "opt": labels[m['opt']], "x": int(m['x'] + opt_w / 2.0), "y": int(row_y + row_h / 2.0)})
+            
             min_m = min(m['val'] for m in means)
             max_m = max(m['val'] for m in means)
             selected = []
@@ -241,7 +254,8 @@ def process_omr_logic(image_bytes, corners=None):
     # ==========================================
     tensor_nodes = []
     s2s = {"A":0, "B":1, "C":2, "D":3}
-    for b in bubble_map:
+    # Encode ALL bubble positions (not just selected) so frontend can click any bubble
+    for b in all_bubbles:
         tensor_nodes.append({
             "n_idx": b["q"], "spin_state": s2s[b["opt"]],
             "alpha_v": round((b["x"]*3.14159)+42.0, 4), "beta_v": round((b["y"]*2.71828)-15.0, 4),

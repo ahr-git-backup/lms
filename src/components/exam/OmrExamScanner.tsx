@@ -19,6 +19,9 @@ import {
   Hash,
   ShieldCheck,
   ShieldX,
+  ZoomIn,
+  ZoomOut,
+  Maximize,
 } from "lucide-react";
 
 // OMR API URL — set this to your Render deployment
@@ -95,6 +98,20 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   // Canvas for bubble visualization
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [baseImage, setBaseImage] = useState<HTMLImageElement | null>(null);
+
+  // Pinch-to-zoom state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const zoomContainerRef = useRef<HTMLDivElement>(null);
+  const lastTouchDist = useRef<number | null>(null);
+  const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
+  const isPanning = useRef(false);
+  const lastPanPoint = useRef<{ x: number; y: number } | null>(null);
+  const touchStartTime = useRef(0);
+  const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+
+  // Applied state
+  const [hasApplied, setHasApplied] = useState(false);
 
   // Handle file selection
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,15 +362,17 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     });
   }, [apiData, baseImage]);
 
-  // Re-draw whenever image or data changes
+  // Re-draw whenever image or data changes, or panel re-expands
   useEffect(() => {
-    if (step === "results" && baseImage && apiData) {
-      drawCanvas();
+    if (step === "results" && baseImage && apiData && isExpanded) {
+      // Small delay to ensure canvas is mounted in DOM
+      const timer = setTimeout(() => drawCanvas(), 50);
+      return () => clearTimeout(timer);
     }
-  }, [step, baseImage, apiData, drawCanvas]);
+  }, [step, baseImage, apiData, drawCanvas, isExpanded]);
 
-  // Handle canvas click to toggle bubbles
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  // Toggle a bubble at canvas coordinates
+  const toggleBubbleAt = useCallback((canvasX: number, canvasY: number) => {
     if (!apiData) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -361,15 +380,17 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const clickX = (e.clientX - rect.left) * scaleX;
-    const clickY = (e.clientY - rect.top) * scaleY;
-    const clickTolerance = apiData.radius + 10;
+    const clickX = canvasX * scaleX;
+    const clickY = canvasY * scaleY;
+    const clickTolerance = (apiData.radius + 10) * Math.max(1, 2 / zoom);
 
     let clickedBubble: BubbleData | null = null;
+    let closestDist = Infinity;
     for (const b of apiData.bubble_map) {
-      if (Math.sqrt(Math.pow(b.x - clickX, 2) + Math.pow(b.y - clickY, 2)) <= clickTolerance) {
+      const dist = Math.sqrt(Math.pow(b.x - clickX, 2) + Math.pow(b.y - clickY, 2));
+      if (dist <= clickTolerance && dist < closestDist) {
+        closestDist = dist;
         clickedBubble = b;
-        break;
       }
     }
 
@@ -406,10 +427,109 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
       setApiData({ ...apiData, results: newResults });
       setScannedAnswers(mapped);
+      setHasApplied(false);
       setHistoryArray(newHistory);
       setHistoryIndex(newHistory.length - 1);
       drawCanvas();
     }
+  }, [apiData, questionIds, historyArray, historyIndex, drawCanvas, zoom]);
+
+  // Handle canvas click (mouse)
+  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    toggleBubbleAt(e.clientX - rect.left, e.clientY - rect.top);
+  };
+
+  // ---- Pinch-to-zoom touch handlers ----
+  const getTouchDist = (t1: React.Touch, t2: React.Touch) =>
+    Math.sqrt(Math.pow(t2.clientX - t1.clientX, 2) + Math.pow(t2.clientY - t1.clientY, 2));
+
+  const getTouchCenter = (t1: React.Touch, t2: React.Touch) => ({
+    x: (t1.clientX + t2.clientX) / 2,
+    y: (t1.clientY + t2.clientY) / 2,
+  });
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Pinch start
+      e.preventDefault();
+      lastTouchDist.current = getTouchDist(e.touches[0], e.touches[1]);
+      lastTouchCenter.current = getTouchCenter(e.touches[0], e.touches[1]);
+      isPanning.current = false;
+    } else if (e.touches.length === 1) {
+      touchStartTime.current = Date.now();
+      touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      if (zoom > 1) {
+        // Pan start
+        isPanning.current = true;
+        lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && lastTouchDist.current !== null) {
+      e.preventDefault();
+      const newDist = getTouchDist(e.touches[0], e.touches[1]);
+      const scale = newDist / lastTouchDist.current;
+      setZoom(prev => Math.min(5, Math.max(1, prev * scale)));
+      lastTouchDist.current = newDist;
+
+      // Also pan during pinch
+      const newCenter = getTouchCenter(e.touches[0], e.touches[1]);
+      if (lastTouchCenter.current) {
+        const dx = newCenter.x - lastTouchCenter.current.x;
+        const dy = newCenter.y - lastTouchCenter.current.y;
+        setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      }
+      lastTouchCenter.current = newCenter;
+    } else if (e.touches.length === 1 && isPanning.current && lastPanPoint.current && zoom > 1) {
+      const dx = e.touches[0].clientX - lastPanPoint.current.x;
+      const dy = e.touches[0].clientY - lastPanPoint.current.y;
+      setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+      lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      lastTouchDist.current = null;
+      lastTouchCenter.current = null;
+    }
+    if (e.touches.length === 0) {
+      // Check if it was a tap (short duration, small movement)
+      const duration = Date.now() - touchStartTime.current;
+      const startPos = touchStartPos.current;
+      if (startPos && duration < 300) {
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+        const moveDistance = Math.sqrt(
+          Math.pow(endX - startPos.x, 2) + Math.pow(endY - startPos.y, 2)
+        );
+        if (moveDistance < 15) {
+          // It's a tap! Toggle bubble
+          const canvas = canvasRef.current;
+          if (canvas) {
+            const rect = canvas.getBoundingClientRect();
+            toggleBubbleAt(endX - rect.left, endY - rect.top);
+          }
+        }
+      }
+      isPanning.current = false;
+      lastPanPoint.current = null;
+      touchStartPos.current = null;
+      // Snap zoom back to 1 if close
+      setZoom(prev => (prev < 1.1 ? 1 : prev));
+      // Reset pan if zoom is 1
+      if (zoom <= 1.1) setPan({ x: 0, y: 0 });
+    }
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
 
   // Undo / Redo
@@ -439,11 +559,11 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     }
 
     onFillAnswers(scannedAnswers);
+    setHasApplied(true);
     toast({
       title: "✅ Answers Applied!",
       description: `${Object.keys(scannedAnswers).length} answers auto-filled from OMR scan.`,
     });
-    setIsExpanded(false);
   };
 
   // Reset
@@ -692,23 +812,60 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                 <RotateCw className="h-3.5 w-3.5 mr-1" /> Redo
               </Button>
               <div className="flex-1" />
+              {hasApplied && (
+                <span className="text-[10px] font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-2 py-0.5 rounded-full">✅ Applied</span>
+              )}
               <Button variant="ghost" size="sm" onClick={handleReset} className="rounded-full text-xs h-7">
                 <X className="h-3.5 w-3.5 mr-1" /> Re-scan
               </Button>
               <Button size="sm" onClick={handleApply} className="rounded-full px-4 text-xs h-7 bg-green-600 hover:bg-green-700">
-                <Check className="h-3.5 w-3.5 mr-1" /> Apply {Object.keys(scannedAnswers).length} Answers
+                <Check className="h-3.5 w-3.5 mr-1" /> {hasApplied ? "Re-apply" : "Apply"} {Object.keys(scannedAnswers).length} Answers
               </Button>
             </div>
 
             {/* Canvas + Answers Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              {/* Canvas */}
+              {/* Canvas with pinch-to-zoom */}
               <div className="rounded-xl overflow-hidden border border-border/60 bg-black/5">
-                <div className="overflow-auto max-h-[400px]">
-                  <canvas ref={canvasRef} onClick={handleCanvasClick} className="cursor-crosshair w-full" style={{ maxWidth: "100%" }} />
+                {/* Zoom controls */}
+                <div className="flex items-center justify-between px-2 py-1 bg-muted/30 border-b border-border/30">
+                  <div className="flex items-center gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setZoom(prev => Math.min(5, prev + 0.5))}>
+                      <ZoomIn className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setZoom(prev => Math.max(1, prev - 0.5)); if (zoom <= 1.5) setPan({x:0,y:0}); }}>
+                      <ZoomOut className="h-3.5 w-3.5" />
+                    </Button>
+                    {zoom > 1 && (
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleResetZoom}>
+                        <Maximize className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-muted-foreground font-mono">{Math.round(zoom * 100)}%</span>
+                </div>
+                <div
+                  ref={zoomContainerRef}
+                  className="overflow-hidden max-h-[400px] relative"
+                  style={{ touchAction: "none" }}
+                  onTouchStart={handleTouchStart}
+                  onTouchMove={handleTouchMove}
+                  onTouchEnd={handleTouchEnd}
+                >
+                  <canvas
+                    ref={canvasRef}
+                    onClick={handleCanvasClick}
+                    className="cursor-crosshair w-full"
+                    style={{
+                      maxWidth: "100%",
+                      transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                      transformOrigin: "center center",
+                      transition: zoom === 1 ? "transform 0.2s ease" : "none",
+                    }}
+                  />
                 </div>
                 <div className="p-1.5 bg-muted/30 text-[10px] text-muted-foreground text-center">
-                  Click bubbles to toggle answers
+                  {zoom > 1 ? "Drag to pan • Tap bubble to toggle" : "Pinch to zoom • Tap bubble to toggle"}
                 </div>
               </div>
 
