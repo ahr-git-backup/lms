@@ -109,6 +109,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   const lastPanPoint = useRef<{ x: number; y: number } | null>(null);
   const touchStartTime = useRef(0);
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
+  const lastTapTime = useRef(0);
 
   // Applied state
   const [hasApplied, setHasApplied] = useState(false);
@@ -434,8 +435,10 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     }
   }, [apiData, questionIds, historyArray, historyIndex, drawCanvas, zoom]);
 
-  // Handle canvas click (mouse)
+  // Handle canvas click (mouse) — suppressed after touch taps to prevent double-fire
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    // Suppress synthetic click events fired by the browser after a touch tap
+    if (Date.now() - lastTapTime.current < 400) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
@@ -509,7 +512,9 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
           Math.pow(endX - startPos.x, 2) + Math.pow(endY - startPos.y, 2)
         );
         if (moveDistance < 15) {
-          // It's a tap! Toggle bubble
+          // It's a tap! Toggle bubble and mark time to suppress synthetic click
+          e.preventDefault();
+          lastTapTime.current = Date.now();
           const canvas = canvasRef.current;
           if (canvas) {
             const rect = canvas.getBoundingClientRect();
