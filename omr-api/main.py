@@ -15,13 +15,13 @@ else:
     # Strip whitespace and trailing slashes for standard origin matching
     ALLOWED_ORIGINS = [o.strip().rstrip("/") for o in raw_origins.split(",") if o.strip()]
 
-OMR_API_KEY = os.getenv("OMR_API_KEY", "beshijoss_omr_secure_ak_8273")
+OMR_API_KEY = os.getenv("OMR_API_KEY", "beshijoss_omr_secure_ak_82535346565632343542673")
 
 app = FastAPI(title="BeshiJoss OMR API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*", "X-API-Key"]
@@ -44,7 +44,6 @@ def process_omr_logic(image_bytes, corners=None):
     # STEP 1: PERFECT PERSPECTIVE WARP
     # ==========================================
     processing_mat = image.copy()
-    current_gray = gray.copy()
 
     if corners and len(corners) == 4:
         tl = [corners[0]['x'], corners[0]['y']]
@@ -59,47 +58,45 @@ def process_omr_logic(image_bytes, corners=None):
         dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
 
         M = cv2.getPerspectiveTransform(srcPts, dstPts)
-        processing_mat = cv2.warpPerspective(processing_mat, M, (dstWidth, dstHeight))
-        current_gray = cv2.warpPerspective(current_gray, M, (dstWidth, dstHeight))
-
-    # Now detect 4 anchor squares (whether previously cropped by corners or not)
-    thresh_dark = cv2.threshold(current_gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
-    cnts, _ = cv2.findContours(thresh_dark, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    anchor_rects = []
-    orig_area = processing_mat.shape[0] * processing_mat.shape[1]
-
-    for c in cnts:
-        area = cv2.contourArea(c)
-        if orig_area * 0.0002 < area < orig_area * 0.02:
-            x, y, w, h = cv2.boundingRect(c)
-            aspect = w / float(h)
-            extent = area / float(w * h)
-            if 0.7 < aspect < 1.3 and extent > 0.75:
-                anchor_rects.append((x, y, w, h))
-
-    if len(anchor_rects) >= 4:
-        anchor_rects.sort(key=lambda r: r[0] + r[1])
-        tl_rect = anchor_rects[0]
-        br_rect = anchor_rects[-1]
+        processing_mat = cv2.warpPerspective(image, M, (dstWidth, dstHeight))
+    else:
+        thresh_dark = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+        cnts, _ = cv2.findContours(thresh_dark, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         
-        anchor_rects.sort(key=lambda r: r[0] - r[1])
-        bl_rect = anchor_rects[0]
-        tr_rect = anchor_rects[-1]
+        anchor_rects = []
+        orig_area = image.shape[0] * image.shape[1]
+        
+        for c in cnts:
+            area = cv2.contourArea(c)
+            if orig_area * 0.0002 < area < orig_area * 0.02:
+                x, y, w, h = cv2.boundingRect(c)
+                aspect = w / float(h)
+                extent = area / float(w * h)
+                if 0.7 < aspect < 1.3 and extent > 0.75:
+                    anchor_rects.append((x, y, w, h))
+        
+        if len(anchor_rects) >= 4:
+            anchor_rects.sort(key=lambda r: r[0] + r[1])
+            tl_rect = anchor_rects[0]
+            br_rect = anchor_rects[-1]
+            
+            anchor_rects.sort(key=lambda r: r[0] - r[1])
+            bl_rect = anchor_rects[0]
+            tr_rect = anchor_rects[-1]
 
-        tl = [tl_rect[0], tl_rect[1]]
-        tr = [tr_rect[0] + tr_rect[2], tr_rect[1]]
-        bl = [bl_rect[0], bl_rect[1] + bl_rect[3]]
-        br = [br_rect[0] + br_rect[2], br_rect[1] + br_rect[3]]
+            tl = [tl_rect[0], tl_rect[1]]
+            tr = [tr_rect[0] + tr_rect[2], tr_rect[1]]
+            bl = [bl_rect[0], bl_rect[1] + bl_rect[3]]
+            br = [br_rect[0] + br_rect[2], br_rect[1] + br_rect[3]]
 
-        dstWidth = max(int(np.hypot(tr[0]-tl[0], tr[1]-tl[1])), int(np.hypot(br[0]-bl[0], br[1]-bl[1])))
-        dstHeight = max(int(np.hypot(bl[0]-tl[0], bl[1]-tl[1])), int(np.hypot(br[0]-tr[0], br[1]-tr[1])))
+            dstWidth = max(int(np.hypot(tr[0]-tl[0], tr[1]-tl[1])), int(np.hypot(br[0]-bl[0], br[1]-bl[1])))
+            dstHeight = max(int(np.hypot(bl[0]-tl[0], bl[1]-tl[1])), int(np.hypot(br[0]-tr[0], br[1]-tr[1])))
 
-        srcPts = np.float32([tl, tr, br, bl])
-        dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
+            srcPts = np.float32([tl, tr, br, bl])
+            dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
 
-        M = cv2.getPerspectiveTransform(srcPts, dstPts)
-        processing_mat = cv2.warpPerspective(processing_mat, M, (dstWidth, dstHeight))
+            M = cv2.getPerspectiveTransform(srcPts, dstPts)
+            processing_mat = cv2.warpPerspective(image, M, (dstWidth, dstHeight))
 
     # ==========================================
     # STEP 2: 6 MAIN BLOCKS EXTRACTION
