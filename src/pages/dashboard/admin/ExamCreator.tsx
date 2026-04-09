@@ -102,11 +102,11 @@ const ExamCreator = () => {
             // Fetch Exam Title
             const { data: exam, error: examError } = await supabase
                 .from("exams")
-                .select("title")
+                .select("*")
                 .eq("id", examId)
                 .single();
-            if (exam) setExamTitle(exam.title);
-            if (exam) setIsOmr(exam.is_omr ?? false);
+            if (exam) setExamTitle((exam as any).title);
+            if (exam) setIsOmr((exam as any).is_omr ?? false);
 
             // Fetch Questions
             const { data: qData } = await supabase
@@ -532,7 +532,18 @@ const ExamCreator = () => {
                     tags
                 };
             });
-            setQuestions(prev => [...prev, ...normalized]);
+            setQuestions(prev => {
+                const newList = [...prev, ...normalized];
+                setSaveWebForm(form => {
+                    const updates: any = {};
+                    if (!form.total_marks || form.total_marks === "") {
+                        updates.total_marks = String(newList.length);
+                        updates.duration_minutes = String(Math.floor(newList.length / 2));
+                    }
+                    return { ...form, ...updates };
+                });
+                return newList;
+            });
             toast({ title: "Import Successful", description: `Imported ${normalized.length} questions.` });
         } catch (err) {
             console.error(err);
