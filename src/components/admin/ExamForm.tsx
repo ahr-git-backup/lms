@@ -183,7 +183,14 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               if (type === 'json') {
                 const jsonData = JSON.parse(content);
                 count = Array.isArray(jsonData) ? jsonData.length : 0;
-                setForm(prev => ({ ...prev, questions_json: content }));
+                setForm((prev: any) => {
+                    const newForm = { ...prev, questions_json: content };
+                    if (!prev.total_marks) {
+                        newForm.total_marks = String(count);
+                        newForm.duration_minutes = String(Math.floor(count / 2));
+                    }
+                    return newForm;
+                });
               } else {
                 const result = Papa.parse(content, {
                   header: true,
@@ -191,7 +198,14 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   newline: "",
                 });
                 count = result.data.length;
-                setForm(prev => ({ ...prev, questions_csv: content }));
+                setForm((prev: any) => {
+                    const newForm = { ...prev, questions_csv: content };
+                    if (!prev.total_marks) {
+                        newForm.total_marks = String(count);
+                        newForm.duration_minutes = String(Math.floor(count / 2));
+                    }
+                    return newForm;
+                });
               }
               toast({ 
                   title: `Loaded ${type.toUpperCase()} file successfully`,
