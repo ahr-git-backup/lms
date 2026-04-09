@@ -177,12 +177,34 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         const reader = new FileReader();
         reader.onload = (event) => {
           const content = event.target?.result as string;
-          if (type === 'json') {
-            setForm(prev => ({ ...prev, questions_json: content }));
-          } else {
-            setForm(prev => ({ ...prev, questions_csv: content }));
+          let count = 0;
+          
+          try {
+              if (type === 'json') {
+                const jsonData = JSON.parse(content);
+                count = Array.isArray(jsonData) ? jsonData.length : 0;
+                setForm(prev => ({ ...prev, questions_json: content }));
+              } else {
+                const result = Papa.parse(content, {
+                  header: true,
+                  skipEmptyLines: true,
+                  newline: "",
+                });
+                count = result.data.length;
+                setForm(prev => ({ ...prev, questions_csv: content }));
+              }
+              toast({ 
+                  title: `Loaded ${type.toUpperCase()} file successfully`,
+                  description: `Total ${count} questions found in ${file.name}`
+              });
+          } catch (err) {
+              console.error(`Error parsing ${type}:`, err);
+              toast({
+                  title: `Error loading ${type.toUpperCase()} file`,
+                  description: "Invalid file format or content.",
+                  variant: "destructive"
+              });
           }
-          toast({ title: `Loaded ${type.toUpperCase()} file successfully` });
         };
         reader.readAsText(file);
     };
