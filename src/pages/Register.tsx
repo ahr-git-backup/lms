@@ -106,7 +106,7 @@ const Register = () => {
       }
 
       const emailDomain = email.split('@')[1];
-      const allowedDomains = ['gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
+      const allowedDomains = ['atlascourses.com', 'gmail.com', 'yahoo.com', 'outlook.com', 'hotmail.com'];
       if (!allowedDomains.includes(emailDomain)) {
         throw new Error("Only Gmail, Yahoo, Outlook, or Hotmail accounts are allowed.");
       }
