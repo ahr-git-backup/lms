@@ -15,7 +15,7 @@ import ReactMarkdown from "react-markdown";
 const PastExamCatalog = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
-  const [sortOrder, setSortOrder] = useState<string>("default");
+  const [sortOrder, setSortOrder] = useState<string>("recent");
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { user } = useAuth();
   const navigate = useNavigate();
