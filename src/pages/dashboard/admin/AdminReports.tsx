@@ -119,6 +119,7 @@ const AdminReports = () => {
         const [optD, setOptD] = useState(report.question.option_d);
         const [correct, setCorrect] = useState(report.question.correct_option);
         const [explanation, setExplanation] = useState(report.question.explanation || "");
+        const [feedback, setFeedback] = useState("");
 
         const updateQuestionMutation = useMutation({
             mutationFn: async () => {

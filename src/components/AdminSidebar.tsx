@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { CalendarClock, GraduationCap, LayoutDashboard, ListChecks, Megaphone, Users, CreditCard, StickyNote, PenTool, LayoutTemplate, Tag, BookOpen, Database, Flag } from "lucide-react";
+import { CalendarClock, GraduationCap, LayoutDashboard, ListChecks, Megaphone, Users, CreditCard, StickyNote, PenTool, LayoutTemplate, Tag, BookOpen, Database, Flag, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const adminItems = [
+export const adminItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, roles: ["admin", "teacher"], color: "text-blue-600" },
   { title: "Courses", url: "/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
   { title: "Students", url: "/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
@@ -86,6 +86,27 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <div className="mt-auto">
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild tooltip="Back to Dashboard">
+                    <NavLink
+                      to="/dashboard"
+                      end
+                      className="flex items-center gap-2 text-muted-foreground hover:text-sidebar-foreground hover:bg-sidebar-accent"
+                    >
+                      <ArrowLeft className="h-5 w-5 shrink-0" />
+                      {state === "expanded" && <span className="font-medium">Back to Dashboard</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </div>
       </SidebarContent>
     </Sidebar>
   );
