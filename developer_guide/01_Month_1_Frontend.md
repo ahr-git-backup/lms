@@ -1,4 +1,4 @@
-# Month 1: The "Frontend" Mechanic
+# Month 1: The "Frontend" Mechanicc
 **Focus:** HTML, JSX, CSS, Tailwindd
 
 In this month, you will learn how to change the **visuals** of your application. You are not touching "logic" (how data moves) yet, just how it looks.
