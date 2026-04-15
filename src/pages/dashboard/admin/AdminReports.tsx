@@ -40,16 +40,25 @@ const AdminReports = () => {
     });
 
     const deleteReportMutation = useMutation({
-        mutationFn: async (reportId: string) => {
+        mutationFn: async ({ reportId, userId, feedback }: { reportId: string, userId: string, feedback: string }) => {
             const { error } = await supabase
                 .from("question_reports")
                 .delete()
                 .eq("id", reportId);
             if (error) throw error;
+
+            if (userId && feedback) {
+                await supabase.from("user_notifications").insert({
+                    user_id: userId,
+                    title: "Question Report Declined",
+                    body: feedback,
+                    type: "general"
+                });
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
-            toast({ title: "Report cleared" });
+            toast({ title: "Report cleared & feedback sent" });
         },
         onError: (error) => {
             toast({ title: "Failed to delete report", description: error.message, variant: "destructive" });
@@ -57,6 +66,50 @@ const AdminReports = () => {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
+    const DeclineDialog = ({ report }: { report: any }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const [feedback, setFeedback] = useState("আপনার রিপোর্টটি সঠিক নয়, তাই গ্রহণ করা হলো না।");
+
+        return (
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="w-full sm:w-auto">
+                        <X className="h-4 w-4 mr-2" />
+                        Decline (Delete)
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Decline Report</DialogTitle>
+                        <DialogDescription>
+                            Are you sure you want to decline and delete this report? You can optionally send feedback to the student.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Feedback to Student</Label>
+                            <Textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={3} placeholder="Enter your feedback here..." />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
+                        <Button
+                            variant="destructive"
+                            onClick={() => {
+                                deleteReportMutation.mutate({ reportId: report.id, userId: report.user_id, feedback });
+                                setIsOpen(false);
+                            }}
+                            disabled={deleteReportMutation.isPending}
+                        >
+                            {deleteReportMutation.isPending ? "Declining..." : "Decline & Send Feedback"}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
     const EditQuestionDialog = ({ report, onClose }: { report: any, onClose: () => void }) => {
         const [isOpen, setIsOpen] = useState(false);
         const [qText, setQText] = useState(report.question.question_text);
@@ -160,10 +213,14 @@ const AdminReports = () => {
                             <Label>Explanation</Label>
                             <Textarea value={explanation} onChange={e => setExplanation(e.target.value)} rows={3} />
                         </div>
+                        <div className="space-y-2">
+                            <Label className="text-primary font-semibold">Feedback to Student</Label>
+                            <Textarea value={feedback} onChange={e => setFeedback(e.target.value)} rows={2} placeholder="Optional feedback..." />
+                        </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                        <Button onClick={() => updateQuestionMutation.mutate()} disabled={updateQuestionMutation.isPending}>
+                        <Button onClick={() => updateQuestionMutation.mutate({ feedbackText: feedback })} disabled={updateQuestionMutation.isPending}>
                             {updateQuestionMutation.isPending ? "Saving..." : "Save & Resolve"}
                         </Button>
                     </DialogFooter>
@@ -250,20 +307,7 @@ const AdminReports = () => {
                             </div>
                         </CardContent>
                         <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 bg-muted/20 py-3">
-                            <Button
-                                variant="destructive"
-                                size="sm"
-                                className="w-full sm:w-auto"
-                                onClick={() => {
-                                    if(confirm("Are you sure you want to decline this report? It will be deleted.")) {
-                                        deleteReportMutation.mutate(report.id);
-                                    }
-                                }}
-                                disabled={deleteReportMutation.isPending}
-                            >
-                                <X className="h-4 w-4 mr-2" />
-                                Decline (Delete)
-                            </Button>
+                            <DeclineDialog report={report} />
 
                             <EditQuestionDialog report={report} onClose={() => {}} />
                         </CardFooter>
