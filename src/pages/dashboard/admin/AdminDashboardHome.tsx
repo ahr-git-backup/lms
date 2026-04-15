@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,14 +11,40 @@ const AdminDashboardHome = () => {
     document.title = "Admin Overview – Atlas";
   }, []);
 
+    const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
+
+  useEffect(() => {
+    // Check for pending reports and beep
+    const checkForPendingReports = async () => {
+        const { count } = await supabase
+            .from("question_reports")
+            .select("*", { count: 'exact', head: true })
+            .eq("status", "pending");
+
+        if (count && count > 0) {
+            // Play beep if not muted
+            if (!isMuted) {
+                const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+                audio.play().catch(e => console.error("Audio play failed", e));
+            }
+        }
+    };
+
+    const interval = setInterval(checkForPendingReports, 60000); // 60s
+    checkForPendingReports();
+
+    return () => clearInterval(interval);
+  }, [isMuted]);
+
   const { data: stats, isLoading } = useQuery({
     queryKey: ["admin-stats"],
     queryFn: async () => {
       // Fetch counts in parallel
-      const [students, courses, pendingPayments, revenue] = await Promise.all([
+      const [students, courses, pendingPayments, pendingReports, revenue] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("question_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.rpc("get_total_revenue") // Assuming we might need an RPC for this or sum locally. For now, let's just count enrollments or paid requests.
       ]);
 
@@ -31,6 +57,7 @@ const AdminDashboardHome = () => {
         students: students.count || 0,
         courses: courses.count || 0,
         pendingPayments: pendingPayments.count || 0,
+        pendingReports: pendingReports.count || 0,
         // revenue: ...
       };
     },
@@ -50,7 +77,7 @@ const AdminDashboardHome = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold tracking-tight">Dashboard Overview</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Students</CardTitle>
@@ -81,15 +108,14 @@ const AdminDashboardHome = () => {
             <p className="text-xs text-muted-foreground">Requires approval</p>
           </CardContent>
         </Card>
-        {/* Revenue Placeholder */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Pending Reports</CardTitle>
+            <Flag className="h-4 w-4 text-red-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-xl font-bold">---</div>
-            <p className="text-xs text-muted-foreground">Lifetime earnings</p>
+            <div className="text-xl font-bold text-red-600">{isLoading ? "..." : stats?.pendingReports}</div>
+            <p className="text-xs text-muted-foreground">Unresolved questions</p>
           </CardContent>
         </Card>
       </div>

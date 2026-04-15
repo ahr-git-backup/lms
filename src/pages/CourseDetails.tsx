@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { DemoContentItem } from "@/types/admin";
-import { PlayCircle, FileText, Lock, CheckCircle2, Tag, Clock, Gift, Copy, Check, Loader2, Timer } from "lucide-react";
+import { PlayCircle, FileText, Lock, CheckCircle2, Tag, Clock, Gift, Copy, Check, Loader2, Timer , MessageCircle, Send} from "lucide-react";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
@@ -417,6 +417,26 @@ const CourseDetails = () => {
                     </Button>
                 </div>
             )}
+
+            {/* Need Help Section */}
+            <div className="mt-6 flex flex-col gap-3">
+                <p className="text-sm font-semibold text-center text-muted-foreground">Need Help? Contact Support</p>
+                <div className="flex gap-3 justify-center">
+                    <Button variant="outline" asChild className="flex-1 bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/30 text-[#075E54] dark:text-[#25D366]">
+                        <a href="https://wa.me/8801999681290" target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            WhatsApp
+                        </a>
+                    </Button>
+                    <Button variant="outline" asChild className="flex-1 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border-[#0088cc]/30 text-[#0088cc] dark:text-[#33aaff]">
+                        <a href="https://t.me/rafi_somc" target="_blank" rel="noopener noreferrer">
+                            <Send className="w-4 h-4 mr-2" />
+                            Telegram
+                        </a>
+                    </Button>
+                </div>
+            </div>
+
         </div>
 
         {/* Right Column (Sticky Enrollment Card) */}
@@ -500,6 +520,26 @@ const CourseDetails = () => {
                         </div>
                     </CardContent>
                 </Card>
+
+            {/* Need Help Section */}
+            <div className="mt-6 flex flex-col gap-3">
+                <p className="text-sm font-semibold text-center text-muted-foreground">Need Help? Contact Support</p>
+                <div className="flex gap-3 justify-center">
+                    <Button variant="outline" asChild className="flex-1 bg-[#25D366]/10 hover:bg-[#25D366]/20 border-[#25D366]/30 text-[#075E54] dark:text-[#25D366]">
+                        <a href="https://wa.me/8801999681290" target="_blank" rel="noopener noreferrer">
+                            <MessageCircle className="w-4 h-4 mr-2" />
+                            WhatsApp
+                        </a>
+                    </Button>
+                    <Button variant="outline" asChild className="flex-1 bg-[#0088cc]/10 hover:bg-[#0088cc]/20 border-[#0088cc]/30 text-[#0088cc] dark:text-[#33aaff]">
+                        <a href="https://t.me/rafi_somc" target="_blank" rel="noopener noreferrer">
+                            <Send className="w-4 h-4 mr-2" />
+                            Telegram
+                        </a>
+                    </Button>
+                </div>
+            </div>
+
             </div>
         </div>
 
