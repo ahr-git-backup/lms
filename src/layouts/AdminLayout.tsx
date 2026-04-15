@@ -4,7 +4,7 @@ import {
   LayoutDashboard, VolumeX, Volume2, ShieldAlert
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar } from "@/components/AdminSidebar";
+import { AdminSidebar, adminItems } from "@/components/AdminSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -126,14 +126,20 @@ export const AdminLayout = () => {
                     </SheetDescription>
                   </SheetHeader>
                   <nav className="flex flex-col gap-1 text-sm">
-                    <Link to="/admin" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
-                        <LayoutDashboard className="h-4 w-4 text-blue-500" />
-                        Overview
-                    </Link>
-                    <Link to="/dashboard" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium text-muted-foreground">
-                        Switch to Student Dashboard
-                    </Link>
+                    {adminItems.filter(item => {
+                        if (item.roles.includes("admin") && isAdmin) return true;
+                        if (item.roles.includes("teacher") && isTeacher) return true;
+                        return false;
+                    }).map((item) => (
+                        <Link key={item.url} to={item.url} className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium">
+                            <item.icon className={`h-4 w-4 ${item.color || ''}`} />
+                            {item.title}
+                        </Link>
+                    ))}
                     <div className="my-1 border-t border-border/50"></div>
+                    <Link to="/dashboard" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md font-medium text-muted-foreground">
+                        Back to Student Dashboard
+                    </Link>
                   </nav>
 
                   <div className="mt-auto flex flex-col gap-4">
