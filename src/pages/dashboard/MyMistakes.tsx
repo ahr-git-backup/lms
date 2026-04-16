@@ -41,7 +41,7 @@ const MyMistakes = () => {
             if (error) throw error;
 
             // De-duplicate exams (keep latest attempt info)
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             const uniqueExamsMap = new Map();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((attempt: any) => {

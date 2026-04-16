@@ -168,7 +168,7 @@ const ExamReview = () => {
 
       // 1. Fetch questions securely via RPC
       let qData: any[] = [];
-      let qError: any = null;
+      const qError: any = null;
 
       // If user is admin, directly query. Else use RPC.
       let rpcData: any = null;

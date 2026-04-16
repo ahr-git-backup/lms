@@ -77,7 +77,7 @@ const ExamResults = () => {
     queryFn: async () => {
       if (!user) return [];
 
-      let query = supabase
+      const query = supabase
         .from("exam_attempts")
         .select("*, exam:exams(*, course:courses(*))")
         .eq("profile_id", user.id)

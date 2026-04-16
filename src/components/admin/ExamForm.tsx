@@ -287,7 +287,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
           // Helper functions for questions (copied from original)
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const normaliseQuestions = (input: Array<any>) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
             return input.map((q) => {
               const questionText = String(
                 q.question_text ?? q.question ?? "",
@@ -546,7 +546,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {isArchiveMode && (
                   <div className="space-y-2 md:col-span-2">
                       <Label>Archive For Courses (Select one or more)</Label>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      { }
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.archive_course_ids}
@@ -570,7 +570,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isFreeMode && !isArchiveMode && form.course_id && (
                   <div className="space-y-2">
                       <Label>Also Share With (Optional)</Label>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      { }
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.shared_course_ids}
@@ -583,7 +583,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isArchiveMode && (
                   <div className="space-y-2">
                       <Label>Add to Archive of (Optional)</Label>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      { }
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.archive_course_ids}
@@ -833,7 +833,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                            </div>
                            <div className="space-y-2">
                                 <Label>Readymade For Specific Courses (Optional)</Label>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                                { }
                                 <MultiSelect
                                     options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                                     selected={form.readymade_course_ids}

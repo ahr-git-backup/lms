@@ -44,7 +44,7 @@ const AdminReviews = () => {
       queryKey: ["admin-reviews"],
       queryFn: async () => {
           // @ts-ignore
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
           const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
           if (error) throw error;
           return data as unknown as Review[];

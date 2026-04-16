@@ -275,7 +275,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
               {!isFreeMode && form.course_id && (
                   <div className="space-y-2">
                       <Label>Also Share With (Optional)</Label>
-                      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                      { }
                       <MultiSelect
                           options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                           selected={form.shared_course_ids}
@@ -287,7 +287,7 @@ export const ExternalExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false
 
               <div className="space-y-2">
                   <Label>Add to Archive of (Optional)</Label>
-                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                  { }
                   <MultiSelect
                       options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                       selected={form.archive_course_ids}

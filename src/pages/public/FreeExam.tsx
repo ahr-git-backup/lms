@@ -70,7 +70,7 @@ const FreeExam = () => {
   const { data: searchResults, isLoading: isLoadingSearch } = useQuery({
       queryKey: ["public-free-exams-search", debouncedSearch, page],
       queryFn: async () => {
-          let query = supabase
+          const query = supabase
               .from("exams")
               .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)", { count: 'exact' })
               .is("course_id", null)

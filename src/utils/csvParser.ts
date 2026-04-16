@@ -14,7 +14,7 @@ export const parseCSV = (csvText: string) => {
     let currentVal = '';
     let insideQuote = false;
 
-    for (let char of currentLine) {
+    for (const char of currentLine) {
       if (char === '"') {
         insideQuote = !insideQuote;
       } else if (char === ',' && !insideQuote) {

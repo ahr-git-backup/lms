@@ -65,7 +65,7 @@ const AdminReports = () => {
         }
     });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 
     const DeclineDialog = ({ report }: { report: any }) => {
         const [isOpen, setIsOpen] = useState(false);
@@ -120,7 +120,6 @@ const AdminReports = () => {
         const [correct, setCorrect] = useState(report.question.correct_option);
         const [explanation, setExplanation] = useState(report.question.explanation || "");
         const [feedback, setFeedback] = useState("");
-
         const updateQuestionMutation = useMutation({
             mutationFn: async () => {
                 // 1. Update the question
@@ -146,6 +145,16 @@ const AdminReports = () => {
                     .eq("id", report.id);
 
                 if (deleteError) throw deleteError;
+
+                // 3. Send notification
+                if (report.user_id && feedback) {
+                    await supabase.from("user_notifications").insert({
+                        user_id: report.user_id,
+                        title: "Question Report Resolved",
+                        body: feedback,
+                        type: "general"
+                    });
+                }
             },
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
@@ -221,7 +230,7 @@ const AdminReports = () => {
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setIsOpen(false)}>Cancel</Button>
-                        <Button onClick={() => updateQuestionMutation.mutate({ feedbackText: feedback })} disabled={updateQuestionMutation.isPending}>
+                        <Button onClick={() => updateQuestionMutation.mutate()} disabled={updateQuestionMutation.isPending}>
                             {updateQuestionMutation.isPending ? "Saving..." : "Save & Resolve"}
                         </Button>
                     </DialogFooter>
