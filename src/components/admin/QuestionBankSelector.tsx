@@ -8,6 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Badge } from "@/components/ui/badge";
 import MathText from "@/components/MathText";
 import { QuestionData } from "@/types/exam";
+import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { Card } from "@/components/ui/card";
 
 interface QuestionBankSelectorProps {
@@ -37,11 +38,6 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         setSelectedExamId(null);
         setSelectedIds(new Set());
     };
-
-    // Global Metadata Hook (for subjects)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: globalMeta } = useGlobalMetadata() as any;
-
     // Fetch subjects for the selected category (from exams)
     const { data: subjectsData, isLoading: isLoadingSubjects } = useQuery({
         queryKey: ["qb-subjects", selectedCategory],
