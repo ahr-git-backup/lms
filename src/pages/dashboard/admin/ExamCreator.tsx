@@ -482,7 +482,7 @@ const ExamCreator = () => {
             const normalized = data.map((q: any) => {
                 let options = q.options || { A: "", B: "", C: "", D: "" };
                 let correct_answer = String(q.correct_answer || q.correct_option || q.answer || "").toUpperCase();
-                let question_text = String(q.question || q.question_text || q.questions || "");
+                const question_text = String(q.question || q.question_text || q.questions || "");
 
                 // If it's CSV, handle the specific format requested by user
                 if (type === 'csv') {
@@ -640,7 +640,8 @@ const ExamCreator = () => {
         onDrop={handleDrop}
     >
       {isExporting && <LoadingScreen message={exportProgress} />}
-      <div className="w-full h-full flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0">
+      <div className={`w-full h-full flex flex-col space-y-4 sm:space-y-6 lg:overflow-y-auto pb-8 lg:pb-24 relative px-1 sm:px-0 ${showBankSelector ? "lg:flex-row lg:space-y-0 lg:gap-4 lg:flex" : ""}`}>
+        <div className={`space-y-4 sm:space-y-6 ${showBankSelector ? "lg:w-[50%]" : "w-full"}`}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-card p-4 sm:p-6 shadow-sm border border-border/60 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 w-full lg:w-auto">
                 <div className="flex items-center gap-2">
@@ -959,18 +960,26 @@ const ExamCreator = () => {
             </div>
         )}
 
-        {/* Collapsible Question Bank */}
+
+        </div>
+        {/* Question Bank (Side by Side) */}
         {showBankSelector && (
-            <div className="border border-border/60 rounded-[20px] bg-card p-5 sm:p-7 shadow-sm flex flex-col w-full mx-auto animate-in fade-in slide-in-from-top-4 duration-300 mt-4 mb-2">
+            <div className="lg:w-[50%] flex flex-col h-[calc(100vh-6rem)] sticky top-4 border border-border/60 rounded-[20px] bg-card p-4 sm:p-6 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50 shrink-0">
-                     <h3 className="font-bold text-xl flex items-center gap-2">
-                        <BookOpen className="h-5 w-5 text-primary" /> Select from Question Bank
-                     </h3>
+                     <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0">
+                            <BookOpen className="h-5 w-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold tracking-tight text-foreground">Question Bank</h2>
+                            <p className="text-[13px] text-muted-foreground mt-0.5">Import from existing database</p>
+                        </div>
+                     </div>
                      <Button variant="ghost" size="icon" onClick={() => setShowBankSelector(false)} className="rounded-full h-8 w-8 hover:bg-secondary">
                         <Trash2 className="h-4 w-4" />
                      </Button>
                 </div>
-                <div className="h-[60vh] max-h-[600px] overflow-hidden flex flex-col rounded-xl border border-border/50">
+                <div className="flex-1 overflow-hidden flex flex-col rounded-xl border border-border/50">
                     <QuestionBankSelector onSelect={handleBankImport} />
                 </div>
             </div>

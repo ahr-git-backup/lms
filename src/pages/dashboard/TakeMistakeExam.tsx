@@ -34,7 +34,7 @@ const TakeMistakeExam = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
     const { user } = useAuth();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const state = location.state as { examIds: string[]; filterMode: 'wrong' | 'skipped' | 'both' } | undefined;
 
     const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -105,7 +105,7 @@ const TakeMistakeExam = () => {
                 if (!questionDetails) return [];
 
                 // 5. Filter
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                 const questionsToAdd: Question[] = [];
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const userAnswers = (attempt.answers as any[]) || [];
@@ -535,7 +535,7 @@ const TakeMistakeExam = () => {
     }
 
     // --- EXAM UI ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const currentQIndex = 0; // We render list, so no single currentQ. But navigator needs index.
 
     const isLowTime = timeLeft !== null && timeLeft < 60;

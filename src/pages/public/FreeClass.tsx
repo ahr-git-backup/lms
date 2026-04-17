@@ -82,7 +82,7 @@ const FreeClass = () => {
   const { data: searchResults, isLoading: isLoadingSearch } = useQuery({
       queryKey: ["public-free-notes-search", debouncedSearch, page],
       queryFn: async () => {
-          let query = supabase
+          const query = supabase
               .from("class_notes")
               .select("id, title, subject, chapter, topic, created_at", { count: 'exact' })
               .is("course_id", null)

@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Timer, ListTodo, Layers, Sparkles, Music, BellRing } from "lucide-react";
+import GPACalculator from "@/components/study/GPACalculator";
+import { Timer, ListTodo, Layers, Sparkles, Music, BellRing, Calculator } from "lucide-react";
+
 import PomodoroTimer from "@/components/study/PomodoroTimer";
 import TodoList from "@/components/study/TodoList";
 import Flashcards from "@/components/study/Flashcards";
@@ -26,7 +28,7 @@ const Program = () => {
       </header>
 
       <Tabs defaultValue="pomodoro" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:w-[600px] h-auto">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 lg:grid-cols-6 lg:w-[800px] h-auto">
           <TabsTrigger value="pomodoro" className="gap-2 py-3">
             <Timer className="h-4 w-4" />
             Pomodoro
@@ -46,6 +48,10 @@ const Program = () => {
           <TabsTrigger value="interval" className="gap-2 py-3">
             <BellRing className="h-4 w-4" />
             Interval
+          </TabsTrigger>
+        <TabsTrigger value="gpa" className="gap-2 py-3">
+            <Calculator className="h-4 w-4" />
+            GPA Calc
           </TabsTrigger>
         </TabsList>
 
@@ -118,6 +124,9 @@ const Program = () => {
                 <IntervalReminder />
               </CardContent>
             </Card>
+          </TabsContent>
+        <TabsContent value="gpa">
+            <GPACalculator />
           </TabsContent>
         </div>
       </Tabs>

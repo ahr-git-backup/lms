@@ -18,7 +18,7 @@ interface ExpandableRichTextEditorProps {
     minHeight?: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 export const ExpandableRichTextEditor = ({ value, onChange, modulesGenerator, minHeight = "100px", placeholder }: ExpandableRichTextEditorProps) => {
     const [isEditing, setIsEditing] = useState(false);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
