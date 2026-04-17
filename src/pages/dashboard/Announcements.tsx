@@ -210,14 +210,14 @@ const Announcements = () => {
                         const isExpanded = expandedIds.includes(notif.id);
                         return (
                         <Card key={notif.id}
-                              className={`border cursor-pointer transition-colors ${notif.type === 'payment_approved' ? 'border-green-500/50 bg-green-500/5' : notif.type === 'payment_rejected' || notif.type === 'course_request_declined' ? 'border-red-500/50 bg-red-500/5' : 'border-border'}`}
+                              className={`border cursor-pointer transition-colors ${notif.type === 'payment_approved' ? 'border-green-500/50 bg-green-500/5' : notif.type === 'payment_rejected' || notif.type === 'course_request_declined' ? 'border-red-500/50 bg-red-500/5' : notif.type === 'report_reply' ? 'border-blue-500/50 bg-blue-500/5' : 'border-border'}`}
                               onClick={() => toggleExpandNotification(notif.id)}
                         >
                             <CardHeader className="space-y-1 pb-2 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         {notif.type === 'payment_approved' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
-                                         (notif.type === 'payment_rejected' || notif.type === 'course_request_declined') ? <AlertTriangle className="h-5 w-5 text-red-600" /> : null}
+                                         (notif.type === 'payment_rejected' || notif.type === 'course_request_declined') ? <AlertTriangle className="h-5 w-5 text-red-600" /> : notif.type === 'report_reply' ? <CheckCircle className="h-5 w-5 text-blue-600" /> : null}
                                         <CardTitle className="text-base">{notif.title}</CardTitle>
                                     </div>
                                     <div className="flex items-center gap-1">

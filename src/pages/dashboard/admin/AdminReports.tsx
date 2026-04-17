@@ -40,21 +40,24 @@ const AdminReports = () => {
     });
 
     const deleteReportMutation = useMutation({
-        mutationFn: async ({ reportId, userId, feedback }: { reportId: string, userId: string, feedback: string }) => {
+        mutationFn: async ({ reportId, userId, feedback, reportText }: { reportId: string, userId: string, feedback: string, reportText: string }) => {
             const { error } = await supabase
                 .from("question_reports")
                 .delete()
                 .eq("id", reportId);
             if (error) throw error;
 
-            if (userId && feedback) {
+
+                const notificationBody = `Your report for question \"${reportText}\" was declined.
+
+Feedback: ${feedback}`;
                 await supabase.from("user_notifications").insert({
                     user_id: userId,
                     title: "Question Report Declined",
-                    body: feedback,
-                    type: "general"
+                    body: notificationBody,
+                    type: "report_reply"
                 });
-            }
+
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
@@ -97,7 +100,7 @@ const AdminReports = () => {
                         <Button
                             variant="destructive"
                             onClick={() => {
-                                deleteReportMutation.mutate({ reportId: report.id, userId: report.user_id, feedback });
+                                deleteReportMutation.mutate({ reportId: report.id, userId: report.user_id, feedback, reportText: report.report_text });
                                 setIsOpen(false);
                             }}
                             disabled={deleteReportMutation.isPending}
@@ -147,14 +150,19 @@ const AdminReports = () => {
                 if (deleteError) throw deleteError;
 
                 // 3. Send notification
+
                 if (report.user_id && feedback) {
+                    const notificationBody = `Your report for question \"${report.report_text}\" was resolved.
+
+Admin Feedback: ${feedback}`;
                     await supabase.from("user_notifications").insert({
                         user_id: report.user_id,
                         title: "Question Report Resolved",
-                        body: feedback,
-                        type: "general"
+                        body: notificationBody,
+                        type: "report_reply"
                     });
                 }
+
             },
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
