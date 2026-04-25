@@ -184,6 +184,17 @@ export function AdminCourseView({ resourceType }: AdminCourseViewProps) {
       return <div className="text-sm text-muted-foreground p-8 text-center bg-muted/20 rounded-md border border-dashed">No courses available.</div>;
   }
 
+  if (selectedCourseDialogId) {
+      return (
+          <CourseItemsManagerDialog 
+            courseId={selectedCourseDialogId} 
+            courseName={selectedCourseDialogName} 
+            resourceType={resourceType} 
+            onClose={() => setSelectedCourseDialogId(null)} 
+          />
+      );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg border">
@@ -219,13 +230,6 @@ export function AdminCourseView({ resourceType }: AdminCourseViewProps) {
           </div>
         </SortableContext>
       </DndContext>
-
-      <CourseItemsManagerDialog 
-        courseId={selectedCourseDialogId} 
-        courseName={selectedCourseDialogName} 
-        resourceType={resourceType} 
-        onClose={() => setSelectedCourseDialogId(null)} 
-      />
     </div>
   );
 }

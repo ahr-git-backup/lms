@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
@@ -65,6 +66,7 @@ const courseSchema = z.object({
   contact_info: z.string().trim().max(500).optional().or(z.literal("")),
   is_active: z.boolean().optional().default(true),
   is_public: z.boolean().optional().default(true),
+  is_hidden: z.boolean().optional().default(false),
   category: z.array(z.string()).default([]),
   sub_category: z.array(z.string()).default([]),
   priority: z.number().optional().default(0),
@@ -92,6 +94,7 @@ const AdminCourses = () => {
     contact_info: "",
     is_active: true,
     is_public: true,
+    is_hidden: false,
     category: [],
     sub_category: [],
     priority: 0,
@@ -103,6 +106,7 @@ const AdminCourses = () => {
   const [selectedCourseForCoupon, setSelectedCourseForCoupon] = useState<Course | null>(null);
   const [couponCode, setCouponCode] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
+  const [listStatusFilter, setListStatusFilter] = useState<"active" | "inactive" | "hidden">("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -127,11 +131,20 @@ const AdminCourses = () => {
   }, []);
 
   const { data: coursesData, isLoading } = useQuery({
-    queryKey: ["admin-courses", page, debouncedSearch],
+    queryKey: ["admin-courses", page, debouncedSearch, listStatusFilter],
     queryFn: async () => {
-      let query = supabase
+      let query = (supabase as any)
         .from("courses")
         .select("*", { count: 'exact' });
+
+      if (listStatusFilter === "hidden") {
+          query = query.eq("is_hidden", true);
+      } else if (listStatusFilter === "inactive") {
+          query = query.eq("is_active", false).eq("is_hidden", false);
+      } else {
+          // active
+          query = query.eq("is_active", true).eq("is_hidden", false);
+      }
 
       if (debouncedSearch) {
           query = query.ilike("name", `%${debouncedSearch}%`);
@@ -155,7 +168,7 @@ const AdminCourses = () => {
   });
 
   // Fetch unique categories and subcategories for the filters
-  useQuery({
+  const { data: tagsData } = useQuery({
     queryKey: ["admin-course-tags"],
     queryFn: async () => {
         const { data, error } = await supabase
@@ -175,11 +188,16 @@ const AdminCourses = () => {
              else if (typeof row.sub_category === 'string') subs.add(row.sub_category);
         });
 
-        setExistingCategories(Array.from(cats).map(c => ({ label: c, value: c })));
-        setExistingSubCategories(Array.from(subs).map(s => ({ label: s, value: s })));
-        return null;
+        return { cats: Array.from(cats), subs: Array.from(subs) };
     }
   });
+
+  useEffect(() => {
+     if (tagsData) {
+         setExistingCategories(tagsData.cats.map(c => ({ label: c, value: c })));
+         setExistingSubCategories(tagsData.subs.map(s => ({ label: s, value: s })));
+     }
+  }, [tagsData]);
 
 
   // Fetch classes for the current editing course to display in Syllabus tab
@@ -218,6 +236,7 @@ const AdminCourses = () => {
       contact_info: "",
       is_active: true,
       is_public: true,
+      is_hidden: false,
       category: [],
       sub_category: [],
       priority: 0,
@@ -249,6 +268,7 @@ const AdminCourses = () => {
         contact_info: parsed.contact_info || null,
         is_active: parsed.is_active ?? true,
         is_public: parsed.is_public ?? true,
+        is_hidden: parsed.is_hidden ?? false,
         category: parsed.category,
         sub_category: parsed.sub_category,
         priority: parsed.priority ?? 0,
@@ -328,6 +348,8 @@ const AdminCourses = () => {
       contact_info: course.contact_info ?? "",
       is_active: course.is_active ?? true,
       is_public: course.is_public ?? true,
+      // @ts-ignore
+      is_hidden: course.is_hidden ?? false,
       category: cats,
       sub_category: subs,
       priority: course.priority ?? 0,
@@ -349,7 +371,7 @@ const AdminCourses = () => {
       if (!selectedCourseForCoupon) return;
       const code = couponCode || `${selectedCourseForCoupon.name?.substring(0, 3).toUpperCase()}-FREE-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
-      const { error } = await supabase.from("promo_codes").insert({
+      const { error } = await (supabase as any).from("promo_codes").insert({
         code: code,
         discount_type: "percentage",
         discount_amount: 100,
@@ -474,14 +496,16 @@ const AdminCourses = () => {
                     price: "",
                     original_price: "",
                     image_url: "",
-                    video_url: "",
+                    bkash_number: "",
+                    nagad_number: "",
+                    contact_info: "",
                     is_active: false,
-                    is_extra: false,
-                    subject: [],
-                    enrollment_status: "open",
+                    is_public: true,
+                    is_hidden: false,
+                    priority: 0,
+                    category: [],
+                    sub_category: [],
                     demo_content: [],
-                    categories: [],
-                    sub_categories: [],
                     linked_course_ids: [],
                     access_unlimited_practice: false,
                  });
@@ -493,62 +517,71 @@ const AdminCourses = () => {
 
           <form onSubmit={handleSubmit}>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="border-b overflow-x-auto pb-px mb-6">
-                  <TabsList className="flex flex-wrap h-auto w-full justify-start gap-8 bg-transparent p-0">
-                    <TabsTrigger value="basic" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Basic Info</TabsTrigger>
-                    <TabsTrigger value="description" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Description</TabsTrigger>
-                    <TabsTrigger value="content" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Curriculum Info</TabsTrigger>
-                    <TabsTrigger value="demos" className="data-[state=active]:text-primary data-[state=active]:border-primary border-b-2 border-transparent rounded-none px-0 py-2 font-medium text-muted-foreground hover:text-foreground transition-all">Demo Content</TabsTrigger>
+              <div className="mb-6 w-full overflow-x-auto no-scrollbar pb-2 sm:flex sm:justify-center">
+                  <TabsList className="inline-flex h-11 items-center justify-start sm:justify-center rounded-lg bg-muted p-1 text-muted-foreground w-max shadow-sm">
+                    <TabsTrigger value="basic" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Basic Info</TabsTrigger>
+                    <TabsTrigger value="description" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Description</TabsTrigger>
+                    <TabsTrigger value="content" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Curriculum Info</TabsTrigger>
+                    <TabsTrigger value="demos" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Demo Content</TabsTrigger>
                   </TabsList>
               </div>
 
               <div className="min-h-[40vh]">
                 <TabsContent value="basic" className="mt-0 space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-                    <div className="grid gap-10 md:grid-cols-2">
+                    <div className="grid gap-6 md:grid-cols-2">
 
                     {/* General Info */}
-                    <div className="md:col-span-2 space-y-6">
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="text-base">Course Name</Label>
-                            <Input
-                            id="name"
-                            value={form.name}
-                            onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-                            className="text-lg font-medium h-12"
-                            placeholder="e.g. Engineering Admission 2024"
-                            />
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-6">
+                    <Card className="md:col-span-2 shadow-sm border-muted">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">Core Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
                             <div className="space-y-2">
-                                <Label htmlFor="price">Price (৳)</Label>
+                                <Label htmlFor="name" className="text-sm font-semibold">Course Name</Label>
                                 <Input
-                                id="price"
-                                value={form.price}
-                                onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
-                                placeholder="3000"
+                                id="name"
+                                value={form.name}
+                                onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
+                                className="text-base h-11 bg-background"
+                                placeholder="e.g. Engineering Admission 2024"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="original_price">Original Price (৳)</Label>
-                                <Input
-                                id="original_price"
-                                value={form.original_price}
-                                onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
-                                placeholder="5000"
-                                />
+                            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="price" className="text-sm font-semibold">Price (৳)</Label>
+                                    <Input
+                                    id="price"
+                                    value={form.price}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, price: e.target.value }))}
+                                    placeholder="3000"
+                                    className="bg-background"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="original_price" className="text-sm font-semibold">Original Price (৳)</Label>
+                                    <Input
+                                    id="original_price"
+                                    value={form.original_price}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, original_price: e.target.value }))}
+                                    placeholder="5000"
+                                    className="bg-background !line-through text-muted-foreground"
+                                    />
+                                </div>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Media */}
-                    <div className="md:col-span-2 space-y-4">
-                        <h3 className="text-base font-semibold border-b pb-2">Media</h3>
-                        <div className="grid md:grid-cols-2 gap-6">
+                    <Card className="md:col-span-2 shadow-sm border-muted">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">Media & Content</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid md:grid-cols-2 gap-6">
                             <div className="space-y-2">
-                                <Label htmlFor="image_url">Course Image</Label>
+                                <Label htmlFor="image_url" className="text-sm font-semibold">Course Image</Label>
                                 <ImageUploader
                                     value={form.image_url || ""}
                                     onChange={(val) => setForm((prev) => ({ ...prev, image_url: val }))}
@@ -556,154 +589,186 @@ const AdminCourses = () => {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="video_url">Intro Video URL (YouTube)</Label>
+                                <Label htmlFor="video_url" className="text-sm font-semibold">Intro Video URL (YouTube)</Label>
                                 <Input
                                     id="video_url"
                                     value={form.video_url}
                                     onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
                                     placeholder="https://youtu.be/..."
+                                    className="bg-background"
                                 />
-                                <p className="text-xs text-muted-foreground">Appears at the top of the course details page.</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">Appears at the top of the course details page.</p>
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Links & Payment Details */}
-                    <div className="md:col-span-2 space-y-4">
-                        <h3 className="text-base font-semibold border-b pb-2">Additional Links & Payment Details</h3>
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="routine_url">Course Routine (Drive Link)</Label>
+                    <Card className="md:col-span-2 shadow-sm border-muted">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">Payment & Contact Settings</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="space-y-2 lg:col-span-1 border md:border-0 rounded p-3 md:p-0 bg-muted/10 md:bg-transparent">
+                                <Label htmlFor="routine_url" className="text-sm font-semibold">Course Routine Link</Label>
                                 <Input
                                 id="routine_url"
                                 value={form.routine_url}
                                 onChange={(e) => setForm((prev) => ({ ...prev, routine_url: e.target.value }))}
                                 placeholder="https://drive.google.com/..."
+                                className="bg-background"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="bkash_number">bKash Number</Label>
+                            <div className="space-y-2 border md:border-0 rounded p-3 md:p-0 bg-pink-50/50 md:bg-transparent dark:bg-pink-950/10 dark:md:bg-transparent border-pink-100 dark:border-pink-900 border-dashed md:border-solid">
+                                <Label htmlFor="bkash_number" className="text-sm font-semibold text-pink-700 dark:text-pink-400">bKash Number</Label>
                                 <Input
                                 id="bkash_number"
                                 value={form.bkash_number}
                                 onChange={(e) => setForm((prev) => ({ ...prev, bkash_number: e.target.value }))}
                                 placeholder="01XXXXXXXXX"
+                                className="bg-background"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="nagad_number">Nagad Number</Label>
+                            <div className="space-y-2 border md:border-0 rounded p-3 md:p-0 bg-orange-50/50 md:bg-transparent dark:bg-orange-950/10 dark:md:bg-transparent border-orange-100 dark:border-orange-900 border-dashed md:border-solid">
+                                <Label htmlFor="nagad_number" className="text-sm font-semibold text-orange-700 dark:text-orange-400">Nagad Number</Label>
                                 <Input
                                 id="nagad_number"
                                 value={form.nagad_number}
                                 onChange={(e) => setForm((prev) => ({ ...prev, nagad_number: e.target.value }))}
                                 placeholder="01XXXXXXXXX"
+                                className="bg-background"
                                 />
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="contact_info">Contact Info</Label>
+                            <div className="space-y-2 border md:border-0 rounded p-3 md:p-0 bg-blue-50/50 md:bg-transparent dark:bg-blue-950/10 dark:md:bg-transparent border-blue-100 dark:border-blue-900 border-dashed md:border-solid">
+                                <Label htmlFor="contact_info" className="text-sm font-semibold text-blue-700 dark:text-blue-400">Support Number</Label>
                                 <Input
                                 id="contact_info"
                                 value={form.contact_info}
                                 onChange={(e) => setForm((prev) => ({ ...prev, contact_info: e.target.value }))}
-                                placeholder="For payment confirmation"
+                                placeholder="01XXXXXXXXX"
+                                className="bg-background"
                                 />
                             </div>
-                        </div>
-                    </div>
+                        </CardContent>
+                    </Card>
 
                     {/* Settings & Categorization */}
-                    <div className="md:col-span-2 space-y-4">
-                        <h3 className="text-base font-semibold border-b pb-2">Settings & Categorization</h3>
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label htmlFor="category">Batch Category (Tags)</Label>
-                                <MultiSelect
-                                    options={existingCategories}
-                                    selected={form.category}
-                                    onChange={(val) => setForm(prev => ({ ...prev, category: val }))}
-                                    onCreate={handleCreateCategory}
-                                    placeholder="Select batches..."
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="sub_category">Type / Sub Category</Label>
-                                <MultiSelect
-                                    options={existingSubCategories}
-                                    selected={form.sub_category}
-                                    onChange={(val) => setForm(prev => ({ ...prev, sub_category: val }))}
-                                    onCreate={handleCreateSubCategory}
-                                    placeholder="Select types..."
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label>Included Courses (Bundle)</Label>
-                                <MultiSelect
-                                    options={allCoursesList?.filter(c => c.value !== form.id) || []}
-                                    selected={form.linked_course_ids}
-                                    onChange={(val) => setForm(prev => ({ ...prev, linked_course_ids: val }))}
-                                    placeholder="Select courses..."
-                                />
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="priority">Sorting Priority</Label>
-                                <Input
-                                id="priority"
-                                type="number"
-                                value={form.priority}
-                                onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
-                                placeholder="0"
-                                />
-                            </div>
-
-                            <div className="md:col-span-2 flex items-center gap-8 pt-4">
-                                <div className="flex items-center gap-3">
-                                    <Switch
-                                    id="is_active"
-                                    checked={form.is_active}
-                                    onCheckedChange={(checked) =>
-                                        setForm((prev) => ({ ...prev, is_active: checked }))
-                                    }
+                    <Card className="md:col-span-2 shadow-sm border-muted">
+                        <CardHeader className="pb-4">
+                            <CardTitle className="text-lg">Visibility & Taxonomy</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid md:grid-cols-2 gap-6 mb-6">
+                                <div className="space-y-2">
+                                    <Label htmlFor="category" className="text-sm font-semibold">Batch Categories</Label>
+                                    <MultiSelect
+                                        options={existingCategories}
+                                        selected={form.category}
+                                        onChange={(val) => setForm(prev => ({ ...prev, category: val }))}
+                                        onCreate={handleCreateCategory}
+                                        placeholder="Select batches..."
                                     />
-                                    <div className="grid gap-0.5">
-                                        <Label htmlFor="is_active" className="text-base cursor-pointer">Active Status</Label>
-                                        <span className="text-xs text-muted-foreground">Course is active and purchasable</span>
-                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">Helps users filter by target exam (e.g. HSC 25).</p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Switch
-                                    id="is_public"
-                                    checked={form.is_public}
-                                    onCheckedChange={(checked) =>
-                                        setForm((prev) => ({ ...prev, is_public: checked }))
-                                    }
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="sub_category" className="text-sm font-semibold">Program Types</Label>
+                                    <MultiSelect
+                                        options={existingSubCategories}
+                                        selected={form.sub_category}
+                                        onChange={(val) => setForm(prev => ({ ...prev, sub_category: val }))}
+                                        onCreate={handleCreateSubCategory}
+                                        placeholder="Select types..."
                                     />
-                                    <div className="grid gap-0.5">
-                                        <Label htmlFor="is_public" className="text-base cursor-pointer">Public Visibility</Label>
-                                        <span className="text-xs text-muted-foreground">Visible on public listings</span>
-                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">Further grouping (e.g. Model Test, Academic).</p>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <Switch
-                                    id="access_unlimited_practice"
-                                    checked={form.access_unlimited_practice}
-                                    onCheckedChange={(checked) =>
-                                        setForm((prev) => ({ ...prev, access_unlimited_practice: checked }))
-                                    }
+
+                                <div className="space-y-2">
+                                    <Label className="text-sm font-semibold">Included / Bonus Courses</Label>
+                                    <MultiSelect
+                                        options={allCoursesList?.filter(c => c.value !== form.id) || []}
+                                        selected={form.linked_course_ids}
+                                        onChange={(val) => setForm(prev => ({ ...prev, linked_course_ids: val }))}
+                                        placeholder="Select courses..."
                                     />
-                                    <div className="grid gap-0.5">
-                                        <Label htmlFor="access_unlimited_practice" className="text-base cursor-pointer">Access Unlimited Practice</Label>
-                                        <span className="text-xs text-muted-foreground">Allow unlimited practice website</span>
-                                    </div>
+                                     <p className="text-[10px] text-muted-foreground mt-0.5">Students get access to archives & exams for these.</p>
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="priority" className="text-sm font-semibold">Sort Priority</Label>
+                                    <Input
+                                    id="priority"
+                                    type="number"
+                                    value={form.priority}
+                                    onChange={(e) => setForm((prev) => ({ ...prev, priority: parseInt(e.target.value) || 0 }))}
+                                    placeholder="0"
+                                    className="bg-background"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground mt-0.5">Higher numbers appear first.</p>
                                 </div>
                             </div>
-                        </div>
-                    </div>
+
+                            <div className="pt-4 border-t border-muted">
+                                <h4 className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mb-4">Toggle Toggles</h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                                    <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
+                                        <Switch
+                                        id="is_active"
+                                        checked={form.is_active}
+                                        onCheckedChange={(checked) =>
+                                            setForm((prev) => ({ ...prev, is_active: checked }))
+                                        }
+                                        />
+                                        <div className="grid gap-0.5">
+                                            <Label htmlFor="is_active" className="text-sm font-semibold cursor-pointer">Active</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">Accepting payments</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
+                                        <Switch
+                                        id="is_public"
+                                        checked={form.is_public}
+                                        onCheckedChange={(checked) =>
+                                            setForm((prev) => ({ ...prev, is_public: checked }))
+                                        }
+                                        />
+                                        <div className="grid gap-0.5">
+                                            <Label htmlFor="is_public" className="text-sm font-semibold cursor-pointer">Public</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">Visible in UI lists</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
+                                        <Switch
+                                        id="is_hidden"
+                                        checked={form.is_hidden}
+                                        onCheckedChange={(checked) =>
+                                            setForm((prev) => ({ ...prev, is_hidden: checked }))
+                                        }
+                                        />
+                                        <div className="grid gap-0.5">
+                                            <Label htmlFor="is_hidden" className="text-sm font-semibold cursor-pointer">Hidden App</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">Absolute shadow hide</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
+                                        <Switch
+                                        id="access_unlimited_practice"
+                                        checked={form.access_unlimited_practice}
+                                        onCheckedChange={(checked) =>
+                                            setForm((prev) => ({ ...prev, access_unlimited_practice: checked }))
+                                        }
+                                        />
+                                        <div className="grid gap-0.5">
+                                            <Label htmlFor="access_unlimited_practice" className="text-sm font-semibold cursor-pointer">Unlimited Practice</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">Unlimited portal access</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     </div>
                 </TabsContent>
@@ -873,6 +938,14 @@ const AdminCourses = () => {
             </div>
         </div>
 
+        <Tabs value={listStatusFilter} onValueChange={(v) => { setListStatusFilter(v as any); setPage(0); }} className="w-full">
+            <TabsList className="grid w-full max-w-sm grid-cols-3">
+                <TabsTrigger value="active">Active</TabsTrigger>
+                <TabsTrigger value="inactive">Inactive</TabsTrigger>
+                <TabsTrigger value="hidden">Hidden</TabsTrigger>
+            </TabsList>
+        </Tabs>
+
         {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading courses...</div>
           ) : !courses || courses.length === 0 ? (
@@ -891,7 +964,7 @@ const AdminCourses = () => {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {courses.map((course: Course) => (
+                    {courses.map((course: any) => (
                     <TableRow key={course.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => navigate(`/admin/course-dashboard/${course.id}`)}>
                         <TableCell className="font-medium whitespace-nowrap">{course.name}</TableCell>
                         <TableCell>

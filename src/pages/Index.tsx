@@ -17,6 +17,7 @@ import {
   Flame,
   Infinity as InfinityIcon,
   User,
+  Send,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -398,8 +399,33 @@ const Index = () => {
           </div>
       </section>
 
-
-
+      {/* Floating Contact Buttons */}
+      <div className="fixed bottom-6 right-5 z-50 flex flex-col gap-3">
+        <a
+          href="https://wa.me/8801999681290"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center justify-center h-12 w-12 rounded-full bg-[#25D366] shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300"
+          title="WhatsApp"
+        >
+          <MessageCircle className="h-6 w-6 text-white" />
+          <span className="absolute right-14 bg-[#25D366] text-white text-xs font-semibold px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md pointer-events-none">
+            WhatsApp
+          </span>
+        </a>
+        <a
+          href="https://t.me/rafi_somc"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex items-center justify-center h-12 w-12 rounded-full bg-[#0088cc] shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300"
+          title="Telegram"
+        >
+          <Send className="h-6 w-6 text-white" />
+          <span className="absolute right-14 bg-[#0088cc] text-white text-xs font-semibold px-2 py-1 rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-md pointer-events-none">
+            Telegram
+          </span>
+        </a>
+      </div>
     </div>
   );
 };

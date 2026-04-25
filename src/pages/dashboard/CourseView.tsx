@@ -41,13 +41,13 @@ const CourseView = () => {
       const { data: classData } = await supabase
         .from("classes")
         .select("subject")
-        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`);
+        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`);
 
       // Fetch subjects from exams
       const { data: examData } = await supabase
         .from("exams")
         .select("subject")
-        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
         .eq("is_published", true);
 
       const unique = new Set<string>();
@@ -87,14 +87,14 @@ const CourseView = () => {
       const { data: classData } = await supabase
         .from("classes")
         .select("chapter, sort_order")
-        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
         .contains("subject", [selectedSubject]);
 
       // Fetch chapters from exams
       const { data: examData } = await supabase
         .from("exams")
         .select("chapter, sort_order")
-        .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
         .contains("subject", [selectedSubject])
         .eq("is_published", true);
 
@@ -186,47 +186,7 @@ const CourseView = () => {
           </div>
       )}
 
-      {!selectedSubject ? (
-          <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Subjects</h2>
-              {loadingSubjects ? <div className="text-muted-foreground">Loading...</div> : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                      {subjects?.map(sub => (
-                          <Card key={sub} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSubject(sub)}>
-                              <CardHeader className="flex flex-row items-center gap-4">
-                                  <div className="p-3 bg-primary/10 rounded-full text-primary">
-                                      <BookOpen className="h-6 w-6" />
-                                  </div>
-                                  <CardTitle className="text-base">{sub}</CardTitle>
-                              </CardHeader>
-                          </Card>
-                      ))}
-                      {subjects?.length === 0 && <p className="text-muted-foreground">No content found.</p>}
-                  </div>
-              )}
-          </div>
-      ) : !selectedChapter ? (
-          <div className="space-y-4">
-              <h2 className="text-lg font-semibold">Chapters in {selectedSubject}</h2>
-              {loadingChapters ? <div className="text-muted-foreground">Loading...</div> : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {chapters?.map(chap => (
-                          <Card key={chap} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedChapter(chap)}>
-                              <CardHeader className="flex flex-row items-center justify-between">
-                                  <CardTitle className="text-base">{chap}</CardTitle>
-                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              </CardHeader>
-                          </Card>
-                      ))}
-                      {chapters?.length === 0 && <p className="text-muted-foreground">No chapters found.</p>}
-                  </div>
-              )}
-          </div>
-      ) : (
-          <CourseContentTabs courseId={courseId!} subject={selectedSubject} chapter={selectedChapter} />
-      )}
-
-      {manageType && (
+      {manageType ? (
         <CourseItemsManagerDialog
           courseId={courseId!}
           courseName={enrollment?.course?.name || "Course"}
@@ -235,9 +195,7 @@ const CourseView = () => {
           resourceType={manageType}
           onClose={() => setManageType(null)}
         />
-      )}
-
-      {manageChapters && (
+      ) : manageChapters ? (
         <ChapterSortDialog
           courseId={courseId!}
           subject={selectedSubject!}
@@ -245,6 +203,48 @@ const CourseView = () => {
           contextName={enrollment?.course?.name || "Course"}
           onClose={() => setManageChapters(false)}
         />
+      ) : (
+          <>
+          {!selectedSubject ? (
+              <div className="space-y-4">
+                  <h2 className="text-lg font-semibold">Subjects</h2>
+                  {loadingSubjects ? <div className="text-muted-foreground">Loading...</div> : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                          {subjects?.map(sub => (
+                              <Card key={sub} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSubject(sub)}>
+                                  <CardHeader className="flex flex-row items-center gap-4">
+                                      <div className="p-3 bg-primary/10 rounded-full text-primary">
+                                          <BookOpen className="h-6 w-6" />
+                                      </div>
+                                      <CardTitle className="text-base">{sub}</CardTitle>
+                                  </CardHeader>
+                              </Card>
+                          ))}
+                          {subjects?.length === 0 && <p className="text-muted-foreground">No content found.</p>}
+                      </div>
+                  )}
+              </div>
+          ) : !selectedChapter ? (
+              <div className="space-y-4">
+                  <h2 className="text-lg font-semibold">Chapters in {selectedSubject}</h2>
+                  {loadingChapters ? <div className="text-muted-foreground">Loading...</div> : (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {chapters?.map(chap => (
+                              <Card key={chap} className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedChapter(chap)}>
+                                  <CardHeader className="flex flex-row items-center justify-between">
+                                      <CardTitle className="text-base">{chap}</CardTitle>
+                                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                  </CardHeader>
+                              </Card>
+                          ))}
+                          {chapters?.length === 0 && <p className="text-muted-foreground">No chapters found.</p>}
+                      </div>
+                  )}
+              </div>
+          ) : (
+              <CourseContentTabs courseId={courseId!} subject={selectedSubject} chapter={selectedChapter} />
+          )}
+          </>
       )}
     </div>
   );
@@ -292,7 +292,7 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
             const { data } = await supabase
                 .from("classes")
                 .select("*")
-                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .order("sort_order", { ascending: false })
@@ -334,7 +334,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
             const { data } = await supabase
                 .from("exams")
                 .select("*")
-                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)
@@ -379,7 +379,7 @@ const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
             const { data } = await supabase
                 .from("exams")
                 .select("*")
-                .or(`course_id.eq.${courseId},shared_course_ids.cs.{${courseId}}`)
+                .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Save, Loader2 } from "lucide-react";
+import { ChevronLeft, GridIcon, GripVertical, Save, Loader2 } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -111,15 +111,20 @@ export function ChapterSortDialog({ courseId, subject, chapters, contextName, on
   });
 
   return (
-    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Organize Chapters - {subject}</DialogTitle>
-          <DialogDescription>
+    <Card className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
+        <div>
+          <CardTitle>Organize Chapters - {subject}</CardTitle>
+          <CardDescription>
             Drag and drop to reorder chapters for {contextName}. This affects the display order for students.
-          </DialogDescription>
-        </DialogHeader>
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
+          <ChevronLeft className="h-4 w-4 mr-2" /> Back to Chapters
+        </Button>
+      </CardHeader>
 
+      <CardContent className="flex flex-col">
         <div className="flex items-center justify-end py-2">
             <div className="flex gap-2">
                 {isModified && (
@@ -153,7 +158,7 @@ export function ChapterSortDialog({ courseId, subject, chapters, contextName, on
                 </DndContext>
             )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 }

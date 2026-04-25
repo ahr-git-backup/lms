@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,9 +12,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle, Fingerprint, Loader2, Copy } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { 
+  PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle, 
+  Fingerprint, Loader2, Copy, CreditCard, AlertTriangle, ExternalLink, 
+  Calendar, User, Mail, Hash, Phone, School, GraduationCap, Users, Binary, Info
+} from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Turnstile } from "@marsidev/react-turnstile";
-import { startOfWeek, startOfMonth } from "date-fns";
+import { startOfWeek, startOfMonth, format, isPast } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Link } from "react-router-dom";
 
@@ -40,6 +47,15 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const ProfileDetailItem = ({ label, value }: { label: string, value: string | number | undefined | null }) => (
+    <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
+        <span className="text-muted-foreground text-xs font-medium">{label}</span>
+        <span className="font-bold text-sm text-right pl-4">{value || "-"}</span>
+    </div>
+);
+
 const StudentProfile = () => {
   const { profile, user } = useAuth();
   const { toast } = useToast();
@@ -64,6 +80,22 @@ const StudentProfile = () => {
   );
   const [generatingOmr, setGeneratingOmr] = useState(false);
 
+  // Fetch payment requests
+  const { data: paymentRequests, isLoading: paymentsLoading } = useQuery({
+    queryKey: ["student-payments", profile?.id],
+    queryFn: async () => {
+      if (!profile?.id) return [];
+      const { data, error } = await (supabase as any)
+        .from("payment_requests")
+        .select(`*, courses(name, price), emi_logs(*)`)
+        .eq("profile_id", profile.id)
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!profile?.id,
+  });
+
   useEffect(() => {
     document.title = "Student Profile – Atlas";
     const fetchStats = async () => {
@@ -79,7 +111,7 @@ const StudentProfile = () => {
       };
 
       if (timeRange === 'all') {
-          const { data } = await supabase.from('user_study_data').select('stats').eq('user_id', profile.id).single();
+          const { data } = await (supabase as any).from('user_study_data').select('stats').eq('user_id', profile.id).single();
           if (data?.stats) newStats = data.stats;
       } else {
           // Fetch from logs for specific range
@@ -94,7 +126,7 @@ const StudentProfile = () => {
               startDate = startOfMonth(now);
           }
 
-          const { data: logs } = await supabase
+          const { data: logs } = await (supabase as any)
             .from('study_activity_logs')
             .select('activity_type, duration_seconds, metadata')
             .eq('user_id', profile.id)
@@ -218,9 +250,7 @@ const StudentProfile = () => {
             }
         );
         if (error) throw error;
-        
-        // @ts-expect-error New column not yet in DB types
-        const { error: dbError } = await supabase.from('profiles').update({ has_changed_email: true }).eq('id', profile.id);
+        const { error: dbError } = await (supabase as any).from('profiles').update({ has_changed_email: true }).eq('id', profile.id);
         if (dbError) throw dbError;
         
         toast({ title: "Verification Sent", description: "Please check your new email's inbox to verify the change." });
@@ -244,7 +274,7 @@ const StudentProfile = () => {
         if (error) throw error;
 
         // Reset the flag so they can try again
-        const { error: dbError } = await supabase.from('profiles').update({ has_changed_email: false }).eq('id', profile.id);
+        const { error: dbError } = await (supabase as any).from('profiles').update({ has_changed_email: false }).eq('id', profile.id);
         if (dbError) throw dbError;
 
         toast({ title: "Change Canceled", description: "Pending email change has been cleared." });
@@ -264,7 +294,7 @@ const StudentProfile = () => {
   const handleGenerateOmrCredentials = async () => {
     setGeneratingOmr(true);
     try {
-      const { data, error } = await supabase.rpc('generate_omr_credentials');
+      const { data, error } = await (supabase as any).rpc('generate_omr_credentials');
       if (error) throw error;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const result = data as any;
@@ -308,9 +338,11 @@ const StudentProfile = () => {
         </p>
       </header>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Profile Card (Compact vs Edit) */}
-        <Card className="md:col-span-2 border border-foreground/60">
+      <div className="grid gap-8 lg:grid-cols-2 items-start">
+        {/* Left Column (Details & Payments) */}
+        <div className="space-y-8 flex flex-col">
+          {/* Profile Card (Compact vs Edit) */}
+          <Card className="border border-foreground/60 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <div className="space-y-1">
                     <CardTitle className="text-base">Personal Details</CardTitle>
@@ -400,111 +432,46 @@ const StudentProfile = () => {
                         </div>
                     </form>
                 ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-y-4 gap-x-8 text-sm">
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Full Name</span>
-                            <span className="font-medium">{profile.full_name || "-"}</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Email</span>
-                            <div className="flex items-center gap-2">
-                                <div className="flex flex-col gap-1">
-                                    <span className="font-medium">{user?.email || "-"}</span>
+                    <div className="divide-y divide-border/40">
+                        {/* Identity Group */}
+                        <div className="pb-4">
+                            <ProfileDetailItem label="Full Name" value={profile.full_name} />
+                            <div className="flex items-center justify-between py-2.5 border-b border-border/50">
+                                <span className="text-muted-foreground text-xs font-medium">Email</span>
+                                <div className="flex flex-col items-end gap-1">
+                                    <span className="font-bold text-sm">{user?.email}</span>
                                     {user?.new_email && (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[10px] text-amber-600 font-medium">
-                                                Pending: {user.new_email}
-                                            </span>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-4 w-4" 
-                                                onClick={async () => {
-                                                    await supabase.auth.refreshSession();
-                                                    window.location.reload();
-                                                }}
-                                                title="Check if verified"
-                                            >
-                                                <RefreshCw className="h-3 w-3" />
-                                            </Button>
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-4 w-4" 
-                                                onClick={cancelEmailChange}
-                                                disabled={updatingEmail}
-                                                title="Cancel pending change"
-                                            >
-                                                <XCircle className="h-3 w-3 text-destructive" />
-                                            </Button>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className="text-[10px] text-amber-600 font-medium italic">Pending: {user.new_email}</span>
+                                            <Button variant="ghost" size="icon" className="h-4 w-4" onClick={() => window.location.reload()}><RefreshCw className="h-3 w-3" /></Button>
+                                            <Button variant="ghost" size="icon" className="h-4 w-4 text-destructive" onClick={cancelEmailChange} disabled={updatingEmail}><XCircle className="h-3 w-3" /></Button>
                                         </div>
                                     )}
+                                    {!(profile as any).has_changed_email && (
+                                        <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => setIsChangingEmail(true)}>Change Email</Button>
+                                    )}
                                 </div>
-                                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                                {!(profile as any).has_changed_email && (
-                                    <Button variant="link" size="sm" className="h-auto p-0 text-xs text-primary" onClick={() => setIsChangingEmail(true)}>
-                                        Change Email
-                                    </Button>
-                                )}
                             </div>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Registration ID</span>
-                            <span className="font-medium">{profile.registration_id}</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Phone</span>
-                            <span className="font-medium">{profile.phone || "-"}</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">College</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).college_name || "-"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">HSC Batch</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).hsc_batch || "-"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Second Timer</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).is_second_timer ? "Yes" : "No"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Father's Name</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).father_name || "-"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">Mother's Name</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).mother_name || "-"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">SSC GPA</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).ssc_gpa || "0.00"
-                            }</span>
-                         </div>
-                         <div>
-                            <span className="block text-muted-foreground text-xs uppercase tracking-wide">HSC GPA</span>
-                            <span className="font-medium">{
-                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                (profile as any).hsc_gpa || "0.00"
-                            }</span>
-                         </div>
+                            <ProfileDetailItem label="Registration ID" value={profile.registration_id} />
+                            <ProfileDetailItem label="Phone" value={profile.phone} />
+                        </div>
+
+                        {/* Academic Group */}
+                        <div className="py-4">
+                            <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-2 px-1">Academic</h4>
+                            <ProfileDetailItem label="College" value={(profile as any).college_name} />
+                            <ProfileDetailItem label="HSC Batch" value={(profile as any).hsc_batch} />
+                            <ProfileDetailItem label="Second Timer" value={(profile as any).is_second_timer ? "Yes" : "No"} />
+                            <ProfileDetailItem label="SSC GPA" value={(profile as any).ssc_gpa} />
+                            <ProfileDetailItem label="HSC GPA" value={(profile as any).hsc_gpa} />
+                        </div>
+
+                        {/* Guardian Group */}
+                        <div className="pt-4 pb-2">
+                            <h4 className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest mb-2 px-1">Guardians</h4>
+                            <ProfileDetailItem label="Father's Name" value={(profile as any).father_name} />
+                            <ProfileDetailItem label="Mother's Name" value={(profile as any).mother_name} />
+                        </div>
                     </div>
                 )
             ) : (
@@ -513,8 +480,115 @@ const StudentProfile = () => {
             </CardContent>
         </Card>
 
+        {/* Payments Section (Natively displayed) */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold tracking-tight">Payment History & Invoices</h2>
+          {paymentsLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="animate-spin text-primary" /></div>
+          ) : !paymentRequests || paymentRequests.length === 0 ? (
+            <div className="text-center py-10 px-4 bg-muted/20 border border-dashed rounded-lg shadow-sm">
+               <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                  <CreditCard className="h-4 w-4 text-muted-foreground opacity-50" />
+               </div>
+               <h3 className="font-semibold text-base">No Payment Records</h3>
+               <p className="text-xs text-muted-foreground mt-1 mx-auto">You haven't made any course purchases yet.</p>
+            </div>
+          ) : (
+            <div className="grid gap-4 pb-6">
+              {paymentRequests.map((payment: any) => {
+                const remaining = (payment.due_amount || 0) - (payment.amount_paid || 0);
+                const isOverdue = payment.due_date && isPast(new Date(payment.due_date)) && remaining > 0;
+                return (
+                  <div key={payment.id} className={`p-4 sm:p-5 rounded-xl border shadow-sm transition-colors bg-background hover:border-primary/50 ${isOverdue ? 'border-red-200 bg-red-50/10 dark:bg-red-950/10' : ''}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                      <div>
+                        <div className="font-bold text-base">{payment.courses?.name || "Unknown Course"}</div>
+                        <div className="text-xs text-muted-foreground">{format(new Date(payment.created_at), 'PPP')}</div>
+                      </div>
+                      <Badge variant={payment.status === 'approved' ? 'default' : payment.status === 'rejected' ? 'destructive' : 'secondary'} className="capitalize w-fit">
+                        {payment.status}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm bg-muted/20 p-3 rounded-lg border">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Amount Sent</p>
+                        <p className="font-bold text-green-700">৳{payment.amount_sent || "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Method</p>
+                        <p className="font-semibold capitalize text-xs">{payment.payment_method}</p>
+                      </div>
+                      <div className="col-span-2 sm:col-span-2">
+                        <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Txn ID</p>
+                        <p className="font-mono font-medium text-xs truncate max-w-full">{payment.sender_last5 || payment.trx_id || "N/A"}</p>
+                      </div>
+                      {payment.due_amount && payment.due_amount > 0 && (
+                        <>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Total Due</p>
+                            <p className="font-bold text-amber-700">৳{payment.due_amount}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Remaining</p>
+                            <p className={`font-bold text-base ${remaining > 0 ? 'text-amber-700' : 'text-green-600'}`}>৳{Math.max(0, remaining)}</p>
+                          </div>
+                          {payment.due_date && remaining > 0 && (
+                            <div className="sm:col-span-2">
+                              <p className="text-[10px] text-muted-foreground uppercase font-semibold tracking-wider mb-1">Pay By</p>
+                              <p className={`font-bold text-xs flex items-center gap-1.5 ${isOverdue ? 'text-red-600' : ''}`}>
+                                {isOverdue && <AlertTriangle className="h-3 w-3" />}
+                                {format(new Date(payment.due_date), "dd MMM yyyy")}
+                                {isOverdue && <span className="text-[9px] bg-red-100 text-red-700 px-1 py-0.5 rounded uppercase font-bold ml-1">Overdue</span>}
+                              </p>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {payment.admin_note && (
+                      <div className="mt-3 text-xs text-muted-foreground bg-amber-50/50 p-2.5 rounded-md border border-amber-200 flex items-start gap-2">
+                        <span className="text-base leading-none">📝</span>
+                        <div>
+                            <strong className="block text-amber-800 mb-0.5">Admin Note:</strong>
+                            {payment.admin_note}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {payment.emi_logs && payment.emi_logs.length > 0 && (
+                      <div className="mt-4 pt-3 border-t">
+                        <h5 className="text-[10px] font-bold text-muted-foreground mb-2 uppercase tracking-wider">Partial Payments Log</h5>
+                        <div className="space-y-1.5">
+                          {payment.emi_logs.sort((a: any, b: any) => new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime()).map((log: any) => (
+                            <div key={log.id} className="flex justify-between items-center bg-muted/30 p-2 rounded-md text-xs">
+                              <div>
+                                <div className="font-bold text-green-700">+৳{log.amount}</div>
+                                <div className="text-[9px] text-muted-foreground">{format(new Date(log.recorded_at), 'PPp')}</div>
+                              </div>
+                              {log.admin_note && (
+                                <div className="text-right text-muted-foreground max-w-[50%] truncate italic text-[10px]">
+                                  "{log.admin_note}"
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right Column (OMR & Courses) */}
+      <div className="space-y-8 flex flex-col">
         {/* OMR Credentials Card */}
-        <Card className="md:col-span-2 border border-violet-200 dark:border-violet-800/40">
+        <Card className="border border-violet-200 dark:border-violet-800/40 shadow-sm">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
@@ -571,56 +645,66 @@ const StudentProfile = () => {
         </Card>
 
         {/* Enrolled Courses Section */}
-        <div className="md:col-span-2 space-y-4">
-            <h2 className="text-xl font-semibold tracking-tight">My Enrolled Courses</h2>
-            <div className="space-y-3">
-                {enrollments?.map((enrollment) => (
-                    <Card key={enrollment.id} className="overflow-hidden border border-border/60 hover:border-primary/50 transition-colors group flex flex-col sm:flex-row items-start sm:items-center p-4 gap-4">
-                        <div className="h-16 w-16 sm:h-14 sm:w-14 bg-muted relative overflow-hidden rounded-md shrink-0">
-                             {enrollment.course?.image_url ? (
-                                <img src={enrollment.course.image_url} alt={enrollment.course.name} className="h-full w-full object-cover transition-transform group-hover:scale-105" />
-                             ) : (
-                                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center">
-                                    <BookOpen className="h-6 w-6 text-primary/40" />
-                                </div>
-                             )}
-                        </div>
-                        <div className="flex-1 space-y-1 w-full min-w-0">
-                            <div className="flex items-center gap-2">
-                                <h3 className="font-bold text-base sm:text-lg line-clamp-1 group-hover:text-primary transition-colors">{enrollment.course?.name || "Unknown Course"}</h3>
-                                <span className="bg-green-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm shrink-0">
-                                    Active
-                                </span>
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                                Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}
-                            </div>
-                        </div>
-                        <Button asChild variant="outline" size="sm" className="w-full sm:w-auto shrink-0 mt-2 sm:mt-0">
-                            <Link to={`/dashboard/course/${enrollment.course_id}`}>
-                                Continue Learning <ArrowRight className="ml-2 h-3 w-3" />
-                            </Link>
-                        </Button>
-                    </Card>
-                ))}
-
-                {/* Buy More Card */}
-                <Card className="border-2 border-dashed border-muted hover:border-primary/50 transition-colors flex flex-col sm:flex-row items-center justify-between p-4 gap-4 cursor-pointer bg-muted/10 group" onClick={() => window.location.href = "/"}>
-                    <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors">
-                            <PlusCircle className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-bold mb-1">Enroll in New Course</h3>
-                            <p className="text-sm text-muted-foreground line-clamp-2 max-w-sm">Explore our catalog and boost your preparation.</p>
-                        </div>
-                    </div>
-                    <Button variant="ghost" size="sm" className="gap-1 hidden sm:flex">
-                        Browse Courses <ArrowRight className="h-3 w-3" />
-                    </Button>
-                </Card>
+        <div className="space-y-4">
+            <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold tracking-tight">My Courses</h2>
+                <Button size="sm" variant="outline" className="h-8 gap-1" asChild>
+                    <Link to="/">
+                        <PlusCircle className="h-3.5 w-3.5" /> Buy More
+                    </Link>
+                </Button>
             </div>
+            
+            <Card className="border border-border/60 shadow-sm overflow-hidden">
+                <Table>
+                    <TableHeader className="bg-muted/30">
+                        <TableRow>
+                            <TableHead className="w-12 text-center">#</TableHead>
+                            <TableHead>Course Name</TableHead>
+                            <TableHead className="hidden sm:table-cell">Enrolled Date</TableHead>
+                            <TableHead className="text-right">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {enrollments?.filter(e => !(e as any).is_extra).length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+                                    No courses found.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            enrollments?.filter(e => !(e as any).is_extra).map((enrollment, index) => (
+                                <TableRow key={enrollment.id} className="group">
+                                    <TableCell className="text-center font-medium text-muted-foreground">{index + 1}</TableCell>
+                                    <TableCell className="font-bold">
+                                        <div className="flex flex-col">
+                                            <span>{enrollment.course?.name || "Unknown Course"}</span>
+                                            <span className="text-[10px] sm:hidden text-muted-foreground font-normal">
+                                                Enrolled: {new Date(enrollment.created_at).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="hidden sm:table-cell text-muted-foreground text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-3.5 w-3.5" />
+                                            {new Date(enrollment.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button asChild variant="ghost" size="sm" className="h-8 pr-0 hover:bg-transparent hover:text-primary transition-colors">
+                                            <Link to={`/dashboard/course/${enrollment.course_id}`}>
+                                                <span className="hidden sm:inline mr-1">Enter</span> <ArrowRight className="h-3.5 w-3.5" />
+                                            </Link>
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </Card>
         </div>
+      </div>
       </div>
 
       <Dialog open={isChangingEmail} onOpenChange={setIsChangingEmail}>

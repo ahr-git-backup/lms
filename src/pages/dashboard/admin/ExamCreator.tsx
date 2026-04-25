@@ -64,6 +64,8 @@ const ExamCreator = () => {
     restrict_solution: false,
     is_readymade: false,
     readymade_topic: "",
+    readymade_category: "",
+    readymade_sub_chapter: "",
     is_omr_enabled: false,
   });
 
@@ -425,6 +427,8 @@ const ExamCreator = () => {
         restrict_solution: f.restrict_solution,
         is_readymade: f.is_readymade,
         readymade_topic: f.readymade_topic || null,
+        readymade_category: f.readymade_category || null,
+        readymade_sub_chapter: f.readymade_sub_chapter || null,
         is_omr: f.is_omr_enabled,
       };
 
@@ -919,27 +923,59 @@ const ExamCreator = () => {
                         </div>
                         {saveWebForm.is_readymade && (
                             <>
-                            <div className="space-y-2">
-                                <Label htmlFor="readymade_topic">Parent Readymade Topic</Label>
-                                <CreatableSelect
-                                    options={globalMeta?.readymade_topic || []}
-                                    value={saveWebForm.readymade_topic}
-                                    onChange={val => setSaveWebForm(prev => ({ ...prev, readymade_topic: val }))}
-                                    onCreate={val => {
-                                        handleCreateMeta('readymade_topic', val);
-                                        setSaveWebForm(prev => ({ ...prev, readymade_topic: val }));
-                                    }}
-                                    placeholder="Select or Create Parent Topic"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label>Readymade For Specific Courses (Optional)</Label>
-                                <MultiSelect
-                                    options={courseOptions}
-                                    selected={saveWebForm.readymade_course_ids}
-                                    onChange={vals => setSaveWebForm(prev => ({ ...prev, readymade_course_ids: vals }))}
-                                    placeholder="Select courses..."
-                                />
+                            {/* HSC Board Hierarchy: Category → Subject (chapter) → Sub-chapter (session) → Exam */}
+                            <div className="mt-2 p-3 bg-blue-50/80 dark:bg-blue-900/5 rounded-lg border border-blue-100 space-y-3">
+                                <p className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">HSC Board Exam Structure</p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Board / Category <span className="text-muted-foreground">(e.g. ঢাকা বোর্ড)</span></Label>
+                                        <CreatableSelect
+                                            options={globalMeta?.readymade_category || []}
+                                            value={saveWebForm.readymade_category}
+                                            onChange={val => setSaveWebForm(prev => ({ ...prev, readymade_category: val }))}
+                                            onCreate={val => {
+                                                handleCreateMeta('readymade_category', val);
+                                                setSaveWebForm(prev => ({ ...prev, readymade_category: val }));
+                                            }}
+                                            placeholder="Select or Create Board"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Parent Group / Topic <span className="text-muted-foreground">(e.g. Board Questions)</span></Label>
+                                        <CreatableSelect
+                                            options={globalMeta?.readymade_topic || []}
+                                            value={saveWebForm.readymade_topic}
+                                            onChange={val => setSaveWebForm(prev => ({ ...prev, readymade_topic: val }))}
+                                            onCreate={val => {
+                                                handleCreateMeta('readymade_topic', val);
+                                                setSaveWebForm(prev => ({ ...prev, readymade_topic: val }));
+                                            }}
+                                            placeholder="Select or Create Topic"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Session / Sub-chapter <span className="text-muted-foreground">(e.g. HSC 2023)</span></Label>
+                                        <CreatableSelect
+                                            options={globalMeta?.readymade_sub_chapter || []}
+                                            value={saveWebForm.readymade_sub_chapter}
+                                            onChange={val => setSaveWebForm(prev => ({ ...prev, readymade_sub_chapter: val }))}
+                                            onCreate={val => {
+                                                handleCreateMeta('readymade_sub_chapter' as any, val);
+                                                setSaveWebForm(prev => ({ ...prev, readymade_sub_chapter: val }));
+                                            }}
+                                            placeholder="Select or Create Session"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <Label className="text-xs">Readymade For Courses (Optional)</Label>
+                                        <MultiSelect
+                                            options={courseOptions}
+                                            selected={saveWebForm.readymade_course_ids}
+                                            onChange={vals => setSaveWebForm(prev => ({ ...prev, readymade_course_ids: vals }))}
+                                            placeholder="Select courses..."
+                                        />
+                                    </div>
+                                </div>
                             </div>
                             </>
                         )}

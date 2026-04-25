@@ -4,11 +4,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Trash2, Plus, Search, Loader2, ImagePlus, X } from "lucide-react";
+import { Edit2, Trash2, Plus, Search, Loader2, ImagePlus, X, BookOpen } from "lucide-react";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 
@@ -162,7 +164,13 @@ const AdminRoutines = () => {
                                 {routines.map((routine) => (
                                     <TableRow key={routine.id}>
                                         <TableCell className="font-medium">{routine.title}</TableCell>
-                                        <TableCell>{routine.course?.name}</TableCell>
+                                         <TableCell>
+                                           <div className="flex flex-wrap gap-1">
+                                             {routine.course?.name && (
+                                               <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{routine.course.name}</span>
+                                             )}
+                                           </div>
+                                         </TableCell>
                                         <TableCell>{new Date(routine.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
@@ -226,15 +234,24 @@ const AdminRoutines = () => {
 };
 
 // Form Component
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const RoutineForm = ({ initialData, courses, onSuccess, onCancel }: { initialData: any, courses: any[], onSuccess: () => void, onCancel: () => void }) => {
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState(initialData?.title || "");
     const [courseId, setCourseId] = useState(initialData?.course_id || "");
+    // Multi-course: store array of additional course IDs
+    const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>(initialData?.course_ids || []);
     const [content, setContent] = useState(initialData?.content || "");
     const [mediaUrls, setMediaUrls] = useState<string[]>(initialData?.media_urls || []);
     const [uploading, setUploading] = useState(false);
+
+    const toggleCourse = (id: string) => {
+        setSelectedCourseIds(prev =>
+            prev.includes(id) ? prev.filter(c => c !== id) : [...prev, id]
+        );
+    };
+
+    const allSelectedIds = Array.from(new Set([...(courseId ? [courseId] : []), ...selectedCourseIds]));
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
@@ -261,7 +278,7 @@ const RoutineForm = ({ initialData, courses, onSuccess, onCancel }: { initialDat
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!title || !courseId) {
-            toast({ title: "Required", description: "Title and Course are required.", variant: "destructive" });
+            toast({ title: "Required", description: "Title and at least one Course are required.", variant: "destructive" });
             return;
         }
 
@@ -270,6 +287,7 @@ const RoutineForm = ({ initialData, courses, onSuccess, onCancel }: { initialDat
             const payload = {
                 title,
                 course_id: courseId,
+                course_ids: allSelectedIds,
                 content,
                 media_urls: mediaUrls,
                 is_visible: true
@@ -312,10 +330,10 @@ const RoutineForm = ({ initialData, courses, onSuccess, onCancel }: { initialDat
                     <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="E.g., Weekly Schedule - March Week 1" required />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-sm font-medium">Course</label>
+                    <label className="text-sm font-medium">Primary Course <span className="text-xs text-muted-foreground">(required)</span></label>
                     <Select value={courseId} onValueChange={setCourseId} required>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select Course" />
+                            <SelectValue placeholder="Select Primary Course" />
                         </SelectTrigger>
                         <SelectContent>
                             {courses.map(c => (
@@ -324,6 +342,32 @@ const RoutineForm = ({ initialData, courses, onSuccess, onCancel }: { initialDat
                         </SelectContent>
                     </Select>
                 </div>
+            </div>
+
+            {/* Multi-course selector */}
+            <div className="space-y-2">
+                <label className="text-sm font-medium flex items-center gap-2">
+                    Also share with other courses
+                    <span className="text-xs text-muted-foreground font-normal">(optional — this routine will appear in all selected courses)</span>
+                </label>
+                <div className="border rounded-lg p-3 max-h-[200px] overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {courses.filter(c => c.id !== courseId).map(c => (
+                        <div key={c.id} className="flex items-center gap-2">
+                            <Checkbox
+                                id={`course-${c.id}`}
+                                checked={selectedCourseIds.includes(c.id)}
+                                onCheckedChange={() => toggleCourse(c.id)}
+                            />
+                            <label htmlFor={`course-${c.id}`} className="text-sm cursor-pointer">{c.name}</label>
+                        </div>
+                    ))}
+                    {courses.filter(c => c.id !== courseId).length === 0 && (
+                        <p className="text-xs text-muted-foreground col-span-2 text-center py-2">No other courses available</p>
+                    )}
+                </div>
+                {allSelectedIds.length > 1 && (
+                    <p className="text-xs text-primary">This routine will appear in {allSelectedIds.length} courses.</p>
+                )}
             </div>
 
             <div className="space-y-2">

@@ -80,18 +80,28 @@ const Readymade = () => {
         <p className="text-sm text-muted-foreground">Pre-configured practice exams for your courses.</p>
       </header>
 
-      <div className="flex flex-col sm:flex-row justify-end items-end sm:items-center gap-2">
-          {parentTopics && parentTopics.length > 0 && (
-              <div className="w-full sm:w-64">
-                  <MultiSelect
-                      options={parentTopics}
-                      selected={selectedParentTopics}
-                      onChange={setSelectedParentTopics}
-                      placeholder="Select Topics..."
-                  />
-              </div>
-          )}
-          <div className="relative w-full sm:w-auto flex items-center justify-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-wrap gap-2 w-full md:w-auto flex-1">
+              {!selectedSubject && parentTopics?.map(topic => (
+                  <Button
+                      key={topic.value}
+                      variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
+                      size="sm"
+                      className="rounded-full shadow-sm text-xs h-8 hover:scale-105 transition-transform"
+                      onClick={() => {
+                          setPage(0);
+                          setSelectedParentTopics(prev =>
+                              prev.includes(topic.value)
+                                  ? prev.filter(t => t !== topic.value)
+                                  : [...prev, topic.value]
+                          );
+                      }}
+                  >
+                      {topic.label}
+                  </Button>
+              ))}
+          </div>
+          <div className="relative w-full md:w-auto flex items-center justify-end shrink-0">
               {isSearchExpanded ? (
                   <div className="flex items-center w-full sm:w-64 relative animate-in fade-in zoom-in duration-200">
                       <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -136,21 +146,7 @@ const Readymade = () => {
           </div>
       )}
 
-      <ReadymadeExamView
-            enrollments={enrollments}
-            selectedSubject={selectedSubject}
-            setSelectedSubject={setSelectedSubject}
-            selectedChapter={selectedChapter}
-            setSelectedChapter={setSelectedChapter}
-            navigate={navigate}
-            searchQuery={debouncedSearch}
-            page={page}
-            setPage={setPage}
-            selectedParentTopics={selectedParentTopics}
-            setCurrentChaptersList={setCurrentChaptersList}
-      />
-
-      {manageType && (
+      {manageType ? (
         <CourseItemsManagerDialog
           courseId={enrollments?.[0]?.course_id}
           courseName="Readymade Exams"
@@ -159,9 +155,7 @@ const Readymade = () => {
           resourceType={manageType}
           onClose={() => setManageType(null)}
         />
-      )}
-
-      {manageChapters && selectedSubject && (
+      ) : manageChapters && selectedSubject ? (
         <ChapterSortDialog
           courseId={enrollments?.[0]?.course_id || null}
           subject={selectedSubject}
@@ -169,6 +163,20 @@ const Readymade = () => {
           contextName="Readymade Exams"
           onClose={() => setManageChapters(false)}
         />
+      ) : (
+          <ReadymadeExamView
+                enrollments={enrollments}
+                selectedSubject={selectedSubject}
+                setSelectedSubject={setSelectedSubject}
+                selectedChapter={selectedChapter}
+                setSelectedChapter={setSelectedChapter}
+                navigate={navigate}
+                searchQuery={debouncedSearch}
+                page={page}
+                setPage={setPage}
+                selectedParentTopics={selectedParentTopics}
+                setCurrentChaptersList={setCurrentChaptersList}
+          />
       )}
     </div>
   );
@@ -203,7 +211,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
             // Filter by access: Enrolled course must be in course_id, OR shared_course_ids, OR readymade_course_ids, OR null (public)
             if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}}`);
             } else {
                  query = query.is("course_id", null);
             }
@@ -230,9 +238,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
              }
 
              if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}},readymade_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}}`);
              } else {
                  query = query.is("course_id", null);
              }
@@ -278,7 +284,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
              }
 
              if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}}`);
              } else {
                  query = query.is("course_id", null);
              }
@@ -346,7 +352,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
              }
 
              if (enrolledIds.length > 0) {
-                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.cs.{${enrolledIds.join(',')}}`);
+                 query = query.or(`course_id.in.(${enrolledIds.join(',')}),course_id.is.null,shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}}`);
              } else {
                  query = query.is("course_id", null);
              }

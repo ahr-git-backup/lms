@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Profile, Course, Enrollment } from "@/types/admin";
@@ -13,13 +13,14 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
-import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail, AlertTriangle } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail, AlertTriangle, Eye, CheckCircle2 } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
 type ListFilter = 'all' | 'paid' | 'free' | 'admin' | 'teacher' | null;
 
 const AdminStudents = () => {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseFilter = searchParams.get("course") || "all";
   const page = parseInt(searchParams.get("page") || "0");
@@ -29,6 +30,7 @@ const AdminStudents = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [updateEmailUserId, setUpdateEmailUserId] = useState<string | null>(null);
+  const [confirmEmailUserId, setConfirmEmailUserId] = useState<string | null>(null);
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false);
 
@@ -49,6 +51,21 @@ const AdminStudents = () => {
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
+
+  const confirmEmailMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      // @ts-expect-error rpc not in generated types
+      const { error } = await supabase.rpc('admin_confirm_user_email', { p_user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Email Confirmed", description: "Student's email has been marked as confirmed." });
+      queryClient.invalidateQueries({ queryKey: ["admin-students"] });
+    },
+    onError: (err: Error) => {
+      toast({ title: "Failed to confirm email", description: err.message, variant: "destructive" });
+    },
+  });
 
   useEffect(() => {
     document.title = "Admin – Students – Atlas";
@@ -509,6 +526,9 @@ const AdminStudents = () => {
                       </TableCell>
                       <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
+                              <Button variant="ghost" size="icon" className="text-primary" onClick={() => navigate(`/admin/student/${student.id}`)} title="View Details">
+                                  <Eye className="h-4 w-4" />
+                              </Button>
                               {student.status === 'banned' ? (
                                   <Button variant="outline" size="sm" onClick={() => toggleBanMutation.mutate({ userId: student.id, status: 'active' })}>
                                       Unban
@@ -523,6 +543,9 @@ const AdminStudents = () => {
                               </Button>
                               <Button variant="ghost" size="icon" className="text-amber-500" onClick={() => setUpdateEmailUserId(student.id)} title="Force Update Email">
                                   <Mail className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="text-green-600" onClick={() => { if(confirm(`Confirm email for ${student.full_name}?`)) confirmEmailMutation.mutate(student.id) }} title="Confirm Email">
+                                  <CheckCircle2 className="h-4 w-4" />
                               </Button>
                               <Button variant="ghost" size="icon" className="text-destructive" onClick={() => { if(confirm("Delete this user?")) deleteUserMutation.mutate(student.id) }} title="Delete">
                                   <Trash2 className="h-4 w-4" />

@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { GripVertical, Save, ArrowUpDown, Loader2 } from "lucide-react";
+import { Save, ArrowUpDown, Loader2, ChevronLeft } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -41,36 +41,7 @@ interface ItemBase {
   archive_course_ids?: string[];
 }
 
-function SortableListItem({ item, index }: { item: ItemBase; index: number }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.8 : 1,
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`flex items-center gap-3 p-3 bg-card border rounded-md mb-2 ${
-        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30 text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 bg-muted/50 rounded flex-shrink-0">
-        <GripVertical className="h-4 w-4" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm truncate text-foreground" title={item.title}>{item.title}</h4>
-      </div>
-      <div className="text-xs bg-muted px-2 py-1 rounded-full flex-shrink-0">
-        Order: {item.sort_order || 0}
-      </div>
-    </div>
-  );
-}
+import { DraggableSortList } from "./DraggableSortList";
 
 export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, onClose }: CourseItemsManagerDialogProps) {
   const [items, setItems] = useState<ItemBase[]>([]);
@@ -151,27 +122,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
     }
   }, [fetchedItems]);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (over && active.id !== over.id) {
-      setItems((items) => {
-        const oldIndex = items.findIndex((i) => i.id === active.id);
-        const newIndex = items.findIndex((i) => i.id === over.id);
-        setIsModified(true);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
-
-  const handleReverse = () => {
-    setItems((prev) => [...prev].reverse());
-    setIsModified(true);
-  };
 
   const saveOrderMutation = useMutation({
     mutationFn: async (orderedItems: ItemBase[]) => {
@@ -204,56 +155,43 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
     },
   });
 
+  if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return null;
+
   return (
-    <Dialog open={!!courseId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Organize {resourceType === 'classes' ? 'Classes' : 'Exams'} - {courseName}</DialogTitle>
-          <DialogDescription>
-            Drag and drop to reorder items within this course. Shared items are included at the bottom by default.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex items-center justify-between py-2">
-            <Button variant="outline" size="sm" onClick={handleReverse} disabled={items.length === 0}>
-                <ArrowUpDown className="h-4 w-4 mr-2" /> Reverse Array
-            </Button>
-            
-            <div className="flex gap-2">
-                {isModified && (
-                    <>
-                    <Button variant="ghost" size="sm" onClick={() => setItems(fetchedItems || [])}>
-                        Reset
-                    </Button>
-                    <Button 
-                        size="sm" 
-                        onClick={() => saveOrderMutation.mutate(items)} 
-                        disabled={saveOrderMutation.isPending}
-                    >
-                        {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                        Save Sequence
-                    </Button>
-                    </>
-                )}
-            </div>
+    <Card className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
+        <div>
+          <CardTitle>Organize {resourceType === 'classes' ? 'Classes' : 'Exams'}</CardTitle>
+          <CardDescription>
+            {courseName} — Drag and drop to reorder items within this course. Shared items are included at the bottom by default.
+          </CardDescription>
         </div>
-
-        <div className="flex-1 overflow-y-auto pr-2 min-h-0 bg-muted/10 rounded-md border p-2">
-            {isLoading ? (
-                <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
-            ) : items.length === 0 ? (
-                <div className="text-center p-8 text-muted-foreground">No {resourceType} found for this course.</div>
-            ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-                        {items.map((item, index) => (
-                            <SortableListItem key={item.id} item={item} index={index} />
-                        ))}
-                    </SortableContext>
-                </DndContext>
-            )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
+          <ChevronLeft className="h-4 w-4 mr-2" /> Back to Courses
+        </Button>
+      </CardHeader>
+      
+      <CardContent>
+        {isLoading ? (
+            <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        ) : items.length === 0 ? (
+            <div className="text-center p-8 text-muted-foreground">No {resourceType} found for this course.</div>
+        ) : (
+            <DraggableSortList
+                items={items.map(i => ({ id: i.id, title: i.title, subtitle: `Priority: ${i.sort_order || 0}` }))}
+                onSave={async (ordered) => {
+                     const mapped = ordered.map(o => {
+                         const found = items.find(i => i.id === o.id);
+                         return found!;
+                     });
+                     await saveOrderMutation.mutateAsync(mapped);
+                }}
+                onCancel={onClose}
+                title=""
+                description=""
+            />
+        )}
+      </CardContent>
+    </Card>
   );
 }

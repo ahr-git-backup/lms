@@ -26,6 +26,8 @@ import { useSearchParams } from "react-router-dom";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
+import { ExamSortableList } from "@/components/admin/ExamSortableList";
+import { ArrowUpDown } from "lucide-react";
 
 const PAGE_SIZE = 15;
 
@@ -43,6 +45,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const [showForm, setShowForm] = useState(false);
   const [showExternalForm, setShowExternalForm] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
+  const [isReordering, setIsReordering] = useState(false);
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
@@ -386,6 +389,15 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         onChange={e => setSearchQuery(e.target.value)}
                         className="w-full sm:w-[200px]"
                     />
+                    {courseFilter !== 'all' ? (
+                        <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!exams || exams.length === 0} title="Reorder exams for this course">
+                            <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder
+                        </Button>
+                    ) : (
+                        <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!exams || exams.length === 0}>
+                            <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -393,6 +405,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                 <div className="text-sm text-muted-foreground">Loading exams...</div>
             ) : !exams || exams.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No exams defined yet.</div>
+            ) : isReordering ? (
+                <ExamSortableList
+                    exams={exams}
+                    onClose={() => setIsReordering(false)}
+                    sortColumn={isFreeMode ? "free_sort_order" : "sort_order"}
+                />
             ) : (
                 <>
                 {/* Desktop Table View */}
@@ -536,13 +554,13 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                 </div>
 
                 {/* Mobile Card View */}
-                <div className="md:hidden grid gap-4">
+                <div className="md:hidden grid sm:grid-cols-2 gap-4">
                     {exams.map((exam: any) => (
-                        <Card key={exam.id} className="hover:border-primary/50 transition-colors">
+                        <Card key={exam.id} className="hover:border-primary/50 transition-colors w-full overflow-hidden">
                             <CardContent className="p-4 space-y-3">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        {!isFreeMode && <div className="font-semibold text-sm text-primary">{exam.course?.name}</div>}
+                                <div className="flex justify-between items-start gap-2">
+                                    <div className="space-y-1 min-w-0">
+                                        {!isFreeMode && <div className="font-semibold text-sm text-primary truncate max-w-full">{exam.course?.name}</div>}
                                         <h3 className="font-bold leading-tight">{exam.title}</h3>
                                         {Array.isArray(exam.subject) && (
                                             <div className="flex flex-wrap gap-1">

@@ -1,21 +1,25 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import PublicHeader from "@/components/PublicHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag, Gift, Timer } from "lucide-react";
+import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag, Gift, Timer, CalendarIcon, Info, AlertTriangle, SkipForward } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 // Live countdown timer component
 const CountdownTimer = ({ deadline }: { deadline: string }) => {
@@ -63,11 +67,33 @@ const CountdownTimer = ({ deadline }: { deadline: string }) => {
   );
 };
 
+// Step indicator
+const StepBadge = ({ number, label }: { number: number; label: string }) => (
+  <div className="flex items-center gap-2 mb-2">
+    <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold shrink-0">
+      {number}
+    </span>
+    <span className="font-semibold text-sm text-muted-foreground">{label}</span>
+  </div>
+);
+
 const formSchema = z.object({
-  trx_id: z.string().min(5, "Transaction ID is too short"),
-  phone: z.string().min(11, "Phone number must be at least 11 digits"),
   payment_method: z.enum(["bkash", "nagad"], { required_error: "Please select a payment method" }),
-  google_form_filled: z.boolean().refine(val => val === true, { message: "You must fill the google form first." }),
+  amount_sent: z.coerce.number().min(1, "পরিষোধিত টাকার পরিমাণ লিখুন"),
+  has_due: z.enum(["yes", "no"]),
+  due_amount: z.coerce.number().optional().nullable(),
+  due_date: z.date().optional().nullable(),
+  sender_last5: z.string().min(5, "Last 5 digits must be exactly 5 digits").max(5, "Last 5 digits must be exactly 5 digits"),
+  social_link: z.string().min(5, "সোশ্যাল মিডিয়া লিংক দিন"),
+  contact_number: z.string().min(11, "সক্রিয় নম্বর দিন (কমপক্ষে ১১ সংখ্যা)"),
+}).refine((data) => {
+  if (data.has_due === "yes" && (!data.due_amount || data.due_amount <= 0)) {
+    return false;
+  }
+  return true;
+}, {
+  message: "বাকি টাকার পরিমাণ লিখুন",
+  path: ["due_amount"],
 });
 
 const CourseBuy = () => {
@@ -104,12 +130,18 @@ const CourseBuy = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      trx_id: "",
-      phone: profile?.phone || "",
       payment_method: "bkash",
-      google_form_filled: false,
+      amount_sent: undefined,
+      has_due: "no",
+      due_amount: null,
+      due_date: null,
+      sender_last5: "",
+      social_link: "",
+      contact_number: profile?.phone || "",
     },
   });
+
+  const hasDue = form.watch("has_due");
 
   const {
     data: course,
@@ -148,19 +180,17 @@ const CourseBuy = () => {
     mutationFn: async () => {
         if (!course?.id || !user?.id) throw new Error("Course not found or user not logged in");
 
-        // If price is 0 naturally, use the RPC
         if (course.price === 0) {
             const { error } = await supabase.rpc('enroll_in_free_course', { p_course_id: course.id });
             if (error) throw error;
         } else {
-            // If price is 0 due to promo, submit a payment request with special flag
             const { error } = await (supabase.from as any)("payment_requests").insert({
                 profile_id: user.id,
                 course_id: course.id,
                 trx_id: 'PROMO-FREE',
                 phone: profile?.phone || 'N/A',
-                payment_method: 'bkash', // Placeholder, admin will see amount 0 or TRX PROMO-FREE
-                status: 'pending' // Admin will approve
+                payment_method: 'bkash',
+                status: 'pending'
             });
             if (error) throw error;
         }
@@ -255,17 +285,22 @@ const CourseBuy = () => {
     mutationFn: async (values: z.infer<typeof formSchema>) => {
         if (!user || !course) throw new Error("Authentication required");
 
-        const { data, error } = await (supabase.from as any)("payment_requests").insert({
+        const payload: any = {
             profile_id: user.id,
             course_id: course.id,
-            trx_id: values.trx_id,
-            phone: values.phone,
+            trx_id: values.sender_last5, // Use last5 as part of ID
+            phone: values.contact_number,
             payment_method: values.payment_method,
-            status: 'pending'
-            // promo_code_id: discount?.id
-            // Note: keeping promo_code_id commented out until schema migration for payment_requests is confirmed.
-            // The admin will verify the amount sent against the expected discounted price.
-        });
+            status: 'pending',
+            amount_sent: values.amount_sent,
+            due_amount: values.has_due === 'yes' ? values.due_amount : null,
+            due_date: values.has_due === 'yes' && values.due_date ? format(values.due_date, 'yyyy-MM-dd') : null,
+            sender_last5: values.sender_last5,
+            social_link: values.social_link,
+            contact_number: values.contact_number,
+        };
+
+        const { data, error } = await (supabase.from as any)("payment_requests").insert(payload);
 
         if (error) throw error;
     },
@@ -452,6 +487,7 @@ const CourseBuy = () => {
                     )}
                 </div>
 
+                {/* Step 1: Send Money */}
                 <div className="bg-muted/50 p-6 rounded-lg space-y-4 border">
                     <div className="flex items-center gap-2 text-base font-bold text-primary">
                         <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">1</span>
@@ -494,22 +530,11 @@ const CourseBuy = () => {
                     </div>
                 </div>
 
+                {/* Step 2: Submit Details */}
                 <div className="space-y-4">
-                    <div className="flex items-center gap-2 text-base font-bold text-primary">
-                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
-                        Step 2: Fill out Google Form
-                    </div>
-                    <div className="bg-muted/50 p-6 rounded-lg border space-y-4">
-                        <p className="text-sm font-medium">সেন্ড মানি করার পর নিচের ফর্মটি ফিলাপ করো:</p>
-                        <Button asChild variant="default" className="w-full sm:w-auto">
-                            <a href="https://forms.gle/9qWistyLQgJL4K3v9" target="_blank" rel="noopener noreferrer">Open Google Form</a>
-                        </Button>
-                        <p className="text-xs text-muted-foreground mt-2">[ফর্ম ফিলাপ করে ফর্মে দেওয়া নির্দেশনা ফলো করবা]</p>
-                    </div>
-
                     <div className="flex items-center gap-2 text-base font-bold text-primary mt-6">
-                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">3</span>
-                        Step 3: Submit Details
+                        <span className="bg-primary text-primary-foreground w-7 h-7 rounded-full flex items-center justify-center text-sm">2</span>
+                        Step 2: Fill In Your Details
                     </div>
 
                     {!user ? (
@@ -535,8 +560,8 @@ const CourseBuy = () => {
                                 <p>
                                     <a href="https://t.me/atlasweb_robot" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-yellow-900">
                                         @atlasweb_Robot
-                                    </a> এ আপনার বিকাশ/নগদ পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন।
-                                    ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
+                                    </a> এ আপনার বিকাশ/নগদ পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন।
+                                    ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
                                 </p>
                                 <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
                                 <p>
@@ -550,99 +575,249 @@ const CourseBuy = () => {
                         </div>
                     ) : (
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 border p-6 rounded-lg bg-card shadow-sm">
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 border p-6 rounded-lg bg-card shadow-sm">
+                                
+                                {/* Payment Method */}
                                 <FormField
                                     control={form.control}
-                                    name="google_form_filled"
+                                    name="payment_method"
                                     render={({ field }) => (
-                                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-muted/20">
-                                            <FormControl>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={field.value}
-                                                    onChange={field.onChange}
-                                                    className="w-4 h-4 mt-1 border-primary rounded text-primary focus:ring-primary"
-                                                />
-                                            </FormControl>
-                                            <div className="space-y-1 leading-none flex-1">
-                                                <FormLabel className="font-semibold cursor-pointer">I have selected and filled out the Google Form completely.</FormLabel>
+                                        <FormItem className="space-y-3">
+                                        <FormLabel className="font-semibold">কোন মাধ্যমে পেমেন্ট করেছেন?</FormLabel>
+                                        <FormControl>
+                                            <RadioGroup
+                                            onValueChange={field.onChange}
+                                            defaultValue={field.value}
+                                            className="flex flex-row gap-4"
+                                            >
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="bkash" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">bKash</FormLabel>
+                                            </FormItem>
+                                            <FormItem className="flex items-center space-x-3 space-y-0">
+                                                <FormControl>
+                                                <RadioGroupItem value="nagad" />
+                                                </FormControl>
+                                                <FormLabel className="font-normal">Nagad</FormLabel>
+                                            </FormItem>
+                                            </RadioGroup>
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Q1: Amount Sent */}
+                                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                    <StepBadge number={1} label='কত টাকা "Send Money" করেছেন? (আবশ্যক)' />
+                                    <FormField
+                                        control={form.control}
+                                        name="amount_sent"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-2.5 text-muted-foreground font-bold">৳</span>
+                                                        <Input
+                                                            type="number"
+                                                            placeholder={`${finalPrice}`}
+                                                            className="pl-7"
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
                                                 <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Q2: Has Due? */}
+                                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                    <StepBadge number={2} label="আপনার টাকা দেওয়া বাকি আছে? (Due)" />
+                                    <FormField
+                                        control={form.control}
+                                        name="has_due"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <RadioGroup
+                                                        onValueChange={field.onChange}
+                                                        defaultValue={field.value}
+                                                        className="flex flex-row gap-6"
+                                                    >
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="yes" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">✅ হ্যাঁ, বাকি আছে</FormLabel>
+                                                        </FormItem>
+                                                        <FormItem className="flex items-center space-x-3 space-y-0">
+                                                            <FormControl>
+                                                                <RadioGroupItem value="no" />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">❌ না, বাকি নেই</FormLabel>
+                                                        </FormItem>
+                                                    </RadioGroup>
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    {hasDue === "yes" && (
+                                        <div className="space-y-3 pt-2">
+                                            <FormField
+                                                control={form.control}
+                                                name="due_amount"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel className="text-xs">✅ বাকি কত টাকা?</FormLabel>
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <span className="absolute left-3 top-2.5 text-muted-foreground font-bold">৳</span>
+                                                                <Input
+                                                                    type="number"
+                                                                    placeholder="e.g. 500"
+                                                                    className="pl-7"
+                                                                    {...field}
+                                                                    value={field.value ?? ""}
+                                                                />
+                                                            </div>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {hasDue === "no" && (
+                                        <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
+                                            <SkipForward className="h-3.5 w-3.5 shrink-0" />
+                                            <span>⚠️ বাকি না থাকলে Skip করে পরের প্রশ্নে যান।</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Q3: Due Date (only if has due) */}
+                                {hasDue === "yes" && (
+                                    <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                        <StepBadge number={3} label="বাকি টাকা কবের মধ্যে দিবেন? (আনুমানিক)" />
+                                        <p className="text-xs text-muted-foreground pl-9 -mt-1">মাস ও তারিখ বেছে নিন।</p>
+                                        <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/60 p-3 text-xs text-amber-800 dark:text-amber-300 flex gap-2">
+                                            <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                                            <span>চেষ্টা করবেন নির্দিষ্ট সময়ের মাঝে দিয়ে দেওয়ার। না পারলে Rafi Vaiya কে জানাবেন।</span>
+                                        </div>
+                                        <FormField
+                                            control={form.control}
+                                            name="due_date"
+                                            render={({ field }) => (
+                                                <FormItem className="flex flex-col">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <FormControl>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    className={cn("w-full pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
+                                                                >
+                                                                    {field.value ? format(field.value, "PPP") : "তারিখ বেছে নিন"}
+                                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                                </Button>
+                                                            </FormControl>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-0" align="start">
+                                                            <Calendar
+                                                                mode="single"
+                                                                selected={field.value ?? undefined}
+                                                                onSelect={field.onChange}
+                                                                disabled={(date) => date < new Date()}
+                                                                initialFocus
+                                                            />
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        {hasDue === "yes" && (
+                                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                <SkipForward className="h-3.5 w-3.5 shrink-0" />
+                                                <span>⚠️ টাকা বাকি না থাকলে Skip করেন।</span>
                                             </div>
-                                        </FormItem>
-                                    )}
-                                />
-
-                                {form.watch('google_form_filled') && (
-                                    <>
-                                <FormField
-                                control={form.control}
-                                name="payment_method"
-                                render={({ field }) => (
-                                    <FormItem className="space-y-3">
-                                    <FormLabel>Payment Method Used</FormLabel>
-                                    <FormControl>
-                                        <RadioGroup
-                                        onValueChange={field.onChange}
-                                        defaultValue={field.value}
-                                        className="flex flex-col space-y-1"
-                                        >
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                            <RadioGroupItem value="bkash" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">
-                                            bKash
-                                            </FormLabel>
-                                        </FormItem>
-                                        <FormItem className="flex items-center space-x-3 space-y-0">
-                                            <FormControl>
-                                            <RadioGroupItem value="nagad" />
-                                            </FormControl>
-                                            <FormLabel className="font-normal">
-                                            Nagad
-                                            </FormLabel>
-                                        </FormItem>
-                                        </RadioGroup>
-                                    </FormControl>
-                                    <FormMessage />
-                                    </FormItem>
+                                        )}
+                                    </div>
                                 )}
-                                />
 
-                                <FormField
-                                    control={form.control}
-                                    name="phone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Sender Phone Number</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="01XXXXXXXXX" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {/* Q4: Last 5 Digits */}
+                                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                    <StepBadge number={hasDue === "yes" ? 4 : 3} label='যে নম্বর থেকে "Send Money" করেছেন সেই নম্বরের Last 5 Digit লিখুন। (আবশ্যক)' />
+                                    <FormField
+                                        control={form.control}
+                                        name="sender_last5"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="e.g. 12345"
+                                                        maxLength={5}
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
-                                <FormField
-                                    control={form.control}
-                                    name="trx_id"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Transaction ID (TrxID)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="e.g. 9G7..." {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {/* Q5: Social Link */}
+                                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                    <StepBadge number={hasDue === "yes" ? 5 : 4} label="আপনার Telegram বা Facebook আইডির লিংক দিন। (আবশ্যক)" />
+                                    <p className="text-xs text-muted-foreground pl-9 -mt-1">নিজস্ব একাউন্ট না থাকলে গার্ডিয়ানের আইডির লিংক দিবেন।</p>
+                                    <FormField
+                                        control={form.control}
+                                        name="social_link"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="https://t.me/... অথবা https://fb.com/..."
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+
+                                {/* Q6: Contact/WhatsApp Number */}
+                                <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
+                                    <StepBadge number={hasDue === "yes" ? 6 : 5} label="প্রয়োজনে যোগাযোগের জন্য সক্রিয় Contact/WhatsApp Number লিখুন। (আবশ্যক)" />
+                                    <FormField
+                                        control={form.control}
+                                        name="contact_number"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Input
+                                                        placeholder="01XXXXXXXXX"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
                                 <Button type="submit" className="w-full" disabled={submitMutation.isPending}>
                                     {submitMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Submit Payment Proof
+                                    Submit Payment Details
                                 </Button>
-                                    </>
-                                )}
                             </form>
                         </Form>
                     )}

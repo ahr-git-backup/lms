@@ -135,6 +135,16 @@ export interface PaymentRequest {
   phone: string;
   status: "pending" | "approved" | "rejected";
   created_at: string;
+  updated_at?: string;
+  // New enrollment form fields
+  amount_sent?: number | null;
+  due_amount?: number | null;
+  due_date?: string | null;
+  sender_last5?: string | null;
+  social_link?: string | null;
+  contact_number?: string | null;
+  admin_note?: string | null;
+  amount_paid?: number | null;
   profiles?: {
     full_name: string;
     registration_id: string;

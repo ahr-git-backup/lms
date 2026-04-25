@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const Register = () => {
@@ -24,6 +24,7 @@ const Register = () => {
   const [hscBatch, setHscBatch] = useState("2025");
   const [hscGpa, setHscGpa] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const [duplicatePhone, setDuplicatePhone] = useState<string | null>(null);
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
@@ -94,6 +95,18 @@ const Register = () => {
     }
 
     try {
+      // 0. Check if phone already exists
+      const { data: existingProfile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("phone", phone)
+        .maybeSingle();
+
+      if (existingProfile) {
+        setDuplicatePhone(phone);
+        setLoading(false);
+        return;
+      }
       // 1. Determine Auth Email Strategy
       // If user provided a real email, use it. Otherwise, fallback to phone logic?
       // Requirement: "Real Email" preferred. We make email mandatory in UI now.
@@ -187,6 +200,37 @@ const Register = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {/* Duplicate Phone Alert */}
+            {duplicatePhone && (
+              <div className="mb-4 rounded-lg border-2 border-red-400 bg-red-50 dark:bg-red-950/30 dark:border-red-700 p-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-start gap-3">
+                  <PhoneCall className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5 shrink-0" />
+                  <div className="space-y-2">
+                    <p className="font-bold text-red-700 dark:text-red-400">এই ফোন নম্বরটি আগেই রেজিস্ট্রেশন করা হয়েছে!</p>
+                    <p className="text-sm text-red-600 dark:text-red-300">
+                      <span className="font-mono font-bold">{duplicatePhone}</span> নম্বর দিয়ে আগেই একটি অ্যাকাউন্ট আছে।
+                      যদি সাহায্য দরকার হয়, আমাদের সাথে যোগাযোগ করুন:
+                    </p>
+                    <div className="flex flex-wrap gap-2 pt-1">
+                      <a
+                        href="https://wa.me/8801999681290"
+                        target="_blank" rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-[#25D366] text-white text-xs font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity"
+                      >
+                        <MessageCircle className="h-3.5 w-3.5" /> WhatsApp
+                      </a>
+                      <a
+                        href="https://t.me/rafi_somc"
+                        target="_blank" rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-[#0088cc] text-white text-xs font-semibold px-3 py-1.5 hover:opacity-90 transition-opacity"
+                      >
+                        <Send className="h-3.5 w-3.5" /> Telegram
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">

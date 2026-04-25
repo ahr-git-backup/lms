@@ -85,7 +85,24 @@ const Archive = () => {
           </div>
       )}
 
-      {activeTab === "classes" ? (
+      {manageType ? (
+        <CourseItemsManagerDialog
+          courseId={enrollments?.[0]?.course_id}
+          courseName="Archive"
+          subjectFilter={selectedSubject}
+          chapterFilter={selectedChapter}
+          resourceType={manageType}
+          onClose={() => setManageType(null)}
+        />
+      ) : manageChapters && selectedSubject ? (
+        <ChapterSortDialog
+          courseId={enrollments?.[0]?.course_id || null}
+          subject={selectedSubject}
+          chapters={currentChaptersList}
+          contextName={"Archive"}
+          onClose={() => setManageChapters(false)}
+        />
+      ) : activeTab === "classes" ? (
         <ArchiveClassView
             enrollments={enrollments}
             selectedSubject={selectedSubject}
@@ -110,27 +127,6 @@ const Archive = () => {
             page={page}
             setPage={setPage}
             setCurrentChaptersList={setCurrentChaptersList}
-        />
-      )}
-
-      {manageType && (
-        <CourseItemsManagerDialog
-          courseId={enrollments?.[0]?.course_id}
-          courseName="Archive Classes"
-          subjectFilter={selectedSubject}
-          chapterFilter={selectedChapter}
-          resourceType={manageType}
-          onClose={() => setManageType(null)}
-        />
-      )}
-
-      {manageChapters && selectedSubject && (
-        <ChapterSortDialog
-          courseId={enrollments?.[0]?.course_id || null}
-          subject={selectedSubject}
-          chapters={currentChaptersList}
-          contextName={"Archive"}
-          onClose={() => setManageChapters(false)}
         />
       )}
     </div>

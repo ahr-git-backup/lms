@@ -25,6 +25,7 @@ const AdminClasses = () => {
   const [showForm, setShowForm] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
+  const [reorderCourseId, setReorderCourseId] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -62,8 +63,7 @@ const AdminClasses = () => {
       let query = supabase
         .from("classes")
         .select("*, course:courses(name)", { count: 'exact' })
-        .order("sort_order", { ascending: false })
-        .order("start_at", { ascending: false });
+        .order("start_at", { ascending: false }); // Always newest first in list view
 
       if (subjectFilter !== "all") {
         query = query.contains("subject", [subjectFilter]);
@@ -178,9 +178,15 @@ const AdminClasses = () => {
                         onChange={e => setSearchQuery(e.target.value)}
                         className="w-full sm:w-[200px]"
                      />
-                     <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
-                         <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
-                     </Button>
+                     {courseFilter !== 'all' ? (
+                       <Button variant="outline" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
+                           <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder
+                       </Button>
+                     ) : (
+                       <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
+                           <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
+                       </Button>
+                     )}
                  </div>
              </div>
 
@@ -189,7 +195,11 @@ const AdminClasses = () => {
              ) : !classes || classes.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No classes found.</div>
              ) : isReordering ? (
-                <ClassSortableList classes={classes} onClose={() => setIsReordering(false)} />
+                <ClassSortableList
+                  classes={classes}
+                  onClose={() => { setIsReordering(false); setReorderCourseId(null); }}
+                  sortColumn="sort_order"
+                />
              ) : (
                 <>
                 {/* Desktop Table */}

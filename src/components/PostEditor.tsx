@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -138,12 +138,17 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
     }
   }, [initialValue, initialized]);
 
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   useEffect(() => {
     if (initialized) {
       const fullContent = blocks.map(b => b.content).join("\n\n");
-      onChange(fullContent);
+      onChangeRef.current(fullContent);
     }
-  }, [blocks, onChange, initialized]);
+  }, [blocks, initialized]);
 
   const updateBlock = (id: string, content: string) => {
     setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b));
@@ -245,6 +250,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
         </div>
         <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
           <Button
+            type="button"
             variant={!isPreviewMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(false)}
@@ -253,6 +259,7 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
             <Edit2 className="mr-2 h-3 w-3" /> Edit
           </Button>
           <Button
+            type="button"
             variant={isPreviewMode ? "default" : "ghost"}
             size="sm"
             onClick={() => setIsPreviewMode(true)}
@@ -298,14 +305,14 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
 
                     {/* Controls Actions */}
                     <div className="flex items-center gap-1">
-                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'up')} disabled={index === 0}>
+                       <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'up')} disabled={index === 0}>
                          <ArrowUp className="h-3 w-3" />
                        </Button>
-                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1}>
+                       <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7" onClick={() => moveBlock(index, 'down')} disabled={index === blocks.length - 1}>
                          <ArrowDown className="h-3 w-3" />
                        </Button>
                        <div className="h-4 w-px bg-border mx-1"></div>
-                       <Button variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(index)}>
+                       <Button type="button" variant="ghost" size="icon" className="h-6 w-6 sm:h-7 sm:w-7 text-destructive hover:bg-destructive/10" onClick={() => deleteBlock(index)}>
                          <Trash2 className="h-3 w-3" />
                        </Button>
                     </div>
@@ -334,14 +341,14 @@ export const PostEditor: React.FC<PostEditorProps> = ({ initialValue = "", onCha
 
                {/* Center Add Button Visual Aid */}
                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Button size="icon" variant="outline" className="h-6 w-6 rounded-full shadow-sm bg-background" onClick={() => addBlock(index)}>
+                  <Button type="button" size="icon" variant="outline" className="h-6 w-6 rounded-full shadow-sm bg-background" onClick={() => addBlock(index)}>
                     <Plus className="h-3 w-3" />
                   </Button>
                </div>
             </div>
           ))}
 
-          <Button variant="outline" className="w-full py-8 border-dashed border-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all" onClick={() => addBlock(blocks.length - 1)}>
+          <Button type="button" variant="outline" className="w-full py-8 border-dashed border-2 text-muted-foreground hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all" onClick={() => addBlock(blocks.length - 1)}>
             <Plus className="h-6 w-6 mr-2" /> Add New Block at End
           </Button>
         </div>
