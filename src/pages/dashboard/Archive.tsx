@@ -145,7 +145,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
             const query = supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
@@ -167,7 +167,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
             const { data } = await supabase
                 .from("classes")
                 .select("subject")
@@ -199,7 +199,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
             const { data } = await supabase
                 .from("classes")
                 .select("chapter, sort_order")
@@ -250,7 +250,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
             const { data, count, error } = await supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
