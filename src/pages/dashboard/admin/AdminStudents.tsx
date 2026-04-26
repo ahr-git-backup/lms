@@ -733,6 +733,7 @@ const UpdateEmailDialog = ({ userId, onClose }: { userId: string | null, onClose
 const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[] }) => {
     const [registrationId, setRegistrationId] = useState("");
     const [courseId, setCourseId] = useState("");
+    const [expiresAt, setExpiresAt] = useState(""); // Optional expiry date
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
@@ -748,12 +749,19 @@ const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[]
                 throw new Error("Student not found with this Registration ID");
             }
 
+            // Build insert payload
+            const insertPayload: any = {
+                profile_id: profile.id,
+                course_id: courseId,
+            };
+            if (expiresAt) {
+                // expiresAt is a date string like "2026-05-10", convert to end-of-day UTC
+                insertPayload.expires_at = new Date(expiresAt + "T23:59:59+06:00").toISOString();
+            }
+
             const { error: enrollError } = await supabase
                 .from("enrollments")
-                .insert({
-                    profile_id: profile.id,
-                    course_id: courseId
-                });
+                .insert(insertPayload);
 
             if (enrollError) {
                 if (enrollError.code === '23505') throw new Error("Student is already enrolled in this course");
@@ -761,9 +769,10 @@ const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[]
             }
         },
         onSuccess: () => {
-            toast({ title: "Student enrolled successfully" });
+            toast({ title: "Student enrolled successfully", description: expiresAt ? `Access expires on ${expiresAt}` : "Permanent access granted." });
             setRegistrationId("");
             setCourseId("");
+            setExpiresAt("");
             queryClient.invalidateQueries({ queryKey: ["admin-students"] });
              queryClient.invalidateQueries({ queryKey: ["admin-student-stats"] });
         },
@@ -790,6 +799,24 @@ const EnrollStudentForm = ({ courses }: { courses: Pick<Course, "id" | "name">[]
                     {courses.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                  </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                Access Expiry Date
+                <span className="text-xs font-normal text-muted-foreground">(Optional – for trials, giveaways)</span>
+              </Label>
+              <Input
+                 type="date"
+                 value={expiresAt}
+                 onChange={e => setExpiresAt(e.target.value)}
+                 min={new Date().toISOString().split('T')[0]}
+              />
+              {expiresAt && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  ⏳ Access will expire on <strong>{new Date(expiresAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>
+                </p>
+              )}
+              {!expiresAt && <p className="text-xs text-muted-foreground">Leave empty for permanent access.</p>}
             </div>
             <Button
               className="w-full"

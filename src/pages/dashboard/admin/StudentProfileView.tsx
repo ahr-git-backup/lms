@@ -81,7 +81,7 @@ export default function StudentProfileView() {
       
       const { data: enrollments } = await supabase
         .from("enrollments")
-        .select("course_id, created_at, courses(name, price, created_at)")
+        .select("course_id, created_at, expires_at, courses(name, price, created_at)")
         .eq("profile_id", studentId);
 
       const courseIds = enrollments?.map(e => e.course_id) || [];
@@ -118,6 +118,7 @@ export default function StudentProfileView() {
           courseId: enrollment.course_id,
           courseName: (enrollment.courses as any)?.name || "Unknown Course",
           enrolledDays: Math.floor((Date.now() - new Date(enrollment.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
+          expiresAt: (enrollment as any).expires_at || null,
           totalClasses: courseClasses.length,
           totalExams: courseExams.length,
           liveExamsTotal: liveExams.length,
@@ -260,7 +261,16 @@ export default function StudentProfileView() {
                           <div key={course.courseId} className="space-y-3">
                                <div className="flex justify-between items-center">
                                    <h4 className="font-semibold">{course.courseName}</h4>
-                                   <div className="flex gap-2 items-center">
+                                   <div className="flex gap-2 items-center flex-wrap">
+                                       {course.expiresAt && (
+                                           <span className={`text-xs px-1.5 py-0.5 rounded border font-medium ${
+                                               isPast(new Date(course.expiresAt))
+                                               ? 'bg-red-100 text-red-700 border-red-200'
+                                               : 'bg-amber-100 text-amber-700 border-amber-200'
+                                           }`}>
+                                               {isPast(new Date(course.expiresAt)) ? '⛔ Expired' : '⏳ Expires'} {format(new Date(course.expiresAt), 'dd MMM yyyy')}
+                                           </span>
+                                       )}
                                        <span className="text-xs text-muted-foreground border px-1.5 rounded bg-muted/20">{course.enrolledDays} days enrolled</span>
                                        <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-0.5 rounded">{course.progressPercentage}% Progress</span>
                                    </div>

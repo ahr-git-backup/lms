@@ -145,10 +145,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const query = supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
                 .or(`title.ilike.%${safeQuery}%,topic.ilike.%${safeQuery}%`)
                 .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false })
@@ -166,10 +167,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const { data } = await supabase
                 .from("classes")
                 .select("subject")
-                .overlaps("archive_course_ids", courseIds);
+                .or(accessFilter);
 
             const unique = new Set<string>();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -193,14 +195,15 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     });
 
     const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-classes-chapters", selectedSubject],
+        queryKey: ["archive-classes-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const { data } = await supabase
                 .from("classes")
                 .select("chapter, sort_order")
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
                 .contains("subject", [selectedSubject]);
 
             const unique = new Set<string>();
@@ -243,14 +246,15 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     }, [chapters, setCurrentChaptersList]);
 
     const { data: classesData, isLoading: loadingClasses } = useQuery({
-        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page],
+        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const { data, count, error } = await supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
                 .contains("subject", [selectedSubject])
                 .eq("chapter", selectedChapter)
                 .order("sort_order", { ascending: false })
@@ -438,11 +442,14 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const query = supabase
                 .from("exams")
                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
+                .eq("is_archive", true)
                 .eq("is_published", true)
+                .ilike("title", `%${safeQuery}%`)
                 .order("sort_order", { ascending: false })
                 .order("created_at", { ascending: false })
                 .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -459,10 +466,12 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const { data } = await supabase
                 .from("exams")
                 .select("subject")
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
+                .eq("is_archive", true)
                 .eq("is_published", true);
 
             const unique = new Set<string>();
@@ -487,14 +496,16 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     });
 
     const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-exams-chapters", selectedSubject],
+        queryKey: ["archive-exams-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
+            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
             const { data } = await supabase
                 .from("exams")
                 .select("chapter, sort_order")
-                .overlaps("archive_course_ids", courseIds)
+                .or(accessFilter)
+                .eq("is_archive", true)
                 .contains("subject", [selectedSubject])
                 .eq("is_published", true);
 
@@ -538,14 +549,16 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     }, [chapters, setCurrentChaptersList]);
 
     const { data: examsData, isLoading: loadingExams } = useQuery({
-        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page],
+        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(',')],
         queryFn: async () => {
              if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
              const courseIds = enrollments.map((e: any) => e.course_id);
+             const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
              const { data, count, error } = await supabase
                  .from("exams")
                  .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
-                 .overlaps("archive_course_ids", courseIds)
+                 .or(accessFilter)
+                 .eq("is_archive", true)
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
                  .eq("is_published", true)

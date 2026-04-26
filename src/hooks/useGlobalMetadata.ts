@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type MetadataType = 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag' | 'readymade_topic';
+export type MetadataType = 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter';
 
 export const useGlobalMetadata = (type?: MetadataType) => {
     return useQuery({
@@ -24,7 +24,9 @@ export const useGlobalMetadata = (type?: MetadataType) => {
                     exam_code: [],
                     year: [],
                     tag: [],
-                    readymade_topic: []
+                    readymade_topic: [],
+                    readymade_category: [],
+                    readymade_sub_chapter: [],
                 };
                 data.forEach(item => {
                     if (grouped[item.type]) {

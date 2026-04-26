@@ -19,6 +19,9 @@ const Community = () => {
     queryKey: ["student-community-links", user?.id],
     queryFn: async () => {
       if (!user) return [];
+      // NOTE: get_student_community_links is SECURITY DEFINER and only returns
+      // communities for directly-enrolled courses (not bonus/linked courses).
+      // This is the correct behavior per requirements.
       const { data, error } = await supabase.rpc("get_student_community_links");
       if (error) throw error;
       return data || [];
