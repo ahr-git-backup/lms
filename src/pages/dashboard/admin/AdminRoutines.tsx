@@ -122,19 +122,19 @@ const AdminRoutines = () => {
                 <CardHeader>
                     <CardTitle>Routines List</CardTitle>
                     <CardDescription>Manage all routines here.</CardDescription>
-                    <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                        <div className="relative flex-1">
+                    <div className="flex items-center gap-4 mt-4">
+                        <div className="relative flex-1 min-w-0">
                             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
-                                placeholder="Search by title..."
+                                placeholder="Search..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="pl-9"
+                                className="pl-9 h-9 sm:h-10 text-xs sm:text-sm"
                             />
                         </div>
                         <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-                            <SelectTrigger className="w-[200px]">
-                                <SelectValue placeholder="Filter by Course" />
+                            <SelectTrigger className="w-[140px] sm:w-[200px] h-9 sm:h-10 text-xs sm:text-sm">
+                                <SelectValue placeholder="Course" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Courses</SelectItem>

@@ -925,15 +925,15 @@ const AdminCourses = () => {
 
       {/* Courses List Section - Removed Card Wrapper */}
       <div className="space-y-4 pt-8 border-t">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
             <h2 className="text-lg font-semibold">All Courses</h2>
-            <div className="relative w-full sm:w-96">
+            <div className="relative flex-1 max-w-[180px] sm:max-w-96 ml-auto">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                    placeholder="Search courses by name..."
+                    placeholder="Search..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-9 h-9 sm:h-10 text-xs sm:text-sm"
                 />
             </div>
         </div>

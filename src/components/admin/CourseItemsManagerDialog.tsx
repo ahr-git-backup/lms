@@ -29,6 +29,7 @@ interface CourseItemsManagerDialogProps {
   resourceType: "classes" | "exams";
   subjectFilter?: string | null;
   chapterFilter?: string | null;
+  subChapterFilter?: string | null;
   onClose: () => void;
 }
 
@@ -43,14 +44,14 @@ interface ItemBase {
 
 import { DraggableSortList } from "./DraggableSortList";
 
-export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, onClose }: CourseItemsManagerDialogProps) {
+export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, subChapterFilter, onClose }: CourseItemsManagerDialogProps) {
   const [items, setItems] = useState<ItemBase[]>([]);
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: fetchedItems, isLoading, isError } = useQuery({
-    queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, courseName],
+    queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, subChapterFilter, courseName],
     queryFn: async () => {
       // Allow passing without courseId if we are managing global readymade/archive exams
       if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return [];
@@ -82,6 +83,14 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
       if (chapterFilter) {
           query = query.eq("chapter", chapterFilter);
       }
+      if (subChapterFilter) {
+          if (courseName === "Readymade Exams") {
+              query = query.eq("readymade_sub_chapter", subChapterFilter);
+          } else {
+              // Add other sub-chapter column mapping if needed for other contexts
+              query = query.eq("sub_chapter", subChapterFilter);
+          }
+      }
       
       const { data, error } = await query;
 
@@ -112,7 +121,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
 
       return finalSorted;
     },
-    enabled: !!courseId,
+    enabled: !!courseId || courseName === "Readymade Exams" || courseName === "Archive Classes",
   });
 
   useEffect(() => {

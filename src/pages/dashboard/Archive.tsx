@@ -58,21 +58,21 @@ const Archive = () => {
         <p className="text-sm text-muted-foreground">Access your past classes and exams organized by subject.</p>
       </header>
 
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); resetSelection(); }} className="w-full sm:w-auto">
+      <div className="flex items-center justify-between gap-4">
+          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); resetSelection(); }} className="shrink-0">
             <TabsList>
-                <TabsTrigger value="classes" className="gap-2"><Video className="h-4 w-4" /> Classes</TabsTrigger>
-                <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
+                <TabsTrigger value="classes" className="gap-2 text-xs sm:text-sm px-2 sm:px-4"><Video className="h-4 w-4" /> Classes</TabsTrigger>
+                <TabsTrigger value="exams" className="gap-2 text-xs sm:text-sm px-2 sm:px-4"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <div className="relative w-full sm:w-64">
+          <div className="relative flex-1 max-w-[160px] sm:max-w-64 ml-auto">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                  placeholder={`Search ${activeTab}...`}
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-9 sm:h-10 text-xs"
               />
           </div>
       </div>

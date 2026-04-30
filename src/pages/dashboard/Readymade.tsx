@@ -77,14 +77,14 @@ const Readymade = () => {
         <p className="text-sm text-muted-foreground">Pre-configured practice exams for your courses.</p>
       </header>
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-wrap gap-2 w-full md:w-auto flex-1">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2 flex-1 min-w-0">
           {!selectedSubject && parentTopics?.map(topic => (
             <Button
               key={topic.value}
               variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-xs h-8 hover:scale-105 transition-transform"
+              className="rounded-full shadow-sm text-xs h-8 hover:scale-105 transition-transform whitespace-nowrap"
               onClick={() => {
                 setPage(0);
                 setSelectedParentTopics(prev =>
@@ -96,9 +96,9 @@ const Readymade = () => {
             </Button>
           ))}
         </div>
-        <div className="relative w-full md:w-auto flex items-center justify-end shrink-0">
+        <div className="relative shrink-0 flex items-center justify-end">
           {isSearchExpanded ? (
-            <div className="flex items-center w-full sm:w-64 relative animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search exams..."
@@ -120,10 +120,12 @@ const Readymade = () => {
         </div>
       </div>
 
-      {isAdmin && selectedSubChapter && (
+      {isAdmin && selectedChapter && (
         <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
           <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
-          <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>Manage Exams Order</Button>
+          <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>
+            {selectedSubChapter ? `Manage ${selectedSubChapter} Exams Order` : "Manage All Exams Order"}
+          </Button>
         </div>
       )}
 
@@ -140,6 +142,7 @@ const Readymade = () => {
           courseName="Readymade Exams"
           subjectFilter={selectedSubject}
           chapterFilter={selectedChapter}
+          subChapterFilter={selectedSubChapter}
           resourceType={manageType}
           onClose={() => setManageType(null)}
         />
