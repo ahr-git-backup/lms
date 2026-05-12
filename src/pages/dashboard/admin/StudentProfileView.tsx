@@ -114,11 +114,12 @@ export default function StudentProfileView() {
         const attemptedExamsCount = new Set(courseAttempts.map(a => a.exam_id)).size;
         const progressPercentage = courseExams.length === 0 ? 0 : Math.round((attemptedExamsCount / courseExams.length) * 100);
 
-        return {
-          courseId: enrollment.course_id,
-          courseName: (enrollment.courses as any)?.name || "Unknown Course",
-          enrolledDays: Math.floor((Date.now() - new Date(enrollment.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
-          expiresAt: (enrollment as any).expires_at || null,
+          return {
+            courseId: enrollment.course_id,
+            courseName: (enrollment.courses as any)?.name || "Unknown Course",
+            enrolledAt: enrollment.created_at,
+            enrolledDays: Math.floor((Date.now() - new Date(enrollment.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)),
+            expiresAt: (enrollment as any).expires_at || null,
           totalClasses: courseClasses.length,
           totalExams: courseExams.length,
           liveExamsTotal: liveExams.length,
@@ -271,7 +272,9 @@ export default function StudentProfileView() {
                                                {isPast(new Date(course.expiresAt)) ? '⛔ Expired' : '⏳ Expires'} {format(new Date(course.expiresAt), 'dd MMM yyyy')}
                                            </span>
                                        )}
-                                       <span className="text-xs text-muted-foreground border px-1.5 rounded bg-muted/20">{course.enrolledDays} days enrolled</span>
+                                       <span className="text-xs text-muted-foreground border px-1.5 rounded bg-muted/20">
+                                           {format(new Date(course.enrolledAt), 'dd MMM yyyy')} ({course.enrolledDays}d ago)
+                                       </span>
                                        <span className="text-sm font-bold bg-primary/10 text-primary px-2 py-0.5 rounded">{course.progressPercentage}% Progress</span>
                                    </div>
                                </div>

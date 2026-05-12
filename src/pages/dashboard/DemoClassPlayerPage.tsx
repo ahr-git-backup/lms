@@ -8,6 +8,7 @@ import { ChevronLeft, FileText, PlayCircle } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { DemoContentItem } from "@/types/admin";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ClassPlayer from "@/components/ClassPlayer";
 
 const DemoClassPlayerPage = () => {
   const { courseId, demoIndex } = useParams<{ courseId: string; demoIndex: string }>();
@@ -132,12 +133,9 @@ const DemoClassPlayerPage = () => {
                   <CardContent className="p-0 min-h-[400px]">
                       {view === 'video' && hasVideo && currentItem.video_url ? (
                            <div className="aspect-video bg-black w-full">
-                               <iframe
-                                  src={getEmbedUrl(currentItem.video_url)}
+                               <ClassPlayer
+                                  videoId={currentItem.video_url}
                                   title={currentItem.title}
-                                  className="w-full h-full"
-                                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                  allowFullScreen
                                />
                            </div>
                       ) : view === 'note' && hasNote && currentItem.note_url ? (

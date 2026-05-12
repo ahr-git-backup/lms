@@ -19,6 +19,7 @@ import { DemoContentItem } from "@/types/admin";
 import { PlayCircle, FileText, Lock, CheckCircle2, Tag, Clock, Gift, Copy, Check, Loader2, Timer , MessageCircle, Send} from "lucide-react";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { useToast } from "@/hooks/use-toast";
+import ClassPlayer from "@/components/ClassPlayer";
 import SEO from "@/components/SEO";
 
 // Live countdown timer component
@@ -256,13 +257,9 @@ const CourseDetails = () => {
                         {
                             // @ts-ignore
                             course?.video_url ? (
-                                <iframe
-                                    // @ts-ignore
-                                    src={getEmbedUrl(course.video_url)}
+                                <ClassPlayer
+                                    videoId={course.video_url}
                                     title="Course Intro"
-                                    className="w-full h-full"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
                                 />
                             ) : course?.image_url ? (
                                 <img

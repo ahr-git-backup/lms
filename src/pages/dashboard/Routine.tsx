@@ -19,9 +19,21 @@ const Routine = () => {
     queryFn: async () => {
         if (!enrollments || enrollments.length === 0) return {};
         const courseIds = enrollments.map(e => e.course_id);
-        const { data } = await supabase.from("routines").select("course_id").in("course_id", courseIds);
+        const { data } = await supabase
+            .from("routines")
+            .select("course_id, course_ids")
+            .or(`course_id.in.(${courseIds.join(',')}),course_ids.ov.{${courseIds.join(',')}}`);
+        
         const counts: Record<string, number> = {};
-        data?.forEach(r => counts[r.course_id] = (counts[r.course_id] || 0) + 1);
+        data?.forEach(r => {
+            // Use a Set to avoid double counting same routine for same course
+            const routineCourses = new Set([r.course_id, ...(r.course_ids || [])]);
+            routineCourses.forEach(cid => {
+                if (courseIds.includes(cid)) {
+                    counts[cid] = (counts[cid] || 0) + 1;
+                }
+            });
+        });
         return counts;
     },
     enabled: !!enrollments && enrollments.length > 0
@@ -114,7 +126,7 @@ const RoutineList = ({ courseId, onBack, onSelect }: { courseId: string, onBack:
             const { data, error } = await supabase
                 .from("routines")
                 .select("id, title, created_at, media_urls")
-                .eq("course_id", courseId)
+                .or(`course_id.eq.${courseId},course_ids.cs.{${courseId}}`)
                 .order("created_at", { ascending: false });
             if (error) throw error;
             return data || [];
