@@ -40,25 +40,21 @@ const AdminDashboardHome = () => {
     queryKey: ["admin-stats"],
     queryFn: async () => {
       // Fetch counts in parallel
-      const [students, courses, pendingPayments, pendingReports, revenue] = await Promise.all([
+      const [students, courses, pendingPayments, pendingReports, revenue, recentEnrollments] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("question_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
-        supabase.rpc("get_total_revenue") // Assuming we might need an RPC for this or sum locally. For now, let's just count enrollments or paid requests.
+        supabase.rpc("get_total_revenue"),
+        supabase.from("enrollments").select("id, created_at, profiles(id, full_name, registration_id), courses(name)").order("created_at", { ascending: false }).limit(5)
       ]);
-
-      // Fallback for revenue if RPC doesn't exist yet: sum locally from payment_requests (approved) + enrollments (if price stored)
-      // Since `payment_requests` is the source of truth for manual payments:
-      // We can query approved payments.
-      // But for speed, let's just show counts first.
 
       return {
         students: students.count || 0,
         courses: courses.count || 0,
         pendingPayments: pendingPayments.count || 0,
         pendingReports: pendingReports.count || 0,
-        // revenue: ...
+        recentEnrollments: (recentEnrollments.data || []) as any[]
       };
     },
   });
@@ -146,6 +142,34 @@ const AdminDashboardHome = () => {
                    </Card>
                ))}
            </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+           <Card>
+               <CardHeader>
+                   <CardTitle className="text-base font-semibold">Recent Enrollments</CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-4">
+                   {stats?.recentEnrollments && stats.recentEnrollments.length > 0 ? (
+                       stats.recentEnrollments.map((enrollment: any) => (
+                           <div key={enrollment.id} className="flex justify-between items-center text-sm border-b pb-2 last:border-0 last:pb-0">
+                               <div>
+                                   <p className="font-medium">{enrollment.profiles?.full_name}</p>
+                                   <p className="text-xs text-muted-foreground">{enrollment.courses?.name}</p>
+                               </div>
+                               <div className="text-right">
+                                   <p className="text-xs font-mono text-muted-foreground">
+                                       {new Date(enrollment.created_at).toLocaleDateString()}
+                                   </p>
+                                   <p className="text-[10px] text-primary cursor-pointer hover:underline" onClick={() => navigate(`/admin/student/${enrollment.profiles?.id}`)}>View Profile</p>
+                               </div>
+                           </div>
+                       ))
+                   ) : (
+                       <p className="text-center py-4 text-muted-foreground text-sm">No recent enrollments found.</p>
+                   )}
+               </CardContent>
+           </Card>
       </div>
     </div>
   );

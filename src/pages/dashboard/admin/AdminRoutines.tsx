@@ -62,7 +62,9 @@ const AdminRoutines = () => {
                 .range(page * 10, (page + 1) * 10 - 1);
 
             if (searchQuery) query = query.ilike("title", `%${searchQuery}%`);
-            if (selectedCourse !== "all") query = query.eq("course_id", selectedCourse);
+            if (selectedCourse !== "all") {
+                query = query.or(`course_id.eq.${selectedCourse},course_ids.cs.{${selectedCourse}}`);
+            }
 
             const { data, count, error } = await query;
             if (error) throw error;
@@ -165,12 +167,18 @@ const AdminRoutines = () => {
                                     <TableRow key={routine.id}>
                                         <TableCell className="font-medium">{routine.title}</TableCell>
                                          <TableCell>
-                                           <div className="flex flex-wrap gap-1">
-                                             {routine.course?.name && (
-                                               <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{routine.course.name}</span>
-                                             )}
-                                           </div>
-                                         </TableCell>
+                                            <div className="flex flex-wrap gap-1">
+                                              {routine.course?.name && (
+                                                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded border border-primary/20">{routine.course.name}</span>
+                                              )}
+                                              {routine.course_ids && routine.course_ids.length > 1 && routine.course_ids.filter((id: string) => id !== routine.course_id).map((id: string) => {
+                                                  const c = courses?.find(course => course.id === id);
+                                                  return c ? (
+                                                      <span key={id} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded border">{c.name}</span>
+                                                  ) : null;
+                                              })}
+                                            </div>
+                                          </TableCell>
                                         <TableCell>{new Date(routine.created_at).toLocaleDateString()}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">

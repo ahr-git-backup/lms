@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import {
   Play,
   Pause,
-  SkipBack,
-  SkipForward,
+  RotateCcw,
+  RotateCw,
   Volume2,
   VolumeX,
   Settings,
@@ -62,6 +62,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [lastTapTime, setLastTapTime] = useState(0);
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
   const [currentQuality, setCurrentQuality] = useState<string>("auto");
   const controlsTimeoutRef = useRef<NodeJS.Timeout>();
@@ -263,29 +264,67 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
   };
 
   const skipForward = () => {
-    if (!playerRef.current || typeof playerRef.current.seekTo !== 'function') return;
-    const newTime = Math.min(currentTime + 10, duration);
+    if (!playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') return;
+    const current = playerRef.current.getCurrentTime();
+    const newTime = Math.min(current + 10, duration);
     playerRef.current.seekTo(newTime, true);
+    setCurrentTime(newTime);
   };
 
   const skipBackward = () => {
-    if (!playerRef.current || typeof playerRef.current.seekTo !== 'function') return;
-    const newTime = Math.max(currentTime - 10, 0);
+    if (!playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') return;
+    const current = playerRef.current.getCurrentTime();
+    const newTime = Math.max(current - 10, 0);
     playerRef.current.seekTo(newTime, true);
+    setCurrentTime(newTime);
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     if (!containerRef.current) return;
 
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch((err) => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
+    try {
+      if (!document.fullscreenElement) {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        }
+        
+        // Attempt orientation lock on mobile
+        if (window.innerWidth < 768 && screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      } else {
+        if (document.exitFullscreen) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen) {
+          await (document as any).webkitExitFullscreen();
+        }
+      }
+    } catch (err) {
+      console.error("Fullscreen error:", err);
     }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const now = Date.now();
+    const gap = now - lastTapTime;
+    
+    if (gap < 300) {
+      const touch = e.touches[0];
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (rect) {
+        const x = touch.clientX - rect.left;
+        if (x < rect.width / 3) {
+          skipBackward();
+          toast({ title: "Rewind 10s", duration: 1000 });
+        } else if (x > (rect.width * 2) / 3) {
+          skipForward();
+          toast({ title: "Forward 10s", duration: 1000 });
+        }
+      }
+    }
+    setLastTapTime(now);
   };
 
   const formatTime = (time: number) => {
@@ -301,6 +340,25 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
         controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
     }
   };
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+      if (!document.fullscreenElement) {
+        if (screen.orientation && screen.orientation.unlock) {
+          screen.orientation.unlock().catch(() => {});
+        }
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
 
   useEffect(() => {
       // Hide controls initially after 3s if playing
@@ -361,6 +419,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isPlaying && setShowControls(false)}
           onDoubleClick={toggleFullscreen}
+          onTouchStart={handleTouchStart}
       >
 
 
@@ -406,11 +465,12 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
               </Tooltip>
 
               {!isLive && (
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 sm:gap-2">
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={skipBackward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
-                        <SkipBack className="h-4 w-4 fill-current" />
+                        <Button variant="ghost" size="icon" onClick={skipBackward} className="relative text-white hover:bg-white/20 hover:text-white h-8 w-8 sm:h-9 sm:w-9">
+                          <RotateCcw className="h-5 w-5 sm:h-6 sm:w-6" />
+                          <span className="absolute text-[8px] sm:text-[9px] font-bold top-1/2 left-1/2 -translate-x-1/2 -translate-y-[2px]">10</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -420,8 +480,9 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
 
                     <Tooltip>
                     <TooltipTrigger asChild>
-                        <Button variant="ghost" size="icon" onClick={skipForward} className="text-white hover:bg-white/20 hover:text-white h-8 w-8 hidden sm:inline-flex">
-                        <SkipForward className="h-4 w-4 fill-current" />
+                        <Button variant="ghost" size="icon" onClick={skipForward} className="relative text-white hover:bg-white/20 hover:text-white h-8 w-8 sm:h-9 sm:w-9">
+                          <RotateCw className="h-5 w-5 sm:h-6 sm:w-6" />
+                          <span className="absolute text-[8px] sm:text-[9px] font-bold top-1/2 left-1/2 -translate-x-1/2 -translate-y-[2px]">10</span>
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>

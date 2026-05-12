@@ -155,7 +155,7 @@ const AdminStudents = () => {
       // Apply Course Filter (Overrides base query if specific)
       if (selectedCourseFilter !== 'all') {
            query = supabase.from("enrollments")
-            .select("profile:profiles!inner(*), course:courses(name), id, course_id", { count: 'exact' })
+            .select("profile:profiles!inner(*), course:courses(name), id, course_id, created_at", { count: 'exact' })
             .eq("course_id", selectedCourseFilter);
 
            if (debouncedSearch) {
@@ -176,7 +176,7 @@ const AdminStudents = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           resultData = data.map((e: any) => ({
               ...(e.profile as Profile),
-              enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course }]
+              enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course, created_at: e.created_at }]
           }));
       }
 
@@ -463,6 +463,7 @@ const AdminStudents = () => {
                     <TableHead>Registration ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Courses (Access)</TableHead>
+                    {selectedCourseFilter !== 'all' && <TableHead>Enrolled On</TableHead>}
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -499,6 +500,11 @@ const AdminStudents = () => {
                             {(!student.enrollments || student.enrollments.length === 0) && <span className="text-muted-foreground">-</span>}
                         </div>
                       </TableCell>
+                      {selectedCourseFilter !== 'all' && (
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {student.enrollments?.[0]?.created_at ? format(new Date(student.enrollments[0].created_at), "dd MMM yyyy") : "-"}
+                        </TableCell>
+                      )}
                       <TableCell className="text-xs whitespace-nowrap">
                         <div className="flex flex-col gap-1">
                             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

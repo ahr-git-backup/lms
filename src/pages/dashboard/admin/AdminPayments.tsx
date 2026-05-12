@@ -804,6 +804,15 @@ const AdminPayments = () => {
                 ) : (
                   <div className="col-span-2 text-green-600 font-medium text-xs">✅ No outstanding due</div>
                 )}
+                {selectedRequest.status === 'approved' && selectedRequest.updated_at && (
+                  <div className="space-y-1 col-span-2 pt-2 border-t mt-2">
+                    <p className="text-xs text-muted-foreground">Approved On</p>
+                    <p className="font-semibold text-green-700 flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4" />
+                      {format(new Date(selectedRequest.updated_at), "PPP, hh:mm a")}
+                    </p>
+                  </div>
+                )}
               </div>
               {selectedRequest.social_link && (
                 <div className="space-y-1">
