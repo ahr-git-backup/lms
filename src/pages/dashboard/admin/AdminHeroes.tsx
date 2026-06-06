@@ -144,18 +144,29 @@ const AdminHeroes = () => {
 
   const upsertMutation = useMutation({
     mutationFn: async (values: HeroFormValues) => {
+      // Sanitize values: convert empty strings to null for optional database columns
+      const sanitizedValues = {
+          ...values,
+          countdown_target: values.countdown_target || null,
+          image_url: values.image_url || null,
+          subtitle: values.subtitle || null,
+          cta_text: values.cta_text || null,
+          cta_link: values.cta_link || null,
+          markdown_content: values.markdown_content || null,
+      };
+
       if (editingId) {
         // @ts-ignore
         const { error } = await (supabase as any)
           .from("heroes")
-          .update(values)
+          .update(sanitizedValues)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         // @ts-ignore
         const { error } = await (supabase as any)
           .from("heroes")
-          .insert(values);
+          .insert(sanitizedValues);
         if (error) throw error;
       }
     },
@@ -177,18 +188,28 @@ const AdminHeroes = () => {
 
   const upsertSpecialExamMutation = useMutation({
     mutationFn: async (values: SpecialExamFormValues) => {
+      // Sanitize values
+      const sanitizedValues = {
+          ...values,
+          image_url: values.image_url || null,
+          action_link: values.action_link || null,
+          details: values.details || null,
+          instructions: values.instructions || null,
+          button_text: values.button_text || null,
+      };
+
       if (editingId) {
         // @ts-ignore
         const { error } = await (supabase as any)
           .from("special_exam_cards")
-          .update(values)
+          .update(sanitizedValues)
           .eq("id", editingId);
         if (error) throw error;
       } else {
         // @ts-ignore
         const { error } = await (supabase as any)
           .from("special_exam_cards")
-          .insert(values);
+          .insert(sanitizedValues);
         if (error) throw error;
       }
     },
