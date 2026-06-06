@@ -72,6 +72,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
         button_text: "",
         button_url: "",
         sort_order: 0,
+        is_archive: isArchiveMode,
     });
 
     useEffect(() => {
@@ -105,7 +106,8 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             sort_order: classItem.sort_order ?? 0,
             });
         } else {
-             setForm({
+             setForm(prev => ({
+                ...prev,
                 course_id: defaultCourseId || "",
                 shared_course_ids: [],
                 archive_course_ids: [],
@@ -120,11 +122,11 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 class_type: "live",
                 button_text: "",
                 button_url: "",
-            is_archive: isArchiveMode,
-            sort_order: 0,
-            });
+                is_archive: isArchiveMode,
+                sort_order: 0,
+            }));
         }
-    }, [classItem]);
+    }, [classItem, isArchiveMode, defaultCourseId]);
 
     const { data: distinctMetadata } = useQuery({
         queryKey: ["admin-classes-metadata-form"],
@@ -282,7 +284,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 <CardTitle className="text-base">{form.id ? "Edit Class" : "Schedule New Class"}</CardTitle>
                 <CardDescription>Set class timings in Dhaka Time.</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-3">
                 <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
                     {isArchiveMode ? (
                         <div className="space-y-2 min-w-0 md:col-span-2">

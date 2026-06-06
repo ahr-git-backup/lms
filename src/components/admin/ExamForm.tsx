@@ -113,6 +113,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         is_omr: false,
         disable_second_timer_deduction: false,
         is_only_live: false,
+        is_archive: isArchiveMode,
     });
 
     useEffect(() => {
@@ -160,8 +161,10 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             disable_second_timer_deduction: exam.disable_second_timer_deduction ?? false,
             is_only_live: exam.is_only_live ?? false,
             });
+        } else {
+            setForm(prev => ({ ...prev, is_archive: isArchiveMode }));
         }
-    }, [exam]);
+    }, [exam, isArchiveMode]);
 
     const { data: courses } = useQuery({
         queryKey: ["admin-courses-form"],
@@ -516,7 +519,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               Live exams allow one attempt; practice exams allow unlimited retakes.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3">
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
               {!isFreeMode && !isArchiveMode && (
                   <div className="space-y-2">

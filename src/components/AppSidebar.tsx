@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -32,6 +32,7 @@ const studentItems = [
   { title: "Community", url: "/dashboard/community", icon: Users, color: "text-cyan-500" },
   { title: "Exam Analytics", url: "/dashboard/analytics", icon: Settings2, color: "text-slate-500" },
   { title: "Study Tools", url: "/dashboard/program", icon: Sparkles, color: "text-amber-500" },
+  { title: "Exam Routine", url: "/dashboard/calendar", icon: CalendarClock, color: "text-indigo-500" },
 ];
 
 const adminItems = [
@@ -46,6 +47,7 @@ const adminItems = [
   { title: "Community Manager", url: "/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
   { title: "Notes Manager", url: "/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
   { title: "Archive Manager", url: "/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
+  { title: "Exam Routine Manager", url: "/admin/calendar", icon: CalendarRange, roles: ["admin", "teacher"], color: "text-rose-500" },
   { title: "Free Manager", url: "/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
   { title: "Payments", url: "/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
   { title: "Promo Codes", url: "/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },

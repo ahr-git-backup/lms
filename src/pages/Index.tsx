@@ -26,6 +26,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 import { CourseSection } from "@/components/home/CourseSection";
+import HeroCarouselItem from "@/components/home/HeroCarouselItem";
 
 const FEATURES = [
     { icon: Monitor, title: "অনলাইন প্রোগ্রাম", desc: "ঘরে বসেই সেরা প্রস্তুতি।" },
@@ -127,27 +128,10 @@ const Index = () => {
       <PublicHeader />
 
       {/* Hero Section (Full Width) */}
-      <div className="overflow-hidden w-full" ref={emblaRef}>
+      <div className="overflow-hidden w-full relative" ref={emblaRef}>
           <div className="flex">
             {displayHeroes.map((hero: any, index: number) => (
-              <section key={hero.id || index} className="min-w-0 flex-[0_0_100%]">
-                <a href={hero.cta_link || "#"} className="block relative w-full h-auto aspect-video md:aspect-auto md:h-[700px] overflow-hidden bg-background cursor-pointer hover:opacity-95 transition-opacity">
-                   {hero.image_url ? (
-                     <div className="h-full w-full relative flex items-center justify-center">
-                        {/* Main Image */}
-                        <img
-                            src={hero.image_url}
-                            alt={hero.title}
-                            className="relative max-h-full max-w-full object-contain z-10"
-                        />
-                     </div>
-                   ) : (
-                     <div className="flex h-full w-full items-center justify-center bg-secondary/50 text-muted-foreground">
-                        <Flame className="h-16 w-16 opacity-20" />
-                     </div>
-                   )}
-                </a>
-              </section>
+              <HeroCarouselItem key={hero.id || index} hero={hero} />
             ))}
           </div>
       </div>
