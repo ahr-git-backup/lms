@@ -30,15 +30,26 @@ import { useToast } from "@/hooks/use-toast";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Loader2, Plus, Trash2, Edit, Image as ImageIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const heroSchema = z.object({
   title: z.string().min(1, "Title is required"),
   subtitle: z.string().optional(),
-  image_url: z.string().url("Must be a valid URL").min(1, "Image URL is required"),
+  image_url: z.string().optional(),
   cta_text: z.string().optional(),
   cta_link: z.string().optional(),
   display_order: z.coerce.number().default(0),
   is_active: z.boolean().default(true),
+  hero_type: z.enum(['image', 'countdown', 'announcement']).default('image'),
+  countdown_target: z.string().optional(),
+  markdown_content: z.string().optional(),
+  background_config: z.any().optional(),
 });
 
 type HeroFormValues = z.infer<typeof heroSchema>;
@@ -74,10 +85,13 @@ const AdminHeroes = () => {
       title: "",
       subtitle: "",
       image_url: "",
-      cta_text: "Get Started",
+      cta_text: "শুরু করুন",
       cta_link: "/courses",
       display_order: 0,
       is_active: true,
+      hero_type: "image",
+      countdown_target: "",
+      markdown_content: "",
     },
   });
 
@@ -245,11 +259,15 @@ const AdminHeroes = () => {
     form.reset({
       title: hero.title,
       subtitle: hero.subtitle || "",
-      image_url: hero.image_url,
+      image_url: hero.image_url || "",
       cta_text: hero.cta_text || "",
       cta_link: hero.cta_link || "",
       display_order: hero.display_order,
       is_active: hero.is_active,
+      hero_type: hero.hero_type || 'image',
+      countdown_target: hero.countdown_target ? new Date(hero.countdown_target).toISOString().slice(0, 16) : "",
+      markdown_content: hero.markdown_content || "",
+      background_config: hero.background_config,
     });
     setIsDialogOpen(true);
   };
@@ -276,10 +294,14 @@ const AdminHeroes = () => {
       title: "",
       subtitle: "",
       image_url: "",
-      cta_text: "Get Started",
+      cta_text: "শুরু করুন",
       cta_link: "/courses",
       display_order: 0,
       is_active: true,
+      hero_type: 'image',
+      countdown_target: "",
+      markdown_content: "",
+      background_config: { type: 'gradient', from: '#064e3b', to: '#022c22' },
     });
     setIsDialogOpen(true);
   };
@@ -335,10 +357,33 @@ const AdminHeroes = () => {
 
                     <FormField
                       control={form.control}
+                      name="hero_type"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Slide Type</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="image">Standard Image</SelectItem>
+                              <SelectItem value="countdown">Exam Countdown</SelectItem>
+                              <SelectItem value="announcement">Rich Announcement</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
                       name="image_url"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Image URL</FormLabel>
+                          <FormLabel>Image URL (Optional for special types)</FormLabel>
                           <FormControl>
                             <ImageUploader
                               value={field.value}
@@ -350,6 +395,44 @@ const AdminHeroes = () => {
                         </FormItem>
                       )}
                     />
+
+                    {form.watch("hero_type") === 'countdown' && (
+                      <FormField
+                        control={form.control}
+                        name="countdown_target"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Countdown Target Date</FormLabel>
+                            <FormControl>
+                              <Input type="datetime-local" {...field} />
+                            </FormControl>
+                            <FormDescription>The date and time to count down to.</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
+
+                    {(form.watch("hero_type") === 'countdown' || form.watch("hero_type") === 'announcement') && (
+                      <FormField
+                        control={form.control}
+                        name="markdown_content"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Markdown Content</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                placeholder="Write announcement details in markdown..." 
+                                rows={6}
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormDescription>Supports **bold**, *italic*, [links](url), and Math formulas.</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
 
                     <div className="grid grid-cols-2 gap-4">
                         <FormField

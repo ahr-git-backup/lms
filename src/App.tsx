@@ -43,6 +43,7 @@ import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
+import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
 import ExtraCourses from "./pages/dashboard/ExtraCourses";
 import CourseView from "./pages/dashboard/CourseView";
@@ -57,6 +58,7 @@ import AdminCommunity from "./pages/dashboard/admin/AdminCommunity";
 import AdminPayments from "./pages/dashboard/admin/AdminPayments";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
 import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
+import AdminExamCalendar from "./pages/dashboard/admin/AdminExamCalendar";
 import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
@@ -166,6 +168,7 @@ const App = () => {
                 <Route path="profile" element={<StudentProfile />} />
                 <Route path="analytics" element={<ExamAnalytics />} />
                 <Route path="program" element={<Program />} />
+                <Route path="calendar" element={<ExamCalendar />} />
                 <Route path="readymade" element={<Readymade />} />
                 <Route path="archive" element={<Archive />} />
                 <Route path="my-courses" element={<MyCourses />} />
@@ -189,6 +192,7 @@ const App = () => {
                 <Route path="community" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminCommunity /></ProtectedRoute>} />
                 <Route path="notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
                 <Route path="archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
+                <Route path="calendar" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExamCalendar /></ProtectedRoute>} />
                 <Route path="free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
                 <Route path="payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
                 <Route path="mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />

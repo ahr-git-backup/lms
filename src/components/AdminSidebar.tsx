@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { CalendarClock, GraduationCap, LayoutDashboard, ListChecks, Megaphone, Users, CreditCard, StickyNote, PenTool, LayoutTemplate, Tag, BookOpen, Database, Flag, ArrowLeft } from "lucide-react";
+import { CalendarClock, CalendarRange, GraduationCap, LayoutDashboard, ListChecks, Megaphone, Users, CreditCard, StickyNote, PenTool, LayoutTemplate, Tag, BookOpen, Database, Flag, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -27,6 +27,7 @@ export const adminItems = [
   { title: "Community Manager", url: "/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
   { title: "Notes Manager", url: "/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
   { title: "Archive Manager", url: "/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
+  { title: "Exam Routine Manager", url: "/admin/calendar", icon: CalendarRange, roles: ["admin", "teacher"], color: "text-rose-500" },
   { title: "Free Manager", url: "/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
   { title: "Payments", url: "/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
   { title: "Promo Codes", url: "/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },

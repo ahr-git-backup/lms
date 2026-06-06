@@ -293,6 +293,7 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
                 .from("classes")
                 .select("*")
                 .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+                .not("is_archive", "is", true)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .order("sort_order", { ascending: false })
@@ -335,6 +336,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                 .from("exams")
                 .select("*")
                 .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+                .not("is_archive", "is", true)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)
@@ -424,7 +426,7 @@ const ArchiveClassList = ({ courseId, subject, chapter }: any) => {
             const { data } = await supabase
                 .from("classes")
                 .select("*")
-                .contains("archive_course_ids", [courseId])
+                .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .order("sort_order", { ascending: false })
@@ -467,7 +469,7 @@ const ArchiveExamList = ({ courseId, subject, chapter }: any) => {
             const { data } = await supabase
                 .from("exams")
                 .select("*")
-                .contains("archive_course_ids", [courseId])
+                .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)
