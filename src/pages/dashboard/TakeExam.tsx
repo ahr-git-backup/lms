@@ -214,6 +214,11 @@ const TakeExam = () => {
 
   // Shuffle Questions Effect
   useEffect(() => {
+    // For readymade exams (non-external), wait until the student has selected a question count
+    if (exam?.is_readymade && !exam.external_exam_link && !selectedQuestionCount) {
+        return;
+    }
+
     if (exam && questions && questions.length > 0 && shuffledQuestions.length === 0) {
         // If the exam is an OMR exam, DO NOT SHUFFLE so the question numbers align with the OMR sheet
         if (exam.is_omr_enabled || exam.is_omr) {
