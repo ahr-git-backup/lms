@@ -59,6 +59,50 @@ export type Database = {
           },
         ]
       }
+      focus_sessions: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          ended_at: string | null
+          id: number
+          is_paused: boolean
+          mood: string
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: number
+          is_paused?: boolean
+          mood: string
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string | null
+          id?: number
+          is_paused?: boolean
+          mood?: string
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "focus_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           key: string
@@ -802,6 +846,52 @@ export type Database = {
           option_c: string
           option_d: string
         }[]
+      }
+      qp_add_points: {
+        Args: { p_user_id: string; p_points: number }
+        Returns: undefined
+      }
+      focus_leaderboard: {
+        Args: { p_days: number }
+        Returns: {
+          user_id: string
+          full_name: string | null
+          hsc_batch: string | null
+          total_seconds: number
+        }[]
+      }
+      focus_mood_leaderboard: {
+        Args: { p_mood: string; p_days: number }
+        Returns: {
+          user_id: string
+          full_name: string | null
+          hsc_batch: string | null
+          total_seconds: number
+        }[]
+      }
+      focus_live_now: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          full_name: string | null
+          hsc_batch: string | null
+          mood: string
+          duration_seconds: number
+          is_paused: boolean
+          started_at: string
+        }[]
+      }
+      focus_start_session: {
+        Args: { p_mood: string; p_resume_id?: number | null }
+        Returns: number
+      }
+      focus_update_session: {
+        Args: { p_id: number; p_duration_seconds: number; p_is_paused: boolean }
+        Returns: undefined
+      }
+      focus_end_session: {
+        Args: { p_id: number; p_duration_seconds: number }
+        Returns: undefined
       }
     }
     Enums: {
