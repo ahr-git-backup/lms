@@ -827,22 +827,22 @@ const TakeExam = () => {
                             return (
                                 <div
                                     key={optionKey}
-                                    className={cn("flex items-center gap-4 group max-w-full", isDisabled && "opacity-50 pointer-events-none")}
+                                    onClick={() => {
+                                        if (!isAnswered) {
+                                            const updated = { ...answers, [q.id]: optionKey };
+                                            setAnswers(updated);
+                                            scrollToNextUnanswered(q.id, updated);
+                                        }
+                                    }}
+                                    className={cn("flex items-center gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
                                 >
                                     <div
-                                        onClick={() => {
-                                            if (!isAnswered) {
-                                                const updated = { ...answers, [q.id]: optionKey };
-                                                setAnswers(updated);
-                                                scrollToNextUnanswered(q.id, updated);
-                                            }
-                                        }}
                                         className={cn(
                                         "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
                                         isSelected
                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                             : "border-muted-foreground/30 text-muted-foreground",
-                                        !isAnswered && !isSelected && "cursor-pointer group-hover:border-primary/50 group-hover:text-primary",
+                                        !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
                                         isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
                                     )}>
                                         {optionKey}
