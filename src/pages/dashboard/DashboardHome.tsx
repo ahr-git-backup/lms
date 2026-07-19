@@ -412,7 +412,10 @@ const DashboardHome = () => {
 
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
-           <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+           <div className="rounded-lg border p-4">
+             <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+             <hr className="mt-3 border-border" />
+           </div>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                {navigationItems.map((item, index) => (
                    <Card
