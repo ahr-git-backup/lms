@@ -5,8 +5,6 @@ import {
   ArrowLeft,
   Play,
   Pause,
-  Square,
-  RotateCcw,
   CheckCircle2,
   XCircle,
   Trash2,
@@ -22,6 +20,16 @@ interface PomoSession {
   duration: number;
   completedAt: string;
   success: boolean;
+}
+
+interface PersistedRun {
+  currentTask: string;
+  totalTime: number;
+  running: boolean;
+  // when running: endAt (ms epoch) is the source of truth for remaining time
+  endAt: number | null;
+  // when paused: remaining seconds frozen at pause time
+  pausedTimeLeft: number | null;
 }
 
 interface DailyStat {
@@ -55,6 +63,31 @@ function toBanglaDate(dateStr: string) {
 
 function storageKey(base: string, phone?: string | null) {
   return `${base}_${phone || "guest"}`;
+}
+
+function loadRun(phone?: string | null): PersistedRun | null {
+  try {
+    const raw = localStorage.getItem(storageKey("pomo_run", phone));
+    return raw ? (JSON.parse(raw) as PersistedRun) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRun(phone: string | null | undefined, run: PersistedRun) {
+  try {
+    localStorage.setItem(storageKey("pomo_run", phone), JSON.stringify(run));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearRun(phone?: string | null) {
+  try {
+    localStorage.removeItem(storageKey("pomo_run", phone));
+  } catch {
+    /* ignore */
+  }
 }
 
 const PRESETS = [
@@ -97,6 +130,33 @@ const Pomodoro = () => {
     } catch {
       /* corrupt local data, start fresh */
     }
+
+    // Restore an in-progress or paused clock so leaving/reloading the page
+    // never resets it to zero — the clock keeps running in the background
+    // based on the real endAt timestamp, exactly like leaving it physically running.
+    const run = loadRun(phone);
+    if (run && run.totalTime > 0) {
+      setTotalTime(run.totalTime);
+      setCurrentTask(run.currentTask);
+      if (run.running && run.endAt) {
+        const remaining = Math.round((run.endAt - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setTimeLeft(0);
+          setRunning(false);
+          setShowCompletionModal(true);
+          clearRun(phone);
+        } else {
+          setTimeLeft(remaining);
+          setRunning(true);
+          endAtRef.current = run.endAt;
+          tickFrom(run.endAt);
+        }
+      } else if (run.pausedTimeLeft != null) {
+        setTimeLeft(run.pausedTimeLeft);
+        setRunning(false);
+      }
+    }
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -130,6 +190,7 @@ const Pomodoro = () => {
         setTimeLeft(0);
         setRunning(false);
         setShowCompletionModal(true);
+        clearRun(phone);
         if (typeof Notification !== "undefined" && Notification.permission === "granted") {
           new Notification("⏱️ ATLAS Pomodoro সম্পন্ন!", {
             body: `"${currentTask}" — টাইম শেষ! বিরতি নিন।`,
@@ -175,11 +236,13 @@ const Pomodoro = () => {
     const endAt = Date.now() + secs * 1000;
     endAtRef.current = endAt;
     tickFrom(endAt);
+    saveRun(phone, { currentTask: activeTask, totalTime: totalTime || secs, running: true, endAt, pausedTimeLeft: null });
   };
 
   const pause = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     setRunning(false);
+    saveRun(phone, { currentTask, totalTime, running: false, endAt: null, pausedTimeLeft: timeLeft });
   };
 
   const resume = () => {
@@ -187,24 +250,14 @@ const Pomodoro = () => {
     endAtRef.current = endAt;
     setRunning(true);
     tickFrom(endAt);
+    saveRun(phone, { currentTask, totalTime, running: true, endAt, pausedTimeLeft: null });
   };
 
+  // Only Pause <-> Resume — no separate reset/stop controls, per design.
   const toggle = () => {
     if (running) pause();
     else if (timeLeft > 0) resume();
     else start();
-  };
-
-  const reset = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setRunning(false);
-    setTimeLeft(totalTime);
-  };
-
-  const stop = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    setRunning(false);
-    setTimeLeft(totalTime);
   };
 
   const applyPreset = (mins: number, idx: number) => {
@@ -227,6 +280,7 @@ const Pomodoro = () => {
         endAtRef.current = endAt;
         setRunning(true);
         tickFrom(endAt);
+        saveRun(phone, { currentTask: t, totalTime: secs, running: true, endAt, pausedTimeLeft: null });
         return t;
       });
     }, 500);
@@ -234,7 +288,7 @@ const Pomodoro = () => {
 
   const applySetup = () => {
     if (running) {
-      alert("আগে পজ বা রিসেট করুন");
+      alert("আগে পজ করুন");
       return;
     }
     const h = parseInt(hoursInput) || 0;
@@ -256,6 +310,7 @@ const Pomodoro = () => {
         endAtRef.current = endAt;
         setRunning(true);
         tickFrom(endAt);
+        saveRun(phone, { currentTask: t, totalTime: total, running: true, endAt, pausedTimeLeft: null });
         return t;
       });
     }, 500);
@@ -263,6 +318,7 @@ const Pomodoro = () => {
 
   const completeSession = (success: boolean) => {
     setShowCompletionModal(false);
+    clearRun(phone);
     const session: PomoSession = {
       task: currentTask,
       duration: totalTime,
@@ -306,8 +362,11 @@ const Pomodoro = () => {
   })();
   const hasGraphData = last3Days.some((d) => d.rate > 0);
 
-  const progress = totalTime > 0 ? timeLeft / totalTime : 1;
-  const offset = CIRCUMFERENCE * (1 - progress);
+  // Clockwise fill toward completion: the ring fills up (not drains) as time
+  // elapses, reaching 100% exactly when the countdown hits zero.
+  const elapsedProgress = totalTime > 0 ? Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime)) : 0;
+  const offset = CIRCUMFERENCE * (1 - elapsedProgress);
+  const percentDone = Math.round(elapsedProgress * 100);
   const warning = timeLeft <= 60 && running;
 
   return (
@@ -331,13 +390,28 @@ const Pomodoro = () => {
 
       <div className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-5">
         {/* Watch card */}
-        <div className="rounded-2xl border bg-gradient-to-br from-indigo-950 to-slate-900 p-5 flex flex-col items-center">
+        <div className="relative rounded-2xl border bg-gradient-to-br from-indigo-950 to-slate-900 p-5 flex flex-col items-center overflow-hidden">
+          {/* Progress % badge — top right corner, fills to 100% exactly as time runs out */}
+          {totalTime > 0 && (
+            <div
+              className={cn(
+                "absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-black font-mono tabular-nums border shadow-sm",
+                warning
+                  ? "bg-red-500/20 border-red-400/40 text-red-300"
+                  : "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
+              )}
+            >
+              {percentDone}%
+            </div>
+          )}
+
           <div className="text-[10px] tracking-[3px] uppercase text-indigo-300/70 font-semibold mb-2">
             ATLAS Pomodoro Watch
           </div>
           <div className="relative h-44 w-44 flex items-center justify-center">
             <svg viewBox="0 0 180 180" className="h-full w-full absolute inset-0 -rotate-90">
               <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="8" />
+              {/* Clockwise fill: ring grows from 0 to full circumference as time elapses */}
               <circle
                 cx="90"
                 cy="90"
@@ -366,32 +440,23 @@ const Pomodoro = () => {
               >
                 {formatSeconds(timeLeft)}
               </span>
-              <span className="text-[10px] uppercase tracking-wide text-indigo-300/80 mt-1 max-w-[120px] truncate">
+              {/* Task name — premium pill look, crisp (no blur/opacity haze) */}
+              <span
+                className="mt-2 max-w-[150px] truncate rounded-full px-3 py-1 text-[10.5px] font-bold tracking-wide text-amber-200 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 border border-amber-400/30 shadow-[0_0_10px_rgba(251,191,36,0.15)]"
+                title={currentTask || "টাস্ক নাম"}
+              >
                 {currentTask || "টাস্ক নাম"}
               </span>
             </div>
           </div>
 
-          <div className="flex gap-2.5 mt-4">
-            <button
-              onClick={reset}
-              title="Reset"
-              className="h-11 w-11 rounded-full border border-indigo-400/30 bg-indigo-500/10 text-indigo-200 flex items-center justify-center hover:bg-indigo-500/20"
-            >
-              <RotateCcw className="h-4 w-4" />
-            </button>
+          {/* Only Pause <-> Resume control, per design (no reset/stop) */}
+          <div className="flex mt-4">
             <button
               onClick={toggle}
-              className="h-11 w-11 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
+              className="h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
             >
               {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
-            </button>
-            <button
-              onClick={stop}
-              title="Stop"
-              className="h-11 w-11 rounded-full border border-indigo-400/30 bg-indigo-500/10 text-indigo-200 flex items-center justify-center hover:bg-indigo-500/20"
-            >
-              <Square className="h-4 w-4" />
             </button>
           </div>
         </div>
