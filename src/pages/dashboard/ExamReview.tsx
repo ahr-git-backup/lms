@@ -314,21 +314,21 @@ const ExamReview = () => {
       <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2">
-            <Button variant="ghost" onClick={() => navigate("/dashboard/live-exam")} className="pl-0">
+        <div className="flex flex-col gap-2">
+            <Button variant="ghost" onClick={() => navigate("/dashboard/live-exam")} className="pl-0 self-start">
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                  {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" onClick={handleRetakeMistakes} className="h-10 px-4 py-2">
-                        <RotateCw className="h-5 w-5 mr-2" /> Retake
+                     <Button variant="destructive" onClick={handleRetakeMistakes} className="h-10 px-3 py-2 w-full sm:w-auto">
+                        <RotateCw className="h-5 w-5 mr-1.5 shrink-0" /> <span className="truncate">Retake</span>
                      </Button>
                  )}
-                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-4 py-2">
-                    <Trophy className="h-5 w-5 mr-2 text-yellow-500" /> Leaderboard
+                 <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
-                 <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-4 py-2">
-                    <Repeat className="h-5 w-5 mr-2 text-primary" /> Practice Again
+                 <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
             </div>
         </div>
@@ -525,8 +525,8 @@ const ExamReview = () => {
                         const isWrong = !isCorrect && !isSkipped;
 
                         return (
-                            <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
-                                <CardContent className="p-5 space-y-2 relative">
+                            <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border max-w-full break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
+                                <CardContent className="p-5 space-y-2 relative max-w-full overflow-x-hidden">
                                     <div className="absolute top-3 right-4 print:hidden flex gap-0.5">
                                         <ReportQuestionDialog
                                             questionId={q.id}
@@ -553,9 +553,9 @@ const ExamReview = () => {
                                         )}>
                                             {q.question_index}
                                         </div>
-                                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                                             </div>
                                         </div>
                                     </div>
@@ -586,7 +586,7 @@ const ExamReview = () => {
                                             }
 
                                             return (
-                                                <div key={optionKey} className="flex items-start gap-4">
+                                                <div key={optionKey} className="flex items-start gap-4 max-w-full">
                                                     <div className={cn(
                                                         "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
                                                         circleClass
@@ -594,12 +594,12 @@ const ExamReview = () => {
                                                         {icon}
                                                     </div>
                                                     <div className={cn(
-                                                        "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                                        "flex-1 min-w-0 text-base whitespace-normal pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain",
                                                         // Removed highlights/borders for rows, just standard text or color if needed
                                                         isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
                                                         isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
                                                     )}>
-                                                        <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                        <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                                                     </div>
                                                 </div>
                                             )
@@ -610,8 +610,8 @@ const ExamReview = () => {
                                     {q.explanation && (
                                         <div className="mt-4 pt-4 border-t border-dashed">
                                             <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                            <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
-                                                <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                            <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
+                                                <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                                             </div>
                                         </div>
                                     )}
