@@ -214,8 +214,10 @@ const TakeExam = () => {
 
   // Shuffle Questions Effect
   useEffect(() => {
-    // For readymade exams (non-external), wait until the student has selected a question count
-    if (exam?.is_readymade && !exam.external_exam_link && !selectedQuestionCount) {
+    // For readymade exams (non-external), only shuffle/lock the question set once the exam has
+    // actually started (Start Exam clicked). This prevents the count input's keystrokes
+    // (e.g. typing "10" fires an intermediate "1") from prematurely locking in a wrong count.
+    if (exam?.is_readymade && !exam.external_exam_link && !hasStarted) {
         return;
     }
 
@@ -240,7 +242,7 @@ const TakeExam = () => {
             setShuffledQuestions(shuffled);
         }
     }
-  }, [questions, shuffledQuestions.length, exam, selectedQuestionCount]);
+  }, [questions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
