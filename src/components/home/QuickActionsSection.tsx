@@ -8,6 +8,7 @@ import {
   Timer,
   Sparkles,
   Clock,
+  BarChart3,
 } from "lucide-react";
 
 const scrollToId = (id: string) => {
@@ -28,18 +29,18 @@ export const QuickActionsSection = () => {
         <LayoutGrid className="mr-2 h-5 w-5" /> All Courses
       </Button>
 
-      {/* Row 2: Free Class / Free Exam */}
+      {/* Row 2: Free Class / Free Exam — opens the actual content directly, not a scroll */}
       <div className="grid grid-cols-2 gap-3">
         <Button
           variant="outline"
-          onClick={() => scrollToId("free-resources")}
+          onClick={() => navigate("/free-class")}
           className="h-11 rounded-2xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 font-semibold"
         >
           <Video className="mr-2 h-4 w-4 text-primary" /> Free Class
         </Button>
         <Button
           variant="outline"
-          onClick={() => scrollToId("free-resources")}
+          onClick={() => navigate("/free-exam")}
           className="h-11 rounded-2xl border-2 border-primary/30 hover:border-primary hover:bg-primary/5 font-semibold"
         >
           <FileQuestion className="mr-2 h-4 w-4 text-primary" /> Free Exam
@@ -89,6 +90,14 @@ export const QuickActionsSection = () => {
           <span className="text-sm font-bold text-left">Pomodoro Timer</span>
         </button>
       </div>
+
+      {/* Row 5: Syllabus Tracker */}
+      <Button
+        onClick={() => navigate("/syllabus-tracker")}
+        className="w-full h-12 text-base font-bold rounded-2xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-md hover:shadow-lg transition-all"
+      >
+        <BarChart3 className="mr-2 h-5 w-5" /> Syllabus Tracker
+      </Button>
     </section>
   );
 };
