@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 // Define shape of dashboard data
@@ -416,6 +416,12 @@ const DashboardHome = () => {
              <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
              <hr className="mt-3 border-border" />
            </div>
+           <Link
+             to="/dashboard/routine"
+             className="flex items-center justify-center gap-2 w-full rounded-lg border bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
+           >
+             <Calendar className="h-4 w-4" /> Routine
+           </Link>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                {navigationItems.map((item, index) => (
                    <Card
