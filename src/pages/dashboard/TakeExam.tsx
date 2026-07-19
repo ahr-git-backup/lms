@@ -246,14 +246,36 @@ const TakeExam = () => {
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
-      if (!user || !examId) return;
+      if (!user || !examId || !exam) return;
 
       const savedAnswers = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
       const savedViolations = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
       const savedStartTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+      const savedCountKey = `${LOCAL_STORAGE_KEY_PREFIX}_selected_count`;
+      const savedCount = localStorage.getItem(savedCountKey);
+
+      const isReadymadeCountExam = exam.is_readymade && !exam.external_exam_link;
 
       if (savedStartTime) {
-          setHasStarted(true);
+          if (isReadymadeCountExam) {
+              // Only auto-resume if we can also restore the count that was used to build the
+              // question set for this in-progress attempt. Without it, the shuffle effect would
+              // ignore the count entirely and show the full question bank.
+              if (savedCount && !isNaN(parseInt(savedCount, 10))) {
+                  setSelectedQuestionCount(parseInt(savedCount, 10));
+                  setHasStarted(true);
+              } else {
+                  // Stale/incomplete session for a count-mode exam - clear it and let the
+                  // student pick a fresh count on the pre-exam screen.
+                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
+                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
+                  localStorage.removeItem(QUESTIONS_STORAGE_KEY);
+                  return;
+              }
+          } else {
+              setHasStarted(true);
+          }
       }
 
       if (savedAnswers) {
@@ -266,7 +288,7 @@ const TakeExam = () => {
       if (savedViolations) {
           setViolationCount(parseInt(savedViolations));
       }
-  }, [user, examId, LOCAL_STORAGE_KEY_PREFIX]);
+  }, [user, examId, LOCAL_STORAGE_KEY_PREFIX, exam, QUESTIONS_STORAGE_KEY]);
 
   // Save state on changes
   useEffect(() => {
@@ -367,6 +389,7 @@ const TakeExam = () => {
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
       localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`);
       localStorage.removeItem(QUESTIONS_STORAGE_KEY); // Clear questions cache
 
       toast({ title: "Exam submitted successfully!" });
@@ -709,6 +732,9 @@ const TakeExam = () => {
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
                                   } else {
+                                      if (exam.is_readymade && selectedQuestionCount) {
+                                          localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`, selectedQuestionCount.toString());
+                                      }
                                       setHasStarted(true);
                                   }
                               }}
