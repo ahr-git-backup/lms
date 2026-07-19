@@ -6,6 +6,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,6 +18,7 @@ const PastExamCatalog = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("recent");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -25,7 +28,7 @@ const PastExamCatalog = () => {
   }, []);
 
   const { data: exams, isLoading: examsLoading } = useQuery({
-    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject, sortOrder],
+    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject, sortOrder, searchQuery],
     queryFn: async () => {
         if (!user || !enrollments || enrollments.length === 0) return [];
 
@@ -65,6 +68,10 @@ const PastExamCatalog = () => {
 
         if (selectedSubject !== "all") {
             filteredData = filteredData.filter(e => Array.isArray(e.subject) ? e.subject.includes(selectedSubject) : e.subject === selectedSubject);
+        }
+
+        if (searchQuery.trim()) {
+            filteredData = filteredData.filter(e => e.title?.toLowerCase().includes(searchQuery.trim().toLowerCase()));
         }
 
         return filteredData;
@@ -131,6 +138,16 @@ const PastExamCatalog = () => {
             Practice with expired live exams or dedicated practice tests.
         </p>
       </header>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search exams by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">

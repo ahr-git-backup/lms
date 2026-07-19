@@ -4,6 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SUBJECTS } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
@@ -12,6 +14,7 @@ const Recordings = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("recent");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const { data: enrollments } = useEnrollments();
   const navigate = useNavigate();
 
@@ -76,12 +79,26 @@ const Recordings = () => {
       return false;
   }) || [];
 
+  const searchedClasses = searchQuery.trim()
+    ? filteredClasses.filter(c => c.title?.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : filteredClasses;
+
   return (
     <div className="space-y-6">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Record Class</h1>
         <p className="text-sm text-muted-foreground">Watch recordings of previous sessions.</p>
       </header>
+
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search classes by name..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex items-center gap-2">
@@ -135,7 +152,7 @@ const Recordings = () => {
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
-      ) : filteredClasses.length === 0 ? (
+      ) : searchedClasses.length === 0 ? (
         <Card className="border border-foreground/50">
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
             No recorded classes available for this course yet.
@@ -144,7 +161,7 @@ const Recordings = () => {
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-          {filteredClasses.map((classItem: any) => (
+          {searchedClasses.map((classItem: any) => (
             <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
