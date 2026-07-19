@@ -117,7 +117,7 @@ const Community = () => {
   return (
     <div className="space-y-6 pb-20">
       <header className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Community</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">FB & Telegram Group</h1>
           <p className="text-sm text-muted-foreground">Join our community channels to stay updated.</p>
       </header>
 
