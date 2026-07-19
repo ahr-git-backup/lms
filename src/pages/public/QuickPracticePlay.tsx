@@ -1,13 +1,403 @@
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Check, X, Trophy } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
-const QuickPracticePlay = () => (
-  <div className="min-h-screen bg-background text-foreground">
-    <PublicHeader />
-    <div className="mx-auto max-w-3xl px-4 py-20 text-center">
-      <h1 className="text-2xl font-bold text-primary">শীঘ্রই আসছে</h1>
-      <p className="text-muted-foreground mt-2">Practice play screen খুব শীঘ্রই যুক্ত করা হবে।</p>
+interface Mcq {
+  id: number;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string | null;
+  chapter_id: number;
+  subjectName?: string;
+  chapterName?: string;
+}
+
+type Answered = { selectedIdx: number; correct: boolean } | null;
+
+const LETTERS = ["A", "B", "C", "D", "E"];
+
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function playBeep(correct: boolean) {
+  try {
+    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+    const ctx = new Ctx();
+    const freqs = correct ? [1046.5, 1318.5, 1568] : [330, 220, 150];
+    freqs.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = correct ? "sine" : "sawtooth";
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const start = ctx.currentTime + i * 0.08;
+      osc.frequency.setValueAtTime(f, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
+      osc.start(start);
+      osc.stop(start + 0.2);
+    });
+  } catch {
+    /* audio unavailable, ignore */
+  }
+}
+
+const QuickPracticePlay = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [loading, setLoading] = useState(true);
+  const [empty, setEmpty] = useState(false);
+  const [mcqs, setMcqs] = useState<Mcq[]>([]);
+  const [current, setCurrent] = useState(0);
+  const [answered, setAnswered] = useState<Answered[]>([]);
+  const [finished, setFinished] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const sessionCorrect = useMemo(() => answered.filter((a) => a?.correct).length, [answered]);
+  const sessionWrong = useMemo(
+    () => answered.filter((a) => a && !a.correct).length,
+    [answered]
+  );
+
+  useEffect(() => {
+    document.title = "Quick Practice — Atlas";
+    void init();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const init = async () => {
+    const modeRaw = sessionStorage.getItem("qp_practice_mode");
+    if (!modeRaw) {
+      navigate("/quick-practice");
+      return;
+    }
+    const mode = JSON.parse(modeRaw) as
+      | { type: "random" }
+      | { type: "selected"; chapterIds: number[] };
+
+    // resume saved progress within this tab session
+    const savedRaw = sessionStorage.getItem("qp_practice_state");
+    if (savedRaw) {
+      try {
+        const state = JSON.parse(savedRaw);
+        if (state.modeKey === JSON.stringify(mode)) {
+          setMcqs(state.mcqs);
+          setCurrent(state.current);
+          setAnswered(state.answered);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* ignore corrupt state */
+      }
+    }
+
+    let query = supabase
+      .from("qp_mcqs")
+      .select("id, question, options, correct_index, explanation, chapter_id");
+
+    if (mode.type === "selected") {
+      query = query.in("chapter_id", mode.chapterIds);
+    }
+
+    const { data: rows, error } = await query;
+    if (error || !rows || rows.length === 0) {
+      setEmpty(true);
+      setLoading(false);
+      return;
+    }
+
+    const chapterIds = [...new Set(rows.map((r: any) => r.chapter_id))];
+    const { data: chapters } = await supabase
+      .from("qp_chapters")
+      .select("id, name, subject_id")
+      .in("id", chapterIds);
+
+    const subjectIds = [...new Set((chapters || []).map((c: any) => c.subject_id))];
+    const { data: subjects } = await supabase
+      .from("qp_subjects")
+      .select("id, name")
+      .in("id", subjectIds);
+
+    const subjMap = Object.fromEntries((subjects || []).map((s: any) => [s.id, s.name]));
+    const chapMap = Object.fromEntries(
+      (chapters || []).map((c: any) => [c.id, { name: c.name, subjectId: c.subject_id }])
+    );
+
+    const enriched: Mcq[] = shuffle(rows as any[]).map((r) => {
+      const chap = chapMap[r.chapter_id];
+      return {
+        ...r,
+        options: Array.isArray(r.options) ? r.options : [],
+        chapterName: chap?.name || "",
+        subjectName: chap ? subjMap[chap.subjectId] || "" : "",
+      };
+    });
+
+    setMcqs(enriched);
+    setAnswered(new Array(enriched.length).fill(null));
+    setCurrent(0);
+    setLoading(false);
+    saveState(mode, enriched, 0, new Array(enriched.length).fill(null));
+  };
+
+  const saveState = (mode: any, mcqsArg: Mcq[], currentArg: number, answeredArg: Answered[]) => {
+    try {
+      sessionStorage.setItem(
+        "qp_practice_state",
+        JSON.stringify({ modeKey: JSON.stringify(mode), mcqs: mcqsArg, current: currentArg, answered: answeredArg })
+      );
+    } catch {
+      /* storage full or unavailable, ignore */
+    }
+  };
+
+  const getMode = () => {
+    const raw = sessionStorage.getItem("qp_practice_mode");
+    return raw ? JSON.parse(raw) : { type: "random" };
+  };
+
+  const selectOption = (idx: number) => {
+    if (answered[current]) return;
+    const q = mcqs[current];
+    const correct = idx === q.correct_index;
+    const next = [...answered];
+    next[current] = { selectedIdx: idx, correct };
+    setAnswered(next);
+    playBeep(correct);
+    saveState(getMode(), mcqs, current, next);
+  };
+
+  const goPrev = () => {
+    if (current > 0) {
+      const c = current - 1;
+      setCurrent(c);
+      saveState(getMode(), mcqs, c, answered);
+    }
+  };
+
+  const goNext = () => {
+    if (current < mcqs.length - 1) {
+      const c = current + 1;
+      setCurrent(c);
+      saveState(getMode(), mcqs, c, answered);
+    } else {
+      void finish();
+    }
+  };
+
+  const finish = async () => {
+    setFinished(true);
+    sessionStorage.removeItem("qp_practice_state");
+    sessionStorage.removeItem("qp_practice_mode");
+
+    const attempted = sessionCorrect + sessionWrong;
+    if (user && attempted > 0) {
+      try {
+        await supabase.rpc("qp_add_points", { p_user_id: user.id, p_points: sessionCorrect });
+        const mode = getMode();
+        await supabase.from("qp_attempts").insert({
+          user_id: user.id,
+          mode: mode.type,
+          chapter_ids: mode.type === "selected" ? mode.chapterIds : null,
+          total_questions: attempted,
+          correct_count: sessionCorrect,
+          points_earned: sessionCorrect,
+        });
+      } catch {
+        /* points sync failed, user keeps local result view */
+      } finally {
+        setSaved(true);
+      }
+    } else {
+      setSaved(true);
+    }
+  };
+
+  const exitConfirm = () => {
+    if (sessionCorrect + sessionWrong > 0) {
+      if (!confirm("কুইজ থেকে বের হতে চান? অগ্রগতি হারিয়ে যাবে।")) return;
+    }
+    sessionStorage.removeItem("qp_practice_state");
+    sessionStorage.removeItem("qp_practice_mode");
+    navigate("/quick-practice");
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">
+        লোড হচ্ছে...
+      </div>
+    );
+  }
+
+  if (empty) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+          <p className="text-muted-foreground">এই সিলেকশনে কোনো MCQ পাওয়া যায়নি।</p>
+          <button
+            onClick={() => navigate("/quick-practice")}
+            className="text-primary font-semibold text-sm"
+          >
+            ফিরে যান
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (finished) {
+    const attempted = sessionCorrect + sessionWrong;
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6 text-center gap-6">
+        <div className="h-20 w-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center shadow-lg">
+          <Trophy className="h-9 w-9 text-amber-950" />
+        </div>
+        <div>
+          <h1 className="text-xl font-extrabold">কুইজ শেষ! 🎉</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            মোট {attempted}টি প্রশ্ন খেলেছেন {!saved && "· সেভ হচ্ছে..."}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <div className="rounded-xl border bg-card px-5 py-3 min-w-[80px]">
+            <div className="text-xl font-extrabold text-emerald-500">{sessionCorrect}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">সঠিক</div>
+          </div>
+          <div className="rounded-xl border bg-card px-5 py-3 min-w-[80px]">
+            <div className="text-xl font-extrabold text-destructive">{sessionWrong}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">ভুল</div>
+          </div>
+          <div className="rounded-xl border bg-card px-5 py-3 min-w-[80px]">
+            <div className="text-xl font-extrabold text-amber-500">+{sessionCorrect}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">পয়েন্ট</div>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate("/quick-practice")}
+          className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-md hover:opacity-90"
+        >
+          হোমে ফিরুন
+        </button>
+      </div>
+    );
+  }
+
+  const q = mcqs[current];
+  const total = mcqs.length;
+  const ans = answered[current];
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
+        <button
+          onClick={exitConfirm}
+          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1">
+          <div className="text-[11px] text-muted-foreground mb-1">
+            প্রশ্ন {current + 1}/{total}
+          </div>
+          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-primary to-primary/70 transition-all"
+              style={{ width: `${((current + 1) / total) * 100}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col">
+        <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full mb-4">
+          📘 {q.subjectName} · {q.chapterName}
+        </span>
+        <p className="text-[16px] font-bold leading-relaxed mb-5">{q.question}</p>
+
+        <div className="flex flex-col gap-2.5">
+          {q.options.map((opt, i) => {
+            let cls = "border-border bg-card hover:border-primary/40";
+            if (ans) {
+              if (i === q.correct_index) cls = "border-emerald-500 bg-emerald-500/10";
+              else if (i === ans.selectedIdx) cls = "border-destructive bg-destructive/10";
+              else cls = "border-border bg-card opacity-50";
+            }
+            return (
+              <button
+                key={i}
+                onClick={() => selectOption(i)}
+                disabled={!!ans}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-sm text-left transition-all active:scale-[0.98]",
+                  cls
+                )}
+              >
+                <span
+                  className={cn(
+                    "h-7 w-7 rounded-lg flex items-center justify-center font-extrabold text-xs flex-shrink-0",
+                    ans && i === q.correct_index
+                      ? "bg-emerald-500 text-white"
+                      : ans && i === ans.selectedIdx
+                      ? "bg-destructive text-white"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {ans && i === q.correct_index ? (
+                    <Check className="h-3.5 w-3.5" />
+                  ) : ans && i === ans.selectedIdx ? (
+                    <X className="h-3.5 w-3.5" />
+                  ) : (
+                    LETTERS[i]
+                  )}
+                </span>
+                <span>{opt}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {ans && q.explanation && (
+          <div className="mt-4 p-4 rounded-xl bg-muted/50 border-l-4 border-primary text-sm leading-relaxed animate-in fade-in slide-in-from-top-2">
+            <div className="text-[11px] font-extrabold text-primary mb-1">ব্যাখ্যা</div>
+            {q.explanation}
+          </div>
+        )}
+
+        <div className="flex gap-3 mt-auto pt-5">
+          <button
+            onClick={goPrev}
+            disabled={current === 0}
+            className="flex-1 py-3 rounded-xl border font-bold text-sm disabled:opacity-40 hover:bg-muted transition-colors"
+          >
+            আগের
+          </button>
+          <button
+            onClick={goNext}
+            disabled={!ans}
+            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+          >
+            {current === total - 1 ? "শেষ করো" : "পরবর্তী →"}
+          </button>
+        </div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default QuickPracticePlay;
