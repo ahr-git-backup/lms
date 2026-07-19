@@ -53,6 +53,8 @@ const Announcements = () => {
 
         // Invalidate query to refresh UI state
         queryClient.invalidateQueries({ queryKey: ["user-notifications"] });
+        localStorage.setItem("unread_notification_count", "0");
+        window.dispatchEvent(new Event("unread-notifications-updated"));
     };
     markAsRead();
   }, [user, queryClient]);

@@ -197,6 +197,10 @@ export const DashboardLayout = () => {
 
         const hasUnread = (unreadUserNotifs && unreadUserNotifs.length > 0) || (unreadDirectNotes && unreadDirectNotes.length > 0);
 
+        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0);
+        localStorage.setItem("unread_notification_count", String(totalUnreadCount));
+        window.dispatchEvent(new Event("unread-notifications-updated"));
+
         if (hasNewAnnouncements || hasUnread) {
              document.getElementById("mobile-announcement-dot")?.classList.remove("hidden");
              document.getElementById("desktop-announcement-dot")?.classList.remove("hidden");

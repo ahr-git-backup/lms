@@ -41,6 +41,17 @@ const DashboardHome = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const stored = localStorage.getItem("unread_notification_count");
+      setUnreadNoticeCount(stored ? parseInt(stored, 10) : 0);
+    };
+    updateCount();
+    window.addEventListener("unread-notifications-updated", updateCount);
+    return () => window.removeEventListener("unread-notifications-updated", updateCount);
+  }, []);
 
   useEffect(() => {
     document.title = "Dashboard – Atlas";
@@ -443,6 +454,11 @@ const DashboardHome = () => {
                            <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300 relative`}>
                                {item.isExternal && (
                                    <div className="absolute inset-0 rounded-full bg-violet-400/20 animate-ping" />
+                               )}
+                               {item.title === "Notice" && unreadNoticeCount > 0 && (
+                                   <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold">
+                                       {unreadNoticeCount > 9 ? "9+" : unreadNoticeCount}
+                                   </span>
                                )}
                                <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : ''}`} />
                            </div>
