@@ -26,6 +26,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 import { CourseSection } from "@/components/home/CourseSection";
+import { QuickActionsSection } from "@/components/home/QuickActionsSection";
 import HeroCarouselItem from "@/components/home/HeroCarouselItem";
 
 const FEATURES = [
@@ -246,6 +247,9 @@ const Index = () => {
             </section>
         )}
 
+
+        {/* Quick Actions (All Courses / Free Class / Free Exam / Quick Practice / Focus Timer / Atlas AI / Pomodoro) */}
+        <QuickActionsSection />
 
         {/* Paid Courses Section (Grid View) */}
         <CourseSection />

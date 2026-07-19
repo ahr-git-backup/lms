@@ -75,6 +75,10 @@ import CourseDashboard from "./pages/dashboard/admin/CourseDashboard";
 import PublicExamEntry from "./pages/public/PublicExamEntry";
 import FreeClass from "./pages/public/FreeClass";
 import FreeExam from "./pages/public/FreeExam";
+import FocusTimer from "./pages/public/FocusTimer";
+import AtlasAI from "./pages/public/AtlasAI";
+import Pomodoro from "./pages/public/Pomodoro";
+import QuickPractice from "./pages/public/QuickPractice";
 import StudentProfileView from "./pages/dashboard/admin/StudentProfileView";
 import StudentCourseResults from "./pages/dashboard/admin/StudentCourseResults";
 import { useEffect } from "react";
@@ -142,6 +146,10 @@ const App = () => {
                 <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
                 <Route path="/free-class" element={<FreeClass />} />
                 <Route path="/free-exam" element={<FreeExam />} />
+                <Route path="/quick-practice" element={<QuickPractice />} />
+                <Route path="/focus-timer" element={<FocusTimer />} />
+                <Route path="/atlas-ai" element={<AtlasAI />} />
+                <Route path="/pomodoro" element={<Pomodoro />} />
                 <Route path="/tutorial" element={<Tutorial />} />
                 <Route path="/reviews" element={<Reviews />} />
               </Route>
