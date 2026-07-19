@@ -306,10 +306,10 @@ const AtlasAI = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden">
       <PublicHeader />
 
-      <div className="flex items-center gap-3 px-4 py-3 border-b bg-card/50 sticky top-0 z-20">
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-b bg-card/50 z-20">
         <button
           onClick={() => navigate(-1)}
           className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
@@ -333,7 +333,7 @@ const AtlasAI = () => {
         )}
       </div>
 
-      <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-4 flex flex-col gap-4 overflow-y-auto">
+      <div className="flex-1 min-h-0 max-w-2xl w-full mx-auto px-4 py-4 flex flex-col gap-4 overflow-y-auto">
         {messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center gap-3 py-16">
             <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
@@ -387,7 +387,7 @@ const AtlasAI = () => {
       </div>
 
       {pendingImage && (
-        <div className="max-w-2xl w-full mx-auto px-4">
+        <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4">
           <div className="flex items-center gap-3 bg-muted rounded-xl p-2 mb-2">
             <img src={pendingImage.previewUrl} alt="preview" className="h-12 w-12 rounded-lg object-cover" />
             <div className="flex-1 min-w-0">
@@ -407,7 +407,7 @@ const AtlasAI = () => {
       )}
 
       {pendingFile && (
-        <div className="max-w-2xl w-full mx-auto px-4">
+        <div className="flex-shrink-0 max-w-2xl w-full mx-auto px-4">
           <div className="flex items-center gap-3 bg-muted rounded-xl p-2 mb-2">
             <div className="h-10 w-10 rounded-lg bg-background flex items-center justify-center flex-shrink-0">
               <Paperclip className="h-4 w-4 text-muted-foreground" />
@@ -425,7 +425,7 @@ const AtlasAI = () => {
         </div>
       )}
 
-      <div className="border-t bg-card/50 sticky bottom-0">
+      <div className="flex-shrink-0 border-t bg-card/50">
         <div className="max-w-2xl w-full mx-auto px-4 py-3 flex items-end gap-2">
           <button
             onClick={() => imageInputRef.current?.click()}
