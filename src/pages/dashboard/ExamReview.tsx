@@ -311,7 +311,7 @@ const ExamReview = () => {
 
   return (
     <div className="min-h-screen bg-background font-sans pb-20">
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
+      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col gap-2">
