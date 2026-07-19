@@ -290,7 +290,12 @@ const TakeExam = () => {
     }
 
     const now = Date.now();
-    const durationSeconds = exam.duration_minutes * 60;
+    // For readymade exams where the student picked a specific MCQ count,
+    // exam duration = count × 30 seconds per MCQ, overriding the exam's fixed duration.
+    const isReadymadeCountMode = exam.is_readymade && !exam.external_exam_link && !!selectedQuestionCount;
+    const durationSeconds = isReadymadeCountMode
+        ? selectedQuestionCount * 30
+        : exam.duration_minutes * 60;
     const elapsedSeconds = Math.floor((now - parseInt(startTime)) / 1000);
     let remaining = Math.max(0, durationSeconds - elapsedSeconds);
 
@@ -317,7 +322,7 @@ const TakeExam = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted]);
+  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount]);
 
   // Auto-submit
   const submitExamMutation = useMutation({
@@ -604,7 +609,11 @@ const TakeExam = () => {
 
                       <div className="grid grid-cols-3 gap-4">
                           <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-xl font-bold text-primary">{exam.duration_minutes}</span>
+                              <span className="text-xl font-bold text-primary">
+                                  {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
+                                      ? Math.ceil((selectedQuestionCount * 30) / 60)
+                                      : exam.duration_minutes}
+                              </span>
                               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
