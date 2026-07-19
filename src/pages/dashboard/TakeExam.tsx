@@ -324,9 +324,14 @@ const TakeExam = () => {
         // Explicitly check profile presence before submission
         if (!profile || !profile.id) throw new Error("User profile not found. Please contact support.");
 
-        const answersList = Object.entries(answers).map(([questionId, selectedOption]) => ({
-            question_id: questionId,
-            selected_option: selectedOption
+        // Build the answers list from ALL questions shown in this attempt (shuffledQuestions),
+        // not just the ones answered, so skipped questions are recorded too.
+        // This matters for readymade exams where the student attempts a subset of the bank —
+        // the review page needs to know exactly which question_ids were part of this attempt.
+        const attemptedQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : (questions || []);
+        const answersList = attemptedQuestions.map((q: any) => ({
+            question_id: q.id,
+            selected_option: answers[q.id] ?? null
         }));
 
         const startTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
