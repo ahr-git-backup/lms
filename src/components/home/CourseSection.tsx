@@ -127,7 +127,10 @@ export const CourseSection = () => {
         <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center justify-center text-center gap-2">
-                    <h2 className="text-3xl font-bold tracking-tight text-primary">চলমান কোর্স সমূহ</h2>
+                    <h2 className="text-3xl font-bold tracking-tight text-primary relative inline-block">
+                        চলমান কোর্স সমূহ
+                        <span className="absolute left-0 -bottom-2 w-full h-1 bg-primary rounded-full"></span>
+                    </h2>
 
                     {/* Search Input */}
                     <div className="w-full max-w-2xl mt-4">
