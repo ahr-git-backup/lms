@@ -401,27 +401,35 @@ const TakeExam = () => {
     const currentIndex = list.findIndex((q: any) => q.id === currentQuestionId);
     if (currentIndex === -1) return;
 
+    let targetId: string | null = null;
+
     // Search forward from the next question
     for (let i = currentIndex + 1; i < list.length; i++) {
       if (!latestAnswers[list[i].id]) {
-        const qId = list[i].id;
-        setTimeout(() => {
-          questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 150);
-        return;
+        targetId = list[i].id;
+        break;
       }
     }
     // Wrap around: search from the start up to the current question
-    for (let i = 0; i < currentIndex; i++) {
-      if (!latestAnswers[list[i].id]) {
-        const qId = list[i].id;
-        setTimeout(() => {
-          questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-        }, 150);
-        return;
+    if (!targetId) {
+      for (let i = 0; i < currentIndex; i++) {
+        if (!latestAnswers[list[i].id]) {
+          targetId = list[i].id;
+          break;
+        }
       }
     }
-    // All answered - do nothing (stay put, or could scroll to submit button)
+
+    if (!targetId) return; // all answered
+
+    const finalTargetId = targetId;
+    // Wait for the DOM to commit the answered/disabled state before scrolling,
+    // then scroll on the next paint for reliable positioning on mobile.
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }, 300);
   };
 
   // 0. Auth Loading / Profile Check
@@ -815,11 +823,9 @@ const TakeExam = () => {
                                     <div
                                         onClick={() => {
                                             if (!isAnswered) {
-                                                setAnswers((prev) => {
-                                                    const updated = { ...prev, [q.id]: optionKey };
-                                                    scrollToNextUnanswered(q.id, updated);
-                                                    return updated;
-                                                });
+                                                const updated = { ...answers, [q.id]: optionKey };
+                                                setAnswers(updated);
+                                                scrollToNextUnanswered(q.id, updated);
                                             }
                                         }}
                                         className={cn(
