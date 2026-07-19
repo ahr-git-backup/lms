@@ -480,6 +480,63 @@ const StudentProfile = () => {
             </CardContent>
         </Card>
 
+        {/* OMR Credentials Card */}
+        <Card className="border border-violet-200 dark:border-violet-800/40 shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                <Fingerprint className="h-5 w-5 text-violet-600 dark:text-violet-400" />
+              </div>
+              <div>
+                <CardTitle className="text-base">OMR Credentials</CardTitle>
+                <CardDescription>Your unique Roll No & Reg No for OMR answer sheets</CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {omrRollNo && omrRegNo ? (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800/30">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Roll No</p>
+                      <p className="text-2xl font-bold font-mono tracking-[0.3em] text-violet-700 dark:text-violet-300 mt-1">{omrRollNo}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(omrRollNo, "Roll No")}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between p-4 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800/30">
+                    <div>
+                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Reg No</p>
+                      <p className="text-2xl font-bold font-mono tracking-[0.3em] text-violet-700 dark:text-violet-300 mt-1">{omrRegNo}</p>
+                    </div>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(omrRegNo, "Reg No")}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">✏️ Write these numbers on your OMR answer sheet by filling the corresponding bubbles. These are permanently assigned to your account.</p>
+              </div>
+            ) : (
+              <div className="text-center py-6 space-y-4">
+                <div className="flex flex-col items-center gap-2">
+                  <Fingerprint className="h-10 w-10 text-muted-foreground/40" />
+                  <p className="text-sm text-muted-foreground">You haven't generated your OMR credentials yet.</p>
+                  <p className="text-xs text-muted-foreground/80 max-w-sm">Generate unique Roll No & Reg No to use on your OMR answer sheets. This is a one-time generation.</p>
+                </div>
+                <Button onClick={handleGenerateOmrCredentials} disabled={generatingOmr} className="rounded-full px-6 bg-violet-600 hover:bg-violet-700">
+                  {generatingOmr ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
+                  ) : (
+                    <><Fingerprint className="h-4 w-4 mr-2" /> Generate OMR Credentials</>
+                  )}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Payments Section (Natively displayed) */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold tracking-tight">Payment History & Invoices</h2>
@@ -585,65 +642,8 @@ const StudentProfile = () => {
         </div>
       </div>
 
-      {/* Right Column (OMR & Courses) */}
+      {/* Right Column (Courses) */}
       <div className="space-y-8 flex flex-col">
-        {/* OMR Credentials Card */}
-        <Card className="border border-violet-200 dark:border-violet-800/40 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
-                <Fingerprint className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-              </div>
-              <div>
-                <CardTitle className="text-base">OMR Credentials</CardTitle>
-                <CardDescription>Your unique Roll No & Reg No for OMR answer sheets</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {omrRollNo && omrRegNo ? (
-              <div className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800/30">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Roll No</p>
-                      <p className="text-2xl font-bold font-mono tracking-[0.3em] text-violet-700 dark:text-violet-300 mt-1">{omrRollNo}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(omrRollNo, "Roll No")}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-violet-50 dark:bg-violet-900/10 border border-violet-200 dark:border-violet-800/30">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide">Reg No</p>
-                      <p className="text-2xl font-bold font-mono tracking-[0.3em] text-violet-700 dark:text-violet-300 mt-1">{omrRegNo}</p>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard(omrRegNo, "Reg No")}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">✏️ Write these numbers on your OMR answer sheet by filling the corresponding bubbles. These are permanently assigned to your account.</p>
-              </div>
-            ) : (
-              <div className="text-center py-6 space-y-4">
-                <div className="flex flex-col items-center gap-2">
-                  <Fingerprint className="h-10 w-10 text-muted-foreground/40" />
-                  <p className="text-sm text-muted-foreground">You haven't generated your OMR credentials yet.</p>
-                  <p className="text-xs text-muted-foreground/80 max-w-sm">Generate unique Roll No & Reg No to use on your OMR answer sheets. This is a one-time generation.</p>
-                </div>
-                <Button onClick={handleGenerateOmrCredentials} disabled={generatingOmr} className="rounded-full px-6 bg-violet-600 hover:bg-violet-700">
-                  {generatingOmr ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</>
-                  ) : (
-                    <><Fingerprint className="h-4 w-4 mr-2" /> Generate OMR Credentials</>
-                  )}
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Enrolled Courses Section */}
         <div className="space-y-4">
             <div className="flex items-center justify-between">
