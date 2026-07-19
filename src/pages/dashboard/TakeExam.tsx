@@ -392,6 +392,38 @@ const TakeExam = () => {
     }
   };
 
+  // After answering a question, auto-scroll to the next unanswered question.
+  // Skips already-answered ones; if none remain after current, wraps around to the
+  // earliest unanswered question in the whole exam.
+  const scrollToNextUnanswered = (currentQuestionId: string, latestAnswers: Record<string, string>) => {
+    const list = shuffledQuestions;
+    if (!list || list.length === 0) return;
+    const currentIndex = list.findIndex((q: any) => q.id === currentQuestionId);
+    if (currentIndex === -1) return;
+
+    // Search forward from the next question
+    for (let i = currentIndex + 1; i < list.length; i++) {
+      if (!latestAnswers[list[i].id]) {
+        const qId = list[i].id;
+        setTimeout(() => {
+          questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 150);
+        return;
+      }
+    }
+    // Wrap around: search from the start up to the current question
+    for (let i = 0; i < currentIndex; i++) {
+      if (!latestAnswers[list[i].id]) {
+        const qId = list[i].id;
+        setTimeout(() => {
+          questionRefs.current[qId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 150);
+        return;
+      }
+    }
+    // All answered - do nothing (stay put, or could scroll to submit button)
+  };
+
   // 0. Auth Loading / Profile Check
   if (authLoading || (!profile && user)) {
      return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
@@ -727,7 +759,7 @@ const TakeExam = () => {
           </div>
       </div>
 
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24">
+      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24 overflow-x-hidden">
         <div className="flex items-center justify-between">
              <div>
                 <h1 className="text-2xl font-bold">{exam.title} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
@@ -753,22 +785,22 @@ const TakeExam = () => {
             ref={(el) => { questionRefs.current[q.id] = el; }}
             className="scroll-mt-24"
           >
-            <Card className="shadow-sm rounded-[30px] overflow-hidden">
-                <CardContent className="p-5 space-y-2">
+            <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
+                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
                     {/* Question Row */}
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-4 max-w-full">
                         <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                             {idx + 1}
                         </div>
-                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                             </div>
                         </div>
                     </div>
 
                     {/* Options Row */}
-                    <div className="space-y-2 pt-2">
+                    <div className="space-y-2 pt-2 max-w-full">
                         {(["A", "B", "C", "D"] as const).map((optionKey) => {
                             const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
                             const isSelected = answers[q.id] === optionKey;
@@ -778,12 +810,16 @@ const TakeExam = () => {
                             return (
                                 <div
                                     key={optionKey}
-                                    className={cn("flex items-center gap-4 group", isDisabled && "opacity-50 pointer-events-none")}
+                                    className={cn("flex items-center gap-4 group max-w-full", isDisabled && "opacity-50 pointer-events-none")}
                                 >
                                     <div
                                         onClick={() => {
                                             if (!isAnswered) {
-                                                setAnswers((prev) => ({ ...prev, [q.id]: optionKey }));
+                                                setAnswers((prev) => {
+                                                    const updated = { ...prev, [q.id]: optionKey };
+                                                    scrollToNextUnanswered(q.id, updated);
+                                                    return updated;
+                                                });
                                             }
                                         }}
                                         className={cn(
@@ -797,11 +833,11 @@ const TakeExam = () => {
                                         {optionKey}
                                     </div>
                                     <div className={cn(
-                                        "flex-1 text-base whitespace-normal min-w-0 flex items-center justify-between gap-3 p-3 rounded-lg transition-all",
+                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg transition-all",
                                         isSelected ? "text-primary font-medium bg-primary/10 border border-primary/50 shadow-sm" : "text-foreground hover:bg-muted/30"
                                     )}>
-                                         <div className="flex-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                         <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                                          </div>
                                          {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
                                     </div>
