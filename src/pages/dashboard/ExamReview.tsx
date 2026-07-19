@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator, Flag } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator, Flag, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -262,6 +262,14 @@ const ExamReview = () => {
       }
   };
 
+  const handlePracticeAgain = () => {
+      if (attempt?.exam_id) {
+        // No retake_from param -> lands on the fresh pre-exam screen,
+        // so the student can choose all questions or a new MCQ count (for readymade exams).
+        navigate(`/dashboard/take-exam/${attempt.exam_id}`);
+      }
+  };
+
   if (attemptLoading || questionsLoading) {
     return <div className="p-8 text-center">Loading result...</div>;
   }
@@ -318,6 +326,9 @@ const ExamReview = () => {
                  )}
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-4 py-2">
                     <Trophy className="h-5 w-5 mr-2 text-yellow-500" /> Leaderboard
+                 </Button>
+                 <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-4 py-2">
+                    <Repeat className="h-5 w-5 mr-2 text-primary" /> Practice Again
                  </Button>
             </div>
         </div>
