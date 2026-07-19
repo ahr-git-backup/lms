@@ -236,9 +236,13 @@ const TakeExam = () => {
         }
 
         // For readymade exams, limit to the student-selected question count
+        // TEMP DEBUG - remove after diagnosis
+        console.log("[EXAM DEBUG] is_readymade:", exam.is_readymade, "selectedQuestionCount:", selectedQuestionCount, "shuffled.length:", shuffled.length, "questions.length:", questions.length);
         if (exam.is_readymade && selectedQuestionCount && selectedQuestionCount < shuffled.length) {
+            console.log("[EXAM DEBUG] Slicing to", selectedQuestionCount);
             setShuffledQuestions(shuffled.slice(0, selectedQuestionCount));
         } else {
+            console.log("[EXAM DEBUG] NOT slicing - showing all", shuffled.length);
             setShuffledQuestions(shuffled);
         }
     }
