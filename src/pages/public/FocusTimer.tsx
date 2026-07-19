@@ -345,10 +345,21 @@ const FocusTimer = () => {
           })}
         </div>
 
+        {/* Premium ATLAS Focus Timer banner */}
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
+          <Icon className={cn("h-4 w-4", meta.color)} />
+          <span className="text-sm font-black tracking-wide bg-gradient-to-r from-primary via-primary/70 to-primary bg-clip-text text-transparent">
+            ATLAS Focus Timer
+          </span>
+          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-gradient-to-r from-primary to-primary/70 text-primary-foreground tracking-wide">
+            PREMIUM
+          </span>
+        </div>
+
         {/* Digital timer */}
         <div
           className={cn(
-            "rounded-2xl p-6 flex flex-col items-center gap-4 border-2",
+            "rounded-2xl p-6 flex flex-col items-center gap-4 border-2 shadow-sm",
             mood === "study" && "border-emerald-500/30 bg-emerald-500/5",
             mood === "break" && "border-amber-500/30 bg-amber-500/5",
             mood === "sleep" && "border-indigo-500/30 bg-indigo-500/5"
@@ -363,20 +374,44 @@ const FocusTimer = () => {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2 font-mono text-4xl font-black tabular-nums">
-            <div className="flex flex-col items-center">
-              <span>{h}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">HRS</span>
+          <div className="flex items-center gap-1.5">
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{h}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">HRS</span>
             </div>
-            <span className="pb-4">:</span>
-            <div className="flex flex-col items-center">
-              <span>{min}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">MIN</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{min}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">MIN</span>
             </div>
-            <span className="pb-4">:</span>
-            <div className="flex flex-col items-center">
-              <span>{s}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">SEC</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{s}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">SEC</span>
             </div>
           </div>
 
