@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
@@ -35,6 +36,7 @@ const TakeExam = () => {
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -225,9 +227,15 @@ const TakeExam = () => {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
-        setShuffledQuestions(shuffled);
+
+        // For readymade exams, limit to the student-selected question count
+        if (exam.is_readymade && selectedQuestionCount && selectedQuestionCount < shuffled.length) {
+            setShuffledQuestions(shuffled.slice(0, selectedQuestionCount));
+        } else {
+            setShuffledQuestions(shuffled);
+        }
     }
-  }, [questions, shuffledQuestions.length, exam]);
+  }, [questions, shuffledQuestions.length, exam, selectedQuestionCount]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
@@ -559,6 +567,35 @@ const TakeExam = () => {
                   </div>
               </Card>
 
+              {/* Card: Readymade MCQ Count Selector */}
+              {exam.is_readymade && !exam.external_exam_link && (
+                  <Card className="w-full max-w-2xl rounded-[30px] shadow-sm border">
+                      <div className="p-6 md:p-8 space-y-3">
+                          <h3 className="text-sm font-semibold">Choose how many MCQs you want</h3>
+                          <p className="text-xs text-muted-foreground">
+                              This exam has {questions?.length || 0} MCQs available. Enter how many you want to attempt.
+                          </p>
+                          <Input
+                              type="number"
+                              min={1}
+                              max={questions?.length || 1}
+                              placeholder={`Max ${questions?.length || 0}`}
+                              value={selectedQuestionCount ?? ""}
+                              onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  const max = questions?.length || 1;
+                                  if (Number.isNaN(val)) {
+                                      setSelectedQuestionCount(null);
+                                  } else {
+                                      setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
+                                  }
+                              }}
+                              className="max-w-[160px]"
+                          />
+                      </div>
+                  </Card>
+              )}
+
               {/* Card 2: Instructions */}
               <Card className="w-full max-w-2xl rounded-[30px] shadow-sm border">
                   <div className="p-6 md:p-8 space-y-3">
@@ -614,7 +651,7 @@ const TakeExam = () => {
                                       setHasStarted(true);
                                   }
                               }}
-                              disabled={!agreedToInstructions}
+                              disabled={!agreedToInstructions || (exam.is_readymade && !exam.external_exam_link && !selectedQuestionCount)}
                           >
                               Start Exam
                           </Button>
