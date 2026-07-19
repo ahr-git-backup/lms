@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Play,
   Pause,
+  RotateCcw,
   CheckCircle2,
   XCircle,
   Trash2,
@@ -253,11 +254,24 @@ const Pomodoro = () => {
     saveRun(phone, { currentTask, totalTime, running: true, endAt, pausedTimeLeft: null });
   };
 
-  // Only Pause <-> Resume — no separate reset/stop controls, per design.
+  // Only Pause <-> Resume — no separate stop control, per design.
   const toggle = () => {
     if (running) pause();
     else if (timeLeft > 0) resume();
     else start();
+  };
+
+  // Reset: fully stops the current run and restarts fresh from the last set duration.
+  const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    clearRun(phone);
+    setRunning(false);
+    if (totalTime > 0) {
+      setTimeLeft(totalTime);
+      saveRun(phone, { currentTask, totalTime, running: false, endAt: null, pausedTimeLeft: totalTime });
+    } else {
+      setTimeLeft(0);
+    }
   };
 
   const applyPreset = (mins: number, idx: number) => {
@@ -450,14 +464,23 @@ const Pomodoro = () => {
             </div>
           </div>
 
-          {/* Only Pause <-> Resume control, per design (no reset/stop) */}
-          <div className="flex mt-4">
+          {/* Pause <-> Resume control, plus a Reset button that restarts fresh */}
+          <div className="flex items-center gap-3 mt-4">
             <button
               onClick={toggle}
               className="h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
             >
               {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
             </button>
+            {totalTime > 0 && (
+              <button
+                onClick={reset}
+                title="রিসেট করুন"
+                className="h-10 w-10 rounded-full bg-white/10 border border-indigo-400/30 text-indigo-200 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
