@@ -1,7 +1,9 @@
 -- Add avatar_url to the leaderboard_exam_attempts view's embedded profile object,
 -- so the Leaderboard page (podium + list) can show each student's uploaded profile photo.
 
-create or replace view public.leaderboard_exam_attempts as
+drop view if exists public.leaderboard_exam_attempts;
+
+create view public.leaderboard_exam_attempts as
  select a.id,
     a.exam_id,
     a.profile_id,
@@ -20,3 +22,5 @@ create or replace view public.leaderboard_exam_attempts as
     a.time_taken_seconds
    from (public.exam_attempts a
      join public.profiles p on ((p.id = a.profile_id)));
+
+grant select on public.leaderboard_exam_attempts to authenticated, anon;
