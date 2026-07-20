@@ -121,6 +121,7 @@ const FocusTimer = () => {
   const hasStoppedOnceRef = useRef(false);
   const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
   const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
+  const [cmpDays, setCmpDays] = useState(1);
   const [overlayDays, setOverlayDays] = useState(1);
   const [showIntro, setShowIntro] = useState(false);
 
@@ -217,6 +218,20 @@ const FocusTimer = () => {
       return data || [];
     },
     enabled: !!overlayMood,
+  });
+
+  const { data: cmpDaily } = useQuery({
+    queryKey: ["focus-compare-daily", compareTarget?.userId, cmpDays],
+    queryFn: async () => {
+      if (!compareTarget) return [];
+      const { data, error } = await supabase.rpc("focus_compare_daily" as any, {
+        p_other_user: compareTarget.userId,
+        p_days: cmpDays,
+      });
+      if (error) throw error;
+      return ((data as unknown) || []) as { user_id: string; day: string; total_seconds: number }[];
+    },
+    enabled: !!compareTarget && cmpDays > 1,
   });
 
   const { data: myTotalToday } = useQuery({
@@ -894,7 +909,7 @@ const FocusTimer = () => {
               return (
                 <button
                   key={row.user_id}
-                  onClick={() => !isMe && setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) })}
+                  onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
                   className={cn(
                     "w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left",
                     isMe && "border-primary/40 bg-primary/5",
@@ -1095,13 +1110,32 @@ const FocusTimer = () => {
       {/* Compare modal — tap any leaderboard row to compare against yourself */}
       {compareTarget && (() => {
         const myRow = leaderboard?.find((r: any) => r.user_id === user?.id);
-        const mySecs = myRow ? Number(myRow.total_seconds) : 0;
-        const maxSec = Math.max(mySecs, compareTarget.secs, 1);
+        const snapshotMySecs = myRow ? Number(myRow.total_seconds) : 0;
+
+        let mySecs = snapshotMySecs;
+        let theirSecs = compareTarget.secs;
+        if (cmpDays > 1 && cmpDaily) {
+          mySecs = cmpDaily.filter((r) => r.user_id === user?.id).reduce((a, r) => a + Number(r.total_seconds), 0);
+          theirSecs = cmpDaily.filter((r) => r.user_id === compareTarget.userId).reduce((a, r) => a + Number(r.total_seconds), 0);
+        }
+
+        const maxSec = Math.max(mySecs, theirSecs, 1);
         const meW = Math.round((mySecs / maxSec) * 100);
-        const thW = Math.round((compareTarget.secs / maxSec) * 100);
-        const ahead = mySecs >= compareTarget.secs;
-        const diff = Math.abs(mySecs - compareTarget.secs);
+        const thW = Math.round((theirSecs / maxSec) * 100);
+        const ahead = mySecs >= theirSecs;
+        const diff = Math.abs(mySecs - theirSecs);
         const diffFmt = formatHMS(diff);
+
+        const dayKeys: string[] = [];
+        if (cmpDays > 1) {
+          for (let i = cmpDays - 1; i >= 0; i--) {
+            dayKeys.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+          }
+        }
+        const myDailyMap = new Map((cmpDaily || []).filter((r) => r.user_id === user?.id).map((r) => [r.day, Number(r.total_seconds)]));
+        const theirDailyMap = new Map((cmpDaily || []).filter((r) => r.user_id === compareTarget.userId).map((r) => [r.day, Number(r.total_seconds)]));
+        const graphMax = Math.max(1, ...dayKeys.map((d) => Math.max(myDailyMap.get(d) || 0, theirDailyMap.get(d) || 0)));
+
         return (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
             <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
@@ -1114,9 +1148,21 @@ const FocusTimer = () => {
                   ✕
                 </button>
               </div>
-              <p className="text-[11px] text-muted-foreground -mt-2">
-                {MOOD_META[leaderboardMood].label} · {leaderboardDays === 1 ? "আজকে" : `${leaderboardDays} দিন`}
-              </p>
+
+              <div className="flex gap-1.5 overflow-x-auto">
+                {[1, 3, 7, 15, 30].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setCmpDays(d)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-[10px] font-bold border flex-shrink-0",
+                      cmpDays === d ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                    )}
+                  >
+                    {d === 1 ? "আজকে" : `${d} দিন`}
+                  </button>
+                ))}
+              </div>
 
               <div className="space-y-2.5">
                 <div className="space-y-1">
@@ -1131,13 +1177,39 @@ const FocusTimer = () => {
                 <div className="space-y-1">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span>{compareTarget.name}</span>
-                    <span className="text-indigo-400">{formatHMS(compareTarget.secs).h}h {formatHMS(compareTarget.secs).m}m</span>
+                    <span className="text-indigo-400">{formatHMS(theirSecs).h}h {formatHMS(theirSecs).m}m</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${thW}%` }} />
                   </div>
                 </div>
               </div>
+
+              {cmpDays > 1 && (
+                <div className="border-t pt-2.5 space-y-1.5">
+                  <div className="flex items-end gap-[3px] h-9">
+                    {dayKeys.map((d) => {
+                      const mv = myDailyMap.get(d) || 0;
+                      const tv = theirDailyMap.get(d) || 0;
+                      const mh = Math.max(2, Math.round((mv / graphMax) * 36));
+                      const th = Math.max(2, Math.round((tv / graphMax) * 36));
+                      return (
+                        <div key={d} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+                          <div className="flex items-end gap-[1.5px]" style={{ height: 36 }}>
+                            <div className="w-[5px] rounded-t bg-primary" style={{ height: mh }} />
+                            <div className="w-[5px] rounded-t bg-indigo-400" style={{ height: th }} />
+                          </div>
+                          <div className="text-[6.5px] text-muted-foreground whitespace-nowrap">{d.slice(5).replace("-", "/")}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-3 justify-center text-[8px] text-muted-foreground">
+                    <span><span className="inline-block w-[7px] h-[7px] rounded-sm bg-primary mr-1 align-middle" />তুমি</span>
+                    <span><span className="inline-block w-[7px] h-[7px] rounded-sm bg-indigo-400 mr-1 align-middle" />{compareTarget.name}</span>
+                  </div>
+                </div>
+              )}
 
               <div
                 className={cn(
@@ -1148,8 +1220,8 @@ const FocusTimer = () => {
                 {diff === 0
                   ? "সমান সমান! একটু বেশি পড়লেই এগিয়ে যাবে।"
                   : ahead
-                  ? `তুমি ${diffFmt.h}h ${diffFmt.m}m এগিয়ে আছো! এই ধারা বজায় রাখো।`
-                  : `${diffFmt.h}h ${diffFmt.m}m পিছিয়ে আছো। বিরতি কমাও, একটানা পড়ার সময় বাড়াও।`}
+                  ? `তুমি ${diffFmt.h}h ${diffFmt.m}m এগিয়ে আছো! এই ধারা বজায় রাখো — বিরতি কম নিলে rank আরো ভালো হবে।`
+                  : `${diffFmt.h}h ${diffFmt.m}m পিছিয়ে আছো। বিরতি কমাও এবং একটানা পড়ার session বাড়াও — তাহলে দ্রুত এগিয়ে যাবে।`}
               </div>
             </div>
           </div>
