@@ -2,6 +2,7 @@ import { useLocation } from "react-router-dom";
 import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag, Zap, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
+import { adminItems } from "@/components/AdminSidebar";
 import {
   Sidebar,
   SidebarContent,
@@ -35,30 +36,7 @@ const studentItems = [
   { title: "Exam Routine", url: "/dashboard/calendar", icon: CalendarClock, color: "text-indigo-500" },
 ];
 
-const adminItems = [
-  { title: "Overview", url: "/admin", icon: LayoutDashboard, roles: ["admin", "teacher"], color: "text-blue-600" },
-  { title: "Courses", url: "/admin/courses", icon: GraduationCap, roles: ["admin"], color: "text-green-600" },
-  { title: "Students", url: "/admin/students", icon: Users, roles: ["admin"], color: "text-purple-600" },
-  { title: "Class Schedule", url: "/admin/classes", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-red-600" },
-  { title: "Routine Manager", url: "/admin/routines", icon: CalendarClock, roles: ["admin", "teacher"], color: "text-indigo-600" },
-  { title: "Exams", url: "/admin/exams", icon: ListChecks, roles: ["admin", "teacher"], color: "text-orange-600" },
-  { title: "Question Bank", url: "/admin/question-bank", icon: Database, roles: ["admin", "teacher"], color: "text-blue-500" },
-  { title: "Notice", url: "/admin/announcements", icon: Megaphone, roles: ["admin", "teacher"], color: "text-yellow-600" },
-  { title: "Community Manager", url: "/admin/community", icon: Users, roles: ["admin", "teacher"], color: "text-teal-600" },
-  { title: "Notes Manager", url: "/admin/notes", icon: StickyNote, roles: ["admin", "teacher"], color: "text-pink-600" },
-  { title: "Archive Manager", url: "/admin/archive", icon: BookOpen, roles: ["admin", "teacher"], color: "text-purple-500" },
-  { title: "Exam Routine Manager", url: "/admin/calendar", icon: CalendarRange, roles: ["admin", "teacher"], color: "text-rose-500" },
-  { title: "Free Manager", url: "/admin/free-content", icon: StickyNote, roles: ["admin"], color: "text-indigo-500" },
-  { title: "Payments", url: "/admin/payments", icon: CreditCard, roles: ["admin"], color: "text-emerald-600" },
-  { title: "Promo Codes", url: "/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
-  { title: "Site Heroes", url: "/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
-  { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
-  { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
-  { title: "Quick Practice", url: "/admin/quick-practice", icon: Zap, roles: ["admin", "teacher"], color: "text-violet-500" },
-  { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
-  { title: "Content Creator", url: "/admin/content-creator", icon: StickyNote, roles: ["admin", "teacher"], color: "text-teal-600" },
-  { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
-];
+// adminItems is now imported from AdminSidebar.tsx (single source of truth)
 
 export function AppSidebar() {
   const { state } = useSidebar();
