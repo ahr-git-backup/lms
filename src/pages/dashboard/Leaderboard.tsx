@@ -72,7 +72,7 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
     };
 
     return (
-        <div className="relative flex justify-center items-end pt-12 pb-6 px-4 mb-4 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-900/50 rounded-2xl mx-auto overflow-hidden">
+        <div className="relative flex justify-center items-end pt-8 pb-2 px-4 mb-1 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-900/50 rounded-2xl mx-auto overflow-hidden">
             {/* Background decorations */}
             <div className="absolute top-10 left-10 text-yellow-300 opacity-50"><Star size={24} fill="currentColor" /></div>
             <div className="absolute top-20 right-12 text-blue-300 opacity-40"><Star size={16} fill="currentColor" /></div>
@@ -550,7 +550,7 @@ const Leaderboard = () => {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-10">
+    <div className="space-y-3 max-w-5xl mx-auto pb-10 pt-2">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0">
@@ -586,7 +586,7 @@ const Leaderboard = () => {
       </div>
 
       <Card className="border-0 shadow-none bg-transparent md:border md:border-yellow-500/20 md:bg-yellow-50/10 md:shadow-sm">
-        <CardHeader className="px-0 md:px-6">
+        <CardHeader className="px-0 md:px-6 pb-2 pt-2 md:pt-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
@@ -599,7 +599,7 @@ const Leaderboard = () => {
               </div>
 
               {showTabs && (
-                  <Tabs value={filterType} onValueChange={(v) => { setFilterType(v as 'live'|'practice'); setPage(0); }}>
+                  <Tabs value={filterType} onValueChange={(v) => setFilterType(v as 'live'|'practice')}>
                       <TabsList>
                           <TabsTrigger value="live">Live Rank</TabsTrigger>
                           <TabsTrigger value="practice">Practice Rank</TabsTrigger>
