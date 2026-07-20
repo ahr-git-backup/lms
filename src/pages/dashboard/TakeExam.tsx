@@ -613,30 +613,30 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex flex-col items-center justify-start pt-4 p-3 space-y-3">
+          <div className="min-h-screen bg-background flex flex-col items-center justify-start pt-2 p-3 space-y-2">
               {/* Card 1: Header/Info */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-4 md:p-6 space-y-4">
-                      <div className="text-center space-y-1">
-                          <h1 className="text-xl font-bold tracking-tight">{exam.title}</h1>
-                          <p className="text-muted-foreground text-xs">Please review the details below before starting.</p>
+                  <div className="p-3 md:p-4 space-y-2.5">
+                      <div className="text-center space-y-0.5">
+                          <h1 className="text-lg font-bold tracking-tight">{exam.title}</h1>
+                          <p className="text-muted-foreground text-[11px]">Please review the details below before starting.</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-3">
-                          <div className="flex flex-col items-center justify-center p-3 bg-secondary/30 rounded-xl">
-                              <span className="text-lg font-bold text-primary">
+                      <div className="grid grid-cols-3 gap-2.5">
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-primary">
                                   {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
                                       ? Math.ceil((selectedQuestionCount * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-3 bg-secondary/30 rounded-xl">
-                              <span className="text-lg font-bold text-primary">{exam.external_exam_link ? 'N/A' : questions?.length}</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-primary">{exam.external_exam_link ? 'N/A' : questions?.length}</span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-3 bg-secondary/30 rounded-xl">
-                              <span className="text-lg font-bold text-red-500">{exam.negative_mark_per_question}</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-red-500">{exam.negative_mark_per_question}</span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Negative</span>
                           </div>
                       </div>
@@ -646,12 +646,12 @@ const TakeExam = () => {
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
                   <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
-                      <div className="px-4 pt-3">
-                          <p className="text-xs font-bold text-foreground">
+                      <div className="px-4 pt-2">
+                          <p className="text-[11px] font-bold text-foreground">
                               যদি নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চান, নিচের বক্সে সংখ্যা লিখুন। খালি রাখলে সব MCQ দিয়ে পরীক্ষা শুরু হবে।
                           </p>
                       </div>
-                      <div className="px-4 py-3 flex items-center justify-between gap-3">
+                      <div className="px-4 py-2 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-1.5 min-w-0">
                               <Zap className="h-3.5 w-3.5 text-violet-500 shrink-0" />
                               <span className="text-xs font-semibold truncate">MCQs to attempt</span>
@@ -718,7 +718,7 @@ const TakeExam = () => {
                               </button>
                           </div>
                       </div>
-                      <div className="px-4 pb-2.5 -mt-1">
+                      <div className="px-4 pb-1.5 -mt-1">
                           <span className="text-[10px] text-muted-foreground">
                               Tap the number to type directly · Max {questions?.length || 0}
                           </span>
@@ -728,12 +728,12 @@ const TakeExam = () => {
 
               {/* Card 2: Instructions */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-4 md:p-5 space-y-2">
+                  <div className="p-3 md:p-4 space-y-1.5">
                       <h3 className="text-xs font-semibold flex items-center gap-1.5">
                           <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                           Instructions
                       </h3>
-                      <div className="text-xs text-muted-foreground leading-relaxed max-h-24 overflow-y-auto">
+                      <div className="text-xs text-muted-foreground leading-relaxed max-h-16 overflow-y-auto">
                           {exam.instructions ? (
                               <div className="prose prose-sm max-w-none dark:prose-invert">
                                   <MathText text={exam.instructions} />
@@ -752,8 +752,8 @@ const TakeExam = () => {
 
               {/* Card 3: Actions */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-4 md:p-5 space-y-3">
-                      <div className="flex items-center space-x-2 p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="p-3 md:p-4 space-y-2">
+                      <div className="flex items-center space-x-2 p-1 rounded-lg hover:bg-muted/50 transition-colors">
                           <Checkbox
                               id="terms"
                               checked={agreedToInstructions}
