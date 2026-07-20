@@ -51,7 +51,7 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
 
                 <div className="text-center mb-3 max-w-[100px] sm:max-w-[120px]">
                     <div className="font-bold text-sm sm:text-base text-foreground truncate drop-shadow-sm" title={student.profile?.full_name}>
-                        {student.profile?.full_name?.split(" ")[0]}
+                        {student.profile?.full_name || "Unknown"}
                     </div>
                     {isStaff && student.time_taken_seconds && (
                          <div className="text-[10px] text-muted-foreground font-mono">
