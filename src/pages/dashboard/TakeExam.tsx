@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
@@ -645,29 +645,78 @@ const TakeExam = () => {
 
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
-                  <Card className="w-full max-w-2xl rounded-[30px] shadow-sm border">
-                      <div className="p-6 md:p-8 space-y-3">
-                          <h3 className="text-sm font-semibold">Choose how many MCQs you want</h3>
+                  <Card className="w-full max-w-2xl rounded-[30px] shadow-sm border overflow-hidden">
+                      <div className="p-6 md:p-8 space-y-4">
+                          <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-violet-500" />
+                              <h3 className="text-sm font-semibold">Choose how many MCQs you want</h3>
+                          </div>
                           <p className="text-xs text-muted-foreground">
-                              This exam has {questions?.length || 0} MCQs available. Enter how many you want to attempt.
+                              This exam has {questions?.length || 0} MCQs available. Leave empty to attempt all.
                           </p>
-                          <Input
-                              type="number"
-                              min={1}
-                              max={questions?.length || 1}
-                              placeholder={`Max ${questions?.length || 0}`}
-                              value={selectedQuestionCount ?? ""}
-                              onChange={(e) => {
-                                  const val = parseInt(e.target.value, 10);
-                                  const max = questions?.length || 1;
-                                  if (Number.isNaN(val)) {
-                                      setSelectedQuestionCount(null);
-                                  } else {
-                                      setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
-                                  }
-                              }}
-                              className="max-w-[160px]"
-                          />
+
+                          <div className="flex flex-col items-center gap-2 py-2">
+                              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                                  Question Count
+                              </span>
+                              <div className="flex items-center gap-4">
+                                  <button
+                                      type="button"
+                                      onClick={() => {
+                                          const max = questions?.length || 1;
+                                          setSelectedQuestionCount((prev) => {
+                                              const cur = prev ?? max;
+                                              return Math.min(Math.max(cur - 1, 1), max);
+                                          });
+                                      }}
+                                      className="h-11 w-11 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
+                                      aria-label="Decrease count"
+                                  >
+                                      <Minus className="h-4 w-4" />
+                                  </button>
+
+                                  <div className="relative">
+                                      <div className="absolute inset-0 rounded-2xl bg-violet-500/30 blur-lg animate-pulse" />
+                                      <div className="relative h-20 w-28 rounded-2xl bg-gradient-to-b from-violet-500 to-fuchsia-600 shadow-[0_0_20px_rgba(168,85,247,0.5)] flex items-center justify-center ring-2 ring-violet-300/60 dark:ring-violet-500/40 animate-[pulse_2.5s_ease-in-out_infinite]">
+                                          <input
+                                              type="number"
+                                              min={1}
+                                              max={questions?.length || 1}
+                                              placeholder={`${questions?.length || 0}`}
+                                              value={selectedQuestionCount ?? ""}
+                                              onChange={(e) => {
+                                                  const val = parseInt(e.target.value, 10);
+                                                  const max = questions?.length || 1;
+                                                  if (Number.isNaN(val)) {
+                                                      setSelectedQuestionCount(null);
+                                                  } else {
+                                                      setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
+                                                  }
+                                              }}
+                                              className="w-full h-full bg-transparent text-center text-3xl font-bold text-white placeholder-white/50 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                          />
+                                      </div>
+                                  </div>
+
+                                  <button
+                                      type="button"
+                                      onClick={() => {
+                                          const max = questions?.length || 1;
+                                          setSelectedQuestionCount((prev) => {
+                                              const cur = prev ?? 0;
+                                              return Math.min(Math.max(cur + 1, 1), max);
+                                          });
+                                      }}
+                                      className="h-11 w-11 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
+                                      aria-label="Increase count"
+                                  >
+                                      <Plus className="h-4 w-4" />
+                                  </button>
+                              </div>
+                              <span className="text-[11px] text-muted-foreground mt-1">
+                                  Max {questions?.length || 0} MCQs
+                              </span>
+                          </div>
                       </div>
                   </Card>
               )}
