@@ -117,6 +117,7 @@ const FocusTimer = () => {
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
   const [sessionNumber, setSessionNumber] = useState(1);
   const hasStoppedOnceRef = useRef(false);
+  const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -191,7 +192,7 @@ const FocusTimer = () => {
       return data || [];
     },
     refetchInterval: 8000,
-    enabled: showLiveNow,
+    enabled: !!user,
   });
 
   const { data: myTotalToday } = useQuery({
@@ -498,6 +499,23 @@ const FocusTimer = () => {
               >
                 <MIcon className="h-5 w-5" />
                 <span className="text-xs font-bold">{md.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now */}
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
+            const md = MOOD_META[m];
+            return (
+              <button
+                key={m}
+                onClick={() => setOverlayMood(m)}
+                className="text-[10px] font-bold text-muted-foreground hover:text-foreground py-1 rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                {count} জন <span className={md.color}>{md.label}</span> এ
               </button>
             );
           })}
@@ -818,6 +836,65 @@ const FocusTimer = () => {
             >
               ঠিক আছে
             </button>
+          </div>
+        </div>
+      )}
+      {/* Full-screen mood overlay — everyone currently in Study/Break/Sleep, ranked by time */}
+      {overlayMood && (
+        <div className="fixed inset-0 bg-background z-[70] flex flex-col">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <button
+              onClick={() => setOverlayMood(null)}
+              className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <h2 className={cn("flex-1 font-extrabold text-base", MOOD_META[overlayMood].color)}>
+              {MOOD_META[overlayMood].label} মোডে এখন যারা আছে
+            </h2>
+            <span className="text-xs font-bold text-muted-foreground">
+              {(liveNow || []).filter((r: any) => r.mood === overlayMood).length} জন
+            </span>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+            {(liveNow || []).filter((r: any) => r.mood === overlayMood).length === 0 && (
+              <p className="text-center text-sm text-muted-foreground py-10">
+                এখন কেউ এই মোডে নেই।
+              </p>
+            )}
+            {(liveNow || [])
+              .filter((r: any) => r.mood === overlayMood)
+              .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
+              .map((row: any, i: number) => {
+                const md = MOOD_META[overlayMood];
+                const MIcon = md.icon;
+                const t = formatHMS(row.duration_seconds);
+                const isMe = row.user_id === user?.id;
+                return (
+                  <div
+                    key={row.user_id}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
+                      isMe && "border-primary/40 bg-primary/5"
+                    )}
+                  >
+                    <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
+                      #{i + 1}
+                    </div>
+                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
+                      <MIcon className={cn("h-4 w-4", md.color)} />
+                    </div>
+                    <div className="flex-1 min-w-0 text-sm font-bold truncate">
+                      {row.full_name || "Student"}
+                      {isMe && " (তুমি)"}
+                      {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                    </div>
+                    <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                      {t.h}h {t.m}m
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
       )}
