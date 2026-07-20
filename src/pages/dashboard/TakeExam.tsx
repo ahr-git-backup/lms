@@ -613,7 +613,7 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex flex-col items-center justify-center p-3 space-y-3">
+          <div className="min-h-screen bg-background flex flex-col items-center justify-start pt-4 p-3 space-y-3">
               {/* Card 1: Header/Info */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
                   <div className="p-4 md:p-6 space-y-4">
