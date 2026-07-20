@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, RotateCw, Lock, Calculator, Flag, Repeat } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -272,12 +272,6 @@ const ExamReview = () => {
       }
   });
 
-  const handleRetakeMistakes = () => {
-      if (attempt?.exam_id) {
-        navigate(`/dashboard/take-exam/${attempt.exam_id}?retake_from=${attempt.id}`);
-      }
-  };
-
   const handlePracticeAgain = () => {
       if (attempt?.exam_id) {
         // No retake_from param -> lands on the fresh pre-exam screen,
@@ -352,11 +346,6 @@ const ExamReview = () => {
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                 {wrongCount > 0 && !shouldRestrict && (
-                     <Button variant="destructive" onClick={handleRetakeMistakes} className="h-10 px-3 py-2 w-full sm:w-auto">
-                        <RotateCw className="h-5 w-5 mr-1.5 shrink-0" /> <span className="truncate">Retake</span>
-                     </Button>
-                 )}
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
