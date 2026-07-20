@@ -673,7 +673,7 @@ const TakeExam = () => {
                                   <Minus className="h-3.5 w-3.5" />
                               </button>
 
-                              <div className="rounded-xl border-2 border-violet-400 dark:border-violet-600">
+                              <div className="relative rounded-xl border-2 border-violet-400 dark:border-violet-600">
                                   <div className="h-11 w-16 rounded-[10px] flex items-center justify-center">
                                       <input
                                           type="number"
@@ -700,6 +700,16 @@ const TakeExam = () => {
                                           className="w-full h-full bg-transparent text-center text-lg font-bold text-foreground focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       />
                                   </div>
+                                  {selectedQuestionCount !== null && (
+                                      <button
+                                          type="button"
+                                          onClick={() => setSelectedQuestionCount(null)}
+                                          aria-label="Clear, take full exam"
+                                          className="absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-violet-500 text-white flex items-center justify-center text-[9px] leading-none hover:bg-violet-600 active:scale-90 transition-all"
+                                      >
+                                          ×
+                                      </button>
+                                  )}
                               </div>
 
                               <button
