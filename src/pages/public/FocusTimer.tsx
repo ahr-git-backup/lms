@@ -70,6 +70,31 @@ function clearState() {
   }
 }
 
+function sessionNumberKey(userId: string) {
+  return `atlas_focus_session_num_${userId}`;
+}
+
+function loadSessionNumber(userId: string): number {
+  try {
+    const raw = localStorage.getItem(sessionNumberKey(userId));
+    if (!raw) return 1;
+    const d = JSON.parse(raw) as { date: string; n: number };
+    const today = new Date().toISOString().split("T")[0];
+    return d.date === today ? d.n : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function saveSessionNumber(userId: string, n: number) {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    localStorage.setItem(sessionNumberKey(userId), JSON.stringify({ date: today, n }));
+  } catch {
+    /* ignore */
+  }
+}
+
 const FocusTimer = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -90,6 +115,8 @@ const FocusTimer = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [stopStats, setStopStats] = useState<{ breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
+  const [sessionNumber, setSessionNumber] = useState(1);
+  const hasStoppedOnceRef = useRef(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -106,6 +133,10 @@ const FocusTimer = () => {
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (user) setSessionNumber(loadSessionNumber(user.id));
+  }, [user]);
 
   // Attempt resume from a previous page load (survives refresh/navigation).
   useEffect(() => {
@@ -227,6 +258,11 @@ const FocusTimer = () => {
     startTicking();
     startHeartbeat();
     saveState({ sessionId: id, mood, elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
+    if (hasStoppedOnceRef.current) {
+      const next = sessionNumber + 1;
+      setSessionNumber(next);
+      saveSessionNumber(user.id, next);
+    }
   };
 
   const pause = () => {
@@ -399,6 +435,7 @@ const FocusTimer = () => {
     }
     clearState();
     setStopStats({ breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
+    hasStoppedOnceRef.current = true;
     sessionIdRef.current = null;
     setSessionId(null);
     setRunning(false);
@@ -488,7 +525,9 @@ const FocusTimer = () => {
         >
           <div className="flex items-center gap-2 text-sm font-bold">
             <Icon className={cn("h-4 w-4", meta.color)} />
-            <span className={meta.color}>{meta.label} Mode</span>
+            <span className={meta.color}>
+              {meta.label} Mode{mood === "study" && sessionNumber > 1 ? ` (Session ${sessionNumber})` : ""}
+            </span>
             {running && paused && (
               <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 Paused
