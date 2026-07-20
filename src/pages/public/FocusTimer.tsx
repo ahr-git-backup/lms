@@ -83,6 +83,7 @@ const FocusTimer = () => {
   const [showLiveNow, setShowLiveNow] = useState(false);
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
+  const [pendingMood, setPendingMood] = useState<Mood | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -248,6 +249,23 @@ const FocusTimer = () => {
     }
   };
 
+  // Tapping a mood button: if Study is actively running, confirm before switching away.
+  const requestSwitchMood = (m: Mood) => {
+    if (m === moodRef.current) return;
+    if (running && moodRef.current === "study" && !pausedRef.current) {
+      setPendingMood(m);
+      return;
+    }
+    void switchMood(m);
+  };
+
+  const confirmMoodSwitch = () => {
+    if (pendingMood) void switchMood(pendingMood);
+    setPendingMood(null);
+  };
+
+  const closeMoodPopup = () => setPendingMood(null);
+
   const switchMood = async (m: Mood) => {
     if (!running) {
       setMood(m);
@@ -370,7 +388,7 @@ const FocusTimer = () => {
             return (
               <button
                 key={m}
-                onClick={() => void switchMood(m)}
+                onClick={() => requestSwitchMood(m)}
                 className={cn(
                   "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
                   active
@@ -637,6 +655,32 @@ const FocusTimer = () => {
           </div>
         </div>
       </div>
+
+      {/* Mood switch confirmation — shown when Study is running and user taps Break/Sleep */}
+      {pendingMood && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-base font-extrabold">⚠️ মোড পরিবর্তন</h3>
+            <p className="text-sm text-muted-foreground">
+              Study Timer চলছে। Break / Sleep Mode on করতে হলে আগে বন্ধ করো। এই সময়গুলো Top Focused rank এ count হয়।
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmMoodSwitch}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+              >
+                এই Mood বন্ধ করো
+              </button>
+              <button
+                onClick={closeMoodPopup}
+                className="flex-1 py-2.5 rounded-xl border font-bold text-sm hover:bg-muted"
+              >
+                বাতিল
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
