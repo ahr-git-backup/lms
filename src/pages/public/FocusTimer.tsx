@@ -97,7 +97,7 @@ function saveSessionNumber(userId: string, n: number) {
 
 const FocusTimer = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [mood, setMood] = useState<Mood>("study");
   const [running, setRunning] = useState(false);
@@ -541,45 +541,27 @@ const FocusTimer = () => {
           </div>
         )}
 
-        {/* Mood switcher */}
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-            const md = MOOD_META[m];
-            const MIcon = md.icon;
-            const active = mood === m;
-            return (
-              <button
-                key={m}
-                onClick={() => requestSwitchMood(m)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
-                  active
-                    ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
-                    : "border-border bg-card text-muted-foreground hover:border-primary/30"
-                )}
-              >
-                <MIcon className="h-5 w-5" />
-                <span className="text-xs font-bold">{md.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now */}
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
-            const md = MOOD_META[m];
-            return (
-              <button
-                key={m}
-                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
-                className="text-[10px] font-bold text-muted-foreground hover:text-foreground py-1 rounded-lg hover:bg-muted/50 transition-colors"
-              >
-                {count} জন <span className={md.color}>{md.label}</span> এ
-              </button>
-            );
-          })}
+        {/* User header — name/batch + Study Time History (matches AtlasApp position, above banner) */}
+        <div className="flex items-center justify-between rounded-2xl border bg-card px-3 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+              {(profile?.full_name || "?").charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-xs font-extrabold">{profile?.full_name || "লোড হচ্ছে..."}</span>
+              {profile?.hsc_batch && (
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full w-fit mt-0.5">
+                  {profile.hsc_batch}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => document.getElementById("focus-leaderboard")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground border rounded-lg px-2 py-1.5 hover:bg-muted"
+          >
+            <Trophy className="h-3 w-3" /> Study Time History
+          </button>
         </div>
 
         {/* Premium ATLAS Focus Timer banner */}
@@ -593,15 +575,39 @@ const FocusTimer = () => {
           </span>
         </div>
 
-        {/* Digital timer */}
+        {/* Unified box — Mood row + Digital timer + Controls together, matching AtlasApp's timer-unified-box */}
         <div
           className={cn(
-            "rounded-2xl p-6 flex flex-col items-center gap-4 border-2 shadow-sm",
+            "rounded-2xl p-4 flex flex-col items-center gap-4 border-2 shadow-sm",
             mood === "study" && "border-emerald-500/30 bg-emerald-500/5",
             mood === "break" && "border-amber-500/30 bg-amber-500/5",
             mood === "sleep" && "border-indigo-500/30 bg-indigo-500/5"
           )}
         >
+          {/* Mood switcher (top row, inside unified box) */}
+          <div className="grid grid-cols-3 gap-2 w-full">
+            {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+              const md = MOOD_META[m];
+              const MIcon = md.icon;
+              const active = mood === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => requestSwitchMood(m)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
+                    active
+                      ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  <MIcon className="h-5 w-5" />
+                  <span className="text-xs font-bold">{md.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex items-center gap-2 text-sm font-bold">
             <Icon className={cn("h-4 w-4", meta.color)} />
             <span className={meta.color}>
@@ -705,6 +711,24 @@ const FocusTimer = () => {
           </div>
         </div>
 
+        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
+            const md = MOOD_META[m];
+            return (
+              <button
+                key={m}
+                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
+                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
+              >
+                <span className={cn("text-lg font-black", md.color)}>{count}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
         {/* Live "studying now" toggle + list */}
         <div className="space-y-3">
           <button
@@ -756,7 +780,7 @@ const FocusTimer = () => {
         </div>
 
         {/* Leaderboard — per mood */}
-        <div className="space-y-3">
+        <div id="focus-leaderboard" className="space-y-3">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
             <h2 className="font-extrabold text-sm">Focus Leaderboard</h2>
