@@ -57,6 +57,36 @@ const Readymade = () => {
     }
   });
 
+  const READYMADE_STATE_KEY = "atlas_readymade_nav_state_v1";
+
+  // Restore drill-down state (subject/chapter/subchapter/search/page) on mount,
+  // so navigating away to take an exam and coming back (via result page's Back
+  // button) lands the user exactly where they left off instead of the top-level list.
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(READYMADE_STATE_KEY);
+      if (saved) {
+        const s = JSON.parse(saved);
+        if (s.selectedSubject) setSelectedSubject(s.selectedSubject);
+        if (s.selectedChapter) setSelectedChapter(s.selectedChapter);
+        if (s.selectedSubChapter) setSelectedSubChapter(s.selectedSubChapter);
+        if (s.searchQuery) { setSearchQuery(s.searchQuery); setIsSearchExpanded(true); }
+        if (typeof s.page === "number") setPage(s.page);
+        if (Array.isArray(s.selectedParentTopics)) setSelectedParentTopics(s.selectedParentTopics);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save state on every change so it's ready if the user navigates to take-exam and back.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(READYMADE_STATE_KEY, JSON.stringify({
+        selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics,
+      }));
+    } catch { /* ignore */ }
+  }, [selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics]);
+
   useEffect(() => { document.title = "Readymade – Atlas"; }, []);
 
   useEffect(() => {
