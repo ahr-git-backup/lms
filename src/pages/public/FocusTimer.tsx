@@ -84,6 +84,9 @@ const FocusTimer = () => {
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
   const [pendingMood, setPendingMood] = useState<Mood | null>(null);
+  const pauseStartRef = useRef<number | null>(null);
+  const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -227,6 +230,7 @@ const FocusTimer = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     pausedRef.current = true;
     setPaused(true);
+    pauseStartRef.current = Date.now();
     if (sessionIdRef.current != null) {
       void supabase.rpc("focus_update_session", {
         p_id: sessionIdRef.current,
@@ -239,6 +243,7 @@ const FocusTimer = () => {
   const resume = () => {
     pausedRef.current = false;
     setPaused(false);
+    pauseStartRef.current = null;
     startTicking();
     if (sessionIdRef.current != null) {
       void supabase.rpc("focus_update_session", {
@@ -248,6 +253,52 @@ const FocusTimer = () => {
       });
     }
   };
+
+  // রাত ১২টা থেকে সকাল ৮টার মধ্যে Study Mood paused অবস্থায় ১.৫ ঘণ্টা পার হলে
+  // স্বয়ংক্রিয়ভাবে Sleep Mode চালু হয়ে যায়।
+  const checkAutoSleepFromPause = async () => {
+    if (!pauseStartRef.current || moodRef.current !== "study" || !pausedRef.current) return;
+    const hr = new Date().getHours();
+    const inNightWindow = hr >= 0 && hr < 8;
+    if (!inNightWindow) return;
+    const pausedSecs = Math.floor((Date.now() - pauseStartRef.current) / 1000);
+    if (pausedSecs < 5400) return; // 1.5 hours
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "sleep" });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = pausedSecs;
+    pausedRef.current = false;
+    pauseStartRef.current = null;
+    sessionIdRef.current = id;
+    moodRef.current = "sleep";
+    setSessionId(id);
+    setMood("sleep");
+    setElapsed(pausedSecs);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: "sleep", elapsed: pausedSecs, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
+    setToast("🌙 রাতে দীর্ঘ বিরতি দেখে Sleep Mode চালু হলো");
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  useEffect(() => {
+    autoSleepCheckRef.current = setInterval(() => {
+      void checkAutoSleepFromPause();
+    }, 30000);
+    return () => {
+      if (autoSleepCheckRef.current) clearInterval(autoSleepCheckRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Tapping a mood button: if Study is actively running, confirm before switching away.
   const requestSwitchMood = (m: Mood) => {
@@ -345,6 +396,7 @@ const FocusTimer = () => {
     setElapsed(0);
     accumulatedBreakRef.current = 0;
     setBreaksUsed(0);
+    pauseStartRef.current = null;
     refetchLeaderboard();
     refetchLiveNow();
   };
@@ -679,6 +731,12 @@ const FocusTimer = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
+          {toast}
         </div>
       )}
     </div>
