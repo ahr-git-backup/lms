@@ -107,6 +107,7 @@ const FocusTimer = () => {
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
   const [showLiveNow, setShowLiveNow] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<string>("all");
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
   const [pendingMood, setPendingMood] = useState<Mood | null>(null);
@@ -742,40 +743,89 @@ const FocusTimer = () => {
             </span>
           </button>
           {showLiveNow && (
-            <div className="space-y-1.5">
-              {(!liveNow || liveNow.length === 0) && (
-                <p className="text-center text-xs text-muted-foreground py-4">
-                  এখন কেউ সেশনে নেই।
-                </p>
-              )}
-              {liveNow?.map((row: any) => {
-                const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
-                const MIcon = md.icon;
-                const t = formatHMS(row.duration_seconds);
-                const isMe = row.user_id === user?.id;
+            <>
+              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
+              {(() => {
+                const batches = Array.from(
+                  new Set((liveNow || []).map((r: any) => r.hsc_batch || "অন্যান্য"))
+                );
+                if (batches.length <= 1) return null;
                 return (
-                  <div
-                    key={row.user_id}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                      isMe && "border-primary/40 bg-primary/5"
-                    )}
-                  >
-                    <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
-                      <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                    </div>
-                    <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                      {row.full_name || "Student"}
-                      {isMe && " (তুমি)"}
-                      {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
-                    </div>
-                    <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                      {t.h}h {t.m}m
-                    </div>
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setSelectedBatch("all")}
+                      className={cn(
+                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                        selectedBatch === "all"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border text-muted-foreground"
+                      )}
+                    >
+                      সবাই ({(liveNow || []).length})
+                    </button>
+                    {batches.map((b) => {
+                      const cnt = (liveNow || []).filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      return (
+                        <button
+                          key={b as string}
+                          onClick={() => setSelectedBatch(b as string)}
+                          className={cn(
+                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                            selectedBatch === b
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border text-muted-foreground"
+                          )}
+                        >
+                          {b as string} ({cnt})
+                        </button>
+                      );
+                    })}
                   </div>
                 );
-              })}
-            </div>
+              })()}
+
+              <div className="space-y-1.5">
+                {(() => {
+                  const filtered = (liveNow || []).filter(
+                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-center text-xs text-muted-foreground py-4">
+                        এখন কেউ সেশনে নেই।
+                      </p>
+                    );
+                  }
+                  return filtered.map((row: any) => {
+                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
+                          <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                        </div>
+                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </>
           )}
         </div>
 
