@@ -409,11 +409,9 @@ const StudentProfile = () => {
             {profile && (
                 <div className="flex items-center gap-4 pb-4 mb-4 border-b border-border/50">
                     <div className="relative">
-                        <Avatar className="h-16 w-16 border-2 border-border">
-                            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || "Profile"} />
-                            <AvatarFallback className="text-lg font-semibold">
-                                {(profile.full_name || "?").trim().charAt(0).toUpperCase()}
-                            </AvatarFallback>
+                        <Avatar className="h-16 w-16 rounded-lg border-2 border-border">
+                            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || "Profile"} className="rounded-lg" />
+                            <AvatarFallback className="rounded-lg bg-muted" />
                         </Avatar>
                         <label
                             htmlFor="avatar-upload"
