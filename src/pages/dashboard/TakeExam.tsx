@@ -673,8 +673,8 @@ const TakeExam = () => {
                                   <Minus className="h-3.5 w-3.5" />
                               </button>
 
-                              <div className="relative rounded-xl p-[2px] animate-[pulse_2s_ease-in-out_infinite] bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-[length:200%_auto]">
-                                  <div className="h-11 w-16 rounded-[10px] bg-violet-500/10 dark:bg-violet-400/10 backdrop-blur-md flex items-center justify-center">
+                              <div className="rounded-xl border-2 border-violet-400 dark:border-violet-600">
+                                  <div className="h-11 w-16 rounded-[10px] flex items-center justify-center">
                                       <input
                                           type="number"
                                           min={1}
@@ -697,7 +697,7 @@ const TakeExam = () => {
                                                   setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
                                               }
                                           }}
-                                          className="w-full h-full bg-transparent text-center text-lg font-bold text-foreground focus:outline-none cursor-text select-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                          className="w-full h-full bg-transparent text-center text-lg font-bold text-foreground focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       />
                                   </div>
                               </div>
