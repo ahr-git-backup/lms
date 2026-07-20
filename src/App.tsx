@@ -89,6 +89,7 @@ import StudentProfileView from "./pages/dashboard/admin/StudentProfileView";
 import StudentCourseResults from "./pages/dashboard/admin/StudentCourseResults";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
+import ErrorBoundary from "@/components/ErrorBoundary";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -139,65 +140,65 @@ const App = () => {
           <AuthProvider>
             <NotificationProvider>
             <Routes>
-              <Route element={<PublicLayout />}>
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="/courses" element={<Courses />} />
-                <Route path="/courses/:courseId" element={<CourseDetails />} />
-                <Route path="/courses/:courseId/buy" element={<CourseBuy />} />
-                <Route path="/courses/:courseId/demo/:demoIndex" element={<DemoClassPlayerPage />} />
-                <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
-                <Route path="/free-class" element={<FreeClass />} />
-                <Route path="/free-exam" element={<FreeExam />} />
-                <Route path="/tutorial" element={<Tutorial />} />
-                <Route path="/reviews" element={<Reviews />} />
+              <Route element={<ErrorBoundary><PublicLayout /></ErrorBoundary>}>
+                <Route path="/" element={<ErrorBoundary><Index /></ErrorBoundary>} />
+                <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
+                <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
+                <Route path="/forgot-password" element={<ErrorBoundary><ForgotPassword /></ErrorBoundary>} />
+                <Route path="/reset-password" element={<ErrorBoundary><ResetPassword /></ErrorBoundary>} />
+                <Route path="/courses" element={<ErrorBoundary><Courses /></ErrorBoundary>} />
+                <Route path="/courses/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
+                <Route path="/courses/:courseId/buy" element={<ErrorBoundary><CourseBuy /></ErrorBoundary>} />
+                <Route path="/courses/:courseId/demo/:demoIndex" element={<ErrorBoundary><DemoClassPlayerPage /></ErrorBoundary>} />
+                <Route path="/open-exam/:examId" element={<ErrorBoundary><PublicExamEntry /></ErrorBoundary>} />
+                <Route path="/free-class" element={<ErrorBoundary><FreeClass /></ErrorBoundary>} />
+                <Route path="/free-exam" element={<ErrorBoundary><FreeExam /></ErrorBoundary>} />
+                <Route path="/tutorial" element={<ErrorBoundary><Tutorial /></ErrorBoundary>} />
+                <Route path="/reviews" element={<ErrorBoundary><Reviews /></ErrorBoundary>} />
               </Route>
-              <Route path="/quick-practice" element={<QuickPractice />} />
-              <Route path="/quick-practice/play" element={<QuickPracticePlay />} />
-              <Route path="/quick-practice/leaderboard" element={<QuickPracticeLeaderboard />} />
-              <Route path="/focus-timer" element={<FocusTimer />} />
-              <Route path="/atlas-ai" element={<AtlasAI />} />
-              <Route path="/pomodoro" element={<Pomodoro />} />
-              <Route path="/study-history" element={<StudyHistory />} />
-              <Route path="/syllabus-tracker" element={<SyllabusTracker />} />
+              <Route path="/quick-practice" element={<ErrorBoundary><QuickPractice /></ErrorBoundary>} />
+              <Route path="/quick-practice/play" element={<ErrorBoundary><QuickPracticePlay /></ErrorBoundary>} />
+              <Route path="/quick-practice/leaderboard" element={<ErrorBoundary><QuickPracticeLeaderboard /></ErrorBoundary>} />
+              <Route path="/focus-timer" element={<ErrorBoundary><FocusTimer /></ErrorBoundary>} />
+              <Route path="/atlas-ai" element={<ErrorBoundary><AtlasAI /></ErrorBoundary>} />
+              <Route path="/pomodoro" element={<ErrorBoundary><Pomodoro /></ErrorBoundary>} />
+              <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
+              <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-                <Route index element={<DashboardHome />} />
-                <Route path="live-class" element={<LiveClass />} />
-                <Route path="class/:classId" element={<ClassPlayerPage />} />
-                <Route path="recordings" element={<Recordings />} />
-                <Route path="live-exam" element={<LiveExam />} />
-                <Route path="take-exam/:examId" element={<TakeExam />} />
-                <Route path="take-mistakes" element={<TakeMistakeExam />} />
-                <Route path="past-exam" element={<PastExamCatalog />} />
-                <Route path="results" element={<ExamResults />} />
-                <Route path="exam-review/:attemptId" element={<ExamReview />} />
-                <Route path="leaderboard/:examId" element={<Leaderboard />} />
-                <Route path="bookmarks" element={<Bookmarks />} />
-                <Route path="my-mistakes" element={<MyMistakes />} />
-                <Route path="routine" element={<Routine />} />
-                <Route path="class-notes" element={<ClassNotes />} />
-                <Route path="class-notes/:noteId" element={<NoteDetails />} />
-                <Route path="community" element={<Community />} />
-                <Route path="announcements" element={<Announcements />} />
-                <Route path="profile" element={<StudentProfile />} />
-                <Route path="analytics" element={<ExamAnalytics />} />
-                <Route path="program" element={<Program />} />
-                <Route path="calendar" element={<ExamCalendar />} />
-                <Route path="readymade" element={<Readymade />} />
-                <Route path="archive" element={<Archive />} />
-                <Route path="my-courses" element={<MyCourses />} />
-                <Route path="extra-courses" element={<ExtraCourses />} />
-                <Route path="course/:courseId" element={<CourseView />} />
+                <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
+                <Route path="live-class" element={<ErrorBoundary><LiveClass /></ErrorBoundary>} />
+                <Route path="class/:classId" element={<ErrorBoundary><ClassPlayerPage /></ErrorBoundary>} />
+                <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
+                <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
+                <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+                <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
+                <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
+                <Route path="results" element={<ErrorBoundary><ExamResults /></ErrorBoundary>} />
+                <Route path="exam-review/:attemptId" element={<ErrorBoundary><ExamReview /></ErrorBoundary>} />
+                <Route path="leaderboard/:examId" element={<ErrorBoundary><Leaderboard /></ErrorBoundary>} />
+                <Route path="bookmarks" element={<ErrorBoundary><Bookmarks /></ErrorBoundary>} />
+                <Route path="my-mistakes" element={<ErrorBoundary><MyMistakes /></ErrorBoundary>} />
+                <Route path="routine" element={<ErrorBoundary><Routine /></ErrorBoundary>} />
+                <Route path="class-notes" element={<ErrorBoundary><ClassNotes /></ErrorBoundary>} />
+                <Route path="class-notes/:noteId" element={<ErrorBoundary><NoteDetails /></ErrorBoundary>} />
+                <Route path="community" element={<ErrorBoundary><Community /></ErrorBoundary>} />
+                <Route path="announcements" element={<ErrorBoundary><Announcements /></ErrorBoundary>} />
+                <Route path="profile" element={<ErrorBoundary><StudentProfile /></ErrorBoundary>} />
+                <Route path="analytics" element={<ErrorBoundary><ExamAnalytics /></ErrorBoundary>} />
+                <Route path="program" element={<ErrorBoundary><Program /></ErrorBoundary>} />
+                <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
+                <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
+                <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
+                <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />
+                <Route path="course/:courseId" element={<ErrorBoundary><CourseView /></ErrorBoundary>} />
 
 
               </Route>
 
               <Route path="/admin" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminLayout /></ProtectedRoute>}>
-                <Route index element={<AdminDashboardHome />} />
+                <Route index element={<ErrorBoundary><AdminDashboardHome /></ErrorBoundary>} />
                 <Route path="courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
                 <Route path="students" element={<ProtectedRoute requireAdmin><AdminStudents /></ProtectedRoute>} />
                 <Route path="classes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminClasses /></ProtectedRoute>} />
@@ -227,7 +228,7 @@ const App = () => {
               </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
             </Routes>
             </NotificationProvider>
           </AuthProvider>
