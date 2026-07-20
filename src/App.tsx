@@ -149,15 +149,15 @@ const App = () => {
                 <Route path="/open-exam/:examId" element={<PublicExamEntry />} />
                 <Route path="/free-class" element={<FreeClass />} />
                 <Route path="/free-exam" element={<FreeExam />} />
-                <Route path="/quick-practice" element={<QuickPractice />} />
-                <Route path="/quick-practice/play" element={<QuickPracticePlay />} />
-                <Route path="/quick-practice/leaderboard" element={<QuickPracticeLeaderboard />} />
-                <Route path="/focus-timer" element={<FocusTimer />} />
-                <Route path="/atlas-ai" element={<AtlasAI />} />
-                <Route path="/pomodoro" element={<Pomodoro />} />
                 <Route path="/tutorial" element={<Tutorial />} />
                 <Route path="/reviews" element={<Reviews />} />
               </Route>
+              <Route path="/quick-practice" element={<QuickPractice />} />
+              <Route path="/quick-practice/play" element={<QuickPracticePlay />} />
+              <Route path="/quick-practice/leaderboard" element={<QuickPracticeLeaderboard />} />
+              <Route path="/focus-timer" element={<FocusTimer />} />
+              <Route path="/atlas-ai" element={<AtlasAI />} />
+              <Route path="/pomodoro" element={<Pomodoro />} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<DashboardHome />} />
