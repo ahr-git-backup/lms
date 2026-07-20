@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpen,
+  CheckCircle2,
   Coffee,
   Moon,
   Pause,
@@ -87,6 +88,8 @@ const FocusTimer = () => {
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [stopStats, setStopStats] = useState<{ breaks: number; sleepSeconds: number } | null>(null);
+  const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -334,6 +337,9 @@ const FocusTimer = () => {
     if (moodRef.current === "break") {
       accumulatedBreakRef.current += elapsedRef.current;
     }
+    if (moodRef.current === "sleep") {
+      sleepSecsRef.current += elapsedRef.current;
+    }
     if (m === "break" && moodRef.current !== "break") {
       setBreaksUsed((n) => n + 1);
     }
@@ -388,13 +394,18 @@ const FocusTimer = () => {
         p_duration_seconds: elapsedRef.current,
       });
     }
+    if (moodRef.current === "sleep") {
+      sleepSecsRef.current += elapsedRef.current;
+    }
     clearState();
+    setStopStats({ breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
     sessionIdRef.current = null;
     setSessionId(null);
     setRunning(false);
     setPaused(false);
     setElapsed(0);
     accumulatedBreakRef.current = 0;
+    sleepSecsRef.current = 0;
     setBreaksUsed(0);
     pauseStartRef.current = null;
     refetchLeaderboard();
@@ -737,6 +748,38 @@ const FocusTimer = () => {
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
           {toast}
+        </div>
+      )}
+
+      {/* Session summary — shown after Stop */}
+      {stopStats && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+            <h3 className="text-base font-extrabold">সেশন শেষ হয়েছে 🎉</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-muted/50 py-3">
+                <div className="text-xl font-black">{stopStats.breaks}</div>
+                <div className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                  <Coffee className="h-3 w-3" /> বিরতি
+                </div>
+              </div>
+              <div className="rounded-xl bg-muted/50 py-3">
+                <div className="text-xl font-black">
+                  {formatHMS(stopStats.sleepSeconds).h}:{formatHMS(stopStats.sleepSeconds).m}
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                  <Moon className="h-3 w-3" /> ঘুম
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setStopStats(null)}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              ঠিক আছে
+            </button>
+          </div>
         </div>
       )}
     </div>
