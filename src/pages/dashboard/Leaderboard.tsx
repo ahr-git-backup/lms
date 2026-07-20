@@ -25,37 +25,37 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
         if (!student) return <div className="w-24 sm:w-32 hidden md:block"></div>;
 
         return (
-            <div className={`flex flex-col items-center justify-end mx-1 sm:mx-2 md:mx-4`} style={{ zIndex }}>
-                <div className="relative mb-3 flex flex-col items-center group">
+            <div className={`flex flex-col items-center justify-end mx-0.5 sm:mx-1.5 md:mx-2`} style={{ zIndex }}>
+                <div className="relative mb-1.5 flex flex-col items-center group">
                     {/* Crown for 1st place */}
                     {CrownIcon && (
-                         <div className="absolute -top-7 text-yellow-400 drop-shadow-md z-20 animate-bounce">
-                             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.956-.734L2.02 6.02a.5.5 0 0 1 .798-.518l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
+                         <div className="absolute -top-5 text-yellow-400 drop-shadow-md z-20 animate-bounce">
+                             <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-crown"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.956-.734L2.02 6.02a.5.5 0 0 1 .798-.518l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
                          </div>
                     )}
                     
                     {/* Avatar with glowing ring */}
-                    <div className={`relative p-1 rounded-xl bg-gradient-to-br ${color} shadow-lg transition-transform duration-300 group-hover:scale-110`}>
-                        <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg border-4 border-background bg-background shadow-inner">
-                            <AvatarImage src={student.profile?.avatar_url} className="rounded-lg" />
-                            <AvatarFallback className="rounded-lg text-xl font-bold bg-muted text-foreground">
+                    <div className={`relative p-0.5 rounded-lg bg-gradient-to-br ${color} shadow-md transition-transform duration-300 group-hover:scale-110`}>
+                        <Avatar className="w-11 h-11 sm:w-14 sm:h-14 lg:w-16 lg:h-16 rounded-md border-2 border-background bg-background shadow-inner">
+                            <AvatarImage src={student.profile?.avatar_url} className="rounded-md" />
+                            <AvatarFallback className="rounded-md text-sm font-bold bg-muted text-foreground">
                                 {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
                             </AvatarFallback>
                         </Avatar>
                         
                         {/* Score badge overlapping the avatar */}
-                        <div className={`absolute -bottom-3 left-1/2 transform -translate-x-1/2 px-3 py-0.5 rounded-full text-xs font-bold text-white shadow-md whitespace-nowrap bg-gradient-to-r ${color}`}>
+                        <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-md whitespace-nowrap bg-gradient-to-r ${color}`}>
                             {student.score} marks
                         </div>
                     </div>
                 </div>
 
-                <div className="text-center mb-3 max-w-[110px] sm:max-w-[150px]">
-                    <div className="font-bold text-sm sm:text-base text-foreground leading-tight break-words drop-shadow-sm" title={student.profile?.full_name}>
+                <div className="text-center mb-1.5 max-w-[90px] sm:max-w-[120px]">
+                    <div className="font-bold text-xs sm:text-sm text-foreground leading-tight break-words drop-shadow-sm" title={student.profile?.full_name}>
                         {student.profile?.full_name || "Unknown"}
                     </div>
                     {isStaff && student.time_taken_seconds && (
-                         <div className="text-[10px] text-muted-foreground font-mono">
+                         <div className="text-[9px] text-muted-foreground font-mono">
                              {Math.floor(student.time_taken_seconds / 60)}m {student.time_taken_seconds % 60}s
                          </div>
                     )}
@@ -63,27 +63,27 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
 
                 {/* The 3D Podium Block */}
                 <div 
-                    className={`w-24 sm:w-32 lg:w-40 rounded-t-lg relative flex items-start justify-center pt-4 sm:pt-6 transition-all duration-500 hover:brightness-110 overflow-hidden text-white shadow-[0_-5px_25px_-5px_rgba(0,0,0,0.1)] bg-gradient-to-b ${color}`} 
+                    className={`w-16 sm:w-20 lg:w-24 rounded-t-lg relative flex items-start justify-center pt-2 sm:pt-3 transition-all duration-500 hover:brightness-110 overflow-hidden text-white shadow-[0_-5px_25px_-5px_rgba(0,0,0,0.1)] bg-gradient-to-b ${color}`} 
                     style={{ height, boxShadow: `0 -5px 25px -5px ${glowColor}` }}
                 >
                     {/* Glossy overlay effect */}
                     <div className="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent pointer-events-none"></div>
-                    <span className="font-black text-4xl sm:text-5xl lg:text-7xl drop-shadow-md z-10 opacity-90">{rank}</span>
+                    <span className="font-black text-xl sm:text-2xl lg:text-4xl drop-shadow-md z-10 opacity-90">{rank}</span>
                 </div>
             </div>
         );
     };
 
     return (
-        <div className="relative flex justify-center items-end pt-8 pb-2 px-4 mb-1 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-900/50 rounded-2xl mx-auto overflow-hidden">
+        <div className="relative flex justify-center items-end pt-6 pb-1 px-2 mb-1 bg-gradient-to-t from-slate-100/50 to-transparent dark:from-slate-900/50 rounded-xl mx-auto overflow-hidden">
             {/* Background decorations */}
-            <div className="absolute top-10 left-10 text-yellow-300 opacity-50"><Star size={24} fill="currentColor" /></div>
-            <div className="absolute top-20 right-12 text-blue-300 opacity-40"><Star size={16} fill="currentColor" /></div>
-            <div className="absolute top-5 right-1/4 text-pink-300 opacity-60"><Star size={20} fill="currentColor" /></div>
+            <div className="absolute top-6 left-8 text-yellow-300 opacity-50"><Star size={16} fill="currentColor" /></div>
+            <div className="absolute top-10 right-10 text-blue-300 opacity-40"><Star size={12} fill="currentColor" /></div>
+            <div className="absolute top-3 right-1/4 text-pink-300 opacity-60"><Star size={14} fill="currentColor" /></div>
             
-            <PodiumItem student={second} rank={2} color="from-slate-400 to-slate-500" glowColor="rgba(148, 163, 184, 0.5)" height="120px" zIndex={20} />
-            <PodiumItem student={first} rank={1} color="from-yellow-400 to-amber-500" glowColor="rgba(250, 204, 21, 0.6)" height="160px" zIndex={30} CrownIcon={true} />
-            <PodiumItem student={third} rank={3} color="from-orange-400 to-orange-600" glowColor="rgba(249, 115, 22, 0.5)" height="90px" zIndex={10} />
+            <PodiumItem student={second} rank={2} color="from-slate-400 to-slate-500" glowColor="rgba(148, 163, 184, 0.5)" height="70px" zIndex={20} />
+            <PodiumItem student={first} rank={1} color="from-yellow-400 to-amber-500" glowColor="rgba(250, 204, 21, 0.6)" height="95px" zIndex={30} CrownIcon={true} />
+            <PodiumItem student={third} rank={3} color="from-orange-400 to-orange-600" glowColor="rgba(249, 115, 22, 0.5)" height="55px" zIndex={10} />
         </div>
     );
 };
@@ -805,7 +805,7 @@ const Leaderboard = () => {
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
-                                <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
+                                <span className="truncate max-w-[140px]">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
