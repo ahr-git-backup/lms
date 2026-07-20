@@ -120,6 +120,7 @@ const FocusTimer = () => {
   const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
   const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
   const [overlayDays, setOverlayDays] = useState(1);
+  const [showIntro, setShowIntro] = useState(false);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -131,6 +132,11 @@ const FocusTimer = () => {
 
   useEffect(() => {
     document.title = "Focus Timer — Atlas";
+    try {
+      if (!localStorage.getItem("atlas_focus_intro_seen")) setShowIntro(true);
+    } catch {
+      /* ignore */
+    }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
@@ -466,6 +472,15 @@ const FocusTimer = () => {
     refetchLiveNow();
   };
 
+  const dismissIntro = () => {
+    setShowIntro(false);
+    try {
+      localStorage.setItem("atlas_focus_intro_seen", "1");
+    } catch {
+      /* ignore */
+    }
+  };
+
   const { h, m: min, s } = formatHMS(elapsed);
   const meta = MOOD_META[mood];
   const Icon = meta.icon;
@@ -490,6 +505,36 @@ const FocusTimer = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-6">
+        {showIntro && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm">কীভাবে কাজ করে</h3>
+              <button onClick={dismissIntro} className="text-xs font-bold text-muted-foreground hover:text-foreground">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">১</span>
+                <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mode timer শুরু হবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">২</span>
+                <span>ক্লান্ত হলে Break মোডে চাপো — Study pause হয়ে Break timer শুরু হবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৩</span>
+                <span>রাতে Study paused থাকলে ১.৫ ঘণ্টা পর নিজে থেকেই Sleep Mode চালু হয়ে যাবে</span>
+              </div>
+            </div>
+            <button
+              onClick={dismissIntro}
+              className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
+            >
+              বুঝেছি, শুরু করি
+            </button>
+          </div>
+        )}
         {!user && (
           <div className="text-center text-sm text-muted-foreground bg-muted/40 rounded-xl p-4">
             টাইমার সেভ করতে লগইন করুন।
