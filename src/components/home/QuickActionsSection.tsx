@@ -26,7 +26,7 @@ export const QuickActionsSection = () => {
         onClick={() => scrollToId("courses")}
         className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
       >
-        <LayoutGrid className="mr-2 h-4 w-4" /> All Courses
+        <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
       </Button>
 
       {/* Row 2: Free Class / Free Exam */}
@@ -35,14 +35,14 @@ export const QuickActionsSection = () => {
           onClick={() => navigate("/free-class")}
           className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
         >
-          <Video className="h-4 w-4 text-primary" />
+          <Video className="h-4 w-4 text-primary animate-icon-float" />
           <span className="text-xs font-semibold">Free Class</span>
         </button>
         <button
           onClick={() => navigate("/free-exam")}
           className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
         >
-          <FileQuestion className="h-4 w-4 text-primary" />
+          <FileQuestion className="h-4 w-4 text-primary animate-icon-float" style={{ animationDelay: "0.3s" }} />
           <span className="text-xs font-semibold">Free Exam</span>
         </button>
       </div>
@@ -54,7 +54,7 @@ export const QuickActionsSection = () => {
           className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
-            <Zap className="h-4 w-4 text-white" />
+            <Zap className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.6s" }} />
           </div>
           <span className="text-xs font-bold">Quick Practice</span>
         </button>
@@ -63,7 +63,7 @@ export const QuickActionsSection = () => {
           className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-md transition-all"
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
-            <Timer className="h-4 w-4 text-white" />
+            <Timer className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.9s" }} />
           </div>
           <span className="text-xs font-bold">Focus Timer</span>
         </button>
@@ -76,7 +76,7 @@ export const QuickActionsSection = () => {
           className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/50 hover:shadow-md transition-all"
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
-            <Sparkles className="h-4 w-4 text-white" />
+            <Sparkles className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.5s" }} />
           </div>
           <span className="text-xs font-bold">ATLAS AI</span>
         </button>
@@ -85,7 +85,7 @@ export const QuickActionsSection = () => {
           className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
-            <Clock className="h-4 w-4 text-white" />
+            <Clock className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.8s" }} />
           </div>
           <span className="text-xs font-bold">Pomodoro Timer</span>
         </button>
@@ -96,7 +96,7 @@ export const QuickActionsSection = () => {
         onClick={() => navigate("/syllabus-tracker")}
         className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
       >
-        <BarChart3 className="mr-2 h-4 w-4" /> Syllabus Tracker
+        <BarChart3 className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.2s" }} /> Syllabus Tracker
       </Button>
     </section>
   );
