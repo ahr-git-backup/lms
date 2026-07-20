@@ -84,9 +84,16 @@ const QuickPracticePlay = () => {
       navigate("/quick-practice");
       return;
     }
-    const mode = JSON.parse(modeRaw) as
-      | { type: "random" }
-      | { type: "selected"; chapterIds: number[] };
+    let mode: { type: "random" } | { type: "selected"; chapterIds: number[] };
+    try {
+      mode = JSON.parse(modeRaw) as
+        | { type: "random" }
+        | { type: "selected"; chapterIds: number[] };
+    } catch {
+      sessionStorage.removeItem("qp_practice_mode");
+      navigate("/quick-practice");
+      return;
+    }
 
     // resume saved progress within this tab session
     const savedRaw = sessionStorage.getItem("qp_practice_state");
@@ -167,7 +174,12 @@ const QuickPracticePlay = () => {
 
   const getMode = () => {
     const raw = sessionStorage.getItem("qp_practice_mode");
-    return raw ? JSON.parse(raw) : { type: "random" };
+    if (!raw) return { type: "random" };
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return { type: "random" };
+    }
   };
 
   const selectOption = (idx: number) => {

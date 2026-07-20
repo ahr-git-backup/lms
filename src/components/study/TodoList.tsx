@@ -22,7 +22,11 @@ const TodoList = () => {
   useEffect(() => {
     const saved = localStorage.getItem("study_todos");
     if (saved) {
-      setTodos(JSON.parse(saved));
+      try {
+        setTodos(JSON.parse(saved));
+      } catch {
+        localStorage.removeItem("study_todos");
+      }
     }
   }, []);
 

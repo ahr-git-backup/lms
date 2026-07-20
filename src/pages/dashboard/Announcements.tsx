@@ -39,7 +39,11 @@ const Announcements = () => {
     // Load read announcements from local storage
     const read = localStorage.getItem("read_announcements_ids");
     if (read) {
-        setReadAnnouncements(JSON.parse(read));
+        try {
+            setReadAnnouncements(JSON.parse(read));
+        } catch {
+            localStorage.removeItem("read_announcements_ids");
+        }
     }
 
     // Mark user notifications as read in DB
