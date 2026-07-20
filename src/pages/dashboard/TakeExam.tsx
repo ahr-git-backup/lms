@@ -673,12 +673,13 @@ const TakeExam = () => {
                                   <Minus className="h-3.5 w-3.5" />
                               </button>
 
-                              <div className="relative rounded-xl p-[2px]">
-                                  <div className="h-11 w-16 rounded-[10px] bg-background border-2 border-violet-400 dark:border-violet-600 flex items-center justify-center">
+                              <div className="relative rounded-xl p-[2px] animate-[pulse_2s_ease-in-out_infinite] bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-[length:200%_auto]">
+                                  <div className="h-11 w-16 rounded-[10px] bg-background flex items-center justify-center">
                                       <input
                                           type="number"
                                           min={1}
                                           max={questions?.length || 1}
+                                          placeholder="সব"
                                           value={selectedQuestionCount ?? ""}
                                           onCopy={(e) => e.preventDefault()}
                                           onCut={(e) => e.preventDefault()}
@@ -852,7 +853,7 @@ const TakeExam = () => {
         <div className="flex items-center justify-between">
              <div>
                 <h1 className="text-2xl font-bold">{exam.title} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
-                <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {questions.length}</p>
+                <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {displayQuestions.length}</p>
              </div>
         </div>
 

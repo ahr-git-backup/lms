@@ -317,6 +317,9 @@ const ExamReview = () => {
   const deduction = Math.max(0, rawScore - finalScore);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const filteredQuestions = questions?.filter((q: any) => {
       if (filter === "all") return true;
       if (filter === "correct") return q.is_correct_answer;
@@ -574,7 +577,7 @@ const ExamReview = () => {
                                             isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
                                             "bg-muted text-muted-foreground"
                                         )}>
-                                            {q.question_index}
+                                            {questionPositionMap.get(q.id) ?? q.question_index}
                                         </div>
                                         <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
                                             <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
