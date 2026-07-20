@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, ChangeEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -13,10 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle, 
   Fingerprint, Loader2, Copy, CreditCard, AlertTriangle, ExternalLink, 
-  Calendar, User, Mail, Hash, Phone, School, GraduationCap, Users, Binary, Info
+  Calendar, User, Mail, Hash, Phone, School, GraduationCap, Users, Binary, Info, Camera
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -57,7 +58,7 @@ const ProfileDetailItem = ({ label, value }: { label: string, value: string | nu
 );
 
 const StudentProfile = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const { toast } = useToast();
   const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -68,6 +69,54 @@ const StudentProfile = () => {
   const [newEmail, setNewEmail] = useState("");
   const [updatingEmail, setUpdatingEmail] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Basic validation: only images, max 5MB
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image under 5MB.", variant: "destructive" });
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const filePath = `${user.id}/avatar.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true, cacheControl: "3600" });
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      // Cache-bust so the new image shows immediately even though the path is the same
+      const bustedUrl = `${publicUrlData.publicUrl}?t=${Date.now()}`;
+
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({ avatar_url: bustedUrl })
+        .eq("id", user.id);
+
+      if (updateError) throw updateError;
+
+      await refreshProfile();
+      toast({ title: "Photo updated", description: "Your profile photo has been saved." });
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      toast({ title: "Upload failed", description: "Could not upload your photo. Please try again.", variant: "destructive" });
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
+  };
 
   // OMR Credentials
   const [omrRollNo, setOmrRollNo] = useState<string | null>(
@@ -357,6 +406,40 @@ const StudentProfile = () => {
                 )}
             </CardHeader>
             <CardContent>
+            {profile && (
+                <div className="flex items-center gap-4 pb-4 mb-4 border-b border-border/50">
+                    <div className="relative">
+                        <Avatar className="h-16 w-16 border-2 border-border">
+                            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || "Profile"} />
+                            <AvatarFallback className="text-lg font-semibold">
+                                {(profile.full_name || "?").trim().charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                        </Avatar>
+                        <label
+                            htmlFor="avatar-upload"
+                            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm"
+                        >
+                            {uploadingAvatar ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                                <Camera className="h-3.5 w-3.5" />
+                            )}
+                        </label>
+                        <input
+                            id="avatar-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleAvatarUpload}
+                            disabled={uploadingAvatar}
+                        />
+                    </div>
+                    <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate">{profile.full_name || "Student"}</p>
+                        <p className="text-xs text-muted-foreground">Tap the camera icon to update your profile photo.</p>
+                    </div>
+                </div>
+            )}
             {profile ? (
                 isEditing ? (
                     <form className="space-y-4" onSubmit={form.handleSubmit((v) => { onSubmit(v); setIsEditing(false); })}>

@@ -22,6 +22,7 @@ interface Profile {
   ssc_gpa?: number | null;
   hsc_gpa?: number | null;
   is_second_timer?: boolean;
+  avatar_url?: string | null;
 }
 
 interface AuthContextType {
@@ -34,6 +35,7 @@ interface AuthContextType {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signIn: (identifier: string, password: string, captchaToken?: string) => Promise<{ error: any }>;
   signOut: (forced?: boolean) => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -345,8 +347,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // ----------------------------------
 
+  const refreshProfile = useCallback(async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  }, [user?.id]);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, isAdmin, isTeacher, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, isAdmin, isTeacher, loading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

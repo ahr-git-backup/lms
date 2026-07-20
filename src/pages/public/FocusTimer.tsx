@@ -18,6 +18,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Mood = "study" | "break" | "sleep";
 
@@ -832,9 +833,12 @@ const FocusTimer = () => {
                           isMe && "border-primary/40 bg-primary/5"
                         )}
                       >
-                        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
-                          <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                        </div>
+                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
+                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
+                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
+                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                          </AvatarFallback>
+                        </Avatar>
                         <div className="flex-1 min-w-0 text-xs font-bold truncate">
                           {row.full_name || "Student"}
                           {isMe && " (তুমি)"}
