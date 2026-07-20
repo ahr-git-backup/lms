@@ -668,13 +668,12 @@ const TakeExam = () => {
                                   <Minus className="h-3.5 w-3.5" />
                               </button>
 
-                              <div className="relative rounded-xl p-[2px] animate-[pulse_2.5s_ease-in-out_infinite]" style={{ boxShadow: "0 0 10px rgba(168,85,247,0.45)" }}>
+                              <div className="relative rounded-xl p-[2px]">
                                   <div className="h-11 w-16 rounded-[10px] bg-background border-2 border-violet-400 dark:border-violet-600 flex items-center justify-center">
                                       <input
                                           type="number"
                                           min={1}
                                           max={questions?.length || 1}
-                                          placeholder={`${questions?.length || 0}`}
                                           value={selectedQuestionCount ?? ""}
                                           onCopy={(e) => e.preventDefault()}
                                           onCut={(e) => e.preventDefault()}
