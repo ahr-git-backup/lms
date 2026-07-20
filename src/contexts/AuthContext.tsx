@@ -270,11 +270,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     if (remoteProfile.current_session_id && remoteProfile.current_session_id !== localSessionId) {
+        // Admins and teachers are exempt from single-session enforcement
+        // (they may need to be logged in on multiple devices/browsers simultaneously)
+        if (isAdmin || isTeacher) return;
+
         // Mismatch!
         console.warn("Session mismatch detected. Logging out.");
         await signOut(true); // pass true to indicate forced logout
     }
-  }, [user, session, signOut]);
+  }, [user, session, signOut, isAdmin, isTeacher]);
 
   useEffect(() => {
       if (user) {
