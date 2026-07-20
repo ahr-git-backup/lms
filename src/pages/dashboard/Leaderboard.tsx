@@ -7,7 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, BadgeAlert, Download, FileText, Star } from "lucide-react";
+import { ArrowLeft, Trophy, BadgeAlert, Download, FileText, Star, Scale, CheckCircle2, XCircle, MinusCircle, Clock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -92,6 +95,8 @@ const Leaderboard = () => {
   const isStaff = isAdmin || isTeacher;
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState<'live' | 'practice'>('live');
+  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Leaderboard – Atlas";
@@ -170,6 +175,57 @@ const Leaderboard = () => {
     enabled: !!exam,
   });
 
+  const { data: compareData, isLoading: compareLoading } = useQuery({
+    queryKey: ["leaderboard-compare", compareIds],
+    queryFn: async () => {
+      const { data: attempts, error: aError } = await (supabase as any)
+        .from("exam_attempts")
+        .select("*")
+        .in("id", compareIds);
+      if (aError) throw aError;
+
+      const { data: questions, error: qError } = await (supabase as any)
+        .from("exam_questions")
+        .select("id, correct_option, marks")
+        .eq("exam_id", examId);
+      if (qError) throw qError;
+
+      const questionsMap = new Map((questions || []).map((q: any) => [q.id, q]));
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const stats = (attempts || []).map((att: any) => {
+        let correct = 0, wrong = 0, skipped = 0;
+        const answeredIds = new Set((att.answers || []).map((a: any) => a.question_id));
+
+        (att.answers || []).forEach((ans: any) => {
+          const q = questionsMap.get(ans.question_id);
+          if (!q) return;
+          if (!ans.selected_option) skipped++;
+          else if (ans.selected_option === q.correct_option) correct++;
+          else wrong++;
+        });
+
+        const totalQ = questions?.length || 0;
+        const unanswered = Math.max(0, totalQ - answeredIds.size);
+
+        return {
+          attemptId: att.id,
+          profileId: att.profile_id,
+          score: att.score,
+          time_taken_seconds: att.time_taken_seconds,
+          violation_count: att.violation_count || 0,
+          correct,
+          wrong,
+          skipped: skipped + unanswered,
+          totalQ,
+        };
+      });
+
+      return stats;
+    },
+    enabled: compareOpen && compareIds.length === 2,
+  });
+
   // Automatically switch to practice view if exam is practice type
   useEffect(() => {
     if (exam?.exam_type === 'practice') {
@@ -182,6 +238,78 @@ const Leaderboard = () => {
 
   // Top 3 for Podium
   const topThree = leaderboard.slice(0, 3);
+
+  const toggleCompare = (attemptId: string) => {
+    setCompareIds(prev => {
+      if (prev.includes(attemptId)) return prev.filter(id => id !== attemptId);
+      if (prev.length >= 2) return [prev[1], attemptId];
+      return [...prev, attemptId];
+    });
+  };
+
+  const getAttemptDisplay = (attemptId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return leaderboard.find((a: any) => a.id === attemptId);
+  };
+
+  const formatDurationShort = (seconds: number) => {
+    if (!seconds) return "-";
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}m ${s}s`;
+  };
+
+  const buildVerdict = () => {
+    if (!compareData || compareData.length < 2) return "";
+    const [a, b] = compareData;
+    const nameA = getAttemptDisplay(a.attemptId)?.profile?.full_name || "Student A";
+    const nameB = getAttemptDisplay(b.attemptId)?.profile?.full_name || "Student B";
+
+    const points: string[] = [];
+
+    if (a.score !== b.score) {
+      const leader = a.score > b.score ? nameA : nameB;
+      const diff = Math.abs(a.score - b.score);
+      points.push(`${leader} score-e ${diff} point egiye ache.`);
+    } else {
+      points.push("Duijoner score shomoni.");
+    }
+
+    if (a.correct !== b.correct) {
+      const leader = a.correct > b.correct ? nameA : nameB;
+      points.push(`${leader}-er right answer beshi (${Math.max(a.correct, b.correct)} vs ${Math.min(a.correct, b.correct)}).`);
+    }
+
+    if (a.wrong !== b.wrong) {
+      const worse = a.wrong > b.wrong ? nameA : nameB;
+      points.push(`${worse}-er wrong answer beshi, accuracy improve korte hobe.`);
+    }
+
+    if (a.skipped !== b.skipped) {
+      const more = a.skipped > b.skipped ? nameA : nameB;
+      points.push(`${more} beshi question skip korese — shomoy management dekha dorkar.`);
+    }
+
+    if (a.time_taken_seconds && b.time_taken_seconds && a.time_taken_seconds !== b.time_taken_seconds) {
+      const faster = a.time_taken_seconds < b.time_taken_seconds ? nameA : nameB;
+      points.push(`${faster} kom shomoy niyeche exam complete korte.`);
+    }
+
+    if (a.violation_count !== b.violation_count) {
+      const more = a.violation_count > b.violation_count ? nameA : nameB;
+      points.push(`${more}-er warning/violation beshi, exam discipline e monojog dorkar.`);
+    }
+
+    // Overall suggestion
+    const scoreLeader = a.score >= b.score ? a : b;
+    const scoreLeaderName = scoreLeader === a ? nameA : nameB;
+    const scoreLoserName = scoreLeader === a ? nameB : nameA;
+    if (a.score !== b.score) {
+      points.push(`Poramorsho: ${scoreLoserName}-ke ${scoreLeaderName}-er moto beshi practice question shesh kora r taratari na kore shothik answer bhebe deoya niye kaj korte hobe.`);
+    }
+
+    return points.join(" ");
+  };
 
   const handleExportCSV = async () => {
       try {
@@ -620,10 +748,87 @@ const Leaderboard = () => {
             {/* Podium Component */}
             {topThree.length > 0 && <Podium topThree={topThree} isStaff={isStaff} />}
 
-            <div className="rounded-md border bg-card overflow-x-auto no-scrollbar scroll-smooth">
+            {compareIds.length > 0 && (
+                <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 mb-2">
+                    <span className="text-xs text-muted-foreground">
+                        {compareIds.length}/2 selected {compareIds.length === 1 ? "— aro 1 jon select koro" : ""}
+                    </span>
+                    <div className="flex gap-2">
+                        {compareIds.length === 2 && (
+                            <Button size="sm" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
+                                <Scale className="h-3.5 w-3.5 mr-1" /> তুলনা করো
+                            </Button>
+                        )}
+                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareIds([])}>
+                            Clear
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Mobile: card list (no horizontal scroll) */}
+            <div className="md:hidden space-y-2">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {leaderboard.map((attempt: any, index: number) => {
+                const globalIndex = index;
+                let rankIcon = null;
+                let cardClass = "bg-card";
+                if (globalIndex === 0) { rankIcon = "🥇"; cardClass = "bg-yellow-100/50 dark:bg-yellow-900/20"; }
+                else if (globalIndex === 1) { rankIcon = "🥈"; cardClass = "bg-slate-100/50 dark:bg-slate-800/20"; }
+                else if (globalIndex === 2) { rankIcon = "🥉"; cardClass = "bg-orange-100/50 dark:bg-orange-900/20"; }
+
+                const isSecondTimer = attempt.profile?.is_second_timer;
+                const isSelected = compareIds.includes(attempt.id);
+
+                return (
+                  <div key={attempt.id} className={`relative rounded-lg border p-3 ${cardClass}`}>
+                    <div className="absolute top-2 right-2">
+                        <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={() => toggleCompare(attempt.id)}
+                            aria-label="Compare select"
+                        />
+                    </div>
+                    <div className="flex items-center gap-2.5 pr-8">
+                        <div className="font-bold whitespace-nowrap">
+                            {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
+                        </div>
+                        <Avatar className="h-9 w-9 rounded-md shrink-0 border border-border">
+                            <AvatarImage src={attempt.profile?.avatar_url} className="rounded-md" />
+                            <AvatarFallback className="rounded-md bg-muted" />
+                        </Avatar>
+                        <div className="flex flex-col min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-medium text-sm truncate">{attempt.profile?.full_name || "Unknown"}</span>
+                                {isSecondTimer && (
+                                    <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
+                                )}
+                            </div>
+                            <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
+                                <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
+                                {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
+                            </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                            <div className="font-bold text-primary text-sm">{attempt.score}</div>
+                            {isStaff && (
+                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 mt-1" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                    Review
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden md:block rounded-md border bg-card overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-[40px]"></TableHead>
                     <TableHead className="w-[60px] md:w-[80px] whitespace-nowrap">Rank</TableHead>
                     <TableHead className="whitespace-nowrap">Student</TableHead>
                     <TableHead className="whitespace-nowrap hidden md:table-cell">Reg ID</TableHead>
@@ -669,9 +874,17 @@ const Leaderboard = () => {
                     ) : null;
 
                     const isSecondTimer = attempt.profile?.is_second_timer;
+                    const isSelected = compareIds.includes(attempt.id);
 
                     return (
                         <TableRow key={attempt.id} className={rowClass}>
+                            <TableCell className="w-[40px]">
+                                <Checkbox
+                                    checked={isSelected}
+                                    onCheckedChange={() => toggleCompare(attempt.id)}
+                                    aria-label="Compare select"
+                                />
+                            </TableCell>
                             <TableCell className="font-bold whitespace-nowrap">
                                 {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
@@ -755,6 +968,81 @@ const Leaderboard = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Compare Dialog */}
+      <Dialog open={compareOpen} onOpenChange={setCompareOpen}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5 text-primary" /> Detail Comparison
+            </DialogTitle>
+          </DialogHeader>
+
+          {compareLoading ? (
+            <div className="text-sm text-muted-foreground py-6 text-center">Loading comparison...</div>
+          ) : compareData && compareData.length === 2 ? (
+            <div className="space-y-4">
+              {/* Header with names */}
+              <div className="grid grid-cols-2 gap-3">
+                {compareData.map((c) => {
+                  const d = getAttemptDisplay(c.attemptId);
+                  return (
+                    <div key={c.attemptId} className="flex flex-col items-center text-center gap-1.5 p-3 rounded-lg border bg-muted/30">
+                      <Avatar className="h-12 w-12 rounded-md border">
+                        <AvatarImage src={d?.profile?.avatar_url} className="rounded-md" />
+                        <AvatarFallback className="rounded-md bg-muted">{(d?.profile?.full_name || "??").slice(0,2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <span className="font-semibold text-sm leading-tight break-words">{d?.profile?.full_name || "Unknown"}</span>
+                      <Badge variant="secondary" className="text-xs">Score: {c.score}</Badge>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Comparison table */}
+              <div className="rounded-md border overflow-hidden">
+                <table className="w-full text-sm">
+                  <tbody>
+                    {[
+                      { label: "Right", icon: <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />, key: "correct" },
+                      { label: "Wrong", icon: <XCircle className="h-3.5 w-3.5 text-red-600" />, key: "wrong" },
+                      { label: "Skipped", icon: <MinusCircle className="h-3.5 w-3.5 text-slate-500" />, key: "skipped" },
+                      { label: "Time Taken", icon: <Clock className="h-3.5 w-3.5 text-blue-600" />, key: "time_taken_seconds" },
+                    ].map((row) => {
+                      const [a, b] = compareData;
+                      const valA = row.key === "time_taken_seconds" ? formatDurationShort(a.time_taken_seconds) : a[row.key as keyof typeof a];
+                      const valB = row.key === "time_taken_seconds" ? formatDurationShort(b.time_taken_seconds) : b[row.key as keyof typeof b];
+                      const aWins = row.key === "wrong" || row.key === "skipped" || row.key === "time_taken_seconds"
+                        ? Number(a[row.key as keyof typeof a]) < Number(b[row.key as keyof typeof b])
+                        : Number(a[row.key as keyof typeof a]) > Number(b[row.key as keyof typeof b]);
+                      const bWins = row.key === "wrong" || row.key === "skipped" || row.key === "time_taken_seconds"
+                        ? Number(b[row.key as keyof typeof b]) < Number(a[row.key as keyof typeof a])
+                        : Number(b[row.key as keyof typeof b]) > Number(a[row.key as keyof typeof a]);
+                      return (
+                        <tr key={row.key} className="border-b last:border-0">
+                          <td className={`px-3 py-2 text-center font-medium ${aWins ? "text-green-600" : ""}`}>{valA}</td>
+                          <td className="px-3 py-2 text-center text-xs text-muted-foreground flex items-center justify-center gap-1">
+                            {row.icon} {row.label}
+                          </td>
+                          <td className={`px-3 py-2 text-center font-medium ${bWins ? "text-green-600" : ""}`}>{valB}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Verdict */}
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                <div className="text-xs font-semibold text-primary mb-1">মতামত</div>
+                <p className="text-sm leading-relaxed">{buildVerdict()}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm text-muted-foreground py-6 text-center">Comparison data load kora jayni.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
