@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag, Zap, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -54,6 +54,9 @@ const adminItems = [
   { title: "Site Heroes", url: "/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
   { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
   { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
+  { title: "Quick Practice", url: "/admin/quick-practice", icon: Zap, roles: ["admin", "teacher"], color: "text-violet-500" },
+  { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
+  { title: "Content Creator", url: "/admin/content-creator", icon: StickyNote, roles: ["admin", "teacher"], color: "text-teal-600" },
   { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
 ];
 
