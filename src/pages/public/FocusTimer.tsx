@@ -118,6 +118,7 @@ const FocusTimer = () => {
   const [sessionNumber, setSessionNumber] = useState(1);
   const hasStoppedOnceRef = useRef(false);
   const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
+  const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -749,11 +750,13 @@ const FocusTimer = () => {
               const t = formatHMS(Number(row.total_seconds));
               const md = MOOD_META[leaderboardMood];
               return (
-                <div
+                <button
                   key={row.user_id}
+                  onClick={() => !isMe && setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) })}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                    isMe && "border-primary/40 bg-primary/5"
+                    "w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left",
+                    isMe && "border-primary/40 bg-primary/5",
+                    !isMe && "hover:border-primary/30 transition-colors"
                   )}
                 >
                   <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
@@ -769,7 +772,7 @@ const FocusTimer = () => {
                   <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
                     {t.h}h {t.m}m
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
@@ -898,6 +901,69 @@ const FocusTimer = () => {
           </div>
         </div>
       )}
+      {/* Compare modal — tap any leaderboard row to compare against yourself */}
+      {compareTarget && (() => {
+        const myRow = leaderboard?.find((r: any) => r.user_id === user?.id);
+        const mySecs = myRow ? Number(myRow.total_seconds) : 0;
+        const maxSec = Math.max(mySecs, compareTarget.secs, 1);
+        const meW = Math.round((mySecs / maxSec) * 100);
+        const thW = Math.round((compareTarget.secs / maxSec) * 100);
+        const ahead = mySecs >= compareTarget.secs;
+        const diff = Math.abs(mySecs - compareTarget.secs);
+        const diffFmt = formatHMS(diff);
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+            <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold">তুলনা করো</h3>
+                <button
+                  onClick={() => setCompareTarget(null)}
+                  className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-[11px] text-muted-foreground -mt-2">
+                {MOOD_META[leaderboardMood].label} · {leaderboardDays === 1 ? "আজকে" : `${leaderboardDays} দিন`}
+              </p>
+
+              <div className="space-y-2.5">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>তুমি</span>
+                    <span className="text-primary">{formatHMS(mySecs).h}h {formatHMS(mySecs).m}m</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${meW}%` }} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>{compareTarget.name}</span>
+                    <span className="text-indigo-400">{formatHMS(compareTarget.secs).h}h {formatHMS(compareTarget.secs).m}m</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${thW}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className={cn(
+                  "rounded-xl px-3 py-2.5 text-xs font-bold text-center",
+                  ahead ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                )}
+              >
+                {diff === 0
+                  ? "সমান সমান! একটু বেশি পড়লেই এগিয়ে যাবে।"
+                  : ahead
+                  ? `তুমি ${diffFmt.h}h ${diffFmt.m}m এগিয়ে আছো! এই ধারা বজায় রাখো।`
+                  : `${diffFmt.h}h ${diffFmt.m}m পিছিয়ে আছো। বিরতি কমাও, একটানা পড়ার সময় বাড়াও।`}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
