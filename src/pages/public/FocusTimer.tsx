@@ -26,6 +26,7 @@ const MOOD_META: Record<Mood, { label: string; icon: typeof BookOpen; color: str
 };
 
 const STATE_KEY = "atlas_focus_state_v1";
+const MAX_BREAK_SEC = 3600; // 1 hour break cap, auto-ends and returns to Study
 
 interface PersistedState {
   sessionId: number;
@@ -80,6 +81,8 @@ const FocusTimer = () => {
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
   const [showLiveNow, setShowLiveNow] = useState(false);
+  const [breaksUsed, setBreaksUsed] = useState(0);
+  const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -175,6 +178,9 @@ const FocusTimer = () => {
     intervalRef.current = setInterval(() => {
       elapsedRef.current += 1;
       setElapsed(elapsedRef.current);
+      if (moodRef.current === "break" && accumulatedBreakRef.current + elapsedRef.current >= MAX_BREAK_SEC) {
+        void autoEndBreak();
+      }
     }, 1000);
   };
 
@@ -256,6 +262,12 @@ const FocusTimer = () => {
         p_duration_seconds: elapsedRef.current,
       });
     }
+    if (moodRef.current === "break") {
+      accumulatedBreakRef.current += elapsedRef.current;
+    }
+    if (m === "break" && moodRef.current !== "break") {
+      setBreaksUsed((n) => n + 1);
+    }
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: m });
     if (error || data == null) return;
     const id = data as number;
@@ -269,6 +281,32 @@ const FocusTimer = () => {
     setPaused(false);
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
+  };
+
+  // Break time limit reached — auto-return to Study mood.
+  const autoEndBreak = async () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    accumulatedBreakRef.current += elapsedRef.current;
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = 0;
+    pausedRef.current = false;
+    sessionIdRef.current = id;
+    moodRef.current = "study";
+    setSessionId(id);
+    setMood("study");
+    setElapsed(0);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
   };
 
@@ -287,6 +325,8 @@ const FocusTimer = () => {
     setRunning(false);
     setPaused(false);
     setElapsed(0);
+    accumulatedBreakRef.current = 0;
+    setBreaksUsed(0);
     refetchLeaderboard();
     refetchLiveNow();
   };
@@ -374,6 +414,12 @@ const FocusTimer = () => {
               </span>
             )}
           </div>
+          {mood === "break" && running && MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed) <= 300 && (
+            <div className="w-full text-center text-[11px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg py-1.5 px-3 animate-pulse">
+              ⚠️ বিরতি শেষ হতে {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).m}m{" "}
+              {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).s}s বাকি
+            </div>
+          )}
           <div className="flex items-center gap-1.5">
             <div
               className={cn(
