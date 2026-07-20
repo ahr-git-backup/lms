@@ -175,12 +175,27 @@ const ExamReview = () => {
       let rpcErr: any = null;
 
       if (isAdmin) {
-         // Admin: fetch questions directly from exam_questions
-         const { data: eqData, error: eqError } = await supabase
+         // Admin: fetch questions directly from exam_questions.
+         // If this is the admin's OWN attempt (not reviewing another student's),
+         // scope to only the questions that were part of the attempt — same as
+         // the student RPC does — so readymade count-mode exams show correctly.
+         const isOwnAttempt = attempt.profile_id === user?.id;
+         const answeredIds: string[] | null =
+             isOwnAttempt && attempt?.answers && Array.isArray(attempt.answers)
+                 ? attempt.answers.map((a: any) => a.question_id)
+                 : null;
+
+         let eqQuery = supabase
             .from("exam_questions")
             .select("id, question_index, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation")
             .eq("exam_id", attempt.exam_id)
             .order("question_index", { ascending: true });
+
+         if (answeredIds && answeredIds.length > 0) {
+             eqQuery = eqQuery.in("id", answeredIds);
+         }
+
+         const { data: eqData, error: eqError } = await eqQuery;
 
          if (eqError) { console.error("Admin question fetch error:", eqError); }
 
@@ -284,6 +299,14 @@ const ExamReview = () => {
   const skippedCount = totalQuestions - (correctCount + wrongCount);
   const score = attempt.total_marks !== undefined && attempt.total_marks !== null ? attempt.total_marks : attempt.score;
 
+  // For readymade exams where the student picked a subset of MCQs, the denominator
+  // should reflect only the attempted questions' total marks, not the full exam bank.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const attemptedTotalMarks = questions?.reduce((sum: number, q: any) => sum + (Number(q.marks) || 1), 0) || 0;
+  const displayTotalMarks = (exam.is_readymade && attempt?.answers && Array.isArray(attempt.answers) && attempt.answers.length > 0)
+      ? attemptedTotalMarks
+      : exam.total_marks;
+
   // Formula Calculation
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const correctMarks = questions?.reduce((sum: number, q: any) => q.is_correct_answer ? sum + (Number(q.marks) || 1) : sum, 0) || 0;
@@ -347,7 +370,7 @@ const ExamReview = () => {
                         <div className="text-center">
                              <div className="text-4xl font-bold text-primary">
                                 {Number(score).toFixed(2)}
-                                <span className="text-lg text-muted-foreground font-normal"> / {exam.total_marks}</span>
+                                <span className="text-lg text-muted-foreground font-normal"> / {displayTotalMarks}</span>
                              </div>
                              <div className="text-xs uppercase font-bold text-muted-foreground mt-1">Marks Obtained</div>
                         </div>
