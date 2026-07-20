@@ -58,6 +58,7 @@ const Readymade = () => {
   });
 
   const READYMADE_STATE_KEY = "atlas_readymade_nav_state_v1";
+  const hasRestoredRef = useState(() => ({ restored: false }))[0];
 
   // Restore drill-down state (subject/chapter/subchapter/search/page) on mount,
   // so navigating away to take an exam and coming back (via result page's Back
@@ -70,21 +71,26 @@ const Readymade = () => {
         if (s.selectedSubject) setSelectedSubject(s.selectedSubject);
         if (s.selectedChapter) setSelectedChapter(s.selectedChapter);
         if (s.selectedSubChapter) setSelectedSubChapter(s.selectedSubChapter);
-        if (s.searchQuery) { setSearchQuery(s.searchQuery); setIsSearchExpanded(true); }
+        if (s.searchQuery) { setSearchQuery(s.searchQuery); setDebouncedSearch(s.searchQuery); setIsSearchExpanded(true); }
         if (typeof s.page === "number") setPage(s.page);
         if (Array.isArray(s.selectedParentTopics)) setSelectedParentTopics(s.selectedParentTopics);
       }
     } catch { /* ignore */ }
+    hasRestoredRef.restored = true;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save state on every change so it's ready if the user navigates to take-exam and back.
+  // Skipped until the restore-effect above has run, so the initial (empty) state doesn't
+  // overwrite a previously saved state in sessionStorage on the very first mount.
   useEffect(() => {
+    if (!hasRestoredRef.restored) return;
     try {
       sessionStorage.setItem(READYMADE_STATE_KEY, JSON.stringify({
         selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics,
       }));
     } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics]);
 
   useEffect(() => { document.title = "Readymade – Atlas"; }, []);
