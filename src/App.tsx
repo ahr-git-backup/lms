@@ -161,6 +161,8 @@ const App = () => {
               <Route path="/focus-timer" element={<FocusTimer />} />
               <Route path="/atlas-ai" element={<AtlasAI />} />
               <Route path="/pomodoro" element={<Pomodoro />} />
+              <Route path="/study-history" element={<StudyHistory />} />
+              <Route path="/syllabus-tracker" element={<SyllabusTracker />} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<DashboardHome />} />
