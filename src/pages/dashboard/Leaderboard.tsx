@@ -34,10 +34,10 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
                     )}
                     
                     {/* Avatar with glowing ring */}
-                    <div className={`relative p-1 rounded-full bg-gradient-to-br ${color} shadow-lg transition-transform duration-300 group-hover:scale-110`}>
-                        <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 border-4 border-background bg-background shadow-inner">
-                            <AvatarImage src={student.profile?.avatar_url} />
-                            <AvatarFallback className="text-xl font-bold bg-muted text-foreground">
+                    <div className={`relative p-1 rounded-xl bg-gradient-to-br ${color} shadow-lg transition-transform duration-300 group-hover:scale-110`}>
+                        <Avatar className="w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-lg border-4 border-background bg-background shadow-inner">
+                            <AvatarImage src={student.profile?.avatar_url} className="rounded-lg" />
+                            <AvatarFallback className="rounded-lg text-xl font-bold bg-muted text-foreground">
                                 {student.profile?.full_name?.slice(0, 2)?.toUpperCase() || "??"}
                             </AvatarFallback>
                         </Avatar>
