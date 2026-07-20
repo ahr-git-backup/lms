@@ -48,6 +48,9 @@ create policy "Users can delete their own avatar"
   );
 
 -- 4. Update focus_live_now() to also return avatar_url
+-- (must drop first since the return type/columns are changing)
+drop function if exists public.focus_live_now();
+
 create or replace function public.focus_live_now()
 returns table(
   user_id uuid, full_name text, hsc_batch text,
