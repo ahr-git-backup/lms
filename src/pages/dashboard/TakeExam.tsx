@@ -668,25 +668,32 @@ const TakeExam = () => {
                                   <Minus className="h-3.5 w-3.5" />
                               </button>
 
-                              <div className="relative">
-                                  <div className="absolute inset-0 rounded-xl bg-violet-500/30 blur-md animate-pulse" />
-                                  <div className="relative h-11 w-16 rounded-xl bg-gradient-to-b from-violet-500 to-fuchsia-600 shadow-[0_0_14px_rgba(168,85,247,0.5)] flex items-center justify-center ring-2 ring-violet-300/60 dark:ring-violet-500/40 animate-[pulse_2.5s_ease-in-out_infinite]">
+                              <div className="relative rounded-xl p-[2px] animate-[pulse_2.5s_ease-in-out_infinite]" style={{ boxShadow: "0 0 10px rgba(168,85,247,0.45)" }}>
+                                  <div className="h-11 w-16 rounded-[10px] bg-background border-2 border-violet-400 dark:border-violet-600 flex items-center justify-center">
                                       <input
                                           type="number"
                                           min={1}
                                           max={questions?.length || 1}
-                                          value={selectedQuestionCount ?? questions?.length ?? ""}
-                                          onFocus={(e) => e.target.select()}
+                                          placeholder={`${questions?.length || 0}`}
+                                          value={selectedQuestionCount ?? ""}
+                                          onCopy={(e) => e.preventDefault()}
+                                          onCut={(e) => e.preventDefault()}
+                                          onPaste={(e) => e.preventDefault()}
                                           onChange={(e) => {
-                                              const val = parseInt(e.target.value, 10);
+                                              const raw = e.target.value;
                                               const max = questions?.length || 1;
+                                              if (raw === "") {
+                                                  setSelectedQuestionCount(null);
+                                                  return;
+                                              }
+                                              const val = parseInt(raw, 10);
                                               if (Number.isNaN(val)) {
                                                   setSelectedQuestionCount(null);
                                               } else {
                                                   setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
                                               }
                                           }}
-                                          className="w-full h-full bg-transparent text-center text-lg font-bold text-white focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                          className="w-full h-full bg-transparent text-center text-lg font-bold text-foreground focus:outline-none cursor-text select-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       />
                                   </div>
                               </div>
