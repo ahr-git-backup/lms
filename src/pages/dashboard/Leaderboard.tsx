@@ -666,27 +666,33 @@ const Leaderboard = () => {
                                 {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
                             <TableCell className="font-medium whitespace-nowrap">
-                                <div className="flex flex-col">
-                                    <div className="flex items-center gap-2">
-                                        {(attempt.profile?.full_name || "Unknown").length > 15
-                                            ? (attempt.profile?.full_name || "Unknown").slice(0, 15) + "..."
-                                            : (attempt.profile?.full_name || "Unknown")}
-                                        {isSecondTimer && (
-                                            <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
-                                                <BadgeAlert className="h-3 w-3" />
-                                                <span className="hidden sm:inline">2nd Timer</span>
-                                            </div>
-                                        )}
-                                        {attemptNumber}
-                                    </div>
-                                    <div className="md:hidden text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
-                                        <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
-                                        {isStaff && (
-                                            <>
-                                                <span>•</span>
-                                                <span>{formatDuration(attempt.time_taken_seconds)}</span>
-                                            </>
-                                        )}
+                                <div className="flex items-center gap-2.5">
+                                    <Avatar className="h-8 w-8 rounded-md shrink-0 border border-border">
+                                        <AvatarImage src={attempt.profile?.avatar_url} className="rounded-md" />
+                                        <AvatarFallback className="rounded-md bg-muted" />
+                                    </Avatar>
+                                    <div className="flex flex-col min-w-0">
+                                        <div className="flex items-center gap-2">
+                                            {(attempt.profile?.full_name || "Unknown").length > 15
+                                                ? (attempt.profile?.full_name || "Unknown").slice(0, 15) + "..."
+                                                : (attempt.profile?.full_name || "Unknown")}
+                                            {isSecondTimer && (
+                                                <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
+                                                    <BadgeAlert className="h-3 w-3" />
+                                                    <span className="hidden sm:inline">2nd Timer</span>
+                                                </div>
+                                            )}
+                                            {attemptNumber}
+                                        </div>
+                                        <div className="md:hidden text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
+                                            <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
+                                            {isStaff && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span>{formatDuration(attempt.time_taken_seconds)}</span>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </TableCell>
