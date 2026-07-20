@@ -119,6 +119,7 @@ const FocusTimer = () => {
   const hasStoppedOnceRef = useRef(false);
   const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
   const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
+  const [overlayDays, setOverlayDays] = useState(1);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -194,6 +195,20 @@ const FocusTimer = () => {
     },
     refetchInterval: 8000,
     enabled: !!user,
+  });
+
+  const { data: overlayRanking } = useQuery({
+    queryKey: ["focus-overlay-ranking", overlayMood, overlayDays],
+    queryFn: async () => {
+      if (!overlayMood) return [];
+      const { data, error } = await supabase.rpc("focus_mood_leaderboard", {
+        p_mood: overlayMood,
+        p_days: overlayDays,
+      });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!overlayMood,
   });
 
   const { data: myTotalToday } = useQuery({
@@ -513,7 +528,7 @@ const FocusTimer = () => {
             return (
               <button
                 key={m}
-                onClick={() => setOverlayMood(m)}
+                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
                 className="text-[10px] font-bold text-muted-foreground hover:text-foreground py-1 rounded-lg hover:bg-muted/50 transition-colors"
               >
                 {count} জন <span className={md.color}>{md.label}</span> এ
@@ -842,7 +857,7 @@ const FocusTimer = () => {
           </div>
         </div>
       )}
-      {/* Full-screen mood overlay — everyone currently in Study/Break/Sleep, ranked by time */}
+      {/* Full-screen mood overlay — everyone in Study/Break/Sleep, ranked by time, with period filter */}
       {overlayMood && (
         <div className="fixed inset-0 bg-background z-[70] flex flex-col">
           <div className="flex items-center gap-3 px-4 py-3 border-b">
@@ -853,51 +868,100 @@ const FocusTimer = () => {
               <ArrowLeft className="h-4 w-4" />
             </button>
             <h2 className={cn("flex-1 font-extrabold text-base", MOOD_META[overlayMood].color)}>
-              {MOOD_META[overlayMood].label} মোডে এখন যারা আছে
+              {MOOD_META[overlayMood].label} মোডে {overlayDays === 1 ? "এখন যারা আছে" : "যারা সময় দিয়েছে"}
             </h2>
-            <span className="text-xs font-bold text-muted-foreground">
-              {(liveNow || []).filter((r: any) => r.mood === overlayMood).length} জন
-            </span>
+          </div>
+          <div className="flex gap-2 px-4 py-2.5 border-b overflow-x-auto">
+            {[1, 3, 7, 15, 30].map((d) => (
+              <button
+                key={d}
+                onClick={() => setOverlayDays(d)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[11px] font-bold border flex-shrink-0",
+                  overlayDays === d
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-muted-foreground"
+                )}
+              >
+                {d === 1 ? "আজকে" : `${d} দিন`}
+              </button>
+            ))}
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
-            {(liveNow || []).filter((r: any) => r.mood === overlayMood).length === 0 && (
-              <p className="text-center text-sm text-muted-foreground py-10">
-                এখন কেউ এই মোডে নেই।
-              </p>
+            {overlayDays === 1 ? (
+              <>
+                {(liveNow || []).filter((r: any) => r.mood === overlayMood).length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-10">এখন কেউ এই মোডে নেই।</p>
+                )}
+                {(liveNow || [])
+                  .filter((r: any) => r.mood === overlayMood)
+                  .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
+                  .map((row: any, i: number) => {
+                    const md = MOOD_META[overlayMood];
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
+                          #{i + 1}
+                        </div>
+                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
+                          <MIcon className={cn("h-4 w-4", md.color)} />
+                        </div>
+                        <div className="flex-1 min-w-0 text-sm font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            ) : (
+              <>
+                {(!overlayRanking || overlayRanking.length === 0) && (
+                  <p className="text-center text-sm text-muted-foreground py-10">এই সময়ে কেউ এই মোডে সময় দেয়নি।</p>
+                )}
+                {overlayRanking?.map((row: any, i: number) => {
+                  const md = MOOD_META[overlayMood];
+                  const t = formatHMS(Number(row.total_seconds));
+                  const isMe = row.user_id === user?.id;
+                  return (
+                    <div
+                      key={row.user_id}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
+                        isMe && "border-primary/40 bg-primary/5"
+                      )}
+                    >
+                      <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
+                        #{i + 1}
+                      </div>
+                      <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
+                        {(row.full_name || "S").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0 text-sm font-bold truncate">
+                        {row.full_name || "Student"}
+                        {isMe && " (তুমি)"}
+                      </div>
+                      <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                        {t.h}h {t.m}m
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
             )}
-            {(liveNow || [])
-              .filter((r: any) => r.mood === overlayMood)
-              .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
-              .map((row: any, i: number) => {
-                const md = MOOD_META[overlayMood];
-                const MIcon = md.icon;
-                const t = formatHMS(row.duration_seconds);
-                const isMe = row.user_id === user?.id;
-                return (
-                  <div
-                    key={row.user_id}
-                    className={cn(
-                      "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
-                      isMe && "border-primary/40 bg-primary/5"
-                    )}
-                  >
-                    <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
-                      #{i + 1}
-                    </div>
-                    <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
-                      <MIcon className={cn("h-4 w-4", md.color)} />
-                    </div>
-                    <div className="flex-1 min-w-0 text-sm font-bold truncate">
-                      {row.full_name || "Student"}
-                      {isMe && " (তুমি)"}
-                      {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
-                    </div>
-                    <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                      {t.h}h {t.m}m
-                    </div>
-                  </div>
-                );
-              })}
           </div>
         </div>
       )}
