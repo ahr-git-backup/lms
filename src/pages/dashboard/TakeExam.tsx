@@ -674,12 +674,11 @@ const TakeExam = () => {
                               </button>
 
                               <div className="relative rounded-xl p-[2px] animate-[pulse_2s_ease-in-out_infinite] bg-gradient-to-r from-violet-400 via-fuchsia-400 to-violet-400 bg-[length:200%_auto]">
-                                  <div className="h-11 w-16 rounded-[10px] bg-background flex items-center justify-center">
+                                  <div className="h-11 w-16 rounded-[10px] bg-violet-500/10 dark:bg-violet-400/10 backdrop-blur-md flex items-center justify-center">
                                       <input
                                           type="number"
                                           min={1}
                                           max={questions?.length || 1}
-                                          placeholder="সব"
                                           value={selectedQuestionCount ?? ""}
                                           onCopy={(e) => e.preventDefault()}
                                           onCut={(e) => e.preventDefault()}
