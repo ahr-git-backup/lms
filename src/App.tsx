@@ -78,6 +78,7 @@ import PublicExamEntry from "./pages/public/PublicExamEntry";
 import FreeClass from "./pages/public/FreeClass";
 import FreeExam from "./pages/public/FreeExam";
 import FocusTimer from "./pages/public/FocusTimer";
+import StudyHistory from "./pages/public/StudyHistory";
 import AtlasAI from "./pages/public/AtlasAI";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
@@ -155,6 +156,7 @@ const App = () => {
                 <Route path="/quick-practice/play" element={<QuickPracticePlay />} />
                 <Route path="/quick-practice/leaderboard" element={<QuickPracticeLeaderboard />} />
                 <Route path="/focus-timer" element={<FocusTimer />} />
+                <Route path="/focus-timer/history" element={<StudyHistory />} />
                 <Route path="/atlas-ai" element={<AtlasAI />} />
                 <Route path="/pomodoro" element={<Pomodoro />} />
                 <Route path="/syllabus-tracker" element={<SyllabusTracker />} />
