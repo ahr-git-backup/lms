@@ -646,6 +646,11 @@ const TakeExam = () => {
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
                   <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
+                      <div className="px-4 pt-3">
+                          <p className="text-xs font-bold text-foreground">
+                              যদি নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চান, নিচের বক্সে সংখ্যা লিখুন। খালি রাখলে সব MCQ দিয়ে পরীক্ষা শুরু হবে।
+                          </p>
+                      </div>
                       <div className="px-4 py-3 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-1.5 min-w-0">
                               <Zap className="h-3.5 w-3.5 text-violet-500 shrink-0" />
