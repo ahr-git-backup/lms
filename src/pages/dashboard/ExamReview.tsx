@@ -120,6 +120,7 @@ const ExamReview = () => {
 
   useEffect(() => {
     document.title = "Exam Review – Atlas";
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, []);
 
   const { data: profile } = useQuery({
@@ -284,6 +285,12 @@ const ExamReview = () => {
         navigate(`/dashboard/take-exam/${attempt.exam_id}`);
       }
   };
+
+  useEffect(() => {
+    if (!attemptLoading && !questionsLoading) {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    }
+  }, [attemptLoading, questionsLoading]);
 
   if (attemptLoading || questionsLoading) {
     return <div className="p-8 text-center">Loading result...</div>;
