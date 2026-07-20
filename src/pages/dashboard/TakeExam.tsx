@@ -37,6 +37,7 @@ const TakeExam = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
+  const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -212,6 +213,36 @@ const TakeExam = () => {
     },
   });
 
+  // Detect questions with images or Roman-numeral/multi-part (উদ্দীপক-style) content.
+  // Only checks question_text + options — explanation is intentionally excluded.
+  const isImageOrPatternQuestion = (q: any) => {
+      if (!q) return false;
+      const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d];
+      const combined = fields.filter(Boolean).join(" ");
+      if (/<img/i.test(combined)) return true;
+      // Roman numeral list patterns: i. ii. iii. / (i) (ii) (iii) / i) ii) iii)
+      if (/\(?\b(i|ii|iii|iv|v|vi)\)?[.)]/i.test(combined)) return true;
+      return false;
+  };
+
+  const hasImageOrPatternQuestions = !!(questions && questions.some(isImageOrPatternQuestion));
+
+  // Effective pool after applying the content-mode filter (only applies when relevant questions exist)
+  const effectiveQuestions = (() => {
+      if (!questions) return questions;
+      if (!hasImageOrPatternQuestions) return questions;
+      if (contentMode === 'without') {
+          return questions.filter((q: any) => !isImageOrPatternQuestion(q));
+      }
+      return questions; // 'with' or not yet chosen -> full pool
+  })();
+
+  // Reset the chosen MCQ count whenever the content-mode (with/without image & pattern questions) changes,
+  // since the max available question count changes with it.
+  useEffect(() => {
+      setSelectedQuestionCount(null);
+  }, [contentMode]);
+
   // Shuffle Questions Effect
   useEffect(() => {
     // For readymade exams (non-external), only shuffle/lock the question set once the exam has
@@ -221,15 +252,15 @@ const TakeExam = () => {
         return;
     }
 
-    if (exam && questions && questions.length > 0 && shuffledQuestions.length === 0) {
+    if (exam && effectiveQuestions && effectiveQuestions.length > 0 && shuffledQuestions.length === 0) {
         // If the exam is an OMR exam, DO NOT SHUFFLE so the question numbers align with the OMR sheet
         if (exam.is_omr_enabled || exam.is_omr) {
-            setShuffledQuestions([...questions]);
+            setShuffledQuestions([...effectiveQuestions]);
             return;
         }
 
         // Simple Fisher-Yates shuffle
-        const shuffled = [...questions];
+        const shuffled = [...effectiveQuestions];
         for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
@@ -242,7 +273,7 @@ const TakeExam = () => {
             setShuffledQuestions(shuffled);
         }
     }
-  }, [questions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted]);
+  }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
@@ -632,7 +663,7 @@ const TakeExam = () => {
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
-                              <span className="text-base font-bold text-primary">{exam.external_exam_link ? 'N/A' : questions?.length}</span>
+                              <span className="text-base font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
                           </div>
                           <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
@@ -646,6 +677,39 @@ const TakeExam = () => {
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
                   <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
+                      {hasImageOrPatternQuestions && (
+                          <div className="px-4 pt-2.5 pb-1.5 border-b space-y-1.5">
+                              <p className="text-[11px] font-bold text-foreground">
+                                  চিত্র/উদ্দীপকযুক্ত প্রশ্নের ধরন বেছে নিন:
+                              </p>
+                              <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                      type="button"
+                                      onClick={() => setContentMode('with')}
+                                      className={cn(
+                                          "text-[11px] font-semibold rounded-lg border-2 px-2 py-1.5 leading-tight transition-colors",
+                                          contentMode === 'with'
+                                              ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                                              : "border-border text-muted-foreground hover:border-violet-300"
+                                      )}
+                                  >
+                                      চিত্র/উদ্দীপকসহ<br />(Board or Varsity Exam)
+                                  </button>
+                                  <button
+                                      type="button"
+                                      onClick={() => setContentMode('without')}
+                                      className={cn(
+                                          "text-[11px] font-semibold rounded-lg border-2 px-2 py-1.5 leading-tight transition-colors",
+                                          contentMode === 'without'
+                                              ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
+                                              : "border-border text-muted-foreground hover:border-violet-300"
+                                      )}
+                                  >
+                                      চিত্র/উদ্দীপকছাড়া<br />(Medical Standard Exam)
+                                  </button>
+                              </div>
+                          </div>
+                      )}
                       <div className="px-4 pt-2">
                           <p className="text-[11px] font-bold text-foreground">
                               যদি নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চান, নিচের বক্সে সংখ্যা লিখুন। খালি রাখলে সব MCQ দিয়ে পরীক্ষা শুরু হবে।
@@ -661,7 +725,7 @@ const TakeExam = () => {
                               <button
                                   type="button"
                                   onClick={() => {
-                                      const max = questions?.length || 1;
+                                      const max = effectiveQuestions?.length || 1;
                                       setSelectedQuestionCount((prev) => {
                                           const cur = prev ?? max;
                                           return Math.min(Math.max(cur - 1, 1), max);
@@ -679,14 +743,14 @@ const TakeExam = () => {
                                           type="number"
                                           autoFocus
                                           min={1}
-                                          max={questions?.length || 1}
+                                          max={effectiveQuestions?.length || 1}
                                           value={selectedQuestionCount ?? ""}
                                           onCopy={(e) => e.preventDefault()}
                                           onCut={(e) => e.preventDefault()}
                                           onPaste={(e) => e.preventDefault()}
                                           onChange={(e) => {
                                               const raw = e.target.value;
-                                              const max = questions?.length || 1;
+                                              const max = effectiveQuestions?.length || 1;
                                               if (raw === "") {
                                                   setSelectedQuestionCount(null);
                                                   return;
@@ -716,7 +780,7 @@ const TakeExam = () => {
                               <button
                                   type="button"
                                   onClick={() => {
-                                      const max = questions?.length || 1;
+                                      const max = effectiveQuestions?.length || 1;
                                       setSelectedQuestionCount((prev) => {
                                           const cur = prev ?? 0;
                                           return Math.min(Math.max(cur + 1, 1), max);
@@ -731,7 +795,7 @@ const TakeExam = () => {
                       </div>
                       <div className="px-4 pb-1.5 -mt-1">
                           <span className="text-[10px] text-muted-foreground">
-                              Tap the number to type directly · Max {questions?.length || 0}
+                              Tap the number to type directly · Max {effectiveQuestions?.length || 0}
                           </span>
                       </div>
                   </Card>
@@ -795,7 +859,7 @@ const TakeExam = () => {
                                       setHasStarted(true);
                                   }
                               }}
-                              disabled={!agreedToInstructions}
+                              disabled={!agreedToInstructions || (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !contentMode)}
                           >
                               Start Exam
                           </Button>
