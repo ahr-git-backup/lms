@@ -258,21 +258,13 @@ const TakeExam = () => {
 
       if (savedStartTime) {
           if (isReadymadeCountExam) {
-              // Only auto-resume if we can also restore the count that was used to build the
-              // question set for this in-progress attempt. Without it, the shuffle effect would
-              // ignore the count entirely and show the full question bank.
+              // Restore the count that was used to build the question set for this in-progress
+              // attempt (if any was chosen). A missing count is valid — it just means the student
+              // started with the full question bank, not an incomplete/stale session.
               if (savedCount && !isNaN(parseInt(savedCount, 10))) {
                   setSelectedQuestionCount(parseInt(savedCount, 10));
-                  setHasStarted(true);
-              } else {
-                  // Stale/incomplete session for a count-mode exam - clear it and let the
-                  // student pick a fresh count on the pre-exam screen.
-                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
-                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
-                  localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
-                  localStorage.removeItem(QUESTIONS_STORAGE_KEY);
-                  return;
               }
+              setHasStarted(true);
           } else {
               setHasStarted(true);
           }
@@ -738,7 +730,7 @@ const TakeExam = () => {
                                       setHasStarted(true);
                                   }
                               }}
-                              disabled={!agreedToInstructions || (exam.is_readymade && !exam.external_exam_link && !selectedQuestionCount)}
+                              disabled={!agreedToInstructions}
                           >
                               Start Exam
                           </Button>
