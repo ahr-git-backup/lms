@@ -7,11 +7,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ArrowLeft, Trophy, ChevronLeft, ChevronRight, BadgeAlert, Download, FileText, Star } from "lucide-react";
+import { ArrowLeft, Trophy, BadgeAlert, Download, FileText, Star } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-const PAGE_SIZE = 50;
 
 const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) => {
     if (!topThree || topThree.length === 0) return null;
@@ -93,7 +91,6 @@ const Leaderboard = () => {
   const { examId } = useParams();
   const isStaff = isAdmin || isTeacher;
   const navigate = useNavigate();
-  const [page, setPage] = useState(0);
   const [filterType, setFilterType] = useState<'live' | 'practice'>('live');
 
   useEffect(() => {
@@ -133,28 +130,42 @@ const Leaderboard = () => {
   })();
 
   const { data: leaderboardData, isLoading } = useQuery({
-    queryKey: ["leaderboard", examId, page, filterType],
+    queryKey: ["leaderboard", examId, filterType],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('leaderboard_exam_attempts')
-        .select('*', { count: 'exact' })
-        .eq('exam_id', examId);
+      const MAX_ROWS = 5000;
+      let allData: any[] = [];
+      let from = 0;
+      const chunkSize = 1000;
+      let total = 0;
 
-      if (filterType === 'live') {
-        query = query.eq('attempt_type', 'live');
-      } else {
-        query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+      while (true) {
+        let query = (supabase as any)
+          .from('leaderboard_exam_attempts')
+          .select('*', { count: 'exact' })
+          .eq('exam_id', examId);
+
+        if (filterType === 'live') {
+          query = query.eq('attempt_type', 'live');
+        } else {
+          query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+        }
+
+        const { data, error, count } = await query
+          .order('score', { ascending: false })
+          .order('time_taken_seconds', { ascending: true, nullsFirst: false })
+          .order('submitted_at', { ascending: true })
+          .range(from, from + chunkSize - 1);
+
+        if (error) throw error;
+
+        allData = allData.concat(data || []);
+        total = count || 0;
+        from += chunkSize;
+
+        if (!data || data.length < chunkSize || allData.length >= total || allData.length >= MAX_ROWS) break;
       }
 
-      const { data, error, count } = await query
-        .order('score', { ascending: false })
-        .order('time_taken_seconds', { ascending: true, nullsFirst: false })
-        .order('submitted_at', { ascending: true })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-
-      if (error) throw error;
-
-      return { data: data || [], count: count || 0 };
+      return { data: allData, count: total };
     },
     enabled: !!exam,
   });
@@ -168,10 +179,9 @@ const Leaderboard = () => {
 
   const leaderboard = leaderboardData?.data || [];
   const totalCount = leaderboardData?.count || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  // Top 3 for Podium (Only on page 0)
-  const topThree = page === 0 ? leaderboard.slice(0, 3) : [];
+  // Top 3 for Podium
+  const topThree = leaderboard.slice(0, 3);
 
   const handleExportCSV = async () => {
       try {
@@ -628,7 +638,7 @@ const Leaderboard = () => {
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {leaderboard.map((attempt: any, index: number) => {
                     // Calculate global rank
-                    const globalIndex = (page * PAGE_SIZE) + index;
+                    const globalIndex = index;
                     let rankIcon = null;
                     let rowClass = "";
 
@@ -735,30 +745,10 @@ const Leaderboard = () => {
               </Table>
             </div>
 
-            {/* Pagination Controls */}
+            {/* Total count */}
             <div className="flex items-center justify-between pt-4">
                  <div className="text-xs text-muted-foreground">
-                     Showing {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
-                 </div>
-                 <div className="flex gap-2">
-                     <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => Math.max(0, p - 1))}
-                        disabled={page === 0}
-                     >
-                         <ChevronLeft className="h-4 w-4" />
-                         Previous
-                     </Button>
-                     <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setPage(p => p + 1)}
-                        disabled={page >= totalPages - 1}
-                     >
-                         Next
-                         <ChevronRight className="h-4 w-4" />
-                     </Button>
+                     Showing all {totalCount} students
                  </div>
             </div>
             </>
