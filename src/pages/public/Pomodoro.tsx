@@ -1,128 +1,387 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Pause, Play, RotateCcw, Settings2, Coffee, BookOpen } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  ArrowLeft,
+  Play,
+  Pause,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Trash2,
+  Flame,
+} from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
 
-type Phase = "focus" | "shortBreak" | "longBreak";
+const CIRCUMFERENCE = 502.65; // 2 * pi * 80
 
-const DEFAULTS = {
-  focus: 25 * 60,
-  shortBreak: 5 * 60,
-  longBreak: 15 * 60,
-  cyclesBeforeLongBreak: 4,
-};
-
-const PHASE_META: Record<Phase, { label: string; color: string; ring: string }> = {
-  focus: { label: "Focus", color: "text-emerald-500", ring: "stroke-emerald-500" },
-  shortBreak: { label: "Short Break", color: "text-amber-500", ring: "stroke-amber-500" },
-  longBreak: { label: "Long Break", color: "text-indigo-400", ring: "stroke-indigo-400" },
-};
-
-function fmt(sec: number) {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+interface PomoSession {
+  task: string;
+  duration: number;
+  completedAt: string;
+  success: boolean;
 }
 
-function playChime() {
+interface PersistedRun {
+  currentTask: string;
+  totalTime: number;
+  running: boolean;
+  // when running: endAt (ms epoch) is the source of truth for remaining time
+  endAt: number | null;
+  // when paused: remaining seconds frozen at pause time
+  pausedTimeLeft: number | null;
+}
+
+interface DailyStat {
+  total: number;
+  completed: number;
+}
+
+interface PomoStats {
+  streak: number;
+  dailyStats: Record<string, DailyStat>;
+}
+
+function formatSeconds(sRaw: number) {
+  const s = Math.max(0, Math.floor(sRaw));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (h > 0) {
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+}
+
+function toBanglaDate(dateStr: string) {
   try {
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new Ctx();
-    [880, 1108, 1318].forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const start = ctx.currentTime + i * 0.15;
-      osc.frequency.setValueAtTime(f, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.4);
-      osc.start(start);
-      osc.stop(start + 0.45);
-    });
+    return new Date(dateStr).toLocaleString("bn-BD", { year: "numeric", month: "short", day: "numeric" });
   } catch {
-    /* audio unavailable, ignore */
+    return dateStr || "—";
   }
 }
 
+function storageKey(base: string, phone?: string | null) {
+  return `${base}_${phone || "guest"}`;
+}
+
+function loadRun(phone?: string | null): PersistedRun | null {
+  try {
+    const raw = localStorage.getItem(storageKey("pomo_run", phone));
+    return raw ? (JSON.parse(raw) as PersistedRun) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveRun(phone: string | null | undefined, run: PersistedRun) {
+  try {
+    localStorage.setItem(storageKey("pomo_run", phone), JSON.stringify(run));
+  } catch {
+    /* ignore */
+  }
+}
+
+function clearRun(phone?: string | null) {
+  try {
+    localStorage.removeItem(storageKey("pomo_run", phone));
+  } catch {
+    /* ignore */
+  }
+}
+
+const PRESETS = [
+  { label: "25 মিনিট", mins: 25 },
+  { label: "45 মিনিট", mins: 45 },
+  { label: "১ ঘণ্টা", mins: 60 },
+  { label: "১.৫ ঘণ্টা", mins: 90 },
+  { label: "২ ঘণ্টা", mins: 120 },
+];
+
 const Pomodoro = () => {
   const navigate = useNavigate();
-  const [durations, setDurations] = useState(DEFAULTS);
-  const [phase, setPhase] = useState<Phase>("focus");
-  const [secondsLeft, setSecondsLeft] = useState(DEFAULTS.focus);
+  const { profile } = useAuth();
+  const phone = profile?.phone;
+
+  const [task, setTask] = useState("");
+  const [hoursInput, setHoursInput] = useState("");
+  const [minsInput, setMinsInput] = useState("");
+  const [activePreset, setActivePreset] = useState<number | null>(null);
+
+  const [totalTime, setTotalTime] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(0);
   const [running, setRunning] = useState(false);
-  const [completedFocusCycles, setCompletedFocusCycles] = useState(0);
-  const [showSettings, setShowSettings] = useState(false);
+  const [currentTask, setCurrentTask] = useState("");
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+
+  const [sessions, setSessions] = useState<PomoSession[]>([]);
+  const [stats, setStats] = useState<PomoStats>({ streak: 0, dailyStats: {} });
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const endAtRef = useRef<number>(0);
 
   useEffect(() => {
-    document.title = "Pomodoro Timer — Atlas";
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, []);
+    document.title = "Pomodoro Clock — Atlas";
+    try {
+      const rawSessions = localStorage.getItem(storageKey("pomo_sessions", phone));
+      if (rawSessions) setSessions(JSON.parse(rawSessions));
+      const rawStats = localStorage.getItem(storageKey("pomo_stats", phone));
+      if (rawStats) setStats(JSON.parse(rawStats));
+    } catch {
+      /* corrupt local data, start fresh */
+    }
 
-  useEffect(() => {
-    if (!running) return;
-    intervalRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          handlePhaseComplete();
-          return 0;
+    // Restore an in-progress or paused clock so leaving/reloading the page
+    // never resets it to zero — the clock keeps running in the background
+    // based on the real endAt timestamp, exactly like leaving it physically running.
+    const run = loadRun(phone);
+    if (run && run.totalTime > 0) {
+      setTotalTime(run.totalTime);
+      setCurrentTask(run.currentTask);
+      if (run.running && run.endAt) {
+        const remaining = Math.round((run.endAt - Date.now()) / 1000);
+        if (remaining <= 0) {
+          setTimeLeft(0);
+          setRunning(false);
+          setShowCompletionModal(true);
+          clearRun(phone);
+        } else {
+          setTimeLeft(remaining);
+          setRunning(true);
+          endAtRef.current = run.endAt;
+          tickFrom(run.endAt);
         }
-        return s - 1;
-      });
-    }, 1000);
+      } else if (run.pausedTimeLeft != null) {
+        setTimeLeft(run.pausedTimeLeft);
+        setRunning(false);
+      }
+    }
+
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running, phase]);
+  }, [phone]);
 
-  const handlePhaseComplete = () => {
-    playChime();
-    if (phase === "focus") {
-      const nextCount = completedFocusCycles + 1;
-      setCompletedFocusCycles(nextCount);
-      const goLong = nextCount % durations.cyclesBeforeLongBreak === 0;
-      const nextPhase: Phase = goLong ? "longBreak" : "shortBreak";
-      setPhase(nextPhase);
-      setSecondsLeft(durations[nextPhase]);
-    } else {
-      setPhase("focus");
-      setSecondsLeft(durations.focus);
+  const saveSessions = (next: PomoSession[]) => {
+    setSessions(next);
+    try {
+      localStorage.setItem(storageKey("pomo_sessions", phone), JSON.stringify(next));
+    } catch {
+      /* storage full/unavailable, ignore */
     }
   };
 
-  const toggleRunning = () => setRunning((r) => !r);
+  const saveStats = (next: PomoStats) => {
+    setStats(next);
+    try {
+      localStorage.setItem(storageKey("pomo_stats", phone), JSON.stringify(next));
+    } catch {
+      /* ignore */
+    }
+  };
 
+  const tickFrom = (endAt: number) => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      const remaining = Math.round((endAt - Date.now()) / 1000);
+      if (remaining <= 0) {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        setTimeLeft(0);
+        setRunning(false);
+        setShowCompletionModal(true);
+        clearRun(phone);
+        if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+          new Notification("⏱️ ATLAS Pomodoro সম্পন্ন!", {
+            body: `"${currentTask}" — টাইম শেষ! বিরতি নিন।`,
+          });
+        }
+        return;
+      }
+      setTimeLeft(remaining);
+    }, 1000);
+  };
+
+  const start = () => {
+    const trimmedTask = task.trim();
+    if (!trimmedTask && !currentTask) {
+      alert("প্রথমে টাস্ক সেট করুন");
+      return;
+    }
+    const activeTask = trimmedTask || currentTask;
+
+    let secs = timeLeft;
+    if (timeLeft <= 0 || timeLeft === totalTime) {
+      const h = parseInt(hoursInput) || 0;
+      const m = parseInt(minsInput) || 0;
+      const custom = h * 3600 + m * 60;
+      if (custom > 0) {
+        secs = custom;
+        setTotalTime(custom);
+      } else if (totalTime > 0) {
+        secs = totalTime;
+      } else {
+        alert("টাইম সেট করুন");
+        return;
+      }
+    }
+
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
+
+    setCurrentTask(activeTask);
+    setTimeLeft(secs);
+    setRunning(true);
+    const endAt = Date.now() + secs * 1000;
+    endAtRef.current = endAt;
+    tickFrom(endAt);
+    saveRun(phone, { currentTask: activeTask, totalTime: totalTime || secs, running: true, endAt, pausedTimeLeft: null });
+  };
+
+  const pause = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    setRunning(false);
+    saveRun(phone, { currentTask, totalTime, running: false, endAt: null, pausedTimeLeft: timeLeft });
+  };
+
+  const resume = () => {
+    const endAt = Date.now() + timeLeft * 1000;
+    endAtRef.current = endAt;
+    setRunning(true);
+    tickFrom(endAt);
+    saveRun(phone, { currentTask, totalTime, running: true, endAt, pausedTimeLeft: null });
+  };
+
+  // Only Pause <-> Resume — no separate stop control, per design.
+  const toggle = () => {
+    if (running) pause();
+    else if (timeLeft > 0) resume();
+    else start();
+  };
+
+  // Reset: fully stops the current run and restarts fresh from the last set duration.
   const reset = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    clearRun(phone);
     setRunning(false);
-    setSecondsLeft(durations[phase]);
+    if (totalTime > 0) {
+      setTimeLeft(totalTime);
+      saveRun(phone, { currentTask, totalTime, running: false, endAt: null, pausedTimeLeft: totalTime });
+    } else {
+      setTimeLeft(0);
+    }
   };
 
-  const skipPhase = () => {
-    setRunning(false);
-    handlePhaseComplete();
+  const applyPreset = (mins: number, idx: number) => {
+    if (running) {
+      alert("আগে পজ করুন");
+      return;
+    }
+    const secs = mins * 60;
+    setTotalTime(secs);
+    setTimeLeft(secs);
+    setMinsInput(String(mins));
+    setHoursInput("0");
+    setActivePreset(idx);
+    const activeTask = task.trim() || "Study Session";
+    setCurrentTask(activeTask);
+    setTimeout(() => {
+      setCurrentTask((ct) => {
+        const t = ct || activeTask;
+        const endAt = Date.now() + secs * 1000;
+        endAtRef.current = endAt;
+        setRunning(true);
+        tickFrom(endAt);
+        saveRun(phone, { currentTask: t, totalTime: secs, running: true, endAt, pausedTimeLeft: null });
+        return t;
+      });
+    }, 500);
   };
 
-  const applySettings = (mins: { focus: number; shortBreak: number; longBreak: number }) => {
-    const next = { ...durations, focus: mins.focus * 60, shortBreak: mins.shortBreak * 60, longBreak: mins.longBreak * 60 };
-    setDurations(next);
-    setRunning(false);
-    setPhase("focus");
-    setSecondsLeft(next.focus);
-    setShowSettings(false);
+  const applySetup = () => {
+    if (running) {
+      alert("আগে পজ করুন");
+      return;
+    }
+    const h = parseInt(hoursInput) || 0;
+    const m = parseInt(minsInput) || 0;
+    const total = h * 3600 + m * 60;
+    if (total <= 0) {
+      alert("সময় সেট করুন");
+      return;
+    }
+    setTotalTime(total);
+    setTimeLeft(total);
+    setActivePreset(null);
+    const activeTask = task.trim();
+    if (activeTask) setCurrentTask(activeTask);
+    setTimeout(() => {
+      setCurrentTask((ct) => {
+        const t = ct || activeTask || "Study Session";
+        const endAt = Date.now() + total * 1000;
+        endAtRef.current = endAt;
+        setRunning(true);
+        tickFrom(endAt);
+        saveRun(phone, { currentTask: t, totalTime: total, running: true, endAt, pausedTimeLeft: null });
+        return t;
+      });
+    }, 500);
   };
 
-  const total = durations[phase];
-  const progress = total > 0 ? (total - secondsLeft) / total : 0;
-  const radius = 90;
-  const circumference = 2 * Math.PI * radius;
-  const meta = PHASE_META[phase];
+  const completeSession = (success: boolean) => {
+    setShowCompletionModal(false);
+    clearRun(phone);
+    const session: PomoSession = {
+      task: currentTask,
+      duration: totalTime,
+      completedAt: new Date().toISOString(),
+      success,
+    };
+    saveSessions([session, ...sessions].slice(0, 20));
+
+    const today = new Date().toISOString().split("T")[0];
+    const next: PomoStats = { streak: stats.streak, dailyStats: { ...stats.dailyStats } };
+    const dayStat = next.dailyStats[today] || { total: 0, completed: 0 };
+    dayStat.total += 1;
+    if (success) {
+      dayStat.completed += 1;
+      next.streak = (next.streak || 0) + 1;
+    } else {
+      next.streak = 0;
+    }
+    next.dailyStats[today] = dayStat;
+    saveStats(next);
+  };
+
+  const deleteSession = (index: number) => {
+    if (!confirm("এই সেশন মুছে ফেলবেন?")) return;
+    const next = sessions.filter((_, i) => i !== index);
+    saveSessions(next);
+  };
+
+  const last3Days = (() => {
+    const today = new Date();
+    const days: { key: string; rate: number; label: string }[] = [];
+    for (let i = 2; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().split("T")[0];
+      const s = stats.dailyStats[key] || { total: 0, completed: 0 };
+      const rate = s.total > 0 ? Math.round((s.completed / s.total) * 100) : 0;
+      days.push({ key, rate, label: i === 0 ? "আজ" : i === 1 ? "গতকাল" : "২ দিন আগে" });
+    }
+    return days;
+  })();
+  const hasGraphData = last3Days.some((d) => d.rate > 0);
+
+  // Clockwise fill toward completion: the ring fills up (not drains) as time
+  // elapses, reaching 100% exactly when the countdown hits zero.
+  const elapsedProgress = totalTime > 0 ? Math.min(1, Math.max(0, (totalTime - timeLeft) / totalTime)) : 0;
+  const offset = CIRCUMFERENCE * (1 - elapsedProgress);
+  const percentDone = Math.round(elapsedProgress * 100);
+  const warning = timeLeft <= 60 && running;
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
@@ -135,152 +394,236 @@ const Pomodoro = () => {
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="flex-1 font-extrabold text-[17px]">Pomodoro Timer</h1>
-        <button
-          onClick={() => setShowSettings((s) => !s)}
-          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
-        >
-          <Settings2 className="h-4 w-4" />
-        </button>
+        <h1 className="flex-1 font-extrabold text-[17px]">Pomodoro Clock</h1>
+        {stats.streak > 0 && (
+          <span className="flex items-center gap-1 text-xs font-bold text-orange-500">
+            <Flame className="h-3.5 w-3.5" /> {stats.streak}
+          </span>
+        )}
       </div>
 
-      <div className="max-w-md mx-auto px-4 pt-8 flex flex-col items-center gap-6">
-        {/* Phase tabs */}
-        <div className="flex gap-2">
-          {(["focus", "shortBreak", "longBreak"] as Phase[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => {
-                setRunning(false);
-                setPhase(p);
-                setSecondsLeft(durations[p]);
-              }}
+      <div className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-5">
+        {/* Watch card */}
+        <div className="relative rounded-2xl border bg-gradient-to-br from-indigo-950 to-slate-900 p-5 flex flex-col items-center overflow-hidden">
+          {/* Progress % badge — top right corner, fills to 100% exactly as time runs out */}
+          {totalTime > 0 && (
+            <div
               className={cn(
-                "px-3 py-1.5 rounded-full text-[11px] font-bold border transition-colors",
-                phase === p
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card border-border text-muted-foreground"
+                "absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-black font-mono tabular-nums border shadow-sm",
+                warning
+                  ? "bg-red-500/20 border-red-400/40 text-red-300"
+                  : "bg-indigo-500/20 border-indigo-400/40 text-indigo-200"
               )}
             >
-              {PHASE_META[p].label}
-            </button>
-          ))}
-        </div>
+              {percentDone}%
+            </div>
+          )}
 
-        {/* Circular progress */}
-        <div className="relative h-56 w-56 flex items-center justify-center">
-          <svg className="h-56 w-56 -rotate-90" viewBox="0 0 200 200">
-            <circle cx="100" cy="100" r={radius} strokeWidth="10" className="stroke-muted fill-none" />
-            <circle
-              cx="100"
-              cy="100"
-              r={radius}
-              strokeWidth="10"
-              strokeLinecap="round"
-              className={cn("fill-none transition-all duration-1000", meta.ring)}
-              strokeDasharray={circumference}
-              strokeDashoffset={circumference * (1 - progress)}
-            />
-          </svg>
-          <div className="absolute flex flex-col items-center gap-1">
-            {phase === "focus" ? (
-              <BookOpen className={cn("h-5 w-5", meta.color)} />
-            ) : (
-              <Coffee className={cn("h-5 w-5", meta.color)} />
+          <div className="text-[10px] tracking-[3px] uppercase text-indigo-300/70 font-semibold mb-2">
+            ATLAS Pomodoro Watch
+          </div>
+          <div className="relative h-44 w-44 flex items-center justify-center">
+            <svg viewBox="0 0 180 180" className="h-full w-full absolute inset-0 -rotate-90">
+              <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="8" />
+              {/* Clockwise fill: ring grows from 0 to full circumference as time elapses */}
+              <circle
+                cx="90"
+                cy="90"
+                r="80"
+                fill="none"
+                stroke="url(#pomoGrad)"
+                strokeWidth="8"
+                strokeLinecap="round"
+                strokeDasharray={CIRCUMFERENCE}
+                strokeDashoffset={offset}
+                className={cn("transition-all duration-1000", warning && "drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]")}
+              />
+              <defs>
+                <linearGradient id="pomoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#6366F1" />
+                  <stop offset="100%" stopColor="#818CF8" />
+                </linearGradient>
+              </defs>
+            </svg>
+            <div className="absolute flex flex-col items-center px-3">
+              <span
+                className={cn(
+                  "font-mono text-3xl font-bold tracking-wider",
+                  warning ? "text-red-400" : "text-indigo-100"
+                )}
+              >
+                {formatSeconds(timeLeft)}
+              </span>
+              {/* Task name — premium pill look, crisp (no blur/opacity haze) */}
+              <span
+                className="mt-2 max-w-[150px] truncate rounded-full px-3 py-1 text-[10.5px] font-bold tracking-wide text-amber-200 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 border border-amber-400/30 shadow-[0_0_10px_rgba(251,191,36,0.15)]"
+                title={currentTask || "টাস্ক নাম"}
+              >
+                {currentTask || "টাস্ক নাম"}
+              </span>
+            </div>
+          </div>
+
+          {/* Pause <-> Resume control, plus a Reset button that restarts fresh */}
+          <div className="flex items-center gap-3 mt-4">
+            <button
+              onClick={toggle}
+              className="h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
+            >
+              {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
+            </button>
+            {totalTime > 0 && (
+              <button
+                onClick={reset}
+                title="রিসেট করুন"
+                className="h-10 w-10 rounded-full bg-white/10 border border-indigo-400/30 text-indigo-200 flex items-center justify-center hover:bg-white/20 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
             )}
-            <span className="text-4xl font-black font-mono tabular-nums">{fmt(secondsLeft)}</span>
-            <span className={cn("text-xs font-bold", meta.color)}>{meta.label}</span>
           </div>
         </div>
 
-        {/* Controls */}
-        <div className="flex gap-3 w-full">
+        {/* Setup card */}
+        <div className="rounded-2xl border bg-card p-4 space-y-3">
+          <h3 className="font-bold text-sm">সেটআপ</h3>
+          <div>
+            <label className="text-[11px] text-muted-foreground mb-1 block">টাস্কের নাম</label>
+            <input
+              value={task}
+              onChange={(e) => setTask(e.target.value)}
+              placeholder="যেমন: পদার্থবিজ্ঞান চ্যাপ্টার ৩"
+              className="w-full px-3 py-2 rounded-lg border bg-background text-sm"
+            />
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {PRESETS.map((p, i) => (
+              <button
+                key={p.label}
+                onClick={() => applyPreset(p.mins, i)}
+                className={cn(
+                  "px-2.5 py-1.5 rounded-lg text-[11px] font-bold border",
+                  activePreset === i
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-transparent border-border text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-1">ঘণ্টা</div>
+              <input
+                type="number"
+                min={0}
+                max={23}
+                value={hoursInput}
+                onChange={(e) => setHoursInput(e.target.value)}
+                placeholder="0"
+                className="w-full px-3 py-2 rounded-lg border bg-background text-sm"
+              />
+            </div>
+            <div>
+              <div className="text-[10px] text-muted-foreground mb-1">মিনিট</div>
+              <input
+                type="number"
+                min={0}
+                max={59}
+                value={minsInput}
+                onChange={(e) => setMinsInput(e.target.value)}
+                placeholder="25"
+                className="w-full px-3 py-2 rounded-lg border bg-background text-sm"
+              />
+            </div>
+          </div>
           <button
-            onClick={toggleRunning}
-            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm shadow-md hover:opacity-90"
+            onClick={applySetup}
+            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-bold text-sm hover:opacity-90"
           >
-            {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
-            {running ? "Pause" : "Start"}
-          </button>
-          <button
-            onClick={reset}
-            className="px-4 py-3.5 rounded-xl border font-bold text-sm hover:bg-muted"
-          >
-            <RotateCcw className="h-4 w-4" />
-          </button>
-          <button
-            onClick={skipPhase}
-            className="px-4 py-3.5 rounded-xl border font-bold text-sm hover:bg-muted text-muted-foreground"
-          >
-            Skip
+            ⏱ Set করুন
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          সম্পন্ন Focus সেশন: <b className="text-foreground">{completedFocusCycles}</b> · প্রতি{" "}
-          {durations.cyclesBeforeLongBreak}টি সেশনের পর Long Break
-        </p>
-
-        {showSettings && (
-          <SettingsPanel
-            initial={{
-              focus: durations.focus / 60,
-              shortBreak: durations.shortBreak / 60,
-              longBreak: durations.longBreak / 60,
-            }}
-            onApply={applySettings}
-            onClose={() => setShowSettings(false)}
-          />
+        {/* Success graph */}
+        {hasGraphData && (
+          <div className="rounded-2xl border bg-card p-4 space-y-3">
+            <h3 className="font-bold text-sm">সাফল্যের হার (গত ৩ দিন)</h3>
+            <div className="flex items-end gap-3 h-24">
+              {last3Days.map((d) => (
+                <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
+                  <div className="flex-1 w-full flex items-end">
+                    <div
+                      className={cn(
+                        "w-full rounded-t-md",
+                        d.rate >= 80 ? "bg-emerald-500" : d.rate >= 50 ? "bg-amber-500" : "bg-destructive"
+                      )}
+                      style={{ height: `${Math.max(d.rate, 4)}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground">{d.label}</span>
+                  <span className="text-[10px] font-bold">{d.rate}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-      </div>
-    </div>
-  );
-};
 
-const SettingsPanel = ({
-  initial,
-  onApply,
-  onClose,
-}: {
-  initial: { focus: number; shortBreak: number; longBreak: number };
-  onApply: (v: { focus: number; shortBreak: number; longBreak: number }) => void;
-  onClose: () => void;
-}) => {
-  const [focus, setFocus] = useState(initial.focus);
-  const [shortBreak, setShortBreak] = useState(initial.shortBreak);
-  const [longBreak, setLongBreak] = useState(initial.longBreak);
-
-  return (
-    <div className="w-full rounded-2xl border bg-card p-4 space-y-3">
-      <h3 className="font-bold text-sm">সময় কাস্টমাইজ করুন (মিনিট)</h3>
-      {[
-        { label: "Focus", value: focus, set: setFocus },
-        { label: "Short Break", value: shortBreak, set: setShortBreak },
-        { label: "Long Break", value: longBreak, set: setLongBreak },
-      ].map((row) => (
-        <div key={row.label} className="flex items-center justify-between gap-3">
-          <span className="text-xs font-semibold text-muted-foreground">{row.label}</span>
-          <input
-            type="number"
-            min={1}
-            max={120}
-            value={row.value}
-            onChange={(e) => row.set(Number(e.target.value) || 1)}
-            className="w-16 text-center border rounded-lg px-2 py-1 text-sm bg-background"
-          />
+        {/* Session history */}
+        <div className="rounded-2xl border bg-card p-4 space-y-2">
+          <h3 className="font-bold text-sm mb-1">সেশন ইতিহাস</h3>
+          {sessions.length === 0 && (
+            <p className="text-center text-xs text-muted-foreground py-4">কোনো সেশন নেই।</p>
+          )}
+          {sessions.slice(0, 10).map((s, i) => (
+            <div key={i} className="flex items-center gap-2.5 py-2 border-b last:border-b-0">
+              {s.success ? (
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 flex-shrink-0" />
+              ) : (
+                <XCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+              )}
+              <span className="flex-1 text-xs font-semibold truncate">{s.task || "টাস্ক"}</span>
+              <div className="text-right">
+                <div className="text-[11px] font-bold text-primary">{formatSeconds(s.duration)}</div>
+                <div className="text-[10px] text-muted-foreground">{toBanglaDate(s.completedAt)}</div>
+              </div>
+              <button
+                onClick={() => deleteSession(i)}
+                className="h-7 w-7 rounded-lg bg-destructive/10 text-destructive flex items-center justify-center flex-shrink-0"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={() => onApply({ focus, shortBreak, longBreak })}
-          className="flex-1 py-2 rounded-lg bg-primary text-primary-foreground font-bold text-xs"
-        >
-          Apply
-        </button>
-        <button onClick={onClose} className="px-4 py-2 rounded-lg border text-xs font-bold">
-          বাতিল
-        </button>
       </div>
+
+      {/* Completion modal */}
+      {showCompletionModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-5">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-extrabold text-center mb-2">🎉 Pomodoro Complete!</h3>
+            <p className="text-sm text-muted-foreground text-center mb-5">
+              আপনি কি কাজটি সফলভাবে complete করেছেন?
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => completeSession(true)}
+                className="flex-1 py-3 rounded-xl bg-emerald-500 text-white font-bold text-sm flex items-center justify-center gap-1.5"
+              >
+                <CheckCircle2 className="h-4 w-4" /> হ্যাঁ
+              </button>
+              <button
+                onClick={() => completeSession(false)}
+                className="flex-1 py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-sm flex items-center justify-center gap-1.5"
+              >
+                <XCircle className="h-4 w-4" /> না
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

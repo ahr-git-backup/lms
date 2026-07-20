@@ -1,7 +1,19 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, Coffee, Moon, Pause, Play, Square, Trophy } from "lucide-react";
+import {
+  ArrowLeft,
+  BookOpen,
+  Calendar,
+  CheckCircle2,
+  Coffee,
+  Moon,
+  Pause,
+  Play,
+  Square,
+  Trophy,
+  Users,
+} from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,6 +27,18 @@ const MOOD_META: Record<Mood, { label: string; icon: typeof BookOpen; color: str
   sleep: { label: "Sleep", icon: Moon, color: "text-indigo-400", bg: "from-indigo-500 to-violet-500" },
 };
 
+const STATE_KEY = "atlas_focus_state_v1";
+const MAX_BREAK_SEC = 3600; // 1 hour break cap, auto-ends and returns to Study
+
+interface PersistedState {
+  sessionId: number;
+  mood: Mood;
+  elapsed: number;
+  paused: boolean;
+  userId: string;
+  savedAt: number;
+}
+
 function formatHMS(totalSeconds: number) {
   const h = Math.floor(totalSeconds / 3600);
   const m = Math.floor((totalSeconds % 3600) / 60);
@@ -22,32 +46,192 @@ function formatHMS(totalSeconds: number) {
   return { h: String(h).padStart(2, "0"), m: String(m).padStart(2, "0"), s: String(s).padStart(2, "0") };
 }
 
+function loadState(): PersistedState | null {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    return raw ? (JSON.parse(raw) as PersistedState) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveState(state: PersistedState) {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  } catch {
+    /* storage unavailable, session just won't resume after refresh */
+  }
+}
+
+function clearState() {
+  try {
+    localStorage.removeItem(STATE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function sessionNumberKey(userId: string) {
+  return `atlas_focus_session_num_${userId}`;
+}
+
+function loadSessionNumber(userId: string): number {
+  try {
+    const raw = localStorage.getItem(sessionNumberKey(userId));
+    if (!raw) return 1;
+    const d = JSON.parse(raw) as { date: string; n: number };
+    const today = new Date().toISOString().split("T")[0];
+    return d.date === today ? d.n : 1;
+  } catch {
+    return 1;
+  }
+}
+
+function saveSessionNumber(userId: string, n: number) {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    localStorage.setItem(sessionNumberKey(userId), JSON.stringify({ date: today, n }));
+  } catch {
+    /* ignore */
+  }
+}
+
 const FocusTimer = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const [mood, setMood] = useState<Mood>("study");
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [sessionId, setSessionId] = useState<number | null>(null);
+  const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
+  const [showLiveNow, setShowLiveNow] = useState(false);
+  const [selectedBatch, setSelectedBatch] = useState<string>("all");
+  const [breaksUsed, setBreaksUsed] = useState(0);
+  const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
+  const [pendingMood, setPendingMood] = useState<Mood | null>(null);
+  const pauseStartRef = useRef<number | null>(null);
+  const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [stopStats, setStopStats] = useState<{ breaks: number; sleepSeconds: number } | null>(null);
+  const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
+  const [sessionNumber, setSessionNumber] = useState(1);
+  const hasStoppedOnceRef = useRef(false);
+  const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
+  const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
+  const [cmpDays, setCmpDays] = useState(1);
+  const [overlayDays, setOverlayDays] = useState(1);
+  const [showIntro, setShowIntro] = useState(false);
+
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const sessionStartRef = useRef<Date | null>(null);
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const elapsedRef = useRef(0);
+  const pausedRef = useRef(false);
+  const sessionIdRef = useRef<number | null>(null);
+  const moodRef = useRef<Mood>("study");
+  const resumedRef = useRef(false);
 
   useEffect(() => {
     document.title = "Focus Timer — Atlas";
+    try {
+      if (!localStorage.getItem("atlas_focus_intro_seen")) setShowIntro(true);
+    } catch {
+      /* ignore */
+    }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
   }, []);
 
+  useEffect(() => {
+    if (user) setSessionNumber(loadSessionNumber(user.id));
+  }, [user]);
+
+  // Attempt resume from a previous page load (survives refresh/navigation).
+  useEffect(() => {
+    if (!user || resumedRef.current) return;
+    resumedRef.current = true;
+    const saved = loadState();
+    if (!saved || saved.userId !== user.id) return;
+
+    (async () => {
+      const { data, error } = await supabase.rpc("focus_start_session", {
+        p_mood: saved.mood,
+        p_resume_id: saved.sessionId,
+      });
+      if (error || !data) {
+        clearState();
+        return;
+      }
+      const id = data as number;
+      setSessionId(id);
+      setMood(saved.mood);
+      setElapsed(saved.elapsed);
+      setPaused(saved.paused);
+      setRunning(true);
+      sessionIdRef.current = id;
+      moodRef.current = saved.mood;
+      elapsedRef.current = saved.elapsed;
+      pausedRef.current = saved.paused;
+      if (!saved.paused) startTicking();
+      startHeartbeat();
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
   const { data: leaderboard, refetch: refetchLeaderboard } = useQuery({
-    queryKey: ["focus-leaderboard", leaderboardDays],
+    queryKey: ["focus-leaderboard", leaderboardMood, leaderboardDays],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("focus_leaderboard", { p_days: leaderboardDays });
+      const { data, error } = await supabase.rpc("focus_mood_leaderboard", {
+        p_mood: leaderboardMood,
+        p_days: leaderboardDays,
+      });
       if (error) throw error;
       return data || [];
     },
+    refetchInterval: 15000,
+  });
+
+  const { data: liveNow, refetch: refetchLiveNow } = useQuery({
+    queryKey: ["focus-live-now"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("focus_live_now");
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 8000,
+    enabled: !!user,
+  });
+
+  const { data: overlayRanking } = useQuery({
+    queryKey: ["focus-overlay-ranking", overlayMood, overlayDays],
+    queryFn: async () => {
+      if (!overlayMood) return [];
+      const { data, error } = await supabase.rpc("focus_mood_leaderboard", {
+        p_mood: overlayMood,
+        p_days: overlayDays,
+      });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!overlayMood,
+  });
+
+  const { data: cmpDaily } = useQuery({
+    queryKey: ["focus-compare-daily", compareTarget?.userId, cmpDays],
+    queryFn: async () => {
+      if (!compareTarget) return [];
+      const { data, error } = await supabase.rpc("focus_compare_daily" as any, {
+        p_other_user: compareTarget.userId,
+        p_days: cmpDays,
+      });
+      if (error) throw error;
+      return ((data as unknown) || []) as { user_id: string; day: string; total_seconds: number }[];
+    },
+    enabled: !!compareTarget && cmpDays > 1,
   });
 
   const { data: myTotalToday } = useQuery({
@@ -67,62 +251,251 @@ const FocusTimer = () => {
     },
   });
 
-  const tick = () => {
-    setElapsed((e) => e + 1);
+  const startTicking = () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    intervalRef.current = setInterval(() => {
+      elapsedRef.current += 1;
+      setElapsed(elapsedRef.current);
+      if (moodRef.current === "break" && accumulatedBreakRef.current + elapsedRef.current >= MAX_BREAK_SEC) {
+        void autoEndBreak();
+      }
+    }, 1000);
   };
 
-  const start = () => {
-    sessionStartRef.current = new Date();
+  const startHeartbeat = () => {
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    heartbeatRef.current = setInterval(() => {
+      if (sessionIdRef.current == null) return;
+      void supabase.rpc("focus_update_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+        p_is_paused: pausedRef.current,
+      });
+      saveState({
+        sessionId: sessionIdRef.current,
+        mood: moodRef.current,
+        elapsed: elapsedRef.current,
+        paused: pausedRef.current,
+        userId: user!.id,
+        savedAt: Date.now(),
+      });
+    }, 5000);
+  };
+
+  const start = async () => {
+    if (!user) return;
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: mood });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = 0;
+    pausedRef.current = false;
+    sessionIdRef.current = id;
+    moodRef.current = mood;
+    setSessionId(id);
     setElapsed(0);
     setRunning(true);
     setPaused(false);
-    intervalRef.current = setInterval(tick, 1000);
+    startTicking();
+    startHeartbeat();
+    saveState({ sessionId: id, mood, elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
+    if (hasStoppedOnceRef.current) {
+      const next = sessionNumber + 1;
+      setSessionNumber(next);
+      saveSessionNumber(user.id, next);
+    }
   };
 
   const pause = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
+    pausedRef.current = true;
     setPaused(true);
+    pauseStartRef.current = Date.now();
+    if (sessionIdRef.current != null) {
+      void supabase.rpc("focus_update_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+        p_is_paused: true,
+      });
+    }
   };
 
   const resume = () => {
-    intervalRef.current = setInterval(tick, 1000);
+    pausedRef.current = false;
     setPaused(false);
+    pauseStartRef.current = null;
+    startTicking();
+    if (sessionIdRef.current != null) {
+      void supabase.rpc("focus_update_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+        p_is_paused: false,
+      });
+    }
   };
 
-  const switchMood = (m: Mood) => {
-    if (!running) {
-      setMood(m);
+  // রাত ১২টা থেকে সকাল ৮টার মধ্যে Study Mood paused অবস্থায় ১.৫ ঘণ্টা পার হলে
+  // স্বয়ংক্রিয়ভাবে Sleep Mode চালু হয়ে যায়।
+  const checkAutoSleepFromPause = async () => {
+    if (!pauseStartRef.current || moodRef.current !== "study" || !pausedRef.current) return;
+    const hr = new Date().getHours();
+    const inNightWindow = hr >= 0 && hr < 8;
+    if (!inNightWindow) return;
+    const pausedSecs = Math.floor((Date.now() - pauseStartRef.current) / 1000);
+    if (pausedSecs < 5400) return; // 1.5 hours
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "sleep" });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = pausedSecs;
+    pausedRef.current = false;
+    pauseStartRef.current = null;
+    sessionIdRef.current = id;
+    moodRef.current = "sleep";
+    setSessionId(id);
+    setMood("sleep");
+    setElapsed(pausedSecs);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: "sleep", elapsed: pausedSecs, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
+    setToast("🌙 রাতে দীর্ঘ বিরতি দেখে Sleep Mode চালু হলো");
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  useEffect(() => {
+    autoSleepCheckRef.current = setInterval(() => {
+      void checkAutoSleepFromPause();
+    }, 30000);
+    return () => {
+      if (autoSleepCheckRef.current) clearInterval(autoSleepCheckRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Tapping a mood button: if Study is actively running, confirm before switching away.
+  const requestSwitchMood = (m: Mood) => {
+    if (m === moodRef.current) return;
+    if (running && moodRef.current === "study" && !pausedRef.current) {
+      setPendingMood(m);
       return;
     }
-    // switching mood mid-session: save current segment, start a new one under new mood
-    void saveSegment(mood, elapsed);
-    setMood(m);
-    setElapsed(0);
-    sessionStartRef.current = new Date();
+    void switchMood(m);
   };
 
-  const saveSegment = async (segMood: Mood, seconds: number) => {
-    if (!user || seconds < 1) return;
-    try {
-      await supabase.from("focus_sessions").insert({
-        user_id: user.id,
-        mood: segMood,
-        duration_seconds: seconds,
-        started_at: sessionStartRef.current?.toISOString() || new Date().toISOString(),
-        ended_at: new Date().toISOString(),
-      });
-    } catch {
-      /* best-effort save, ignore network failure */
+  const confirmMoodSwitch = () => {
+    if (pendingMood) void switchMood(pendingMood);
+    setPendingMood(null);
+  };
+
+  const closeMoodPopup = () => setPendingMood(null);
+
+  const switchMood = async (m: Mood) => {
+    if (!running) {
+      setMood(m);
+      moodRef.current = m;
+      return;
     }
+    // end current live segment, start a fresh one under the new mood
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    if (moodRef.current === "break") {
+      accumulatedBreakRef.current += elapsedRef.current;
+    }
+    if (moodRef.current === "sleep") {
+      sleepSecsRef.current += elapsedRef.current;
+    }
+    if (m === "break" && moodRef.current !== "break") {
+      setBreaksUsed((n) => n + 1);
+    }
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: m });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = 0;
+    pausedRef.current = false;
+    sessionIdRef.current = id;
+    moodRef.current = m;
+    setSessionId(id);
+    setMood(m);
+    setElapsed(0);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: m, elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
+  };
+
+  // Break time limit reached — auto-return to Study mood.
+  const autoEndBreak = async () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    accumulatedBreakRef.current += elapsedRef.current;
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = 0;
+    pausedRef.current = false;
+    sessionIdRef.current = id;
+    moodRef.current = "study";
+    setSessionId(id);
+    setMood("study");
+    setElapsed(0);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
   };
 
   const stop = async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    await saveSegment(mood, elapsed);
+    if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    if (moodRef.current === "sleep") {
+      sleepSecsRef.current += elapsedRef.current;
+    }
+    clearState();
+    setStopStats({ breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
+    hasStoppedOnceRef.current = true;
+    sessionIdRef.current = null;
+    setSessionId(null);
     setRunning(false);
     setPaused(false);
     setElapsed(0);
+    accumulatedBreakRef.current = 0;
+    sleepSecsRef.current = 0;
+    setBreaksUsed(0);
+    pauseStartRef.current = null;
     refetchLeaderboard();
+    refetchLiveNow();
+  };
+
+  const dismissIntro = () => {
+    setShowIntro(false);
+    try {
+      localStorage.setItem("atlas_focus_intro_seen", "1");
+    } catch {
+      /* ignore */
+    }
   };
 
   const { h, m: min, s } = formatHMS(elapsed);
@@ -141,6 +514,13 @@ const FocusTimer = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="flex-1 font-extrabold text-[17px]">Focus Timer</h1>
+        <button
+          onClick={() => navigate("/focus-timer/history")}
+          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
+          aria-label="Study History"
+        >
+          <Calendar className="h-4 w-4" />
+        </button>
         {typeof myTotalToday === "number" && (
           <span className="text-xs font-bold text-emerald-500">
             আজ {formatHMS(myTotalToday).h}h {formatHMS(myTotalToday).m}m
@@ -149,70 +529,171 @@ const FocusTimer = () => {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-5 space-y-6">
+        {showIntro && (
+          <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="font-extrabold text-sm">কীভাবে কাজ করে</h3>
+              <button onClick={dismissIntro} className="text-xs font-bold text-muted-foreground hover:text-foreground">
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">১</span>
+                <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mode timer শুরু হবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">২</span>
+                <span>ক্লান্ত হলে Break মোডে চাপো — Study pause হয়ে Break timer শুরু হবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৩</span>
+                <span>রাতে Study paused থাকলে ১.৫ ঘণ্টা পর নিজে থেকেই Sleep Mode চালু হয়ে যাবে</span>
+              </div>
+            </div>
+            <button
+              onClick={dismissIntro}
+              className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
+            >
+              বুঝেছি, শুরু করি
+            </button>
+          </div>
+        )}
         {!user && (
           <div className="text-center text-sm text-muted-foreground bg-muted/40 rounded-xl p-4">
             টাইমার সেভ করতে লগইন করুন।
           </div>
         )}
 
-        {/* Mood switcher */}
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-            const md = MOOD_META[m];
-            const MIcon = md.icon;
-            const active = mood === m;
-            return (
-              <button
-                key={m}
-                onClick={() => switchMood(m)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
-                  active
-                    ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
-                    : "border-border bg-card text-muted-foreground hover:border-primary/30"
-                )}
-              >
-                <MIcon className="h-5 w-5" />
-                <span className="text-xs font-bold">{md.label}</span>
-              </button>
-            );
-          })}
+        {/* User header — name/batch + Study Time History (matches AtlasApp position, above banner) */}
+        <div className="flex items-center justify-between rounded-2xl border bg-card px-3 py-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+              {(profile?.full_name || "?").charAt(0).toUpperCase()}
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-xs font-extrabold">{profile?.full_name || "লোড হচ্ছে..."}</span>
+              {profile?.hsc_batch && (
+                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full w-fit mt-0.5">
+                  {profile.hsc_batch}
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => document.getElementById("focus-leaderboard")?.scrollIntoView({ behavior: "smooth" })}
+            className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground border rounded-lg px-2 py-1.5 hover:bg-muted"
+          >
+            <Trophy className="h-3 w-3" /> Study Time History
+          </button>
         </div>
 
-        {/* Digital timer */}
+        {/* Premium ATLAS Focus Timer banner */}
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2">
+          <Icon className={cn("h-4 w-4", meta.color)} />
+          <span className="text-sm font-black tracking-wide bg-gradient-to-r from-primary via-primary/70 to-primary bg-clip-text text-transparent">
+            ATLAS Focus Timer
+          </span>
+          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-gradient-to-r from-primary to-primary/70 text-primary-foreground tracking-wide">
+            PREMIUM
+          </span>
+        </div>
+
+        {/* Unified box — Mood row + Digital timer + Controls together, matching AtlasApp's timer-unified-box */}
         <div
           className={cn(
-            "rounded-2xl p-6 flex flex-col items-center gap-4 border-2",
+            "rounded-2xl p-4 flex flex-col items-center gap-4 border-2 shadow-sm",
             mood === "study" && "border-emerald-500/30 bg-emerald-500/5",
             mood === "break" && "border-amber-500/30 bg-amber-500/5",
             mood === "sleep" && "border-indigo-500/30 bg-indigo-500/5"
           )}
         >
+          {/* Mood switcher (top row, inside unified box) */}
+          <div className="grid grid-cols-3 gap-2 w-full">
+            {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+              const md = MOOD_META[m];
+              const MIcon = md.icon;
+              const active = mood === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => requestSwitchMood(m)}
+                  className={cn(
+                    "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
+                    active
+                      ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
+                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  <MIcon className="h-5 w-5" />
+                  <span className="text-xs font-bold">{md.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex items-center gap-2 text-sm font-bold">
             <Icon className={cn("h-4 w-4", meta.color)} />
-            <span className={meta.color}>{meta.label} Mode</span>
+            <span className={meta.color}>
+              {meta.label} Mode{mood === "study" && sessionNumber > 1 ? ` (Session ${sessionNumber})` : ""}
+            </span>
+            {running && paused && (
+              <span className="text-[10px] font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                Paused
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-2 font-mono text-4xl font-black tabular-nums">
-            <div className="flex flex-col items-center">
-              <span>{h}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">HRS</span>
+          {mood === "break" && running && MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed) <= 300 && (
+            <div className="w-full text-center text-[11px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg py-1.5 px-3 animate-pulse">
+              ⚠️ বিরতি শেষ হতে {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).m}m{" "}
+              {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).s}s বাকি
             </div>
-            <span className="pb-4">:</span>
-            <div className="flex flex-col items-center">
-              <span>{min}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">MIN</span>
+          )}
+          <div className="flex items-center gap-1.5">
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{h}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">HRS</span>
             </div>
-            <span className="pb-4">:</span>
-            <div className="flex flex-col items-center">
-              <span>{s}</span>
-              <span className="text-[9px] font-sans text-muted-foreground mt-0.5">SEC</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{min}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">MIN</span>
+            </div>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <div
+              className={cn(
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
+                "bg-card/80",
+                mood === "study" && "border-emerald-500/25",
+                mood === "break" && "border-amber-500/25",
+                mood === "sleep" && "border-indigo-500/25"
+              )}
+            >
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{s}</span>
+              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">SEC</span>
             </div>
           </div>
 
           <div className="flex gap-2 w-full">
             {!running && (
               <button
-                onClick={start}
+                onClick={() => void start()}
                 disabled={!user}
                 className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40"
               >
@@ -228,7 +709,7 @@ const FocusTimer = () => {
                   <Pause className="h-4 w-4" /> Pause
                 </button>
                 <button
-                  onClick={stop}
+                  onClick={() => void stop()}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-sm"
                 >
                   <Square className="h-4 w-4" /> Stop
@@ -244,7 +725,7 @@ const FocusTimer = () => {
                   <Play className="h-4 w-4 fill-current" /> Resume
                 </button>
                 <button
-                  onClick={stop}
+                  onClick={() => void stop()}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-destructive text-destructive-foreground font-bold text-sm"
                 >
                   <Square className="h-4 w-4" /> Stop
@@ -254,12 +735,150 @@ const FocusTimer = () => {
           </div>
         </div>
 
-        {/* Leaderboard */}
+        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
+            const md = MOOD_META[m];
+            return (
+              <button
+                key={m}
+                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
+                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
+              >
+                <span className={cn("text-lg font-black", md.color)}>{count}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Live "studying now" toggle + list */}
         <div className="space-y-3">
+          <button
+            onClick={() => setShowLiveNow((v) => !v)}
+            className="flex items-center gap-2 text-sm font-extrabold"
+          >
+            <Users className="h-4 w-4 text-sky-500" />
+            এখন যারা অনলাইনে আছে
+            <span className="text-[10px] font-bold text-muted-foreground">
+              {showLiveNow ? "লুকাও" : "দেখাও"}
+            </span>
+          </button>
+          {showLiveNow && (
+            <>
+              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
+              {(() => {
+                const batches = Array.from(
+                  new Set((liveNow || []).map((r: any) => r.hsc_batch || "অন্যান্য"))
+                );
+                if (batches.length <= 1) return null;
+                return (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setSelectedBatch("all")}
+                      className={cn(
+                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                        selectedBatch === "all"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border text-muted-foreground"
+                      )}
+                    >
+                      সবাই ({(liveNow || []).length})
+                    </button>
+                    {batches.map((b) => {
+                      const cnt = (liveNow || []).filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      return (
+                        <button
+                          key={b as string}
+                          onClick={() => setSelectedBatch(b as string)}
+                          className={cn(
+                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                            selectedBatch === b
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border text-muted-foreground"
+                          )}
+                        >
+                          {b as string} ({cnt})
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div className="space-y-1.5">
+                {(() => {
+                  const filtered = (liveNow || []).filter(
+                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+                  );
+                  if (filtered.length === 0) {
+                    return (
+                      <p className="text-center text-xs text-muted-foreground py-4">
+                        এখন কেউ সেশনে নেই।
+                      </p>
+                    );
+                  }
+                  return filtered.map((row: any) => {
+                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
+                          <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                        </div>
+                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Leaderboard — per mood */}
+        <div id="focus-leaderboard" className="space-y-3">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
             <h2 className="font-extrabold text-sm">Focus Leaderboard</h2>
           </div>
+
+          <div className="flex gap-2">
+            {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+              const md = MOOD_META[m];
+              return (
+                <button
+                  key={m}
+                  onClick={() => setLeaderboardMood(m)}
+                  className={cn(
+                    "flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border",
+                    leaderboardMood === m
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border text-muted-foreground"
+                  )}
+                >
+                  {md.label}
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex gap-2">
             {[1, 3, 7, 15, 30].map((d) => (
               <button
@@ -276,42 +895,338 @@ const FocusTimer = () => {
               </button>
             ))}
           </div>
+
           <div className="space-y-1.5">
             {(!leaderboard || leaderboard.length === 0) && (
               <p className="text-center text-xs text-muted-foreground py-6">
-                এখনো কেউ পড়াশোনার সময় রেকর্ড করেনি।
+                এখনো কেউ এই মোডে সময় রেকর্ড করেনি।
               </p>
             )}
             {leaderboard?.map((row: any, i: number) => {
               const isMe = row.user_id === user?.id;
               const t = formatHMS(Number(row.total_seconds));
+              const md = MOOD_META[leaderboardMood];
               return (
-                <div
+                <button
                   key={row.user_id}
+                  onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                    isMe && "border-primary/40 bg-primary/5"
+                    "w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left",
+                    isMe && "border-primary/40 bg-primary/5",
+                    !isMe && "hover:border-primary/30 transition-colors"
                   )}
                 >
                   <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
                     #{i + 1}
                   </div>
-                  <div className="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center font-extrabold text-emerald-600 text-xs flex-shrink-0">
+                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
                     {(row.full_name || "S").charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0 text-xs font-bold truncate">
                     {row.full_name || "Student"}
                     {isMe && " (তুমি)"}
                   </div>
-                  <div className="text-xs font-black text-emerald-500 font-mono flex-shrink-0">
+                  <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
                     {t.h}h {t.m}m
                   </div>
-                </div>
+                </button>
               );
             })}
           </div>
         </div>
       </div>
+
+      {/* Mood switch confirmation — shown when Study is running and user taps Break/Sleep */}
+      {pendingMood && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
+            <h3 className="text-base font-extrabold">⚠️ মোড পরিবর্তন</h3>
+            <p className="text-sm text-muted-foreground">
+              Study Timer চলছে। Break / Sleep Mode on করতে হলে আগে বন্ধ করো। এই সময়গুলো Top Focused rank এ count হয়।
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmMoodSwitch}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+              >
+                এই Mood বন্ধ করো
+              </button>
+              <button
+                onClick={closeMoodPopup}
+                className="flex-1 py-2.5 rounded-xl border font-bold text-sm hover:bg-muted"
+              >
+                বাতিল
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
+          {toast}
+        </div>
+      )}
+
+      {/* Session summary — shown after Stop */}
+      {stopStats && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+            <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
+            <h3 className="text-base font-extrabold">সেশন শেষ হয়েছে 🎉</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl bg-muted/50 py-3">
+                <div className="text-xl font-black">{stopStats.breaks}</div>
+                <div className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                  <Coffee className="h-3 w-3" /> বিরতি
+                </div>
+              </div>
+              <div className="rounded-xl bg-muted/50 py-3">
+                <div className="text-xl font-black">
+                  {formatHMS(stopStats.sleepSeconds).h}:{formatHMS(stopStats.sleepSeconds).m}
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                  <Moon className="h-3 w-3" /> ঘুম
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setStopStats(null)}
+              className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
+            >
+              ঠিক আছে
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Full-screen mood overlay — everyone in Study/Break/Sleep, ranked by time, with period filter */}
+      {overlayMood && (
+        <div className="fixed inset-0 bg-background z-[70] flex flex-col">
+          <div className="flex items-center gap-3 px-4 py-3 border-b">
+            <button
+              onClick={() => setOverlayMood(null)}
+              className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <h2 className={cn("flex-1 font-extrabold text-base", MOOD_META[overlayMood].color)}>
+              {MOOD_META[overlayMood].label} মোডে {overlayDays === 1 ? "এখন যারা আছে" : "যারা সময় দিয়েছে"}
+            </h2>
+          </div>
+          <div className="flex gap-2 px-4 py-2.5 border-b overflow-x-auto">
+            {[1, 3, 7, 15, 30].map((d) => (
+              <button
+                key={d}
+                onClick={() => setOverlayDays(d)}
+                className={cn(
+                  "px-3 py-1.5 rounded-full text-[11px] font-bold border flex-shrink-0",
+                  overlayDays === d
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-muted-foreground"
+                )}
+              >
+                {d === 1 ? "আজকে" : `${d} দিন`}
+              </button>
+            ))}
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-1.5">
+            {overlayDays === 1 ? (
+              <>
+                {(liveNow || []).filter((r: any) => r.mood === overlayMood).length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground py-10">এখন কেউ এই মোডে নেই।</p>
+                )}
+                {(liveNow || [])
+                  .filter((r: any) => r.mood === overlayMood)
+                  .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
+                  .map((row: any, i: number) => {
+                    const md = MOOD_META[overlayMood];
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
+                          #{i + 1}
+                        </div>
+                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
+                          <MIcon className={cn("h-4 w-4", md.color)} />
+                        </div>
+                        <div className="flex-1 min-w-0 text-sm font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            ) : (
+              <>
+                {(!overlayRanking || overlayRanking.length === 0) && (
+                  <p className="text-center text-sm text-muted-foreground py-10">এই সময়ে কেউ এই মোডে সময় দেয়নি।</p>
+                )}
+                {overlayRanking?.map((row: any, i: number) => {
+                  const md = MOOD_META[overlayMood];
+                  const t = formatHMS(Number(row.total_seconds));
+                  const isMe = row.user_id === user?.id;
+                  return (
+                    <div
+                      key={row.user_id}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
+                        isMe && "border-primary/40 bg-primary/5"
+                      )}
+                    >
+                      <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
+                        #{i + 1}
+                      </div>
+                      <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
+                        {(row.full_name || "S").charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0 text-sm font-bold truncate">
+                        {row.full_name || "Student"}
+                        {isMe && " (তুমি)"}
+                      </div>
+                      <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                        {t.h}h {t.m}m
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      {/* Compare modal — tap any leaderboard row to compare against yourself */}
+      {compareTarget && (() => {
+        const myRow = leaderboard?.find((r: any) => r.user_id === user?.id);
+        const snapshotMySecs = myRow ? Number(myRow.total_seconds) : 0;
+
+        let mySecs = snapshotMySecs;
+        let theirSecs = compareTarget.secs;
+        if (cmpDays > 1 && cmpDaily) {
+          mySecs = cmpDaily.filter((r) => r.user_id === user?.id).reduce((a, r) => a + Number(r.total_seconds), 0);
+          theirSecs = cmpDaily.filter((r) => r.user_id === compareTarget.userId).reduce((a, r) => a + Number(r.total_seconds), 0);
+        }
+
+        const maxSec = Math.max(mySecs, theirSecs, 1);
+        const meW = Math.round((mySecs / maxSec) * 100);
+        const thW = Math.round((theirSecs / maxSec) * 100);
+        const ahead = mySecs >= theirSecs;
+        const diff = Math.abs(mySecs - theirSecs);
+        const diffFmt = formatHMS(diff);
+
+        const dayKeys: string[] = [];
+        if (cmpDays > 1) {
+          for (let i = cmpDays - 1; i >= 0; i--) {
+            dayKeys.push(new Date(Date.now() - i * 86400000).toISOString().slice(0, 10));
+          }
+        }
+        const myDailyMap = new Map((cmpDaily || []).filter((r) => r.user_id === user?.id).map((r) => [r.day, Number(r.total_seconds)]));
+        const theirDailyMap = new Map((cmpDaily || []).filter((r) => r.user_id === compareTarget.userId).map((r) => [r.day, Number(r.total_seconds)]));
+        const graphMax = Math.max(1, ...dayKeys.map((d) => Math.max(myDailyMap.get(d) || 0, theirDailyMap.get(d) || 0)));
+
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
+            <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-extrabold">তুলনা করো</h3>
+                <button
+                  onClick={() => setCompareTarget(null)}
+                  className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex gap-1.5 overflow-x-auto">
+                {[1, 3, 7, 15, 30].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setCmpDays(d)}
+                    className={cn(
+                      "px-2.5 py-1 rounded-full text-[10px] font-bold border flex-shrink-0",
+                      cmpDays === d ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border text-muted-foreground"
+                    )}
+                  >
+                    {d === 1 ? "আজকে" : `${d} দিন`}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-2.5">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>তুমি</span>
+                    <span className="text-primary">{formatHMS(mySecs).h}h {formatHMS(mySecs).m}m</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-primary rounded-full" style={{ width: `${meW}%` }} />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-bold">
+                    <span>{compareTarget.name}</span>
+                    <span className="text-indigo-400">{formatHMS(theirSecs).h}h {formatHMS(theirSecs).m}m</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted overflow-hidden">
+                    <div className="h-full bg-indigo-400 rounded-full" style={{ width: `${thW}%` }} />
+                  </div>
+                </div>
+              </div>
+
+              {cmpDays > 1 && (
+                <div className="border-t pt-2.5 space-y-1.5">
+                  <div className="flex items-end gap-[3px] h-9">
+                    {dayKeys.map((d) => {
+                      const mv = myDailyMap.get(d) || 0;
+                      const tv = theirDailyMap.get(d) || 0;
+                      const mh = Math.max(2, Math.round((mv / graphMax) * 36));
+                      const th = Math.max(2, Math.round((tv / graphMax) * 36));
+                      return (
+                        <div key={d} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
+                          <div className="flex items-end gap-[1.5px]" style={{ height: 36 }}>
+                            <div className="w-[5px] rounded-t bg-primary" style={{ height: mh }} />
+                            <div className="w-[5px] rounded-t bg-indigo-400" style={{ height: th }} />
+                          </div>
+                          <div className="text-[6.5px] text-muted-foreground whitespace-nowrap">{d.slice(5).replace("-", "/")}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="flex gap-3 justify-center text-[8px] text-muted-foreground">
+                    <span><span className="inline-block w-[7px] h-[7px] rounded-sm bg-primary mr-1 align-middle" />তুমি</span>
+                    <span><span className="inline-block w-[7px] h-[7px] rounded-sm bg-indigo-400 mr-1 align-middle" />{compareTarget.name}</span>
+                  </div>
+                </div>
+              )}
+
+              <div
+                className={cn(
+                  "rounded-xl px-3 py-2.5 text-xs font-bold text-center",
+                  ahead ? "bg-emerald-500/10 text-emerald-600" : "bg-amber-500/10 text-amber-600"
+                )}
+              >
+                {diff === 0
+                  ? "সমান সমান! একটু বেশি পড়লেই এগিয়ে যাবে।"
+                  : ahead
+                  ? `তুমি ${diffFmt.h}h ${diffFmt.m}m এগিয়ে আছো! এই ধারা বজায় রাখো — বিরতি কম নিলে rank আরো ভালো হবে।`
+                  : `${diffFmt.h}h ${diffFmt.m}m পিছিয়ে আছো। বিরতি কমাও এবং একটানা পড়ার session বাড়াও — তাহলে দ্রুত এগিয়ে যাবে।`}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
