@@ -677,6 +677,7 @@ const TakeExam = () => {
                                   <div className="h-11 w-16 rounded-[10px] flex items-center justify-center">
                                       <input
                                           type="number"
+                                          autoFocus
                                           min={1}
                                           max={questions?.length || 1}
                                           value={selectedQuestionCount ?? ""}
