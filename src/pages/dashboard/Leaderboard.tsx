@@ -767,6 +767,13 @@ const Leaderboard = () => {
             {/* Podium Component */}
             {topThree.length > 0 && <Podium topThree={topThree} isStaff={isStaff} />}
 
+            {/* Mobile: sticky column header */}
+            <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex items-center px-3 py-1.5 text-[11px] font-semibold text-muted-foreground border-b mb-2">
+                <span className="w-8 shrink-0">Rank</span>
+                <span className="flex-1 pl-9">Student Detail</span>
+                <span className="shrink-0">Score</span>
+            </div>
+
             {/* Mobile: card list (no horizontal scroll) */}
             <div className="md:hidden space-y-2">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
