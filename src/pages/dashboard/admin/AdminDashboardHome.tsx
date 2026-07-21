@@ -83,36 +83,6 @@ const AdminDashboardHome = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold tracking-tight">Dashboard Overview</h2>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Card
-          className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-          onClick={() => navigate("/admin/reports")}
-        >
-          <CardContent className="p-4 flex items-center gap-3">
-            <Flag className="h-6 w-6 text-amber-600 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Reports</p>
-              <p className="text-xs text-muted-foreground">
-                {isLoading ? "..." : `${stats?.pendingReports || 0} pending`}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card
-          className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-          onClick={() => navigate("/admin/announcements")}
-        >
-          <CardContent className="p-4 flex items-center gap-3">
-            <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0" />
-            <div>
-              <p className="font-semibold text-sm">Notice</p>
-              <p className="text-xs text-muted-foreground">Send to all users</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

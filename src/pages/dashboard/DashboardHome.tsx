@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,7 +35,7 @@ const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeF
 };
 
 const DashboardHome = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { toast } = useToast();
@@ -175,6 +175,18 @@ const DashboardHome = () => {
       { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
 
+  const { data: pendingReportsCount } = useQuery({
+    queryKey: ["admin-pending-reports-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("question_reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      return count || 0;
+    },
+    enabled: !!isAdmin,
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="space-y-1">
@@ -183,6 +195,38 @@ const DashboardHome = () => {
           Get a quick overview of your upcoming activities.
         </p>
       </header>
+
+      {/* Admin-only quick actions */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+            onClick={() => navigate("/admin/reports")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Reports</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingReportsCount ?? "..."} pending
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            onClick={() => navigate("/admin/announcements")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm">Notice</p>
+                <p className="text-xs text-muted-foreground">Send to all users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* User Notifications (Approvals/Declines) */}
       {userNotifications && userNotifications.length > 0 && (
