@@ -285,20 +285,23 @@ const FocusTimer = () => {
 
   const start = async () => {
     if (!user) return;
-    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: mood });
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
     if (error || data == null) return;
     const id = data as number;
     elapsedRef.current = 0;
     pausedRef.current = false;
     sessionIdRef.current = id;
-    moodRef.current = mood;
+    moodRef.current = "study";
     setSessionId(id);
+    setMood("study");
+    setBreaksUsed(0);
+    setSelectedBatch("all");
     setElapsed(0);
     setRunning(true);
     setPaused(false);
     startTicking();
     startHeartbeat();
-    saveState({ sessionId: id, mood, elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
     if (hasStoppedOnceRef.current) {
       const next = sessionNumber + 1;
       setSessionNumber(next);
@@ -356,7 +359,7 @@ const FocusTimer = () => {
     const id = data as number;
     elapsedRef.current = pausedSecs;
     pausedRef.current = false;
-    pauseStartRef.current = null;
+    pauseStartRef.current = Date.now(); // reset so further night-pauses keep converting to sleep, matching AtlasApp
     sessionIdRef.current = id;
     moodRef.current = "sleep";
     setSessionId(id);
@@ -399,10 +402,11 @@ const FocusTimer = () => {
 
   const switchMood = async (m: Mood) => {
     if (!running) {
-      setMood(m);
-      moodRef.current = m;
+      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setTimeout(() => setToast(null), 2500);
       return;
     }
+    if (m === moodRef.current) return;
     // end current live segment, start a fresh one under the new mood
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (sessionIdRef.current != null) {
@@ -417,9 +421,10 @@ const FocusTimer = () => {
     if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
     }
-    if (m === "break" && moodRef.current !== "break") {
+    if (m === "break" && moodRef.current === "study") {
       setBreaksUsed((n) => n + 1);
     }
+    setLeaderboardDays(1);
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: m });
     if (error || data == null) return;
     const id = data as number;
@@ -446,6 +451,7 @@ const FocusTimer = () => {
       });
     }
     accumulatedBreakRef.current += elapsedRef.current;
+    setBreaksUsed((n) => n + 1);
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
     if (error || data == null) return;
     const id = data as number;
@@ -460,6 +466,8 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    setToast("⏰ বিরতির সময় শেষ — Study Mood এ ফিরে এলে");
+    setTimeout(() => setToast(null), 4000);
   };
 
   const stop = async () => {
