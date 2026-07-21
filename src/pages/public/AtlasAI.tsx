@@ -123,13 +123,13 @@ export function getSystemPrompt(question: string) {
   return prompt;
 }
 
-export async function askAI(
+/** Single attempt — returns null (not a string) on failure so the caller can retry. */
+async function askAIOnce(
   question: string,
   image: PendingImage | null,
-  systemPromptOverride?: string,
-  opts?: { skipGroq?: boolean }
-): Promise<string> {
-  const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
+  systemPrompt: string,
+  skipGroq: boolean
+): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -141,7 +141,7 @@ export async function askAI(
         question: question || "",
         image: image ? { base64: image.base64, mimeType: image.mimeType } : null,
         systemPrompt,
-        skipGroq: !!opts?.skipGroq,
+        skipGroq,
       }),
     });
     clearTimeout(timeoutId);
@@ -149,10 +149,45 @@ export async function askAI(
     if (data?.answer && String(data.answer).trim().length > 5) {
       return String(data.answer).trim();
     }
-  } catch (e: unknown) {
-    if (e instanceof DOMException && e.name === "AbortError") {
-      return "⏱️ উত্তর দিতে বেশি সময় লাগছে। আবার চেষ্টা করো অথবা প্রশ্নটি ছোট করো।";
-    }
+    return null;
+  } catch {
+    return null; // timeout ba network error — caller retry korbe
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// bug fix / reliability improvement (2026-07-22): age ekta single fetch fail
+// (transient rate-limit, network blip, ekta provider-er temporary slow-down)
+// hoile-i sathe sathe user-ke "❌ busy আছে" dekhano hoto — jokhono asholei
+// worker-er full fallback chain (Gemini→OpenRouter→Groq→Cerebras→CF-AI) already
+// beshirvag transient issue nijei solve kore fele, ekta 2nd/3rd try-e prai
+// shob shomoy success hoy. Ekhon user kichu na bujhei (UI-te shudhu ektu beshi
+// "লোড হচ্ছে" shomoy dekhbe) background-e up-to 3 bar silently retry hoy —
+// kono ekta try success hole shathe shathe result dekhano hoy, r shudhu shob
+// koyta try-i fail korle (truly rare — real outage) tobei friendly "busy" message
+// dekhano hoy. Erokom-e user proyoget kokhono raw/mid-way failure dekhena.
+const MAX_CLIENT_RETRIES = 3;
+const RETRY_DELAY_MS = 1500;
+
+export async function askAI(
+  question: string,
+  image: PendingImage | null,
+  systemPromptOverride?: string,
+  opts?: { skipGroq?: boolean }
+): Promise<string> {
+  const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
+  for (let attempt = 1; attempt <= MAX_CLIENT_RETRIES; attempt++) {
+    // প্রথম attempt-এ যা caller চেয়েছে (opts.skipGroq) তাই মানা হয়; retry-গুলোতে
+    // skipGroq সবসময় true (Groq প্রথম attempt-এ আগেই একবার চেষ্টা হয়ে থাকলে সেটা
+    // পুনরায় চেষ্টা করে সময়/subrequest নষ্ট না করে সরাসরি Gemini/OpenRouter/Cerebras/CF-AI
+    // দিয়ে দ্রুত retry হয়)।
+    const skipGroq = attempt === 1 ? !!opts?.skipGroq : true;
+    const result = await askAIOnce(question, image, systemPrompt, skipGroq);
+    if (result !== null) return result;
+    if (attempt < MAX_CLIENT_RETRIES) await sleep(RETRY_DELAY_MS * attempt);
   }
   return "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏";
 }
