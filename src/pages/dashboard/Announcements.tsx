@@ -144,6 +144,11 @@ const Announcements = () => {
               localStorage.setItem("read_announcements_ids", JSON.stringify(newRead));
               // Also update last viewed globally to prevent dot from reappearing immediately
               localStorage.setItem("last_viewed_announcements", new Date().toISOString());
+              if (user) {
+                  supabase.from("announcement_reads")
+                      .upsert({ announcement_id: id, user_id: user.id }, { onConflict: "announcement_id,user_id" })
+                      .then(() => {});
+              }
           }
       }
   };

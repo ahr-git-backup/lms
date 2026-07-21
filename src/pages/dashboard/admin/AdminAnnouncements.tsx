@@ -58,7 +58,21 @@ const AdminAnnouncements = () => {
         .order("published_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
-      return { data: data || [], count: count || 0 };
+
+      const ids = (data || []).map((a) => a.id);
+      let seenCounts: Record<string, number> = {};
+      if (ids.length > 0) {
+        const { data: reads } = await supabase
+          .from("announcement_reads")
+          .select("announcement_id")
+          .in("announcement_id", ids);
+        seenCounts = (reads || []).reduce((acc: Record<string, number>, r: any) => {
+          acc[r.announcement_id] = (acc[r.announcement_id] || 0) + 1;
+          return acc;
+        }, {});
+      }
+
+      return { data: data || [], count: count || 0, seenCounts };
     },
   });
 
@@ -259,6 +273,7 @@ const AdminAnnouncements = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>Course</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Seen</TableHead>
                     <TableHead className="w-[80px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -275,6 +290,9 @@ const AdminAnnouncements = () => {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(announcement.published_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">
+                        {announcementsData?.seenCounts?.[announcement.id] || 0}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
