@@ -51,7 +51,7 @@ const Podium = ({ topThree, isStaff }: { topThree: any[], isStaff: boolean }) =>
 
                 <div className="text-center mb-1.5 max-w-[90px] sm:max-w-[120px]">
                     <div className="font-bold text-xs sm:text-sm text-foreground leading-tight break-words drop-shadow-sm" title={student.profile?.full_name}>
-                        {student.profile?.full_name || "Unknown"}
+                        {student.profile?.full_name ? student.profile.full_name.split(" ").map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ") : "Unknown"}
                     </div>
                     {isStaff && student.time_taken_seconds && (
                          <div className="text-[9px] text-muted-foreground font-mono">
@@ -262,6 +262,14 @@ const Leaderboard = () => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
     return `${m}m ${s}s`;
+  };
+
+  const capitalizeName = (name: string) => {
+    if (!name) return "Unknown";
+    return name
+      .split(" ")
+      .map(w => w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+      .join(" ");
   };
 
   const buildVerdict = () => {
@@ -775,16 +783,8 @@ const Leaderboard = () => {
 
                 return (
                   <div key={attempt.id} className={`relative rounded-lg border p-3 ${cardClass}`}>
-                    {myAttemptId && !isMe && (
-                        <button
-                            onClick={() => openCompare(attempt.id)}
-                            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-95 transition-transform"
-                        >
-                            <Scale className="h-3 w-3" /> তুলনা
-                        </button>
-                    )}
-                    <div className="flex items-center gap-2.5 pr-16">
-                        <div className="font-bold whitespace-nowrap">
+                    <div className="flex items-start gap-2.5">
+                        <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
                         <Avatar className="h-9 w-9 rounded-md shrink-0 border border-border">
@@ -793,24 +793,34 @@ const Leaderboard = () => {
                         </Avatar>
                         <div className="flex flex-col min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-sm truncate">{attempt.profile?.full_name || "Unknown"}</span>
+                                <span className="font-medium text-sm break-words">{capitalizeName(attempt.profile?.full_name)}</span>
                                 {isSecondTimer && (
                                     <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
-                                <span className="truncate max-w-[140px]">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
+                                <span className="break-words">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
                         <div className="text-right shrink-0">
                             <div className="font-bold text-primary text-sm">{attempt.score}</div>
-                            {isStaff && (
-                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 mt-1" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                                    Review
-                                </Button>
-                            )}
                         </div>
+                    </div>
+                    <div className="flex items-center justify-start gap-2 mt-2 pl-8">
+                        {isStaff && (
+                            <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                Review
+                            </Button>
+                        )}
+                        {myAttemptId && !isMe && (
+                            <button
+                                onClick={() => openCompare(attempt.id)}
+                                className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
+                            >
+                                <Scale className="h-3 w-3" /> তুলনা করো
+                            </button>
+                        )}
                     </div>
                   </div>
                 );
@@ -822,15 +832,13 @@ const Leaderboard = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40px]"></TableHead>
                     <TableHead className="w-[60px] md:w-[80px] whitespace-nowrap">Rank</TableHead>
-                    <TableHead className="whitespace-nowrap">Student</TableHead>
-                    <TableHead className="whitespace-nowrap hidden md:table-cell">Reg ID</TableHead>
+                    <TableHead className="whitespace-nowrap">Student Detail</TableHead>
                     <TableHead className="text-right whitespace-nowrap">Score</TableHead>
                     {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Time</TableHead>}
                     {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Warnings</TableHead>}
                     <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Submitted</TableHead>
-                    {isStaff && <TableHead className="text-right whitespace-nowrap hidden md:table-cell">Action</TableHead>}
+                    <TableHead className="text-right whitespace-nowrap">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -872,18 +880,6 @@ const Leaderboard = () => {
 
                     return (
                         <TableRow key={attempt.id} className={rowClass}>
-                            <TableCell className="w-[70px]">
-                                {myAttemptId && !isMe && (
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 text-[11px] px-2 text-primary"
-                                        onClick={() => openCompare(attempt.id)}
-                                    >
-                                        <Scale className="h-3 w-3 mr-1" /> তুলনা
-                                    </Button>
-                                )}
-                            </TableCell>
                             <TableCell className="font-bold whitespace-nowrap">
                                 {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
@@ -894,10 +890,8 @@ const Leaderboard = () => {
                                         <AvatarFallback className="rounded-md bg-muted" />
                                     </Avatar>
                                     <div className="flex flex-col min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            {(attempt.profile?.full_name || "Unknown").length > 15
-                                                ? (attempt.profile?.full_name || "Unknown").slice(0, 15) + "..."
-                                                : (attempt.profile?.full_name || "Unknown")}
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="break-words">{capitalizeName(attempt.profile?.full_name)}</span>
                                             {isSecondTimer && (
                                                 <div className="bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 text-[10px] px-1.5 py-0.5 rounded flex items-center gap-1" title="Second Timer">
                                                     <BadgeAlert className="h-3 w-3" />
@@ -906,22 +900,17 @@ const Leaderboard = () => {
                                             )}
                                             {attemptNumber}
                                         </div>
-                                        <div className="md:hidden text-xs text-muted-foreground mt-1 flex flex-wrap gap-2">
-                                            <span>{attempt.profile?.registration_id ? attempt.profile.registration_id.slice(-6) : "..."}</span>
+                                        <div className="text-xs text-muted-foreground mt-0.5 flex flex-wrap gap-2">
+                                            <span>{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
                                             {isStaff && (
                                                 <>
-                                                    <span>•</span>
-                                                    <span>{formatDuration(attempt.time_taken_seconds)}</span>
+                                                    <span className="hidden md:inline">•</span>
+                                                    <span className="hidden md:inline">{formatDuration(attempt.time_taken_seconds)}</span>
                                                 </>
                                             )}
                                         </div>
                                     </div>
                                 </div>
-                            </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
-                                {attempt.profile?.registration_id
-                                    ? `${attempt.profile.registration_id.slice(0, 2)}...${attempt.profile.registration_id.slice(-2)}`
-                                    : "Unknown"}
                             </TableCell>
                             <TableCell className="text-right font-bold text-primary whitespace-nowrap">
                                 {attempt.score}
@@ -943,13 +932,25 @@ const Leaderboard = () => {
                             <TableCell className="text-right text-xs text-muted-foreground whitespace-nowrap hidden md:table-cell">
                                 {new Date(attempt.submitted_at).toLocaleString()}
                             </TableCell>
-                            {isStaff && (
-                                <TableCell className="text-right whitespace-nowrap hidden md:table-cell">
-                                    <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                                        Review
-                                    </Button>
-                                </TableCell>
-                            )}
+                            <TableCell className="text-right whitespace-nowrap">
+                                <div className="flex items-center justify-end gap-1.5">
+                                    {isStaff && (
+                                        <Button variant="outline" size="sm" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                            Review
+                                        </Button>
+                                    )}
+                                    {myAttemptId && !isMe && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-8 text-xs px-2 text-primary hover:scale-105 active:scale-95 transition-transform"
+                                            onClick={() => openCompare(attempt.id)}
+                                        >
+                                            <Scale className="h-3.5 w-3.5 mr-1" /> তুলনা করো
+                                        </Button>
+                                    )}
+                                </div>
+                            </TableCell>
                         </TableRow>
                     );
                   })}
@@ -991,7 +992,7 @@ const Leaderboard = () => {
                         <AvatarImage src={d?.profile?.avatar_url} className="rounded-md" />
                         <AvatarFallback className="rounded-md bg-muted">{(d?.profile?.full_name || "??").slice(0,2).toUpperCase()}</AvatarFallback>
                       </Avatar>
-                      <span className="font-semibold text-sm leading-tight break-words">{d?.profile?.full_name || "Unknown"}</span>
+                      <span className="font-semibold text-sm leading-tight break-words">{capitalizeName(d?.profile?.full_name)}</span>
                       <Badge variant="secondary" className="text-xs">Score: {c.score}</Badge>
                     </div>
                   );
