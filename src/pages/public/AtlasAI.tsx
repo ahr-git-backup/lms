@@ -140,7 +140,7 @@ export function getSystemPrompt(question: string) {
 - সাবস্ক্রিপ্ট: H₂O, CO₂, H₂SO₄ এভাবে Unicode subscript ব্যবহার করবে (H2O নয়)। রাসায়নিক সংকেতে প্রতিটি সংখ্যা সংশ্লিষ্ট মৌলের ঠিক পরে subscript আকারে বসবে (যেমন CH₃COOH, Ca(OH)₂)।
 - বিক্রিয়া তীরচিহ্ন: → (right arrow), ⇌ (বিপরীতমুখী/reversible বিক্রিয়ার জন্য), ↑ (গ্যাস উৎপন্ন), ↓ (অধঃক্ষেপ) — এইভাবে সরাসরি Unicode তীরচিহ্ন ব্যবহার করবে, কখনো "->", "<=>", "\\rightarrow" এসব লিখবে না।
 - অন্যান্য গাণিতিক চিহ্ন সরাসরি Unicode-এ লিখবে: ×, ÷, ±, √, ∆, π, θ, °, ≈, ≤, ≥, ∞ ইত্যাদি।
-- কোনো markdown/asterisk (** বা *) ব্যবহার করবে না — শুধু plain টেক্সট লিখবে।`;
+- কোনো markdown ব্যবহার করবে না — asterisk (** বা *), হ্যাশ হেডিং (#, ##, ###), ব্যাকটিক (\`), আন্ডারস্কোর ইতালিক (_..._) কিছুই না — শুধু plain টেক্সট লিখবে।`;
 
   if (isMCQ) {
     prompt += `
@@ -345,8 +345,18 @@ function sanitizeLatex(text: string): string {
   return t;
 }
 
+/** Safety net: strip markdown heading hashes (#, ##, ###...) and stray
+ *  backticks the model may still emit despite the plain-text instruction. */
+function stripMarkdownHeadings(text: string): string {
+  return text
+    .split("\n")
+    .map((line) => line.replace(/^\s*#{1,6}\s*/, ""))
+    .join("\n")
+    .replace(/`/g, "");
+}
+
 export function renderAnswer(rawText: string) {
-  const text = sanitizeLatex(ensurePlainText(rawText));
+  const text = stripMarkdownHeadings(sanitizeLatex(ensurePlainText(rawText)));
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
   // A line is "empty content" if, after stripping the icon/label and any trailing
   // dash separator, nothing meaningful remains (guards against provider cutting

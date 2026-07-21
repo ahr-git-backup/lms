@@ -143,7 +143,11 @@ function genericJsonToText(parsed: any): string | null {
  *  the UI never shows raw braces/brackets. Returns the original text untouched if it isn't JSON. */
 function normalizeAiAnswer(raw: string): string {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return raw;
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) {
+    // Safety net: strip stray markdown heading hashes (##, ###...) the model
+    // may emit despite the plain-text instruction, so cached text stays clean.
+    return raw.replace(/^\s*#{1,6}\s*/gm, "");
+  }
 
   const toLines = (parsedIn: any): string | null => {
     const parsed = Array.isArray(parsedIn) ? parsedIn : [parsedIn];
