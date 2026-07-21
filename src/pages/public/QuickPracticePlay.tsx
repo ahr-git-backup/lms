@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, X, Trophy } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -30,25 +30,65 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
-function playBeep(correct: boolean) {
+let audioCtx: AudioContext | null = null;
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  return audioCtx;
+}
+function tone(ctx: AudioContext, freq: number, start: number, dur: number, type: OscillatorType, peak: number) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + start);
+  gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+  gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+  osc.start(ctx.currentTime + start);
+  osc.stop(ctx.currentTime + start + dur);
+}
+function sweep(ctx: AudioContext, f1: number, f2: number, start: number, dur: number, type: OscillatorType, peak: number) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.setValueAtTime(f1, ctx.currentTime + start);
+  osc.frequency.exponentialRampToValueAtTime(f2, ctx.currentTime + start + dur);
+  gain.gain.setValueAtTime(0.0001, ctx.currentTime + start);
+  gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + start + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+  osc.start(ctx.currentTime + start);
+  osc.stop(ctx.currentTime + start + dur);
+}
+
+const RIGHT_PACKS: Record<string, { label: string; play: (ctx: AudioContext, v: number) => void }> = {
+  kahoot: { label: "Kahoot Ding", play: (ctx, v) => { tone(ctx, 1046.5, 0, 0.12, "sine", v); tone(ctx, 1318.5, 0.08, 0.12, "sine", v); tone(ctx, 1568, 0.16, 0.22, "sine", v); } },
+  coin: { label: "Mario Coin", play: (ctx, v) => { tone(ctx, 988, 0, 0.08, "square", v * 0.7); tone(ctx, 1568, 0.06, 0.25, "square", v * 0.7); } },
+  tada: { label: "Ta-Da!", play: (ctx, v) => { tone(ctx, 523, 0, 0.1, "triangle", v); tone(ctx, 659, 0.06, 0.1, "triangle", v); tone(ctx, 784, 0.12, 0.1, "triangle", v); tone(ctx, 1047, 0.18, 0.3, "triangle", v); } },
+  correct: { label: "Duolingo", play: (ctx, v) => { tone(ctx, 1318, 0, 0.1, "sine", v); tone(ctx, 1760, 0.09, 0.2, "sine", v); } },
+  bell: { label: "Bell Chime", play: (ctx, v) => { tone(ctx, 1760, 0, 0.35, "sine", v * 0.8); tone(ctx, 2637, 0.02, 0.3, "sine", v * 0.5); } },
+};
+const WRONG_PACKS: Record<string, { label: string; play: (ctx: AudioContext, v: number) => void }> = {
+  ayhay: { label: "আয়হায়!", play: (ctx, v) => { tone(ctx, 330, 0, 0.16, "sawtooth", v * 0.8); tone(ctx, 220, 0.12, 0.16, "sawtooth", v * 0.8); tone(ctx, 150, 0.24, 0.22, "sawtooth", v * 0.8); } },
+  buzzer: { label: "Buzzer", play: (ctx, v) => { tone(ctx, 180, 0, 0.35, "sawtooth", v); } },
+  wompwomp: { label: "Womp Womp", play: (ctx, v) => { sweep(ctx, 300, 150, 0, 0.3, "triangle", v); sweep(ctx, 300, 120, 0.28, 0.35, "triangle", v); } },
+  fail: { label: "Sad Trombone", play: (ctx, v) => { tone(ctx, 392, 0, 0.18, "sawtooth", v * 0.8); tone(ctx, 349, 0.16, 0.18, "sawtooth", v * 0.8); tone(ctx, 294, 0.32, 0.18, "sawtooth", v * 0.8); tone(ctx, 262, 0.48, 0.35, "sawtooth", v * 0.8); } },
+  vine: { label: "Vine Boom", play: (ctx, v) => { sweep(ctx, 150, 40, 0, 0.35, "sine", v); } },
+};
+
+function playPack(packMap: typeof RIGHT_PACKS, key: string, v: number) {
+  const ctx = getCtx();
+  const pack = packMap[key] || Object.values(packMap)[0];
+  pack.play(ctx, v);
+}
+function playSound(correct: boolean, vol: number, rightPack: string, wrongPack: string) {
+  if (vol <= 0) return;
   try {
-    const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new Ctx();
-    const freqs = correct ? [1046.5, 1318.5, 1568] : [330, 220, 150];
-    freqs.forEach((f, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = correct ? "sine" : "sawtooth";
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      const start = ctx.currentTime + i * 0.08;
-      osc.frequency.setValueAtTime(f, start);
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.3, start + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.18);
-      osc.start(start);
-      osc.stop(start + 0.2);
-    });
+    const v = 0.6 * vol;
+    if (correct) playPack(RIGHT_PACKS, rightPack, v);
+    else playPack(WRONG_PACKS, wrongPack, v);
   } catch {
     /* audio unavailable, ignore */
   }
@@ -65,6 +105,10 @@ const QuickPracticePlay = () => {
   const [answered, setAnswered] = useState<Answered[]>([]);
   const [finished, setFinished] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [soundVol, setSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [rightPack, setRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
+  const [wrongPack, setWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
+  const [volMenuOpen, setVolMenuOpen] = useState(false);
 
   const sessionCorrect = useMemo(() => answered.filter((a) => a?.correct).length, [answered]);
   const sessionWrong = useMemo(
@@ -189,7 +233,7 @@ const QuickPracticePlay = () => {
     const next = [...answered];
     next[current] = { selectedIdx: idx, correct };
     setAnswered(next);
-    playBeep(correct);
+    playSound(correct, soundVol, rightPack, wrongPack);
     saveState(getMode(), mcqs, current, next);
   };
 
@@ -236,6 +280,29 @@ const QuickPracticePlay = () => {
       }
     } else {
       setSaved(true);
+    }
+  };
+
+  const changeVol = (v: number) => {
+    setSoundVol(v);
+    localStorage.setItem("atlas-sound-vol", String(v));
+  };
+
+  const chooseSound = (type: "right" | "wrong", key: string) => {
+    const v = 0.6 * (soundVol || 1);
+    try {
+      const ctx = getCtx();
+      if (type === "right") {
+        setRightPack(key);
+        localStorage.setItem("qpp-right-pack", key);
+        playPack(RIGHT_PACKS, key, v);
+      } else {
+        setWrongPack(key);
+        localStorage.setItem("qpp-wrong-pack", key);
+        playPack(WRONG_PACKS, key, v);
+      }
+    } catch {
+      /* ignore */
     }
   };
 
@@ -334,6 +401,76 @@ const QuickPracticePlay = () => {
             />
           </div>
         </div>
+
+        <div className="relative flex-shrink-0">
+          <button
+            onClick={() => setVolMenuOpen((v) => !v)}
+            className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
+          >
+            {soundVol <= 0 ? <VolumeX className="h-4 w-4" /> : soundVol < 1 ? <Volume1 className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+          {volMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setVolMenuOpen(false)} />
+              <div className="absolute top-11 right-0 z-50 w-[230px] bg-card border rounded-xl p-2.5 shadow-xl flex flex-col gap-2">
+                <div className="flex gap-1 justify-between pb-2 border-b">
+                  {[0, 0.5, 1, 1.6].map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => changeVol(v)}
+                      className={cn(
+                        "flex-1 text-center py-1.5 rounded-lg text-xs",
+                        soundVol === v ? "bg-primary/15 text-primary" : "hover:bg-muted"
+                      )}
+                    >
+                      {v === 0 ? <VolumeX className="h-4 w-4 mx-auto" /> : v < 1 ? <Volume1 className="h-4 w-4 mx-auto" /> : v === 1 ? <Volume2 className="h-4 w-4 mx-auto" /> : <Volume className="h-4 w-4 mx-auto text-amber-500" />}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex gap-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-extrabold text-muted-foreground mb-1">Right</div>
+                    {Object.entries(RIGHT_PACKS).map(([k, p]) => (
+                      <div
+                        key={k}
+                        onClick={() => chooseSound("right", k)}
+                        className={cn(
+                          "px-1.5 py-1.5 rounded-md text-[11px] cursor-pointer truncate",
+                          k === rightPack ? "bg-primary/15 text-primary font-bold" : "hover:bg-muted"
+                        )}
+                      >
+                        {p.label}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="w-px bg-border mx-1.5" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-extrabold text-muted-foreground mb-1">Wrong</div>
+                    {Object.entries(WRONG_PACKS).map(([k, p]) => (
+                      <div
+                        key={k}
+                        onClick={() => chooseSound("wrong", k)}
+                        className={cn(
+                          "px-1.5 py-1.5 rounded-md text-[11px] cursor-pointer truncate",
+                          k === wrongPack ? "bg-primary/15 text-primary font-bold" : "hover:bg-muted"
+                        )}
+                      >
+                        {p.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <button
+          onClick={() => void finish()}
+          className="px-3.5 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-xs flex-shrink-0 whitespace-nowrap"
+        >
+          শেষ করো
+        </button>
       </div>
 
       <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col">
