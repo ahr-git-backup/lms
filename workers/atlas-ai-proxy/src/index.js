@@ -704,6 +704,59 @@ var GROQ_MCQ_JSON_SCHEMA = {
     additionalProperties: false
   }
 };
+// Some models occasionally drift into inventing their own JSON shape for a
+// plain-text explanation despite explicit instructions not to. Rather than
+// rejecting and retrying (extra latency/tokens), convert it in place: walk
+// any object/array recursively and join every string value found, so the
+// user still gets full readable content instead of raw braces/brackets.
+function jsonAnswerToPlainText(raw) {
+  let parsed;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (_) {
+    try {
+      parsed = JSON.parse(repairTruncatedJsonWorker(raw));
+    } catch (_) {
+      return null;
+    }
+  }
+  const lines = [];
+  const seen = /* @__PURE__ */ new Set();
+  const visit = /* @__PURE__ */ __name((val) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  }, "visit");
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
+}
+__name(jsonAnswerToPlainText, "jsonAnswerToPlainText");
+function repairTruncatedJsonWorker(s) {
+  let out = s;
+  const quoteCount = (out.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 === 1) out += '"';
+  const opens = (out.match(/[{[]/g) || []).length;
+  const closes = (out.match(/[}\]]/g) || []).length;
+  for (let i = 0; i < opens - closes; i++) {
+    const lastOpen = Math.max(out.lastIndexOf("{"), out.lastIndexOf("["));
+    out += out.lastIndexOf("{") === lastOpen ? "}" : "]";
+  }
+  return out;
+}
+__name(repairTruncatedJsonWorker, "repairTruncatedJsonWorker");
 function mbGroqUnwrapAnswer(answer) {
   try {
     const parsedObj = JSON.parse(answer);
@@ -844,12 +897,17 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
               lastError = `Groq(${model}): invalid MCQ shape, retrying other key/model`;
             } else {
               // Some models drift into inventing their own JSON shape despite
-              // being told not to. Detect that and retry with the next
-              // model/key instead of shipping broken/truncated JSON as if it
-              // were the final plain-text answer.
+              // being told not to. Instead of discarding the response and
+              // retrying (extra latency/tokens), convert it in place so the
+              // full content the model already generated isn't wasted.
               if (/^[\[{]/.test(answer.trim())) {
-                lastError = `Groq(${model}): drifted into JSON for plain-text explanation, retrying other key/model`;
-                continue;
+                const converted = jsonAnswerToPlainText(answer.trim());
+                if (converted) {
+                  answer = converted;
+                } else {
+                  lastError = `Groq(${model}): drifted into unparseable JSON, retrying other key/model`;
+                  continue;
+                }
               }
               // Plain-text detailed explanation got cut off by the token limit —
               // ask the same model/key to continue from where it stopped, and
