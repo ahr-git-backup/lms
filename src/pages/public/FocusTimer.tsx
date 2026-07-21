@@ -28,6 +28,24 @@ const MOOD_META: Record<Mood, { label: string; icon: typeof BookOpen; color: str
   sleep: { label: "Sleep", icon: Moon, color: "text-indigo-400", bg: "from-indigo-500 to-violet-500" },
 };
 
+// AtlasApp-style always-on dark gradients per mood (inactive state), the vivid
+// gradient + glow-pulse animation when active, and matching digital-timer box tint.
+const MOOD_BTN_IDLE: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-[#0f4c2a] via-[#166534] to-[#15803d] border-emerald-500/40",
+  break: "bg-gradient-to-br from-[#5c3a00] via-[#92400e] to-[#b45309] border-amber-500/30",
+  sleep: "bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#3730a3] border-indigo-500/30",
+};
+const MOOD_BTN_ACTIVE: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 border-emerald-500 shadow-[0_4px_16px_rgba(16,185,129,.4)] animate-mood-glow-study",
+  break: "bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 border-amber-500 shadow-[0_4px_16px_rgba(245,158,11,.4)] animate-mood-glow-break",
+  sleep: "bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 border-indigo-500 shadow-[0_4px_16px_rgba(99,102,241,.4)] animate-mood-glow-sleep",
+};
+const MOOD_DIGIT_BOX: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-[#0d2a1a] to-[#0f3d22] border-emerald-500/30",
+  break: "bg-gradient-to-br from-[#2a1800] to-[#3d2200] border-amber-500/30",
+  sleep: "bg-gradient-to-br from-[#0e0d2a] to-[#17163d] border-indigo-500/30",
+};
+
 const STATE_KEY = "atlas_focus_state_v1";
 const MAX_BREAK_SEC = 3600; // 1 hour break cap, auto-ends and returns to Study
 
@@ -679,7 +697,7 @@ const FocusTimer = () => {
           )}
         >
           {/* Mood switcher (top row, inside unified box) */}
-          <div className="grid grid-cols-3 gap-2 w-full">
+          <div className="grid grid-cols-3 gap-1.5 w-full">
             {(Object.keys(MOOD_META) as Mood[]).map((m) => {
               const md = MOOD_META[m];
               const MIcon = md.icon;
@@ -689,14 +707,18 @@ const FocusTimer = () => {
                   key={m}
                   onClick={() => requestSwitchMood(m)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
-                    active
-                      ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
-                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                    "relative overflow-hidden flex flex-col items-center gap-1 rounded-xl py-2 border-[1.5px] text-white transition-all duration-300",
+                    active ? MOOD_BTN_ACTIVE[m] : MOOD_BTN_IDLE[m]
                   )}
                 >
-                  <MIcon className="h-5 w-5" />
-                  <span className="text-xs font-bold">{md.label}</span>
+                  <MIcon className="h-4 w-4" />
+                  <span className="text-[9px] font-extrabold tracking-wide">{md.label}</span>
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full transition-all",
+                      active ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "bg-white/40"
+                    )}
+                  />
                 </button>
               );
             })}
@@ -722,41 +744,32 @@ const FocusTimer = () => {
           <div className="flex items-center gap-1.5">
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{h}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">HRS</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{min}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">MIN</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{s}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">SEC</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{s}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">SEC</span>
             </div>
           </div>
 
