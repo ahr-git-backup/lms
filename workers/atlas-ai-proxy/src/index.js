@@ -826,6 +826,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
           }
           const data = await outcome.json().catch(() => null);
           let answer = data?.choices?.[0]?.message?.content || null;
+          const finishReason = data?.choices?.[0]?.finish_reason || null;
           if (answer) {
             markGroqKeyHealthy(key);
             if (expectMcqArray) {
@@ -836,6 +837,34 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
               }
               lastError = `Groq(${model}): invalid MCQ shape, retrying other key/model`;
             } else {
+              // Plain-text detailed explanation got cut off by the token limit —
+              // ask the same model/key to continue from where it stopped, and
+              // stitch the pieces together, instead of shipping a truncated answer.
+              if (finishReason === "length" && !budget.exhausted()) {
+                let fullAnswer = answer;
+                let continues = 0;
+                while (finishReason === "length" && continues < 2 && !budget.exhausted()) {
+                  const contMessages = [
+                    ...messages,
+                    { role: "assistant", content: fullAnswer },
+                    { role: "user", content: "\u0989\u09A4\u09CD\u09A4\u09B0\u099F\u09BF \u09AF\u09C7\u0996\u09BE\u09A8\u09C7 \u09A5\u09C7\u09AE\u09C7\u099B\u09C7 \u09A0\u09BF\u0995 \u09B8\u09C7\u0996\u09BE\u09A8 \u09A5\u09C7\u0995\u09C7\u0987 \u099A\u09BE\u09B2\u09BF\u09AF\u09BC\u09C7 \u09AF\u09BE\u0993, \u09AA\u09C1\u09A8\u09B0\u09BE\u09AC\u09C3\u09A4\u09CD\u09A4\u09BF \u0995\u09B0\u09AC\u09C7 \u09A8\u09BE\u0964" }
+                  ];
+                  const contOutcome = await attemptWithStatus((signal3) => fetch("https://api.groq.com/openai/v1/chat/completions", {
+                    method: "POST",
+                    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+                    signal: signal3,
+                    body: JSON.stringify({ model, messages: contMessages, temperature: 0.7, max_tokens: 8192 })
+                  }), budget);
+                  if (contOutcome.__exception || !contOutcome.ok) break;
+                  const contData = await contOutcome.json().catch(() => null);
+                  const contAnswer = contData?.choices?.[0]?.message?.content || "";
+                  if (!contAnswer) break;
+                  fullAnswer += contAnswer;
+                  continues++;
+                  if ((contData?.choices?.[0]?.finish_reason || null) !== "length") break;
+                }
+                answer = fullAnswer;
+              }
               keyResult = answer;
               break;
             }
