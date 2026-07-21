@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
@@ -908,13 +910,7 @@ const Leaderboard = () => {
           document.head.appendChild(style);
 
           try {
-              const [{ default: html2canvas }, jsPDFModule] = await Promise.all([
-                  import('html2canvas'),
-                  import('jspdf'),
-              ]);
-              const JsPDFCtor = jsPDFModule.jsPDF || jsPDFModule.default;
-
-              const pdf = new JsPDFCtor({
+              const pdf = new jsPDF({
                   orientation: 'landscape',
                   unit: 'px',
                   format: [CARD_W, CARD_H],
