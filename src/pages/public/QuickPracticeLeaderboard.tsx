@@ -12,6 +12,7 @@ interface RankedEntry {
   points: number;
   name: string;
   batch: string;
+  avatarUrl: string | null;
 }
 
 const medalCls: Record<number, string> = {
@@ -47,7 +48,7 @@ const QuickPracticeLeaderboard = () => {
       const userIds = rows.map((r: any) => r.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, hsc_batch")
+        .select("id, full_name, hsc_batch, avatar_url")
         .in("id", userIds);
 
       const profileMap = Object.fromEntries((profiles || []).map((p: any) => [p.id, p]));
@@ -58,6 +59,7 @@ const QuickPracticeLeaderboard = () => {
         points: r.total_points || 0,
         name: profileMap[r.user_id]?.full_name || "Student",
         batch: profileMap[r.user_id]?.hsc_batch || "",
+        avatarUrl: profileMap[r.user_id]?.avatar_url || null,
       }));
     },
   });
@@ -132,11 +134,15 @@ const QuickPracticeLeaderboard = () => {
                     )}
                     <div
                       className={cn(
-                        "mx-auto rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-extrabold text-primary relative",
+                        "mx-auto rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-extrabold text-primary relative overflow-hidden",
                         rc === 1 ? "h-14 w-14 text-lg" : "h-11 w-11 text-sm"
                       )}
                     >
-                      {p.name.charAt(0).toUpperCase()}
+                      {p.avatarUrl ? (
+                        <img src={p.avatarUrl} alt={p.name} className="h-full w-full object-cover rounded-xl" />
+                      ) : (
+                        p.name.charAt(0).toUpperCase()
+                      )}
                       <span
                         className={cn(
                           "absolute -bottom-1 -right-1 h-5 w-5 rounded-full flex items-center justify-center text-[10px] font-black border-2 border-card",
@@ -183,8 +189,12 @@ const QuickPracticeLeaderboard = () => {
                     <div className="w-8 text-center font-black text-sm text-muted-foreground font-mono flex-shrink-0">
                       #{p.rank}
                     </div>
-                    <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center font-extrabold text-primary text-xs flex-shrink-0">
-                      {p.name.charAt(0).toUpperCase()}
+                    <div className="h-9 w-9 rounded-lg bg-primary/10 border border-primary/15 flex items-center justify-center font-extrabold text-primary text-xs flex-shrink-0 overflow-hidden">
+                      {p.avatarUrl ? (
+                        <img src={p.avatarUrl} alt={p.name} className="h-full w-full object-cover" />
+                      ) : (
+                        p.name.charAt(0).toUpperCase()
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-black truncate">
