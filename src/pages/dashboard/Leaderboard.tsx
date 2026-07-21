@@ -969,7 +969,8 @@ const Leaderboard = () => {
                   pdf.addImage(imgData, 'JPEG', 0, 0, CARD_W, CARD_H);
               }
 
-              pdf.save(`${exam?.title || 'student-cards'}.pdf`);
+              const pdfBlobUrl = pdf.output('bloburl');
+              window.open(pdfBlobUrl as unknown as string, '_blank');
           } finally {
               document.body.removeChild(container);
               document.head.removeChild(style);
