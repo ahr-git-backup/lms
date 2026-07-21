@@ -45,7 +45,7 @@ var atlas_ai_proxy_worker_default = {
     try {
       return await handleFetch(request, env, ctx);
     } catch (e) {
-      return jsonResponse({ success: false, error: String(e && e.message || e) }, 500);
+      return jsonResponse({ success: false, error: "Internal error: " + String(e?.message || e) }, 500);
     }
   },
   async scheduled(event, env, ctx) {
