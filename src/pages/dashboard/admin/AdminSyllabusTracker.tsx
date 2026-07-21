@@ -303,6 +303,71 @@ const AdminSyllabusTracker = () => {
     refreshTopics();
   };
 
+  const updateWeight = async (id: number, weight: number) => {
+    const { error } = await (supabase.from as any)("st_topics").update({ weight }).eq("id", id);
+    if (error) {
+      toast({ title: "ব্যর্থ হয়েছে", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Weight আপডেট হয়েছে" });
+    refreshTopics();
+  };
+
+  const applyTopicsToAllChapters = async (sourceChapId: number, subjId: number) => {
+    if (!confirm("এই অধ্যায়ের সব টপিক কি একই বিষয়ের বাকি সব অধ্যায়ে যোগ করতে চান?")) return;
+    setSaving(true);
+    try {
+      const { data: sourceTopics } = await (supabase.from as any)("st_topics")
+        .select("name, weight")
+        .eq("chapter_id", sourceChapId);
+      if (!sourceTopics || sourceTopics.length === 0) {
+        toast({ title: "এই অধ্যায়ে কোনো টপিক নেই", variant: "destructive" });
+        return;
+      }
+
+      const { data: allChapters } = await (supabase.from as any)("st_chapters")
+        .select("id")
+        .eq("subject_id", subjId);
+      const targetChapters = (allChapters || []).filter((c: any) => c.id !== sourceChapId);
+      if (targetChapters.length === 0) {
+        toast({ title: "এই বিষয়ে আর কোনো অধ্যায় নেই", variant: "destructive" });
+        return;
+      }
+
+      let addedCount = 0;
+      for (const ch of targetChapters) {
+        const { data: existingTopics } = await (supabase.from as any)("st_topics")
+          .select("name")
+          .eq("chapter_id", ch.id);
+        const existingNames = new Set((existingTopics || []).map((t: any) => t.name.trim().toLowerCase()));
+        const { data: existingSort } = await (supabase.from as any)("st_topics")
+          .select("sort_order")
+          .eq("chapter_id", ch.id)
+          .order("sort_order", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        let nextSort = (existingSort?.sort_order ?? -1) + 1;
+
+        const rowsToInsert = sourceTopics
+          .filter((t: any) => !existingNames.has(t.name.trim().toLowerCase()))
+          .map((t: any) => ({ name: t.name, chapter_id: ch.id, weight: t.weight || 1, sort_order: nextSort++ }));
+
+        if (rowsToInsert.length > 0) {
+          const { error } = await (supabase.from as any)("st_topics").insert(rowsToInsert);
+          if (error) throw error;
+          addedCount += rowsToInsert.length;
+        }
+      }
+
+      toast({ title: `${targetChapters.length}টি অধ্যায়ে ${addedCount}টি টপিক যোগ হয়েছে` });
+      refreshSubjects();
+    } catch (e: any) {
+      toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const deleteSubject = async (id: number) => {
     if (!confirm("এই বিষয়, সব অধ্যায় ও টপিক ডিলিট হবে। নিশ্চিত?")) return;
     const { error } = await (supabase.from as any)("st_subjects").delete().eq("id", id);
@@ -590,7 +655,22 @@ const AdminSyllabusTracker = () => {
                           </div>
                           {chOpen && (
                             <div className="border-t p-2 space-y-1.5 max-h-64 overflow-y-auto">
-                              {topicsOfChapter?.map((t: any) => (
+                              {(topicsOfChapter?.length ?? 0) > 0 && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="w-full text-[10.5px] h-7 border-primary/40 text-primary font-bold"
+                                  disabled={saving}
+                                  onClick={() => void applyTopicsToAllChapters(ch.id, s.id)}
+                                >
+                                  <Layers className="h-3 w-3 mr-1" /> এই {topicsOfChapter?.length}টি টপিক একই বিষয়ের বাকি সব অধ্যায়ে Apply করুন
+                                </Button>
+                              )}
+                              {(() => {
+                                const totalW = (topicsOfChapter || []).reduce((s2: number, t: any) => s2 + (t.weight || 1), 0);
+                                return topicsOfChapter?.map((t: any) => {
+                                  const pct = totalW > 0 ? Math.round(((t.weight || 1) / totalW) * 100) : 0;
+                                  return (
                                 <div
                                   key={t.id}
                                   className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-md p-2"
@@ -609,6 +689,19 @@ const AdminSyllabusTracker = () => {
                                   ) : (
                                     <span className="flex-1">{t.name}</span>
                                   )}
+                                  <span className="text-[9.5px] text-primary font-bold min-w-[26px] text-right">{pct}%</span>
+                                  <Input
+                                    type="number"
+                                    min={1}
+                                    max={20}
+                                    defaultValue={t.weight || 1}
+                                    title="Weight"
+                                    className="h-6 w-10 text-[10px] text-center px-1"
+                                    onBlur={(e) => {
+                                      const v = parseInt(e.target.value) || 1;
+                                      if (v !== (t.weight || 1)) void updateWeight(t.id, v);
+                                    }}
+                                  />
                                   {editTopicId !== t.id && (
                                     <Button
                                       variant="ghost"
@@ -628,7 +721,9 @@ const AdminSyllabusTracker = () => {
                                     <Trash2 className="h-3 w-3" />
                                   </Button>
                                 </div>
-                              ))}
+                                  );
+                                });
+                              })()}
                               {topicsOfChapter?.length === 0 && (
                                 <p className="text-[11px] text-muted-foreground text-center py-2">
                                   কোনো টপিক নেই
