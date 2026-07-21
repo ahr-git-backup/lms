@@ -47,6 +47,7 @@ interface ChatSession {
 }
 
 const HISTORY_KEY = "atlas_ai_chat_sessions";
+const LAST_ACTIVE_KEY = "atlas_ai_last_session_id";
 
 function loadSessions(): ChatSession[] {
   try {
@@ -424,6 +425,11 @@ const AtlasAI = () => {
     if (messages.length > 0 && !confirm("চ্যাট ক্লিয়ার করতে চান?")) return;
     setMessages([]);
     setActiveSessionId(null);
+    try {
+      localStorage.removeItem(LAST_ACTIVE_KEY);
+    } catch {
+      /* ignore */
+    }
   };
 
   // Persist current conversation as a session whenever it changes
@@ -450,13 +456,31 @@ const AtlasAI = () => {
       }
       next.sort((a, b) => b.updatedAt - a.updatedAt);
       saveSessions(next);
+      try {
+        localStorage.setItem(LAST_ACTIVE_KEY, id);
+      } catch {
+        /* ignore */
+      }
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [messages]);
 
   useEffect(() => {
-    setSessions(loadSessions());
+    const loaded = loadSessions();
+    setSessions(loaded);
+    try {
+      const lastId = localStorage.getItem(LAST_ACTIVE_KEY);
+      if (lastId) {
+        const found = loaded.find((s) => s.id === lastId);
+        if (found) {
+          setMessages(found.messages);
+          setActiveSessionId(found.id);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   const openSession = (session: ChatSession) => {
@@ -469,6 +493,11 @@ const AtlasAI = () => {
     setMessages([]);
     setActiveSessionId(null);
     setShowHistory(false);
+    try {
+      localStorage.removeItem(LAST_ACTIVE_KEY);
+    } catch {
+      /* ignore */
+    }
   };
 
   const deleteSession = (id: string, e: React.MouseEvent) => {
@@ -481,6 +510,11 @@ const AtlasAI = () => {
     if (activeSessionId === id) {
       setMessages([]);
       setActiveSessionId(null);
+      try {
+        localStorage.removeItem(LAST_ACTIVE_KEY);
+      } catch {
+        /* ignore */
+      }
     }
   };
 
