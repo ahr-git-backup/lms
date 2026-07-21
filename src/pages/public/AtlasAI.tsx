@@ -129,7 +129,12 @@ export function getSystemPrompt(question: string) {
   return prompt;
 }
 
-export async function askAI(question: string, image: PendingImage | null, systemPromptOverride?: string): Promise<string> {
+export async function askAI(
+  question: string,
+  image: PendingImage | null,
+  systemPromptOverride?: string,
+  opts?: { skipGroq?: boolean }
+): Promise<string> {
   const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   try {
     const controller = new AbortController();
@@ -142,6 +147,7 @@ export async function askAI(question: string, image: PendingImage | null, system
         question: question || "",
         image: image ? { base64: image.base64, mimeType: image.mimeType } : null,
         systemPrompt,
+        skipGroq: !!opts?.skipGroq,
       }),
     });
     clearTimeout(timeoutId);
