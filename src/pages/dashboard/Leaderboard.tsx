@@ -789,8 +789,16 @@ const Leaderboard = () => {
                 const isMe = myAttemptId === attempt.id;
 
                 return (
-                  <div key={attempt.id} className={`relative rounded-lg border p-3 ${cardClass}`}>
-                    <div className="flex items-start gap-2.5">
+                  <div key={attempt.id} className={`relative rounded-lg border p-3 pr-3 ${cardClass}`}>
+                    {myAttemptId && !isMe && (
+                        <button
+                            onClick={() => openCompare(attempt.id)}
+                            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
+                        >
+                            <Scale className="h-3 w-3" /> তুলনা করো
+                        </button>
+                    )}
+                    <div className="flex items-start gap-2.5 pr-2">
                         <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
@@ -798,7 +806,7 @@ const Leaderboard = () => {
                             <AvatarImage src={attempt.profile?.avatar_url} className="rounded-md" />
                             <AvatarFallback className="rounded-md bg-muted" />
                         </Avatar>
-                        <div className="flex flex-col min-w-0 flex-1">
+                        <div className="flex flex-col min-w-0 flex-1 pt-4">
                             <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-medium text-sm break-words">{capitalizeName(attempt.profile?.full_name)}</span>
                                 {isSecondTimer && (
@@ -810,23 +818,13 @@ const Leaderboard = () => {
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
-                        <div className="text-right shrink-0">
-                            <div className="font-bold text-primary text-sm">{attempt.score}</div>
-                        </div>
                     </div>
-                    <div className="flex items-center justify-start gap-2 mt-2 pl-8">
+                    <div className="flex items-end justify-between mt-2">
+                        <div className="font-bold text-primary text-sm pl-8">{attempt.score}</div>
                         {isStaff && (
                             <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
                                 Review
                             </Button>
-                        )}
-                        {myAttemptId && !isMe && (
-                            <button
-                                onClick={() => openCompare(attempt.id)}
-                                className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
-                            >
-                                <Scale className="h-3 w-3" /> তুলনা করো
-                            </button>
                         )}
                     </div>
                   </div>
