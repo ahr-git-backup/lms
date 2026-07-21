@@ -576,8 +576,8 @@ function getOpenRouterKeys(env) {
   return [...new Set(keys)];
 }
 __name(getOpenRouterKeys, "getOpenRouterKeys");
-var OPENROUTER_TEXT_MODELS = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen2.5-vl-72b-instruct:free"];
-var OPENROUTER_IMAGE_MODELS = ["qwen/qwen2.5-vl-72b-instruct:free", "meta-llama/llama-3.2-11b-vision-instruct:free"];
+var OPENROUTER_TEXT_MODELS = ["meta-llama/llama-3.3-70b-instruct:free", "openai/gpt-oss-120b:free", "qwen/qwen3-coder:free", "deepseek/deepseek-chat-v3-0324:free"];
+var OPENROUTER_IMAGE_MODELS = ["qwen/qwen2.5-vl-72b-instruct:free", "meta-llama/llama-3.2-11b-vision-instruct:free", "qwen/qwen2.5-vl-32b-instruct:free"];
 async function callOpenRouter(env, question, systemPrompt, image, budget) {
   const keys = getOpenRouterKeys(env);
   if (!keys.length)
@@ -668,7 +668,7 @@ function rotateGroqKeys(keys) {
   return [...healthy, ...unhealthy];
 }
 __name(rotateGroqKeys, "rotateGroqKeys");
-var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
+var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
 var GROQ_IMAGE_MODELS = ["meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"];
 var GROQ_MCQ_JSON_SCHEMA = {
   name: "mcq_list",
