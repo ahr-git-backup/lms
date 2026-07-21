@@ -5,6 +5,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { askAI, renderAnswer } from "@/pages/public/AtlasAI";
+import { supabase } from "@/integrations/supabase/client";
+
+interface RelatedMcq {
+  id: string;
+  exam_id: string;
+  question_text: string;
+  option_a: string;
+  option_b: string;
+  option_c: string;
+  option_d: string;
+  correct_option: string;
+  explanation: string | null;
+}
+
+const RELATED_MCQ_TRIGGER = /আরো|আরও|related|similar|অন্য.*(mcq|প্রশ্ন)|আরেকটা|more (mcq|question)/i;
+
+function extractSearchTerm(q: McqLike, userMsg: string) {
+  // Prefer a meaningful chunk of the user's own follow-up if it's specific enough,
+  // else fall back to a keyword slice from the original question text.
+  const cleaned = userMsg.replace(RELATED_MCQ_TRIGGER, "").trim();
+  if (cleaned.length > 3) return cleaned;
+  return q.question_text.slice(0, 40);
+}
+
+async function fetchRelatedMcqs(term: string, excludeId?: string): Promise<RelatedMcq[]> {
+  const { data, error } = await (supabase.rpc as any)("search_related_mcqs", {
+    p_query: term,
+    p_exclude_id: excludeId ?? null,
+    p_limit: 5,
+  });
+  if (error || !data) return [];
+  return data as RelatedMcq[];
+}
 
 interface McqLike {
   question_text: string;
@@ -80,10 +113,12 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
 }
 
 /** "AI Chat" button + modal for follow-up Q&A on a specific MCQ. Uses ATLAS AI (askAI). */
-export function AiChatButton({ q }: { q: McqLike }) {
+export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [messages, setMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
+  const [messages, setMessages] = useState<
+    { role: "user" | "assistant"; content: string; related?: RelatedMcq[] }[]
+  >([]);
   const [input, setInput] = useState("");
   const [initialAnswer, setInitialAnswer] = useState<string | null>(null);
 
@@ -106,6 +141,18 @@ export function AiChatButton({ q }: { q: McqLike }) {
     const nextMessages = [...messages, { role: "user" as const, content: msg }];
     setMessages(nextMessages);
     setLoading(true);
+
+    if (RELATED_MCQ_TRIGGER.test(msg)) {
+      const term = extractSearchTerm(q, msg);
+      const related = await fetchRelatedMcqs(term, questionId);
+      const note = related.length
+        ? `${related.length}টি সম্পর্কিত MCQ পাওয়া গেছে, নিচে দেখো।`
+        : "দুঃখিত, এই মুহূর্তে সম্পর্কিত কোনো MCQ খুঁজে পাওয়া যায়নি।";
+      setMessages([...nextMessages, { role: "assistant", content: note, related }]);
+      setLoading(false);
+      return;
+    }
+
     const context = `MCQ: ${q.question_text}\nঅপশনস: ${opts.join(", ")}\n\nফলো-আপ প্রশ্ন: ${msg}`;
     const answer = await askAI(context, null);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
@@ -145,6 +192,26 @@ export function AiChatButton({ q }: { q: McqLike }) {
                 )}
               >
                 {m.role === "assistant" ? renderAnswer(m.content) : m.content}
+                {m.related && m.related.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {m.related.map((r) => (
+                      <div key={r.id} className="rounded-md border bg-background p-2.5 text-xs">
+                        <div className="font-medium mb-1.5">{r.question_text}</div>
+                        <div className="grid grid-cols-2 gap-1 text-[11px] text-muted-foreground">
+                          {(["A", "B", "C", "D"] as const).map((k) => {
+                            const val = (r as any)[`option_${k.toLowerCase()}`];
+                            const isCorrect = r.correct_option === k;
+                            return val ? (
+                              <span key={k} className={cn(isCorrect && "text-emerald-500 font-semibold")}>
+                                {k}) {val}
+                              </span>
+                            ) : null;
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {loading && (

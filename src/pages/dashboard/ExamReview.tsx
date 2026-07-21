@@ -564,7 +564,7 @@ const ExamReview = () => {
                                         >
                                             <Bookmark className={cn("h-5 w-5", q.is_bookmarked && "fill-current")} />
                                         </Button>
-                                        <AiChatButton q={q} />
+                                        <AiChatButton q={q} questionId={q.id} />
                                     </div>
 
                                     {/* Question Header */}
