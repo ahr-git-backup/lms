@@ -549,8 +549,10 @@ const ExamReview = () => {
 
                         return (
                             <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border max-w-full break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
-                                <CardContent className="p-5 space-y-2 relative max-w-full overflow-x-hidden">
-                                    <div className="absolute top-3 right-4 print:hidden flex gap-0.5">
+                                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
+                                    {/* Header row: serial badge could go here too, but kept minimal like AtlasApp's q-header */}
+                                    <div className="flex items-center justify-end gap-0.5 print:hidden">
+                                        <AiChatButton q={q} questionId={q.id} />
                                         <ReportQuestionDialog
                                             questionId={q.id}
                                             questionText={q.question_text}
@@ -564,11 +566,10 @@ const ExamReview = () => {
                                         >
                                             <Bookmark className={cn("h-5 w-5", q.is_bookmarked && "fill-current")} />
                                         </Button>
-                                        <AiChatButton q={q} questionId={q.id} />
                                     </div>
 
                                     {/* Question Header */}
-                                    <div className="flex items-start gap-4 pr-12">
+                                    <div className="flex items-start gap-4">
                                         <div className={cn(
                                             "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
                                             isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
