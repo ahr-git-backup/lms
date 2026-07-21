@@ -219,6 +219,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // Ensure forced is boolean (prevent Event object passing issues)
     const isForced = typeof forced === 'boolean' ? forced : false;
 
+    // Guard: if already on /login, don't re-trigger a hard redirect (prevents reload loop)
+    if (isForced && window.location.pathname === "/login") {
+      return;
+    }
+
     // 1. Optimistic Update: Clear local state immediately for UX
     setUser(null);
     setSession(null);
