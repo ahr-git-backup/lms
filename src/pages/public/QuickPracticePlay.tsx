@@ -382,7 +382,7 @@ const QuickPracticePlay = () => {
   const ans = answered[current];
 
   return (
-    <div className="h-screen bg-background flex flex-col overflow-hidden">
+    <div className="bg-background flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
       <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
         <button
           onClick={exitConfirm}
@@ -529,7 +529,7 @@ const QuickPracticePlay = () => {
         )}
       </div>
 
-      <div className="sticky bottom-0 z-30 bg-background border-t px-4 py-3">
+      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t px-4 py-3">
         <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={goPrev}
