@@ -204,7 +204,7 @@ const DashboardHome = () => {
             onClick={() => navigate("/admin/reports")}
           >
             <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0" />
+              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
               <div>
                 <p className="font-semibold text-sm">Reports</p>
                 <p className="text-xs text-muted-foreground">
@@ -218,7 +218,7 @@ const DashboardHome = () => {
             onClick={() => navigate("/admin/announcements")}
           >
             <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0" />
+              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
               <div>
                 <p className="font-semibold text-sm">Notice</p>
                 <p className="text-xs text-muted-foreground">Send to all users</p>
@@ -504,7 +504,7 @@ const DashboardHome = () => {
                                        {unreadNoticeCount > 9 ? "9+" : unreadNoticeCount}
                                    </span>
                                )}
-                               <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : ''}`} />
+                               <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
                            <p className="font-medium text-sm">{item.title}</p>
                        </CardContent>
