@@ -186,12 +186,19 @@ async function readCachedExplanation(questionId: string): Promise<string | null>
   return normalizeAiAnswer(data as string);
 }
 
+const AI_FAILURE_MARKERS = ["❌", "⏱️"];
+
+function isFailureResponse(text: string) {
+  return AI_FAILURE_MARKERS.some((m) => text.startsWith(m));
+}
+
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
   const raw = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
   const answer = normalizeAiAnswer(raw);
-  if (questionId) {
+  if (questionId && !isFailureResponse(answer)) {
     // Fire-and-forget: don't block the UI on the cache write.
+    // Never cache a failure/busy message — only real explanations should be cached forever.
     (supabase.rpc as any)("save_ai_explanation", {
       p_question_id: questionId,
       p_explanation: answer,
@@ -225,23 +232,35 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
   const [answer, setAnswer] = useState<string | null>(
     q.ai_explanation ? normalizeAiAnswer(q.ai_explanation) : null
   );
+  const [error, setError] = useState(false);
 
-  const handleToggle = async () => {
-    const next = !open;
-    setOpen(next);
-    if (next && answer === null && !loading) {
-      setLoading(true);
-      // Cache-check first (fast path): if another user already triggered
-      // generation for this question, this is an instant DB read.
+  const load = async () => {
+    setLoading(true);
+    setError(false);
+    try {
       const cached = questionId ? await readCachedExplanation(questionId) : null;
       if (cached) {
         setAnswer(cached);
-        setLoading(false);
         return;
       }
       const res = await generateAndCacheExplanation(q, questionId);
-      setAnswer(res);
+      if (isFailureResponse(res)) {
+        setError(true);
+      } else {
+        setAnswer(res);
+      }
+    } catch {
+      setError(true);
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && answer === null && !loading) {
+      load();
     }
   };
 
@@ -273,6 +292,13 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
           {loading ? (
             <div className="flex items-center gap-2 py-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> AI বিশ্লেষণ করছে...
+            </div>
+          ) : error ? (
+            <div className="py-2 flex items-center gap-2 text-sm text-destructive">
+              <span>ব্যাখ্যা লোড করা যায়নি।</span>
+              <button type="button" onClick={load} className="underline font-medium">
+                আবার চেষ্টা করুন
+              </button>
             </div>
           ) : (
             <div className="pt-2 space-y-2">{answer && renderAnswer(answer)}</div>
