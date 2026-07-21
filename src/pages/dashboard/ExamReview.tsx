@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { AiExplanationBox, AiChatButton } from "@/components/exam/AiMcqHelper";
+import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
 
 // Report Dialog Component
 const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
@@ -286,6 +286,16 @@ const ExamReview = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
     }
   }, [attemptLoading, questionsLoading]);
+
+  // Pre-warm AI explanations in the background as soon as questions are loaded,
+  // so most clicks on "ব্যাখ্যা" / "AI Chat" hit an instant cache instead of
+  // waiting on a live AI call.
+  useEffect(() => {
+    if (questions && questions.length > 0) {
+      prewarmExplanations(questions as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions]);
 
   if (attemptLoading || questionsLoading) {
     return <div className="p-8 text-center">Loading result...</div>;
@@ -644,7 +654,7 @@ const ExamReview = () => {
                                     )}
 
                                     <div className="print:hidden">
-                                        <AiExplanationBox q={q} />
+                                        <AiExplanationBox q={q} questionId={q.id} />
                                     </div>
 
                                 </CardContent>

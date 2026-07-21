@@ -46,6 +46,7 @@ interface McqLike {
   option_c?: string;
   option_d?: string;
   correct_option?: string; // "A" | "B" | "C" | "D"
+  ai_explanation?: string | null; // pre-cached explanation, if the row already carries it
 }
 
 const LABELS = ["A", "B", "C", "D"] as const;
@@ -64,22 +65,70 @@ function buildExplainPrompt(q: McqLike) {
     prompt += `${LABELS[i]}) ${opt}\n`;
   });
   prompt += `\nসঠিক উত্তর: ${LABELS[correctIdx]}) ${opts[correctIdx] || ""}\n\n`;
-  prompt += `সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
+  prompt += `শুধুমাত্র উপরে দেওয়া প্রশ্ন ও অপশন থেকে তথ্য নিয়ে ব্যাখ্যা করো। কোনো তথ্য নিজে থেকে বানিয়ে বলবে না; নিশ্চিত না হলে "নিশ্চিত না" বলবে। সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
   return prompt;
 }
 
-/** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. Uses ATLAS AI (askAI). */
-export function AiExplanationBox({ q }: { q: McqLike }) {
+/** Read the cached explanation for a question directly from exam_questions (single row, fast). */
+async function readCachedExplanation(questionId: string): Promise<string | null> {
+  const { data, error } = await (supabase.rpc as any)("get_cached_ai_explanation", {
+    p_question_id: questionId,
+  });
+  if (error) return null;
+  return (data as string) ?? null;
+}
+
+/** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
+async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
+  const answer = await askAI(buildExplainPrompt(q), null);
+  if (questionId) {
+    // Fire-and-forget: don't block the UI on the cache write.
+    (supabase.rpc as any)("save_ai_explanation", {
+      p_question_id: questionId,
+      p_explanation: answer,
+    }).then(() => {});
+  }
+  return answer;
+}
+
+/**
+ * Silently pre-generate + cache explanations for a batch of questions that
+ * don't have one yet. Call this once when a review/result page mounts, so
+ * that by the time a user clicks "ব্যাখ্যা" it's very likely already cached.
+ * Safe to call repeatedly; skips already-cached questions and runs in the
+ * background without blocking any UI.
+ */
+export function prewarmExplanations(qs: (McqLike & { id?: string })[]) {
+  const targets = qs.filter((q) => q.id && !q.ai_explanation);
+  if (targets.length === 0) return;
+  // Stagger slightly to avoid hammering the AI proxy all at once.
+  targets.forEach((q, i) => {
+    setTimeout(() => {
+      generateAndCacheExplanation(q, q.id).catch(() => {});
+    }, i * 400);
+  });
+}
+
+/** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. Uses cached explanation when available. */
+export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState<string | null>(null);
+  const [answer, setAnswer] = useState<string | null>(q.ai_explanation ?? null);
 
   const handleToggle = async () => {
     const next = !open;
     setOpen(next);
     if (next && answer === null && !loading) {
       setLoading(true);
-      const res = await askAI(buildExplainPrompt(q), null);
+      // Cache-check first (fast path): if another user already triggered
+      // generation for this question, this is an instant DB read.
+      const cached = questionId ? await readCachedExplanation(questionId) : null;
+      if (cached) {
+        setAnswer(cached);
+        setLoading(false);
+        return;
+      }
+      const res = await generateAndCacheExplanation(q, questionId);
       setAnswer(res);
       setLoading(false);
     }
@@ -112,7 +161,7 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
   );
 }
 
-/** "AI Chat" button + modal for follow-up Q&A on a specific MCQ. Uses ATLAS AI (askAI). */
+/** "AI Chat" button + near-fullscreen modal for follow-up Q&A on a specific MCQ. Cache-aware for instant open. */
 export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: string }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -120,13 +169,18 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     { role: "user" | "assistant"; content: string; related?: RelatedMcq[] }[]
   >([]);
   const [input, setInput] = useState("");
-  const [initialAnswer, setInitialAnswer] = useState<string | null>(null);
+  const [initialAnswer, setInitialAnswer] = useState<string | null>(q.ai_explanation ?? null);
 
   const openChat = async () => {
     setModalOpen(true);
-    if (initialAnswer === null && !loading) {
+    if (initialAnswer !== null) {
+      if (messages.length === 0) setMessages([{ role: "assistant", content: initialAnswer }]);
+      return;
+    }
+    if (!loading) {
       setLoading(true);
-      const res = await askAI(buildExplainPrompt(q), null);
+      const cached = questionId ? await readCachedExplanation(questionId) : null;
+      const res = cached ?? (await generateAndCacheExplanation(q, questionId));
       setInitialAnswer(res);
       setMessages([{ role: "assistant", content: res }]);
       setLoading(false);
@@ -153,7 +207,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
       return;
     }
 
-    const context = `MCQ: ${q.question_text}\nঅপশনস: ${opts.join(", ")}\n\nফলো-আপ প্রশ্ন: ${msg}`;
+    const context = `MCQ: ${q.question_text}\nঅপশনস: ${opts.join(", ")}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(শুধু উপরের প্রশ্ন/অপশন সংক্রান্ত সঠিক তথ্য দিয়ে উত্তর দাও, নিশ্চিত না হলে বলে দাও যে নিশ্চিত না)`;
     const answer = await askAI(context, null);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
@@ -172,14 +226,14 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
       </Button>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
-          <DialogHeader>
+        <DialogContent className="max-w-3xl w-[96vw] h-[92vh] max-h-[92vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-4 py-3 border-b">
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" /> ATLAS AI Chat
             </DialogTitle>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto space-y-3 py-2 pr-1">
+          <div className="flex-1 overflow-y-auto space-y-3 p-4">
             <div className="rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
               <strong>প্রশ্ন:</strong> {q.question_text}
             </div>
@@ -221,7 +275,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
             )}
           </div>
 
-          <div className="flex gap-2 pt-2 border-t">
+          <div className="flex gap-2 p-3 border-t">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
