@@ -640,6 +640,14 @@ function getGroqKeys(env) {
   return [...new Set(keys)];
 }
 __name(getGroqKeys, "getGroqKeys");
+let groqRoundRobinIndex = 0;
+function rotateGroqKeys(keys) {
+  if (keys.length <= 1) return keys;
+  const start = groqRoundRobinIndex % keys.length;
+  groqRoundRobinIndex = (groqRoundRobinIndex + 1) % keys.length;
+  return [...keys.slice(start), ...keys.slice(0, start)];
+}
+__name(rotateGroqKeys, "rotateGroqKeys");
 var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
 var GROQ_IMAGE_MODELS = ["meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"];
 var GROQ_MCQ_JSON_SCHEMA = {
@@ -698,7 +706,7 @@ function mbGroqLooksLikeValidMcqArray(answer) {
 }
 __name(mbGroqLooksLikeValidMcqArray, "mbGroqLooksLikeValidMcqArray");
 async function callGroq(env, question, systemPrompt, image, expectMcqArray, budget) {
-  const keys = getGroqKeys(env);
+  const keys = rotateGroqKeys(getGroqKeys(env));
   if (!keys.length)
     return { error: "GROQ_API_KEY not set" };
   const models = image ? GROQ_IMAGE_MODELS : GROQ_TEXT_MODELS;
