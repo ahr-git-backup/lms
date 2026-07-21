@@ -4,7 +4,7 @@ import {
   LayoutDashboard, VolumeX, Volume2, ShieldAlert
 } from "lucide-react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { AdminSidebar, adminItems } from "@/components/AdminSidebar";
+import { AdminSidebar, adminItems } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
