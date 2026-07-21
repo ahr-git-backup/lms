@@ -693,6 +693,235 @@ const Leaderboard = () => {
       }
   };
 
+  const handleDownloadStudentCards = async () => {
+      try {
+          let query = (supabase as any)
+            .from('leaderboard_exam_attempts')
+            .select('*')
+            .eq('exam_id', examId);
+
+          if (filterType === 'live') {
+              query = query.eq('attempt_type', 'live');
+          } else {
+              query = query.or('attempt_type.eq.practice,attempt_type.is.null');
+          }
+
+          const { data: attempts, error: aError } = await query
+              .order('score', { ascending: false })
+              .order('time_taken_seconds', { ascending: true, nullsFirst: false })
+              .order('submitted_at', { ascending: true });
+
+          if (aError) throw aError;
+          if (!attempts || attempts.length === 0) {
+              alert("No data to export");
+              return;
+          }
+
+          const escapeHtml = (unsafe: string) => {
+              return (unsafe || "")
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")
+                  .replace(/"/g, "&quot;")
+                  .replace(/'/g, "&#039;");
+          };
+
+          const capitalizeWords = (name: string) => {
+              if (!name) return "-";
+              return name
+                  .split(" ")
+                  .map(w => w.length > 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)
+                  .join(" ");
+          };
+
+          const examTitle = escapeHtml(exam?.title || "Exam");
+
+          let pagesHtml = '';
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          attempts.forEach((attempt: any, index: number) => {
+              const name = escapeHtml(capitalizeName(attempt.profile?.full_name));
+              const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
+              const college = escapeHtml(capitalizeWords(attempt.profile?.college_name || attempt.profile?.school || "-"));
+              const avatarUrl = attempt.profile?.avatar_url || `${window.location.origin}/logo.png`;
+
+              pagesHtml += `
+              <div class="student-page">
+                  <div class="card-panel">
+                      <div class="rank-corner">#${index + 1}</div>
+                      <div class="left-col">
+                          <img class="avatar" src="${avatarUrl}" alt="${name}" />
+                      </div>
+                      <div class="right-col">
+                          <div class="exam-name">${examTitle}</div>
+                          <div class="name">${name}</div>
+                          <div class="detail-grid">
+                              <div class="detail-row"><span class="label">HSC Batch</span><span class="value">${hsc}</span></div>
+                              <div class="detail-row"><span class="label">College Name</span><span class="value">${college}</span></div>
+                              <div class="detail-row highlight"><span class="label">Score</span><span class="value">${attempt.score}</span></div>
+                              <div class="detail-row highlight"><span class="label">Rank</span><span class="value">#${index + 1}</span></div>
+                          </div>
+                      </div>
+                  </div>
+              </div>`;
+          });
+
+          const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="bn">
+            <head>
+                <meta charset="UTF-8">
+                <title>${examTitle} - Student Cards</title>
+                <style>
+                    @font-face {
+                        font-family: 'SolaimanLipi';
+                        src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
+                    }
+                    @page {
+                        size: 338mm 190mm;
+                        margin: 0;
+                    }
+                    * { box-sizing: border-box; }
+                    body {
+                        font-family: 'SolaimanLipi', sans-serif;
+                        margin: 0;
+                        padding: 0;
+                        color: #1f2937;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
+                    .student-page {
+                        width: 338mm;
+                        height: 190mm;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        page-break-after: always;
+                        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f172a 100%);
+                        position: relative;
+                        overflow: hidden;
+                    }
+                    .student-page:last-child {
+                        page-break-after: auto;
+                    }
+                    .card-panel {
+                        position: relative;
+                        z-index: 1;
+                        width: 90%;
+                        height: 78%;
+                        background: #ffffff;
+                        border-radius: 20px;
+                        box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+                        display: flex;
+                        overflow: hidden;
+                    }
+                    .rank-corner {
+                        position: absolute;
+                        top: 20px;
+                        right: 24px;
+                        background: linear-gradient(135deg, #f59e0b, #d97706);
+                        color: white;
+                        font-weight: 800;
+                        font-size: 18px;
+                        padding: 8px 18px;
+                        border-radius: 999px;
+                        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+                        letter-spacing: 0.5px;
+                    }
+                    .left-col {
+                        width: 38%;
+                        background: linear-gradient(160deg, #1e3a8a, #0f172a);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        padding: 30px;
+                    }
+                    .avatar {
+                        width: 100%;
+                        max-width: 260px;
+                        aspect-ratio: 1 / 1;
+                        object-fit: cover;
+                        border-radius: 16px;
+                        border: 4px solid rgba(255,255,255,0.85);
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                    }
+                    .right-col {
+                        width: 62%;
+                        padding: 36px 44px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                    }
+                    .exam-name {
+                        font-size: 15px;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                        color: #6366f1;
+                        margin-bottom: 6px;
+                    }
+                    .name {
+                        font-size: 34px;
+                        font-weight: 800;
+                        color: #111827;
+                        margin-bottom: 24px;
+                        line-height: 1.2;
+                    }
+                    .detail-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 14px 24px;
+                    }
+                    .detail-row {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        border-bottom: 1px solid #e5e7eb;
+                        padding-bottom: 10px;
+                    }
+                    .detail-row.highlight .value {
+                        color: #059669;
+                    }
+                    .label {
+                        font-size: 12px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                        color: #9ca3af;
+                    }
+                    .value {
+                        font-size: 22px;
+                        font-weight: 700;
+                        color: #111827;
+                    }
+                </style>
+            </head>
+            <body>
+                ${pagesHtml}
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => {
+                            window.print();
+                        }, 500);
+                    }
+                </script>
+            </body>
+            </html>
+           `;
+
+          const printWindow = window.open('', '_blank');
+          if (printWindow) {
+              printWindow.document.write(htmlContent);
+              printWindow.document.close();
+          } else {
+              alert("Popup blocked! Please allow popups for this site.");
+          }
+
+      } catch (err) {
+          console.error(err);
+          alert("Failed to generate student cards PDF");
+      }
+  };
+
   // If exam is not live type, we might not need tabs, but user said "expired live exam will be counted as a practice exam"
   // So even for expired live exams, we should probably show the historical "Live Rank" vs "Practice Rank".
   const showTabs = exam?.exam_type === 'live';
@@ -736,6 +965,12 @@ const Leaderboard = () => {
                 <Button variant="default" size="sm" onClick={() => handlePrintPDF(true)}>
                     <FileText className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Admin PDF</span>
+                </Button>
+            )}
+            {isAdmin && (
+                <Button variant="secondary" size="sm" onClick={handleDownloadStudentCards}>
+                    <FileText className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Student Cards PDF</span>
                 </Button>
             )}
           </div>
