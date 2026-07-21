@@ -906,6 +906,45 @@ const FocusTimer = () => {
                 এখনো কেউ এই মোডে সময় রেকর্ড করেনি।
               </p>
             )}
+            {/* Top 3 Podium — matches AtlasApp's Top Performers graph */}
+            {leaderboard && leaderboard.length > 0 && (() => {
+              const top3 = leaderboard.slice(0, 3);
+              const maxSec = Math.max(1, ...top3.map((s: any) => Number(s.total_seconds)));
+              const crowns = ["👑", "🥈", "🥉"];
+              const rankLabels = ["১ম", "২য়", "৩য়"];
+              const barColors = ["bg-amber-500", "bg-slate-400", "bg-amber-700"];
+              const textColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
+              return (
+                <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-primary/5 p-3 mb-2">
+                  <div className="text-center text-[10px] font-black tracking-wider text-amber-500 mb-2.5 flex items-center justify-center gap-1">
+                    <Trophy className="h-3 w-3" /> TOP PERFORMERS
+                  </div>
+                  <div className="flex items-end justify-center gap-2">
+                    {top3.map((s: any, i: number) => {
+                      const secs = Number(s.total_seconds);
+                      const pct = Math.max(10, Math.round((secs / maxSec) * 72));
+                      const t = formatHMS(secs);
+                      return (
+                        <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
+                          <div className="text-sm">{crowns[i]}</div>
+                          <div className="w-full flex justify-center">
+                            <div
+                              className={cn("w-8 rounded-t", barColors[i])}
+                              style={{ height: `${pct}px`, boxShadow: "0 0 8px rgba(0,0,0,0.15)" }}
+                            />
+                          </div>
+                          <div className={cn("text-[10px] font-black", textColors[i])}>{rankLabels[i]}</div>
+                          <div className="text-[10px] font-extrabold truncate max-w-[70px] text-center">
+                            {s.full_name || "Student"}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground">{t.h}h {t.m}m</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             {leaderboard?.map((row: any, i: number) => {
               const isMe = row.user_id === user?.id;
               const t = formatHMS(Number(row.total_seconds));
