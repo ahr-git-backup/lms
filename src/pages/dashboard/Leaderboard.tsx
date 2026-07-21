@@ -818,7 +818,7 @@ const Leaderboard = () => {
                         src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
                     }
                     @page {
-                        size: 338mm 190mm;
+                        size: 338mm 190.125mm;
                         margin: 0;
                     }
                     * { box-sizing: border-box; }
@@ -836,7 +836,8 @@ const Leaderboard = () => {
                     }
                     .student-page {
                         width: 338mm;
-                        height: 190mm;
+                        height: 190.125mm;
+                        aspect-ratio: 16 / 9;
                         margin: 0;
                         display: flex;
                         align-items: center;
