@@ -51,6 +51,10 @@ interface McqLike {
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
+/** Exact systemPrompt AtlasApp uses for all MCQ AI calls — kept identical so
+ *  explanation/chat responses match AtlasApp's proven detailed style. */
+const MCQ_SYSTEM_PROMPT = "তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।";
+
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
     (o): o is string => !!o && o !== "—"
@@ -70,7 +74,7 @@ function buildFullMcqBlock(q: McqLike) {
 
 function buildExplainPrompt(q: McqLike) {
   const mcqBlock = buildFullMcqBlock(q);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) ভালোভাবে পড়ে বিস্তারিতভাবে বাংলায় বিশ্লেষণ করো:\n\n${mcqBlock}\n\nপ্রতিটি অপশন বিস্তারিতভাবে ব্যাখ্যা করো: ✅ কেন সঠিক (প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ), ❌ কেন ভুল (প্রতিটির জন্য স্পষ্ট, বিস্তারিত কারণ)। শেষে 💡 মনে রাখার একটি ছোট টিপস দিতে পারো।`;
+  return `নিচের সম্পূর্ণ MCQ-টি ভালোভাবে পড়ে বিস্তারিতভাবে বাংলায় বিশ্লেষণ করো:\n${mcqBlock}\n\nপ্রতিটি অপশন বিস্তারিতভাবে ব্যাখ্যা করো: ✅ কেন সঠিক (প্রাসঙ্গিক ধারণা/সূত্র সহ), ❌ কেন ভুল (প্রতিটির জন্য স্পষ্ট কারণ)। বাংলায়।`;
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -84,7 +88,7 @@ async function readCachedExplanation(questionId: string): Promise<string | null>
 
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
-  const answer = await askAI(buildExplainPrompt(q), null);
+  const answer = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
   if (questionId) {
     // Fire-and-forget: don't block the UI on the cache write.
     (supabase.rpc as any)("save_ai_explanation", {
@@ -211,7 +215,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     }
 
     const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো)`;
-    const answer = await askAI(context, null);
+    const answer = await askAI(context, null, MCQ_SYSTEM_PROMPT);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
   };

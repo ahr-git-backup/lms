@@ -129,8 +129,8 @@ export function getSystemPrompt(question: string) {
   return prompt;
 }
 
-export async function askAI(question: string, image: PendingImage | null): Promise<string> {
-  const systemPrompt = getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
+export async function askAI(question: string, image: PendingImage | null, systemPromptOverride?: string): Promise<string> {
+  const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
