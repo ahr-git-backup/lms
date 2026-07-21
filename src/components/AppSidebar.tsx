@@ -129,14 +129,6 @@ export function AppSidebar() {
   };
 
   const visibleAdminItems = adminItems.filter(item => {
-      if (item.url === "/admin/quick-practice") return false;
-      if (item.roles.includes("admin") && isAdmin) return true;
-      if (item.roles.includes("teacher") && isTeacher) return true;
-      return false;
-  });
-
-  const visibleToolItems = adminItems.filter(item => {
-      if (item.url !== "/admin/quick-practice") return false;
       if (item.roles.includes("admin") && isAdmin) return true;
       if (item.roles.includes("teacher") && isTeacher) return true;
       return false;
@@ -185,31 +177,6 @@ export function AppSidebar() {
             <SidebarGroupContent>
               <SidebarMenu>
                 {visibleAdminItems.map((item) => (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
-                      <NavLink
-                        to={item.url}
-                        end
-                        className="flex items-center gap-2 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <item.icon className={`h-5 w-5 shrink-0 ${item.color || ''}`} />
-                        {state === "expanded" && <span className="font-medium">{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
-
-        {(isAdmin || isTeacher) && visibleToolItems.length > 0 && (
-          <SidebarGroup>
-            <SidebarGroupLabel className="text-sidebar-foreground/70">Admin Tools</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {visibleToolItems.map((item) => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
                       <NavLink
