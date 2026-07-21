@@ -806,7 +806,7 @@ const Leaderboard = () => {
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 mt-0.5">
-                                <span className="break-words">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
+                                <span className="break-words uppercase">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
