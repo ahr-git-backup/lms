@@ -822,6 +822,10 @@ const Leaderboard = () => {
                         margin: 0;
                     }
                     * { box-sizing: border-box; }
+                    html, body {
+                        width: 100%;
+                        height: 100%;
+                    }
                     body {
                         font-family: 'SolaimanLipi', sans-serif;
                         margin: 0;
@@ -831,12 +835,15 @@ const Leaderboard = () => {
                         print-color-adjust: exact !important;
                     }
                     .student-page {
-                        width: 338mm;
-                        height: 190mm;
+                        width: 100vw;
+                        height: 100vh;
+                        aspect-ratio: 16 / 9;
+                        margin: 0 auto;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         page-break-after: always;
+                        break-after: page;
                         background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f172a 100%);
                         position: relative;
                         overflow: hidden;
