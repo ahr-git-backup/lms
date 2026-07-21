@@ -145,6 +145,20 @@ const DashboardHome = () => {
     enabled: !!isAdmin,
   });
 
+  const { data: qpPoints } = useQuery({
+    queryKey: ["qp-user-points", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_user_points")
+        .select("total_points")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) return 0;
+      return data?.total_points ?? 0;
+    },
+  });
+
   if (dashboardLoading) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Loading dashboard...</div>;
   }
@@ -190,6 +204,22 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <Card
+        className="cursor-pointer border-amber-400/50 bg-gradient-to-r from-amber-400/10 via-amber-400/5 to-transparent hover:border-amber-400 transition-all"
+        onClick={() => navigate("/quick-practice/leaderboard")}
+      >
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Trophy className="h-5 w-5 text-amber-950" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-sm">Quick Practice Points</p>
+            <p className="text-xs text-muted-foreground">Leaderboard-এ নিজের rank দেখুন</p>
+          </div>
+          <div className="text-2xl font-black text-amber-500">{qpPoints ?? 0}</div>
+        </CardContent>
+      </Card>
+
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
         <p className="text-sm text-muted-foreground">
