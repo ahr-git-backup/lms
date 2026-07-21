@@ -734,6 +734,47 @@ const Leaderboard = () => {
                   .join(" ");
           };
 
+          const MALE_FIRST_NAMES = new Set([
+              "mohammad","mohammed","md","abdul","abdullah","rahim","karim","rafiq","rafiqul","shahin","shahin",
+              "shakib","shakil","tanvir","tanjim","hasan","hossain","hossen","imran","ibrahim","ismail","jahid",
+              "jahangir","jamal","javed","kamal","kamrul","khalid","khan","mahfuz","mahmud","mahmudul","masud",
+              "mizan","mizanur","mostafa","mostofa","mubarak","murad","nasir","nazrul","nazmul","nayeem","nayem",
+              "obaidul","omar","rakib","rakibul","rashed","rashid","rasel","rasul","riyad","riyadh","rubel","ruhul",
+              "sabbir","saddam","sadman","sagor","sagar","saif","saiful","sajib","sajid","sajjad","sakib","salam",
+              "salman","samiul","shafin","shakib","shamim","shanto","shariful","sharif","shawon","siam","sohan",
+              "sohel","sourav","sourov","sultan","sumon","tanvir","tareq","tarek","tuhin","zahid","zakir","zaman",
+              "arif","asif","ashik","atik","ayan","ayaan","emon","fahim","faisal","faysal","habib","hamza",
+              "iftekhar","ikram","irfan","kabir","liton","mahin","mamun","mehedi","milon","minhaz","nabil","naeem",
+              "niloy","nixon","raihan","raju","rana","robin","rony","russel","shanto","shuvo","siddique","sourov",
+              "yasin","zihad","farhan","fardin","abir","alvi","apon","arafat","biplob","dipto","emon","fahad",
+              "galib","hridoy","ifty","jisan","limon","mahdi","naim","opu","pranto","rifat","robiul","rocky",
+              "shovon","sifat","sohag","tanim","toha","towhid","yeamin","zubayer"
+          ]);
+          const FEMALE_FIRST_NAMES = new Set([
+              "fatema","fatima","ayesha","aysha","nusrat","tasnim","tasnia","tania","taniya","sumaiya","sumaya",
+              "sadia","sabrina","sabina","shabnam","shanta","shanaz","shirin","sharmin","shirin","rima","rina",
+              "runa","rupa","rupali","ruma","ruksana","rukshana","rokeya","rokhsana","rifa","rifah","priya",
+              "prity","prity","israt","israat","ishrat","jannat","jannatul","jarin","jui","joya","jui","kamrun",
+              "khadija","khaleda","laila","layla","lima","lubna","luna","mahi","mahiya","maisha","mim","mitu",
+              "moushumi","mukta","munmun","nadia","nafisa","nahar","najma","nargis","nasrin","natasha","nazia",
+              "nazneen","nilufar","nishat","nusaiba","orin","papia","poly","preeti","priyanka","raisa","rehnuma",
+              "rifat","rima","rita","riya","roksana","rowshan","ruma","sabiha","saima","saira","sathi","satu",
+              "shabnam","shahana","shahnaz","shanjida","sharmila","shathi","shatabdi","shefali","shilpi","shimla",
+              "shirin","shobnom","shopna","shorna","shreya","sifat","sultana","sumi","suraiya","tahmina","tania",
+              "tanzila","tasfia","tasmia","trisha","tuli","yasmin","zannat","zarin","zerin","prity"
+          ]);
+
+          const guessGenderAvatar = (fullName: string): string => {
+              const firstNameRaw = (fullName || "").trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") || "";
+              if (MALE_FIRST_NAMES.has(firstNameRaw)) {
+                  return `${window.location.origin}/default-avatar-male.svg`;
+              }
+              if (FEMALE_FIRST_NAMES.has(firstNameRaw)) {
+                  return `${window.location.origin}/default-avatar-female.svg`;
+              }
+              return `${window.location.origin}/logo.png`;
+          };
+
           const examTitle = escapeHtml(exam?.title || "Exam");
 
           let pagesHtml = '';
@@ -742,7 +783,7 @@ const Leaderboard = () => {
               const name = escapeHtml(capitalizeName(attempt.profile?.full_name));
               const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
               const college = escapeHtml(capitalizeWords(attempt.profile?.college_name || attempt.profile?.school || "-"));
-              const avatarUrl = attempt.profile?.avatar_url || `${window.location.origin}/logo.png`;
+              const avatarUrl = attempt.profile?.avatar_url || guessGenderAvatar(attempt.profile?.full_name);
 
               pagesHtml += `
               <div class="student-page">
