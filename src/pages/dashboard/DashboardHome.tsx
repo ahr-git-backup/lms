@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -223,6 +223,35 @@ const DashboardHome = () => {
               <div>
                 <p className="font-semibold text-sm">Notice</p>
                 <p className="text-xs text-muted-foreground">Send to all users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            onClick={() => navigate("/admin/syllabus-tracker")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Study Tracker</p>
+                <p className="text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            onClick={() => navigate("/admin/quick-practice")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Zap className="h-6 w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Quick Practice</p>
+                <p className="text-xs text-muted-foreground">Manage content</p>
               </div>
             </CardContent>
           </Card>
