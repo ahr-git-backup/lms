@@ -799,6 +799,16 @@ const Leaderboard = () => {
 
                 return (
                   <div key={attempt.id} className={`relative rounded-lg border p-2.5 ${cardClass}`}>
+                    {myAttemptId && !isMe && (
+                        <div className="flex justify-end mb-1">
+                            <button
+                                onClick={() => openCompare(attempt.id)}
+                                className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
+                            >
+                                <Scale className="h-3 w-3" /> তুলনা করো
+                            </button>
+                        </div>
+                    )}
                     <div className="flex items-start gap-2.5">
                         <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
@@ -808,32 +818,26 @@ const Leaderboard = () => {
                             <AvatarFallback className="rounded-md bg-muted" />
                         </Avatar>
                         <div className="flex flex-col min-w-0 flex-1">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-semibold text-base break-words">{capitalizeName(attempt.profile?.full_name)}</span>
-                                {isSecondTimer && (
-                                    <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
-                                )}
+                            <div className="flex items-center justify-between gap-1.5">
+                                <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                                    <span className="font-semibold text-base break-words">{capitalizeName(attempt.profile?.full_name)}</span>
+                                    {isSecondTimer && (
+                                        <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
+                                    )}
+                                </div>
+                                <span className="font-bold text-primary text-sm shrink-0 pl-2">{attempt.score}</span>
                             </div>
-                            <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 mt-0.5">
-                                <span className="break-words">{displayCollegeName(attempt.profile?.college_name || attempt.profile?.school)}</span>
-                                {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
+                            <div className="flex items-center justify-between gap-1.5 mt-0.5">
+                                <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 min-w-0">
+                                    <span className="break-words">{displayCollegeName(attempt.profile?.college_name || attempt.profile?.school)}</span>
+                                    {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
+                                </div>
                                 {isStaff && (
-                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 shrink-0" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
                                         Review
                                     </Button>
                                 )}
                             </div>
-                        </div>
-                        <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
-                            {myAttemptId && !isMe && (
-                                <button
-                                    onClick={() => openCompare(attempt.id)}
-                                    className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
-                                >
-                                    <Scale className="h-3 w-3" /> তুলনা করো
-                                </button>
-                            )}
-                            <span className="font-bold text-primary text-sm">{attempt.score}</span>
                         </div>
                     </div>
                   </div>
