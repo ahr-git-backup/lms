@@ -235,6 +235,19 @@ const FocusTimer = () => {
     enabled: !!compareTarget && cmpDays > 1,
   });
 
+  const { data: cmpBreaksToday } = useQuery({
+    queryKey: ["focus-breaks-today", compareTarget?.userId, user?.id],
+    queryFn: async () => {
+      if (!compareTarget || !user) return { mine: 0, theirs: 0 };
+      const [mine, theirs] = await Promise.all([
+        supabase.rpc("focus_breaks_today" as any, { p_user_id: user.id }),
+        supabase.rpc("focus_breaks_today" as any, { p_user_id: compareTarget.userId }),
+      ]);
+      return { mine: Number(mine.data || 0), theirs: Number(theirs.data || 0) };
+    },
+    enabled: !!compareTarget && !!user,
+  });
+
   const { data: myTotalToday } = useQuery({
     queryKey: ["focus-my-today", user?.id],
     enabled: !!user,
@@ -1260,6 +1273,15 @@ const FocusTimer = () => {
                   </div>
                 </div>
               </div>
+
+              {cmpDays === 1 && cmpBreaksToday && (
+                <div className="rounded-lg border px-3 py-2 flex items-center justify-between text-xs font-bold bg-muted/30">
+                  <span className="text-muted-foreground">বিরতি (আজ)</span>
+                  <span>
+                    তুমি: {cmpBreaksToday.mine}টি &nbsp;|&nbsp; {compareTarget.name}: {cmpBreaksToday.theirs}টি
+                  </span>
+                </div>
+              )}
 
               {cmpDays > 1 && (
                 <div className="border-t pt-2.5 space-y-1.5">
