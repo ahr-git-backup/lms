@@ -342,7 +342,7 @@ const ExamReview = () => {
 
         {/* Header */}
         <div className="flex flex-col gap-2">
-            <Button variant="ghost" onClick={() => navigate(exam.is_readymade ? "/dashboard/readymade" : "/dashboard/live-exam")} className="pl-0 self-start">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 self-start">
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
