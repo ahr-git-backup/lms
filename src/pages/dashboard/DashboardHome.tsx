@@ -7,6 +7,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 
 // Define shape of dashboard data
@@ -389,7 +390,7 @@ const DashboardHome = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Take Exam
                        </Button>
                     </CardContent>

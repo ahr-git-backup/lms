@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat, FileDown, ListChecks, ListOrdered } from "lucide-react";
+import { getExamSourceList } from "@/lib/examSourceTracker";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -118,6 +119,7 @@ const ExamReview = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
+  const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Exam Review – Atlas";
@@ -273,6 +275,15 @@ const ExamReview = () => {
       }
   });
 
+  const handleStartMistakePractice = (mode: "wrong" | "both") => {
+      if (attempt?.exam_id) {
+        setIsMistakeDialogOpen(false);
+        navigate("/dashboard/take-mistakes", {
+          state: { examIds: [attempt.exam_id], filterMode: mode }
+        });
+      }
+  };
+
   const handlePracticeAgain = () => {
       if (attempt?.exam_id) {
         // No retake_from param -> lands on the fresh pre-exam screen,
@@ -363,8 +374,45 @@ const ExamReview = () => {
                  <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
+                 <Button variant="outline" onClick={() => window.print()} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
+                 </Button>
+                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <ListChecks className="h-5 w-5 mr-1.5 text-red-500 shrink-0" /> <span className="truncate">Mistake Practice</span>
+                 </Button>
+                 <Button variant="outline" onClick={() => navigate(getExamSourceList(attempt.exam_id))} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <ListOrdered className="h-5 w-5 mr-1.5 text-emerald-500 shrink-0" /> <span className="truncate">Exam List</span>
+                 </Button>
             </div>
         </div>
+
+        {/* Mistake Practice Mood Select Dialog */}
+        <Dialog open={isMistakeDialogOpen} onOpenChange={setIsMistakeDialogOpen}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Mistake Practice</DialogTitle>
+                    <DialogDescription>Kon question gulo practice korte chao?</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 py-2">
+                    <button
+                        onClick={() => handleStartMistakePractice("wrong")}
+                        disabled={wrongCount === 0}
+                        className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <div className="font-semibold">Only Wrong ({wrongCount})</div>
+                        <div className="text-xs text-muted-foreground">Shudhu vul kora question gulo</div>
+                    </button>
+                    <button
+                        onClick={() => handleStartMistakePractice("both")}
+                        disabled={(wrongCount + skippedCount) === 0}
+                        className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <div className="font-semibold">Wrong + Skip ({wrongCount + skippedCount})</div>
+                        <div className="text-xs text-muted-foreground">Vul o baad deya shob question</div>
+                    </button>
+                </div>
+            </DialogContent>
+        </Dialog>
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">

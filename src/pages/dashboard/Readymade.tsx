@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
@@ -468,7 +469,7 @@ const ExamGrid = ({ exams, navigate }: { exams: any[], navigate: any }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {exams.map((exam) => (
       <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-        onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+        onClick={() => { setExamSourceList(exam.id, "/dashboard/readymade"); navigate(`/dashboard/take-exam/${exam.id}`); }}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start gap-2">
             <div className="space-y-1">
