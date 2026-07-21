@@ -35,7 +35,7 @@ const TakeMistakeExam = () => {
     const { toast } = useToast();
     const { user } = useAuth();
 
-    const state = location.state as { examIds: string[]; filterMode: 'wrong' | 'skipped' | 'both' } | undefined;
+    const state = location.state as { examIds: string[]; filterMode: 'wrong' | 'skipped' | 'both'; sourceAttemptId?: string } | undefined;
 
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -299,6 +299,11 @@ const TakeMistakeExam = () => {
                             <ChevronLeft className="h-4 w-4 mr-2" /> Back to Mistakes
                         </Button>
                         <div className="flex gap-2">
+                             {state.sourceAttemptId && (
+                                 <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
+                                    <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
+                                 </Button>
+                             )}
                              <Button size="sm" onClick={() => window.location.reload()}>
                                 <RotateCw className="h-4 w-4 mr-2" /> Practice Again
                              </Button>

@@ -279,7 +279,7 @@ const ExamReview = () => {
       if (attempt?.exam_id) {
         setIsMistakeDialogOpen(false);
         navigate("/dashboard/take-mistakes", {
-          state: { examIds: [attempt.exam_id], filterMode: mode }
+          state: { examIds: [attempt.exam_id], filterMode: mode, sourceAttemptId: attemptId }
         });
       }
   };
