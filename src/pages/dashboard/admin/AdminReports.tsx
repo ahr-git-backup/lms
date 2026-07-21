@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import MathText from "@/components/MathText";
-import { Loader2, Check, X, AlertCircle } from "lucide-react";
+import { Loader2, Check, X, AlertCircle, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 const AdminReports = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
+    const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
 
     useEffect(() => {
         document.title = "Reports – Atlas Admin";
@@ -277,6 +278,14 @@ Admin Feedback: ${feedback}`;
         groupedReports[cat].push(report);
     }
 
+    const toggleCategory = (cat: string) => {
+        setCollapsedCategories(prev => {
+            const next = new Set(prev);
+            if (next.has(cat)) next.delete(cat); else next.add(cat);
+            return next;
+        });
+    };
+
     return (
         <div className="space-y-6 pb-20 p-2 sm:p-4 mx-auto overflow-x-hidden w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -289,12 +298,20 @@ Admin Feedback: ${feedback}`;
                 </div>
             </div>
 
-            {CATEGORY_ORDER.filter(cat => groupedReports[cat]?.length).map((cat) => (
+            {CATEGORY_ORDER.filter(cat => groupedReports[cat]?.length).map((cat) => {
+                const isCollapsed = collapsedCategories.has(cat);
+                return (
                 <div key={cat} className="space-y-3">
-                    <div className="flex items-center gap-2">
-                        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{cat}</h2>
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-medium">{groupedReports[cat].length}</span>
-                    </div>
+                    <button
+                        type="button"
+                        onClick={() => toggleCategory(cat)}
+                        className="w-full flex items-center gap-2 bg-secondary/70 hover:bg-secondary px-3 py-2.5 rounded-lg border transition-colors"
+                    >
+                        <ChevronRight className={`h-4 w-4 shrink-0 transition-transform ${isCollapsed ? "" : "rotate-90"}`} />
+                        <h2 className="text-sm font-bold uppercase tracking-wide">{cat}</h2>
+                        <span className="text-xs bg-background px-2 py-0.5 rounded-full font-medium">{groupedReports[cat].length}</span>
+                    </button>
+                    {!isCollapsed && (
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                         {groupedReports[cat].map((report) => (
                             <Card key={report.id} className="border shadow-sm overflow-hidden text-sm">
@@ -358,8 +375,10 @@ Admin Feedback: ${feedback}`;
                             </Card>
                         ))}
                     </div>
+                    )}
                 </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
