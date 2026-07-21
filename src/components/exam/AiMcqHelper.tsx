@@ -51,16 +51,11 @@ interface McqLike {
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
-/** systemPrompt for MCQ AI calls — enforces the ✅/❌/💡 plain-text format
- *  (never JSON, never markdown) so renderAnswer() displays it cleanly. */
-const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
-
-নিয়ম (কঠোরভাবে মানতে হবে, ব্যতিক্রম নেই):
-১। উত্তর সবসময় একটি সাধারণ, স্বাভাবিক মানুষের-লেখা বাংলা অনুচ্ছেদ/লাইন হবে।
-২। কখনোই JSON, object, array, code block, markdown সিনট্যাক্স ({, }, [, ], \`\`\`, #, "key":) ব্যবহার করবে না — এমনকি প্রশ্নে JSON চাওয়া হলেও না।
-৩। উত্তর অসম্পূর্ণ রেখে থামা যাবে না। প্রতিটি অংশ (সঠিক উত্তর, প্রতিটি ভুল অপশন, টিপস) সম্পূর্ণ বাক্যে শেষ করবে।
-৪। প্রতিটি অংশের মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
-৫। গুরুত্বপূর্ণ শব্দ/টার্ম **এভাবে** বোল্ড করবে, আর কোনো markdown নয়।`;
+/** systemPrompt for MCQ AI calls — kept minimal on purpose. AtlasApp (same AI
+ *  proxy, same models) uses just this one line and gets clean plain-text
+ *  answers reliably; a longer list of strict "never do X" rules was found to
+ *  make some Groq models drift into inventing JSON instead of following them. */
+const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।`;
 
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
@@ -84,7 +79,7 @@ function buildExplainPrompt(q: McqLike) {
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
   const opts = getOptions(q);
   const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nবাধ্যতামূলক: (১) সাদা টেক্সটে লিখবে, কোনো JSON/{}/[] ব্যবহার করবে না। (২) কোনো অংশ অসম্পূর্ণ রেখে থামবে না — প্রতিটি বাক্য সম্পূর্ণ করবে। (৩) প্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) ভালোভাবে পড়ে পুরো প্রশ্নটির প্রেক্ষাপট বুঝে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nউপরে দেওয়া প্রশ্ন ও অপশনের প্রেক্ষাপট মাথায় রেখে, পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিত ব্যাখ্যা করো:\n১. ✅ কেন ${LABELS[correctIdx]}) সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিতভাবে, গুরুত্বপূর্ণ শব্দ **এভাবে** বোল্ড করবে\n২. ${wrongLabels.map((l) => `❌ ${l} কেন ভুল`).join(", ")} — প্রতিটির জন্য স্পষ্ট ব্যাখ্যা\n৩. 💡 মনে রাখার একটি ছোট টিপস`;
 }
 
 /** Best-effort repair for JSON truncated mid-string/mid-object (common when a
