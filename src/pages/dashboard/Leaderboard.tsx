@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Trophy, BadgeAlert, Download, FileText, Star, Scale, CheckCircle2, XCircle, MinusCircle, Clock } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -95,7 +94,7 @@ const Leaderboard = () => {
   const isStaff = isAdmin || isTeacher;
   const navigate = useNavigate();
   const [filterType, setFilterType] = useState<'live' | 'practice'>('live');
-  const [compareIds, setCompareIds] = useState<string[]>([]);
+  const [compareTargetId, setCompareTargetId] = useState<string | null>(null);
   const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
@@ -175,13 +174,32 @@ const Leaderboard = () => {
     enabled: !!exam,
   });
 
+  // Automatically switch to practice view if exam is practice type
+  useEffect(() => {
+    if (exam?.exam_type === 'practice') {
+      setFilterType('practice');
+    }
+  }, [exam?.exam_type]);
+
+  const leaderboard = leaderboardData?.data || [];
+  const totalCount = leaderboardData?.count || 0;
+
+  // Top 3 for Podium
+  const topThree = leaderboard.slice(0, 3);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myAttempt = leaderboard.find((a: any) => a.profile_id === user?.id);
+  const myAttemptId = myAttempt?.id || null;
+
+  const comparePairIds = compareTargetId && myAttemptId ? [myAttemptId, compareTargetId] : [];
+
   const { data: compareData, isLoading: compareLoading } = useQuery({
-    queryKey: ["leaderboard-compare", compareIds],
+    queryKey: ["leaderboard-compare", comparePairIds],
     queryFn: async () => {
       const { data: attempts, error: aError } = await (supabase as any)
         .from("exam_attempts")
         .select("*")
-        .in("id", compareIds);
+        .in("id", comparePairIds);
       if (aError) throw aError;
 
       const { data: questions, error: qError } = await (supabase as any)
@@ -193,7 +211,7 @@ const Leaderboard = () => {
       const questionsMap = new Map((questions || []).map((q: any) => [q.id, q]));
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const stats = (attempts || []).map((att: any) => {
+      const statsUnordered = (attempts || []).map((att: any) => {
         let correct = 0, wrong = 0, skipped = 0;
         const answeredIds = new Set((att.answers || []).map((a: any) => a.question_id));
 
@@ -221,30 +239,17 @@ const Leaderboard = () => {
         };
       });
 
-      return stats;
+      // Ensure order: [me, target]
+      const me = statsUnordered.find((s: any) => s.attemptId === myAttemptId);
+      const target = statsUnordered.find((s: any) => s.attemptId === compareTargetId);
+      return me && target ? [me, target] : statsUnordered;
     },
-    enabled: compareOpen && compareIds.length === 2,
+    enabled: compareOpen && comparePairIds.length === 2,
   });
 
-  // Automatically switch to practice view if exam is practice type
-  useEffect(() => {
-    if (exam?.exam_type === 'practice') {
-      setFilterType('practice');
-    }
-  }, [exam?.exam_type]);
-
-  const leaderboard = leaderboardData?.data || [];
-  const totalCount = leaderboardData?.count || 0;
-
-  // Top 3 for Podium
-  const topThree = leaderboard.slice(0, 3);
-
-  const toggleCompare = (attemptId: string) => {
-    setCompareIds(prev => {
-      if (prev.includes(attemptId)) return prev.filter(id => id !== attemptId);
-      if (prev.length >= 2) return [prev[1], attemptId];
-      return [...prev, attemptId];
-    });
+  const openCompare = (attemptId: string) => {
+    setCompareTargetId(attemptId);
+    setCompareOpen(true);
   };
 
   const getAttemptDisplay = (attemptId: string) => {
@@ -260,44 +265,48 @@ const Leaderboard = () => {
   };
 
   const buildVerdict = () => {
-    if (!compareData || compareData.length < 2) return "";
+    if (!compareData || compareData.length < 2) return [];
     const [a, b] = compareData;
-    const nameA = getAttemptDisplay(a.attemptId)?.profile?.full_name || "Student A";
-    const nameB = getAttemptDisplay(b.attemptId)?.profile?.full_name || "Student B";
+    const nameA = getAttemptDisplay(a.attemptId)?.profile?.full_name || "প্রথম শিক্ষার্থী";
+    const nameB = getAttemptDisplay(b.attemptId)?.profile?.full_name || "দ্বিতীয় শিক্ষার্থী";
 
     const points: string[] = [];
 
     if (a.score !== b.score) {
       const leader = a.score > b.score ? nameA : nameB;
       const diff = Math.abs(a.score - b.score);
-      points.push(`${leader} score-e ${diff} point egiye ache.`);
+      points.push(`স্কোরে ${leader} ${diff} নম্বর এগিয়ে আছে।`);
     } else {
-      points.push("Duijoner score shomoni.");
+      points.push("দুইজনের স্কোর সমান।");
     }
 
     if (a.correct !== b.correct) {
       const leader = a.correct > b.correct ? nameA : nameB;
-      points.push(`${leader}-er right answer beshi (${Math.max(a.correct, b.correct)} vs ${Math.min(a.correct, b.correct)}).`);
+      points.push(`${leader}-এর সঠিক উত্তর বেশি (${Math.max(a.correct, b.correct)}টি বনাম ${Math.min(a.correct, b.correct)}টি)।`);
+    } else {
+      points.push(`দুইজনের সঠিক উত্তরের সংখ্যা সমান (${a.correct}টি)।`);
     }
 
     if (a.wrong !== b.wrong) {
       const worse = a.wrong > b.wrong ? nameA : nameB;
-      points.push(`${worse}-er wrong answer beshi, accuracy improve korte hobe.`);
+      points.push(`${worse}-এর ভুল উত্তর বেশি, তাই accuracy বাড়ানো দরকার।`);
+    } else {
+      points.push(`দুইজনের ভুল উত্তরের সংখ্যা সমান (${a.wrong}টি)।`);
     }
 
     if (a.skipped !== b.skipped) {
       const more = a.skipped > b.skipped ? nameA : nameB;
-      points.push(`${more} beshi question skip korese — shomoy management dekha dorkar.`);
+      points.push(`${more} বেশি প্রশ্ন বাদ দিয়েছে — সময় ব্যবস্থাপনায় নজর দেওয়া দরকার।`);
     }
 
     if (a.time_taken_seconds && b.time_taken_seconds && a.time_taken_seconds !== b.time_taken_seconds) {
       const faster = a.time_taken_seconds < b.time_taken_seconds ? nameA : nameB;
-      points.push(`${faster} kom shomoy niyeche exam complete korte.`);
+      points.push(`${faster} কম সময়ে পরীক্ষা শেষ করেছে।`);
     }
 
     if (a.violation_count !== b.violation_count) {
       const more = a.violation_count > b.violation_count ? nameA : nameB;
-      points.push(`${more}-er warning/violation beshi, exam discipline e monojog dorkar.`);
+      points.push(`${more}-এর ওয়ার্নিং/ভায়োলেশন বেশি, পরীক্ষার নিয়ম মেনে চলার দিকে মনোযোগ দিতে হবে।`);
     }
 
     // Overall suggestion
@@ -305,10 +314,12 @@ const Leaderboard = () => {
     const scoreLeaderName = scoreLeader === a ? nameA : nameB;
     const scoreLoserName = scoreLeader === a ? nameB : nameA;
     if (a.score !== b.score) {
-      points.push(`Poramorsho: ${scoreLoserName}-ke ${scoreLeaderName}-er moto beshi practice question shesh kora r taratari na kore shothik answer bhebe deoya niye kaj korte hobe.`);
+      points.push(`পরামর্শ: ${scoreLoserName}-কে ${scoreLeaderName}-এর মতো বেশি প্র্যাকটিস প্রশ্ন সম্পন্ন করা এবং তাড়াহুড়ো না করে চিন্তা করে সঠিক উত্তর দেওয়ার অভ্যাস গড়ে তুলতে হবে।`);
+    } else {
+      points.push("পরামর্শ: দুইজনেরই পারফরম্যান্স কাছাকাছি — accuracy আরও বাড়াতে বেশি প্র্যাকটিস প্রশ্ন সমাধান করা উচিত।");
     }
 
-    return points.join(" ");
+    return points;
   };
 
   const handleExportCSV = async () => {
@@ -748,24 +759,6 @@ const Leaderboard = () => {
             {/* Podium Component */}
             {topThree.length > 0 && <Podium topThree={topThree} isStaff={isStaff} />}
 
-            {compareIds.length > 0 && (
-                <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-lg px-3 py-2 mb-2">
-                    <span className="text-xs text-muted-foreground">
-                        {compareIds.length}/2 selected {compareIds.length === 1 ? "— aro 1 jon select koro" : ""}
-                    </span>
-                    <div className="flex gap-2">
-                        {compareIds.length === 2 && (
-                            <Button size="sm" className="h-7 text-xs" onClick={() => setCompareOpen(true)}>
-                                <Scale className="h-3.5 w-3.5 mr-1" /> তুলনা করো
-                            </Button>
-                        )}
-                        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setCompareIds([])}>
-                            Clear
-                        </Button>
-                    </div>
-                </div>
-            )}
-
             {/* Mobile: card list (no horizontal scroll) */}
             <div className="md:hidden space-y-2">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -778,18 +771,19 @@ const Leaderboard = () => {
                 else if (globalIndex === 2) { rankIcon = "🥉"; cardClass = "bg-orange-100/50 dark:bg-orange-900/20"; }
 
                 const isSecondTimer = attempt.profile?.is_second_timer;
-                const isSelected = compareIds.includes(attempt.id);
+                const isMe = myAttemptId === attempt.id;
 
                 return (
                   <div key={attempt.id} className={`relative rounded-lg border p-3 ${cardClass}`}>
-                    <div className="absolute top-2 right-2">
-                        <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={() => toggleCompare(attempt.id)}
-                            aria-label="Compare select"
-                        />
-                    </div>
-                    <div className="flex items-center gap-2.5 pr-8">
+                    {myAttemptId && !isMe && (
+                        <button
+                            onClick={() => openCompare(attempt.id)}
+                            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-95 transition-transform"
+                        >
+                            <Scale className="h-3 w-3" /> তুলনা
+                        </button>
+                    )}
+                    <div className="flex items-center gap-2.5 pr-16">
                         <div className="font-bold whitespace-nowrap">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
@@ -874,16 +868,21 @@ const Leaderboard = () => {
                     ) : null;
 
                     const isSecondTimer = attempt.profile?.is_second_timer;
-                    const isSelected = compareIds.includes(attempt.id);
+                    const isMe = myAttemptId === attempt.id;
 
                     return (
                         <TableRow key={attempt.id} className={rowClass}>
-                            <TableCell className="w-[40px]">
-                                <Checkbox
-                                    checked={isSelected}
-                                    onCheckedChange={() => toggleCompare(attempt.id)}
-                                    aria-label="Compare select"
-                                />
+                            <TableCell className="w-[70px]">
+                                {myAttemptId && !isMe && (
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 text-[11px] px-2 text-primary"
+                                        onClick={() => openCompare(attempt.id)}
+                                    >
+                                        <Scale className="h-3 w-3 mr-1" /> তুলনা
+                                    </Button>
+                                )}
                             </TableCell>
                             <TableCell className="font-bold whitespace-nowrap">
                                 {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
@@ -1034,8 +1033,12 @@ const Leaderboard = () => {
 
               {/* Verdict */}
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
-                <div className="text-xs font-semibold text-primary mb-1">মতামত</div>
-                <p className="text-sm leading-relaxed">{buildVerdict()}</p>
+                <div className="text-xs font-semibold text-primary mb-2">মতামত (ধাপে ধাপে)</div>
+                <ol className="space-y-1.5 list-decimal list-inside">
+                    {buildVerdict().map((point, i) => (
+                        <li key={i} className="text-sm leading-relaxed">{point}</li>
+                    ))}
+                </ol>
               </div>
             </div>
           ) : (
