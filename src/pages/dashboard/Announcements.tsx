@@ -305,7 +305,17 @@ const Announcements = () => {
                         {isExpanded && (
                             <CardContent className="pl-9 pt-0 pb-4 animate-in slide-in-from-top-2 duration-200">
                                 <div className="h-px w-full bg-border/50 mb-3" />
-                                <p className="text-sm whitespace-pre-wrap">{announcement.body}</p>
+                                {announcement.image_url && (
+                                    <img
+                                        src={announcement.image_url}
+                                        alt=""
+                                        className="w-full max-w-md rounded-lg mb-3 object-cover"
+                                        loading="lazy"
+                                    />
+                                )}
+                                {announcement.body && (
+                                    <p className="text-sm whitespace-pre-wrap">{announcement.body}</p>
+                                )}
                             </CardContent>
                         )}
                         </Card>

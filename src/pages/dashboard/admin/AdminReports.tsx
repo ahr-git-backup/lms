@@ -28,7 +28,7 @@ const AdminReports = () => {
                     *,
                     question:exam_questions(
                         *,
-                        exam:exams(title)
+                        exam:exams(title, exam_type, is_readymade)
                     ),
                     reporter:profiles(full_name, registration_id)
                 `)
@@ -247,6 +247,14 @@ Admin Feedback: ${feedback}`;
         );
     };
 
+    const getCategory = (exam: any): string => {
+        if (!exam) return "Other";
+        if (exam.is_readymade) return "Readymade Exam";
+        if (exam.exam_type === "live") return "Live Exam";
+        if (exam.exam_type === "practice") return "Practice Exam";
+        return "Other";
+    };
+
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
@@ -261,6 +269,14 @@ Admin Feedback: ${feedback}`;
         );
     }
 
+    const CATEGORY_ORDER = ["Live Exam", "Practice Exam", "Readymade Exam", "Other"];
+    const groupedReports: Record<string, typeof reports> = {};
+    for (const report of reports) {
+        const cat = getCategory(report.question?.exam);
+        if (!groupedReports[cat]) groupedReports[cat] = [];
+        groupedReports[cat].push(report);
+    }
+
     return (
         <div className="space-y-6 pb-20 p-2 sm:p-4 mx-auto overflow-x-hidden w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -273,65 +289,63 @@ Admin Feedback: ${feedback}`;
                 </div>
             </div>
 
-            <div className="grid gap-6">
-                {reports.map((report) => (
-                    <Card key={report.id} className="border shadow-sm overflow-hidden">
-                        <CardHeader className="bg-muted/30 pb-3">
-                            <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                                <div>
-                                    <CardTitle className="text-base font-medium text-muted-foreground">
-                                        Reported by <span className="text-foreground font-bold">{report.reporter?.full_name}</span> ({report.reporter?.registration_id})
-                                    </CardTitle>
-                                    <CardDescription>
-                                        Exam: <span className="font-semibold text-primary">{report.question?.exam?.title}</span>
-                                    </CardDescription>
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                    {new Date(report.created_at).toLocaleDateString()}
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="grid md:grid-cols-2 gap-4 p-4">
-                            {/* The Report */}
-                            <div className="bg-orange-50 dark:bg-orange-950/20 p-4 rounded-lg border border-orange-100 dark:border-orange-900 h-full">
-                                <h3 className="text-sm font-bold text-orange-800 dark:text-orange-200 mb-2 flex items-center gap-2">
-                                    <AlertCircle className="h-4 w-4" />
-                                    User Report
-                                </h3>
-                                <p className="text-sm italic">"{report.report_text}"</p>
-                                {report.suggested_correct_option && (
-                                    <div className="mt-3 text-sm">
-                                        <span className="font-semibold text-muted-foreground">Suggested Option: </span>
-                                        <span className="text-red-600 bg-red-100 px-2 py-0.5 rounded font-bold">{report.suggested_correct_option}</span>
+            {CATEGORY_ORDER.filter(cat => groupedReports[cat]?.length).map((cat) => (
+                <div key={cat} className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{cat}</h2>
+                        <span className="text-xs bg-muted px-2 py-0.5 rounded-full font-medium">{groupedReports[cat].length}</span>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        {groupedReports[cat].map((report) => (
+                            <Card key={report.id} className="border shadow-sm overflow-hidden text-sm">
+                                <CardHeader className="bg-muted/30 py-2 px-3">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="min-w-0">
+                                            <CardTitle className="text-xs font-medium text-muted-foreground truncate">
+                                                <span className="text-foreground font-bold">{report.reporter?.full_name}</span> ({report.reporter?.registration_id})
+                                            </CardTitle>
+                                            <CardDescription className="text-xs truncate">
+                                                {report.question?.exam?.title}
+                                            </CardDescription>
+                                        </div>
+                                        <div className="text-[10px] text-muted-foreground shrink-0">
+                                            {new Date(report.created_at).toLocaleDateString()}
+                                        </div>
                                     </div>
-                                )}
-                            </div>
+                                </CardHeader>
+                                <CardContent className="p-3 space-y-2">
+                                    <div className="bg-orange-50 dark:bg-orange-950/20 p-2 rounded-lg border border-orange-100 dark:border-orange-900">
+                                        <h3 className="text-xs font-bold text-orange-800 dark:text-orange-200 mb-1 flex items-center gap-1">
+                                            <AlertCircle className="h-3 w-3" />
+                                            User Report
+                                        </h3>
+                                        <p className="text-xs italic line-clamp-3">"{report.report_text}"</p>
+                                        {report.suggested_correct_option && (
+                                            <div className="mt-1 text-xs">
+                                                <span className="text-red-600 bg-red-100 px-1.5 py-0.5 rounded font-bold">Suggested: {report.suggested_correct_option}</span>
+                                            </div>
+                                        )}
+                                    </div>
 
-                            {/* The Question */}
-                            <div className="border rounded-lg p-4 bg-card h-full flex flex-col">
-                                <div className="flex justify-between items-center mb-2 pb-2 border-b">
-                                    <span className="font-bold text-xs bg-secondary px-2 py-0.5 rounded">Q{report.question?.question_index}</span>
-                                    <span className="text-xs font-medium bg-green-100 text-green-700 px-2 py-0.5 rounded">Correct: <strong>{report.question?.correct_option}</strong></span>
-                                </div>
-                                <div className="text-sm mb-4 flex-1">
-                                    <MathText text={report.question?.question_text || ""} />
-                                </div>
-                                <div className="grid grid-cols-1 gap-1 text-xs text-muted-foreground mt-auto">
-                                    <div className={`p-1 rounded ${report.question?.correct_option === "A" ? "bg-green-100 text-green-800 font-bold" : ""}`}>A: <MathText text={report.question?.option_a || ""} /></div>
-                                    <div className={`p-1 rounded ${report.question?.correct_option === "B" ? "bg-green-100 text-green-800 font-bold" : ""}`}>B: <MathText text={report.question?.option_b || ""} /></div>
-                                    <div className={`p-1 rounded ${report.question?.correct_option === "C" ? "bg-green-100 text-green-800 font-bold" : ""}`}>C: <MathText text={report.question?.option_c || ""} /></div>
-                                    <div className={`p-1 rounded ${report.question?.correct_option === "D" ? "bg-green-100 text-green-800 font-bold" : ""}`}>D: <MathText text={report.question?.option_d || ""} /></div>
-                                </div>
-                            </div>
-                        </CardContent>
-                        <CardFooter className="flex flex-col sm:flex-row justify-end gap-2 bg-muted/20 py-3">
-                            <DeclineDialog report={report} />
-
-                            <EditQuestionDialog report={report} onClose={() => {}} />
-                        </CardFooter>
-                    </Card>
-                ))}
-            </div>
+                                    <div className="border rounded-lg p-2 bg-card">
+                                        <div className="flex justify-between items-center mb-1 pb-1 border-b">
+                                            <span className="font-bold text-[10px] bg-secondary px-1.5 py-0.5 rounded">Q{report.question?.question_index}</span>
+                                            <span className="text-[10px] font-medium bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Correct: <strong>{report.question?.correct_option}</strong></span>
+                                        </div>
+                                        <div className="text-xs mb-2 line-clamp-3">
+                                            <MathText text={report.question?.question_text || ""} />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                                <CardFooter className="flex justify-end gap-2 bg-muted/20 py-2 px-3">
+                                    <DeclineDialog report={report} />
+                                    <EditQuestionDialog report={report} onClose={() => {}} />
+                                </CardFooter>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 };
