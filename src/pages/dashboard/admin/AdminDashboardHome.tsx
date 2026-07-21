@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, GraduationCap, CreditCard, DollarSign, CalendarClock, ListChecks, StickyNote, Database, Megaphone, Flag, BookOpen, PenTool, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 
 const AdminDashboardHome = () => {
   const navigate = useNavigate();
@@ -78,6 +77,7 @@ const AdminDashboardHome = () => {
     { title: "Heroes", icon: Users, url: "/admin/heroes", color: "text-rose-600", bg: "bg-rose-50 dark:bg-rose-950" },
     { title: "Community", icon: Megaphone, url: "/admin/community", color: "text-violet-600", bg: "bg-violet-50 dark:bg-violet-950" },
     { title: "Reports", icon: Flag, url: "/admin/reports", color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950" },
+    { title: "Quick Practice", icon: Zap, url: "/admin/quick-practice", color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950" },
   ];
 
   return (
@@ -172,17 +172,6 @@ const AdminDashboardHome = () => {
                    )}
                </CardContent>
            </Card>
-      </div>
-
-      <div className="flex justify-center pt-4">
-        <Button
-          size="lg"
-          onClick={() => navigate("/admin/quick-practice")}
-          className="gap-2"
-        >
-          <Zap className="h-5 w-5" />
-          Quick Practice Content Add Korun
-        </Button>
       </div>
     </div>
   );
