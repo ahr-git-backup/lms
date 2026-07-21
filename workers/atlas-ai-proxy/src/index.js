@@ -811,13 +811,12 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
             if (outcome.status === 429) {
               markGroqKeyUnhealthy(key);
               consecutive429++;
-              if (consecutive429 >= 2) {
-                lastError = `Groq: quota exhausted (429 on ${consecutive429} keys), abandoning provider to save budget`;
+              if (consecutive429 >= keys.length) {
+                lastError = `Groq: quota exhausted (429 on all ${consecutive429} keys), abandoning provider to save budget`;
                 break outerGroq;
               }
             } else if (outcome.status === 401 || outcome.status === 403) {
               markGroqKeyUnhealthy(key);
-              consecutive429 = 0;
             } else {
               consecutive429 = 0;
             }
