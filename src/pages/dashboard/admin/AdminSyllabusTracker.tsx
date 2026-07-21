@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, Plus, BarChart3 } from "lucide-react";
+import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,15 @@ const AdminSyllabusTracker = () => {
   const [saving, setSaving] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
+  const [bulkSubjectName, setBulkSubjectName] = useState("");
+  const [bulkText, setBulkText] = useState("");
+  const [bulkExistingSubjectId, setBulkExistingSubjectId] = useState<number | "">("");
+  const [editSubjectId, setEditSubjectId] = useState<number | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
+  const [editChapterId, setEditChapterId] = useState<number | null>(null);
+  const [editChapterName, setEditChapterName] = useState("");
+  const [editTopicId, setEditTopicId] = useState<number | null>(null);
+  const [editTopicName, setEditTopicName] = useState("");
 
   useEffect(() => {
     document.title = "Study Tracker — Admin";
@@ -177,6 +186,123 @@ const AdminSyllabusTracker = () => {
     }
   };
 
+  // Bulk add: paste whole structure at once.
+  // Format (indent-based):
+  // Chapter Name
+  //   Topic 1
+  //   Topic 2
+  // Another Chapter
+  //   Topic 1
+  // Lines with no leading space/tab = chapter. Indented lines = topics.
+  const bulkAddAll = async () => {
+    const lines = bulkText.split("\n").map((l) => l.replace(/\r/g, "")).filter((l) => l.trim() !== "");
+    if (lines.length === 0) {
+      toast({ title: "কিছু পেস্ট করুন", variant: "destructive" });
+      return;
+    }
+    if (!bulkSubjectName.trim() && !bulkExistingSubjectId) {
+      toast({ title: "নতুন বিষয়ের নাম দিন অথবা বিদ্যমান বিষয় বেছে নিন", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      let subjectId: number;
+      if (bulkExistingSubjectId) {
+        subjectId = bulkExistingSubjectId as number;
+      } else {
+        const nextOrder = (subjects && subjects.length > 0) ? Math.max(...subjects.map((s: any) => s.sort_order)) + 1 : 0;
+        const { data: newSubj, error: subjErr } = await (supabase.from as any)("st_subjects")
+          .insert({ mode, name: bulkSubjectName.trim(), short_name: bulkSubjectName.trim().slice(0, 12), sort_order: nextOrder })
+          .select("id")
+          .single();
+        if (subjErr) throw subjErr;
+        subjectId = newSubj.id;
+      }
+
+      // Parse: indented lines (starts with space/tab) belong to the last non-indented line (chapter)
+      const chapters: { name: string; topics: string[] }[] = [];
+      for (const raw of lines) {
+        const isIndented = /^[ \t]/.test(raw);
+        const text = raw.trim();
+        if (!text) continue;
+        if (isIndented) {
+          if (chapters.length === 0) chapters.push({ name: "সাধারণ", topics: [] });
+          chapters[chapters.length - 1].topics.push(text);
+        } else {
+          chapters.push({ name: text, topics: [] });
+        }
+      }
+
+      const { data: existingCh } = await (supabase.from as any)("st_chapters")
+        .select("sort_order")
+        .eq("subject_id", subjectId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      let chOrder = (existingCh?.sort_order ?? -1) + 1;
+
+      for (const ch of chapters) {
+        const { data: newCh, error: chErr } = await (supabase.from as any)("st_chapters")
+          .insert({ subject_id: subjectId, name: ch.name, sort_order: chOrder++ })
+          .select("id")
+          .single();
+        if (chErr) throw chErr;
+        if (ch.topics.length > 0) {
+          const rows = ch.topics.map((n, i) => ({ chapter_id: newCh.id, name: n, weight: 1, sort_order: i }));
+          const { error: topErr } = await (supabase.from as any)("st_topics").insert(rows);
+          if (topErr) throw topErr;
+        }
+      }
+
+      toast({ title: `যোগ সম্পন্ন: ${chapters.length}টি অধ্যায়, ${chapters.reduce((a, c) => a + c.topics.length, 0)}টি টপিক` });
+      setBulkSubjectName("");
+      setBulkText("");
+      setBulkExistingSubjectId("");
+      refreshSubjects();
+      if (expandedSubject === subjectId) refreshChapters();
+    } catch (e: any) {
+      toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateSubject = async (id: number) => {
+    if (!editSubjectName.trim()) return;
+    const { error } = await (supabase.from as any)("st_subjects").update({ name: editSubjectName.trim(), short_name: editSubjectName.trim().slice(0, 12) }).eq("id", id);
+    if (error) {
+      toast({ title: "ব্যর্থ হয়েছে", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "আপডেট হয়েছে" });
+    setEditSubjectId(null);
+    refreshSubjects();
+  };
+
+  const updateChapter = async (id: number) => {
+    if (!editChapterName.trim()) return;
+    const { error } = await (supabase.from as any)("st_chapters").update({ name: editChapterName.trim() }).eq("id", id);
+    if (error) {
+      toast({ title: "ব্যর্থ হয়েছে", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "আপডেট হয়েছে" });
+    setEditChapterId(null);
+    refreshChapters();
+  };
+
+  const updateTopic = async (id: number) => {
+    if (!editTopicName.trim()) return;
+    const { error } = await (supabase.from as any)("st_topics").update({ name: editTopicName.trim() }).eq("id", id);
+    if (error) {
+      toast({ title: "ব্যর্থ হয়েছে", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "আপডেট হয়েছে" });
+    setEditTopicId(null);
+    refreshTopics();
+  };
+
   const deleteSubject = async (id: number) => {
     if (!confirm("এই বিষয়, সব অধ্যায় ও টপিক ডিলিট হবে। নিশ্চিত?")) return;
     const { error } = await (supabase.from as any)("st_subjects").delete().eq("id", id);
@@ -228,6 +354,45 @@ const AdminSyllabusTracker = () => {
           Medical Admission
         </Button>
       </div>
+
+      {/* Bulk add everything at once */}
+      <Card className="border-primary/40">
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Layers className="h-4 w-4 text-primary" /> এক সাথে সব যোগ করুন (Subject + Chapter + Topic)
+          </CardTitle>
+          <CardDescription>মোড: {mode === "hsc" ? "HSC" : "Medical Admission"}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="grid sm:grid-cols-2 gap-2">
+            <Input
+              placeholder="নতুন বিষয়ের নাম (যেমন: পদার্থবিজ্ঞান)"
+              value={bulkSubjectName}
+              onChange={(e) => { setBulkSubjectName(e.target.value); setBulkExistingSubjectId(""); }}
+              disabled={!!bulkExistingSubjectId}
+            />
+            <select
+              className="h-10 rounded-md border bg-background px-3 text-sm"
+              value={bulkExistingSubjectId}
+              onChange={(e) => { setBulkExistingSubjectId(e.target.value ? Number(e.target.value) : ""); setBulkSubjectName(""); }}
+            >
+              <option value="">অথবা বিদ্যমান বিষয়ে যোগ করুন</option>
+              {subjects?.map((s: any) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+          <textarea
+            className="w-full min-h-40 rounded-md border bg-background px-3 py-2 text-sm font-mono"
+            placeholder={"অধ্যায়ের নাম লিখুন (কোনো স্পেস ছাড়া), তার নিচে টপিক লিখুন এক স্পেস/ট্যাব দিয়ে ইনডেন্ট করে:\n\nভেক্টর\n  ভেক্টরের যোগ\n  ভেক্টরের বিয়োগ\nনিউটনিয়ান বলবিদ্যা\n  নিউটনের সূত্র\n  ঘর্ষণ বল"}
+            value={bulkText}
+            onChange={(e) => setBulkText(e.target.value)}
+          />
+          <Button onClick={() => void bulkAddAll()} disabled={saving} className="w-full">
+            <Plus className="h-4 w-4 mr-1" /> সব যোগ করুন
+          </Button>
+        </CardContent>
+      </Card>
 
       {/* Add subject */}
       <Card>
@@ -334,13 +499,36 @@ const AdminSyllabusTracker = () => {
             return (
               <div key={s.id} className="border rounded-xl overflow-hidden">
                 <div className="w-full flex items-center gap-2 p-3 hover:bg-muted/40">
-                  <button
-                    onClick={() => setExpandedSubject(isOpen ? null : s.id)}
-                    className="flex-1 flex items-center gap-2 text-left"
-                  >
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                    <span className="font-semibold text-sm">{s.name}</span>
-                  </button>
+                  {editSubjectId === s.id ? (
+                    <div className="flex-1 flex items-center gap-1.5">
+                      <Input
+                        className="h-8 text-sm"
+                        value={editSubjectName}
+                        onChange={(e) => setEditSubjectName(e.target.value)}
+                        autoFocus
+                      />
+                      <Button size="icon" className="h-7 w-7" onClick={() => void updateSubject(s.id)}><Check className="h-3.5 w-3.5" /></Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditSubjectId(null)}><X className="h-3.5 w-3.5" /></Button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setExpandedSubject(isOpen ? null : s.id)}
+                      className="flex-1 flex items-center gap-2 text-left"
+                    >
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                      <span className="font-semibold text-sm">{s.name}</span>
+                    </button>
+                  )}
+                  {editSubjectId !== s.id && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                      onClick={() => { setEditSubjectId(s.id); setEditSubjectName(s.name); }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -358,16 +546,39 @@ const AdminSyllabusTracker = () => {
                       return (
                         <div key={ch.id} className="border rounded-lg bg-card overflow-hidden">
                           <div className="flex items-center gap-2 p-2.5">
-                            <button
-                              onClick={() => setExpandedChapter(chOpen ? null : ch.id)}
-                              className="flex-1 flex items-center gap-2 text-left text-xs"
-                            >
-                              <ChevronDown
-                                className={cn("h-3.5 w-3.5 transition-transform", chOpen && "rotate-180")}
-                              />
-                              <span className="font-medium">{ch.name}</span>
-                              <span className="text-muted-foreground">({ch.topicCount} টপিক)</span>
-                            </button>
+                            {editChapterId === ch.id ? (
+                              <div className="flex-1 flex items-center gap-1.5">
+                                <Input
+                                  className="h-7 text-xs"
+                                  value={editChapterName}
+                                  onChange={(e) => setEditChapterName(e.target.value)}
+                                  autoFocus
+                                />
+                                <Button size="icon" className="h-6 w-6" onClick={() => void updateChapter(ch.id)}><Check className="h-3 w-3" /></Button>
+                                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditChapterId(null)}><X className="h-3 w-3" /></Button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setExpandedChapter(chOpen ? null : ch.id)}
+                                className="flex-1 flex items-center gap-2 text-left text-xs"
+                              >
+                                <ChevronDown
+                                  className={cn("h-3.5 w-3.5 transition-transform", chOpen && "rotate-180")}
+                                />
+                                <span className="font-medium">{ch.name}</span>
+                                <span className="text-muted-foreground">({ch.topicCount} টপিক)</span>
+                              </button>
+                            )}
+                            {editChapterId !== ch.id && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                onClick={() => { setEditChapterId(ch.id); setEditChapterName(ch.name); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
@@ -382,9 +593,32 @@ const AdminSyllabusTracker = () => {
                               {topicsOfChapter?.map((t: any) => (
                                 <div
                                   key={t.id}
-                                  className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
+                                  className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-md p-2"
                                 >
-                                  <span className="flex-1">{t.name}</span>
+                                  {editTopicId === t.id ? (
+                                    <div className="flex-1 flex items-center gap-1">
+                                      <Input
+                                        className="h-6 text-[11px]"
+                                        value={editTopicName}
+                                        onChange={(e) => setEditTopicName(e.target.value)}
+                                        autoFocus
+                                      />
+                                      <Button size="icon" className="h-5 w-5" onClick={() => void updateTopic(t.id)}><Check className="h-3 w-3" /></Button>
+                                      <Button size="icon" variant="ghost" className="h-5 w-5" onClick={() => setEditTopicId(null)}><X className="h-3 w-3" /></Button>
+                                    </div>
+                                  ) : (
+                                    <span className="flex-1">{t.name}</span>
+                                  )}
+                                  {editTopicId !== t.id && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                      onClick={() => { setEditTopicId(t.id); setEditTopicName(t.name); }}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="ghost"
                                     size="icon"
