@@ -400,6 +400,22 @@ const FocusTimer = () => {
 
   const closeMoodPopup = () => setPendingMood(null);
 
+  const closeOverlay = useCallback(() => {
+    setOverlayMood(null);
+    try {
+      if (window.history.state?.focusOverlay) window.history.back();
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Back button closes the mood overlay instead of navigating away, matching AtlasApp.
+  useEffect(() => {
+    const onPopState = () => setOverlayMood(null);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
+
   const switchMood = async (m: Mood) => {
     if (!running) {
       setToast("⚠️ আগে পড়াশোনা শুরু করো");
@@ -753,7 +769,15 @@ const FocusTimer = () => {
             return (
               <button
                 key={m}
-                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
+                onClick={() => {
+                  setOverlayMood(m);
+                  setOverlayDays(1);
+                  try {
+                    window.history.pushState({ focusOverlay: true }, "");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
                 className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
               >
                 <span className={cn("text-lg font-black", md.color)}>{count}</span>
@@ -1056,7 +1080,7 @@ const FocusTimer = () => {
         <div className="fixed inset-0 bg-background z-[70] flex flex-col">
           <div className="flex items-center gap-3 px-4 py-3 border-b">
             <button
-              onClick={() => setOverlayMood(null)}
+              onClick={closeOverlay}
               className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4" />
