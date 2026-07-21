@@ -195,20 +195,20 @@ const QuickPractice = () => {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-4">
+      <div className="max-w-2xl mx-auto px-4 pt-4 space-y-2.5">
         {/* Random Practice */}
         <button
           onClick={startRandomPractice}
-          className="w-full relative overflow-hidden rounded-2xl p-4 flex items-center gap-3 text-left bg-gradient-to-r from-primary via-primary/90 to-primary/70 shadow-lg hover:shadow-xl transition-all"
+          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-gradient-to-r from-primary via-primary/90 to-primary/70 shadow-md hover:shadow-lg transition-all"
         >
-          <div className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="h-5 w-5 text-white" />
+          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+            <Sparkles className="h-4 w-4 text-white" />
           </div>
           <div className="text-white">
-            <div className="font-extrabold text-sm">Random Practice</div>
-            <div className="text-xs opacity-90 mt-0.5">সব বিষয়/অধ্যায় থেকে random MCQ</div>
+            <div className="font-extrabold text-[13px]">Random Practice</div>
+            <div className="text-[10.5px] opacity-90 mt-0.5">সব বিষয়/অধ্যায় থেকে random MCQ</div>
             {typeof totalMcqCount === "number" && (
-              <div className="text-[11px] opacity-80 mt-1 font-semibold">
+              <div className="text-[10px] opacity-80 mt-0.5 font-semibold">
                 মোট <b>{totalMcqCount}</b>টি MCQ
               </div>
             )}
@@ -218,14 +218,14 @@ const QuickPractice = () => {
         {/* Leaderboard */}
         <button
           onClick={() => navigate("/quick-practice/leaderboard")}
-          className="w-full relative overflow-hidden rounded-2xl p-4 flex items-center gap-3 text-left bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 shadow-md hover:shadow-lg transition-all"
+          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 shadow-sm hover:shadow-md transition-all"
         >
-          <div className="h-11 w-11 rounded-xl bg-black/10 flex items-center justify-center flex-shrink-0 text-xl">
-            <Trophy className="h-5 w-5 text-amber-950" />
+          <div className="h-8 w-8 rounded-lg bg-black/10 flex items-center justify-center flex-shrink-0">
+            <Trophy className="h-4 w-4 text-amber-950" />
           </div>
           <div className="flex-1 text-amber-950">
-            <div className="font-extrabold text-sm">Leaderboard</div>
-            <div className="text-[11px] opacity-75 mt-0.5">Top players দেখো, নিজের rank চেক করো</div>
+            <div className="font-extrabold text-[13px]">Leaderboard</div>
+            <div className="text-[10.5px] opacity-75 mt-0.5">Top players দেখো, নিজের rank চেক করো</div>
           </div>
           <ChevronRight className="h-4 w-4 text-amber-950/70" />
         </button>
