@@ -4,6 +4,7 @@ import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume } from "
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 interface Mcq {
@@ -97,6 +98,7 @@ function playSound(correct: boolean, vol: number, rightPack: string, wrongPack: 
 const QuickPracticePlay = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
@@ -246,6 +248,10 @@ const QuickPracticePlay = () => {
   };
 
   const goNext = () => {
+    if (!answered[current]) {
+      toast({ title: "প্রথমে একটি অপশন সিলেক্ট করুন", variant: "destructive" });
+      return;
+    }
     if (current < mcqs.length - 1) {
       const c = current + 1;
       setCurrent(c);
