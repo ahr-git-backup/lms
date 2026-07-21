@@ -382,7 +382,7 @@ const QuickPracticePlay = () => {
   const ans = answered[current];
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
         <button
           onClick={exitConfirm}
@@ -473,7 +473,7 @@ const QuickPracticePlay = () => {
         </button>
       </div>
 
-      <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col">
+      <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col overflow-y-auto pb-24">
         <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full mb-4">
           📘 {q.subjectName} · {q.chapterName}
         </span>
@@ -527,12 +527,14 @@ const QuickPracticePlay = () => {
             {q.explanation}
           </div>
         )}
+      </div>
 
-        <div className="flex gap-3 mt-auto pt-5">
+      <div className="sticky bottom-0 z-30 bg-background border-t px-4 py-3">
+        <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={goPrev}
             disabled={current === 0}
-            className="flex-1 py-3 rounded-xl border font-bold text-sm disabled:opacity-40 hover:bg-muted transition-colors"
+            className="flex-1 py-3 rounded-xl border font-bold text-sm disabled:opacity-40 hover:bg-muted transition-colors bg-card"
           >
             আগের
           </button>
