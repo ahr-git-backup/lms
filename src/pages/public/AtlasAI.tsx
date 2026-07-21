@@ -24,7 +24,7 @@ interface ChatMsg {
   fileName?: string;
 }
 
-interface PendingImage {
+export interface PendingImage {
   base64: string;
   mimeType: string;
   name: string;
@@ -94,34 +94,25 @@ function detectSubject(qRaw: string) {
   return "general";
 }
 
-function getSystemPrompt(question: string) {
+export function getSystemPrompt(question: string) {
   const subj = detectSubject(question);
   const isMCQ =
     /\(ক\)|\(খ\)|\(গ\)|\(ঘ\)|ক\)|খ\)|গ\)|ঘ\)|A\)|B\)|C\)|D\)|[Aa][.)]|[Bb][.)]|[Cc][.)]|[Dd][.)]/.test(
       question
     );
 
-  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের AI বন্ধু। নিয়ম:
+  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
 
+নিয়ম:
 ১। বাংলায় উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে।
 ২। গাণিতিক সূত্র Unicode-এ লিখবে (LaTeX নয়)।
-৩। সহজ ভাষায় উত্তর দিবে।
-৪। উত্তর অবশ্যই সম্পূর্ণ করবে, মাঝখানে থামবে না। সংক্ষেপে লিখবে (২-৩ প্যারাগ্রাফ)।`;
+৩। উত্তর অবশ্যই সম্পূর্ণ ও বিস্তারিত করবে, মাঝখানে থামবে না। মূল ধারণা, কারণ, প্রাসঙ্গিক প্রেক্ষাপট ও উদাহরণ সহ ব্যাখ্যা করবে — সংক্ষিপ্ত করার দরকার নেই।
+৪। কোনো Markdown সিনট্যাক্স ব্যবহার করবে না (যেমন #, -, বা কোনো code block)। শুধু গুরুত্বপূর্ণ শব্দ/লাইন **এভাবে** বোল্ড করতে পারবে, আর কিছু না।`;
 
   if (isMCQ) {
     prompt += `
 
-এটি একটি MCQ প্রশ্ন। এভাবে উত্তর দিবে:
-
-✅ সঠিক উত্তর: [অপশন] — [সম্পূর্ণ উত্তর]
-
-[সংক্ষিপ্ত ব্যাখ্যা — ২-৩ বাক্য]
-
-ভুল অপশনগুলো:
-❌ [অপশন] — [কেন ভুল]
-❌ [অপশন] — [কেন ভুল]
-
-💡 মনে রাখার টিপস: [যদি থাকে]`;
+এটি একটি MCQ প্রশ্ন। প্রথমে ✅ সঠিক উত্তর বলবে, তারপর প্রতিটি অপশন বিস্তারিতভাবে বিশ্লেষণ করবে — ✅ কেন সঠিক (প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ), ❌ বাকিগুলো কেন ভুল (প্রতিটির জন্য স্পষ্ট, বিস্তারিত কারণ)। শেষে 💡 মনে রাখার একটি টিপস দিতে পারো।`;
   }
 
   const subjectMap: Record<string, string> = {
@@ -138,8 +129,8 @@ function getSystemPrompt(question: string) {
   return prompt;
 }
 
-async function askAI(question: string, image: PendingImage | null): Promise<string> {
-  const systemPrompt = getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
+export async function askAI(question: string, image: PendingImage | null, systemPromptOverride?: string): Promise<string> {
+  const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -166,7 +157,17 @@ async function askAI(question: string, image: PendingImage | null): Promise<stri
   return "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏";
 }
 
-function renderAnswer(text: string) {
+// Converts "**bold**" markdown into real <strong> bold, no asterisks shown.
+function renderBoldSegments(line: string) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    const m = part.match(/^\*\*([^*]+)\*\*$/);
+    if (m) return <strong key={idx}>{m[1]}</strong>;
+    return <span key={idx}>{part}</span>;
+  });
+}
+
+export function renderAnswer(text: string) {
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
   const lines = text.split("\n");
   return lines.map((line, i) => {
@@ -175,7 +176,7 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-emerald-500 font-semibold my-1">
           <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^✅\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^✅\s*/, ""))}</span>
         </div>
       );
     }
@@ -183,7 +184,7 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-destructive my-1">
           <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^❌\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^❌\s*/, ""))}</span>
         </div>
       );
     }
@@ -191,14 +192,14 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-amber-500 my-1">
           <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^💡\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^💡\s*/, ""))}</span>
         </div>
       );
     }
     if (trimmed.length === 0) return <div key={i} className="h-2" />;
     return (
       <p key={i} className="leading-relaxed">
-        {line}
+        {renderBoldSegments(line)}
       </p>
     );
   });

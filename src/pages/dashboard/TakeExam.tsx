@@ -850,6 +850,14 @@ const TakeExam = () => {
                           <Button
                               className="flex-[2] h-10 rounded-xl font-semibold shadow-md"
                               onClick={() => {
+                                  if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !contentMode) {
+                                      toast({
+                                          title: "মোড সিলেক্ট করুন",
+                                          description: "পরীক্ষা শুরু করার আগে উপরে থেকে চিত্র/উদ্দীপকসহ অথবা চিত্র/উদ্দীপকছাড়া মোড বেছে নিন।",
+                                          variant: "destructive",
+                                      });
+                                      return;
+                                  }
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
                                   } else {
@@ -859,7 +867,7 @@ const TakeExam = () => {
                                       setHasStarted(true);
                                   }
                               }}
-                              disabled={!agreedToInstructions || (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !contentMode)}
+                              disabled={!agreedToInstructions}
                           >
                               Start Exam
                           </Button>

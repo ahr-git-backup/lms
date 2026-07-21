@@ -195,16 +195,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return { error: { message: "Account is banned" } };
           }
 
-          // Generate and set new session ID
-          const newSessionId = crypto.randomUUID();
-          localStorage.setItem("app_session_id", newSessionId);
+          // Check role — admins/teachers are exempt from single-session
+          // enforcement so they can stay logged into multiple browsers/devices
+          // at once (e.g. managing from office + phone simultaneously).
+          const { data: roles } = await supabase
+              .from("user_roles")
+              .select("role")
+              .eq("user_id", data.user.id);
+          const roleList = roles?.map(r => r.role) || [];
+          const isPrivileged = roleList.includes("admin") || roleList.includes("teacher");
 
-          const { error: updateError } = await supabase
-              .from("profiles")
-              .update({ current_session_id: newSessionId })
-              .eq("id", data.user.id);
+          if (!isPrivileged) {
+            // Generate and set new session ID (this login becomes the only
+            // valid session; any other open session for this account will be
+            // force-logged-out by checkSessionValidity).
+            const newSessionId = crypto.randomUUID();
+            localStorage.setItem("app_session_id", newSessionId);
 
-          if (updateError) console.error("Failed to update session ID", updateError);
+            const { error: updateError } = await supabase
+                .from("profiles")
+                .update({ current_session_id: newSessionId })
+                .eq("id", data.user.id);
+
+            if (updateError) console.error("Failed to update session ID", updateError);
+          }
+          // Privileged users: don't touch current_session_id at all, so no
+          // other admin/teacher session anywhere gets invalidated by this login.
       }
 
       return { error: null };
@@ -218,6 +234,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = useCallback(async (forced: any = false) => {
     // Ensure forced is boolean (prevent Event object passing issues)
     const isForced = typeof forced === 'boolean' ? forced : false;
+
+    // Guard: if already on /login, don't re-trigger a hard redirect (prevents reload loop)
+    if (isForced && window.location.pathname === "/login") {
+      return;
+    }
 
     // 1. Optimistic Update: Clear local state immediately for UX
     setUser(null);
@@ -250,12 +271,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // We check the DB profile's current_session_id against our local storage
     const localSessionId = localStorage.getItem("app_session_id");
 
-    // If we don't have a local session ID but are logged in, effectively we are an "old" session or undefined state.
-    // However, if we just logged in, we set it.
-    // This check runs on location change.
-
-    if (!localSessionId) return; // Should be set on login
-
     const { data: remoteProfile, error } = await supabase
         .from("profiles")
         .select("current_session_id, status")
@@ -264,18 +279,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (error || !remoteProfile) return;
 
-    // Check Ban Status dynamically
+    // Check Ban Status dynamically — always, regardless of session tracking.
     if (remoteProfile.status === 'banned') {
         console.warn("User banned detected during session check.");
         await signOut(true);
         return;
     }
 
-    if (remoteProfile.current_session_id && remoteProfile.current_session_id !== localSessionId) {
-        // Admins and teachers are exempt from single-session enforcement
-        // (they may need to be logged in on multiple devices/browsers simultaneously)
-        if (isAdmin || isTeacher) return;
+    // Privileged users never have a local session id (see signIn) and are
+    // exempt from single-session enforcement entirely.
+    if (isAdmin || isTeacher) return;
+    if (!localSessionId) return; // Should be set on login
 
+    if (remoteProfile.current_session_id && remoteProfile.current_session_id !== localSessionId) {
         // Mismatch!
         console.warn("Session mismatch detected. Logging out.");
         await signOut(true); // pass true to indicate forced logout

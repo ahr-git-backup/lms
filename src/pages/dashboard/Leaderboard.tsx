@@ -823,8 +823,8 @@ const Leaderboard = () => {
                     }
                     * { box-sizing: border-box; }
                     html, body {
-                        width: 100%;
-                        height: 100%;
+                        width: 338mm;
+                        height: auto;
                     }
                     body {
                         font-family: 'SolaimanLipi', sans-serif;
@@ -835,15 +835,16 @@ const Leaderboard = () => {
                         print-color-adjust: exact !important;
                     }
                     .student-page {
-                        width: 100vw;
-                        height: 100vh;
-                        aspect-ratio: 16 / 9;
-                        margin: 0 auto;
+                        width: 338mm;
+                        height: 190mm;
+                        margin: 0;
                         display: flex;
                         align-items: center;
                         justify-content: center;
                         page-break-after: always;
                         break-after: page;
+                        break-inside: avoid;
+                        page-break-inside: avoid;
                         background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f172a 100%);
                         position: relative;
                         overflow: hidden;
@@ -1016,7 +1017,11 @@ const Leaderboard = () => {
                 </Button>
             )}
             {isAdmin && (
-                <Button variant="secondary" size="sm" onClick={handleDownloadStudentCards}>
+                <Button
+                    size="sm"
+                    onClick={handleDownloadStudentCards}
+                    className="bg-amber-500 hover:bg-amber-600 text-white border-0"
+                >
                     <FileText className="h-4 w-4 sm:mr-2" />
                     <span className="hidden sm:inline">Student Cards PDF</span>
                 </Button>
