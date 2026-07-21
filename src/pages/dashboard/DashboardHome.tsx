@@ -132,6 +132,18 @@ const DashboardHome = () => {
     enabled: !!user,
   });
 
+  const { data: pendingReportsCount } = useQuery({
+    queryKey: ["admin-pending-reports-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("question_reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      return count || 0;
+    },
+    enabled: !!isAdmin,
+  });
+
   if (dashboardLoading) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Loading dashboard...</div>;
   }
@@ -174,18 +186,6 @@ const DashboardHome = () => {
       { title: "Exam Routine", icon: CalendarClock, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/calendar" },
       { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
-
-  const { data: pendingReportsCount } = useQuery({
-    queryKey: ["admin-pending-reports-count"],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from("question_reports")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "pending");
-      return count || 0;
-    },
-    enabled: !!isAdmin,
-  });
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
