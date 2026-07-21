@@ -106,7 +106,8 @@ export function getSystemPrompt(question: string) {
 ১। বাংলায় উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে।
 ২। গাণিতিক সূত্র Unicode-এ লিখবে (LaTeX নয়)।
 ৩। সহজ ভাষায় উত্তর দিবে।
-৪। উত্তর অবশ্যই সম্পূর্ণ করবে, মাঝখানে থামবে না। সংক্ষেপে লিখবে (২-৩ প্যারাগ্রাফ)।`;
+৪। উত্তর অবশ্যই সম্পূর্ণ করবে, মাঝখানে থামবে না। সংক্ষেপে লিখবে (২-৩ প্যারাগ্রাফ)।
+৫। কোনো Markdown সিনট্যাক্স ব্যবহার করবে না (যেমন #, -, *, বা কোনো code block)। শুধু গুরুত্বপূর্ণ শব্দ/লাইন **এভাবে** বোল্ড করতে পারবে, আর কিছু না।`;
 
   if (isMCQ) {
     prompt += `
@@ -166,7 +167,17 @@ export async function askAI(question: string, image: PendingImage | null): Promi
   return "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏";
 }
 
-function renderAnswer(text: string) {
+// Converts "**bold**" markdown into real <strong> bold, no asterisks shown.
+function renderBoldSegments(line: string) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, idx) => {
+    const m = part.match(/^\*\*([^*]+)\*\*$/);
+    if (m) return <strong key={idx}>{m[1]}</strong>;
+    return <span key={idx}>{part}</span>;
+  });
+}
+
+export function renderAnswer(text: string) {
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
   const lines = text.split("\n");
   return lines.map((line, i) => {
@@ -175,7 +186,7 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-emerald-500 font-semibold my-1">
           <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^✅\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^✅\s*/, ""))}</span>
         </div>
       );
     }
@@ -183,7 +194,7 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-destructive my-1">
           <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^❌\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^❌\s*/, ""))}</span>
         </div>
       );
     }
@@ -191,14 +202,14 @@ function renderAnswer(text: string) {
       return (
         <div key={i} className="flex items-start gap-2 text-amber-500 my-1">
           <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
-          <span>{trimmed.replace(/^💡\s*/, "")}</span>
+          <span>{renderBoldSegments(trimmed.replace(/^💡\s*/, ""))}</span>
         </div>
       );
     }
     if (trimmed.length === 0) return <div key={i} className="h-2" />;
     return (
       <p key={i} className="leading-relaxed">
-        {line}
+        {renderBoldSegments(line)}
       </p>
     );
   });

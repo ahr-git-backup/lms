@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { askAI } from "@/pages/public/AtlasAI";
+import { askAI, renderAnswer } from "@/pages/public/AtlasAI";
 
 interface McqLike {
   question_text: string;
@@ -71,7 +71,7 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
               <Loader2 className="h-4 w-4 animate-spin" /> AI বিশ্লেষণ করছে...
             </div>
           ) : (
-            <div className="whitespace-pre-wrap pt-2">{answer}</div>
+            <div className="pt-2 space-y-0.5">{answer && renderAnswer(answer)}</div>
           )}
         </div>
       )}
@@ -140,11 +140,11 @@ export function AiChatButton({ q }: { q: McqLike }) {
               <div
                 key={i}
                 className={cn(
-                  "rounded-md p-3 text-sm whitespace-pre-wrap",
-                  m.role === "user" ? "bg-primary/10 ml-6" : "bg-secondary/50 mr-2"
+                  "rounded-md p-3 text-sm",
+                  m.role === "user" ? "bg-primary/10 ml-6 whitespace-pre-wrap" : "bg-secondary/50 mr-2 space-y-0.5"
                 )}
               >
-                {m.content}
+                {m.role === "assistant" ? renderAnswer(m.content) : m.content}
               </div>
             ))}
             {loading && (
