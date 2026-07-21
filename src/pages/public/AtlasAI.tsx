@@ -159,7 +159,10 @@ export async function askAI(
 
 // Converts "**bold**" markdown into real <strong> bold, no asterisks shown.
 function renderBoldSegments(line: string) {
-  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  // safety net: model kokhono kokhono khali/placeholder bold marker (****, ** **) generate
+  // kore fele — segulo screen-e literal tara chinho hisebe dekha jay, tai age strip kore newa
+  const cleaned = line.replace(/\*\*\s*\*\*/g, "").replace(/\*{3,}/g, "");
+  const parts = cleaned.split(/(\*\*[^*]+\*\*)/g);
   return parts.map((part, idx) => {
     const m = part.match(/^\*\*([^*]+)\*\*$/);
     if (m) return <strong key={idx}>{m[1]}</strong>;
