@@ -82,7 +82,7 @@ function buildExplainPrompt(q: McqLike) {
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
   const opts = getOptions(q);
   const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nপ্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nপ্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
 }
 
 /** If the AI proxy ever returns raw JSON (e.g. [{question, options:[{option,correct,reason}]}])
@@ -99,12 +99,12 @@ function normalizeAiAnswer(raw: string): string {
       const opts = Array.isArray(item?.options) ? item.options : [];
       const correctOpt = opts.find((o: any) => o?.correct === true);
       if (correctOpt) {
-        lines.push(`✅ ${correctOpt.option ?? ""} — ${correctOpt.reason ?? ""}`.trim());
+        lines.push(`✅ **${correctOpt.option ?? ""}** — ${correctOpt.reason ?? ""}`.trim());
       }
       for (const o of opts) {
         if (o === correctOpt) continue;
         lines.push("");
-        lines.push(`❌ ${o?.option ?? ""} — ${o?.reason ?? ""}`.trim());
+        lines.push(`❌ **${o?.option ?? ""}** — ${o?.reason ?? ""}`.trim());
       }
     }
     return lines.length ? lines.join("\n") : raw;
