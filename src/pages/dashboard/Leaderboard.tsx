@@ -777,193 +777,202 @@ const Leaderboard = () => {
 
           const examTitle = escapeHtml(exam?.title || "Exam");
 
-          let pagesHtml = '';
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          attempts.forEach((attempt: any, index: number) => {
-              const name = escapeHtml(capitalizeName(attempt.profile?.full_name));
-              const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
-              const college = escapeHtml(capitalizeWords(attempt.profile?.college_name || attempt.profile?.school || "-"));
-              const avatarUrl = attempt.profile?.avatar_url || guessGenderAvatar(attempt.profile?.full_name);
+          // Offscreen container to render each card at a fixed 16:9 pixel size for capture
+          const CARD_W = 1600;
+          const CARD_H = 900;
 
-              pagesHtml += `
-              <div class="student-page">
-                  <div class="card-panel">
-                      <div class="rank-corner">#${index + 1}</div>
-                      <div class="left-col">
-                          <img class="avatar" src="${avatarUrl}" alt="${name}" />
-                      </div>
-                      <div class="right-col">
-                          <div class="exam-name">${examTitle}</div>
-                          <div class="name">${name}</div>
-                          <div class="detail-grid">
-                              <div class="detail-row"><span class="label">HSC Batch</span><span class="value">${hsc}</span></div>
-                              <div class="detail-row"><span class="label">College Name</span><span class="value">${college}</span></div>
-                              <div class="detail-row highlight"><span class="label">Score</span><span class="value">${attempt.score}</span></div>
-                              <div class="detail-row highlight"><span class="label">Rank</span><span class="value">#${index + 1}</span></div>
+          const container = document.createElement('div');
+          container.style.position = 'fixed';
+          container.style.left = '-99999px';
+          container.style.top = '0';
+          container.style.width = `${CARD_W}px`;
+          container.style.height = `${CARD_H}px`;
+          container.style.zIndex = '-1';
+          document.body.appendChild(container);
+
+          const style = document.createElement('style');
+          style.textContent = `
+              @font-face {
+                  font-family: 'SolaimanLipi';
+                  src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
+              }
+              .sc-page * { box-sizing: border-box; }
+              .sc-page {
+                  width: ${CARD_W}px;
+                  height: ${CARD_H}px;
+                  font-family: 'SolaimanLipi', sans-serif;
+                  color: #1f2937;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f172a 100%);
+                  position: relative;
+                  overflow: hidden;
+              }
+              .sc-page .rank-corner {
+                  position: absolute;
+                  top: 20px;
+                  right: 24px;
+                  background: linear-gradient(135deg, #f59e0b, #d97706);
+                  color: white;
+                  font-weight: 800;
+                  font-size: 18px;
+                  padding: 8px 18px;
+                  border-radius: 999px;
+                  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
+                  letter-spacing: 0.5px;
+              }
+              .sc-page .card-panel {
+                  position: relative;
+                  z-index: 1;
+                  width: 90%;
+                  height: 78%;
+                  background: #ffffff;
+                  border-radius: 20px;
+                  box-shadow: 0 25px 60px rgba(0,0,0,0.35);
+                  display: flex;
+                  overflow: hidden;
+              }
+              .sc-page .left-col {
+                  width: 38%;
+                  background: linear-gradient(160deg, #1e3a8a, #0f172a);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  padding: 30px;
+              }
+              .sc-page .avatar {
+                  width: 100%;
+                  max-width: 260px;
+                  aspect-ratio: 1 / 1;
+                  object-fit: cover;
+                  border-radius: 16px;
+                  border: 4px solid rgba(255,255,255,0.85);
+                  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+              }
+              .sc-page .right-col {
+                  width: 62%;
+                  padding: 36px 44px;
+                  display: flex;
+                  flex-direction: column;
+                  justify-content: center;
+              }
+              .sc-page .exam-name {
+                  font-size: 15px;
+                  font-weight: 700;
+                  letter-spacing: 0.08em;
+                  text-transform: uppercase;
+                  color: #6366f1;
+                  margin-bottom: 6px;
+              }
+              .sc-page .name {
+                  font-size: 34px;
+                  font-weight: 800;
+                  color: #111827;
+                  margin-bottom: 24px;
+                  line-height: 1.2;
+              }
+              .sc-page .detail-grid {
+                  display: grid;
+                  grid-template-columns: 1fr 1fr;
+                  gap: 14px 24px;
+              }
+              .sc-page .detail-row {
+                  display: flex;
+                  flex-direction: column;
+                  gap: 4px;
+                  border-bottom: 1px solid #e5e7eb;
+                  padding-bottom: 10px;
+              }
+              .sc-page .detail-row.highlight .value {
+                  color: #059669;
+              }
+              .sc-page .label {
+                  font-size: 12px;
+                  font-weight: 600;
+                  text-transform: uppercase;
+                  letter-spacing: 0.06em;
+                  color: #9ca3af;
+              }
+              .sc-page .value {
+                  font-size: 22px;
+                  font-weight: 700;
+                  color: #111827;
+              }
+          `;
+          document.head.appendChild(style);
+
+          try {
+              const [{ default: html2canvas }, jsPDFModule] = await Promise.all([
+                  import('html2canvas'),
+                  import('jspdf'),
+              ]);
+              const JsPDFCtor = jsPDFModule.jsPDF || jsPDFModule.default;
+
+              const pdf = new JsPDFCtor({
+                  orientation: 'landscape',
+                  unit: 'px',
+                  format: [CARD_W, CARD_H],
+                  compress: true,
+              });
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              for (let index = 0; index < attempts.length; index++) {
+                  const attempt: any = attempts[index];
+                  const name = escapeHtml(capitalizeName(attempt.profile?.full_name));
+                  const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
+                  const college = escapeHtml(capitalizeWords(attempt.profile?.college_name || attempt.profile?.school || "-"));
+                  const avatarUrl = attempt.profile?.avatar_url || guessGenderAvatar(attempt.profile?.full_name);
+
+                  container.innerHTML = `
+                      <div class="sc-page">
+                          <div class="card-panel">
+                              <div class="rank-corner">#${index + 1}</div>
+                              <div class="left-col">
+                                  <img class="avatar" src="${avatarUrl}" crossorigin="anonymous" alt="${name}" />
+                              </div>
+                              <div class="right-col">
+                                  <div class="exam-name">${examTitle}</div>
+                                  <div class="name">${name}</div>
+                                  <div class="detail-grid">
+                                      <div class="detail-row"><span class="label">HSC Batch</span><span class="value">${hsc}</span></div>
+                                      <div class="detail-row"><span class="label">College Name</span><span class="value">${college}</span></div>
+                                      <div class="detail-row highlight"><span class="label">Score</span><span class="value">${attempt.score}</span></div>
+                                      <div class="detail-row highlight"><span class="label">Rank</span><span class="value">#${index + 1}</span></div>
+                                  </div>
+                              </div>
                           </div>
-                      </div>
-                  </div>
-              </div>`;
-          });
+                      </div>`;
 
-          const htmlContent = `
-            <!DOCTYPE html>
-            <html lang="bn">
-            <head>
-                <meta charset="UTF-8">
-                <title>${examTitle} - Student Cards</title>
-                <style>
-                    @font-face {
-                        font-family: 'SolaimanLipi';
-                        src: url('${window.location.origin}/SolaimanLipi.ttf') format('truetype');
-                    }
-                    @page {
-                        size: 338mm 190.125mm;
-                        margin: 0;
-                    }
-                    * { box-sizing: border-box; }
-                    html, body {
-                        width: 338mm;
-                        height: auto;
-                    }
-                    body {
-                        font-family: 'SolaimanLipi', sans-serif;
-                        margin: 0;
-                        padding: 0;
-                        color: #1f2937;
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    .student-page {
-                        width: 338mm;
-                        height: 190.125mm;
-                        aspect-ratio: 16 / 9;
-                        margin: 0;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        page-break-after: always;
-                        break-after: page;
-                        break-inside: avoid;
-                        page-break-inside: avoid;
-                        background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 55%, #0f172a 100%);
-                        position: relative;
-                        overflow: hidden;
-                    }
-                    .student-page:last-child {
-                        page-break-after: auto;
-                    }
-                    .card-panel {
-                        position: relative;
-                        z-index: 1;
-                        width: 90%;
-                        height: 78%;
-                        background: #ffffff;
-                        border-radius: 20px;
-                        box-shadow: 0 25px 60px rgba(0,0,0,0.35);
-                        display: flex;
-                        overflow: hidden;
-                    }
-                    .rank-corner {
-                        position: absolute;
-                        top: 20px;
-                        right: 24px;
-                        background: linear-gradient(135deg, #f59e0b, #d97706);
-                        color: white;
-                        font-weight: 800;
-                        font-size: 18px;
-                        padding: 8px 18px;
-                        border-radius: 999px;
-                        box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4);
-                        letter-spacing: 0.5px;
-                    }
-                    .left-col {
-                        width: 38%;
-                        background: linear-gradient(160deg, #1e3a8a, #0f172a);
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        padding: 30px;
-                    }
-                    .avatar {
-                        width: 100%;
-                        max-width: 260px;
-                        aspect-ratio: 1 / 1;
-                        object-fit: cover;
-                        border-radius: 16px;
-                        border: 4px solid rgba(255,255,255,0.85);
-                        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-                    }
-                    .right-col {
-                        width: 62%;
-                        padding: 36px 44px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                    }
-                    .exam-name {
-                        font-size: 15px;
-                        font-weight: 700;
-                        letter-spacing: 0.08em;
-                        text-transform: uppercase;
-                        color: #6366f1;
-                        margin-bottom: 6px;
-                    }
-                    .name {
-                        font-size: 34px;
-                        font-weight: 800;
-                        color: #111827;
-                        margin-bottom: 24px;
-                        line-height: 1.2;
-                    }
-                    .detail-grid {
-                        display: grid;
-                        grid-template-columns: 1fr 1fr;
-                        gap: 14px 24px;
-                    }
-                    .detail-row {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                        border-bottom: 1px solid #e5e7eb;
-                        padding-bottom: 10px;
-                    }
-                    .detail-row.highlight .value {
-                        color: #059669;
-                    }
-                    .label {
-                        font-size: 12px;
-                        font-weight: 600;
-                        text-transform: uppercase;
-                        letter-spacing: 0.06em;
-                        color: #9ca3af;
-                    }
-                    .value {
-                        font-size: 22px;
-                        font-weight: 700;
-                        color: #111827;
-                    }
-                </style>
-            </head>
-            <body>
-                ${pagesHtml}
-                <script>
-                    window.onload = function() {
-                        setTimeout(() => {
-                            window.print();
-                        }, 500);
-                    }
-                </script>
-            </body>
-            </html>
-           `;
+                  // wait for the avatar image to load (or fail) before capture
+                  const img = container.querySelector('img.avatar') as HTMLImageElement | null;
+                  if (img && !img.complete) {
+                      await new Promise<void>((resolve) => {
+                          img.onload = () => resolve();
+                          img.onerror = () => resolve();
+                          setTimeout(() => resolve(), 2000);
+                      });
+                  }
 
-          const printWindow = window.open('', '_blank');
-          if (printWindow) {
-              printWindow.document.write(htmlContent);
-              printWindow.document.close();
-          } else {
-              alert("Popup blocked! Please allow popups for this site.");
+                  const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
+                      width: CARD_W,
+                      height: CARD_H,
+                      scale: 2,
+                      useCORS: true,
+                      backgroundColor: null,
+                  });
+
+                  const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                  if (index > 0) {
+                      pdf.addPage([CARD_W, CARD_H], 'landscape');
+                  }
+                  pdf.addImage(imgData, 'JPEG', 0, 0, CARD_W, CARD_H);
+              }
+
+              pdf.save(`${exam?.title || 'student-cards'}.pdf`);
+          } finally {
+              document.body.removeChild(container);
+              document.head.removeChild(style);
           }
 
       } catch (err) {
