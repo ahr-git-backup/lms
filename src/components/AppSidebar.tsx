@@ -56,7 +56,7 @@ export const adminItems = [
   { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
   { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
   { title: "Quick Practice", url: "/admin/quick-practice", icon: Zap, roles: ["admin", "teacher"], color: "text-violet-500" },
-  { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
+  { title: "Study Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
   { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
 ];
 

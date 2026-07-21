@@ -279,7 +279,7 @@ const SyllabusTracker = () => {
   };
 
   const panelTitle =
-    panel === "syllabus" ? (openSubject ? openSubject.name : "Syllabus Tracker") :
+    panel === "syllabus" ? (openSubject ? openSubject.name : "Study Tracker") :
     panel === "routine" ? "Routine Maker" :
     panel === "progress" ? "Weak & Progress" :
     panel === "revision" ? "Revision Planner" :
@@ -318,7 +318,7 @@ const SyllabusTracker = () => {
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => setPanel("syllabus")} className="text-left rounded-2xl border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><BookOpen className="h-5 w-5" /></div>
-                <div className="text-sm font-bold">Syllabus Tracker</div>
+                <div className="text-sm font-bold">Study Tracker</div>
                 <div className="text-[11px] text-muted-foreground leading-relaxed">HSC ও Medical<br />টপিক মার্ক করুন</div>
                 <div className="text-2xl font-black text-primary">{dashSylPct}%</div>
               </button>

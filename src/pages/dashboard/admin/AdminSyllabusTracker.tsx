@@ -26,7 +26,7 @@ const AdminSyllabusTracker = () => {
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
 
   useEffect(() => {
-    document.title = "Syllabus Tracker — Admin";
+    document.title = "Study Tracker — Admin";
   }, []);
 
   const { data: subjects, isLoading } = useQuery({
@@ -212,7 +212,7 @@ const AdminSyllabusTracker = () => {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-sky-600" /> Syllabus Tracker ম্যানেজার
+          <BarChart3 className="h-5 w-5 text-sky-600" /> Study Tracker ম্যানেজার
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           বিষয় → অধ্যায় → টপিক — HSC ও Medical Admission আলাদাভাবে যোগ করুন।
