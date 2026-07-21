@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { AiExplanationBox, AiChatButton } from "@/components/exam/AiMcqHelper";
 
 // Report Dialog Component
 const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
@@ -563,6 +564,7 @@ const ExamReview = () => {
                                         >
                                             <Bookmark className={cn("h-5 w-5", q.is_bookmarked && "fill-current")} />
                                         </Button>
+                                        <AiChatButton q={q} />
                                     </div>
 
                                     {/* Question Header */}
@@ -637,6 +639,10 @@ const ExamReview = () => {
                                             </div>
                                         </div>
                                     )}
+
+                                    <div className="print:hidden">
+                                        <AiExplanationBox q={q} />
+                                    </div>
 
                                 </CardContent>
                             </Card>
