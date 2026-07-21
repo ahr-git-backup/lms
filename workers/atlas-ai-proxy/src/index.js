@@ -881,7 +881,7 @@ async function callCerebras(env, question, systemPrompt, image, budget) {
               { role: "user", content: question }
             ],
             temperature: 0.7,
-            max_tokens: 4096
+            max_tokens: 8192
           })
         }), budget);
         if (outcome.__exception) {
