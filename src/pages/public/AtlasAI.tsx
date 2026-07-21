@@ -131,7 +131,16 @@ export function getSystemPrompt(question: string) {
       question
     );
 
-  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে। গাণিতিক সূত্র Unicode-এ লিখবে (LaTeX নয়)। কোনো markdown/asterisk (** বা *) ব্যবহার করবে না — শুধু plain টেক্সট লিখবে।`;
+  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে।
+
+গাণিতিক/রাসায়নিক সূত্র লেখার নিয়ম (কঠোরভাবে মানতে হবে):
+- কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
+- সবকিছু সরাসরি Unicode ক্যারেক্টার দিয়ে লিখবে: ভগ্নাংশের জন্য a/b অথবা প্রয়োজনে Unicode ভগ্নাংশ (½, ¼) ব্যবহার করবে।
+- সূচক/ঘাত: x², x³, aⁿ এভাবে Unicode superscript ব্যবহার করবে (x^2 নয়)।
+- সাবস্ক্রিপ্ট: H₂O, CO₂, H₂SO₄ এভাবে Unicode subscript ব্যবহার করবে (H2O নয়)।
+- বিক্রিয়া তীরচিহ্ন: → (right arrow), ⇌ (বিপরীতমুখী/reversible বিক্রিয়ার জন্য), ↑ (গ্যাস উৎপন্ন), ↓ (অধঃক্ষেপ) — এইভাবে সরাসরি Unicode তীরচিহ্ন ব্যবহার করবে, কখনো "->", "<=>", "\\rightarrow" এসব লিখবে না।
+- অন্যান্য গাণিতিক চিহ্ন সরাসরি Unicode-এ লিখবে: ×, ÷, ±, √, ∆, π, θ, °, ≈, ≤, ≥, ∞ ইত্যাদি।
+- কোনো markdown/asterisk (** বা *) ব্যবহার করবে না — শুধু plain টেক্সট লিখবে।`;
 
   if (isMCQ) {
     prompt += `
@@ -277,8 +286,52 @@ function ensurePlainText(text: string): string {
   }
 }
 
+/** Safety net: if the model still slips into LaTeX-style notation despite the
+ *  system prompt, convert common patterns into the Unicode equivalents so the
+ *  user never sees raw LaTeX syntax on screen. */
+function sanitizeLatex(text: string): string {
+  let t = text;
+  t = t.replace(/\$\$([^$]+)\$\$/g, "$1");
+  t = t.replace(/\$([^$]+)\$/g, "$1");
+  t = t.replace(/\\\(([^)]+)\\\)/g, "$1");
+  t = t.replace(/\\\[([^\]]+)\\\]/g, "$1");
+  t = t.replace(/\\rightarrow|\\to\b/g, "→");
+  t = t.replace(/\\leftrightarrow|\\rightleftharpoons/g, "⇌");
+  t = t.replace(/<=>|<->/g, "⇌");
+  t = t.replace(/-+>/g, "→");
+  t = t.replace(/\\times/g, "×");
+  t = t.replace(/\\div/g, "÷");
+  t = t.replace(/\\pm/g, "±");
+  t = t.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
+  t = t.replace(/\\sqrt/g, "√");
+  t = t.replace(/\\pi/g, "π");
+  t = t.replace(/\\theta/g, "θ");
+  t = t.replace(/\\Delta|\\triangle/g, "∆");
+  t = t.replace(/\\approx/g, "≈");
+  t = t.replace(/\\leq/g, "≤");
+  t = t.replace(/\\geq/g, "≥");
+  t = t.replace(/\\infty/g, "∞");
+  t = t.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
+  const superMap: Record<string, string> = {
+    "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "+": "⁺", "-": "⁻",
+  };
+  const subMap: Record<string, string> = {
+    "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉", "+": "₊", "-": "₋",
+  };
+  t = t.replace(/\^\{?([0-9+\-]+)\}?/g, (_m, g1) =>
+    g1.split("").map((c: string) => superMap[c] ?? c).join("")
+  );
+  t = t.replace(/_\{?([0-9+\-]+)\}?/g, (_m, g1) =>
+    g1.split("").map((c: string) => subMap[c] ?? c).join("")
+  );
+  t = t.replace(/\\([a-zA-Z]+)/g, "$1");
+  return t;
+}
+
 export function renderAnswer(rawText: string) {
-  const text = ensurePlainText(rawText);
+  const text = sanitizeLatex(ensurePlainText(rawText));
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
   // A line is "empty content" if, after stripping the icon/label and any trailing
   // dash separator, nothing meaningful remains (guards against provider cutting
