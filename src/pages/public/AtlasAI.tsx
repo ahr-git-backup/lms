@@ -101,7 +101,7 @@ export function getSystemPrompt(question: string) {
       question
     );
 
-  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে। গাণিতিক সূত্র Unicode-এ লিখবে (LaTeX নয়)। গুরুত্বপূর্ণ শব্দ/লাইন **এভাবে** বোল্ড করতে পারো।`;
+  let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে। গাণিতিক সূত্র Unicode-এ লিখবে (LaTeX নয়)। কোনো markdown/asterisk (** বা *) ব্যবহার করবে না — শুধু plain টেক্সট লিখবে।`;
 
   if (isMCQ) {
     prompt += `
