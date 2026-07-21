@@ -336,9 +336,11 @@ function sanitizeLatex(text: string): string {
   // braced form first: ^{...} / _{...} — content may be any length (digits/letters/±)
   t = t.replace(/\^\{([^{}]+)\}/g, (_m, g1) => toSuper(g1));
   t = t.replace(/_\{([^{}]+)\}/g, (_m, g1) => toSub(g1));
-  // unbraced single-token form: ^12, ^n, _2, _th
+  // unbraced single-token form: ^12, ^n (superscript is rare in normal prose, safe to convert)
   t = t.replace(/\^([a-zA-Z0-9+\-]+)/g, (_m, g1) => toSuper(g1));
-  t = t.replace(/_([a-zA-Z0-9+\-]+)/g, (_m, g1) => toSub(g1));
+  // unbraced subscript: only digits/±/parens directly after a letter/digit/close-paren,
+  // e.g. H_2, CO_2 — never touches normal snake_case words like sample_variable_name
+  t = t.replace(/([A-Za-z0-9)])_([0-9+\-]+)/g, (_m, prefix, g1) => prefix + toSub(g1));
   t = t.replace(/\\([a-zA-Z]+)/g, "$1");
   return t;
 }
