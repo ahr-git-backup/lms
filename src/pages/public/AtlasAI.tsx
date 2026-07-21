@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   XCircle,
   Lightbulb,
+  History,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,34 @@ interface PendingFile {
   text: string;
   name: string;
   type: string;
+}
+
+interface ChatSession {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: ChatMsg[];
+}
+
+const HISTORY_KEY = "atlas_ai_chat_sessions";
+
+function loadSessions(): ChatSession[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSessions(sessions: ChatSession[]) {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(0, 50)));
+  } catch {
+    /* storage full or unavailable — ignore */
+  }
 }
 
 function detectSubject(qRaw: string) {
@@ -303,6 +332,9 @@ const AtlasAI = () => {
   const [busy, setBusy] = useState(false);
   const [pendingImage, setPendingImage] = useState<PendingImage | null>(null);
   const [pendingFile, setPendingFile] = useState<PendingFile | null>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -391,6 +423,65 @@ const AtlasAI = () => {
   const clearChat = () => {
     if (messages.length > 0 && !confirm("চ্যাট ক্লিয়ার করতে চান?")) return;
     setMessages([]);
+    setActiveSessionId(null);
+  };
+
+  // Persist current conversation as a session whenever it changes
+  useEffect(() => {
+    if (messages.length === 0) return;
+    const firstUserMsg = messages.find((m) => m.role === "user");
+    const title = (firstUserMsg?.text || "নতুন চ্যাট").slice(0, 40);
+    setSessions((prev) => {
+      const id = activeSessionId ?? `${Date.now()}`;
+      if (!activeSessionId) setActiveSessionId(id);
+      const existingIdx = prev.findIndex((s) => s.id === id);
+      const updated: ChatSession = {
+        id,
+        title,
+        updatedAt: Date.now(),
+        messages,
+      };
+      let next: ChatSession[];
+      if (existingIdx >= 0) {
+        next = [...prev];
+        next[existingIdx] = updated;
+      } else {
+        next = [updated, ...prev];
+      }
+      next.sort((a, b) => b.updatedAt - a.updatedAt);
+      saveSessions(next);
+      return next;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages]);
+
+  useEffect(() => {
+    setSessions(loadSessions());
+  }, []);
+
+  const openSession = (session: ChatSession) => {
+    setMessages(session.messages);
+    setActiveSessionId(session.id);
+    setShowHistory(false);
+  };
+
+  const startNewChat = () => {
+    setMessages([]);
+    setActiveSessionId(null);
+    setShowHistory(false);
+  };
+
+  const deleteSession = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSessions((prev) => {
+      const next = prev.filter((s) => s.id !== id);
+      saveSessions(next);
+      return next;
+    });
+    if (activeSessionId === id) {
+      setMessages([]);
+      setActiveSessionId(null);
+    }
   };
 
   return (
@@ -410,6 +501,13 @@ const AtlasAI = () => {
           </div>
           <span className="font-extrabold text-sm">ATLAS AI</span>
         </div>
+        <button
+          onClick={() => setShowHistory(true)}
+          className="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-lg hover:bg-muted"
+        >
+          <History className="h-3.5 w-3.5" />
+          হিস্ট্রি
+        </button>
         {messages.length > 0 && (
           <button
             onClick={clearChat}
@@ -420,6 +518,63 @@ const AtlasAI = () => {
           </button>
         )}
       </div>
+
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowHistory(false)}
+          />
+          <div className="relative ml-auto h-full w-full max-w-sm bg-background border-l flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="font-bold text-sm">চ্যাট হিস্ট্রি</span>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <button
+              onClick={startNewChat}
+              className="m-3 flex items-center justify-center gap-2 rounded-lg border border-dashed py-2 text-sm font-semibold hover:bg-muted"
+            >
+              <Sparkles className="h-4 w-4" />
+              নতুন চ্যাট শুরু করুন
+            </button>
+            <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-2">
+              {sessions.length === 0 && (
+                <p className="text-center text-xs text-muted-foreground py-8">
+                  কোনো পুরনো চ্যাট নেই
+                </p>
+              )}
+              {sessions.map((s) => (
+                <div
+                  key={s.id}
+                  onClick={() => openSession(s)}
+                  className={cn(
+                    "flex items-center justify-between gap-2 rounded-lg border px-3 py-2 cursor-pointer hover:bg-muted",
+                    activeSessionId === s.id && "border-primary bg-primary/5"
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{s.title}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {new Date(s.updatedAt).toLocaleString("bn-BD")}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => deleteSession(s.id, e)}
+                    className="h-7 w-7 flex-shrink-0 rounded-full flex items-center justify-center hover:bg-destructive/10 text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 min-h-0 max-w-2xl w-full mx-auto px-4 py-4 flex flex-col gap-4 overflow-y-auto">
         {messages.length === 0 && (
