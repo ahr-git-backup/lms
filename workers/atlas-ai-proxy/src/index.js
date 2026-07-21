@@ -576,11 +576,13 @@ function getOpenRouterKeys(env) {
   return [...new Set(keys)];
 }
 __name(getOpenRouterKeys, "getOpenRouterKeys");
-var OPENROUTER_MODELS = ["qwen/qwen2.5-vl-72b-instruct:free", "meta-llama/llama-3.2-11b-vision-instruct:free"];
+var OPENROUTER_TEXT_MODELS = ["meta-llama/llama-3.3-70b-instruct:free", "qwen/qwen2.5-vl-72b-instruct:free"];
+var OPENROUTER_IMAGE_MODELS = ["qwen/qwen2.5-vl-72b-instruct:free", "meta-llama/llama-3.2-11b-vision-instruct:free"];
 async function callOpenRouter(env, question, systemPrompt, image, budget) {
   const keys = getOpenRouterKeys(env);
   if (!keys.length)
     return { error: "OPENROUTER_API_KEY not set" };
+  const models = image ? OPENROUTER_IMAGE_MODELS : OPENROUTER_TEXT_MODELS;
   let userContent;
   if (image) {
     userContent = [
@@ -592,7 +594,7 @@ async function callOpenRouter(env, question, systemPrompt, image, budget) {
   }
   let lastError = "OpenRouter: no keys/models worked";
   for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
-    for (const model of OPENROUTER_MODELS) {
+    for (const model of models) {
       for (const key of keys) {
         const outcome = await attemptWithStatus((signal) => fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
