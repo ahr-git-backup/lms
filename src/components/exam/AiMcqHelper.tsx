@@ -74,7 +74,8 @@ function buildFullMcqBlock(q: McqLike) {
 
 function buildExplainPrompt(q: McqLike) {
   const mcqBlock = buildFullMcqBlock(q);
-  return `নিচের সম্পূর্ণ MCQ-টি ভালোভাবে পড়ে বিস্তারিতভাবে বাংলায় বিশ্লেষণ করো:\n${mcqBlock}\n\nপ্রতিটি অপশন বিস্তারিতভাবে ব্যাখ্যা করো: ✅ কেন সঠিক (প্রাসঙ্গিক ধারণা/সূত্র সহ), ❌ কেন ভুল (প্রতিটির জন্য স্পষ্ট কারণ)। বাংলায়।`;
+  const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ে নিচের ফরম্যাটে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nএভাবে উত্তর দাও:\n১. প্রথমে সঠিক উত্তর কোনটি (${LABELS[correctIdx]}) তা বলো এবং কেন এটি সঠিক তা প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিতভাবে ব্যাখ্যা করো।\n২. তারপর বাকি প্রতিটি ভুল অপশন আলাদাভাবে নিয়ে কেন সেটি ভুল তা স্পষ্ট ও বিস্তারিতভাবে ব্যাখ্যা করো।\n৩. সবশেষে একটি বিশেষ টিপস/তথ্য (মনে রাখার কৌশল বা এক্সট্রা জ্ঞান) দাও।\n\nবাংলায়, প্রতিটি অংশ বিস্তারিত ও সম্পূর্ণ রাখবে, সংক্ষিপ্ত করবে না।`;
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -243,6 +244,11 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
           <div className="flex-1 overflow-y-auto space-y-3 p-4">
             <div className="rounded-md bg-muted p-3 text-xs whitespace-pre-wrap">
               <strong>প্রশ্ন:</strong> {q.question_text}
+              {getOptions(q).map((opt, i) => (
+                <div key={i} className={cn(LABELS[i] === q.correct_option && "text-emerald-500 font-semibold")}>
+                  {LABELS[i]}) {opt}
+                </div>
+              ))}
             </div>
             {messages.map((m, i) => (
               <div
