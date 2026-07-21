@@ -272,6 +272,15 @@ const Leaderboard = () => {
       .join(" ");
   };
 
+  const collegeInitials = (name: string) => {
+    if (!name) return "-";
+    return name
+      .split(" ")
+      .filter(w => w.length > 0)
+      .map(w => w.charAt(0).toUpperCase())
+      .join("");
+  };
+
   const buildVerdict = () => {
     if (!compareData || compareData.length < 2) return [];
     const [a, b] = compareData;
@@ -770,8 +779,8 @@ const Leaderboard = () => {
             {/* Mobile: sticky column header */}
             <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex items-center px-3 py-1.5 text-[11px] font-semibold text-muted-foreground border-b mb-2">
                 <span className="w-8 shrink-0">Rank</span>
-                <span className="flex-1 pl-9 text-sm">Student Detail</span>
-                <span className="w-16 shrink-0 text-left">Score</span>
+                <span className="flex-1 pl-9">Student Detail</span>
+                <span className="shrink-0">Score</span>
             </div>
 
             {/* Mobile: card list (no horizontal scroll) */}
@@ -814,11 +823,11 @@ const Leaderboard = () => {
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
-                                <span className="break-words">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
+                                <span className="break-words uppercase tracking-wide">{collegeInitials(attempt.profile?.college_name || attempt.profile?.school)}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
-                        <div className="w-16 shrink-0 pl-2 font-bold text-primary text-sm text-left">{attempt.score}</div>
+                        <div className="font-bold text-primary text-sm shrink-0 pl-2 text-right">{attempt.score}</div>
                     </div>
                     <div className="flex items-center justify-end mt-2">
                         {isStaff && (
