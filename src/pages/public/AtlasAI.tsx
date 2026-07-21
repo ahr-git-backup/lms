@@ -129,7 +129,12 @@ export function getSystemPrompt(question: string) {
   return prompt;
 }
 
-export async function askAI(question: string, image: PendingImage | null, systemPromptOverride?: string): Promise<string> {
+export async function askAI(
+  question: string,
+  image: PendingImage | null,
+  systemPromptOverride?: string,
+  opts?: { skipGroq?: boolean }
+): Promise<string> {
   const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   try {
     const controller = new AbortController();
@@ -142,6 +147,7 @@ export async function askAI(question: string, image: PendingImage | null, system
         question: question || "",
         image: image ? { base64: image.base64, mimeType: image.mimeType } : null,
         systemPrompt,
+        skipGroq: !!opts?.skipGroq,
       }),
     });
     clearTimeout(timeoutId);
@@ -167,12 +173,63 @@ function renderBoldSegments(line: string) {
   });
 }
 
-export function renderAnswer(text: string) {
+/** Last-resort, shape-agnostic JSON-to-text conversion: walks any object/array
+ *  recursively and pulls out every string value, so if the AI invents an
+ *  unpredictable JSON shape (e.g. Bangla-keyed nested objects), readable
+ *  content still survives instead of showing raw braces/brackets. */
+function genericJsonToText(parsed: any): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const visit = (val: any) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  };
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
+}
+
+/** Safety net: if the AI ever returns raw JSON instead of the requested plain
+ *  text, convert it into readable lines here so no call site of renderAnswer
+ *  ever shows raw braces/brackets to the user. */
+function ensurePlainText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return text;
+  try {
+    return genericJsonToText(JSON.parse(trimmed)) ?? text;
+  } catch {
+    return text;
+  }
+}
+
+export function renderAnswer(rawText: string) {
+  const text = ensurePlainText(rawText);
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
+  // A line is "empty content" if, after stripping the icon/label and any trailing
+  // dash separator, nothing meaningful remains (guards against provider cutting
+  // off mid-explanation and leaving e.g. "❌ A) স্টাচ —" with nothing after it).
+  const isEmptyContent = (s: string) => {
+    const stripped = s.replace(/^[✅❌💡]\s*/, "").replace(/[-—–]\s*$/, "").trim();
+    return stripped.length === 0;
+  };
   const lines = text.split("\n");
   return lines.map((line, i) => {
     const trimmed = line.trim();
     if (trimmed.startsWith("✅")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-emerald-500 font-semibold my-1">
           <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -181,6 +238,7 @@ export function renderAnswer(text: string) {
       );
     }
     if (trimmed.startsWith("❌")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-destructive my-1">
           <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -189,6 +247,7 @@ export function renderAnswer(text: string) {
       );
     }
     if (trimmed.startsWith("💡")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-amber-500 my-1">
           <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />

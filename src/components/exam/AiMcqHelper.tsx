@@ -55,10 +55,12 @@ const LABELS = ["A", "B", "C", "D"] as const;
  *  (never JSON, never markdown) so renderAnswer() displays it cleanly. */
 const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
 
-নিয়ম (বাধ্যতামূলক):
-১। উত্তর অবশ্যই সাধারণ প্লেইন টেক্সট হবে — কখনোই JSON, code block, বা markdown ({, }, [, ], \`\`\`, #) ব্যবহার করবে না।
-২। প্রতিটি অংশ আলাদা লাইনে লিখবে এবং অংশগুলোর মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
-৩। শুধু গুরুত্বপূর্ণ শব্দ **এভাবে** বোল্ড করতে পারবে, আর কোনো markdown সিনট্যাক্স নয়।`;
+নিয়ম (কঠোরভাবে মানতে হবে, ব্যতিক্রম নেই):
+১। উত্তর সবসময় একটি সাধারণ, স্বাভাবিক মানুষের-লেখা বাংলা অনুচ্ছেদ/লাইন হবে।
+২। কখনোই JSON, object, array, code block, markdown সিনট্যাক্স ({, }, [, ], \`\`\`, #, "key":) ব্যবহার করবে না — এমনকি প্রশ্নে JSON চাওয়া হলেও না।
+৩। উত্তর অসম্পূর্ণ রেখে থামা যাবে না। প্রতিটি অংশ (সঠিক উত্তর, প্রতিটি ভুল অপশন, টিপস) সম্পূর্ণ বাক্যে শেষ করবে।
+৪। প্রতিটি অংশের মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
+৫। গুরুত্বপূর্ণ শব্দ/টার্ম **এভাবে** বোল্ড করবে, আর কোনো markdown নয়।`;
 
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
@@ -82,7 +84,63 @@ function buildExplainPrompt(q: McqLike) {
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
   const opts = getOptions(q);
   const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nপ্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nবাধ্যতামূলক: (১) সাদা টেক্সটে লিখবে, কোনো JSON/{}/[] ব্যবহার করবে না। (২) কোনো অংশ অসম্পূর্ণ রেখে থামবে না — প্রতিটি বাক্য সম্পূর্ণ করবে। (৩) প্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+}
+
+/** Best-effort repair for JSON truncated mid-string/mid-object (common when a
+ *  provider's forced JSON mode hits its output limit before finishing). */
+function repairTruncatedJson(s: string): string {
+  let out = s;
+  // Odd number of unescaped quotes -> an open string was cut off; close it.
+  const quoteCount = (out.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 === 1) out += '"';
+  // Balance any open brackets/braces.
+  const opens = (out.match(/[{[]/g) || []).length;
+  const closes = (out.match(/[}\]]/g) || []).length;
+  for (let i = 0; i < opens - closes; i++) {
+    const lastOpen = Math.max(out.lastIndexOf("{"), out.lastIndexOf("["));
+    out += out.lastIndexOf("{") === lastOpen ? "}" : "]";
+  }
+  return out;
+}
+
+/** Last-resort extraction when JSON can't be parsed/repaired at all: pull out
+ *  any "option"/"reason"-style string values so at least the content survives
+ *  as plain text instead of showing nothing or raw braces. */
+function extractReadableFallback(raw: string): string | null {
+  const matches = [...raw.matchAll(/"(?:option|reason|question)"\s*:\s*"((?:[^"\\]|\\.)*)"/g)].map((m) =>
+    m[1].replace(/\\n/g, " ").replace(/\\"/g, '"').trim()
+  );
+  return matches.length ? matches.join("\n\n") : null;
+}
+
+/** Last-resort, shape-agnostic JSON-to-text conversion: walks any object/array
+ *  recursively and pulls out every string value, skipping structural keys.
+ *  Used when the AI invents a JSON shape we don't have a specific parser for
+ *  (e.g. Bangla-keyed nested objects) so at least readable content survives. */
+function genericJsonToText(parsed: any): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const visit = (val: any) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  };
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
 }
 
 /** If the AI proxy ever returns raw JSON (e.g. [{question, options:[{option,correct,reason}]}])
@@ -91,9 +149,9 @@ function buildExplainPrompt(q: McqLike) {
 function normalizeAiAnswer(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return raw;
-  try {
-    let parsed = JSON.parse(trimmed);
-    if (!Array.isArray(parsed)) parsed = [parsed];
+
+  const toLines = (parsedIn: any): string | null => {
+    const parsed = Array.isArray(parsedIn) ? parsedIn : [parsedIn];
     const lines: string[] = [];
     for (const item of parsed) {
       const opts = Array.isArray(item?.options) ? item.options : [];
@@ -107,9 +165,20 @@ function normalizeAiAnswer(raw: string): string {
         lines.push(`❌ **${o?.option ?? ""}** — ${o?.reason ?? ""}`.trim());
       }
     }
-    return lines.length ? lines.join("\n") : raw;
+    return lines.length ? lines.join("\n") : null;
+  };
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
   } catch {
-    return raw;
+    // Try repairing a truncated response before giving up.
+    try {
+      const parsed = JSON.parse(repairTruncatedJson(trimmed));
+      return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
+    } catch {
+      return extractReadableFallback(trimmed) ?? raw;
+    }
   }
 }
 
@@ -266,7 +335,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
       return;
     }
 
-    const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো)`;
+    const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো। সাদা বাংলা টেক্সটে লিখবে, কখনো JSON/{}/[] ব্যবহার করবে না, উত্তর অসম্পূর্ণ রেখে থামবে না।)`;
     const answer = normalizeAiAnswer(await askAI(context, null, MCQ_SYSTEM_PROMPT));
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
