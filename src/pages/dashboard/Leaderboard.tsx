@@ -272,15 +272,6 @@ const Leaderboard = () => {
       .join(" ");
   };
 
-  const collegeInitials = (name: string) => {
-    if (!name) return "-";
-    return name
-      .split(" ")
-      .filter(w => w.length > 0)
-      .map(w => w.charAt(0).toUpperCase())
-      .join("");
-  };
-
   const buildVerdict = () => {
     if (!compareData || compareData.length < 2) return [];
     const [a, b] = compareData;
@@ -798,16 +789,8 @@ const Leaderboard = () => {
                 const isMe = myAttemptId === attempt.id;
 
                 return (
-                  <div key={attempt.id} className={`relative rounded-lg border p-3 pr-3 ${cardClass}`}>
-                    {myAttemptId && !isMe && (
-                        <button
-                            onClick={() => openCompare(attempt.id)}
-                            className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
-                        >
-                            <Scale className="h-3 w-3" /> তুলনা করো
-                        </button>
-                    )}
-                    <div className="flex items-start gap-2.5 pr-2 pt-6">
+                  <div key={attempt.id} className={`relative rounded-lg border p-2.5 ${cardClass}`}>
+                    <div className="flex items-start gap-2.5">
                         <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
@@ -823,16 +806,26 @@ const Leaderboard = () => {
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 mt-0.5">
-                                <span className="break-words uppercase tracking-wide">{collegeInitials(attempt.profile?.college_name || attempt.profile?.school)}</span>
+                                <span className="break-words">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
-                                {isStaff && (
-                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                                        Review
-                                    </Button>
-                                )}
                             </div>
                         </div>
-                        <div className="font-bold text-primary text-sm shrink-0 pl-2 text-right">{attempt.score}</div>
+                        <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
+                            {myAttemptId && !isMe && (
+                                <button
+                                    onClick={() => openCompare(attempt.id)}
+                                    className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
+                                >
+                                    <Scale className="h-3 w-3" /> তুলনা করো
+                                </button>
+                            )}
+                            <span className="font-bold text-primary text-sm">{attempt.score}</span>
+                            {isStaff && (
+                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                    Review
+                                </Button>
+                            )}
+                        </div>
                     </div>
                   </div>
                 );
