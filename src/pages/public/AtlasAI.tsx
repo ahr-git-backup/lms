@@ -112,7 +112,7 @@ export function getSystemPrompt(question: string) {
   if (isMCQ) {
     prompt += `
 
-এটি একটি MCQ প্রশ্ন। প্রথমে ✅ সঠিক উত্তর বলবে, তারপর প্রতিটি অপশন বিস্তারিতভাবে বিশ্লেষণ করবে — ✅ কেন সঠিক (প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ), ❌ বাকিগুলো কেন ভুল (প্রতিটির জন্য স্পষ্ট, বিস্তারিত কারণ)। শেষে 💡 মনে রাখার একটি টিপস দিতে পারো।`;
+এটি একটি MCQ প্রশ্ন। প্রথমে ✅ সঠিক উত্তর বলবে (২-৩ বাক্যে, প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ), তারপর প্রতিটি ভুল অপশনের জন্য ❌ কেন ভুল তার ১-২ বাক্যের সংক্ষিপ্ত স্পষ্ট কারণ দিবে, শেষে 💡 একটি ১ বাক্যের টিপস দিবে। প্রতিটি অংশ অবশ্যই সম্পূর্ণ বাক্যে শেষ করবে — বাক্য-সংখ্যার সীমা মেনে চলা মানে সম্পূর্ণ উত্তর নিশ্চিত করা, বিস্তারিত করতে গিয়ে উত্তর মাঝপথে অসম্পূর্ণ রাখা যাবে না।`;
   }
 
   const subjectMap: Record<string, string> = {
@@ -175,10 +175,18 @@ function renderBoldSegments(line: string) {
 
 export function renderAnswer(text: string) {
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
+  // A line is "empty content" if, after stripping the icon/label and any trailing
+  // dash separator, nothing meaningful remains (guards against provider cutting
+  // off mid-explanation and leaving e.g. "❌ A) স্টাচ —" with nothing after it).
+  const isEmptyContent = (s: string) => {
+    const stripped = s.replace(/^[✅❌💡]\s*/, "").replace(/[-—–]\s*$/, "").trim();
+    return stripped.length === 0;
+  };
   const lines = text.split("\n");
   return lines.map((line, i) => {
     const trimmed = line.trim();
     if (trimmed.startsWith("✅")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-emerald-500 font-semibold my-1">
           <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -187,6 +195,7 @@ export function renderAnswer(text: string) {
       );
     }
     if (trimmed.startsWith("❌")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-destructive my-1">
           <XCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -195,6 +204,7 @@ export function renderAnswer(text: string) {
       );
     }
     if (trimmed.startsWith("💡")) {
+      if (isEmptyContent(trimmed)) return null;
       return (
         <div key={i} className="flex items-start gap-2 text-amber-500 my-1">
           <Lightbulb className="h-4 w-4 mt-0.5 flex-shrink-0" />
