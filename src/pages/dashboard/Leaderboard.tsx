@@ -822,19 +822,17 @@ const Leaderboard = () => {
                                     <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
                                 )}
                             </div>
-                            <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
+                            <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 mt-0.5">
                                 <span className="break-words uppercase tracking-wide">{collegeInitials(attempt.profile?.college_name || attempt.profile?.school)}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
+                                {isStaff && (
+                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                        Review
+                                    </Button>
+                                )}
                             </div>
                         </div>
                         <div className="font-bold text-primary text-sm shrink-0 pl-2 text-right">{attempt.score}</div>
-                    </div>
-                    <div className="flex items-center justify-end mt-2">
-                        {isStaff && (
-                            <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                                Review
-                            </Button>
-                        )}
                     </div>
                   </div>
                 );
