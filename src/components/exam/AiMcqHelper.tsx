@@ -51,9 +51,14 @@ interface McqLike {
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
-/** Exact systemPrompt AtlasApp uses for all MCQ AI calls — kept identical so
- *  explanation/chat responses match AtlasApp's proven detailed style. */
-const MCQ_SYSTEM_PROMPT = "তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।";
+/** systemPrompt for MCQ AI calls — enforces the ✅/❌/💡 plain-text format
+ *  (never JSON, never markdown) so renderAnswer() displays it cleanly. */
+const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
+
+নিয়ম (বাধ্যতামূলক):
+১। উত্তর অবশ্যই সাধারণ প্লেইন টেক্সট হবে — কখনোই JSON, code block, বা markdown ({, }, [, ], \`\`\`, #) ব্যবহার করবে না।
+২। প্রতিটি অংশ আলাদা লাইনে লিখবে এবং অংশগুলোর মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
+৩। শুধু গুরুত্বপূর্ণ শব্দ **এভাবে** বোল্ড করতে পারবে, আর কোনো markdown সিনট্যাক্স নয়।`;
 
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
@@ -75,7 +80,37 @@ function buildFullMcqBlock(q: McqLike) {
 function buildExplainPrompt(q: McqLike) {
   const mcqBlock = buildFullMcqBlock(q);
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ে নিচের ফরম্যাটে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nএভাবে উত্তর দাও:\n১. প্রথমে সঠিক উত্তর কোনটি (${LABELS[correctIdx]}) তা বলো এবং কেন এটি সঠিক তা প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিতভাবে ব্যাখ্যা করো।\n২. তারপর বাকি প্রতিটি ভুল অপশন আলাদাভাবে নিয়ে কেন সেটি ভুল তা স্পষ্ট ও বিস্তারিতভাবে ব্যাখ্যা করো।\n৩. সবশেষে একটি বিশেষ টিপস/তথ্য (মনে রাখার কৌশল বা এক্সট্রা জ্ঞান) দাও।\n\nবাংলায়, প্রতিটি অংশ বিস্তারিত ও সম্পূর্ণ রাখবে, সংক্ষিপ্ত করবে না।`;
+  const opts = getOptions(q);
+  const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nপ্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+}
+
+/** If the AI proxy ever returns raw JSON (e.g. [{question, options:[{option,correct,reason}]}])
+ *  instead of following the plain-text instruction, convert it into our ✅/❌/💡 format here so
+ *  the UI never shows raw braces/brackets. Returns the original text untouched if it isn't JSON. */
+function normalizeAiAnswer(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return raw;
+  try {
+    let parsed = JSON.parse(trimmed);
+    if (!Array.isArray(parsed)) parsed = [parsed];
+    const lines: string[] = [];
+    for (const item of parsed) {
+      const opts = Array.isArray(item?.options) ? item.options : [];
+      const correctOpt = opts.find((o: any) => o?.correct === true);
+      if (correctOpt) {
+        lines.push(`✅ **${correctOpt.option ?? ""}** — ${correctOpt.reason ?? ""}`.trim());
+      }
+      for (const o of opts) {
+        if (o === correctOpt) continue;
+        lines.push("");
+        lines.push(`❌ **${o?.option ?? ""}** — ${o?.reason ?? ""}`.trim());
+      }
+    }
+    return lines.length ? lines.join("\n") : raw;
+  } catch {
+    return raw;
+  }
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -83,13 +118,14 @@ async function readCachedExplanation(questionId: string): Promise<string | null>
   const { data, error } = await (supabase.rpc as any)("get_cached_ai_explanation", {
     p_question_id: questionId,
   });
-  if (error) return null;
-  return (data as string) ?? null;
+  if (error || !data) return null;
+  return normalizeAiAnswer(data as string);
 }
 
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
-  const answer = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
+  const raw = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
+  const answer = normalizeAiAnswer(raw);
   if (questionId) {
     // Fire-and-forget: don't block the UI on the cache write.
     (supabase.rpc as any)("save_ai_explanation", {
@@ -122,7 +158,9 @@ export function prewarmExplanations(qs: (McqLike & { id?: string })[]) {
 export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: string }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [answer, setAnswer] = useState<string | null>(q.ai_explanation ?? null);
+  const [answer, setAnswer] = useState<string | null>(
+    q.ai_explanation ? normalizeAiAnswer(q.ai_explanation) : null
+  );
 
   const handleToggle = async () => {
     const next = !open;
@@ -157,12 +195,23 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
       </button>
       {open && (
         <div className="px-3 pb-3 pt-0 text-sm leading-relaxed text-foreground/90 border-t border-primary/10">
+          <div className="pt-2 pb-2 mb-2 border-b border-primary/10 space-y-1.5">
+            <p className="font-semibold">{q.question_text}</p>
+            {getOptions(q).map((opt, i) => (
+              <p
+                key={i}
+                className={cn(LABELS[i] === q.correct_option && "text-emerald-500 font-semibold")}
+              >
+                {LABELS[i]}) {opt}
+              </p>
+            ))}
+          </div>
           {loading ? (
             <div className="flex items-center gap-2 py-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> AI বিশ্লেষণ করছে...
             </div>
           ) : (
-            <div className="pt-2 space-y-0.5">{answer && renderAnswer(answer)}</div>
+            <div className="pt-2 space-y-2">{answer && renderAnswer(answer)}</div>
           )}
         </div>
       )}
@@ -178,7 +227,9 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     { role: "user" | "assistant"; content: string; related?: RelatedMcq[] }[]
   >([]);
   const [input, setInput] = useState("");
-  const [initialAnswer, setInitialAnswer] = useState<string | null>(q.ai_explanation ?? null);
+  const [initialAnswer, setInitialAnswer] = useState<string | null>(
+    q.ai_explanation ? normalizeAiAnswer(q.ai_explanation) : null
+  );
 
   const openChat = async () => {
     setModalOpen(true);
@@ -216,7 +267,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     }
 
     const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো)`;
-    const answer = await askAI(context, null, MCQ_SYSTEM_PROMPT);
+    const answer = normalizeAiAnswer(await askAI(context, null, MCQ_SYSTEM_PROMPT));
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
   };
@@ -255,7 +306,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
                 key={i}
                 className={cn(
                   "rounded-md p-3 text-sm",
-                  m.role === "user" ? "bg-primary/10 ml-6 whitespace-pre-wrap" : "bg-secondary/50 mr-2 space-y-0.5"
+                  m.role === "user" ? "bg-primary/10 ml-6 whitespace-pre-wrap" : "bg-secondary/50 mr-2 space-y-2"
                 )}
               >
                 {m.role === "assistant" ? renderAnswer(m.content) : m.content}
