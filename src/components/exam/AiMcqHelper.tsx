@@ -71,7 +71,7 @@ function buildFullMcqBlock(q: McqLike) {
 function buildExplainPrompt(q: McqLike) {
   const mcqBlock = buildFullMcqBlock(q);
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) ভালোভাবে পড়ে পুরো প্রশ্নটির প্রেক্ষাপট বুঝে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nশুধুমাত্র উপরে দেওয়া সম্পূর্ণ প্রশ্ন ও অপশন থেকে তথ্য নিয়ে ব্যাখ্যা করো। কোনো তথ্য নিজে থেকে বানিয়ে বলবে না; নিশ্চিত না হলে "নিশ্চিত না" বলবে। সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) ভালোভাবে পড়ে পুরো প্রশ্নটির প্রেক্ষাপট বুঝে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nউপরে দেওয়া প্রশ্ন ও অপশনের প্রেক্ষাপট মাথায় রেখে, পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিত ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিতভাবে\n২. বাকি অপশনগুলো কেন ভুল (প্রতিটির জন্য স্পষ্ট ব্যাখ্যা)\n৩. মনে রাখার একটি ছোট টিপস\n\nকোনো নির্দিষ্ট সংখ্যা/তথ্যসূত্র নিয়ে সত্যিই অনিশ্চিত হলে সেটা উল্লেখ করো, কিন্তু পুরো ব্যাখ্যা সংক্ষিপ্ত করে ফেলবে না।`;
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -211,7 +211,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
       return;
     }
 
-    const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(শুধু উপরের সম্পূর্ণ প্রশ্ন/অপশন সংক্রান্ত সঠিক তথ্য দিয়ে উত্তর দাও, নিশ্চিত না হলে বলে দাও যে নিশ্চিত না)`;
+    const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো)`;
     const answer = await askAI(context, null);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
