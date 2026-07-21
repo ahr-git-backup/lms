@@ -578,12 +578,29 @@ const FocusTimer = () => {
         {showIntro && (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-sm">কীভাবে কাজ করে</h3>
+              <div>
+                <h3 className="font-extrabold text-sm">ATLAS Focus Timer</h3>
+                <p className="text-[11px] text-muted-foreground">মনোযোগী পড়াশোনার জন্য বাংলাদেশের সেরা টাইমার</p>
+              </div>
               <button onClick={dismissIntro} className="text-xs font-bold text-muted-foreground hover:text-foreground">
                 ✕
               </button>
             </div>
+
+            <div className="rounded-xl border bg-card p-3 space-y-1.5">
+              <div className="text-xs font-extrabold flex items-center gap-1">
+                <Trophy className="h-3 w-3 text-primary" /> কেন ব্যবহার করবে?
+              </div>
+              <ul className="text-[11px] space-y-1 list-disc pl-4 text-muted-foreground">
+                <li>পড়াশোনার সময় track করো এবং নিজেকে motivate রাখো</li>
+                <li>Live দেখো কতজন student এই মুহূর্তে পড়ছে</li>
+                <li>Top Focused Student হওয়ার সুযোগ পাও</li>
+                <li>Study, Break ও Sleep Mood আলাদাভাবে track হবে</li>
+              </ul>
+            </div>
+
             <div className="space-y-2 text-xs">
+              <div className="text-xs font-extrabold">কীভাবে ব্যবহার করবে?</div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">১</span>
                 <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mode timer শুরু হবে</span>
@@ -594,14 +611,18 @@ const FocusTimer = () => {
               </div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৩</span>
-                <span>রাতে Study paused থাকলে ১.৫ ঘণ্টা পর নিজে থেকেই Sleep Mode চালু হয়ে যাবে</span>
+                <span>Sleep Mode on থাকলে phone off করলেও timer চলতে থাকবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৪</span>
+                <span>পড়া শেষে Stop — সময় সেভ হবে এবং rank update হবে</span>
               </div>
             </div>
             <button
               onClick={dismissIntro}
               className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
             >
-              বুঝেছি, শুরু করি
+              পড়াশোনা শুরু করো
             </button>
           </div>
         )}
