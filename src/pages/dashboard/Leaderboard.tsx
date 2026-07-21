@@ -272,6 +272,15 @@ const Leaderboard = () => {
       .join(" ");
   };
 
+  const collegeInitials = (name: string) => {
+    if (!name) return "-";
+    return name
+      .split(" ")
+      .filter(w => w.length > 0)
+      .map(w => w.charAt(0).toUpperCase())
+      .join("");
+  };
+
   const buildVerdict = () => {
     if (!compareData || compareData.length < 2) return [];
     const [a, b] = compareData;
@@ -798,7 +807,7 @@ const Leaderboard = () => {
                             <Scale className="h-3 w-3" /> তুলনা করো
                         </button>
                     )}
-                    <div className="flex items-start gap-2.5 pr-2">
+                    <div className="flex items-start gap-2.5 pr-2 pt-6">
                         <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
@@ -806,21 +815,21 @@ const Leaderboard = () => {
                             <AvatarImage src={attempt.profile?.avatar_url} className="rounded-md" />
                             <AvatarFallback className="rounded-md bg-muted" />
                         </Avatar>
-                        <div className="flex flex-col min-w-0 flex-1 pt-4">
+                        <div className="flex flex-col min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                                <span className="font-medium text-sm break-words">{capitalizeName(attempt.profile?.full_name)}</span>
+                                <span className="font-semibold text-base break-words">{capitalizeName(attempt.profile?.full_name)}</span>
                                 {isSecondTimer && (
                                     <BadgeAlert className="h-3 w-3 text-orange-500 shrink-0" />
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex flex-wrap gap-2 mt-0.5">
-                                <span className="break-words">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
+                                <span className="break-words uppercase tracking-wide">{collegeInitials(attempt.profile?.college_name || attempt.profile?.school)}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                             </div>
                         </div>
+                        <div className="font-bold text-primary text-sm shrink-0 pl-2 text-right">{attempt.score}</div>
                     </div>
-                    <div className="flex items-end justify-between mt-2">
-                        <div className="font-bold text-primary text-sm pl-8">{attempt.score}</div>
+                    <div className="flex items-center justify-end mt-2">
                         {isStaff && (
                             <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
                                 Review
