@@ -112,11 +112,12 @@ const FocusTimer = () => {
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
+  const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
   const [pendingMood, setPendingMood] = useState<Mood | null>(null);
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [stopStats, setStopStats] = useState<{ breaks: number; sleepSeconds: number } | null>(null);
+  const [stopStats, setStopStats] = useState<{ studySeconds: number; breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
   const [sessionNumber, setSessionNumber] = useState(1);
   const hasStoppedOnceRef = useRef(false);
@@ -450,6 +451,9 @@ const FocusTimer = () => {
     if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
     }
+    if (moodRef.current === "study") {
+      accumulatedStudyRef.current += elapsedRef.current;
+    }
     if (m === "break" && moodRef.current === "study") {
       setBreaksUsed((n) => n + 1);
     }
@@ -511,8 +515,11 @@ const FocusTimer = () => {
     if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
     }
+    if (moodRef.current === "study") {
+      accumulatedStudyRef.current += elapsedRef.current;
+    }
     clearState();
-    setStopStats({ breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
+    setStopStats({ studySeconds: accumulatedStudyRef.current, breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
     hasStoppedOnceRef.current = true;
     sessionIdRef.current = null;
     setSessionId(null);
@@ -520,6 +527,7 @@ const FocusTimer = () => {
     setPaused(false);
     setElapsed(0);
     accumulatedBreakRef.current = 0;
+    accumulatedStudyRef.current = 0;
     sleepSecsRef.current = 0;
     setBreaksUsed(0);
     pauseStartRef.current = null;
@@ -1063,6 +1071,12 @@ const FocusTimer = () => {
           <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
             <h3 className="text-base font-extrabold">সেশন শেষ হয়েছে 🎉</h3>
+            <div className="rounded-xl bg-primary/10 py-3">
+              <div className="text-2xl font-black text-primary">
+                {formatHMS(stopStats.studySeconds).h}h {formatHMS(stopStats.studySeconds).m}m
+              </div>
+              <div className="text-[11px] font-bold text-muted-foreground mt-0.5">পড়েছো</div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-muted/50 py-3">
                 <div className="text-xl font-black">{stopStats.breaks}</div>
