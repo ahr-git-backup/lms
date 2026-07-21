@@ -694,6 +694,10 @@ const Leaderboard = () => {
   };
 
   const handleDownloadStudentCards = async () => {
+      const previewTab = window.open('', '_blank');
+      if (previewTab) {
+          previewTab.document.write('<p style="font-family:sans-serif;padding:20px;">Generating PDF, please wait...</p>');
+      }
       try {
           let query = (supabase as any)
             .from('leaderboard_exam_attempts')
@@ -714,6 +718,7 @@ const Leaderboard = () => {
           if (aError) throw aError;
           if (!attempts || attempts.length === 0) {
               alert("No data to export");
+              previewTab?.close();
               return;
           }
 
@@ -970,7 +975,11 @@ const Leaderboard = () => {
               }
 
               const pdfBlobUrl = pdf.output('bloburl');
-              window.open(pdfBlobUrl as unknown as string, '_blank');
+              if (previewTab) {
+                  previewTab.location.href = pdfBlobUrl as unknown as string;
+              } else {
+                  window.open(pdfBlobUrl as unknown as string, '_blank');
+              }
           } finally {
               document.body.removeChild(container);
               document.head.removeChild(style);
@@ -979,6 +988,7 @@ const Leaderboard = () => {
       } catch (err) {
           console.error(err);
           alert("Failed to generate student cards PDF");
+          previewTab?.close();
       }
   };
 
