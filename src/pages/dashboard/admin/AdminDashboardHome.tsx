@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, GraduationCap, CreditCard, DollarSign, CalendarClock, ListChecks, StickyNote, Database, Megaphone, Flag, BookOpen, PenTool } from "lucide-react";
+import { Users, GraduationCap, CreditCard, DollarSign, CalendarClock, ListChecks, StickyNote, Database, Megaphone, Flag, BookOpen, PenTool, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const AdminDashboardHome = () => {
   const navigate = useNavigate();
@@ -171,6 +172,17 @@ const AdminDashboardHome = () => {
                    )}
                </CardContent>
            </Card>
+      </div>
+
+      <div className="flex justify-center pt-4">
+        <Button
+          size="lg"
+          onClick={() => navigate("/admin/quick-practice")}
+          className="gap-2"
+        >
+          <Zap className="h-5 w-5" />
+          Quick Practice Content Add Korun
+        </Button>
       </div>
     </div>
   );
