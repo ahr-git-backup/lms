@@ -669,6 +669,12 @@ function rotateGroqKeys(keys) {
 }
 __name(rotateGroqKeys, "rotateGroqKeys");
 var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "openai/gpt-oss-20b", "llama-3.1-8b-instant"];
+// Smaller/less instruction-following models (gpt-oss-20b, llama-3.1-8b-instant)
+// tend to drift into inventing their own JSON shape for plain-text explanation
+// prompts even when explicitly told not to. Keep those two out of the plain-text
+// explanation rotation; they're still fine for other uses (e.g. structured MCQ
+// generation where JSON is actually wanted).
+var GROQ_TEXT_MODELS_PLAIN = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
 var GROQ_IMAGE_MODELS = ["meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"];
 var GROQ_MCQ_JSON_SCHEMA = {
   name: "mcq_list",
@@ -729,7 +735,7 @@ async function callGroq(env, question, systemPrompt, image, expectMcqArray, budg
   const keys = rotateGroqKeys(getGroqKeys(env));
   if (!keys.length)
     return { error: "GROQ_API_KEY not set" };
-  const models = image ? GROQ_IMAGE_MODELS : GROQ_TEXT_MODELS;
+  const models = image ? GROQ_IMAGE_MODELS : (expectMcqArray ? GROQ_TEXT_MODELS : GROQ_TEXT_MODELS_PLAIN);
   // FIX: only append the "must be JSON" instruction + force response_format
   // when we actually need a JSON MCQ array (expectMcqArray). Plain
   // explanation/chat questions must stay natural plain text, otherwise the
@@ -837,6 +843,14 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
               }
               lastError = `Groq(${model}): invalid MCQ shape, retrying other key/model`;
             } else {
+              // Some models drift into inventing their own JSON shape despite
+              // being told not to. Detect that and retry with the next
+              // model/key instead of shipping broken/truncated JSON as if it
+              // were the final plain-text answer.
+              if (/^[\[{]/.test(answer.trim())) {
+                lastError = `Groq(${model}): drifted into JSON for plain-text explanation, retrying other key/model`;
+                continue;
+              }
               // Plain-text detailed explanation got cut off by the token limit —
               // ask the same model/key to continue from where it stopped, and
               // stitch the pieces together, instead of shipping a truncated answer.
