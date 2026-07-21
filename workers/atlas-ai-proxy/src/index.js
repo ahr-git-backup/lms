@@ -641,11 +641,29 @@ function getGroqKeys(env) {
 }
 __name(getGroqKeys, "getGroqKeys");
 let groqRoundRobinIndex = 0;
+const GROQ_KEY_COOLDOWN_MS = 60e3;
+const groqKeyCooldownUntil = /* @__PURE__ */ new Map();
+function markGroqKeyUnhealthy(key) {
+  groqKeyCooldownUntil.set(key, Date.now() + GROQ_KEY_COOLDOWN_MS);
+}
+__name(markGroqKeyUnhealthy, "markGroqKeyUnhealthy");
+function markGroqKeyHealthy(key) {
+  groqKeyCooldownUntil.delete(key);
+}
+__name(markGroqKeyHealthy, "markGroqKeyHealthy");
+function isGroqKeyHealthy(key) {
+  const until = groqKeyCooldownUntil.get(key);
+  return !until || Date.now() >= until;
+}
+__name(isGroqKeyHealthy, "isGroqKeyHealthy");
 function rotateGroqKeys(keys) {
   if (keys.length <= 1) return keys;
   const start = groqRoundRobinIndex % keys.length;
   groqRoundRobinIndex = (groqRoundRobinIndex + 1) % keys.length;
-  return [...keys.slice(start), ...keys.slice(0, start)];
+  const rotated = [...keys.slice(start), ...keys.slice(0, start)];
+  const healthy = rotated.filter(isGroqKeyHealthy);
+  const unhealthy = rotated.filter((k) => !isGroqKeyHealthy(k));
+  return [...healthy, ...unhealthy];
 }
 __name(rotateGroqKeys, "rotateGroqKeys");
 var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile"];
@@ -765,6 +783,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
           }), budget);
           if (outcome.__exception) {
             lastError = `Groq(${model}) exception: ${outcome.message}`;
+            markGroqKeyUnhealthy(key);
             if (outcome.__budgetExhausted)
               return { error: lastError };
             continue;
@@ -790,11 +809,15 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
             }
             lastError = `Groq(${model}) HTTP ${outcome.status}`;
             if (outcome.status === 429) {
+              markGroqKeyUnhealthy(key);
               consecutive429++;
               if (consecutive429 >= 2) {
                 lastError = `Groq: quota exhausted (429 on ${consecutive429} keys), abandoning provider to save budget`;
                 break outerGroq;
               }
+            } else if (outcome.status === 401 || outcome.status === 403) {
+              markGroqKeyUnhealthy(key);
+              consecutive429 = 0;
             } else {
               consecutive429 = 0;
             }
@@ -803,6 +826,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
           const data = await outcome.json().catch(() => null);
           let answer = data?.choices?.[0]?.message?.content || null;
           if (answer) {
+            markGroqKeyHealthy(key);
             if (expectMcqArray) {
               answer = mbGroqUnwrapAnswer(answer);
               if (mbGroqLooksLikeValidMcqArray(answer)) {
