@@ -836,7 +836,7 @@ const FocusTimer = () => {
             className="flex items-center gap-2 text-sm font-extrabold"
           >
             <Users className="h-4 w-4 text-sky-500" />
-            এখন যারা অনলাইনে আছে
+            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
             <span className="text-[10px] font-bold text-muted-foreground">
               {showLiveNow ? "লুকাও" : "দেখাও"}
             </span>
@@ -845,8 +845,9 @@ const FocusTimer = () => {
             <>
               {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
               {(() => {
+                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
                 const batches = Array.from(
-                  new Set((liveNow || []).map((r: any) => r.hsc_batch || "অন্যান্য"))
+                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
                 );
                 if (batches.length <= 1) return null;
                 return (
@@ -860,10 +861,10 @@ const FocusTimer = () => {
                           : "bg-card border-border text-muted-foreground"
                       )}
                     >
-                      সবাই ({(liveNow || []).length})
+                      সবাই ({moodPool.length})
                     </button>
                     {batches.map((b) => {
-                      const cnt = (liveNow || []).filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
                       return (
                         <button
                           key={b as string}
@@ -885,13 +886,20 @@ const FocusTimer = () => {
 
               <div className="space-y-1.5">
                 {(() => {
-                  const filtered = (liveNow || []).filter(
+                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                  const filtered = moodPool.filter(
                     (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
                   );
                   if (filtered.length === 0) {
+                    const emptyMsg =
+                      mood === "break"
+                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
+                        : mood === "sleep"
+                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
+                        : "এই মুহূর্তে কেউ নেই";
                     return (
                       <p className="text-center text-xs text-muted-foreground py-4">
-                        এখন কেউ সেশনে নেই।
+                        {emptyMsg}
                       </p>
                     );
                   }
