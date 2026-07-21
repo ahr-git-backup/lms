@@ -607,7 +607,7 @@ async function callOpenRouter(env, question, systemPrompt, image, budget) {
               { role: "user", content: userContent }
             ],
             temperature: 0.7,
-            max_tokens: 8192
+            max_tokens: 12000
           })
         }), budget);
         if (outcome.__exception) {
@@ -767,7 +767,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
           model,
           messages,
           temperature: 0.7,
-          max_tokens: 8192,
+          max_tokens: 12000,
           // FIX: never force response_format unless we actually expect the
           // structured MCQ array. Plain explanation calls get no response_format
           // at all, so Groq returns normal free-form text.
@@ -853,7 +853,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
                     method: "POST",
                     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
                     signal: signal3,
-                    body: JSON.stringify({ model, messages: contMessages, temperature: 0.7, max_tokens: 8192 })
+                    body: JSON.stringify({ model, messages: contMessages, temperature: 0.7, max_tokens: 12000 })
                   }), budget);
                   if (contOutcome.__exception || !contOutcome.ok) break;
                   const contData = await contOutcome.json().catch(() => null);
@@ -912,7 +912,7 @@ async function callCerebras(env, question, systemPrompt, image, budget) {
               { role: "user", content: question }
             ],
             temperature: 0.7,
-            max_tokens: 8192
+            max_tokens: 12000
           })
         }), budget);
         if (outcome.__exception) {
