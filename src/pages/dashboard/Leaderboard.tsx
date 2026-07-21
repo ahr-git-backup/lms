@@ -777,14 +777,14 @@ const Leaderboard = () => {
             {topThree.length > 0 && <Podium topThree={topThree} isStaff={isStaff} />}
 
             {/* Mobile: sticky column header */}
-            <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex items-center px-3 py-1.5 text-[11px] font-semibold text-muted-foreground border-b mb-2">
+            <div className="md:hidden sticky top-0 z-10 bg-background/95 backdrop-blur-sm flex items-center px-1 py-1.5 text-[11px] font-semibold text-muted-foreground border-b mb-2 -mx-2">
                 <span className="w-8 shrink-0">Rank</span>
                 <span className="flex-1 pl-9">Student Detail</span>
                 <span className="shrink-0">Score</span>
             </div>
 
             {/* Mobile: card list (no horizontal scroll) */}
-            <div className="md:hidden space-y-2">
+            <div className="md:hidden space-y-2 -mx-2">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {leaderboard.map((attempt: any, index: number) => {
                 const globalIndex = index;
@@ -798,9 +798,9 @@ const Leaderboard = () => {
                 const isMe = myAttemptId === attempt.id;
 
                 return (
-                  <div key={attempt.id} className={`relative rounded-lg border p-2.5 ${cardClass}`}>
+                  <div key={attempt.id} className={`relative rounded-lg border py-1 px-2 ${cardClass}`}>
                     {myAttemptId && !isMe && (
-                        <div className="flex justify-end mb-1">
+                        <div className="flex justify-end mb-0.5">
                             <button
                                 onClick={() => openCompare(attempt.id)}
                                 className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
@@ -809,13 +809,13 @@ const Leaderboard = () => {
                             </button>
                         </div>
                     )}
-                    <div className="flex items-start gap-2.5">
+                    <div className="flex items-start gap-2">
                         <div className="font-bold whitespace-nowrap pt-0.5">
                             {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
-                        <Avatar className="h-9 w-9 rounded-md shrink-0 border border-border">
-                            <AvatarImage src={attempt.profile?.avatar_url} className="rounded-md" />
-                            <AvatarFallback className="rounded-md bg-muted" />
+                        <Avatar className="h-9 w-9 rounded-sm shrink-0 border border-border">
+                            <AvatarImage src={attempt.profile?.avatar_url} className="rounded-sm object-cover" />
+                            <AvatarFallback className="rounded-sm bg-muted" />
                         </Avatar>
                         <div className="flex flex-col min-w-0 flex-1">
                             <div className="flex items-center justify-between gap-1.5">
@@ -829,7 +829,10 @@ const Leaderboard = () => {
                             </div>
                             <div className="flex items-center justify-between gap-1.5 mt-0.5">
                                 <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 min-w-0">
-                                    <span className="break-words">{displayCollegeName(attempt.profile?.college_name || attempt.profile?.school)}</span>
+                                    <span className="break-words">
+                                        {attempt.profile?.hsc_batch ? `HSC ${attempt.profile.hsc_batch} • ` : ""}
+                                        {displayCollegeName(attempt.profile?.college_name || attempt.profile?.school)}
+                                    </span>
                                     {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
                                 </div>
                                 {isStaff && (
