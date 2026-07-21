@@ -8,6 +8,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
 import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat, FileDown, ListChecks, ListOrdered } from "lucide-react";
 import { getExamSourceList } from "@/lib/examSourceTracker";
+import { openSolvePdf } from "@/lib/solvePdf";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -115,7 +116,7 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
 const ExamReview = () => {
   const { attemptId } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile: authProfile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
@@ -284,6 +285,27 @@ const ExamReview = () => {
       }
   };
 
+  const handleSolvePdf = () => {
+      if (!questions || questions.length === 0) return;
+      openSolvePdf({
+          examName: attempt?.exam?.title || "Exam",
+          studentName: authProfile?.full_name || undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          questions: questions.map((q: any) => ({
+              question_text: q.question_text,
+              option_a: q.option_a,
+              option_b: q.option_b,
+              option_c: q.option_c,
+              option_d: q.option_d,
+              correct_option: q.correct_option,
+              user_answer: q.user_answer,
+              explanation: q.explanation,
+          })),
+          totalMarks: displayTotalMarks,
+          score: Number(score),
+      });
+  };
+
   const handlePracticeAgain = () => {
       if (attempt?.exam_id) {
         // No retake_from param -> lands on the fresh pre-exam screen,
@@ -374,7 +396,7 @@ const ExamReview = () => {
                  <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
-                 <Button variant="outline" onClick={() => window.print()} className="h-10 px-3 py-2 w-full sm:w-auto">
+                 <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
                  </Button>
                  <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
