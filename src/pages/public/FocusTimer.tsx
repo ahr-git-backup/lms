@@ -709,7 +709,7 @@ const FocusTimer = () => {
                 <Play className="h-4 w-4 fill-current" /> পড়াশোনা শুরু করো
               </button>
             )}
-            {running && !paused && (
+            {running && mood === "study" && !paused && (
               <>
                 <button
                   onClick={pause}
@@ -725,7 +725,7 @@ const FocusTimer = () => {
                 </button>
               </>
             )}
-            {running && paused && (
+            {running && mood === "study" && paused && (
               <>
                 <button
                   onClick={resume}
@@ -741,6 +741,7 @@ const FocusTimer = () => {
                 </button>
               </>
             )}
+            {/* Break/Sleep mood: no Pause/Resume/Stop controls — switching mood (tabs above) is enough, matching AtlasApp exactly */}
           </div>
         </div>
 
