@@ -171,7 +171,7 @@ async function askAIOnce(
 ): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000);
+    const timeoutId = setTimeout(() => controller.abort(), 110000);
     const res = await fetch(AI_PROXY_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
