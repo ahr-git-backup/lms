@@ -538,8 +538,7 @@ const QuickPracticePlay = () => {
           </button>
           <button
             onClick={goNext}
-            disabled={!ans}
-            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
           >
             {current === total - 1 ? "শেষ করো" : "পরবর্তী →"}
           </button>
