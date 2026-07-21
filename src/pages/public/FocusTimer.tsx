@@ -472,6 +472,9 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    const moodStartNames: Record<Mood, string> = { study: "📚 Study", break: "☕ বিরতি", sleep: "😴 ঘুম" };
+    setToast(`${moodStartNames[m]} শুরু হলো`);
+    setTimeout(() => setToast(null), 2500);
   };
 
   // Break time limit reached — auto-return to Study mood.
