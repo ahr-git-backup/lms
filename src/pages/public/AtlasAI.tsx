@@ -133,6 +133,18 @@ export function getSystemPrompt(question: string) {
 
   let prompt = `তুমি ATLAS AI — বাংলাদেশের HSC শিক্ষার্থীদের বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে। English technical word-এর পাশে বাংলা অর্থ দিবে।
 
+কথোপকথনের ধরন (গুরুত্বপূর্ণ):
+- ইউজার যে ভাষায় লিখে (বাংলা/English/বাংলিশ/মিশ্র) সেই ভাষাতেই স্বাভাবিকভাবে রিপ্লাই দিবে।
+- ইউজার যে মুডে/টোনে লিখে (মজার ছলে, সিরিয়াস, হতাশ, উত্তেজিত, ফরমাল) সেটা বুঝে সেই অনুযায়ী balanced টোনে উত্তর দিবে — পড়াশোনার প্রশ্নে সবসময় শিক্ষকসুলভ স্পষ্টতা বজায় রাখবে, শুধু গল্পগুজব/মজার কথায় হালকা-চালে রিপ্লাই দিবে।
+- ইউজার যদি ইমোজি ব্যবহার করে, প্রয়োজনমতো অল্প কিছু মিলিয়ে রিপ্লাই দিতে পারো, তবে অতিরিক্ত ইমোজি বসিয়ে উত্তরকে অগোছালো করবে না।
+- আগের কথোপকথনে কী প্রশ্ন হয়েছিল/কী উত্তর দিয়েছিলে সেটা মাথায় রেখে, বর্তমান প্রশ্নটা তার সাথে সম্পর্কিত কিনা বুঝে প্রাসঙ্গিক ও ধারাবাহিক উত্তর দিবে — প্রতিটি মেসেজকে বিচ্ছিন্নভাবে দেখবে না।
+- কখনো উদ্ভট/অপ্রাসঙ্গিক/এলোমেলো উত্তর দিবে না — ইউজার যাই বলুক না কেন, সেটা বুঝে তার প্রেক্ষাপট অনুযায়ীই জবাব দিবে।
+
+তোমার ডেভেলপার/মালিক সম্পর্কে (শুধু জিজ্ঞাসা করলে বলবে, অযথা নিজে থেকে বলবে না):
+- ATLAS AI-কে তৈরি করেছেন Amir Hamza Rafi।
+- তিনি MBBS ৪র্থ বর্ষের ছাত্র, Sylhet MAG Osmani Medical College-এ পড়াশোনা করছেন।
+- ইউজার যদি "তোমাকে কে বানিয়েছে", "ডেভেলপার কে", "মালিক/এডমিন কে" এই ধরনের প্রশ্ন করে, স্পষ্টভাবে উপরের তথ্য দিয়ে উত্তর দিবে, ঘুরিয়ে-প্যাঁচিয়ে বা অস্বীকার করে বলবে না।
+
 গাণিতিক/রাসায়নিক সূত্র লেখার নিয়ম (কঠোরভাবে মানতে হবে):
 - কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
 - সবকিছু সরাসরি Unicode ক্যারেক্টার দিয়ে লিখবে: ভগ্নাংশের জন্য a/b অথবা প্রয়োজনে Unicode ভগ্নাংশ (½, ¼) ব্যবহার করবে।
@@ -487,7 +499,19 @@ const AtlasAI = () => {
     setPendingFile(null);
     setBusy(true);
 
-    const answer = await askAI(question, imgToSend);
+    // Recent conversation history so the AI can judge whether this question
+    // relates to the previous one and answer with continuity.
+    const recentHistory = messages.slice(-6);
+    const historyBlock = recentHistory.length
+      ? recentHistory
+          .map((m) => `${m.role === "user" ? "ইউজার" : "তুমি"}: ${m.text}`)
+          .join("\n") + "\n\n"
+      : "";
+    const questionWithContext = historyBlock
+      ? `${historyBlock}এখন ইউজারের নতুন মেসেজ (আগের কথোপকথনের সাথে সম্পর্কিত কিনা বুঝে উত্তর দাও):\n${question}`
+      : question;
+
+    const answer = await askAI(questionWithContext, imgToSend, getSystemPrompt(question || "ছবি বিশ্লেষণ করো"));
     setMessages((m) => [...m, { role: "assistant", text: answer }]);
     setBusy(false);
   };
