@@ -890,7 +890,7 @@ function getCerebrasKeys(env) {
   return [...new Set(keys)];
 }
 __name(getCerebrasKeys, "getCerebrasKeys");
-var CEREBRAS_MODELS = ["gpt-oss-120b", "llama-3.3-70b"];
+var CEREBRAS_MODELS = ["gpt-oss-120b", "llama-3.3-70b", "zai-glm-4.7"];
 async function callCerebras(env, question, systemPrompt, image, budget) {
   if (image)
     return { error: "Cerebras: vision not supported, skipped" };
