@@ -736,47 +736,6 @@ const Leaderboard = () => {
                   .join(" ");
           };
 
-          const MALE_FIRST_NAMES = new Set([
-              "mohammad","mohammed","md","abdul","abdullah","rahim","karim","rafiq","rafiqul","shahin","shahin",
-              "shakib","shakil","tanvir","tanjim","hasan","hossain","hossen","imran","ibrahim","ismail","jahid",
-              "jahangir","jamal","javed","kamal","kamrul","khalid","khan","mahfuz","mahmud","mahmudul","masud",
-              "mizan","mizanur","mostafa","mostofa","mubarak","murad","nasir","nazrul","nazmul","nayeem","nayem",
-              "obaidul","omar","rakib","rakibul","rashed","rashid","rasel","rasul","riyad","riyadh","rubel","ruhul",
-              "sabbir","saddam","sadman","sagor","sagar","saif","saiful","sajib","sajid","sajjad","sakib","salam",
-              "salman","samiul","shafin","shakib","shamim","shanto","shariful","sharif","shawon","siam","sohan",
-              "sohel","sourav","sourov","sultan","sumon","tanvir","tareq","tarek","tuhin","zahid","zakir","zaman",
-              "arif","asif","ashik","atik","ayan","ayaan","emon","fahim","faisal","faysal","habib","hamza",
-              "iftekhar","ikram","irfan","kabir","liton","mahin","mamun","mehedi","milon","minhaz","nabil","naeem",
-              "niloy","nixon","raihan","raju","rana","robin","rony","russel","shanto","shuvo","siddique","sourov",
-              "yasin","zihad","farhan","fardin","abir","alvi","apon","arafat","biplob","dipto","emon","fahad",
-              "galib","hridoy","ifty","jisan","limon","mahdi","naim","opu","pranto","rifat","robiul","rocky",
-              "shovon","sifat","sohag","tanim","toha","towhid","yeamin","zubayer"
-          ]);
-          const FEMALE_FIRST_NAMES = new Set([
-              "fatema","fatima","ayesha","aysha","nusrat","tasnim","tasnia","tania","taniya","sumaiya","sumaya",
-              "sadia","sabrina","sabina","shabnam","shanta","shanaz","shirin","sharmin","shirin","rima","rina",
-              "runa","rupa","rupali","ruma","ruksana","rukshana","rokeya","rokhsana","rifa","rifah","priya",
-              "prity","prity","israt","israat","ishrat","jannat","jannatul","jarin","jui","joya","jui","kamrun",
-              "khadija","khaleda","laila","layla","lima","lubna","luna","mahi","mahiya","maisha","mim","mitu",
-              "moushumi","mukta","munmun","nadia","nafisa","nahar","najma","nargis","nasrin","natasha","nazia",
-              "nazneen","nilufar","nishat","nusaiba","orin","papia","poly","preeti","priyanka","raisa","rehnuma",
-              "rifat","rima","rita","riya","roksana","rowshan","ruma","sabiha","saima","saira","sathi","satu",
-              "shabnam","shahana","shahnaz","shanjida","sharmila","shathi","shatabdi","shefali","shilpi","shimla",
-              "shirin","shobnom","shopna","shorna","shreya","sifat","sultana","sumi","suraiya","tahmina","tania",
-              "tanzila","tasfia","tasmia","trisha","tuli","yasmin","zannat","zarin","zerin","prity"
-          ]);
-
-          const guessGenderAvatar = (fullName: string): string => {
-              const firstNameRaw = (fullName || "").trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") || "";
-              if (MALE_FIRST_NAMES.has(firstNameRaw)) {
-                  return `${window.location.origin}/default-avatar-male.svg`;
-              }
-              if (FEMALE_FIRST_NAMES.has(firstNameRaw)) {
-                  return `${window.location.origin}/default-avatar-female.svg`;
-              }
-              return `${window.location.origin}/logo.png`;
-          };
-
           const examTitle = escapeHtml(exam?.title || "Exam");
 
           const CARD_W = 1600;
@@ -842,14 +801,21 @@ const Leaderboard = () => {
                   justify-content: center;
                   padding: 30px;
               }
-              .sc-page .avatar {
+              .sc-page .avatar-initials {
                   width: 100%;
                   max-width: 260px;
                   aspect-ratio: 1 / 1;
-                  object-fit: cover;
                   border-radius: 16px;
                   border: 4px solid rgba(255,255,255,0.85);
                   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: #ffffff;
+                  font-size: 72px;
+                  font-weight: 800;
+                  letter-spacing: 0.02em;
               }
               .sc-page .right-col {
                   width: 62%;
@@ -917,14 +883,20 @@ const Leaderboard = () => {
                   const name = escapeHtml(capitalizeName(attempt.profile?.full_name));
                   const hsc = escapeHtml(attempt.profile?.hsc_batch || "-");
                   const college = escapeHtml(capitalizeWords(attempt.profile?.college_name || attempt.profile?.school || "-"));
-                  const avatarUrl = attempt.profile?.avatar_url || guessGenderAvatar(attempt.profile?.full_name);
+                  const rawName = attempt.profile?.full_name || "?";
+                  const initials = rawName
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((w: string) => w.charAt(0).toUpperCase())
+                      .join("") || "?";
 
                   container.innerHTML = `
                       <div class="sc-page">
                           <div class="card-panel">
                               <div class="rank-corner">#${index + 1}</div>
                               <div class="left-col">
-                                  <img class="avatar" src="${avatarUrl}" crossorigin="anonymous" alt="${name}" />
+                                  <div class="avatar-initials">${initials}</div>
                               </div>
                               <div class="right-col">
                                   <div class="exam-name">${examTitle}</div>
@@ -939,24 +911,15 @@ const Leaderboard = () => {
                           </div>
                       </div>`;
 
-                  const img = container.querySelector('img.avatar') as HTMLImageElement | null;
-                  if (img && !img.complete) {
-                      await new Promise<void>((resolve) => {
-                          img.onload = () => resolve();
-                          img.onerror = () => resolve();
-                          setTimeout(() => resolve(), 2000);
-                      });
-                  }
-
                   const canvas = await html2canvas(container.firstElementChild as HTMLElement, {
                       width: CARD_W,
                       height: CARD_H,
-                      scale: 2,
+                      scale: 1.5,
                       useCORS: true,
                       backgroundColor: null,
                   });
 
-                  const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                  const imgData = canvas.toDataURL('image/jpeg', 0.85);
                   if (index > 0) {
                       pdf.addPage([CARD_W, CARD_H], 'landscape');
                   }
