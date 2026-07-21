@@ -137,7 +137,7 @@ export function getSystemPrompt(question: string) {
 - কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
 - সবকিছু সরাসরি Unicode ক্যারেক্টার দিয়ে লিখবে: ভগ্নাংশের জন্য a/b অথবা প্রয়োজনে Unicode ভগ্নাংশ (½, ¼) ব্যবহার করবে।
 - সূচক/ঘাত: x², x³, aⁿ এভাবে Unicode superscript ব্যবহার করবে (x^2 নয়)।
-- সাবস্ক্রিপ্ট: H₂O, CO₂, H₂SO₄ এভাবে Unicode subscript ব্যবহার করবে (H2O নয়)।
+- সাবস্ক্রিপ্ট: H₂O, CO₂, H₂SO₄ এভাবে Unicode subscript ব্যবহার করবে (H2O নয়)। রাসায়নিক সংকেতে প্রতিটি সংখ্যা সংশ্লিষ্ট মৌলের ঠিক পরে subscript আকারে বসবে (যেমন CH₃COOH, Ca(OH)₂)।
 - বিক্রিয়া তীরচিহ্ন: → (right arrow), ⇌ (বিপরীতমুখী/reversible বিক্রিয়ার জন্য), ↑ (গ্যাস উৎপন্ন), ↓ (অধঃক্ষেপ) — এইভাবে সরাসরি Unicode তীরচিহ্ন ব্যবহার করবে, কখনো "->", "<=>", "\\rightarrow" এসব লিখবে না।
 - অন্যান্য গাণিতিক চিহ্ন সরাসরি Unicode-এ লিখবে: ×, ÷, ±, √, ∆, π, θ, °, ≈, ≤, ≥, ∞ ইত্যাদি।
 - কোনো markdown/asterisk (** বা *) ব্যবহার করবে না — শুধু plain টেক্সট লিখবে।`;
@@ -314,18 +314,31 @@ function sanitizeLatex(text: string): string {
   t = t.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
   const superMap: Record<string, string> = {
     "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
-    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "+": "⁺", "-": "⁻",
+    "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
+    "+": "⁺", "-": "⁻", "=": "⁼", "(": "⁽", ")": "⁾",
+    "n": "ⁿ", "i": "ⁱ", "a": "ᵃ", "b": "ᵇ", "c": "ᶜ", "d": "ᵈ",
+    "e": "ᵉ", "f": "ᶠ", "g": "ᵍ", "h": "ʰ", "j": "ʲ", "k": "ᵏ",
+    "l": "ˡ", "m": "ᵐ", "o": "ᵒ", "p": "ᵖ", "r": "ʳ", "s": "ˢ",
+    "t": "ᵗ", "u": "ᵘ", "v": "ᵛ", "w": "ʷ", "x": "ˣ", "y": "ʸ", "z": "ᶻ",
   };
   const subMap: Record<string, string> = {
     "0": "₀", "1": "₁", "2": "₂", "3": "₃", "4": "₄",
-    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉", "+": "₊", "-": "₋",
+    "5": "₅", "6": "₆", "7": "₇", "8": "₈", "9": "₉",
+    "+": "₊", "-": "₋", "=": "₌", "(": "₍", ")": "₎",
+    "a": "ₐ", "e": "ₑ", "h": "ₕ", "i": "ᵢ", "j": "ⱼ", "k": "ₖ",
+    "l": "ₗ", "m": "ₘ", "n": "ₙ", "o": "ₒ", "p": "ₚ", "r": "ᵣ",
+    "s": "ₛ", "t": "ₜ", "u": "ᵤ", "v": "ᵥ", "x": "ₓ",
   };
-  t = t.replace(/\^\{?([0-9+\-]+)\}?/g, (_m, g1) =>
-    g1.split("").map((c: string) => superMap[c] ?? c).join("")
-  );
-  t = t.replace(/_\{?([0-9+\-]+)\}?/g, (_m, g1) =>
-    g1.split("").map((c: string) => subMap[c] ?? c).join("")
-  );
+  const toSuper = (s: string) =>
+    s.split("").map((c) => superMap[c.toLowerCase()] ?? c).join("");
+  const toSub = (s: string) =>
+    s.split("").map((c) => subMap[c.toLowerCase()] ?? c).join("");
+  // braced form first: ^{...} / _{...} — content may be any length (digits/letters/±)
+  t = t.replace(/\^\{([^{}]+)\}/g, (_m, g1) => toSuper(g1));
+  t = t.replace(/_\{([^{}]+)\}/g, (_m, g1) => toSub(g1));
+  // unbraced single-token form: ^12, ^n, _2, _th
+  t = t.replace(/\^([a-zA-Z0-9+\-]+)/g, (_m, g1) => toSuper(g1));
+  t = t.replace(/_([a-zA-Z0-9+\-]+)/g, (_m, g1) => toSub(g1));
   t = t.replace(/\\([a-zA-Z]+)/g, "$1");
   return t;
 }
