@@ -42,6 +42,17 @@ async function attemptWithStatus(fn, budget) {
 __name(attemptWithStatus, "attemptWithStatus");
 var atlas_ai_proxy_worker_default = {
   async fetch(request, env, ctx) {
+    try {
+      return await handleFetch(request, env, ctx);
+    } catch (e) {
+      return jsonResponse({ success: false, error: String(e && e.message || e) }, 500);
+    }
+  },
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(processPendingMcqJobs(env));
+  }
+};
+async function handleFetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: CORS_HEADERS });
     }
@@ -147,11 +158,7 @@ var atlas_ai_proxy_worker_default = {
       error: "\u09B8\u09AC AI provider \u09AC\u09CD\u09AF\u09B0\u09CD\u09A5 \u09B9\u09AF\u09BC\u09C7\u099B\u09C7\u0964 \u0986\u09AC\u09BE\u09B0 \u099A\u09C7\u09B7\u09CD\u099F\u09BE \u0995\u09B0\u09CB\u0964",
       details: errors
     }, 502);
-  },
-  async scheduled(event, env, ctx) {
-    ctx.waitUntil(processPendingMcqJobs(env));
-  }
-};
+}
 async function handlePdfStorage(fileName, request, env) {
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   if (request.method === "POST" || request.method === "PUT") {
