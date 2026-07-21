@@ -57,16 +57,21 @@ function getOptions(q: McqLike) {
   );
 }
 
-function buildExplainPrompt(q: McqLike) {
+function buildFullMcqBlock(q: McqLike) {
   const opts = getOptions(q);
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
-  let prompt = `এই MCQ-টি বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\nপ্রশ্ন: ${q.question_text}\n\n`;
+  let block = `প্রশ্ন: ${q.question_text}\n`;
   opts.forEach((opt, i) => {
-    prompt += `${LABELS[i]}) ${opt}\n`;
+    block += `${LABELS[i]}) ${opt}\n`;
   });
-  prompt += `\nসঠিক উত্তর: ${LABELS[correctIdx]}) ${opts[correctIdx] || ""}\n\n`;
-  prompt += `শুধুমাত্র উপরে দেওয়া প্রশ্ন ও অপশন থেকে তথ্য নিয়ে ব্যাখ্যা করো। কোনো তথ্য নিজে থেকে বানিয়ে বলবে না; নিশ্চিত না হলে "নিশ্চিত না" বলবে। সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
-  return prompt;
+  block += `সঠিক উত্তর: ${LABELS[correctIdx]}) ${opts[correctIdx] || ""}`;
+  return block;
+}
+
+function buildExplainPrompt(q: McqLike) {
+  const mcqBlock = buildFullMcqBlock(q);
+  const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) ভালোভাবে পড়ে পুরো প্রশ্নটির প্রেক্ষাপট বুঝে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nশুধুমাত্র উপরে দেওয়া সম্পূর্ণ প্রশ্ন ও অপশন থেকে তথ্য নিয়ে ব্যাখ্যা করো। কোনো তথ্য নিজে থেকে বানিয়ে বলবে না; নিশ্চিত না হলে "নিশ্চিত না" বলবে। সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -191,7 +196,6 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     const msg = input.trim();
     if (!msg || loading) return;
     setInput("");
-    const opts = getOptions(q);
     const nextMessages = [...messages, { role: "user" as const, content: msg }];
     setMessages(nextMessages);
     setLoading(true);
@@ -207,7 +211,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
       return;
     }
 
-    const context = `MCQ: ${q.question_text}\nঅপশনস: ${opts.join(", ")}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(শুধু উপরের প্রশ্ন/অপশন সংক্রান্ত সঠিক তথ্য দিয়ে উত্তর দাও, নিশ্চিত না হলে বলে দাও যে নিশ্চিত না)`;
+    const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(শুধু উপরের সম্পূর্ণ প্রশ্ন/অপশন সংক্রান্ত সঠিক তথ্য দিয়ে উত্তর দাও, নিশ্চিত না হলে বলে দাও যে নিশ্চিত না)`;
     const answer = await askAI(context, null);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
