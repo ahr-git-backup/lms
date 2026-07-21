@@ -4,8 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const AI_PROXY_URL = "https://atlas-ai-proxy.hamza818483.workers.dev/";
+import { askAI } from "@/pages/public/AtlasAI";
 
 interface McqLike {
   question_text: string;
@@ -27,40 +26,16 @@ function getOptions(q: McqLike) {
 function buildExplainPrompt(q: McqLike) {
   const opts = getOptions(q);
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
-  let prompt = `তুমি একজন বিশেষজ্ঞ শিক্ষক। MCQ-টি বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\nপ্রশ্ন: ${q.question_text}\n\n`;
+  let prompt = `এই MCQ-টি বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\nপ্রশ্ন: ${q.question_text}\n\n`;
   opts.forEach((opt, i) => {
     prompt += `${LABELS[i]}) ${opt}\n`;
   });
   prompt += `\nসঠিক উত্তর: ${LABELS[correctIdx]}) ${opts[correctIdx] || ""}\n\n`;
-  prompt += `সংক্ষেপে (মোট ১৫০-২০০ শব্দের মধ্যে) বাংলায় ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস\n\nসহজ, পরিষ্কার ভাষায়, অপ্রয়োজনীয় বিস্তার এড়িয়ে।`;
+  prompt += `সংক্ষেপে ব্যাখ্যা করো:\n১. কেন ${LABELS[correctIdx]} সঠিক\n২. বাকি অপশনগুলো কেন ভুল (১ লাইনে প্রতিটি)\n৩. মনে রাখার একটি ছোট টিপস`;
   return prompt;
 }
 
-async function callAI(prompt: string): Promise<string> {
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
-    const res = await fetch(AI_PROXY_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      signal: controller.signal,
-      body: JSON.stringify({
-        question: prompt,
-        image: null,
-        systemPrompt: "তুমি একজন বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।",
-      }),
-    });
-    clearTimeout(timeoutId);
-    const data = await res.json();
-    if (data?.success && data?.answer) return String(data.answer).trim();
-    if (data?.answer) return String(data.answer).trim();
-  } catch {
-    // fall through
-  }
-  return "AI ব্যাখ্যা পাওয়া যায়নি। পরে চেষ্টা করুন।";
-}
-
-/** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. */
+/** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. Uses ATLAS AI (askAI). */
 export function AiExplanationBox({ q }: { q: McqLike }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -71,7 +46,7 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
     setOpen(next);
     if (next && answer === null && !loading) {
       setLoading(true);
-      const res = await callAI(buildExplainPrompt(q));
+      const res = await askAI(buildExplainPrompt(q), null);
       setAnswer(res);
       setLoading(false);
     }
@@ -85,7 +60,7 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
         className="w-full flex items-center justify-between px-3 py-2 text-sm font-semibold text-primary"
       >
         <span className="flex items-center gap-1.5">
-          <Sparkles className="h-4 w-4" /> AI ব্যাখ্যা
+          <Sparkles className="h-4 w-4" /> ATLAS AI ব্যাখ্যা
         </span>
         <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
       </button>
@@ -104,7 +79,7 @@ export function AiExplanationBox({ q }: { q: McqLike }) {
   );
 }
 
-/** "AI Chat" button + modal for follow-up Q&A on a specific MCQ. */
+/** "AI Chat" button + modal for follow-up Q&A on a specific MCQ. Uses ATLAS AI (askAI). */
 export function AiChatButton({ q }: { q: McqLike }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -116,7 +91,7 @@ export function AiChatButton({ q }: { q: McqLike }) {
     setModalOpen(true);
     if (initialAnswer === null && !loading) {
       setLoading(true);
-      const res = await callAI(buildExplainPrompt(q));
+      const res = await askAI(buildExplainPrompt(q), null);
       setInitialAnswer(res);
       setMessages([{ role: "assistant", content: res }]);
       setLoading(false);
@@ -132,7 +107,7 @@ export function AiChatButton({ q }: { q: McqLike }) {
     setMessages(nextMessages);
     setLoading(true);
     const context = `MCQ: ${q.question_text}\nঅপশনস: ${opts.join(", ")}\n\nফলো-আপ প্রশ্ন: ${msg}`;
-    const answer = await callAI(context);
+    const answer = await askAI(context, null);
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
   };
@@ -146,14 +121,14 @@ export function AiChatButton({ q }: { q: McqLike }) {
         onClick={openChat}
         className="gap-1.5 border-primary/30 text-primary hover:bg-primary/10"
       >
-        <Sparkles className="h-3.5 w-3.5" /> AI Chat
+        <Sparkles className="h-3.5 w-3.5" /> ATLAS AI
       </Button>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-lg max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" /> AI Chat
+              <Sparkles className="h-4 w-4 text-primary" /> ATLAS AI Chat
             </DialogTitle>
           </DialogHeader>
 
@@ -166,9 +141,7 @@ export function AiChatButton({ q }: { q: McqLike }) {
                 key={i}
                 className={cn(
                   "rounded-md p-3 text-sm whitespace-pre-wrap",
-                  m.role === "user"
-                    ? "bg-primary/10 ml-6"
-                    : "bg-secondary/50 mr-2"
+                  m.role === "user" ? "bg-primary/10 ml-6" : "bg-secondary/50 mr-2"
                 )}
               >
                 {m.content}

@@ -24,7 +24,7 @@ interface ChatMsg {
   fileName?: string;
 }
 
-interface PendingImage {
+export interface PendingImage {
   base64: string;
   mimeType: string;
   name: string;
@@ -94,7 +94,7 @@ function detectSubject(qRaw: string) {
   return "general";
 }
 
-function getSystemPrompt(question: string) {
+export function getSystemPrompt(question: string) {
   const subj = detectSubject(question);
   const isMCQ =
     /\(ক\)|\(খ\)|\(গ\)|\(ঘ\)|ক\)|খ\)|গ\)|ঘ\)|A\)|B\)|C\)|D\)|[Aa][.)]|[Bb][.)]|[Cc][.)]|[Dd][.)]/.test(
@@ -138,7 +138,7 @@ function getSystemPrompt(question: string) {
   return prompt;
 }
 
-async function askAI(question: string, image: PendingImage | null): Promise<string> {
+export async function askAI(question: string, image: PendingImage | null): Promise<string> {
   const systemPrompt = getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   try {
     const controller = new AbortController();
