@@ -173,7 +173,50 @@ function renderBoldSegments(line: string) {
   });
 }
 
-export function renderAnswer(text: string) {
+/** Last-resort, shape-agnostic JSON-to-text conversion: walks any object/array
+ *  recursively and pulls out every string value, so if the AI invents an
+ *  unpredictable JSON shape (e.g. Bangla-keyed nested objects), readable
+ *  content still survives instead of showing raw braces/brackets. */
+function genericJsonToText(parsed: any): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const visit = (val: any) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  };
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
+}
+
+/** Safety net: if the AI ever returns raw JSON instead of the requested plain
+ *  text, convert it into readable lines here so no call site of renderAnswer
+ *  ever shows raw braces/brackets to the user. */
+function ensurePlainText(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return text;
+  try {
+    return genericJsonToText(JSON.parse(trimmed)) ?? text;
+  } catch {
+    return text;
+  }
+}
+
+export function renderAnswer(rawText: string) {
+  const text = ensurePlainText(rawText);
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
   // A line is "empty content" if, after stripping the icon/label and any trailing
   // dash separator, nothing meaningful remains (guards against provider cutting

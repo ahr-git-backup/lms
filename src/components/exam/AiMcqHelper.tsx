@@ -114,6 +114,35 @@ function extractReadableFallback(raw: string): string | null {
   return matches.length ? matches.join("\n\n") : null;
 }
 
+/** Last-resort, shape-agnostic JSON-to-text conversion: walks any object/array
+ *  recursively and pulls out every string value, skipping structural keys.
+ *  Used when the AI invents a JSON shape we don't have a specific parser for
+ *  (e.g. Bangla-keyed nested objects) so at least readable content survives. */
+function genericJsonToText(parsed: any): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const visit = (val: any) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  };
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
+}
+
 /** If the AI proxy ever returns raw JSON (e.g. [{question, options:[{option,correct,reason}]}])
  *  instead of following the plain-text instruction, convert it into our ✅/❌/💡 format here so
  *  the UI never shows raw braces/brackets. Returns the original text untouched if it isn't JSON. */
@@ -140,11 +169,13 @@ function normalizeAiAnswer(raw: string): string {
   };
 
   try {
-    return toLines(JSON.parse(trimmed)) ?? raw;
+    const parsed = JSON.parse(trimmed);
+    return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
   } catch {
     // Try repairing a truncated response before giving up.
     try {
-      return toLines(JSON.parse(repairTruncatedJson(trimmed))) ?? raw;
+      const parsed = JSON.parse(repairTruncatedJson(trimmed));
+      return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
     } catch {
       return extractReadableFallback(trimmed) ?? raw;
     }
