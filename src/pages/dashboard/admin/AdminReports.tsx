@@ -335,6 +335,20 @@ Admin Feedback: ${feedback}`;
                                         <div className="text-xs mb-2 line-clamp-3">
                                             <MathText text={report.question?.question_text || ""} />
                                         </div>
+                                        <div className="grid grid-cols-2 gap-1">
+                                            {(["A", "B", "C", "D"] as const).map((opt) => {
+                                                const optText = report.question?.[`option_${opt.toLowerCase()}`];
+                                                const isCorrect = report.question?.correct_option === opt;
+                                                return (
+                                                    <div
+                                                        key={opt}
+                                                        className={`text-[10px] px-1.5 py-1 rounded border truncate ${isCorrect ? "bg-green-100 dark:bg-green-950/30 border-green-300 font-semibold" : "bg-muted/40 border-transparent"}`}
+                                                    >
+                                                        <span className="font-bold">{opt}.</span> <MathText text={optText || ""} />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                 </CardContent>
                                 <CardFooter className="flex justify-end gap-2 bg-muted/20 py-2 px-3">
