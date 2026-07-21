@@ -51,9 +51,14 @@ interface McqLike {
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
-/** Exact systemPrompt AtlasApp uses for all MCQ AI calls — kept identical so
- *  explanation/chat responses match AtlasApp's proven detailed style. */
-const MCQ_SYSTEM_PROMPT = "তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।";
+/** systemPrompt for MCQ AI calls — enforces the ✅/❌/💡 plain-text format
+ *  (never JSON, never markdown) so renderAnswer() displays it cleanly. */
+const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
+
+নিয়ম (বাধ্যতামূলক):
+১। উত্তর অবশ্যই সাধারণ প্লেইন টেক্সট হবে — কখনোই JSON, code block, বা markdown ({, }, [, ], \`\`\`, #) ব্যবহার করবে না।
+২। প্রতিটি অংশ আলাদা লাইনে লিখবে এবং অংশগুলোর মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
+৩। শুধু গুরুত্বপূর্ণ শব্দ **এভাবে** বোল্ড করতে পারবে, আর কোনো markdown সিনট্যাক্স নয়।`;
 
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
@@ -75,7 +80,9 @@ function buildFullMcqBlock(q: McqLike) {
 function buildExplainPrompt(q: McqLike) {
   const mcqBlock = buildFullMcqBlock(q);
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ে নিচের ফরম্যাটে বিস্তারিতভাবে বাংলায় ব্যাখ্যা করো:\n\n${mcqBlock}\n\nএভাবে উত্তর দাও:\n১. প্রথমে সঠিক উত্তর কোনটি (${LABELS[correctIdx]}) তা বলো এবং কেন এটি সঠিক তা প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিতভাবে ব্যাখ্যা করো।\n২. তারপর বাকি প্রতিটি ভুল অপশন আলাদাভাবে নিয়ে কেন সেটি ভুল তা স্পষ্ট ও বিস্তারিতভাবে ব্যাখ্যা করো।\n৩. সবশেষে একটি বিশেষ টিপস/তথ্য (মনে রাখার কৌশল বা এক্সট্রা জ্ঞান) দাও।\n\nবাংলায়, প্রতিটি অংশ বিস্তারিত ও সম্পূর্ণ রাখবে, সংক্ষিপ্ত করবে না।`;
+  const opts = getOptions(q);
+  const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nপ্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
 }
 
 /** Read the cached explanation for a question directly from exam_questions (single row, fast). */
@@ -157,12 +164,23 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
       </button>
       {open && (
         <div className="px-3 pb-3 pt-0 text-sm leading-relaxed text-foreground/90 border-t border-primary/10">
+          <div className="pt-2 pb-2 mb-2 border-b border-primary/10 space-y-1.5">
+            <p className="font-semibold">{q.question_text}</p>
+            {getOptions(q).map((opt, i) => (
+              <p
+                key={i}
+                className={cn(LABELS[i] === q.correct_option && "text-emerald-500 font-semibold")}
+              >
+                {LABELS[i]}) {opt}
+              </p>
+            ))}
+          </div>
           {loading ? (
             <div className="flex items-center gap-2 py-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> AI বিশ্লেষণ করছে...
             </div>
           ) : (
-            <div className="pt-2 space-y-0.5">{answer && renderAnswer(answer)}</div>
+            <div className="pt-2 space-y-2">{answer && renderAnswer(answer)}</div>
           )}
         </div>
       )}
@@ -255,7 +273,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
                 key={i}
                 className={cn(
                   "rounded-md p-3 text-sm",
-                  m.role === "user" ? "bg-primary/10 ml-6 whitespace-pre-wrap" : "bg-secondary/50 mr-2 space-y-0.5"
+                  m.role === "user" ? "bg-primary/10 ml-6 whitespace-pre-wrap" : "bg-secondary/50 mr-2 space-y-2"
                 )}
               >
                 {m.role === "assistant" ? renderAnswer(m.content) : m.content}
