@@ -272,6 +272,15 @@ const Leaderboard = () => {
       .join(" ");
   };
 
+  const displayCollegeName = (name: string) => {
+    if (!name) return "-";
+    const words = name.trim().split(/\s+/).filter(w => w.length > 0);
+    if (words.length > 1) {
+      return words.map(w => w.charAt(0).toUpperCase()).join("");
+    }
+    return name.toUpperCase();
+  };
+
   const buildVerdict = () => {
     if (!compareData || compareData.length < 2) return [];
     const [a, b] = compareData;
@@ -806,25 +815,25 @@ const Leaderboard = () => {
                                 )}
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center flex-wrap gap-2 mt-0.5">
-                                <span className="break-words uppercase">{attempt.profile?.college_name || attempt.profile?.school || "-"}</span>
+                                <span className="break-words">{displayCollegeName(attempt.profile?.college_name || attempt.profile?.school)}</span>
                                 {isStaff && <span>• {formatDurationShort(attempt.time_taken_seconds)}</span>}
+                                {isStaff && (
+                                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 ml-auto" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+                                        Review
+                                    </Button>
+                                )}
                             </div>
                         </div>
                         <div className="flex flex-col items-end gap-1.5 shrink-0 pl-2">
                             {myAttemptId && !isMe && (
                                 <button
                                     onClick={() => openCompare(attempt.id)}
-                                    className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
+                                    className="flex items-center gap-1 text-[10px] font-medium bg-primary/10 text-primary/70 rounded-full px-2 py-1 active:scale-90 hover:scale-105 transition-transform duration-150"
                                 >
                                     <Scale className="h-3 w-3" /> তুলনা করো
                                 </button>
                             )}
                             <span className="font-bold text-primary text-sm">{attempt.score}</span>
-                            {isStaff && (
-                                <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                                    Review
-                                </Button>
-                            )}
                         </div>
                     </div>
                   </div>
