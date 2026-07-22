@@ -87,14 +87,24 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const { data: readymadeCategories } = useQuery({
     queryKey: ["admin-exams-readymade-categories"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exams")
-        .select("readymade_category")
-        .eq("is_readymade", true)
-        .not("readymade_category", "is", null);
-      if (error) throw error;
       const set = new Set<string>();
-      (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+      const BATCH = 1000;
+      let from = 0;
+      // Paginate through ALL readymade exams — a plain select() is capped at
+      // 1000 rows by Supabase/PostgREST, which was silently dropping
+      // categories that only appeared later in the table.
+      while (true) {
+        const { data, error } = await supabase
+          .from("exams")
+          .select("readymade_category")
+          .eq("is_readymade", true)
+          .not("readymade_category", "is", null)
+          .range(from, from + BATCH - 1);
+        if (error) throw error;
+        (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+        if (!data || data.length < BATCH) break;
+        from += BATCH;
+      }
       return Array.from(set).sort();
     },
   });
