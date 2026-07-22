@@ -45,7 +45,7 @@ const StudyHistory = () => {
   const [selectedDay, setSelectedDay] = useState<DayRow | null>(null);
   const [showAdvice, setShowAdvice] = useState(false);
 
-  const { data: rows, isLoading } = useQuery({
+  const { data: rows, isLoading, refetch: refetchHistory } = useQuery({
     queryKey: ["focus-history-daily"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("focus_history_daily" as any, { p_days: 0 });
@@ -55,9 +55,20 @@ const StudyHistory = () => {
     enabled: !!user,
     refetchInterval: (query) => {
       const data = query.state.data as DayRow[] | undefined;
-      return data?.some((r) => r.is_ongoing) ? 30000 : false;
+      return data?.some((r) => r.is_ongoing) ? 6000 : false;
     },
+    refetchOnWindowFocus: true,
   });
+
+  // Re-sync immediately when the user comes back to this tab/page (e.g. from Focus Timer),
+  // so the numbers here don't lag behind what's shown on the live timer screen.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refetchHistory();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refetchHistory]);
 
   const today = new Date().toISOString().slice(0, 10);
 
