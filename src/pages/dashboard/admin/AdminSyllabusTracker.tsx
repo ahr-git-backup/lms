@@ -28,9 +28,6 @@ const AdminSyllabusTracker = () => {
   const [saving, setSaving] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
-  const [bulkSubjectName, setBulkSubjectName] = useState("");
-  const [bulkText, setBulkText] = useState("");
-  const [bulkExistingSubjectId, setBulkExistingSubjectId] = useState<number | "">("");
   const [editSubjectId, setEditSubjectId] = useState<number | null>(null);
   const [editSubjectName, setEditSubjectName] = useState("");
   const [editChapterId, setEditChapterId] = useState<number | null>(null);
@@ -95,19 +92,6 @@ const AdminSyllabusTracker = () => {
       const { data, error } = await (supabase.from as any)("st_topics")
         .select("id, name, weight")
         .eq("chapter_id", expandedChapter!)
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: topicChapterOptions } = useQuery({
-    queryKey: ["admin-st-topic-chapter-options", topicSubjectId],
-    enabled: topicSubjectId !== "",
-    queryFn: async () => {
-      const { data, error } = await (supabase.from as any)("st_chapters")
-        .select("id, name")
-        .eq("subject_id", topicSubjectId)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -196,87 +180,6 @@ const AdminSyllabusTracker = () => {
       toast({ title: `${names.length}টি টপিক যোগ হয়েছে` });
       if (expandedChapter === topicChapterId) refreshTopics();
       refreshSubjects();
-    } catch (e: any) {
-      toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // Bulk add: paste whole structure at once.
-  // Format (indent-based):
-  // Chapter Name
-  //   Topic 1
-  //   Topic 2
-  // Another Chapter
-  //   Topic 1
-  // Lines with no leading space/tab = chapter. Indented lines = topics.
-  const bulkAddAll = async () => {
-    const lines = bulkText.split("\n").map((l) => l.replace(/\r/g, "")).filter((l) => l.trim() !== "");
-    if (lines.length === 0) {
-      toast({ title: "কিছু পেস্ট করুন", variant: "destructive" });
-      return;
-    }
-    if (!bulkSubjectName.trim() && !bulkExistingSubjectId) {
-      toast({ title: "নতুন বিষয়ের নাম দিন অথবা বিদ্যমান বিষয় বেছে নিন", variant: "destructive" });
-      return;
-    }
-    setSaving(true);
-    try {
-      let subjectId: number;
-      if (bulkExistingSubjectId) {
-        subjectId = bulkExistingSubjectId as number;
-      } else {
-        const nextOrder = (subjects && subjects.length > 0) ? Math.max(...subjects.map((s: any) => s.sort_order)) + 1 : 0;
-        const { data: newSubj, error: subjErr } = await (supabase.from as any)("st_subjects")
-          .insert({ mode, name: bulkSubjectName.trim(), short_name: bulkSubjectName.trim().slice(0, 12), sort_order: nextOrder })
-          .select("id")
-          .single();
-        if (subjErr) throw subjErr;
-        subjectId = newSubj.id;
-      }
-
-      // Parse: indented lines (starts with space/tab) belong to the last non-indented line (chapter)
-      const chapters: { name: string; topics: string[] }[] = [];
-      for (const raw of lines) {
-        const isIndented = /^[ \t]/.test(raw);
-        const text = raw.trim();
-        if (!text) continue;
-        if (isIndented) {
-          if (chapters.length === 0) chapters.push({ name: "সাধারণ", topics: [] });
-          chapters[chapters.length - 1].topics.push(text);
-        } else {
-          chapters.push({ name: text, topics: [] });
-        }
-      }
-
-      const { data: existingCh } = await (supabase.from as any)("st_chapters")
-        .select("sort_order")
-        .eq("subject_id", subjectId)
-        .order("sort_order", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      let chOrder = (existingCh?.sort_order ?? -1) + 1;
-
-      for (const ch of chapters) {
-        const { data: newCh, error: chErr } = await (supabase.from as any)("st_chapters")
-          .insert({ subject_id: subjectId, name: ch.name, sort_order: chOrder++ })
-          .select("id")
-          .single();
-        if (chErr) throw chErr;
-        if (ch.topics.length > 0) {
-          const rows = ch.topics.map((n, i) => ({ chapter_id: newCh.id, name: n, weight: 1, sort_order: i }));
-          const { error: topErr } = await (supabase.from as any)("st_topics").insert(rows);
-          if (topErr) throw topErr;
-        }
-      }
-
-      toast({ title: `যোগ সম্পন্ন: ${chapters.length}টি অধ্যায়, ${chapters.reduce((a, c) => a + c.topics.length, 0)}টি টপিক` });
-      setBulkSubjectName("");
-      setBulkText("");
-      setBulkExistingSubjectId("");
-      refreshSubjects();
-      if (expandedSubject === subjectId) refreshChapters();
     } catch (e: any) {
       toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
     } finally {
@@ -526,45 +429,6 @@ const AdminSyllabusTracker = () => {
         </Button>
       </div>
 
-      {/* Bulk add everything at once */}
-      <Card className="border-primary/40">
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Layers className="h-4 w-4 text-primary" /> এক সাথে সব যোগ করুন (Subject + Chapter + Topic)
-          </CardTitle>
-          <CardDescription>মোড: {mode === "hsc" ? "HSC" : "Medical Admission"}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="grid sm:grid-cols-2 gap-2">
-            <Input
-              placeholder="নতুন বিষয়ের নাম (যেমন: পদার্থবিজ্ঞান)"
-              value={bulkSubjectName}
-              onChange={(e) => { setBulkSubjectName(e.target.value); setBulkExistingSubjectId(""); }}
-              disabled={!!bulkExistingSubjectId}
-            />
-            <select
-              className="h-10 rounded-md border bg-background px-3 text-sm"
-              value={bulkExistingSubjectId}
-              onChange={(e) => { setBulkExistingSubjectId(e.target.value ? Number(e.target.value) : ""); setBulkSubjectName(""); }}
-            >
-              <option value="">অথবা বিদ্যমান বিষয়ে যোগ করুন</option>
-              {subjects?.map((s: any) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
-          <textarea
-            className="w-full min-h-40 rounded-md border bg-background px-3 py-2 text-sm font-mono"
-            placeholder={"অধ্যায়ের নাম লিখুন (কোনো স্পেস ছাড়া), তার নিচে টপিক লিখুন এক স্পেস/ট্যাব দিয়ে ইনডেন্ট করে:\n\nভেক্টর\n  ভেক্টরের যোগ\n  ভেক্টরের বিয়োগ\nনিউটনিয়ান বলবিদ্যা\n  নিউটনের সূত্র\n  ঘর্ষণ বল"}
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-          />
-          <Button onClick={() => void bulkAddAll()} disabled={saving} className="w-full">
-            <Plus className="h-4 w-4 mr-1" /> সব যোগ করুন
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Add subject */}
       <Card>
         <CardHeader>
@@ -579,76 +443,6 @@ const AdminSyllabusTracker = () => {
           />
           <Button onClick={() => void addSubject()} disabled={saving}>
             <Plus className="h-4 w-4 mr-1" /> যোগ করুন
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Add chapter */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">নতুন অধ্যায় যোগ করুন</CardTitle>
-        </CardHeader>
-        <CardContent className="grid sm:grid-cols-[1fr_1fr_auto] gap-2">
-          <select
-            className="h-10 rounded-md border bg-background px-3 text-sm"
-            value={chapterSubjectId}
-            onChange={(e) => setChapterSubjectId(e.target.value ? Number(e.target.value) : "")}
-          >
-            <option value="">বিষয় বেছে নিন</option>
-            {subjects?.map((s: any) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <Input
-            placeholder="অধ্যায়ের নাম (যেমন: ভেক্টর)"
-            value={chapterName}
-            onChange={(e) => setChapterName(e.target.value)}
-          />
-          <Button onClick={() => void addChapter()} disabled={saving}>
-            <Plus className="h-4 w-4 mr-1" /> যোগ করুন
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* Add topics (bulk, one per line) */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">নতুন টপিক যোগ করুন (একাধিক, প্রতি লাইনে একটি)</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            value={topicSubjectId}
-            onChange={(e) => {
-              const v = e.target.value ? Number(e.target.value) : "";
-              setTopicSubjectId(v);
-              setTopicChapterId("");
-            }}
-          >
-            <option value="">বিষয় বেছে নিন</option>
-            {subjects?.map((s: any) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-          <select
-            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
-            value={topicChapterId}
-            onChange={(e) => setTopicChapterId(e.target.value ? Number(e.target.value) : "")}
-            disabled={!topicSubjectId}
-          >
-            <option value="">অধ্যায় বেছে নিন</option>
-            {topicChapterOptions?.map((c: any) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          <textarea
-            className="w-full min-h-24 rounded-md border bg-background px-3 py-2 text-sm"
-            placeholder={"একটি লাইনে একটি টপিক লিখুন\nযেমন:\nভেক্টরের যোগ\nভেক্টরের বিয়োগ"}
-            value={topicNames}
-            onChange={(e) => setTopicNames(e.target.value)}
-          />
-          <Button onClick={() => void addTopics()} disabled={saving} className="w-full">
-            <Plus className="h-4 w-4 mr-1" /> টপিক যোগ করুন
           </Button>
         </CardContent>
       </Card>
@@ -712,6 +506,22 @@ const AdminSyllabusTracker = () => {
 
                 {isOpen && (
                   <div className="border-t bg-muted/20 p-2 space-y-1.5">
+                    <div className="flex gap-2 p-1">
+                      <Input
+                        className="h-9 text-sm"
+                        placeholder="নতুন অধ্যায়ের নাম লিখুন..."
+                        value={chapterSubjectId === s.id ? chapterName : ""}
+                        onChange={(e) => { setChapterSubjectId(s.id); setChapterName(e.target.value); }}
+                      />
+                      <Button
+                        size="icon"
+                        className="h-9 w-9 flex-shrink-0"
+                        disabled={saving}
+                        onClick={() => { setChapterSubjectId(s.id); void addChapter(); }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                     {chaptersOfSubject?.map((ch: any) => {
                       const chOpen = expandedChapter === ch.id;
                       return (
@@ -761,6 +571,22 @@ const AdminSyllabusTracker = () => {
                           </div>
                           {chOpen && (
                             <div className="border-t p-2 space-y-1.5 max-h-64 overflow-y-auto">
+                              <div className="flex gap-2 p-1">
+                                <Input
+                                  className="h-8 text-xs flex-1"
+                                  placeholder="নতুন টপিকের নাম লিখুন..."
+                                  value={topicChapterId === ch.id ? topicNames : ""}
+                                  onChange={(e) => { setTopicSubjectId(s.id); setTopicChapterId(ch.id); setTopicNames(e.target.value); }}
+                                />
+                                <Button
+                                  size="icon"
+                                  className="h-8 w-8 flex-shrink-0"
+                                  disabled={saving}
+                                  onClick={() => { setTopicSubjectId(s.id); setTopicChapterId(ch.id); void addTopics(); }}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                               {(topicsOfChapter?.length ?? 0) > 0 && (
                                 <Button
                                   variant="outline"
