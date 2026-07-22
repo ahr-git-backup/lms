@@ -970,7 +970,7 @@ const TakeExam = () => {
                           <Button
                               className="flex-[2] h-10 rounded-xl font-semibold shadow-md"
                               onClick={() => {
-                                  if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !contentMode) {
+                                  if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !isQuickPracticeMode && !contentMode) {
                                       toast({
                                           title: "মোড সিলেক্ট করুন",
                                           description: "পরীক্ষা শুরু করার আগে উপরে থেকে চিত্র/উদ্দীপকসহ অথবা চিত্র/উদ্দীপকছাড়া মোড বেছে নিন।",
