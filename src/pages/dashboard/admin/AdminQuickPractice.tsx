@@ -106,13 +106,6 @@ const AdminQuickPractice = () => {
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
 
-  // Manual single-MCQ add form (compact)
-  const [manualQuestion, setManualQuestion] = useState("");
-  const [manualOptions, setManualOptions] = useState(["", "", "", ""]);
-  const [manualCorrect, setManualCorrect] = useState(0);
-  const [manualExplanation, setManualExplanation] = useState("");
-  const [savingManual, setSavingManual] = useState(false);
-
   // Inline edit state for an existing MCQ
   const [editingMcqId, setEditingMcqId] = useState<number | null>(null);
   const [editQuestion, setEditQuestion] = useState("");
@@ -281,51 +274,6 @@ const AdminQuickPractice = () => {
     }
   };
 
-  const clearManualForm = () => {
-    setManualQuestion("");
-    setManualOptions(["", "", "", ""]);
-    setManualCorrect(0);
-    setManualExplanation("");
-  };
-
-  const saveManualMcq = async () => {
-    if (!subjectName.trim() || !chapterName.trim()) {
-      toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
-      return;
-    }
-    const filledOptions = manualOptions.map((o) => o.trim()).filter(Boolean);
-    if (!manualQuestion.trim() || filledOptions.length < 2) {
-      toast({ title: "প্রশ্ন ও অন্তত ২টি অপশন দিন", variant: "destructive" });
-      return;
-    }
-    if (manualCorrect >= filledOptions.length) {
-      toast({ title: "সঠিক অপশন বেছে নিন", variant: "destructive" });
-      return;
-    }
-    setSavingManual(true);
-    try {
-      const subjId = await findOrCreateSubject(subjectName);
-      const chapId = await findOrCreateChapter(subjId, chapterName);
-      const { error } = await supabase.from("qp_mcqs").insert({
-        chapter_id: chapId,
-        question: manualQuestion.trim(),
-        options: filledOptions,
-        correct_index: manualCorrect,
-        explanation: manualExplanation.trim() || null,
-      });
-      if (error) throw error;
-      toast({ title: "MCQ যোগ হয়েছে" });
-      clearManualForm();
-      queryClient.invalidateQueries({ queryKey: ["admin-qp-subjects"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
-    } catch (e: any) {
-      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
-    } finally {
-      setSavingManual(false);
-    }
-  };
-
   const startEditMcq = (m: { id: number; question: string; options: string[]; correct_index: number; explanation?: string | null }) => {
     setEditingMcqId(m.id);
     setEditQuestion(m.question);
@@ -475,60 +423,6 @@ const AdminQuickPractice = () => {
               ক্লিয়ার
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">একটি MCQ নিজে টাইপ করে যোগ করুন</CardTitle>
-          <CardDescription className="text-xs">
-            উপরের বিষয়/অধ্যায়ের নাম ব্যবহার হবে — আগে সেটা পূরণ করুন।
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Input
-            placeholder="প্রশ্ন লিখুন"
-            value={manualQuestion}
-            onChange={(e) => setManualQuestion(e.target.value)}
-            className="text-sm"
-          />
-          <div className="grid grid-cols-2 gap-2">
-            {manualOptions.map((opt, i) => (
-              <div key={i} className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setManualCorrect(i)}
-                  className={cn(
-                    "h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center text-[10px] font-bold",
-                    manualCorrect === i
-                      ? "bg-emerald-500 border-emerald-500 text-white"
-                      : "border-border text-muted-foreground"
-                  )}
-                  title="সঠিক উত্তর হিসেবে বেছে নিন"
-                >
-                  {String.fromCharCode(65 + i)}
-                </button>
-                <Input
-                  placeholder={`অপশন ${i + 1}`}
-                  value={opt}
-                  onChange={(e) =>
-                    setManualOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
-                  }
-                  className="text-sm h-8"
-                />
-              </div>
-            ))}
-          </div>
-          <Input
-            placeholder="ব্যাখ্যা (ঐচ্ছিক)"
-            value={manualExplanation}
-            onChange={(e) => setManualExplanation(e.target.value)}
-            className="text-sm"
-          />
-          <Button onClick={saveManualMcq} disabled={savingManual} size="sm" className="w-full">
-            {savingManual ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
-            MCQ যোগ করুন
-          </Button>
         </CardContent>
       </Card>
 
