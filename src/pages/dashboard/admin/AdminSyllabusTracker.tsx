@@ -1,23 +1,24 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw } from "lucide-react";
+import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { StudyTrackerProgress } from "@/components/admin/StudyTrackerProgress";
 import { StudyTrackerRevision } from "@/components/admin/StudyTrackerRevision";
 
 type Mode = "hsc" | "medical";
+type StBox = "dashboard" | "syllabus" | "routine" | "progress" | "revision";
 
 const AdminSyllabusTracker = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [mode, setMode] = useState<Mode>("hsc");
+  const [stBox, setStBox] = useState<StBox>("dashboard");
   const [subjectName, setSubjectName] = useState("");
   const [chapterSubjectId, setChapterSubjectId] = useState<number | "">("");
   const [chapterName, setChapterName] = useState("");
@@ -40,6 +41,19 @@ const AdminSyllabusTracker = () => {
   useEffect(() => {
     document.title = "Study Tracker — Admin";
   }, []);
+
+  const { data: dashCounts } = useQuery({
+    queryKey: ["admin-st-dash-counts"],
+    queryFn: async () => {
+      const { count: hscCount } = await (supabase.from as any)("st_subjects")
+        .select("id", { count: "exact", head: true })
+        .eq("mode", "hsc");
+      const { count: medCount } = await (supabase.from as any)("st_subjects")
+        .select("id", { count: "exact", head: true })
+        .eq("mode", "medical");
+      return { hsc: hscCount || 0, medical: medCount || 0 };
+    },
+  });
 
   const { data: subjects, isLoading } = useQuery({
     queryKey: ["admin-st-subjects", mode],
@@ -413,28 +427,94 @@ const AdminSyllabusTracker = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="syllabus" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="syllabus" className="gap-1.5">
-            <BookOpen className="h-4 w-4" /> Syllabus Tracker
-          </TabsTrigger>
-          <TabsTrigger value="progress" className="gap-1.5">
-            <Trophy className="h-4 w-4" /> Weak &amp; Progress
-          </TabsTrigger>
-          <TabsTrigger value="revision" className="gap-1.5">
-            <RefreshCw className="h-4 w-4" /> Revision Planner
-          </TabsTrigger>
-        </TabsList>
+      {stBox === "dashboard" && (
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => setStBox("syllabus")}
+            className="text-left bg-card border rounded-xl p-4 cursor-pointer border-t-[3px]"
+            style={{ borderTopColor: "#7C83FF" }}
+          >
+            <BookOpen className="h-5 w-5 mb-1.5" />
+            <div className="font-bold text-sm mb-1">Syllabus Tracker</div>
+            <div className="text-xs text-muted-foreground">HSC ও Medical বিষয়, অধ্যায়, টপিক</div>
+            <div className="text-xs mt-2" style={{ color: "#7C83FF" }}>
+              {dashCounts ? `HSC: ${dashCounts.hsc} বিষয় · Medical: ${dashCounts.medical} বিষয়` : "লোড হচ্ছে..."}
+            </div>
+          </button>
 
-        <TabsContent value="progress">
+          <button
+            onClick={() => setStBox("routine")}
+            className="text-left bg-card border rounded-xl p-4 cursor-pointer border-t-[3px]"
+            style={{ borderTopColor: "#22C55E" }}
+          >
+            <Calendar className="h-5 w-5 mb-1.5" />
+            <div className="font-bold text-sm mb-1">Routine Maker</div>
+            <div className="text-xs text-muted-foreground">Daily ও Target রুটিন কন্টেন্ট</div>
+            <div className="text-xs mt-2" style={{ color: "#22C55E" }}>শীঘ্রই আসছে</div>
+          </button>
+
+          <button
+            onClick={() => setStBox("progress")}
+            className="text-left bg-card border rounded-xl p-4 cursor-pointer border-t-[3px]"
+            style={{ borderTopColor: "#F59E0B" }}
+          >
+            <Trophy className="h-5 w-5 mb-1.5" />
+            <div className="font-bold text-sm mb-1">Weak &amp; Progress</div>
+            <div className="text-xs text-muted-foreground">Student activity analytics</div>
+            <div className="text-xs mt-2" style={{ color: "#F59E0B" }}>Leaderboard দেখুন</div>
+          </button>
+
+          <button
+            onClick={() => setStBox("revision")}
+            className="text-left bg-card border rounded-xl p-4 cursor-pointer border-t-[3px]"
+            style={{ borderTopColor: "#A855F7" }}
+          >
+            <RefreshCw className="h-5 w-5 mb-1.5" />
+            <div className="font-bold text-sm mb-1">Revision Planner</div>
+            <div className="text-xs text-muted-foreground">HSC ও Medical রিভিশন কন্টেন্ট</div>
+            <div className="text-xs mt-2" style={{ color: "#A855F7" }}>
+              {dashCounts ? `HSC: ${dashCounts.hsc} বিষয় · Medical: ${dashCounts.medical} বিষয়` : "লোড হচ্ছে..."}
+            </div>
+          </button>
+        </div>
+      )}
+
+      {stBox === "routine" && (
+        <div className="space-y-4">
+          <Button variant="outline" size="sm" onClick={() => setStBox("dashboard")} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
+          <Card>
+            <CardContent className="text-center py-12 text-muted-foreground">
+              শীঘ্রই এখানে Routine কন্টেন্ট ম্যানেজ করা যাবে।
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {stBox === "progress" && (
+        <div className="space-y-4">
+          <Button variant="outline" size="sm" onClick={() => setStBox("dashboard")} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
           <StudyTrackerProgress />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="revision">
+      {stBox === "revision" && (
+        <div className="space-y-4">
+          <Button variant="outline" size="sm" onClick={() => setStBox("dashboard")} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
           <StudyTrackerRevision />
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="syllabus" className="space-y-6">
+      {stBox === "syllabus" && (
+        <div className="space-y-6">
+          <Button variant="outline" size="sm" onClick={() => setStBox("dashboard")} className="gap-1.5">
+            <ArrowLeft className="h-4 w-4" /> Back
+          </Button>
 
       {/* Mode tabs */}
       <div className="flex gap-2">
@@ -770,8 +850,8 @@ const AdminSyllabusTracker = () => {
           })}
         </CardContent>
       </Card>
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 };
