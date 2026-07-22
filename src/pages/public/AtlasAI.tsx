@@ -431,11 +431,32 @@ function sanitizeLatex(text: string): string {
   t = t.replace(/\$([^$]+)\$/g, "$1");
   t = t.replace(/\\\(([^)]+)\\\)/g, "$1");
   t = t.replace(/\\\[([^\]]+)\\\]/g, "$1");
+
+  // \text{...} / \mathrm{...} / \mathbf{...} / \operatorname{...} -> plain inner
+  // content. Matched with an OPTIONAL leading backslash because the model
+  // sometimes drops the backslash entirely and emits the bare word
+  // ("text{mmHg}" instead of "\text{mmHg}"). Requiring an immediate "{" right
+  // after the keyword keeps this from ever matching ordinary prose. Must run
+  // BEFORE \frac{}{} parsing below, since \frac's numerator/denominator often
+  // contain these as nested braces, which a simple [^{}]+ regex can't see
+  // through otherwise. Repeat a few passes in case of nested wrappers.
+  for (let i = 0; i < 4; i++) {
+    t = t.replace(/\\?(?:text|mathrm|mathbf|mathit|operatorname)\{([^{}]*)\}/g, "$1");
+  }
+
+  // Spacing commands the model sometimes emits inside math (\!, \,, \;, \: and
+  // an escaped literal space "\ ") — these carry no visible meaning, so just
+  // collapse them to a single space (or nothing for the thin-space \!).
+  t = t.replace(/\\!/g, "");
+  t = t.replace(/\\[,;:]/g, " ");
+  t = t.replace(/\\ /g, " ");
+
   t = t.replace(/\\rightarrow|\\to\b/g, "→");
   t = t.replace(/\\leftrightarrow|\\rightleftharpoons/g, "⇌");
   t = t.replace(/<=>|<->/g, "⇌");
   t = t.replace(/-+>/g, "→");
   t = t.replace(/\\times/g, "×");
+  t = t.replace(/\\cdot/g, "·");
   t = t.replace(/\\div/g, "÷");
   t = t.replace(/\\pm/g, "±");
   t = t.replace(/\\sqrt\{([^}]+)\}/g, "√($1)");
@@ -447,7 +468,7 @@ function sanitizeLatex(text: string): string {
   t = t.replace(/\\leq/g, "≤");
   t = t.replace(/\\geq/g, "≥");
   t = t.replace(/\\infty/g, "∞");
-  t = t.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, "$1/$2");
+
   const superMap: Record<string, string> = {
     "0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴",
     "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹",
@@ -469,15 +490,31 @@ function sanitizeLatex(text: string): string {
     s.split("").map((c) => superMap[c.toLowerCase()] ?? c).join("");
   const toSub = (s: string) =>
     s.split("").map((c) => subMap[c.toLowerCase()] ?? c).join("");
-  // braced form first: ^{...} / _{...} — content may be any length (digits/letters/±)
+
+  // Superscript/subscript BEFORE \frac{}{} parsing — fraction arguments very
+  // often contain unit exponents like mol^{-1}, and those braces would
+  // otherwise block the frac matcher below (which requires brace-free args).
   t = t.replace(/\^\{([^{}]+)\}/g, (_m, g1) => toSuper(g1));
   t = t.replace(/_\{([^{}]+)\}/g, (_m, g1) => toSub(g1));
   // unbraced single-token form: ^12, ^n (superscript is rare in normal prose, safe to convert)
   t = t.replace(/\^([a-zA-Z0-9+\-]+)/g, (_m, g1) => toSuper(g1));
-  // unbraced subscript: only digits/±/parens directly after a letter/digit/close-paren,
-  // e.g. H_2, CO_2 — never touches normal snake_case words like sample_variable_name
-  t = t.replace(/([A-Za-z0-9)])_([0-9+\-]+)/g, (_m, prefix, g1) => prefix + toSub(g1));
+  // unbraced subscript: right after a letter/digit/close-paren, e.g. H_2, CO_2,
+  // N_a — also allows a lone subscript letter (chemistry/physics notation).
+  t = t.replace(/([A-Za-z0-9)])_([A-Za-z0-9+\-]+)/g, (_m, prefix, g1) => prefix + toSub(g1));
+
+  // \frac{}{} / \dfrac{}{} / \tfrac{}{} — optional backslash for the same
+  // reason as \text{} above. By this point text{}/superscript/subscript are
+  // already flattened, so the numerator/denominator no longer contain nested
+  // braces and this simple (non-nested) matcher is safe. Run twice to also
+  // catch a fraction nested inside another fraction.
+  for (let i = 0; i < 2; i++) {
+    t = t.replace(/\\?(?:d|t)?frac\{([^{}]+)\}\{([^{}]+)\}/g, "$1/$2");
+  }
+
   t = t.replace(/\\([a-zA-Z]+)/g, "$1");
+  // Final safety net: any leftover LaTeX-only punctuation (unmatched braces from
+  // a command pattern we didn't anticipate) must never reach the user.
+  t = t.replace(/[{}]/g, "");
   return t;
 }
 
