@@ -1031,6 +1031,9 @@ const FocusTimer = () => {
                       return (
                         <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
                           <div className="text-sm">{crowns[i]}</div>
+                          {s.avatar_url ? (
+                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-full object-cover border" />
+                          ) : null}
                           <div className="w-full flex justify-center">
                             <div
                               className={cn("w-8 rounded-t", barColors[i])}
@@ -1053,6 +1056,13 @@ const FocusTimer = () => {
               const isMe = row.user_id === user?.id;
               const t = formatHMS(Number(row.total_seconds));
               const md = MOOD_META[leaderboardMood];
+              const isPausedRow = row.live_mood === "study" && row.is_paused;
+              const isLiveRow = row.live_mood && !isPausedRow;
+              const liveStatusMeta: Record<string, { label: string; cls: string }> = {
+                study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
+                break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
+                sleep: { label: "ঘুম", cls: "bg-indigo-400/15 text-indigo-400" },
+              };
               return (
                 <button
                   key={row.user_id}
@@ -1066,13 +1076,32 @@ const FocusTimer = () => {
                   <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
                     #{i + 1}
                   </div>
-                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
-                    {(row.full_name || "S").charAt(0).toUpperCase()}
+                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0 overflow-hidden", md.color, "bg-current/10")}>
+                    {row.avatar_url ? (
+                      <img src={row.avatar_url} alt={row.full_name || "Student"} className="h-full w-full object-cover" />
+                    ) : (
+                      (row.full_name || "S").charAt(0).toUpperCase()
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                    {row.full_name || "Student"}
-                    {isMe && " (তুমি)"}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold truncate">
+                      {row.full_name || "Student"}
+                      {isMe && " (তুমি)"}
+                    </div>
+                    {row.hsc_batch && (
+                      <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
+                    )}
                   </div>
+                  {isPausedRow && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive flex-shrink-0">
+                      Pause
+                    </span>
+                  )}
+                  {isLiveRow && liveStatusMeta[row.live_mood] && (
+                    <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0", liveStatusMeta[row.live_mood].cls)}>
+                      {liveStatusMeta[row.live_mood].label}
+                    </span>
+                  )}
                   <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
                     {t.h}h {t.m}m
                   </div>
