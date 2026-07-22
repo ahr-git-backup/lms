@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { askAI, renderAnswer } from "@/pages/public/AtlasAI";
+import { askAI, renderAnswer, containsSexualContentRequest } from "@/pages/public/AtlasAI";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RelatedMcq {
@@ -356,6 +356,18 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
         ? `${related.length}টি সম্পর্কিত MCQ পাওয়া গেছে, নিচে দেখো।`
         : "দুঃখিত, এই মুহূর্তে সম্পর্কিত কোনো MCQ খুঁজে পাওয়া যায়নি।";
       setMessages([...nextMessages, { role: "assistant", content: note, related }]);
+      setLoading(false);
+      return;
+    }
+
+    if (containsSexualContentRequest(msg)) {
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: "দুঃখিত, এই ধরনের বিষয়ে আমি সাহায্য করতে পারবো না। এই MCQ সম্পর্কে অন্য কোনো প্রশ্ন থাকলে জিজ্ঞেস করো। 📚",
+        },
+      ]);
       setLoading(false);
       return;
     }
