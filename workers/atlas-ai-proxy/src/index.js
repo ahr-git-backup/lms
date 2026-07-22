@@ -730,86 +730,75 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
     ];
   }
   let lastError = "Groq: no keys/models worked";
-  let consecutive429 = 0;
-  outerGroq:
-    for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
-      for (const model of models) {
-        const isTextModel = GROQ_TEXT_MODELS.includes(model);
-        const requestBody = {
-          model,
-          messages,
-          temperature: 0.7,
-          max_tokens: 8192,
-          // FIX: never force response_format unless we actually expect the
-          // structured MCQ array. Plain explanation calls get no response_format
-          // at all, so Groq returns normal free-form text.
-          ...(isTextModel && expectMcqArray
-            ? { response_format: { type: "json_schema", json_schema: GROQ_MCQ_JSON_SCHEMA } }
-            : {})
-        };
-        let keyResult = null;
-        for (const key of keys) {
-          const outcome = await attemptWithStatus((signal) => fetch("https://api.groq.com/openai/v1/chat/completions", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-            signal,
-            body: JSON.stringify(requestBody)
-          }), budget);
-          if (outcome.__exception) {
-            lastError = `Groq(${model}) exception: ${outcome.message}`;
-            if (outcome.__budgetExhausted)
-              return { error: lastError };
-            continue;
-          }
-          if (!outcome.ok) {
-            if (isTextModel && expectMcqArray && outcome.status === 400) {
-              const fbOutcome = await attemptWithStatus((signal2) => fetch("https://api.groq.com/openai/v1/chat/completions", {
-                method: "POST",
-                headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-                signal: signal2,
-                body: JSON.stringify({ ...requestBody, response_format: { type: "json_object" } })
-              }), budget);
-              if (fbOutcome.ok) {
-                const fbData = await fbOutcome.json().catch(() => null);
-                const fbAnswer = fbData?.choices?.[0]?.message?.content || null;
-                if (fbAnswer) {
-                  keyResult = mbGroqUnwrapAnswer(fbAnswer);
-                  break;
-                }
-              } else if (fbOutcome.__budgetExhausted) {
-                return { error: `Groq(${model}) exception: ${fbOutcome.message}` };
-              }
-            }
-            lastError = `Groq(${model}) HTTP ${outcome.status}`;
-            if (outcome.status === 429) {
-              consecutive429++;
-              if (consecutive429 >= 2) {
-                lastError = `Groq: quota exhausted (429 on ${consecutive429} keys), abandoning provider to save budget`;
-                break outerGroq;
-              }
-            } else {
-              consecutive429 = 0;
-            }
-            continue;
-          }
-          const data = await outcome.json().catch(() => null);
-          let answer = data?.choices?.[0]?.message?.content || null;
-          if (answer) {
-            if (expectMcqArray) {
-              answer = mbGroqUnwrapAnswer(answer);
-              if (mbGroqLooksLikeValidMcqArray(answer)) {
-                keyResult = answer;
+  const exhaustedKeys = /* @__PURE__ */ new Set();
+  for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
+    for (const model of models) {
+      const isTextModel = GROQ_TEXT_MODELS.includes(model);
+      const requestBody = {
+        model,
+        messages,
+        temperature: 0.7,
+        max_tokens: 8192,
+        ...(isTextModel && expectMcqArray
+          ? { response_format: { type: "json_schema", json_schema: GROQ_MCQ_JSON_SCHEMA } }
+          : {})
+      };
+      let keyResult = null;
+      const healthyKeys = keys.filter((k) => !exhaustedKeys.has(k));
+      for (const key of healthyKeys.length ? healthyKeys : keys) {
+        const outcome = await attemptWithStatus((signal) => fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+          signal,
+          body: JSON.stringify(requestBody)
+        }), budget);
+        if (outcome.__exception) {
+          lastError = `Groq(${model}) exception: ${outcome.message}`;
+          if (outcome.__budgetExhausted)
+            return { error: lastError };
+          continue;
+        }
+        if (!outcome.ok) {
+          if (isTextModel && expectMcqArray && outcome.status === 400) {
+            const fbOutcome = await attemptWithStatus((signal2) => fetch("https://api.groq.com/openai/v1/chat/completions", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+              signal: signal2,
+              body: JSON.stringify({ ...requestBody, response_format: { type: "json_object" } })
+            }), budget);
+            if (fbOutcome.ok) {
+              const fbData = await fbOutcome.json().catch(() => null);
+              const fbAnswer = fbData?.choices?.[0]?.message?.content || null;
+              if (fbAnswer) {
+                keyResult = mbGroqUnwrapAnswer(fbAnswer);
                 break;
               }
-              lastError = `Groq(${model}): invalid MCQ shape, retrying other key/model`;
-            } else {
+            } else if (fbOutcome.__budgetExhausted) {
+              return { error: `Groq(${model}) exception: ${fbOutcome.message}` };
+            }
+          }
+          lastError = `Groq(${model}) HTTP ${outcome.status}`;
+          if (outcome.status === 429) exhaustedKeys.add(key);
+          continue;
+        }
+        const data = await outcome.json().catch(() => null);
+        let answer = data?.choices?.[0]?.message?.content || null;
+        if (answer) {
+          if (expectMcqArray) {
+            answer = mbGroqUnwrapAnswer(answer);
+            if (mbGroqLooksLikeValidMcqArray(answer)) {
               keyResult = answer;
               break;
             }
+            lastError = `Groq(${model}): invalid MCQ shape, retrying other key/model`;
           } else {
-            lastError = `Groq(${model}): empty response`;
+            keyResult = answer;
+            break;
           }
+        } else {
+          lastError = `Groq(${model}): empty response`;
         }
+      }
         if (keyResult)
           return { answer: keyResult, provider: `groq:${model}` };
       }
