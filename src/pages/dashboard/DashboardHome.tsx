@@ -219,47 +219,36 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Card
-        className="cursor-pointer border-amber-400/50 bg-gradient-to-r from-amber-400/10 via-amber-400/5 to-transparent hover:border-amber-400 transition-all"
-        onClick={() => navigate("/quick-practice/leaderboard")}
-      >
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <Trophy className="h-5 w-5 text-amber-950" />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-sm">Quick Practice Points</p>
-            <p className="text-xs text-muted-foreground">Leaderboard-এ নিজের rank দেখুন</p>
-          </div>
-          <div className="text-2xl font-black text-amber-500">{qpPoints ?? 0}</div>
-          <Button
-            size="sm"
-            className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold shrink-0"
-            onClick={(e) => { e.stopPropagation(); navigate("/quick-practice"); }}
-          >
-            Start Now
-          </Button>
-        </CardContent>
-      </Card>
-
       <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
-          <p className="text-sm text-muted-foreground">
-            Get a quick overview of your upcoming activities.
-          </p>
-        </div>
-        {tutorialVideoUrl && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 gap-1.5"
-            onClick={() => setShowTutorialVideo(true)}
-          >
-            <Video className="h-4 w-4" />
-            Watch Tutorial
-          </Button>
-        )}
+        <Card className="flex-1">
+          <CardContent className="p-4 flex items-start justify-between gap-3">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
+              <p className="text-sm text-muted-foreground">
+                Get a quick overview of your upcoming activities.
+              </p>
+            </div>
+            {tutorialVideoUrl && (
+              <Button
+                size="sm"
+                variant="outline"
+                className="shrink-0 gap-1.5"
+                onClick={() => setShowTutorialVideo(true)}
+              >
+                <Video className="h-4 w-4" />
+                Watch Tutorial
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+        <button
+          onClick={() => navigate("/quick-practice")}
+          className="shrink-0 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-3 py-2 transition-all"
+          title="Quick Practice Points"
+        >
+          <Trophy className="h-4 w-4 text-amber-500" />
+          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
+        </button>
       </header>
 
       <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
@@ -286,47 +275,39 @@ const DashboardHome = () => {
         <h2 className="text-lg font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-2 gap-3">
           <Card
-            className="cursor-pointer hover:border-primary/40 transition-all"
+            className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-blue-500" />
-              </div>
-              <p className="font-medium text-sm">My Progress</p>
+            <CardContent className="p-4 flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+              <p className="font-semibold text-sm">My Progress</p>
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary/40 transition-all"
+            className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
-                <Target className="h-5 w-5 text-red-500" />
-              </div>
-              <p className="font-medium text-sm">Weak Topics & Analysis</p>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Target className="h-6 w-6 text-red-500 flex-shrink-0" />
+              <p className="font-semibold text-sm">Weak Topics & Analysis</p>
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary/40 transition-all"
+            className="cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
             onClick={() => navigate("/study-history")}
           >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
-                <History className="h-5 w-5 text-purple-500" />
-              </div>
-              <p className="font-medium text-sm">History</p>
+            <CardContent className="p-4 flex items-center gap-3">
+              <History className="h-6 w-6 text-purple-500 flex-shrink-0" />
+              <p className="font-semibold text-sm">History</p>
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer hover:border-primary/40 transition-all"
+            className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             onClick={() => navigate("/quick-practice/leaderboard")}
           >
-            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
-              <div className="h-10 w-10 rounded-xl bg-yellow-50 dark:bg-yellow-950 flex items-center justify-center">
-                <Trophy className="h-5 w-5 text-yellow-500" />
-              </div>
-              <p className="font-medium text-sm">Top Performer</p>
+            <CardContent className="p-4 flex items-center gap-3">
+              <Trophy className="h-6 w-6 text-yellow-500 flex-shrink-0" />
+              <p className="font-semibold text-sm">Top Performer</p>
             </CardContent>
           </Card>
         </div>
