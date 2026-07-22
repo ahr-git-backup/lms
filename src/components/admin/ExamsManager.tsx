@@ -111,6 +111,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const { data: examsData, isLoading } = useQuery({
     queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch, mainCategory, readymadeSubCategory],
+    staleTime: 30000,
     queryFn: async () => {
       let query = supabase
         .from("exams")

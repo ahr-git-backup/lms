@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,8 +118,12 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         is_archive: isArchiveMode,
     });
 
+    const loadedExamIdRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (exam) {
+            if (loadedExamIdRef.current === exam.id) return; // already loaded this exam, don't overwrite in-progress edits
+            loadedExamIdRef.current = exam.id;
             let subjects: string[] = [];
             if (Array.isArray(exam.subject)) {
                 subjects = exam.subject;
@@ -165,6 +169,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_only_live: exam.is_only_live ?? false,
             });
         } else {
+            loadedExamIdRef.current = null;
             setForm(prev => ({ ...prev, is_archive: isArchiveMode }));
         }
     }, [exam, isArchiveMode]);
