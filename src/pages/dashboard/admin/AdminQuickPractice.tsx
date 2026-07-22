@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, UploadCloud, Zap, Loader2 } from "lucide-react";
+import { ChevronDown, Trash2, UploadCloud, Zap, Loader2, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,21 @@ const AdminQuickPractice = () => {
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
 
+  // Manual single-MCQ add form (compact)
+  const [manualQuestion, setManualQuestion] = useState("");
+  const [manualOptions, setManualOptions] = useState(["", "", "", ""]);
+  const [manualCorrect, setManualCorrect] = useState(0);
+  const [manualExplanation, setManualExplanation] = useState("");
+  const [savingManual, setSavingManual] = useState(false);
+
+  // Inline edit state for an existing MCQ
+  const [editingMcqId, setEditingMcqId] = useState<number | null>(null);
+  const [editQuestion, setEditQuestion] = useState("");
+  const [editOptions, setEditOptions] = useState<string[]>([]);
+  const [editCorrect, setEditCorrect] = useState(0);
+  const [editExplanation, setEditExplanation] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     document.title = "Quick Practice — Admin";
   }, []);
@@ -151,7 +166,7 @@ const AdminQuickPractice = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("qp_mcqs")
-        .select("id, question, options, correct_index")
+        .select("id, question, options, correct_index, explanation")
         .eq("chapter_id", expandedChapter!)
         .order("id", { ascending: true });
       if (error) throw error;
@@ -183,6 +198,54 @@ const AdminQuickPractice = () => {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const findOrCreateSubject = async (name: string): Promise<number> => {
+    const { data: existingSubj } = await supabase
+      .from("qp_subjects")
+      .select("id")
+      .eq("name", name.trim())
+      .maybeSingle();
+    if (existingSubj) return existingSubj.id;
+    const { data: lastSubj } = await supabase
+      .from("qp_subjects")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sort = (lastSubj?.sort_order || 0) + 1;
+    const { data: newSubj, error } = await supabase
+      .from("qp_subjects")
+      .insert({ name: name.trim(), sort_order: sort })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return newSubj.id;
+  };
+
+  const findOrCreateChapter = async (subjId: number, name: string): Promise<number> => {
+    const { data: existingChap } = await supabase
+      .from("qp_chapters")
+      .select("id")
+      .eq("subject_id", subjId)
+      .eq("name", name.trim())
+      .maybeSingle();
+    if (existingChap) return existingChap.id;
+    const { data: lastChap } = await supabase
+      .from("qp_chapters")
+      .select("sort_order")
+      .eq("subject_id", subjId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sortC = (lastChap?.sort_order || 0) + 1;
+    const { data: newChap, error } = await supabase
+      .from("qp_chapters")
+      .insert({ subject_id: subjId, name: name.trim(), sort_order: sortC })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return newChap.id;
+  };
+
   const saveAll = async () => {
     if (!subjectName.trim() || !chapterName.trim()) {
       toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
@@ -194,59 +257,8 @@ const AdminQuickPractice = () => {
     }
     setSaving(true);
     try {
-      // find-or-create subject
-      let subjId: number;
-      const { data: existingSubj } = await supabase
-        .from("qp_subjects")
-        .select("id")
-        .eq("name", subjectName.trim())
-        .maybeSingle();
-      if (existingSubj) {
-        subjId = existingSubj.id;
-      } else {
-        const { data: lastSubj } = await supabase
-          .from("qp_subjects")
-          .select("sort_order")
-          .order("sort_order", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const sort = (lastSubj?.sort_order || 0) + 1;
-        const { data: newSubj, error } = await supabase
-          .from("qp_subjects")
-          .insert({ name: subjectName.trim(), sort_order: sort })
-          .select("id")
-          .single();
-        if (error) throw error;
-        subjId = newSubj.id;
-      }
-
-      // find-or-create chapter
-      let chapId: number;
-      const { data: existingChap } = await supabase
-        .from("qp_chapters")
-        .select("id")
-        .eq("subject_id", subjId)
-        .eq("name", chapterName.trim())
-        .maybeSingle();
-      if (existingChap) {
-        chapId = existingChap.id;
-      } else {
-        const { data: lastChap } = await supabase
-          .from("qp_chapters")
-          .select("sort_order")
-          .eq("subject_id", subjId)
-          .order("sort_order", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const sortC = (lastChap?.sort_order || 0) + 1;
-        const { data: newChap, error } = await supabase
-          .from("qp_chapters")
-          .insert({ subject_id: subjId, name: chapterName.trim(), sort_order: sortC })
-          .select("id")
-          .single();
-        if (error) throw error;
-        chapId = newChap.id;
-      }
+      const subjId = await findOrCreateSubject(subjectName);
+      const chapId = await findOrCreateChapter(subjId, chapterName);
 
       const rows = csvData.map((d) => ({
         chapter_id: chapId,
@@ -266,6 +278,102 @@ const AdminQuickPractice = () => {
       toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const clearManualForm = () => {
+    setManualQuestion("");
+    setManualOptions(["", "", "", ""]);
+    setManualCorrect(0);
+    setManualExplanation("");
+  };
+
+  const saveManualMcq = async () => {
+    if (!subjectName.trim() || !chapterName.trim()) {
+      toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
+      return;
+    }
+    const filledOptions = manualOptions.map((o) => o.trim()).filter(Boolean);
+    if (!manualQuestion.trim() || filledOptions.length < 2) {
+      toast({ title: "প্রশ্ন ও অন্তত ২টি অপশন দিন", variant: "destructive" });
+      return;
+    }
+    if (manualCorrect >= filledOptions.length) {
+      toast({ title: "সঠিক অপশন বেছে নিন", variant: "destructive" });
+      return;
+    }
+    setSavingManual(true);
+    try {
+      const subjId = await findOrCreateSubject(subjectName);
+      const chapId = await findOrCreateChapter(subjId, chapterName);
+      const { error } = await supabase.from("qp_mcqs").insert({
+        chapter_id: chapId,
+        question: manualQuestion.trim(),
+        options: filledOptions,
+        correct_index: manualCorrect,
+        explanation: manualExplanation.trim() || null,
+      });
+      if (error) throw error;
+      toast({ title: "MCQ যোগ হয়েছে" });
+      clearManualForm();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingManual(false);
+    }
+  };
+
+  const startEditMcq = (m: { id: number; question: string; options: string[]; correct_index: number; explanation?: string | null }) => {
+    setEditingMcqId(m.id);
+    setEditQuestion(m.question);
+    const opts = [...m.options];
+    while (opts.length < 4) opts.push("");
+    setEditOptions(opts);
+    setEditCorrect(m.correct_index);
+    setEditExplanation(m.explanation || "");
+  };
+
+  const cancelEditMcq = () => {
+    setEditingMcqId(null);
+    setEditQuestion("");
+    setEditOptions([]);
+    setEditCorrect(0);
+    setEditExplanation("");
+  };
+
+  const saveEditMcq = async () => {
+    if (editingMcqId === null) return;
+    const filledOptions = editOptions.map((o) => o.trim()).filter(Boolean);
+    if (!editQuestion.trim() || filledOptions.length < 2) {
+      toast({ title: "প্রশ্ন ও অন্তত ২টি অপশন দিন", variant: "destructive" });
+      return;
+    }
+    if (editCorrect >= filledOptions.length) {
+      toast({ title: "সঠিক অপশন বেছে নিন", variant: "destructive" });
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("qp_mcqs")
+        .update({
+          question: editQuestion.trim(),
+          options: filledOptions,
+          correct_index: editCorrect,
+          explanation: editExplanation.trim() || null,
+        })
+        .eq("id", editingMcqId);
+      if (error) throw error;
+      toast({ title: "MCQ আপডেট হয়েছে" });
+      cancelEditMcq();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
     }
   };
 
@@ -371,6 +479,60 @@ const AdminQuickPractice = () => {
       </Card>
 
       <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">একটি MCQ নিজে টাইপ করে যোগ করুন</CardTitle>
+          <CardDescription className="text-xs">
+            উপরের বিষয়/অধ্যায়ের নাম ব্যবহার হবে — আগে সেটা পূরণ করুন।
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <Input
+            placeholder="প্রশ্ন লিখুন"
+            value={manualQuestion}
+            onChange={(e) => setManualQuestion(e.target.value)}
+            className="text-sm"
+          />
+          <div className="grid grid-cols-2 gap-2">
+            {manualOptions.map((opt, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setManualCorrect(i)}
+                  className={cn(
+                    "h-6 w-6 shrink-0 rounded-full border-2 flex items-center justify-center text-[10px] font-bold",
+                    manualCorrect === i
+                      ? "bg-emerald-500 border-emerald-500 text-white"
+                      : "border-border text-muted-foreground"
+                  )}
+                  title="সঠিক উত্তর হিসেবে বেছে নিন"
+                >
+                  {String.fromCharCode(65 + i)}
+                </button>
+                <Input
+                  placeholder={`অপশন ${i + 1}`}
+                  value={opt}
+                  onChange={(e) =>
+                    setManualOptions((prev) => prev.map((o, idx) => (idx === i ? e.target.value : o)))
+                  }
+                  className="text-sm h-8"
+                />
+              </div>
+            ))}
+          </div>
+          <Input
+            placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+            value={manualExplanation}
+            onChange={(e) => setManualExplanation(e.target.value)}
+            className="text-sm"
+          />
+          <Button onClick={saveManualMcq} disabled={savingManual} size="sm" className="w-full">
+            {savingManual ? <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" /> : null}
+            MCQ যোগ করুন
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">
             বিষয় ও অধ্যায় সমূহ {subjects ? `(${subjects.length}টি)` : ""}
@@ -430,23 +592,105 @@ const AdminQuickPractice = () => {
                             </Button>
                           </div>
                           {chOpen && (
-                            <div className="border-t p-2 space-y-1.5 max-h-64 overflow-y-auto">
-                              {mcqsOfChapter?.map((m) => (
-                                <div
-                                  key={m.id}
-                                  className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
-                                >
-                                  <span className="flex-1">{m.question}</span>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5 text-destructive flex-shrink-0"
-                                    onClick={() => deleteMcq(m.id)}
+                            <div className="border-t p-2 space-y-1.5 max-h-80 overflow-y-auto">
+                              {mcqsOfChapter?.map((m) => {
+                                const isEditing = editingMcqId === m.id;
+                                if (isEditing) {
+                                  return (
+                                    <div key={m.id} className="bg-card border rounded-md p-2 space-y-1.5">
+                                      <Input
+                                        value={editQuestion}
+                                        onChange={(e) => setEditQuestion(e.target.value)}
+                                        className="text-xs h-7"
+                                        placeholder="প্রশ্ন"
+                                      />
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                        {editOptions.map((opt, i) => (
+                                          <div key={i} className="flex items-center gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditCorrect(i)}
+                                              className={cn(
+                                                "h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center text-[9px] font-bold",
+                                                editCorrect === i
+                                                  ? "bg-emerald-500 border-emerald-500 text-white"
+                                                  : "border-border text-muted-foreground"
+                                              )}
+                                            >
+                                              {String.fromCharCode(65 + i)}
+                                            </button>
+                                            <Input
+                                              value={opt}
+                                              onChange={(e) =>
+                                                setEditOptions((prev) =>
+                                                  prev.map((o, idx) => (idx === i ? e.target.value : o))
+                                                )
+                                              }
+                                              className="text-[11px] h-7"
+                                              placeholder={`অপশন ${i + 1}`}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <Input
+                                        value={editExplanation}
+                                        onChange={(e) => setEditExplanation(e.target.value)}
+                                        className="text-xs h-7"
+                                        placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+                                      />
+                                      <div className="flex gap-1.5">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 flex-1 text-[11px]"
+                                          onClick={saveEditMcq}
+                                          disabled={savingEdit}
+                                        >
+                                          {savingEdit ? (
+                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                          ) : (
+                                            <Check className="h-3 w-3 mr-1" />
+                                          )}
+                                          সেভ
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 text-[11px]"
+                                          onClick={cancelEditMcq}
+                                          disabled={savingEdit}
+                                        >
+                                          <X className="h-3 w-3 mr-1" />
+                                          বাতিল
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div
+                                    key={m.id}
+                                    className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
                                   >
-                                    <Trash2 className="h-3 w-3" />
-                                  </Button>
-                                </div>
-                              ))}
+                                    <span className="flex-1">{m.question}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                      onClick={() => startEditMcq(m)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-destructive flex-shrink-0"
+                                      onClick={() => deleteMcq(m.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
                               {mcqsOfChapter?.length === 0 && (
                                 <p className="text-[11px] text-muted-foreground text-center py-2">
                                   কোনো MCQ নেই
