@@ -301,9 +301,17 @@ const TakeExam = () => {
     setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: optionKey, correct, skipped: false } }));
   };
 
+  const qpCleanupStorage = () => {
+      try {
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`);
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`);
+      } catch { /* ignore */ }
+  };
+
   const qpGoNext = () => {
     if (qpCurrent >= qpQuestions.length - 1) {
       setQpFinished(true);
+      qpCleanupStorage();
       return;
     }
     setQpCurrent((c) => c + 1);
@@ -315,7 +323,7 @@ const TakeExam = () => {
     // For readymade exams (non-external), only shuffle/lock the question set once the exam has
     // actually started (Start Exam clicked). This prevents the count input's keystrokes
     // (e.g. typing "10" fires an intermediate "1") from prematurely locking in a wrong count.
-    if (exam?.is_readymade && !exam.external_exam_link && !hasStarted) {
+    if (exam?.is_readymade && !exam.external_exam_link && (!hasStarted || isQuickPracticeMode)) {
         return;
     }
 
@@ -340,7 +348,7 @@ const TakeExam = () => {
             setShuffledQuestions(shuffled);
         }
     }
-  }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted]);
+  }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted, isQuickPracticeMode]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
@@ -351,8 +359,20 @@ const TakeExam = () => {
       const savedStartTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
       const savedCountKey = `${LOCAL_STORAGE_KEY_PREFIX}_selected_count`;
       const savedCount = localStorage.getItem(savedCountKey);
+      const savedQpMode = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`);
 
       const isReadymadeCountExam = exam.is_readymade && !exam.external_exam_link;
+
+      // If the in-progress session was Quick Practice, restore that mode and STOP —
+      // Quick Practice never uses the normal timer/answers session below.
+      if (savedQpMode === "1" && isReadymadeCountExam) {
+          setIsQuickPracticeMode(true);
+          if (savedCount && !isNaN(parseInt(savedCount, 10))) {
+              setSelectedQuestionCount(parseInt(savedCount, 10));
+          }
+          setHasStarted(true);
+          return;
+      }
 
       if (savedStartTime) {
           if (isReadymadeCountExam) {
@@ -389,7 +409,7 @@ const TakeExam = () => {
 
   // Timer logic with persistence
   useEffect(() => {
-    if (!exam?.duration_minutes || !user || !hasStarted) return;
+    if (!exam?.duration_minutes || !user || !hasStarted || isQuickPracticeMode) return;
 
     const isExpiredPractice = exam.exam_type === 'live' && exam.time_window_end && new Date() > new Date(exam.time_window_end);
     const startTimeKey = `${LOCAL_STORAGE_KEY_PREFIX}_start_time`;
@@ -434,7 +454,7 @@ const TakeExam = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount]);
+  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount, isQuickPracticeMode]);
 
   // Auto-submit
   const submitExamMutation = useMutation({
@@ -961,6 +981,10 @@ const TakeExam = () => {
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
                                   } else if (isQuickPracticeMode && exam.is_readymade) {
+                                      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`, "1");
+                                      if (selectedQuestionCount) {
+                                          localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`, selectedQuestionCount.toString());
+                                      }
                                       setHasStarted(true);
                                   } else {
                                       if (exam.is_readymade && selectedQuestionCount) {
@@ -988,7 +1012,7 @@ const TakeExam = () => {
           <AlertTriangle className="h-8 w-8 text-destructive" />
           <p className="text-sm font-semibold">Quick Practice লোড করা যায়নি।</p>
           <p className="text-xs text-muted-foreground max-w-xs">Database migration (get_exam_questions_practice) রান করা হয়েছে কিনা চেক করুন, তারপর আবার চেষ্টা করুন।</p>
-          <Button variant="outline" onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+          <Button variant="outline" onClick={() => { qpCleanupStorage(); navigate(-1); }} className="mt-2 rounded-xl">ফিরে যাও</Button>
         </div>
       );
     }
@@ -997,7 +1021,7 @@ const TakeExam = () => {
         <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
           <AlertTriangle className="h-8 w-8 text-amber-500" />
           <p className="text-sm font-semibold">এই পরীক্ষায় কোনো প্রশ্ন পাওয়া যায়নি।</p>
-          <Button variant="outline" onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+          <Button variant="outline" onClick={() => { qpCleanupStorage(); navigate(-1); }} className="mt-2 rounded-xl">ফিরে যাও</Button>
         </div>
       );
     }
@@ -1031,7 +1055,7 @@ const TakeExam = () => {
               <div className="text-[10px] text-muted-foreground">Skipped</div>
             </div>
           </div>
-          <Button onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+          <Button onClick={() => { qpCleanupStorage(); navigate(-1); }} className="mt-2 rounded-xl">ফিরে যাও</Button>
         </div>
       );
     }
@@ -1059,7 +1083,7 @@ const TakeExam = () => {
             {qpTimeLeft}
           </div>
           <button
-            onClick={() => { if (confirm("Quick Practice শেষ করবেন?")) setQpFinished(true); }}
+            onClick={() => { if (confirm("Quick Practice শেষ করবেন?")) { setQpFinished(true); qpCleanupStorage(); } }}
             className="px-3 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-xs shrink-0 whitespace-nowrap"
           >
             শেষ করো
