@@ -105,6 +105,14 @@ const AdminQuickPractice = () => {
   const [saving, setSaving] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
+  const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
+
+  // Topic add/rename state
+  const [newTopicName, setNewTopicName] = useState("");
+  const [addingTopic, setAddingTopic] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
+  const [editTopicName, setEditTopicName] = useState("");
+  const [savingTopicName, setSavingTopicName] = useState(false);
 
   // Inline rename state for subject/chapter
   const [editingSubjectId, setEditingSubjectId] = useState<number | null>(null);
@@ -161,14 +169,52 @@ const AdminQuickPractice = () => {
     },
   });
 
+  const { data: topicsOfChapter } = useQuery({
+    queryKey: ["admin-qp-topics", expandedChapter],
+    enabled: expandedChapter !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_topics")
+        .select("id, name, chapter_id, sort_order")
+        .eq("chapter_id", expandedChapter!)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      const withCounts = await Promise.all(
+        (data || []).map(async (t) => {
+          const { count } = await supabase
+            .from("qp_mcqs")
+            .select("id", { count: "exact", head: true })
+            .eq("topic_id", t.id);
+          return { ...t, mcqCount: count || 0 };
+        })
+      );
+      return withCounts;
+    },
+  });
+
   const { data: mcqsOfChapter } = useQuery({
     queryKey: ["admin-qp-mcqs", expandedChapter],
     enabled: expandedChapter !== null,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("qp_mcqs")
-        .select("id, question, options, correct_index, explanation")
+        .select("id, question, options, correct_index, explanation, topic_id")
         .eq("chapter_id", expandedChapter!)
+        .is("topic_id", null)
+        .order("id", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: mcqsOfTopic } = useQuery({
+    queryKey: ["admin-qp-topic-mcqs", expandedTopic],
+    enabled: expandedTopic !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_mcqs")
+        .select("id, question, options, correct_index, explanation, topic_id")
+        .eq("topic_id", expandedTopic!)
         .order("id", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -391,6 +437,74 @@ const AdminQuickPractice = () => {
     }
   };
 
+  const addTopic = async (chapId: number) => {
+    if (!newTopicName.trim()) return;
+    setAddingTopic(true);
+    try {
+      const { data: lastTopic } = await supabase
+        .from("qp_topics")
+        .select("sort_order")
+        .eq("chapter_id", chapId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const sortT = (lastTopic?.sort_order || 0) + 1;
+      const { error } = await supabase
+        .from("qp_topics")
+        .insert({ chapter_id: chapId, name: newTopicName.trim(), sort_order: sortT });
+      if (error) throw error;
+      toast({ title: "টপিক যোগ হয়েছে" });
+      setNewTopicName("");
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-topics", chapId] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setAddingTopic(false);
+    }
+  };
+
+  const startEditTopic = (t: { id: number; name: string }) => {
+    setEditingTopicId(t.id);
+    setEditTopicName(t.name);
+  };
+
+  const cancelEditTopic = () => {
+    setEditingTopicId(null);
+    setEditTopicName("");
+  };
+
+  const saveEditTopic = async () => {
+    if (editingTopicId === null || !editTopicName.trim()) return;
+    setSavingTopicName(true);
+    try {
+      const { error } = await supabase
+        .from("qp_topics")
+        .update({ name: editTopicName.trim() })
+        .eq("id", editingTopicId);
+      if (error) throw error;
+      toast({ title: "টপিকের নাম আপডেট হয়েছে" });
+      cancelEditTopic();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-topics"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingTopicName(false);
+    }
+  };
+
+  const deleteTopic = async (topicId: number, chapId: number) => {
+    if (!confirm("এই টপিক ডিলিট হবে। এর MCQ গুলো টপিকহীন অধ্যায়ে থেকে যাবে। নিশ্চিত?")) return;
+    const { error } = await supabase.from("qp_topics").delete().eq("id", topicId);
+    if (error) {
+      toast({ title: "ডিলিট ব্যর্থ", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "টপিক ডিলিট হয়েছে" });
+    if (expandedTopic === topicId) setExpandedTopic(null);
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topics", chapId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs", chapId] });
+  };
+
   const deleteChapter = async (chapId: number) => {
     if (!confirm("এই অধ্যায় ও এর সব MCQ ডিলিট হবে। নিশ্চিত?")) return;
     const { error } = await supabase.from("qp_chapters").delete().eq("id", chapId);
@@ -420,7 +534,9 @@ const AdminQuickPractice = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topic-mcqs"] });
     queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topics"] });
   };
 
   return (
@@ -632,7 +748,209 @@ const AdminQuickPractice = () => {
                           </div>
                           )}
                           {chOpen && (
-                            <div className="border-t p-2 space-y-1.5 max-h-80 overflow-y-auto">
+                            <div className="border-t p-2 space-y-1.5">
+                              {/* Topics list */}
+                              <div className="space-y-1.5">
+                                {topicsOfChapter?.map((t) => {
+                                  const tOpen = expandedTopic === t.id;
+                                  return (
+                                    <div key={t.id} className="border rounded-md bg-background overflow-hidden">
+                                      {editingTopicId === t.id ? (
+                                        <div className="flex items-center gap-1.5 p-2">
+                                          <Input
+                                            value={editTopicName}
+                                            onChange={(e) => setEditTopicName(e.target.value)}
+                                            className="h-6 text-[11px] flex-1"
+                                            autoFocus
+                                          />
+                                          <Button
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={saveEditTopic}
+                                            disabled={savingTopicName}
+                                          >
+                                            {savingTopicName ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Check className="h-3 w-3" />
+                                            )}
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={cancelEditTopic}
+                                            disabled={savingTopicName}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1.5 p-2">
+                                          <button
+                                            onClick={() => setExpandedTopic(tOpen ? null : t.id)}
+                                            className="flex-1 flex items-center gap-1.5 text-left text-[11px]"
+                                          >
+                                            <ChevronDown
+                                              className={cn("h-3 w-3 transition-transform", tOpen && "rotate-180")}
+                                            />
+                                            <span className="font-medium">📁 {t.name}</span>
+                                            <span className="text-muted-foreground">({t.mcqCount} MCQ)</span>
+                                          </button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-muted-foreground"
+                                            onClick={() => startEditTopic(t)}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-destructive hover:text-destructive"
+                                            onClick={() => deleteTopic(t.id, ch.id)}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {tOpen && (
+                                        <div className="border-t p-1.5 space-y-1.5 max-h-64 overflow-y-auto">
+                                          {mcqsOfTopic?.map((m) => {
+                                            const isEditing = editingMcqId === m.id;
+                                            if (isEditing) {
+                                              return (
+                                                <div key={m.id} className="bg-card border rounded-md p-2 space-y-1.5">
+                                                  <Input
+                                                    value={editQuestion}
+                                                    onChange={(e) => setEditQuestion(e.target.value)}
+                                                    className="text-xs h-7"
+                                                    placeholder="প্রশ্ন"
+                                                  />
+                                                  <div className="grid grid-cols-2 gap-1.5">
+                                                    {editOptions.map((opt, i) => (
+                                                      <div key={i} className="flex items-center gap-1">
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setEditCorrect(i)}
+                                                          className={cn(
+                                                            "h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center text-[9px] font-bold",
+                                                            editCorrect === i
+                                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                                              : "border-border text-muted-foreground"
+                                                          )}
+                                                        >
+                                                          {String.fromCharCode(65 + i)}
+                                                        </button>
+                                                        <Input
+                                                          value={opt}
+                                                          onChange={(e) =>
+                                                            setEditOptions((prev) =>
+                                                              prev.map((o, idx) => (idx === i ? e.target.value : o))
+                                                            )
+                                                          }
+                                                          className="text-[11px] h-7"
+                                                          placeholder={`অপশন ${i + 1}`}
+                                                        />
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                  <Input
+                                                    value={editExplanation}
+                                                    onChange={(e) => setEditExplanation(e.target.value)}
+                                                    className="text-xs h-7"
+                                                    placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+                                                  />
+                                                  <div className="flex gap-1.5">
+                                                    <Button
+                                                      size="sm"
+                                                      className="h-7 flex-1 text-[11px]"
+                                                      onClick={saveEditMcq}
+                                                      disabled={savingEdit}
+                                                    >
+                                                      {savingEdit ? (
+                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                      ) : (
+                                                        <Check className="h-3 w-3 mr-1" />
+                                                      )}
+                                                      সেভ
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-7 text-[11px]"
+                                                      onClick={cancelEditMcq}
+                                                      disabled={savingEdit}
+                                                    >
+                                                      <X className="h-3 w-3 mr-1" />
+                                                      বাতিল
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            }
+                                            return (
+                                              <div
+                                                key={m.id}
+                                                className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
+                                              >
+                                                <span className="flex-1">{m.question}</span>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                                  onClick={() => startEditMcq(m)}
+                                                >
+                                                  <Pencil className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-5 w-5 text-destructive flex-shrink-0"
+                                                  onClick={() => deleteMcq(m.id)}
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            );
+                                          })}
+                                          {mcqsOfTopic?.length === 0 && (
+                                            <p className="text-[11px] text-muted-foreground text-center py-1.5">
+                                              কোনো MCQ নেই
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                <div className="flex items-center gap-1.5">
+                                  <Input
+                                    value={expandedChapter === ch.id ? newTopicName : ""}
+                                    onChange={(e) => setNewTopicName(e.target.value)}
+                                    placeholder="নতুন টপিকের নাম (ঐচ্ছিক)"
+                                    className="h-7 text-[11px]"
+                                  />
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[11px] shrink-0"
+                                    onClick={() => addTopic(ch.id)}
+                                    disabled={addingTopic || !newTopicName.trim()}
+                                  >
+                                    {addingTopic ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      "টপিক যোগ"
+                                    )}
+                                  </Button>
+                                </div>
+                              </div>
+
+                              <div className="pt-1 text-[10px] text-muted-foreground px-0.5">
+                                টপিক ছাড়া MCQ সমূহ
+                              </div>
                               {mcqsOfChapter?.map((m) => {
                                 const isEditing = editingMcqId === m.id;
                                 if (isEditing) {
