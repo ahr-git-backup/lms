@@ -742,7 +742,7 @@ const AtlasAI = () => {
     // fewer messages (6, not 12) AND each one truncated to a short summary
     // length, keeping total context small enough that Groq's TPM limit is
     // reliably respected regardless of how long past replies were.
-    const HISTORY_MSG_LIMIT = 6;
+    const HISTORY_MSG_LIMIT = 3;
     const HISTORY_MSG_MAX_CHARS = 220;
     const truncate = (s: string) =>
       s.length > HISTORY_MSG_MAX_CHARS ? s.slice(0, HISTORY_MSG_MAX_CHARS) + "…" : s;
