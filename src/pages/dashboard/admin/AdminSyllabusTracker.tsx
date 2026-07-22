@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers } from "lucide-react";
+import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { StudyTrackerProgress } from "@/components/admin/StudyTrackerProgress";
+import { StudyTrackerRevision } from "@/components/admin/StudyTrackerRevision";
 
 type Mode = "hsc" | "medical";
 
@@ -406,9 +409,32 @@ const AdminSyllabusTracker = () => {
           <BarChart3 className="h-5 w-5 text-sky-600" /> Study Tracker ম্যানেজার
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          বিষয় → অধ্যায় → টপিক — HSC ও Medical Admission আলাদাভাবে যোগ করুন।
+          Syllabus, Progress এবং Revision কন্টেন্ট এখান থেকে ম্যানেজ করুন।
         </p>
       </div>
+
+      <Tabs defaultValue="syllabus" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="syllabus" className="gap-1.5">
+            <BookOpen className="h-4 w-4" /> Syllabus Tracker
+          </TabsTrigger>
+          <TabsTrigger value="progress" className="gap-1.5">
+            <Trophy className="h-4 w-4" /> Weak &amp; Progress
+          </TabsTrigger>
+          <TabsTrigger value="revision" className="gap-1.5">
+            <RefreshCw className="h-4 w-4" /> Revision Planner
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="progress">
+          <StudyTrackerProgress />
+        </TabsContent>
+
+        <TabsContent value="revision">
+          <StudyTrackerRevision />
+        </TabsContent>
+
+        <TabsContent value="syllabus" className="space-y-6">
 
       {/* Mode tabs */}
       <div className="flex gap-2">
@@ -744,6 +770,8 @@ const AdminSyllabusTracker = () => {
           })}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
