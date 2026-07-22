@@ -121,10 +121,9 @@ const Readymade = () => {
   const resetToChapter = () => { setSelectedSubChapter(null); };
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Readymade Exam</h1>
-        <p className="text-sm text-muted-foreground">Pre-configured practice exams for your courses.</p>
+    <div className="space-y-3">
+      <header>
+        <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
       </header>
 
       <div className="flex items-center justify-between gap-4">
@@ -171,15 +170,15 @@ const Readymade = () => {
       </div>
 
       {isAdmin && !selectedSubject && currentSubjectsList.length > 0 && (
-        <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
-          <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+        <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
+          <div className="text-xs font-medium mr-auto self-center">Admin:</div>
           <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subject Position</Button>
         </div>
       )}
 
       {isAdmin && selectedChapter && (
-        <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
-          <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+        <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
+          <div className="text-xs font-medium mr-auto self-center">Admin:</div>
           <Button variant="outline" size="sm" onClick={() => setManageType("exams")}>
             {selectedSubChapter ? `Manage ${selectedSubChapter} Exams Order` : "Manage All Exams Order"}
           </Button>
@@ -187,8 +186,8 @@ const Readymade = () => {
       )}
 
       {isAdmin && !selectedChapter && selectedSubject && currentChaptersList.length > 0 && (
-        <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
-          <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+        <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
+          <div className="text-xs font-medium mr-auto self-center">Admin:</div>
           <Button variant="outline" size="sm" onClick={() => setManageChapters(true)}>Manage Chapters Order</Button>
         </div>
       )}
@@ -382,7 +381,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     const count = searchResults?.count || 0;
     const totalPages = Math.ceil(count / PAGE_SIZE);
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-6"><ExamGrid exams={exams} navigate={navigate} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
+    return <div className="space-y-3"><ExamGrid exams={exams} navigate={navigate} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -414,9 +413,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // LEVEL 2: Chapter selection
   if (!selectedChapter) {
     return (
-      <div className="space-y-6">
-        <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
-        <h2 className="text-xl font-bold">{selectedSubject}</h2>
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedSubject(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
+        <h2 className="text-base font-bold">{selectedSubject}</h2>
         {loadingChapters ? <div className="text-muted-foreground">Loading chapters...</div>
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
@@ -438,12 +437,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // LEVEL 3: Sub-chapter (session) selection — only shown if sub-chapters exist
   if (!selectedSubChapter && subChapters && subChapters.length > 0) {
     return (
-      <div className="space-y-6">
-        <Button variant="ghost" onClick={() => setSelectedChapter(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
         </div>
-        <h2 className="text-xl font-bold">Select Session / Year</h2>
+        <h2 className="text-base font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             {subChapters.map(sc => (
@@ -466,11 +465,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <div className="space-y-6">
-      <Button variant="ghost" onClick={() => {
+    <div className="space-y-3">
+      <Button variant="ghost" size="sm" onClick={() => {
         if (selectedSubChapter && subChapters && subChapters.length > 0) setSelectedSubChapter(null);
         else setSelectedChapter(null);
-      }} className="pl-0">
+      }} className="pl-0 h-8">
         <ArrowLeft className="mr-2 h-4 w-4" /> {selectedSubChapter ? "Back to Sessions" : "Back to Chapters"}
       </Button>
       <div>
@@ -480,7 +479,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           <span>{selectedChapter}</span>
           {selectedSubChapter && <><ChevronRight className="h-3 w-3" /><span>{selectedSubChapter}</span></>}
         </div>
-        <h2 className="text-xl font-bold mt-1">Available Readymade Exams</h2>
+        <h2 className="text-base font-bold mt-0.5">Available Readymade Exams</h2>
       </div>
 
       {loadingExams ? (
