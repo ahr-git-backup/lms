@@ -152,7 +152,7 @@ const QuickPracticeLeaderboard = () => {
                         {rc}
                       </span>
                     </div>
-                    <div className="text-[11px] font-black mt-1.5 truncate">{p.name}</div>
+                    <div className="text-[11px] font-black mt-1.5 leading-tight break-words line-clamp-2 px-0.5">{p.name}</div>
                     {p.batch && (
                       <div className="text-[9px] font-bold text-indigo-400 mt-0.5 truncate">
                         {p.batch}

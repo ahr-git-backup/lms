@@ -378,14 +378,16 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       </div>
     );
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
         {subjects.map(subject => (
           <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
-              <Trophy className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent><div className="text-xl font-bold text-primary">{subject}</div></CardContent>
+            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
+                <Trophy className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div className="text-base sm:text-xl font-bold text-primary leading-tight">{subject}</div>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -401,11 +403,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         {loadingChapters ? <div className="text-muted-foreground">Loading chapters...</div>
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
               {chapters.map(chapter => (
                 <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
-                  <CardHeader className="pb-2"><CardTitle className="text-lg">{chapter}</CardTitle></CardHeader>
-                  <CardFooter className="pt-0 text-xs text-primary font-medium">View Exams <ChevronRight className="h-3 w-3 ml-1" /></CardFooter>
+                  <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                    <div className="text-sm font-semibold leading-tight">{chapter}</div>
+                    <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
@@ -424,11 +428,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         </div>
         <h2 className="text-xl font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
             {subChapters.map(sc => (
               <Card key={sc} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubChapter(sc)}>
-                <CardHeader className="pb-2"><CardTitle className="text-lg">{sc}</CardTitle></CardHeader>
-                <CardFooter className="pt-0 text-xs text-primary font-medium">View Exams <ChevronRight className="h-3 w-3 ml-1" /></CardFooter>
+                <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                  <div className="text-sm font-semibold leading-tight">{sc}</div>
+                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
+                </CardContent>
               </Card>
             ))}
           </div>
@@ -476,28 +482,22 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate }: { exams: any[], navigate: any }) => (
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+  <div className="flex flex-col gap-3">
     {exams.map((exam) => (
-      <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+      <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
         onClick={() => { setExamSourceList(exam.id, "/dashboard/readymade"); navigate(`/dashboard/take-exam/${exam.id}`); }}>
-        <CardHeader className="pb-2">
-          <div className="flex justify-between items-start gap-2">
-            <div className="space-y-1">
-              <p className="text-xs font-mono uppercase text-muted-foreground">{exam.course?.name || "Public"}</p>
-              <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">{exam.title}</CardTitle>
+        <CardContent className="px-4 py-3.5 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-mono uppercase text-muted-foreground">{exam.course?.name || "Public"}</p>
+            <p className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{exam.title}</p>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
+              <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
+              <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
+              <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
             </div>
-            <Badge variant="outline" className="shrink-0 text-blue-500 border-blue-200">Readymade</Badge>
           </div>
-        </CardHeader>
-        <CardContent className="flex-1">
-          <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-            <div className="flex items-center gap-2"><Clock className="h-4 w-4" /><span>{exam.duration_minutes} min</span></div>
-            <div className="flex items-center gap-2"><CheckCircle className="h-4 w-4" /><span>{exam.questions_count?.[0]?.count || 0} Questions</span></div>
-          </div>
+          <Button size="sm" className="shrink-0 group-hover:bg-primary/90">Start</Button>
         </CardContent>
-        <CardFooter className="pt-0 mt-auto border-t pt-4">
-          <Button className="w-full group-hover:bg-primary/90">Start Exam</Button>
-        </CardFooter>
       </Card>
     ))}
   </div>
