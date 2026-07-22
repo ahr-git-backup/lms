@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
@@ -16,6 +16,7 @@ import { useStudyTools } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
+import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
 
 const TakeExam = () => {
   useAntiCheat();
@@ -39,6 +40,10 @@ const TakeExam = () => {
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
+  const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
+  const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
+  const [qpVolMenuOpen, setQpVolMenuOpen] = useState(false);
   // Quick Practice runtime state
   const [qpCurrent, setQpCurrent] = useState(0);
   const [qpAnswers, setQpAnswers] = useState<Record<number, { selected: string | null; correct: boolean; skipped: boolean }>>({});
@@ -299,6 +304,22 @@ const TakeExam = () => {
     const q = qpQuestions[qpCurrent];
     const correct = optionKey === q.correct_option;
     setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: optionKey, correct, skipped: false } }));
+    playSound(correct, qpSoundVol, qpRightPack, qpWrongPack);
+  };
+
+  const qpChangeVol = (v: number) => {
+    setQpSoundVol(v);
+    try { localStorage.setItem("atlas-sound-vol", String(v)); } catch { /* ignore */ }
+  };
+
+  const qpChooseSound = (which: "right" | "wrong", key: string) => {
+    if (which === "right") {
+      setQpRightPack(key);
+      try { localStorage.setItem("qpp-right-pack", key); } catch { /* ignore */ }
+    } else {
+      setQpWrongPack(key);
+      try { localStorage.setItem("qpp-wrong-pack", key); } catch { /* ignore */ }
+    }
   };
 
   const qpCleanupStorage = () => {
@@ -1070,7 +1091,7 @@ const TakeExam = () => {
     ].filter((o) => !!o.text);
 
     return (
-      <div className="bg-background flex flex-col" style={{ minHeight: "100dvh" }}>
+      <div className="bg-background flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
         <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
           <div className="flex-1">
             <div className="text-[11px] text-muted-foreground mb-1">প্রশ্ন {qpCurrent + 1}/{qpQuestions.length}</div>
@@ -1082,6 +1103,70 @@ const TakeExam = () => {
             qpTimeLeft <= 10 ? "border-destructive text-destructive" : "border-violet-400 text-violet-600")}>
             {qpTimeLeft}
           </div>
+
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => setQpVolMenuOpen((v) => !v)}
+              className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
+            >
+              {qpSoundVol <= 0 ? <VolumeX className="h-4 w-4" /> : qpSoundVol < 1 ? <Volume1 className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+            {qpVolMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setQpVolMenuOpen(false)} />
+                <div className="absolute top-11 right-0 z-50 w-[230px] bg-card border rounded-xl p-2.5 shadow-xl flex flex-col gap-2">
+                  <div className="flex gap-1 justify-between pb-2 border-b">
+                    {[0, 0.5, 1, 1.6].map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => qpChangeVol(v)}
+                        className={cn(
+                          "flex-1 text-center py-1.5 rounded-lg text-xs",
+                          qpSoundVol === v ? "bg-primary/15 text-primary" : "hover:bg-muted"
+                        )}
+                      >
+                        {v === 0 ? <VolumeX className="h-4 w-4 mx-auto" /> : v < 1 ? <Volume1 className="h-4 w-4 mx-auto" /> : v === 1 ? <Volume2 className="h-4 w-4 mx-auto" /> : <Volume className="h-4 w-4 mx-auto text-amber-500" />}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-0">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-extrabold text-muted-foreground mb-1">Right</div>
+                      {Object.entries(RIGHT_PACKS).map(([k, p]) => (
+                        <div
+                          key={k}
+                          onClick={() => qpChooseSound("right", k)}
+                          className={cn(
+                            "px-1.5 py-1.5 rounded-md text-[11px] cursor-pointer truncate",
+                            k === qpRightPack ? "bg-primary/15 text-primary font-bold" : "hover:bg-muted"
+                          )}
+                        >
+                          {p.label}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="w-px bg-border mx-1.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[10px] font-extrabold text-muted-foreground mb-1">Wrong</div>
+                      {Object.entries(WRONG_PACKS).map(([k, p]) => (
+                        <div
+                          key={k}
+                          onClick={() => qpChooseSound("wrong", k)}
+                          className={cn(
+                            "px-1.5 py-1.5 rounded-md text-[11px] cursor-pointer truncate",
+                            k === qpWrongPack ? "bg-primary/15 text-primary font-bold" : "hover:bg-muted"
+                          )}
+                        >
+                          {p.label}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={() => { if (confirm("Quick Practice শেষ করবেন?")) { setQpFinished(true); qpCleanupStorage(); } }}
             className="px-3 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-xs shrink-0 whitespace-nowrap"
@@ -1090,7 +1175,7 @@ const TakeExam = () => {
           </button>
         </div>
 
-        <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col">
+        <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col overflow-y-auto pb-24">
           <p className="text-[16px] font-bold leading-relaxed mb-5"><MathText text={q.question_text} /></p>
 
           <div className="flex flex-col gap-2.5">
@@ -1134,7 +1219,7 @@ const TakeExam = () => {
           )}
         </div>
 
-        <div className="sticky bottom-0 left-0 right-0 bg-background border-t px-4 py-3">
+        <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t px-4 py-3">
           <div className="max-w-2xl mx-auto">
             <button
               onClick={qpGoNext}
