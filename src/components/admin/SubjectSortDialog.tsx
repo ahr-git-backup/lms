@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, GripVertical, Save, Loader2 } from "lucide-react";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -19,47 +19,87 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  rectSortingStrategy,
+  verticalListSortingStrategy,
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
 
 interface SubjectSortDialogProps {
   subjects: string[];
   onClose: () => void;
 }
 
-function SortableSubjectItem({ subject }: { subject: string }) {
+function SortableSubjectItem({
+  subject,
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
+}: {
+  subject: string;
+  index: number;
+  total: number;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.8 : 1,
+    opacity: isDragging ? 0.85 : 1,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-3 p-3 bg-card border rounded-md ${
-        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30 text-muted-foreground hover:text-foreground"
-      }`}
+      className={cn(
+        "flex items-center gap-2 p-3 bg-card border rounded-lg mb-2",
+        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30"
+      )}
     >
-      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-1 bg-muted/50 rounded flex-shrink-0 touch-none">
-        <GripVertical className="h-4 w-4" />
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 -m-1 bg-muted/50 rounded flex-shrink-0 touch-none">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
       </div>
+      <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+        {index + 1}
+      </span>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm truncate text-foreground" title={subject}>{subject}</h4>
+        <h4 className="font-medium text-sm leading-snug break-words">{subject}</h4>
+      </div>
+      <div className="flex flex-col gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move up"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={index === total - 1}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move down"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
 }
 
-// Drag subjects freely into any grid position — left/right/up/down.
-// Order is saved as a flat sequence which the grid then lays out
-// left-to-right, top-to-bottom, so position in the list == position on screen.
+// Simple vertical reorder list — full subject names are always visible (no truncation,
+// no side-to-side empty space from a grid). Two ways to reorder, whichever feels easier:
+// 1) Drag the grip handle up/down
+// 2) Tap the up/down arrow buttons — foolproof on touch, no drag gesture needed at all
+// Position in this list == display order on the actual page (grid fills left-to-right,
+// top-to-bottom), so #1 becomes the top-left card, #2 next to it, etc.
 export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps) {
   const [items, setItems] = useState<string[]>([]);
   const [isModified, setIsModified] = useState(false);
@@ -91,6 +131,15 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
     }
   };
 
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      setIsModified(true);
+      return arrayMove(prev, index, newIndex);
+    });
+  };
+
   const saveOrderMutation = useMutation({
     mutationFn: async (orderedItems: string[]) => {
       const { error } = await supabase
@@ -115,7 +164,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         <div>
           <CardTitle>Organize Subjects</CardTitle>
           <CardDescription>
-            Drag and drop to reorder subjects. Grid fills left-to-right, top-to-bottom — dragging a card left/right/up/down moves it to that position for students.
+            Drag the grip handle, or tap the up/down arrows — position here becomes each subject's position in the grid students see.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
@@ -144,17 +193,22 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 min-h-0 bg-muted/10 rounded-md border p-2">
+        <div className="flex-1 overflow-y-auto pr-1 min-h-0 bg-muted/10 rounded-md border p-2">
           {items.length === 0 ? (
             <div className="text-center p-8 text-muted-foreground">No subjects available.</div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={items} strategy={rectSortingStrategy}>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-                  {items.map((subject) => (
-                    <SortableSubjectItem key={subject} subject={subject} />
-                  ))}
-                </div>
+              <SortableContext items={items} strategy={verticalListSortingStrategy}>
+                {items.map((subject, index) => (
+                  <SortableSubjectItem
+                    key={subject}
+                    subject={subject}
+                    index={index}
+                    total={items.length}
+                    onMoveUp={() => moveItem(index, -1)}
+                    onMoveDown={() => moveItem(index, 1)}
+                  />
+                ))}
               </SortableContext>
             </DndContext>
           )}
