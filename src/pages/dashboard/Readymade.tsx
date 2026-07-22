@@ -12,6 +12,7 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
+import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 
 const PAGE_SIZE = 15;
 
@@ -28,6 +29,8 @@ const Readymade = () => {
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
   const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
+  const [currentSubjectsList, setCurrentSubjectsList] = useState<string[]>([]);
+  const [manageSubjects, setManageSubjects] = useState(false);
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -167,6 +170,13 @@ const Readymade = () => {
         </div>
       </div>
 
+      {isAdmin && !selectedSubject && currentSubjectsList.length > 0 && (
+        <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
+          <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
+          <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subject Position</Button>
+        </div>
+      )}
+
       {isAdmin && selectedChapter && (
         <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
           <div className="text-sm font-medium mr-auto self-center">Admin Controls:</div>
@@ -201,6 +211,11 @@ const Readymade = () => {
           contextName="Readymade Exams"
           onClose={() => setManageChapters(false)}
         />
+      ) : manageSubjects ? (
+        <SubjectSortDialog
+          subjects={currentSubjectsList}
+          onClose={() => setManageSubjects(false)}
+        />
       ) : (
         <ReadymadeExamView
           enrollments={enrollments}
@@ -216,6 +231,7 @@ const Readymade = () => {
           setPage={setPage}
           selectedParentTopics={selectedParentTopics}
           setCurrentChaptersList={setCurrentChaptersList}
+          setCurrentSubjectsList={setCurrentSubjectsList}
         />
       )}
     </div>
@@ -223,7 +239,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, setCurrentChaptersList }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, setCurrentChaptersList, setCurrentSubjectsList }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
   const filterOrClause = buildEnrollmentFilter(enrolledIds);
@@ -315,6 +331,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
+  useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
