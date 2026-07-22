@@ -164,9 +164,14 @@ const ExamCreator = () => {
         data = JSON.parse(JSON.stringify(questions[index])); // Deep copy
     }
     setActiveForm({ index, type, data });
-    setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }, 50);
+    if (type !== 'edit') {
+        // 'initial'/'above'/'below' forms render at the top of the page.
+        setTimeout(() => {
+            window.scrollTo({ top: 0, behavior: "smooth" });
+        }, 50);
+    }
+    // 'edit' form renders inline at the question's own position — don't
+    // scroll away from it.
   };
 
   const handleSaveQuestion = () => {
@@ -307,11 +312,20 @@ const ExamCreator = () => {
 
       } catch (err) {
         console.error("Save error:", err);
-        if (err instanceof Error) {
-            toast({ title: "Error saving questions", description: err.message, variant: "destructive" });
-        } else {
-             toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+        const raw = err instanceof Error ? err.message : String(err);
+        let desc = raw;
+        if (/duplicate key|unique constraint/i.test(raw)) {
+          desc = "একই প্রশ্নের ইনডেক্স দুইবার সেভ হচ্ছে। পেজ রিফ্রেশ করে আবার Save করো।";
+        } else if (/violates not-null constraint/i.test(raw)) {
+          desc = "কোনো একটি প্রশ্নে Question, Option A/B/C/D, বা Correct Answer খালি আছে — সব ঘর পূরণ করে আবার Save করো।";
+        } else if (/permission denied|row-level security/i.test(raw)) {
+          desc = "পারমিশন সমস্যা — লগআউট করে আবার লগইন করে Save করো।";
+        } else if (/JWT|expired/i.test(raw)) {
+          desc = "সেশন মেয়াদ শেষ হয়ে গেছে — পেজ রিফ্রেশ করে আবার লগইন করে Save করো।";
+        } else if (/network|fetch/i.test(raw)) {
+          desc = "ইন্টারনেট কানেকশন সমস্যা — কানেকশন চেক করে আবার Save করো।";
         }
+        toast({ title: "Save ব্যর্থ হয়েছে", description: desc, variant: "destructive", duration: 8000 });
       } finally {
           setIsSaving(false);
       }
