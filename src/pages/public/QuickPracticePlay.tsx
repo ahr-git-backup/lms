@@ -1,12 +1,99 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const ReportMcqDialog = ({
+  mcqId,
+  questionText,
+  open,
+  onOpenChange,
+}: {
+  mcqId: number;
+  questionText: string;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [reportText, setReportText] = useState("");
+  const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async () => {
+    if (!user || !reportText.trim()) return;
+    setSubmitting(true);
+    const { error } = await supabase.from("qp_question_reports").insert({
+      mcq_id: mcqId,
+      user_id: user.id,
+      report_text: reportText.trim(),
+      suggested_correct_option: suggestedOption,
+    });
+    setSubmitting(false);
+    if (error) {
+      toast({ title: "রিপোর্ট পাঠানো যায়নি", variant: "destructive" });
+      return;
+    }
+    toast({ title: "রিপোর্ট পাঠানো হয়েছে", description: "ধন্যবাদ, আমরা দেখে নেব।" });
+    setReportText("");
+    setSuggestedOption(undefined);
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>প্রশ্নে সমস্যা রিপোর্ট করুন</DialogTitle>
+          <DialogDescription>এই প্রশ্নে কোনো ভুল পেয়েছেন? আমাদের জানান।</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="text-sm text-muted-foreground line-clamp-2 italic bg-muted p-2 rounded">
+            {questionText}
+          </div>
+          <div className="space-y-2">
+            <Label>সমস্যাটি লিখুন</Label>
+            <Textarea
+              placeholder="কী ভুল আছে ব্যাখ্যা করুন..."
+              value={reportText}
+              onChange={(e) => setReportText(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>সঠিক উত্তর (ঐচ্ছিক)</Label>
+            <Select value={suggestedOption} onValueChange={setSuggestedOption}>
+              <SelectTrigger>
+                <SelectValue placeholder="সঠিক অপশন বেছে নিন" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">Option A</SelectItem>
+                <SelectItem value="B">Option B</SelectItem>
+                <SelectItem value="C">Option C</SelectItem>
+                <SelectItem value="D">Option D</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>বাতিল</Button>
+          <Button onClick={submit} disabled={!reportText.trim() || submitting}>
+            {submitting ? "পাঠানো হচ্ছে..." : "রিপোর্ট পাঠান"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 interface Mcq {
   id: number;
@@ -50,6 +137,9 @@ const QuickPracticePlay = () => {
   const [volMenuOpen, setVolMenuOpen] = useState(false);
   const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
   const [showDetailSheet, setShowDetailSheet] = useState(false);
+  const [detailFilter, setDetailFilter] = useState<"all" | "right" | "wrong" | "skip">("all");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ id: number; question: string } | null>(null);
 
   const sessionCorrect = useMemo(() => answered.filter((a) => a?.correct).length, [answered]);
   const sessionWrong = useMemo(
@@ -383,24 +473,63 @@ const QuickPracticePlay = () => {
               </button>
               <h2 className="font-extrabold text-sm">উত্তরপত্র বিশ্লেষণ</h2>
             </div>
+            <div className="flex gap-2 px-4 pt-3 pb-1 max-w-2xl w-full mx-auto overflow-x-auto sticky top-[57px] bg-background z-10">
+              {([
+                ["all", "সব", mcqs.length],
+                ["right", "সঠিক", sessionCorrect],
+                ["wrong", "ভুল", sessionWrong],
+                ["skip", "বাদ", answered.filter((a) => !a).length],
+              ] as const).map(([key, label, count]) => (
+                <button
+                  key={key}
+                  onClick={() => setDetailFilter(key)}
+                  className={cn(
+                    "px-3.5 py-1.5 rounded-full text-xs font-bold border flex-shrink-0",
+                    detailFilter === key ? "bg-primary text-primary-foreground border-primary" : "bg-card"
+                  )}
+                >
+                  {label} ({count})
+                </button>
+              ))}
+            </div>
             <div className="flex-1 overflow-y-auto px-4 py-4 max-w-2xl w-full mx-auto">
               {mcqs.map((m, i) => {
                 const a = answered[i];
+                if (detailFilter === "right" && !a?.correct) return null;
+                if (detailFilter === "wrong" && (!a || a.correct)) return null;
+                if (detailFilter === "skip" && a) return null;
                 return (
                   <div key={m.id} className="mb-5 pb-5 border-b last:border-b-0">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
                         প্রশ্ন {i + 1} · {m.subjectName} · {m.chapterName}
                       </span>
-                      {a?.correct ? (
-                        <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1">
-                          <Check className="h-3.5 w-3.5" /> সঠিক
-                        </span>
-                      ) : (
-                        <span className="text-[11px] font-bold text-destructive flex items-center gap-1">
-                          <X className="h-3.5 w-3.5" /> ভুল
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {a ? (
+                          a.correct ? (
+                            <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1">
+                              <Check className="h-3.5 w-3.5" /> সঠিক
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-bold text-destructive flex items-center gap-1">
+                              <X className="h-3.5 w-3.5" /> ভুল
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-[11px] font-bold text-muted-foreground flex items-center gap-1">
+                            <MinusCircle className="h-3.5 w-3.5" /> বাদ
+                          </span>
+                        )}
+                        <button
+                          onClick={() => {
+                            setReportTarget({ id: m.id, question: m.question });
+                            setReportOpen(true);
+                          }}
+                          className="h-6 w-6 rounded-full flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-destructive"
+                        >
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </div>
                     <p className="text-sm font-bold mb-3">{m.question}</p>
                     <div className="flex flex-col gap-2">
@@ -429,6 +558,14 @@ const QuickPracticePlay = () => {
               })}
             </div>
           </div>
+        )}
+        {reportTarget && (
+          <ReportMcqDialog
+            mcqId={reportTarget.id}
+            questionText={reportTarget.question}
+            open={reportOpen}
+            onOpenChange={setReportOpen}
+          />
         )}
       </div>
     );
@@ -535,16 +672,27 @@ const QuickPracticePlay = () => {
           <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full">
             📘 {q.subjectName} · {q.chapterName}
           </span>
-          <button
-            onClick={() => toggleBookmark(q.id)}
-            className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
-          >
-            {bookmarked.has(q.id) ? (
-              <BookmarkCheck className="h-4 w-4 text-amber-500" />
-            ) : (
-              <Bookmark className="h-4 w-4" />
-            )}
-          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => {
+                setReportTarget({ id: q.id, question: q.question });
+                setReportOpen(true);
+              }}
+              className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-destructive"
+            >
+              <Flag className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => toggleBookmark(q.id)}
+              className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted"
+            >
+              {bookmarked.has(q.id) ? (
+                <BookmarkCheck className="h-4 w-4 text-amber-500" />
+              ) : (
+                <Bookmark className="h-4 w-4" />
+              )}
+            </button>
+          </div>
         </div>
         <p className="text-[16px] font-bold leading-relaxed mb-5">{q.question}</p>
 
@@ -615,6 +763,14 @@ const QuickPracticePlay = () => {
           </button>
         </div>
       </div>
+      {reportTarget && (
+        <ReportMcqDialog
+          mcqId={reportTarget.id}
+          questionText={reportTarget.question}
+          open={reportOpen}
+          onOpenChange={setReportOpen}
+        />
+      )}
     </div>
   );
 };
