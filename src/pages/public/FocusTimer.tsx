@@ -448,7 +448,7 @@ const FocusTimer = () => {
       return;
     }
     if (m === moodRef.current) return;
-    // end current live segment, start a fresh one under the new mood
+    // end current live segment, freeze its elapsed time into that mood's own bucket
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (sessionIdRef.current != null) {
       await supabase.rpc("focus_end_session", {
@@ -458,11 +458,9 @@ const FocusTimer = () => {
     }
     if (moodRef.current === "break") {
       accumulatedBreakRef.current += elapsedRef.current;
-    }
-    if (moodRef.current === "sleep") {
+    } else if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
-    }
-    if (moodRef.current === "study") {
+    } else if (moodRef.current === "study") {
       accumulatedStudyRef.current += elapsedRef.current;
     }
     if (m === "break" && moodRef.current === "study") {
@@ -472,16 +470,28 @@ const FocusTimer = () => {
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: m });
     if (error || data == null) return;
     const id = data as number;
-    elapsedRef.current = 0;
+    // Resume the target mood's timer from where it was left, not from 0.
+    let resumeSecs = 0;
+    if (m === "break") {
+      resumeSecs = accumulatedBreakRef.current;
+      accumulatedBreakRef.current = 0;
+    } else if (m === "sleep") {
+      resumeSecs = sleepSecsRef.current;
+      sleepSecsRef.current = 0;
+    } else if (m === "study") {
+      resumeSecs = accumulatedStudyRef.current;
+      accumulatedStudyRef.current = 0;
+    }
+    elapsedRef.current = resumeSecs;
     pausedRef.current = false;
     sessionIdRef.current = id;
     moodRef.current = m;
     setSessionId(id);
     setMood(m);
-    setElapsed(0);
+    setElapsed(resumeSecs);
     setPaused(false);
     startTicking();
-    saveState({ sessionId: id, mood: m, elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
     const moodStartNames: Record<Mood, string> = { study: "📚 Study", break: "☕ বিরতি", sleep: "😴 ঘুম" };
     setToast(`${moodStartNames[m]} শুরু হলো`);
@@ -502,16 +512,18 @@ const FocusTimer = () => {
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
     if (error || data == null) return;
     const id = data as number;
-    elapsedRef.current = 0;
+    const resumeSecs = accumulatedStudyRef.current;
+    accumulatedStudyRef.current = 0;
+    elapsedRef.current = resumeSecs;
     pausedRef.current = false;
     sessionIdRef.current = id;
     moodRef.current = "study";
     setSessionId(id);
     setMood("study");
-    setElapsed(0);
+    setElapsed(resumeSecs);
     setPaused(false);
     startTicking();
-    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
     setToast("⏰ বিরতির সময় শেষ — Study Mood এ ফিরে এলে");
     setTimeout(() => setToast(null), 4000);
