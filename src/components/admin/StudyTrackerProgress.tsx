@@ -26,22 +26,9 @@ export function StudyTrackerProgress() {
   const { data: rows, isLoading } = useQuery({
     queryKey: ["admin-st-user-progress", progMode],
     queryFn: async () => {
-      const { data, error } = await (supabase.from as any)("st_user_progress")
-        .select("user_id, pct, done_topics, total_topics")
-        .eq("mode", progMode)
-        .order("pct", { ascending: false })
-        .limit(100);
+      const { data, error } = await (supabase.rpc as any)("st_leaderboard", { p_mode: progMode });
       if (error) throw error;
-      const progressRows = data || [];
-      if (!progressRows.length) return [];
-
-      const userIds = progressRows.map((r: any) => r.user_id);
-      const { data: profiles } = await (supabase.from as any)("profiles")
-        .select("id, full_name, batch")
-        .in("id", userIds);
-      const profileMap = new Map((profiles || []).map((p: any) => [p.id, p]));
-
-      return progressRows.map((r: any) => ({ ...r, profile: profileMap.get(r.user_id) }));
+      return data || [];
     },
   });
 
@@ -72,8 +59,8 @@ export function StudyTrackerProgress() {
           <div className="divide-y">
             {rows.map((r: any, i: number) => {
               const rank = i + 1;
-              const name = r.profile?.full_name || "Unknown";
-              const batch = r.profile?.batch || "";
+              const name = r.full_name || "Unknown";
+              const batch = r.hsc_batch || "";
               const initial = (name[0] || "?").toUpperCase();
               const rankColor = rank <= 3 ? RANK_COLORS[rank] : "hsl(var(--muted-foreground))";
               const medal = rank <= 3 ? MEDALS[rank] : rank;
