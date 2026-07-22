@@ -675,7 +675,7 @@ function rotateGroqKeys(keys) {
   return [...healthy, ...unhealthy];
 }
 __name(rotateGroqKeys, "rotateGroqKeys");
-var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.6-27b"];
+var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
 // llama-3.3-70b-versatile and llama-3.1-8b-instant were deprecated by Groq
 // (June 2026); migrated to gpt-oss-120b/gpt-oss-20b/qwen3.6-27b per Groq's
 // official migration guidance.
