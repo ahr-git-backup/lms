@@ -289,18 +289,19 @@ const ExamReview = () => {
   };
 
   const handleStartAllQuickPractice = () => {
-      if (!attempt?.exam_id) return;
+      sessionStorage.setItem("qp_practice_mode", JSON.stringify({ type: "random" }));
       setIsQpDialogOpen(false);
-      navigate(`/dashboard/take-exam/${attempt.exam_id}?qp=1`);
+      navigate("/quick-practice/play");
   };
 
   const handleStartCustomQuickPractice = () => {
       const count = parseInt(qpCustomCount, 10);
-      if (!count || count <= 0 || !attempt?.exam_id) return;
+      if (!count || count <= 0) return;
+      sessionStorage.setItem("qp_practice_mode", JSON.stringify({ type: "random", count }));
       setIsQpDialogOpen(false);
       setQpCustomMode(false);
       setQpCustomCount("");
-      navigate(`/dashboard/take-exam/${attempt.exam_id}?qp=1&count=${count}`);
+      navigate("/quick-practice/play");
   };
 
   const handleSolvePdf = () => {
@@ -408,11 +409,9 @@ const ExamReview = () => {
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                 {exam.is_readymade && (
                  <Button variant="outline" onClick={() => setIsQpDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Sparkles className="h-5 w-5 mr-1.5 text-violet-500 shrink-0" /> <span className="truncate">Quick Practice</span>
                  </Button>
-                 )}
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
