@@ -9,6 +9,7 @@ import {
   ChevronRight,
   Play,
   Check,
+  Bookmark,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -228,6 +229,21 @@ const QuickPractice = () => {
             <div className="text-[10.5px] opacity-75 mt-0.5">Top players দেখো, নিজের rank চেক করো</div>
           </div>
           <ChevronRight className="h-4 w-4 text-amber-950/70" />
+        </button>
+
+        {/* Bookmarks */}
+        <button
+          onClick={() => navigate("/quick-practice/bookmarks")}
+          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-card border shadow-sm hover:shadow-md transition-all"
+        >
+          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+            <Bookmark className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1">
+            <div className="font-extrabold text-[13px]">আমার বুকমার্ক</div>
+            <div className="text-[10.5px] text-muted-foreground mt-0.5">Category wise সেভ করা প্রশ্ন দেখো</div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
         </button>
 
         <div className="flex justify-end">

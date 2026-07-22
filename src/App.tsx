@@ -86,6 +86,7 @@ import SyllabusTracker from "./pages/public/SyllabusTracker";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
 import QuickPracticeLeaderboard from "./pages/public/QuickPracticeLeaderboard";
+import QuickPracticeBookmarks from "./pages/public/QuickPracticeBookmarks";
 import StudentProfileView from "./pages/dashboard/admin/StudentProfileView";
 import StudentCourseResults from "./pages/dashboard/admin/StudentCourseResults";
 import { useEffect } from "react";
@@ -160,6 +161,7 @@ const App = () => {
               <Route path="/quick-practice" element={<ErrorBoundary><QuickPractice /></ErrorBoundary>} />
               <Route path="/quick-practice/play" element={<ErrorBoundary><QuickPracticePlay /></ErrorBoundary>} />
               <Route path="/quick-practice/leaderboard" element={<ErrorBoundary><QuickPracticeLeaderboard /></ErrorBoundary>} />
+              <Route path="/quick-practice/bookmarks" element={<ErrorBoundary><QuickPracticeBookmarks /></ErrorBoundary>} />
               <Route path="/focus-timer" element={<ErrorBoundary><FocusTimer /></ErrorBoundary>} />
               <Route path="/focus-timer/history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/atlas-ai" element={<ErrorBoundary><AtlasAI /></ErrorBoundary>} />

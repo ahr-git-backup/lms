@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +48,8 @@ const QuickPracticePlay = () => {
   const [rightPack, setRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [wrongPack, setWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [volMenuOpen, setVolMenuOpen] = useState(false);
+  const [bookmarked, setBookmarked] = useState<Set<number>>(new Set());
+  const [showDetailSheet, setShowDetailSheet] = useState(false);
 
   const sessionCorrect = useMemo(() => answered.filter((a) => a?.correct).length, [answered]);
   const sessionWrong = useMemo(
@@ -148,6 +150,33 @@ const QuickPracticePlay = () => {
     setCurrent(0);
     setLoading(false);
     saveState(mode, enriched, 0, new Array(enriched.length).fill(null));
+
+    if (user) {
+      const { data: bm } = await supabase
+        .from("qp_bookmarks")
+        .select("mcq_id")
+        .eq("user_id", user.id)
+        .in("mcq_id", enriched.map((m) => m.id));
+      if (bm) setBookmarked(new Set(bm.map((b: any) => b.mcq_id)));
+    }
+  };
+
+  const toggleBookmark = async (mcqId: number) => {
+    if (!user) {
+      toast({ title: "বুকমার্ক করতে লগইন করুন", variant: "destructive" });
+      return;
+    }
+    const isBookmarked = bookmarked.has(mcqId);
+    const next = new Set(bookmarked);
+    if (isBookmarked) {
+      next.delete(mcqId);
+      setBookmarked(next);
+      await supabase.from("qp_bookmarks").delete().eq("user_id", user.id).eq("mcq_id", mcqId);
+    } else {
+      next.add(mcqId);
+      setBookmarked(next);
+      await supabase.from("qp_bookmarks").insert({ user_id: user.id, mcq_id: mcqId });
+    }
   };
 
   const saveState = (mode: any, mcqsArg: Mcq[], currentArg: number, answeredArg: Answered[]) => {
@@ -214,6 +243,17 @@ const QuickPracticePlay = () => {
       try {
         await supabase.rpc("qp_add_points", { p_user_id: user.id, p_points: sessionCorrect });
         const mode = getMode();
+        const details = mcqs.map((m, i) => ({
+          mcq_id: m.id,
+          question: m.question,
+          options: m.options,
+          correct_index: m.correct_index,
+          selected_index: answered[i]?.selectedIdx ?? null,
+          correct: answered[i]?.correct ?? false,
+          explanation: m.explanation,
+          subject_name: m.subjectName,
+          chapter_name: m.chapterName,
+        }));
         await supabase.from("qp_attempts").insert({
           user_id: user.id,
           mode: mode.type,
@@ -221,6 +261,7 @@ const QuickPracticePlay = () => {
           total_questions: attempted,
           correct_count: sessionCorrect,
           points_earned: sessionCorrect,
+          details,
         });
       } catch {
         /* points sync failed, user keeps local result view */
@@ -316,12 +357,79 @@ const QuickPracticePlay = () => {
             <div className="text-[10px] text-muted-foreground mt-0.5">পয়েন্ট</div>
           </div>
         </div>
-        <button
-          onClick={() => navigate("/quick-practice")}
-          className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-md hover:opacity-90"
-        >
-          হোমে ফিরুন
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowDetailSheet(true)}
+            className="px-5 py-3 rounded-full border-2 border-primary text-primary font-bold text-sm shadow-md hover:bg-primary/10 flex items-center gap-2"
+          >
+            <ListChecks className="h-4 w-4" /> Detail Solve Sheet
+          </button>
+          <button
+            onClick={() => navigate("/quick-practice")}
+            className="px-8 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm shadow-md hover:opacity-90"
+          >
+            হোমে ফিরুন
+          </button>
+        </div>
+
+        {showDetailSheet && (
+          <div className="fixed inset-0 z-50 bg-background flex flex-col text-left">
+            <div className="flex items-center gap-3 px-4 py-3 border-b sticky top-0 bg-card z-10">
+              <button
+                onClick={() => setShowDetailSheet(false)}
+                className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <h2 className="font-extrabold text-sm">উত্তরপত্র বিশ্লেষণ</h2>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-4 max-w-2xl w-full mx-auto">
+              {mcqs.map((m, i) => {
+                const a = answered[i];
+                return (
+                  <div key={m.id} className="mb-5 pb-5 border-b last:border-b-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[11px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                        প্রশ্ন {i + 1} · {m.subjectName} · {m.chapterName}
+                      </span>
+                      {a?.correct ? (
+                        <span className="text-[11px] font-bold text-emerald-500 flex items-center gap-1">
+                          <Check className="h-3.5 w-3.5" /> সঠিক
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold text-destructive flex items-center gap-1">
+                          <X className="h-3.5 w-3.5" /> ভুল
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-bold mb-3">{m.question}</p>
+                    <div className="flex flex-col gap-2">
+                      {m.options.map((opt, oi) => {
+                        let cls = "border-border bg-card opacity-60";
+                        if (oi === m.correct_index) cls = "border-emerald-500 bg-emerald-500/10";
+                        else if (a && oi === a.selectedIdx) cls = "border-destructive bg-destructive/10";
+                        return (
+                          <div key={oi} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 text-sm", cls)}>
+                            <span className="h-6 w-6 rounded-md flex items-center justify-center font-extrabold text-[11px] bg-muted flex-shrink-0">
+                              {LETTERS[oi]}
+                            </span>
+                            <span>{opt}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {m.explanation && (
+                      <div className="mt-3 p-3 rounded-xl bg-muted/50 border-l-4 border-primary text-xs leading-relaxed">
+                        <div className="text-[10px] font-extrabold text-primary mb-1">ব্যাখ্যা</div>
+                        {m.explanation}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -423,9 +531,21 @@ const QuickPracticePlay = () => {
       </div>
 
       <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col overflow-y-auto pb-24">
-        <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full mb-4">
-          📘 {q.subjectName} · {q.chapterName}
-        </span>
+        <div className="flex items-center justify-between mb-4">
+          <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full">
+            📘 {q.subjectName} · {q.chapterName}
+          </span>
+          <button
+            onClick={() => toggleBookmark(q.id)}
+            className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
+          >
+            {bookmarked.has(q.id) ? (
+              <BookmarkCheck className="h-4 w-4 text-amber-500" />
+            ) : (
+              <Bookmark className="h-4 w-4" />
+            )}
+          </button>
+        </div>
         <p className="text-[16px] font-bold leading-relaxed mb-5">{q.question}</p>
 
         <div className="flex flex-col gap-2.5">
