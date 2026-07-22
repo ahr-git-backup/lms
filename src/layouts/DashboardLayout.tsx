@@ -348,17 +348,6 @@ export const DashboardLayout = () => {
                 Logout
               </Button>
 
-              {/* Announcements Icon (Mobile) */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sm:hidden relative"
-                onClick={() => navigate("/dashboard/announcements")}
-              >
-                <Megaphone className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 hidden" id="mobile-announcement-dot" />
-              </Button>
-
               {/* Notification Audio Element */}
               <audio id="notification-sound-loop" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" loop className="hidden" />
 
