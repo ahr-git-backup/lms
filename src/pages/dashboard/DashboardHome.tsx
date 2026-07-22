@@ -200,7 +200,6 @@ const DashboardHome = () => {
 
   const navigationItems = [
       { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
-      { title: "Notice", icon: Bell, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/announcements" },
       { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
       { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
