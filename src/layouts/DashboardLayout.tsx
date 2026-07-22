@@ -16,13 +16,14 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
-  const { profile, signOut, isAdmin, isTeacher } = useAuth();
+  const { profile, signOut, isAdmin, isTeacher, user } = useAuth();
   const { sendNotification, permission, requestPermission } = useNotification();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
@@ -30,6 +31,31 @@ export const DashboardLayout = () => {
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
   const [isDevMode, setIsDevMode] = useState(() => localStorage.getItem("dev_mode") === "true");
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+
+  useEffect(() => {
+    const updateCount = () => {
+      const stored = localStorage.getItem("unread_notification_count");
+      setUnreadNoticeCount(stored ? parseInt(stored, 10) : 0);
+    };
+    updateCount();
+    window.addEventListener("unread-notifications-updated", updateCount);
+    return () => window.removeEventListener("unread-notifications-updated", updateCount);
+  }, []);
+
+  const { data: qpPoints } = useQuery({
+    queryKey: ["qp-user-points", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_user_points")
+        .select("total_points")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) return 0;
+      return data?.total_points ?? 0;
+    },
+  });
 
   useEffect(() => {
     localStorage.setItem("admin_sound_muted", String(isMuted));
@@ -247,6 +273,28 @@ export const DashboardLayout = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/quick-practice")}
+                className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-2 py-1 transition-all"
+                title="Quick Practice Points"
+              >
+                <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
+              </button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative shrink-0"
+                aria-label="Notifications"
+                onClick={() => navigate("/dashboard/announcements")}
+              >
+                <Bell className="h-4 w-4" />
+                {unreadNoticeCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
+                    {unreadNoticeCount > 9 ? "9+" : unreadNoticeCount}
+                  </span>
+                )}
+              </Button>
               {isAdmin && (
                 <>
                   <Button

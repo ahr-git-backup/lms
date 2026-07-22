@@ -218,18 +218,7 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex justify-end">
-        <button
-          onClick={() => navigate("/quick-practice")}
-          className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-2 py-1 transition-all"
-          title="Quick Practice Points"
-        >
-          <Trophy className="h-3.5 w-3.5 text-amber-500" />
-          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
-        </button>
-      </div>
-
+    <div className="space-y-4 animate-in fade-in duration-500">
       <Card className="w-full">
         <CardContent className="p-3 flex flex-col items-center gap-2">
           <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
