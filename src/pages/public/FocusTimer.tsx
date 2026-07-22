@@ -414,7 +414,8 @@ const FocusTimer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Tapping a mood button: if Study is actively running, confirm before switching away.
+  // Tapping a mood button switches instantly — AtlasApp's confirmation popup exists in
+  // markup but is never actually triggered in the real code, so real behavior is instant switch.
   const requestSwitchMood = (m: Mood) => {
     if (!running) {
       setToast("⚠️ আগে পড়াশোনা শুরু করো");
