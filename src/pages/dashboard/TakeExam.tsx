@@ -223,7 +223,7 @@ const TakeExam = () => {
 
   // Quick Practice Mode needs correct_option + explanation up-front (instant feedback),
   // so it uses a dedicated RPC restricted to readymade exams only.
-  const { data: practiceQuestions, isLoading: practiceQuestionsLoading } = useQuery({
+  const { data: practiceQuestions, isLoading: practiceQuestionsLoading, error: practiceQuestionsError } = useQuery({
     queryKey: ["exam-questions-practice", examId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_exam_questions_practice", {
@@ -234,6 +234,7 @@ const TakeExam = () => {
       return data;
     },
     enabled: isQuickPracticeMode && !!exam?.is_readymade && !exam?.external_exam_link && !!user?.id,
+    retry: 1,
   });
 
   // Detect questions with images or Roman-numeral/multi-part (উদ্দীপক-style) content.
@@ -757,15 +758,15 @@ const TakeExam = () => {
                               type="button"
                               onClick={() => setIsQuickPracticeMode((v) => !v)}
                               className={cn(
-                                  "shrink-0 h-7 w-12 rounded-full relative transition-colors",
-                                  isQuickPracticeMode ? "bg-violet-500" : "bg-muted"
+                                  "shrink-0 h-7 w-[52px] rounded-full relative transition-colors shadow-inner",
+                                  isQuickPracticeMode ? "bg-violet-500" : "bg-muted border border-border"
                               )}
                               aria-label="Toggle Quick Practice Mode"
                           >
                               <span
                                   className={cn(
-                                      "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                                      isQuickPracticeMode ? "translate-x-5" : "translate-x-0.5"
+                                      "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                      isQuickPracticeMode ? "translate-x-[22px]" : "translate-x-0"
                                   )}
                               />
                           </button>
@@ -981,6 +982,25 @@ const TakeExam = () => {
 
   // Quick Practice Mode: dedicated quiz-style UI (30s/question, instant feedback, end anytime)
   if (isQuickPracticeMode && exam?.is_readymade) {
+    if (practiceQuestionsError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <AlertTriangle className="h-8 w-8 text-destructive" />
+          <p className="text-sm font-semibold">Quick Practice লোড করা যায়নি।</p>
+          <p className="text-xs text-muted-foreground max-w-xs">Database migration (get_exam_questions_practice) রান করা হয়েছে কিনা চেক করুন, তারপর আবার চেষ্টা করুন।</p>
+          <Button variant="outline" onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+        </div>
+      );
+    }
+    if (!practiceQuestionsLoading && practiceQuestions && practiceQuestions.length === 0) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
+          <AlertTriangle className="h-8 w-8 text-amber-500" />
+          <p className="text-sm font-semibold">এই পরীক্ষায় কোনো প্রশ্ন পাওয়া যায়নি।</p>
+          <Button variant="outline" onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+        </div>
+      );
+    }
     if (practiceQuestionsLoading || qpQuestions.length === 0) {
       return (
         <div className="min-h-screen flex items-center justify-center">
