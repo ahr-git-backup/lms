@@ -354,8 +354,8 @@ function sleep(ms: number) {
 // kono ekta try success hole shathe shathe result dekhano hoy, r shudhu shob
 // koyta try-i fail korle (truly rare — real outage) tobei friendly "busy" message
 // dekhano hoy. Erokom-e user proyoget kokhono raw/mid-way failure dekhena.
-const MAX_CLIENT_RETRIES = 3;
-const RETRY_DELAY_MS = 1500;
+const MAX_CLIENT_RETRIES = 4;
+const RETRY_DELAY_MS = 1200;
 
 export async function askAI(
   question: string,
