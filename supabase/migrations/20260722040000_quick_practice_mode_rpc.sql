@@ -21,31 +21,29 @@ DECLARE
   v_exam_course_id uuid;
   v_is_visible_on_free boolean;
   v_shared_course_ids uuid[];
+  v_readymade_course_ids uuid[];
   v_is_readymade boolean;
   v_has_access boolean := false;
 BEGIN
-  SELECT ex.course_id, ex.is_visible_on_free, ex.shared_course_ids, ex.is_readymade
-  INTO v_exam_course_id, v_is_visible_on_free, v_shared_course_ids, v_is_readymade
+  SELECT ex.course_id, ex.is_visible_on_free, ex.shared_course_ids, ex.readymade_course_ids, ex.is_readymade
+  INTO v_exam_course_id, v_is_visible_on_free, v_shared_course_ids, v_readymade_course_ids, v_is_readymade
   FROM public.exams ex
   WHERE ex.id = p_exam_id;
 
-  -- Only readymade exams are allowed to expose answers via this practice RPC.
   IF v_is_readymade IS NOT TRUE THEN
     RETURN;
   END IF;
 
-  IF v_exam_course_id IS NULL THEN
-    IF v_is_visible_on_free IS TRUE THEN
-      v_has_access := true;
-    END IF;
-  ELSE
-    IF NOT v_has_access THEN
-      SELECT EXISTS (
-        SELECT 1 FROM public.enrollments en
-        WHERE en.profile_id = p_user_id
-        AND en.course_id = v_exam_course_id
-      ) INTO v_has_access;
-    END IF;
+  IF v_is_visible_on_free IS TRUE THEN
+    v_has_access := true;
+  END IF;
+
+  IF NOT v_has_access AND v_exam_course_id IS NOT NULL THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.enrollments en
+      WHERE en.profile_id = p_user_id
+      AND en.course_id = v_exam_course_id
+    ) INTO v_has_access;
 
     IF NOT v_has_access THEN
       SELECT EXISTS (
@@ -57,14 +55,25 @@ BEGIN
         AND v_exam_course_id::text = ANY(COALESCE(c.linked_course_ids, '{}')::text[])
       ) INTO v_has_access;
     END IF;
+  END IF;
 
-    IF NOT v_has_access AND v_shared_course_ids IS NOT NULL THEN
-      SELECT EXISTS (
-        SELECT 1 FROM public.enrollments en_shared
-        WHERE en_shared.profile_id = p_user_id
-        AND en_shared.course_id = ANY(v_shared_course_ids)
-      ) INTO v_has_access;
-    END IF;
+  IF NOT v_has_access AND v_shared_course_ids IS NOT NULL AND array_length(v_shared_course_ids, 1) > 0 THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.enrollments en_shared
+      WHERE en_shared.profile_id = p_user_id
+      AND en_shared.course_id = ANY(v_shared_course_ids)
+    ) INTO v_has_access;
+  END IF;
+
+  -- Readymade exams can also be granted access via readymade_course_ids
+  -- (a set of courses whose enrollees can access this readymade exam even
+  -- though the exam itself has no direct course_id).
+  IF NOT v_has_access AND v_readymade_course_ids IS NOT NULL AND array_length(v_readymade_course_ids, 1) > 0 THEN
+    SELECT EXISTS (
+      SELECT 1 FROM public.enrollments en_rm
+      WHERE en_rm.profile_id = p_user_id
+      AND en_rm.course_id = ANY(v_readymade_course_ids)
+    ) INTO v_has_access;
   END IF;
 
   IF v_has_access THEN
