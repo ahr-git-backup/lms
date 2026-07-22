@@ -79,6 +79,19 @@ const QuickPractice = () => {
     },
   });
 
+  const { data: bookmarkCount } = useQuery({
+    queryKey: ["qp-bookmark-count", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("qp_bookmarks")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user!.id);
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
   const fetchChaptersWithCounts = async (subjectId: number): Promise<QpChapter[]> => {
     const { data: chapters, error } = await supabase
       .from("qp_chapters")
@@ -192,9 +205,14 @@ const QuickPractice = () => {
         </h1>
         <button
           onClick={() => navigate("/quick-practice/bookmarks")}
-          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+          className="flex flex-col items-center gap-0.5"
         >
-          <Bookmark className="h-4 w-4" />
+          <span className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition-colors">
+            <Bookmark className={cn("h-4 w-4", (bookmarkCount ?? 0) > 0 && "fill-current text-amber-500")} />
+          </span>
+          <span className="text-[8px] font-semibold text-muted-foreground leading-none">
+            বুকমার্ক{typeof bookmarkCount === "number" && bookmarkCount > 0 ? ` (${bookmarkCount})` : ""}
+          </span>
         </button>
         <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-extrabold text-xs px-3 py-1.5 rounded-full shadow-sm">
           <Trophy className="h-3.5 w-3.5" /> {pointsData ?? 0}
