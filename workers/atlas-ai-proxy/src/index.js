@@ -680,7 +680,11 @@ var GROQ_TEXT_MODELS = ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3
 // (June 2026); migrated to gpt-oss-120b/gpt-oss-20b/qwen3.6-27b per Groq's
 // official migration guidance.
 var GROQ_TEXT_MODELS_PLAIN = ["openai/gpt-oss-120b", "openai/gpt-oss-20b"];
-var GROQ_IMAGE_MODELS = ["meta-llama/llama-4-maverick-17b-128e-instruct", "meta-llama/llama-4-scout-17b-16e-instruct"];
+var GROQ_IMAGE_MODELS = ["qwen/qwen3.6-27b"];
+// meta-llama/llama-4-maverick-17b-128e-instruct (deprecated Feb 20, 2026) and
+// meta-llama/llama-4-scout-17b-16e-instruct (deprecated Jun 17, 2026) were
+// Groq's vision models; both retired. qwen/qwen3.6-27b is Groq's current
+// vision-capable (multimodal) model per their official vision docs.
 var GROQ_MCQ_JSON_SCHEMA = {
   name: "mcq_list",
   strict: true,
