@@ -48,13 +48,18 @@ interface ChatSession {
 
 const HISTORY_KEY = "atlas_ai_chat_sessions";
 const LAST_ACTIVE_KEY = "atlas_ai_last_session_id";
+const SESSION_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000; // 3 din er purono chat auto-delete
 
 function loadSessions(): ChatSession[] {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    const cutoff = Date.now() - SESSION_MAX_AGE_MS;
+    const fresh = parsed.filter((s: ChatSession) => s.updatedAt >= cutoff);
+    if (fresh.length !== parsed.length) saveSessions(fresh);
+    return fresh;
   } catch {
     return [];
   }
@@ -65,6 +70,25 @@ function saveSessions(sessions: ChatSession[]) {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(0, 50)));
   } catch {
     /* storage full or unavailable — ignore */
+  }
+}
+
+const USER_MEMORY_KEY = "atlas_ai_user_memory";
+const USER_MEMORY_MSG_COUNT_KEY = "atlas_ai_user_memory_msg_count";
+
+function loadUserMemory(): string {
+  try {
+    return localStorage.getItem(USER_MEMORY_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+function saveUserMemory(note: string) {
+  try {
+    localStorage.setItem(USER_MEMORY_KEY, note.slice(0, 1500));
+  } catch {
+    /* ignore */
   }
 }
 
@@ -124,7 +148,7 @@ function detectSubject(qRaw: string) {
   return "general";
 }
 
-export function getSystemPrompt(question: string) {
+export function getSystemPrompt(question: string, userMemoryNote?: string) {
   const subj = detectSubject(question);
   const isMCQ =
     /\(ক\)|\(খ\)|\(গ\)|\(ঘ\)|ক\)|খ\)|গ\)|ঘ\)|A\)|B\)|C\)|D\)|[Aa][.)]|[Bb][.)]|[Cc][.)]|[Dd][.)]/.test(
@@ -151,6 +175,7 @@ export function getSystemPrompt(question: string) {
 - ATLAS AI-কে তৈরি করেছেন Amir Hamza Rafi।
 - তিনি MBBS ৪র্থ বর্ষের ছাত্র, Sylhet MAG Osmani Medical College-এ পড়াশোনা করছেন।
 - ইউজার যদি "তোমাকে কে বানিয়েছে", "ডেভেলপার কে", "মালিক/এডমিন কে" এই ধরনের প্রশ্ন করে, স্পষ্টভাবে উপরের তথ্য দিয়ে উত্তর দিবে, ঘুরিয়ে-প্যাঁচিয়ে বা অস্বীকার করে বলবে না।
+${userMemoryNote ? `\nএই ইউজার সম্পর্কে আগের কথোপকথন থেকে যা জানা গেছে (habit/পছন্দ বুঝতে ব্যবহার করবে, সরাসরি উল্লেখ করবে না):\n${userMemoryNote}\n` : ""}
 
 গাণিতিক/রাসায়নিক সূত্র লেখার নিয়ম (কঠোরভাবে মানতে হবে):
 - কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
@@ -374,6 +399,52 @@ function stripMarkdownHeadings(text: string): string {
     .replace(/`/g, "");
 }
 
+/** ইউজারের কথাবার্তা থেকে habit/পছন্দ বুঝে একটা ছোট মেমোরি নোট বানিয়ে/আপডেট করে
+ *  localStorage-এ রাখে, যাতে ভবিষ্যতের কথোপকথনে সেটা মাথায় রেখে reply দেওয়া যায়।
+ *  Token বাঁচাতে প্রতি ৮টা মেসেজে একবার (fire-and-forget, UI ব্লক করে না) আপডেট হয়। */
+function updateUserMemoryIfDue(allMessages: ChatMsg[]) {
+  const count = allMessages.length;
+  let lastCount = 0;
+  try {
+    lastCount = Number(localStorage.getItem(USER_MEMORY_MSG_COUNT_KEY) || "0");
+  } catch {
+    /* ignore */
+  }
+  if (count - lastCount < 8) return;
+  try {
+    localStorage.setItem(USER_MEMORY_MSG_COUNT_KEY, String(count));
+  } catch {
+    /* ignore */
+  }
+
+  const existing = loadUserMemory();
+  const recentText = allMessages
+    .slice(-16)
+    .map((m) => `${m.role === "user" ? "ইউজার" : "AI"}: ${m.text}`)
+    .join("\n");
+
+  const summarizePrompt = `নিচের কথোপকথন থেকে ইউজারের habit/পছন্দ/পড়াশোনার ধরন সম্পর্কে সংক্ষিপ্ত কিছু নোট বের করো (যেমন: কোন বিষয়ে বেশি প্রশ্ন করে, কোন সময় পড়াশোনা করে, কেমন ভাষা/স্টাইলে কথা বলে, কী নিয়ে দুশ্চিন্তায় থাকে ইত্যাদি — শুধু যা স্পষ্টভাবে বোঝা যায় তাই)। আগের নোট থাকলে তার সাথে মিলিয়ে আপডেট করা একটা সংক্ষিপ্ত (সর্বোচ্চ ৮-১০ লাইন) বুলেট-স্টাইল নোট বাংলায় দাও, অন্য কিছু লিখো না।
+
+আগের নোট:
+${existing || "(নেই)"}
+
+সাম্প্রতিক কথোপকথন:
+${recentText}`;
+
+  askAI(
+    summarizePrompt,
+    null,
+    "তুমি একজন সহকারী যে ইউজারের চ্যাট থেকে সংক্ষিপ্ত habit নোট তৈরি করো। শুধু নোটটুকু লিখবে, কোনো ভূমিকা/উপসংহার লিখবে না।"
+  )
+    .then((note) => {
+      const cleaned = note.replace(/^❌.*$/gm, "").trim();
+      if (cleaned) saveUserMemory(cleaned);
+    })
+    .catch(() => {
+      /* best-effort, silently ignore failures */
+    });
+}
+
 export function renderAnswer(rawText: string) {
   const text = stripMarkdownHeadings(sanitizeLatex(ensurePlainText(rawText)));
   // Render ✅ / ❌ / 💡 prefixed lines with icon + colored accent, rest as plain paragraphs.
@@ -518,8 +589,17 @@ const AtlasAI = () => {
       ? `${historyBlock}এখন ইউজারের নতুন মেসেজ (আগের কথোপকথনের সাথে সম্পর্কিত কিনা বুঝে উত্তর দাও):\n${question}`
       : question;
 
-    const answer = await askAI(questionWithContext, imgToSend, getSystemPrompt(question || "ছবি বিশ্লেষণ করো"));
-    setMessages((m) => [...m, { role: "assistant", text: answer }]);
+    const userMemoryNote = loadUserMemory();
+    const answer = await askAI(
+      questionWithContext,
+      imgToSend,
+      getSystemPrompt(question || "ছবি বিশ্লেষণ করো", userMemoryNote || undefined)
+    );
+    setMessages((m) => {
+      const next = [...m, { role: "assistant" as const, text: answer }];
+      updateUserMemoryIfDue(next);
+      return next;
+    });
     setBusy(false);
   };
 
