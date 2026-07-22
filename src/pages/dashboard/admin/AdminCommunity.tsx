@@ -16,6 +16,7 @@ const AdminCommunity = () => {
     const queryClient = useQueryClient();
     const [page, setPage] = useState(0);
     const [selectedCourse, setSelectedCourse] = useState<string>("all");
+    const [platformFilter, setPlatformFilter] = useState<"all" | "facebook" | "telegram">("all");
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [editingResource, setEditingResource] = useState<any>(null);
     const [showForm, setShowForm] = useState(false);
@@ -70,6 +71,13 @@ const AdminCommunity = () => {
         if (url.includes("wa.me") || url.includes("whatsapp")) return { name: "WhatsApp", icon: <MessageCircle className="h-3 w-3" />, color: "bg-green-600" };
         return { name: "Link", icon: <LinkIcon className="h-3 w-3" />, color: "bg-gray-500" };
     };
+
+    const filteredResources = resources.filter((res) => {
+        if (platformFilter === "all") return true;
+        if (platformFilter === "telegram") return res.url.includes("t.me");
+        if (platformFilter === "facebook") return res.url.includes("facebook") || res.url.includes("fb.me");
+        return true;
+    });
 
     const handleEdit = (res: any) => {
         setEditingResource(res);
@@ -142,11 +150,27 @@ const AdminCommunity = () => {
                             </SelectContent>
                         </Select>
                     </div>
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 pt-2 -mx-2 px-2 sm:mx-0 sm:px-0">
+                        {([
+                            { key: "all", label: "All" },
+                            { key: "facebook", label: "Facebook" },
+                            { key: "telegram", label: "Telegram" },
+                        ] as const).map((p) => (
+                            <button
+                                key={p.key}
+                                type="button"
+                                onClick={() => setPlatformFilter(p.key)}
+                                className={`px-3 py-1.5 rounded-full border text-xs font-bold uppercase tracking-wide transition-colors shrink-0 whitespace-nowrap ${platformFilter === p.key ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"}`}
+                            >
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
                 </CardHeader>
                 <CardContent>
                     {isLoading ? (
                         <div className="text-center py-4">Loading...</div>
-                    ) : resources.length === 0 ? (
+                    ) : filteredResources.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">No community links found.</div>
                     ) : (
                         <div className="rounded-md border">
@@ -161,7 +185,7 @@ const AdminCommunity = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {resources.map((res) => {
+                                    {filteredResources.map((res) => {
                                         const platform = getPlatform(res.url);
                                         const extraCount = res.shared_course_ids ? res.shared_course_ids.length : 0;
                                         return (
