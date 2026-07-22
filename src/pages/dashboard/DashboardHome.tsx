@@ -199,10 +199,10 @@ const DashboardHome = () => {
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
+      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
       { title: "Notice", icon: Bell, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/announcements" },
       { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
       { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
-      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
       { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
@@ -272,14 +272,14 @@ const DashboardHome = () => {
       </Dialog>
 
       {/* Smart Tracking System */}
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold tracking-tight text-center">Smart Tracking System</h2>
-        <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-lg border p-3 space-y-2">
+        <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
+        <div className="grid grid-cols-2 gap-2">
           <Card
             className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">My Progress</p>
             </CardContent>
@@ -288,7 +288,7 @@ const DashboardHome = () => {
             className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
             </CardContent>
@@ -297,7 +297,7 @@ const DashboardHome = () => {
             className="cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
             onClick={() => navigate("/study-history")}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">History</p>
             </CardContent>
@@ -306,7 +306,7 @@ const DashboardHome = () => {
             className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             onClick={() => navigate("/quick-practice/leaderboard")}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">Top Performer</p>
             </CardContent>
