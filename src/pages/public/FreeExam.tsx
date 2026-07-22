@@ -18,8 +18,11 @@ interface Exam {
   chapter: string | null;
   exam_type: string;
   duration_minutes: number;
+  free_exam_category: string | null;
   questions_count: { count: number }[];
 }
+
+const FREE_EXAM_CATEGORIES = ["HSC", "Medical", "Varsity", "Onushilon"] as const;
 
 const PAGE_SIZE = 12;
 
@@ -32,6 +35,7 @@ const FreeExam = () => {
   }, []);
 
   // State
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
 
@@ -54,7 +58,7 @@ const FreeExam = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
         .is("course_id", null)
         .eq("is_published", true)
         // @ts-ignore
@@ -88,17 +92,19 @@ const FreeExam = () => {
       enabled: !!debouncedSearch
   });
 
-  // Helper to extract unique subjects
+  // Helper to extract unique subjects (within the selected category)
   const getUniqueSubjects = () => {
     if (!exams) return [];
     const subjects = new Set<string>();
-    exams.forEach(exam => {
-      if (Array.isArray(exam.subject)) {
-        exam.subject.forEach(s => subjects.add(s));
-      } else if (typeof exam.subject === 'string' && exam.subject) {
-        subjects.add(exam.subject);
-      }
-    });
+    exams
+      .filter(exam => !selectedCategory || (exam.free_exam_category || "HSC") === selectedCategory)
+      .forEach(exam => {
+        if (Array.isArray(exam.subject)) {
+          exam.subject.forEach(s => subjects.add(s));
+        } else if (typeof exam.subject === 'string' && exam.subject) {
+          subjects.add(exam.subject);
+        }
+      });
     return Array.from(subjects).sort();
   };
 
@@ -116,6 +122,8 @@ const FreeExam = () => {
           setSelectedChapter(null);
       } else if (selectedSubject) {
           setSelectedSubject(null);
+      } else if (selectedCategory) {
+          setSelectedCategory(null);
       }
   };
 
@@ -247,8 +255,9 @@ const FreeExam = () => {
   // Browse Mode
   const subjects = getUniqueSubjects();
 
-  // Filter exams by selected subject
+  // Filter exams by selected category + subject
   const filteredExams = exams?.filter(exam => {
+    if (selectedCategory && (exam.free_exam_category || "HSC") !== selectedCategory) return false;
     if (!selectedSubject) return true;
     if (Array.isArray(exam.subject)) return exam.subject.includes(selectedSubject);
     return exam.subject === selectedSubject;
@@ -259,12 +268,54 @@ const FreeExam = () => {
       return exam.chapter === selectedChapter;
   });
 
+  // Level 0: Categories (HSC / Medical / Varsity / Onushilon)
+  if (!selectedCategory) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+        {renderHeader()}
+
+        {isLoadingMetadata ? (
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}
+             </div>
+        ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+                {FREE_EXAM_CATEGORIES.map(cat => (
+                    <Card
+                        key={cat}
+                        className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
+                        onClick={() => setSelectedCategory(cat)}
+                    >
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">Type</CardTitle>
+                            <Trophy className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold text-primary mb-1">{cat}</div>
+                            <p className="text-xs text-muted-foreground">
+                                {exams?.filter(e => (e.free_exam_category || "HSC") === cat).length || 0} exams available
+                            </p>
+                        </CardContent>
+                    </Card>
+                ))}
+            </div>
+        )}
+        </main>
+      </div>
+    );
+  }
+
   // Level 1: Subjects
   if (!selectedSubject) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <PublicHeader />
         <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+        <Button variant="ghost" className="mb-4 pl-0 hover:bg-transparent" onClick={handleBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Types
+        </Button>
         {renderHeader()}
 
         {isLoadingMetadata ? (
@@ -390,6 +441,8 @@ const FreeExam = () => {
 
         <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                <span>{selectedCategory}</span>
+                <ChevronRight className="h-3 w-3" />
                 <span>{selectedSubject}</span>
                 {selectedChapter && (
                     <>

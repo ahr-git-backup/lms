@@ -492,6 +492,7 @@ export type Database = {
           subject: string[] | null
           external_exam_link: string | null
           restrict_solution: boolean | null
+          free_exam_category: string
         }
         Insert: {
           course_id: string
@@ -511,6 +512,7 @@ export type Database = {
           subject?: string[] | null
           external_exam_link?: string | null
           restrict_solution?: boolean | null
+          free_exam_category?: string
         }
         Update: {
           course_id?: string
@@ -530,6 +532,7 @@ export type Database = {
           subject?: string[] | null
           external_exam_link?: string | null
           restrict_solution?: boolean | null
+          free_exam_category?: string
         }
         Relationships: [
           {

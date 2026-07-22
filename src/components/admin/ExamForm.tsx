@@ -50,6 +50,7 @@ const examSchema = z.object({
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(true),
+  free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
@@ -104,6 +105,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         time_window_end: "",
         is_published: false,
         is_visible_on_free: true,
+        free_exam_category: "HSC",
         restrict_solution: false,
         questions_json: "",
         questions_csv: "",
@@ -149,6 +151,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? true,
+                free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
                 questions_csv: "",
@@ -284,6 +287,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? true,
+            free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
             is_readymade: parsed.is_readymade ?? false,
@@ -483,6 +487,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: "",
                 is_published: false,
                 is_visible_on_free: true,
+                free_exam_category: "HSC",
                 restrict_solution: false,
                 questions_json: "",
                 questions_csv: "",
@@ -744,6 +749,28 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                           }
                       />
                       <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
+                  </div>
+              )}
+
+              {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
+                  <div className="space-y-2">
+                      <Label htmlFor="free_exam_category">Free Exam Category</Label>
+                      <Select
+                          value={form.free_exam_category}
+                          onValueChange={(value) =>
+                              setForm((prev) => ({ ...prev, free_exam_category: value }))
+                          }
+                      >
+                          <SelectTrigger id="free_exam_category">
+                              <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="HSC">HSC</SelectItem>
+                              <SelectItem value="Medical">Medical</SelectItem>
+                              <SelectItem value="Varsity">Varsity</SelectItem>
+                              <SelectItem value="Onushilon">Onushilon</SelectItem>
+                          </SelectContent>
+                      </Select>
                   </div>
               )}
 
