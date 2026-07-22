@@ -220,10 +220,10 @@ const DashboardHome = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Card className="w-full">
-        <CardContent className="p-4 flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
-            <p className="text-sm text-muted-foreground">
+        <CardContent className="p-3 flex items-center justify-between gap-3">
+          <div className="space-y-0.5">
+            <h1 className="text-lg font-semibold tracking-tight animate-text-fade-sweep">Welcome to Dashboard</h1>
+            <p className="text-xs text-muted-foreground">
               Get a quick overview of your upcoming activities.
             </p>
           </div>
