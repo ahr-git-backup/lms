@@ -220,21 +220,16 @@ const DashboardHome = () => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <Card className="w-full">
-        <CardContent className="p-3 flex items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <h1 className="text-lg font-semibold tracking-tight animate-text-fade-sweep">Welcome to Dashboard</h1>
-            <p className="text-xs text-muted-foreground">
-              Get a quick overview of your upcoming activities.
-            </p>
-          </div>
+        <CardContent className="p-2 flex items-center justify-between gap-3">
+          <h1 className="text-base font-semibold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
           {tutorialVideoUrl && (
             <Button
               size="sm"
               variant="outline"
-              className="shrink-0 gap-1.5"
+              className="shrink-0 gap-1.5 h-7 px-2 text-xs"
               onClick={() => setShowTutorialVideo(true)}
             >
-              <Video className="h-4 w-4 animate-icon-float text-primary" />
+              <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
               Watch Tutorial
             </Button>
           )}
@@ -270,6 +265,133 @@ const DashboardHome = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* 1. Live Activity Section (Priority 1) */}
+      {hasLiveActivity && (
+        <div className="space-y-4">
+           <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
+           </div>
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {activeLiveClasses.map((classItem: any) => (
+                  <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
+                    <CardHeader className="space-y-1 pb-2">
+                      <div className="flex justify-between items-start gap-2">
+                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                              {classItem?.course?.name || "Unknown Course"}
+                          </p>
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                              LIVE CLASS
+                          </span>
+                      </div>
+                      <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
+                      <CardDescription className="text-xs">
+                        Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                          Join Class
+                       </Button>
+                    </CardContent>
+                  </Card>
+              ))}
+
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {activeLiveExams.map((exam: any) => (
+                  <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
+                    <CardHeader className="space-y-1 pb-2">
+                      <div className="flex justify-between items-start gap-2">
+                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                              {exam?.course?.name || "Unknown Course"}
+                          </p>
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                              LIVE EXAM
+                          </span>
+                      </div>
+                      <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
+                      <CardDescription className="text-xs">
+                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                          Take Exam
+                       </Button>
+                    </CardContent>
+                  </Card>
+              ))}
+           </div>
+        </div>
+      )}
+
+      {/* 2. Upcoming Activity Section */}
+      {!hasLiveActivity && hasUpcomingActivity && (
+        <div className="space-y-4">
+           <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {/* Next Live Class Card */}
+                {nextClass && (
+                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Next Live Class</CardTitle>
+                            <CalendarClock className="h-4 w-4 text-primary" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col justify-between">
+                        <div className="mb-4 space-y-1">
+                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {nextClass.course?.name || "Unknown Course"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                    {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        </div>
+                        {nextClass.video_url && (
+                            <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
+                                Join Class
+                            </Button>
+                        )}
+                    </CardContent>
+                </Card>
+                )}
+
+                {/* Upcoming Exam Card */}
+                {nextExam && (
+                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
+                    <CardHeader className="pb-2">
+                        <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Upcoming Exam</CardTitle>
+                            <ListChecks className="h-4 w-4 text-primary" />
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex-1 flex flex-col justify-between">
+                        <div className="mb-4 space-y-1">
+                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
+                            <p className="text-xs text-muted-foreground">
+                                {nextExam.course?.name || "Unknown Course"}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                    {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                            </div>
+                        </div>
+                        <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
+                            View Exams
+                        </Button>
+                    </CardContent>
+                </Card>
+                )}
+           </div>
+        </div>
+      )}
 
       {/* Smart Tracking System */}
       <div className="rounded-lg border p-3 space-y-2">
@@ -483,133 +605,6 @@ const DashboardHome = () => {
             </Card>
           )}
         </>
-      )}
-
-      {/* 1. Live Activity Section (Priority 1) */}
-      {hasLiveActivity && (
-        <div className="space-y-4">
-           <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
-                <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
-           </div>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {activeLiveClasses.map((classItem: any) => (
-                  <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <CardHeader className="space-y-1 pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {classItem?.course?.name || "Unknown Course"}
-                          </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                              LIVE CLASS
-                          </span>
-                      </div>
-                      <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
-                      <CardDescription className="text-xs">
-                        Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/class/${classItem?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Join Class
-                       </Button>
-                    </CardContent>
-                  </Card>
-              ))}
-
-              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-              {activeLiveExams.map((exam: any) => (
-                  <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <CardHeader className="space-y-1 pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {exam?.course?.name || "Unknown Course"}
-                          </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                              LIVE EXAM
-                          </span>
-                      </div>
-                      <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
-                      <CardDescription className="text-xs">
-                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Take Exam
-                       </Button>
-                    </CardContent>
-                  </Card>
-              ))}
-           </div>
-        </div>
-      )}
-
-      {/* 2. Upcoming Activity Section */}
-      {!hasLiveActivity && hasUpcomingActivity && (
-        <div className="space-y-4">
-           <h2 className="text-lg font-semibold tracking-tight">Upcoming Activities</h2>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {/* Next Live Class Card */}
-                {nextClass && (
-                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Next Live Class</CardTitle>
-                            <CalendarClock className="h-4 w-4 text-primary" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between">
-                        <div className="mb-4 space-y-1">
-                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                                {nextClass.course?.name || "Unknown Course"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                    {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                        {nextClass.video_url && (
-                            <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate(`/dashboard/class/${nextClass.id}`)}>
-                                Join Class
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-                )}
-
-                {/* Upcoming Exam Card */}
-                {nextExam && (
-                <Card className="border shadow-sm flex flex-col hover:border-primary/50 transition-colors">
-                    <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Upcoming Exam</CardTitle>
-                            <ListChecks className="h-4 w-4 text-primary" />
-                        </div>
-                    </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-between">
-                        <div className="mb-4 space-y-1">
-                            <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                                {nextExam.course?.name || "Unknown Course"}
-                            </p>
-                            <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
-                                    {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                            </div>
-                        </div>
-                        <Button size="sm" variant="outline" className="w-full mt-auto" onClick={() => navigate('/dashboard/live-exam')}>
-                            View Exams
-                        </Button>
-                    </CardContent>
-                </Card>
-                )}
-           </div>
-        </div>
       )}
 
       {/* 3. Navigation Cards Section */}
