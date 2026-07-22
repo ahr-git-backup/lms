@@ -8,8 +8,11 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyTools } from "@/contexts/StudyToolsContext";
@@ -17,6 +20,79 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
+
+const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
+    const { toast } = useToast();
+    const [reportText, setReportText] = useState("");
+    const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
+    const [isOpen, setIsOpen] = useState(false);
+    const { user } = useAuth();
+
+    const reportMutation = useMutation({
+        mutationFn: async () => {
+            if (!user) throw new Error("Must be logged in");
+            const { error } = await supabase.from("question_reports").insert({
+                question_id: questionId,
+                user_id: user.id,
+                report_text: reportText,
+                suggested_correct_option: suggestedOption
+            });
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast({ title: "Report submitted successfully", description: "Thank you for your feedback." });
+            setReportText("");
+            setSuggestedOption(undefined);
+            setIsOpen(false);
+            onClose();
+        },
+        onError: (error) => {
+            toast({ title: "Failed to submit report", description: error.message, variant: "destructive" });
+        }
+    });
+
+    return (
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500">
+                    <Flag className="h-5 w-5" />
+                </Button>
+            </DialogTrigger>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Report Mistake</DialogTitle>
+                    <DialogDescription>Found an error in this question? Let us know.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                    <div className="text-sm text-muted-foreground line-clamp-2 italic bg-muted p-2 rounded">
+                        <MathText text={questionText} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Describe the issue</Label>
+                        <Textarea placeholder="Explain what is wrong..." value={reportText} onChange={(e) => setReportText(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label>Suggested Correct Option (Optional)</Label>
+                        <Select value={suggestedOption} onValueChange={setSuggestedOption}>
+                            <SelectTrigger><SelectValue placeholder="Select option" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="A">A</SelectItem>
+                                <SelectItem value="B">B</SelectItem>
+                                <SelectItem value="C">C</SelectItem>
+                                <SelectItem value="D">D</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending}>
+                        {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    );
+};
 
 const TakeExam = () => {
   useAntiCheat();
@@ -32,6 +108,30 @@ const TakeExam = () => {
 
   // State
   const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase.from("bookmarks").select("question_id").eq("user_id", user.id);
+      if (data) setBookmarkedIds(new Set(data.map((b: any) => b.question_id)));
+    })();
+  }, [user]);
+
+  const toggleBookmark = async (questionId: string) => {
+    if (!user) return;
+    const isBookmarked = bookmarkedIds.has(questionId);
+    setBookmarkedIds((prev) => {
+      const next = new Set(prev);
+      if (isBookmarked) next.delete(questionId); else next.add(questionId);
+      return next;
+    });
+    if (isBookmarked) {
+      await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId);
+    } else {
+      await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
+    }
+  };
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
@@ -1355,6 +1455,17 @@ const TakeExam = () => {
                             <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
                                 <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                             </div>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center gap-1">
+                            <ReportQuestionDialog questionId={q.id} questionText={q.question_text} onClose={() => {}} />
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+                                onClick={() => toggleBookmark(q.id)}
+                            >
+                                <Bookmark className={cn("h-5 w-5", bookmarkedIds.has(q.id) && "fill-current text-amber-500")} />
+                            </Button>
                         </div>
                     </div>
 
