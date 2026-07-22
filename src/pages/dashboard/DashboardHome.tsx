@@ -54,7 +54,8 @@ const DashboardHome = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
       if (error) throw error;
-      return data?.value as string | null;
+      const v = data?.value;
+      return typeof v === "string" ? v : (v ? String(v) : null);
     },
   });
 

@@ -107,7 +107,8 @@ const AdminClasses = () => {
     queryFn: async () => {
       const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
       if (error) throw error;
-      return data?.value as string | null;
+      const v = data?.value;
+      return typeof v === "string" ? v : (v ? String(v) : null);
     },
   });
 
@@ -117,7 +118,7 @@ const AdminClasses = () => {
 
   const saveTutorialVideoMutation = useMutation({
     mutationFn: async (url: string) => {
-      const { error } = await supabase.from("app_settings").upsert({ key: TUTORIAL_VIDEO_KEY, value: url }, { onConflict: "key" });
+      const { error } = await supabase.from("app_settings").upsert({ key: TUTORIAL_VIDEO_KEY, value: JSON.stringify(url) }, { onConflict: "key" });
       if (error) throw error;
     },
     onSuccess: () => {
