@@ -768,7 +768,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                               <SelectItem value="HSC">HSC</SelectItem>
                               <SelectItem value="Medical">Medical</SelectItem>
                               <SelectItem value="Varsity">Varsity</SelectItem>
-                              <SelectItem value="Onushilon">Onushilon</SelectItem>
+                              <SelectItem value="Onushilon">Onushiloni</SelectItem>
                           </SelectContent>
                       </Select>
                   </div>

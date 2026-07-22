@@ -23,6 +23,8 @@ interface Exam {
 }
 
 const FREE_EXAM_CATEGORIES = ["HSC", "Medical", "Varsity", "Onushilon"] as const;
+const CATEGORY_LABELS: Record<string, string> = { Onushilon: "Onushiloni" };
+const categoryLabel = (cat: string) => CATEGORY_LABELS[cat] || cat;
 
 const PAGE_SIZE = 12;
 
@@ -277,25 +279,22 @@ const FreeExam = () => {
         {renderHeader()}
 
         {isLoadingMetadata ? (
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}
+             <div className="grid grid-cols-4 gap-2 sm:gap-4">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
              </div>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-4 gap-2 sm:gap-4">
                 {FREE_EXAM_CATEGORIES.map(cat => (
                     <Card
                         key={cat}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
                         onClick={() => setSelectedCategory(cat)}
                     >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Type</CardTitle>
+                        <CardContent className="px-2 py-3 sm:px-4 sm:py-4 flex flex-col items-center text-center gap-1">
                             <Trophy className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-primary mb-1">{cat}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {exams?.filter(e => (e.free_exam_category || "HSC") === cat).length || 0} exams available
+                            <div className="text-xs sm:text-lg font-bold text-primary leading-tight">{categoryLabel(cat)}</div>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                                {exams?.filter(e => (e.free_exam_category || "HSC") === cat).length || 0} exams
                             </p>
                         </CardContent>
                     </Card>
@@ -329,24 +328,24 @@ const FreeExam = () => {
                 <p className="text-sm text-muted-foreground">Please check back later.</p>
             </div>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
                 {subjects.map(subject => (
                     <Card
                         key={subject}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
                         onClick={() => setSelectedSubject(subject)}
                     >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
-                            <Trophy className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-primary mb-1">{subject}</div>
-                            <p className="text-xs text-muted-foreground">
+                        <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
+                                <Trophy className="h-3.5 w-3.5 text-primary group-hover:scale-110 transition-transform" />
+                            </div>
+                            <div className="text-base sm:text-xl font-bold text-primary mb-0.5 leading-tight">{subject}</div>
+                            <p className="text-[10px] sm:text-xs text-muted-foreground">
                                 {exams?.filter(e => {
                                     if(Array.isArray(e.subject)) return e.subject.includes(subject);
                                     return e.subject === subject;
-                                }).length} exams available
+                                }).length} exams
                             </p>
                         </CardContent>
                     </Card>
@@ -377,29 +376,27 @@ const FreeExam = () => {
                     <p className="text-muted-foreground">Select a chapter.</p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                     {chapters.map(chapter => (
                         <Card
                             key={chapter}
                             className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
                             onClick={() => setSelectedChapter(chapter)}
                         >
-                            <CardHeader className="pb-2">
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center mb-2">
-                                    <Layers className="h-5 w-5 text-primary" />
+                            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <Layers className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <span className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">{chapter}</span>
                                 </div>
-                                <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors">{chapter}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-xs text-muted-foreground">
-                                    {filteredExams.filter(e => e.chapter === chapter).length} exams
-                                </p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                                        {filteredExams.filter(e => e.chapter === chapter).length} exams
+                                    </p>
+                                    <ChevronRight className="h-3 w-3 text-primary" />
+                                </div>
                             </CardContent>
-                            <CardFooter className="pt-0">
-                                <div className="text-xs text-primary font-medium flex items-center mt-auto">
-                                    View Exams <ChevronRight className="h-3 w-3 ml-1" />
-                                </div>
-                            </CardFooter>
                         </Card>
                     ))}
                     {filteredExams.some(e => !e.chapter) && (
@@ -407,11 +404,9 @@ const FreeExam = () => {
                             className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group border-dashed"
                             onClick={() => setSelectedChapter("General")}
                         >
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-lg">General / Other</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-xs text-muted-foreground">
+                            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                                <span className="text-sm font-semibold">General / Other</span>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
                                     {filteredExams.filter(e => !e.chapter).length} exams
                                 </p>
                             </CardContent>
@@ -441,7 +436,7 @@ const FreeExam = () => {
 
         <div className="mb-8">
             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                <span>{selectedCategory}</span>
+                <span>{selectedCategory ? categoryLabel(selectedCategory) : ""}</span>
                 <ChevronRight className="h-3 w-3" />
                 <span>{selectedSubject}</span>
                 {selectedChapter && (
