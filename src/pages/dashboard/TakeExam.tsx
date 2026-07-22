@@ -38,6 +38,14 @@ const TakeExam = () => {
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
+  const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
+  // Quick Practice runtime state
+  const [qpCurrent, setQpCurrent] = useState(0);
+  const [qpAnswers, setQpAnswers] = useState<Record<number, { selected: string | null; correct: boolean; skipped: boolean }>>({});
+  const [qpTimeLeft, setQpTimeLeft] = useState(30);
+  const [qpFinished, setQpFinished] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [qpQuestions, setQpQuestions] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [shuffledQuestions, setShuffledQuestions] = useState<any[]>([]);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
@@ -213,6 +221,21 @@ const TakeExam = () => {
     },
   });
 
+  // Quick Practice Mode needs correct_option + explanation up-front (instant feedback),
+  // so it uses a dedicated RPC restricted to readymade exams only.
+  const { data: practiceQuestions, isLoading: practiceQuestionsLoading } = useQuery({
+    queryKey: ["exam-questions-practice", examId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", {
+        p_exam_id: examId,
+        p_user_id: user?.id,
+      });
+      if (error) throw error;
+      return data;
+    },
+    enabled: isQuickPracticeMode && !!exam?.is_readymade && !exam?.external_exam_link && !!user?.id,
+  });
+
   // Detect questions with images or Roman-numeral/multi-part (উদ্দীপক-style) content.
   // Only checks question_text + options — explanation is intentionally excluded.
   const isImageOrPatternQuestion = (q: any) => {
@@ -242,6 +265,49 @@ const TakeExam = () => {
   useEffect(() => {
       setSelectedQuestionCount(null);
   }, [contentMode]);
+
+  // Quick Practice: prepare (shuffle + apply count) question set once exam starts
+  useEffect(() => {
+    if (!isQuickPracticeMode || !hasStarted || !practiceQuestions || practiceQuestions.length === 0) return;
+    if (qpQuestions.length > 0) return;
+    const shuffled = [...practiceQuestions].sort(() => Math.random() - 0.5);
+    const finalSet = selectedQuestionCount && selectedQuestionCount < shuffled.length
+      ? shuffled.slice(0, selectedQuestionCount)
+      : shuffled;
+    setQpQuestions(finalSet);
+    setQpTimeLeft(30);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isQuickPracticeMode, hasStarted, practiceQuestions]);
+
+  // Quick Practice: per-question 30s countdown. If time runs out without an answer,
+  // reveal the correct answer and mark the question as skipped (doesn't count as wrong).
+  useEffect(() => {
+    if (!isQuickPracticeMode || !hasStarted || qpFinished) return;
+    if (qpQuestions.length === 0) return;
+    if (qpAnswers[qpCurrent]) return; // already answered/skipped
+    if (qpTimeLeft <= 0) {
+      setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: null, correct: false, skipped: true } }));
+      return;
+    }
+    const t = setTimeout(() => setQpTimeLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [isQuickPracticeMode, hasStarted, qpFinished, qpQuestions.length, qpCurrent, qpTimeLeft, qpAnswers]);
+
+  const qpSelectOption = (optionKey: string) => {
+    if (qpAnswers[qpCurrent]) return;
+    const q = qpQuestions[qpCurrent];
+    const correct = optionKey === q.correct_option;
+    setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: optionKey, correct, skipped: false } }));
+  };
+
+  const qpGoNext = () => {
+    if (qpCurrent >= qpQuestions.length - 1) {
+      setQpFinished(true);
+      return;
+    }
+    setQpCurrent((c) => c + 1);
+    setQpTimeLeft(30);
+  };
 
   // Shuffle Questions Effect
   useEffect(() => {
@@ -674,6 +740,39 @@ const TakeExam = () => {
                   </div>
               </Card>
 
+              {/* Card: Quick Practice Mode toggle */}
+              {exam.is_readymade && !exam.external_exam_link && (
+                  <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
+                      <div className="px-4 py-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                              <Zap className="h-4 w-4 text-violet-500 shrink-0" />
+                              <div className="min-w-0">
+                                  <p className="text-xs font-bold truncate">Quick Practice Mode</p>
+                                  <p className="text-[10px] text-muted-foreground leading-tight">
+                                      Quiz-style: প্রতি প্রশ্নে ৩০ সেকেন্ড, উত্তর দিলেই সাথে সাথে সঠিক/ভুল দেখাবে, মাঝপথে শেষ করা যাবে।
+                                  </p>
+                              </div>
+                          </div>
+                          <button
+                              type="button"
+                              onClick={() => setIsQuickPracticeMode((v) => !v)}
+                              className={cn(
+                                  "shrink-0 h-7 w-12 rounded-full relative transition-colors",
+                                  isQuickPracticeMode ? "bg-violet-500" : "bg-muted"
+                              )}
+                              aria-label="Toggle Quick Practice Mode"
+                          >
+                              <span
+                                  className={cn(
+                                      "absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
+                                      isQuickPracticeMode ? "translate-x-5" : "translate-x-0.5"
+                                  )}
+                              />
+                          </button>
+                      </div>
+                  </Card>
+              )}
+
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
                   <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
@@ -860,6 +959,8 @@ const TakeExam = () => {
                                   }
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
+                                  } else if (isQuickPracticeMode && exam.is_readymade) {
+                                      setHasStarted(true);
                                   } else {
                                       if (exam.is_readymade && selectedQuestionCount) {
                                           localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`, selectedQuestionCount.toString());
@@ -876,6 +977,132 @@ const TakeExam = () => {
               </Card>
           </div>
       );
+  }
+
+  // Quick Practice Mode: dedicated quiz-style UI (30s/question, instant feedback, end anytime)
+  if (isQuickPracticeMode && exam?.is_readymade) {
+    if (practiceQuestionsLoading || qpQuestions.length === 0) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
+    if (qpFinished) {
+      const total = qpQuestions.length;
+      const correctCount = Object.values(qpAnswers).filter((a) => a.correct).length;
+      const skippedCount = Object.values(qpAnswers).filter((a) => a.skipped).length;
+      const wrongCount = total - correctCount - skippedCount;
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 text-center">
+          <h2 className="text-xl font-bold">Quick Practice শেষ!</h2>
+          <div className="flex gap-4">
+            <div className="p-3 rounded-xl bg-emerald-500/10 min-w-20">
+              <div className="text-xl font-extrabold text-emerald-600">{correctCount}</div>
+              <div className="text-[10px] text-muted-foreground">Correct</div>
+            </div>
+            <div className="p-3 rounded-xl bg-destructive/10 min-w-20">
+              <div className="text-xl font-extrabold text-destructive">{wrongCount}</div>
+              <div className="text-[10px] text-muted-foreground">Wrong</div>
+            </div>
+            <div className="p-3 rounded-xl bg-muted min-w-20">
+              <div className="text-xl font-extrabold text-muted-foreground">{skippedCount}</div>
+              <div className="text-[10px] text-muted-foreground">Skipped</div>
+            </div>
+          </div>
+          <Button onClick={() => navigate(-1)} className="mt-2 rounded-xl">ফিরে যাও</Button>
+        </div>
+      );
+    }
+
+    const q = qpQuestions[qpCurrent];
+    const ans = qpAnswers[qpCurrent];
+    const options: { key: string; text: string }[] = [
+      { key: "a", text: q.option_a },
+      { key: "b", text: q.option_b },
+      { key: "c", text: q.option_c },
+      { key: "d", text: q.option_d },
+    ].filter((o) => !!o.text);
+
+    return (
+      <div className="bg-background flex flex-col" style={{ minHeight: "100dvh" }}>
+        <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
+          <div className="flex-1">
+            <div className="text-[11px] text-muted-foreground mb-1">প্রশ্ন {qpCurrent + 1}/{qpQuestions.length}</div>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-violet-500 to-violet-400 transition-all" style={{ width: `${((qpCurrent + 1) / qpQuestions.length) * 100}%` }} />
+            </div>
+          </div>
+          <div className={cn("h-9 w-9 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0",
+            qpTimeLeft <= 10 ? "border-destructive text-destructive" : "border-violet-400 text-violet-600")}>
+            {qpTimeLeft}
+          </div>
+          <button
+            onClick={() => { if (confirm("Quick Practice শেষ করবেন?")) setQpFinished(true); }}
+            className="px-3 py-2 rounded-full bg-destructive text-destructive-foreground font-bold text-xs shrink-0 whitespace-nowrap"
+          >
+            শেষ করো
+          </button>
+        </div>
+
+        <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col">
+          <p className="text-[16px] font-bold leading-relaxed mb-5"><MathText text={q.question_text} /></p>
+
+          <div className="flex flex-col gap-2.5">
+            {options.map((opt) => {
+              let cls = "border-border bg-card hover:border-primary/40";
+              if (ans) {
+                if (opt.key === q.correct_option) cls = "border-emerald-500 bg-emerald-500/10";
+                else if (opt.key === ans.selected) cls = "border-destructive bg-destructive/10";
+                else cls = "border-border bg-card opacity-50";
+              }
+              return (
+                <button
+                  key={opt.key}
+                  onClick={() => qpSelectOption(opt.key)}
+                  disabled={!!ans}
+                  className={cn("flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-sm text-left transition-all active:scale-[0.98]", cls)}
+                >
+                  <span className={cn("h-7 w-7 rounded-lg flex items-center justify-center font-extrabold text-xs shrink-0",
+                    ans && opt.key === q.correct_option ? "bg-emerald-500 text-white"
+                    : ans && opt.key === ans.selected ? "bg-destructive text-white"
+                    : "bg-muted text-muted-foreground")}>
+                    {opt.key.toUpperCase()}
+                  </span>
+                  <span><MathText text={opt.text} /></span>
+                </button>
+              );
+            })}
+          </div>
+
+          {ans?.skipped && (
+            <div className="mt-4 p-3 rounded-xl bg-amber-500/10 border-l-4 border-amber-500 text-xs font-semibold">
+              ⏱️ সময় শেষ! সঠিক উত্তর উপরে দেখানো হয়েছে।
+            </div>
+          )}
+
+          {ans && q.explanation && (
+            <div className="mt-4 p-4 rounded-xl bg-muted/50 border-l-4 border-primary text-sm leading-relaxed">
+              <div className="text-[11px] font-extrabold text-primary mb-1">ব্যাখ্যা</div>
+              <MathText text={q.explanation} />
+            </div>
+          )}
+        </div>
+
+        <div className="sticky bottom-0 left-0 right-0 bg-background border-t px-4 py-3">
+          <div className="max-w-2xl mx-auto">
+            <button
+              onClick={qpGoNext}
+              disabled={!ans}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+            >
+              {qpCurrent === qpQuestions.length - 1 ? "শেষ করো" : "পরবর্তী →"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Use shuffled questions if ready, else raw (should only be raw for a split second)
