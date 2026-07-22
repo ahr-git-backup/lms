@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Calendar, Coffee, Lightbulb, Moon } from "lucide-react";
@@ -88,6 +88,16 @@ const StudyHistory = () => {
   const maxChartSecs = Math.max(...chartDays.map((d) => d.secs), 1);
 
   const advice = useMemo(() => buildAdvice(rows || [], today), [rows, today]);
+
+  useEffect(() => {
+    if (selectedDay || showAdvice) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [selectedDay, showAdvice]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -214,9 +224,13 @@ const StudyHistory = () => {
                 return (
                   <button
                     key={g.day}
-                    onClick={() => setSelectedDay(g)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedDay(g);
+                    }}
                     className={cn(
-                      "w-full text-left rounded-2xl border p-3 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-amber-500/5",
+                      "w-full text-left rounded-2xl border p-3 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-amber-500/5 active:scale-[0.98] transition-transform",
                       g.is_ongoing ? "border-emerald-500/30" : "border-primary/20"
                     )}
                   >
