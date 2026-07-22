@@ -149,13 +149,13 @@ const Readymade = () => {
       </div>
 
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
           {parentTopics.map(topic => (
             <Button
               key={topic.value}
               variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-[11px] h-7 px-2 hover:scale-105 transition-transform truncate"
+              className="rounded-full shadow-sm text-[11px] sm:text-xs h-7 sm:h-8 px-2 hover:scale-105 transition-transform truncate"
               onClick={() => {
                 setPage(0);
                 setSelectedParentTopics(prev =>
@@ -424,7 +424,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               {chapters.map(chapter => (
                 <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
                   <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                    <div className="text-sm font-semibold leading-tight">{chapter}</div>
+                    <div className="text-sm sm:text-base font-semibold leading-tight">{chapter}</div>
                     <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                   </CardContent>
                 </Card>
@@ -449,7 +449,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             {subChapters.map(sc => (
               <Card key={sc} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubChapter(sc)}>
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="text-sm font-semibold leading-tight">{sc}</div>
+                  <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
                   <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                 </CardContent>
               </Card>
@@ -494,7 +494,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate }: { exams: any[], navigate: any }) => (
-  <div className="flex flex-col gap-3">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {exams.map((exam) => (
       <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
         onClick={() => { setExamSourceList(exam.id, "/dashboard/readymade"); navigate(`/dashboard/take-exam/${exam.id}`); }}>
