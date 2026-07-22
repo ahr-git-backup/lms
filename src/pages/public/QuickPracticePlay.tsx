@@ -67,11 +67,13 @@ const QuickPracticePlay = () => {
       navigate("/quick-practice");
       return;
     }
-    let mode: { type: "random" } | { type: "selected"; chapterIds: number[] };
+    let mode:
+      | { type: "random"; count?: number }
+      | { type: "selected"; chapterIds: number[]; count?: number };
     try {
       mode = JSON.parse(modeRaw) as
-        | { type: "random" }
-        | { type: "selected"; chapterIds: number[] };
+        | { type: "random"; count?: number }
+        | { type: "selected"; chapterIds: number[]; count?: number };
     } catch {
       sessionStorage.removeItem("qp_practice_mode");
       navigate("/quick-practice");
@@ -127,7 +129,11 @@ const QuickPracticePlay = () => {
       (chapters || []).map((c: any) => [c.id, { name: c.name, subjectId: c.subject_id }])
     );
 
-    const enriched: Mcq[] = shuffle(rows as any[]).map((r) => {
+    let shuffledRows = shuffle(rows as any[]);
+    if (mode.count && mode.count > 0) {
+      shuffledRows = shuffledRows.slice(0, mode.count);
+    }
+    const enriched: Mcq[] = shuffledRows.map((r) => {
       const chap = chapMap[r.chapter_id];
       return {
         ...r,
