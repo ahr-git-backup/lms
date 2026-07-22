@@ -362,14 +362,15 @@ function dayFeedback(day: DayRow) {
 
 function buildAdvice(rows: DayRow[], today: string) {
   const map = new Map(rows.map((r) => [r.day, r]));
-  const days: { date: string; studySecs: number; breaksUsed: number }[] = [];
+  const days: { date: string; studySecs: number; breaksUsed: number; sleepSecs: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
     const row = map.get(d);
-    days.push({ date: d, studySecs: row?.study_seconds || 0, breaksUsed: row?.breaks_used || 0 });
+    days.push({ date: d, studySecs: row?.study_seconds || 0, breaksUsed: row?.breaks_used || 0, sleepSecs: row?.sleep_seconds || 0 });
   }
 
   const totalStudy = days.reduce((a, d) => a + d.studySecs, 0);
+  const totalSleepSecs = days.reduce((a, d) => a + d.sleepSecs, 0);
   const avgStudy = totalStudy / 7;
   const activeDays = days.filter((d) => d.studySecs > 0).length;
   const totalBreaks = days.reduce((a, d) => a + d.breaksUsed, 0);
@@ -419,6 +420,8 @@ function buildAdvice(rows: DayRow[], today: string) {
     statusIcon = "🏆";
     headline = `চমৎকার পারফরম্যান্স! গড়ে দৈনিক ${fmtHM(avgStudy)} পড়ছো`;
     tips.push("এই ধারাবাহিকতা বজায় রাখো — তুমি দারুণ পথে আছো!");
+    if (totalSleepSecs / 7 < 18000) tips.push("তবে ঘুমের প্রতি একটু বেশি যত্ন নাও — পর্যাপ্ত বিশ্রাম দীর্ঘমেয়াদে পড়াশোনার মান বাড়ায়।");
+    else tips.push("ঘুম ও পড়াশোনার ভারসাম্য ভালো আছে — এভাবেই চালিয়ে যাও।");
   } else if (trendUp) {
     statusColor = "#10B981";
     statusIcon = "📈";
