@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Sparkles,
   Trophy,
-  ChevronRight,
   Play,
   Check,
   Bookmark,
@@ -191,60 +190,46 @@ const QuickPractice = () => {
         <h1 className="flex-1 font-extrabold text-[17px] flex items-center gap-1.5">
           <Sparkles className="h-4 w-4 text-primary" /> Quick Practice
         </h1>
+        <button
+          onClick={() => navigate("/quick-practice/bookmarks")}
+          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
+        >
+          <Bookmark className="h-4 w-4" />
+        </button>
         <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-400 to-amber-500 text-amber-950 font-extrabold text-xs px-3 py-1.5 rounded-full shadow-sm">
           <Trophy className="h-3.5 w-3.5" /> {pointsData ?? 0}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-4 space-y-2.5">
-        {/* Random Practice */}
-        <button
-          onClick={startRandomPractice}
-          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-gradient-to-r from-primary via-primary/90 to-primary/70 shadow-md hover:shadow-lg transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="h-4 w-4 text-white" />
-          </div>
-          <div className="text-white">
+        {/* Random Practice + Leaderboard */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            onClick={startRandomPractice}
+            className="rounded-xl border bg-card shadow-sm hover:shadow-md hover:border-primary/50 transition-all px-3 py-3 flex flex-col items-center text-center gap-1.5"
+          >
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
             <div className="font-extrabold text-[13px]">Random Practice</div>
-            <div className="text-[10.5px] opacity-90 mt-0.5">সব বিষয়/অধ্যায় থেকে random MCQ</div>
             {typeof totalMcqCount === "number" && (
-              <div className="text-[10px] opacity-80 mt-0.5 font-semibold">
+              <div className="text-[10px] text-muted-foreground font-semibold">
                 মোট <b>{totalMcqCount}</b>টি MCQ
               </div>
             )}
-          </div>
-        </button>
+          </button>
 
-        {/* Leaderboard */}
-        <button
-          onClick={() => navigate("/quick-practice/leaderboard")}
-          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-gradient-to-r from-amber-400 via-amber-500 to-amber-400 shadow-sm hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-black/10 flex items-center justify-center flex-shrink-0">
-            <Trophy className="h-4 w-4 text-amber-950" />
-          </div>
-          <div className="flex-1 text-amber-950">
+          <button
+            onClick={() => navigate("/quick-practice/leaderboard")}
+            className="rounded-xl border bg-card shadow-sm hover:shadow-md hover:border-primary/50 transition-all px-3 py-3 flex flex-col items-center text-center gap-1.5"
+          >
+            <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Trophy className="h-4 w-4 text-primary" />
+            </div>
             <div className="font-extrabold text-[13px]">Leaderboard</div>
-            <div className="text-[10.5px] opacity-75 mt-0.5">Top players দেখো, নিজের rank চেক করো</div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-amber-950/70" />
-        </button>
-
-        {/* Bookmarks */}
-        <button
-          onClick={() => navigate("/quick-practice/bookmarks")}
-          className="w-full relative overflow-hidden rounded-xl px-4 py-2.5 flex items-center gap-3 text-left bg-card border shadow-sm hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-            <Bookmark className="h-4 w-4 text-primary" />
-          </div>
-          <div className="flex-1">
-            <div className="font-extrabold text-[13px]">আমার বুকমার্ক</div>
-            <div className="text-[10.5px] text-muted-foreground mt-0.5">Category wise সেভ করা প্রশ্ন দেখো</div>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
-        </button>
+            <div className="text-[10px] text-muted-foreground font-semibold">Top players দেখো</div>
+          </button>
+        </div>
 
         <div className="flex justify-end">
           <button
