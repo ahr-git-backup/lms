@@ -85,7 +85,7 @@ BEGIN
       q.option_b,
       q.option_c,
       q.option_d,
-      q.correct_option,
+      q.correct_option::text,
       q.explanation,
       q.question_index
     FROM public.exam_questions q
