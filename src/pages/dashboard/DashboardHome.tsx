@@ -219,14 +219,22 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <Card className="w-full">
+      <Card className="w-full relative">
+        <button
+          onClick={() => navigate("/quick-practice")}
+          className="absolute top-2 right-2 flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-2 py-1 transition-all z-10"
+          title="Quick Practice Points"
+        >
+          <Trophy className="h-3.5 w-3.5 text-amber-500" />
+          <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
+        </button>
         <CardContent className="p-2 flex items-center justify-between gap-3">
           <h1 className="text-base font-semibold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
           {tutorialVideoUrl && (
             <Button
               size="sm"
               variant="outline"
-              className="shrink-0 gap-1.5 h-7 px-2 text-xs"
+              className="shrink-0 gap-1.5 h-7 px-2 text-xs mr-16"
               onClick={() => setShowTutorialVideo(true)}
             >
               <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
@@ -235,17 +243,6 @@ const DashboardHome = () => {
           )}
         </CardContent>
       </Card>
-
-      <div className="flex justify-end">
-        <button
-          onClick={() => navigate("/quick-practice")}
-          className="shrink-0 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-3 py-2 transition-all"
-          title="Quick Practice Points"
-        >
-          <Trophy className="h-4 w-4 text-amber-500" />
-          <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
-        </button>
-      </div>
 
       <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
