@@ -219,28 +219,29 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <header className="flex items-start justify-between gap-3">
-        <Card className="flex-1">
-          <CardContent className="p-4 flex items-start justify-between gap-3">
-            <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
-              <p className="text-sm text-muted-foreground">
-                Get a quick overview of your upcoming activities.
-              </p>
-            </div>
-            {tutorialVideoUrl && (
-              <Button
-                size="sm"
-                variant="outline"
-                className="shrink-0 gap-1.5"
-                onClick={() => setShowTutorialVideo(true)}
-              >
-                <Video className="h-4 w-4" />
-                Watch Tutorial
-              </Button>
-            )}
-          </CardContent>
-        </Card>
+      <Card className="w-full">
+        <CardContent className="p-4 flex items-start justify-between gap-3">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
+            <p className="text-sm text-muted-foreground">
+              Get a quick overview of your upcoming activities.
+            </p>
+          </div>
+          {tutorialVideoUrl && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5"
+              onClick={() => setShowTutorialVideo(true)}
+            >
+              <Video className="h-4 w-4" />
+              Watch Tutorial
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex justify-end">
         <button
           onClick={() => navigate("/quick-practice")}
           className="shrink-0 flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-3 py-2 transition-all"
@@ -249,7 +250,7 @@ const DashboardHome = () => {
           <Trophy className="h-4 w-4 text-amber-500" />
           <span className="text-sm font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
         </button>
-      </header>
+      </div>
 
       <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
         <DialogContent className="max-w-2xl p-0 overflow-hidden">
