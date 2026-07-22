@@ -130,7 +130,7 @@ const Community = () => {
           <p className="text-sm text-muted-foreground">Join our community channels to stay updated.</p>
       </header>
 
-      <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
           {([
               { key: "all", label: "All" },
               { key: "facebook", label: "Facebook" },

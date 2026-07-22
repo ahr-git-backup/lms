@@ -431,7 +431,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
             </div>
 
             {/* Main Category Tabs */}
-            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {([
                     { key: "all", label: "All" },
                     { key: "live", label: "Live" },
@@ -443,7 +443,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         type="button"
                         onClick={() => { setMainCategory(c.key); setReadymadeSubCategory("all"); setPage(0); }}
                         className={cn(
-                            "px-3 py-2 rounded-lg border text-sm font-bold uppercase tracking-wide transition-colors shrink-0 whitespace-nowrap",
+                            "px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border text-xs sm:text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap",
                             mainCategory === c.key ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"
                         )}
                     >
@@ -453,12 +453,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
             </div>
 
             {mainCategory === "readymade" && readymadeCategories && readymadeCategories.length > 0 && (
-                <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 pl-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-1">
                     <button
                         type="button"
                         onClick={() => { setReadymadeSubCategory("all"); setPage(0); }}
                         className={cn(
-                            "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 whitespace-nowrap",
+                            "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap",
                             readymadeSubCategory === "all" ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
                         )}
                     >
@@ -470,7 +470,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                             type="button"
                             onClick={() => { setReadymadeSubCategory(cat); setPage(0); }}
                             className={cn(
-                                "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 whitespace-nowrap",
+                                "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap",
                                 readymadeSubCategory === cat ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
                             )}
                         >
