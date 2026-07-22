@@ -131,7 +131,6 @@ const FocusTimer = () => {
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
   const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
-  const [pendingMood, setPendingMood] = useState<Mood | null>(null);
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -417,20 +416,14 @@ const FocusTimer = () => {
 
   // Tapping a mood button: if Study is actively running, confirm before switching away.
   const requestSwitchMood = (m: Mood) => {
-    if (m === moodRef.current) return;
-    if (running && moodRef.current === "study" && !pausedRef.current) {
-      setPendingMood(m);
+    if (!running) {
+      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setTimeout(() => setToast(null), 2500);
       return;
     }
+    if (m === moodRef.current) return;
     void switchMood(m);
   };
-
-  const confirmMoodSwitch = () => {
-    if (pendingMood) void switchMood(pendingMood);
-    setPendingMood(null);
-  };
-
-  const closeMoodPopup = () => setPendingMood(null);
 
   const closeOverlay = useCallback(() => {
     setOverlayMood(null);
@@ -1077,32 +1070,6 @@ const FocusTimer = () => {
           </div>
         </div>
       </div>
-
-      {/* Mood switch confirmation — shown when Study is running and user taps Break/Sleep */}
-      {pendingMood && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
-          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-extrabold">⚠️ মোড পরিবর্তন</h3>
-            <p className="text-sm text-muted-foreground">
-              Study Timer চলছে। Break / Sleep Mode on করতে হলে আগে বন্ধ করো। এই সময়গুলো Top Focused rank এ count হয়।
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={confirmMoodSwitch}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
-              >
-                এই Mood বন্ধ করো
-              </button>
-              <button
-                onClick={closeMoodPopup}
-                className="flex-1 py-2.5 rounded-xl border font-bold text-sm hover:bg-muted"
-              >
-                বাতিল
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
