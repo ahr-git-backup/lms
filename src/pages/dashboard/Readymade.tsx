@@ -155,7 +155,7 @@ const Readymade = () => {
               key={topic.value}
               variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-7 sm:h-8 px-2 hover:scale-105 transition-transform truncate"
+              className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
               onClick={() => {
                 setPage(0);
                 setSelectedParentTopics(prev =>
