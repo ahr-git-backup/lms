@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Bookmark, AlertTriangle, Lock, Calculator, Flag, Repeat, FileDown, ListChecks, ListOrdered, Sparkles } from "lucide-react";
+import { getExamSourceList } from "@/lib/examSourceTracker";
+import { openSolvePdf } from "@/lib/solvePdf";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
@@ -114,10 +116,14 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
 const ExamReview = () => {
   const { attemptId } = useParams();
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, profile: authProfile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
+  const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
+  const [isQpDialogOpen, setIsQpDialogOpen] = useState(false);
+  const [qpCustomMode, setQpCustomMode] = useState(false);
+  const [qpCustomCount, setQpCustomCount] = useState("");
 
   useEffect(() => {
     document.title = "Exam Review – Atlas";
@@ -273,6 +279,51 @@ const ExamReview = () => {
       }
   });
 
+  const handleStartMistakePractice = (mode: "wrong" | "both") => {
+      if (attempt?.exam_id) {
+        setIsMistakeDialogOpen(false);
+        navigate("/dashboard/take-mistakes", {
+          state: { examIds: [attempt.exam_id], filterMode: mode, sourceAttemptId: attemptId }
+        });
+      }
+  };
+
+  const handleStartAllQuickPractice = () => {
+      if (!attempt?.exam_id) return;
+      setIsQpDialogOpen(false);
+      navigate(`/dashboard/take-exam/${attempt.exam_id}?qp=1`);
+  };
+
+  const handleStartCustomQuickPractice = () => {
+      const count = parseInt(qpCustomCount, 10);
+      if (!count || count <= 0 || !attempt?.exam_id) return;
+      setIsQpDialogOpen(false);
+      setQpCustomMode(false);
+      setQpCustomCount("");
+      navigate(`/dashboard/take-exam/${attempt.exam_id}?qp=1&count=${count}`);
+  };
+
+  const handleSolvePdf = () => {
+      if (!questions || questions.length === 0) return;
+      openSolvePdf({
+          examName: attempt?.exam?.title || "Exam",
+          studentName: authProfile?.full_name || undefined,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          questions: questions.map((q: any) => ({
+              question_text: q.question_text,
+              option_a: q.option_a,
+              option_b: q.option_b,
+              option_c: q.option_c,
+              option_d: q.option_d,
+              correct_option: q.correct_option,
+              user_answer: q.user_answer,
+              explanation: q.explanation,
+          })),
+          totalMarks: displayTotalMarks,
+          score: Number(score),
+      });
+  };
+
   const handlePracticeAgain = () => {
       if (attempt?.exam_id) {
         // No retake_from param -> lands on the fresh pre-exam screen,
@@ -357,14 +408,109 @@ const ExamReview = () => {
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+                 {exam.is_readymade && (
+                 <Button variant="outline" onClick={() => setIsQpDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <Sparkles className="h-5 w-5 mr-1.5 text-violet-500 shrink-0" /> <span className="truncate">Quick Practice</span>
+                 </Button>
+                 )}
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
                  <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
+                 <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
+                 </Button>
+                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <ListChecks className="h-5 w-5 mr-1.5 text-red-500 shrink-0" /> <span className="truncate">Mistake Practice</span>
+                 </Button>
+                 <Button variant="outline" onClick={() => navigate(getExamSourceList(attempt.exam_id))} className="h-10 px-3 py-2 w-full sm:w-auto">
+                    <ListOrdered className="h-5 w-5 mr-1.5 text-emerald-500 shrink-0" /> <span className="truncate">Exam List</span>
+                 </Button>
             </div>
         </div>
+
+        {/* Quick Practice Mood Select Dialog */}
+        <Dialog open={isQpDialogOpen} onOpenChange={(open) => { setIsQpDialogOpen(open); if (!open) { setQpCustomMode(false); setQpCustomCount(""); } }}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Quick Practice</DialogTitle>
+                    <DialogDescription>Kivabe practice korte chao?</DialogDescription>
+                </DialogHeader>
+                {!qpCustomMode ? (
+                    <div className="flex flex-col gap-3 py-2">
+                        <button
+                            onClick={handleStartAllQuickPractice}
+                            className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all"
+                        >
+                            <div className="font-semibold">সকল প্রশ্নে প্রাক্টিস</div>
+                            <div className="text-xs text-muted-foreground">Shob subject/chapter theke random MCQ</div>
+                        </button>
+                        <button
+                            onClick={() => setQpCustomMode(true)}
+                            className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all"
+                        >
+                            <div className="font-semibold">ইচ্ছামতো প্রাক্টিস</div>
+                            <div className="text-xs text-muted-foreground">Koyta MCQ practice korte chao, likhe shuru koro</div>
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex flex-col gap-3 py-2">
+                        <Label htmlFor="qp-custom-count">Koyta MCQ diye exam dite chao?</Label>
+                        <input
+                            id="qp-custom-count"
+                            type="number"
+                            min={1}
+                            inputMode="numeric"
+                            value={qpCustomCount}
+                            onChange={(e) => setQpCustomCount(e.target.value)}
+                            placeholder="Example: 20"
+                            className="border rounded-lg px-3 py-2 text-sm bg-background"
+                            autoFocus
+                        />
+                        <div className="flex gap-2">
+                            <Button variant="outline" className="flex-1" onClick={() => setQpCustomMode(false)}>Back</Button>
+                            <Button
+                                className="flex-1"
+                                disabled={!qpCustomCount || parseInt(qpCustomCount, 10) <= 0}
+                                onClick={handleStartCustomQuickPractice}
+                            >
+                                শুরু করো
+                            </Button>
+                        </div>
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
+
+        {/* Mistake Practice Mood Select Dialog */}
+        <Dialog open={isMistakeDialogOpen} onOpenChange={setIsMistakeDialogOpen}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Mistake Practice</DialogTitle>
+                    <DialogDescription>Kon question gulo practice korte chao?</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col gap-3 py-2">
+                    <button
+                        onClick={() => handleStartMistakePractice("wrong")}
+                        disabled={wrongCount === 0}
+                        className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <div className="font-semibold">Only Wrong ({wrongCount})</div>
+                        <div className="text-xs text-muted-foreground">Shudhu vul kora question gulo</div>
+                    </button>
+                    <button
+                        onClick={() => handleStartMistakePractice("both")}
+                        disabled={(wrongCount + skippedCount) === 0}
+                        className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                        <div className="font-semibold">Wrong + Skip ({wrongCount + skippedCount})</div>
+                        <div className="text-xs text-muted-foreground">Vul o baad deya shob question</div>
+                    </button>
+                </div>
+            </DialogContent>
+        </Dialog>
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">

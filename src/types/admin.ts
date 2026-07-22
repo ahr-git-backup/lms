@@ -2,6 +2,7 @@ export interface Announcement {
   id: string;
   title: string;
   body: string;
+  image_url?: string | null;
   course_id?: string | null;
   published_at: string;
   course?: {

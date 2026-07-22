@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { askAI, renderAnswer } from "@/pages/public/AtlasAI";
+import { askAI, renderAnswer, containsSexualContentRequest } from "@/pages/public/AtlasAI";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RelatedMcq {
@@ -51,16 +51,11 @@ interface McqLike {
 
 const LABELS = ["A", "B", "C", "D"] as const;
 
-/** systemPrompt for MCQ AI calls — enforces the ✅/❌/💡 plain-text format
- *  (never JSON, never markdown) so renderAnswer() displays it cleanly. */
-const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।
-
-নিয়ম (কঠোরভাবে মানতে হবে, ব্যতিক্রম নেই):
-১। উত্তর সবসময় একটি সাধারণ, স্বাভাবিক মানুষের-লেখা বাংলা অনুচ্ছেদ/লাইন হবে।
-২। কখনোই JSON, object, array, code block, markdown সিনট্যাক্স ({, }, [, ], \`\`\`, #, "key":) ব্যবহার করবে না — এমনকি প্রশ্নে JSON চাওয়া হলেও না।
-৩। উত্তর অসম্পূর্ণ রেখে থামা যাবে না। প্রতিটি অংশ (সঠিক উত্তর, প্রতিটি ভুল অপশন, টিপস) সম্পূর্ণ বাক্যে শেষ করবে।
-৪। প্রতিটি অংশের মাঝে একটি ফাঁকা লাইন (line gap) রাখবে।
-৫। গুরুত্বপূর্ণ শব্দ/টার্ম **এভাবে** বোল্ড করবে, আর কোনো markdown নয়।`;
+/** systemPrompt for MCQ AI calls — kept minimal on purpose. AtlasApp (same AI
+ *  proxy, same models) uses just this one line and gets clean plain-text
+ *  answers reliably; a longer list of strict "never do X" rules was found to
+ *  make some Groq models drift into inventing JSON instead of following them. */
+const MCQ_SYSTEM_PROMPT = `তুমি ATLAS APP-এর বিশেষজ্ঞ শিক্ষক। বাংলায় বিস্তারিত উত্তর দিবে।`;
 
 function getOptions(q: McqLike) {
   return [q.option_a, q.option_b, q.option_c, q.option_d].filter(
@@ -84,7 +79,7 @@ function buildExplainPrompt(q: McqLike) {
   const correctIdx = LABELS.indexOf((q.correct_option || "A") as any);
   const opts = getOptions(q);
   const wrongLabels = LABELS.slice(0, opts.length).filter((_, i) => i !== correctIdx);
-  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন) ভালোভাবে পড়ো:\n\n${mcqBlock}\n\nএখন ঠিক এই ফরম্যাটে বাংলায় উত্তর দাও (প্রতিটি লাইনের মাঝে একটি ফাঁকা লাইন রাখবে, কখনো JSON বা markdown ব্যবহার করবে না, শুধু গুরুত্বপূর্ণ শব্দ/টার্ম/নাম **এভাবে** বোল্ড করবে):\n\n✅ [প্রথমে বলো সঠিক উত্তর ${LABELS[correctIdx]}) কেন সঠিক — প্রাসঙ্গিক ধারণা/সূত্র/কারণ সহ বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]\n\n${wrongLabels.map((l) => `❌ [অপশন ${l} কেন ভুল তার স্পষ্ট, বিস্তারিত ব্যাখ্যা, গুরুত্বপূর্ণ শব্দ বোল্ড করবে]`).join("\n\n")}\n\n💡 [একটি বিশেষ টিপস বা মনে রাখার কৌশল]\n\nবাধ্যতামূলক: (১) সাদা টেক্সটে লিখবে, কোনো JSON/{}/[] ব্যবহার করবে না। (২) কোনো অংশ অসম্পূর্ণ রেখে থামবে না — প্রতিটি বাক্য সম্পূর্ণ করবে। (৩) প্রতিটি অংশ সম্পূর্ণ ও বিস্তারিত রাখবে, সংক্ষিপ্ত করবে না।`;
+  return `নিচের সম্পূর্ণ MCQ-টি (প্রশ্ন ও সবগুলো অপশন একসাথে) পড়ে সংক্ষিপ্ত ও নির্ভুল ব্যাখ্যা দাও:\n\n${mcqBlock}\n\nনিয়ম:\n১. মূল ফোকাস থাকবে সঠিক উত্তরে — ✅ ${LABELS[correctIdx]}) কেন সঠিক তা পাঠ্যবই-ভিত্তিক সঠিক তথ্য দিয়ে ২-৩ লাইনে স্পষ্টভাবে লিখো। গুরুত্বপূর্ণ টার্ম থাকলে দুটো তারা চিহ্নের মাঝে বসাবে (যেমন রক্তকণিকা), খালি তারা চিহ্ন কখনো লিখবে না।\n২. বাকি অপশনগুলো (${wrongLabels.join(", ")}) কেন ভুল — প্রতিটির জন্য মাত্র ১ লাইনে সংক্ষেপে কারণ লিখো, বিস্তারিত ব্যাখ্যা নয়।\n৩. অতিরিক্ত ভূমিকা, পুনরাবৃত্তি বা টিপস যোগ করবে না — শুধু উপরের দুই অংশ, একদম To the point।`;
 }
 
 /** Best-effort repair for JSON truncated mid-string/mid-object (common when a
@@ -114,12 +109,45 @@ function extractReadableFallback(raw: string): string | null {
   return matches.length ? matches.join("\n\n") : null;
 }
 
+/** Last-resort, shape-agnostic JSON-to-text conversion: walks any object/array
+ *  recursively and pulls out every string value, skipping structural keys.
+ *  Used when the AI invents a JSON shape we don't have a specific parser for
+ *  (e.g. Bangla-keyed nested objects) so at least readable content survives. */
+function genericJsonToText(parsed: any): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const visit = (val: any) => {
+    if (val == null) return;
+    if (typeof val === "string") {
+      const s = val.trim();
+      if (s && !seen.has(s)) {
+        seen.add(s);
+        lines.push(s);
+      }
+      return;
+    }
+    if (Array.isArray(val)) {
+      val.forEach(visit);
+      return;
+    }
+    if (typeof val === "object") {
+      Object.values(val).forEach(visit);
+    }
+  };
+  visit(parsed);
+  return lines.length ? lines.join("\n\n") : null;
+}
+
 /** If the AI proxy ever returns raw JSON (e.g. [{question, options:[{option,correct,reason}]}])
  *  instead of following the plain-text instruction, convert it into our ✅/❌/💡 format here so
  *  the UI never shows raw braces/brackets. Returns the original text untouched if it isn't JSON. */
 function normalizeAiAnswer(raw: string): string {
   const trimmed = raw.trim();
-  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) return raw;
+  if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) {
+    // Safety net: strip stray markdown heading hashes (##, ###...) the model
+    // may emit despite the plain-text instruction, so cached text stays clean.
+    return raw.replace(/^\s*#{1,6}\s*/gm, "");
+  }
 
   const toLines = (parsedIn: any): string | null => {
     const parsed = Array.isArray(parsedIn) ? parsedIn : [parsedIn];
@@ -140,11 +168,13 @@ function normalizeAiAnswer(raw: string): string {
   };
 
   try {
-    return toLines(JSON.parse(trimmed)) ?? raw;
+    const parsed = JSON.parse(trimmed);
+    return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
   } catch {
     // Try repairing a truncated response before giving up.
     try {
-      return toLines(JSON.parse(repairTruncatedJson(trimmed))) ?? raw;
+      const parsed = JSON.parse(repairTruncatedJson(trimmed));
+      return toLines(parsed) ?? genericJsonToText(parsed) ?? raw;
     } catch {
       return extractReadableFallback(trimmed) ?? raw;
     }
@@ -160,12 +190,19 @@ async function readCachedExplanation(questionId: string): Promise<string | null>
   return normalizeAiAnswer(data as string);
 }
 
+const AI_FAILURE_MARKERS = ["❌", "⏱️"];
+
+function isFailureResponse(text: string) {
+  return AI_FAILURE_MARKERS.some((m) => text.startsWith(m));
+}
+
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
   const raw = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
   const answer = normalizeAiAnswer(raw);
-  if (questionId) {
+  if (questionId && !isFailureResponse(answer)) {
     // Fire-and-forget: don't block the UI on the cache write.
+    // Never cache a failure/busy message — only real explanations should be cached forever.
     (supabase.rpc as any)("save_ai_explanation", {
       p_question_id: questionId,
       p_explanation: answer,
@@ -199,23 +236,35 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
   const [answer, setAnswer] = useState<string | null>(
     q.ai_explanation ? normalizeAiAnswer(q.ai_explanation) : null
   );
+  const [error, setError] = useState(false);
 
-  const handleToggle = async () => {
-    const next = !open;
-    setOpen(next);
-    if (next && answer === null && !loading) {
-      setLoading(true);
-      // Cache-check first (fast path): if another user already triggered
-      // generation for this question, this is an instant DB read.
+  const load = async () => {
+    setLoading(true);
+    setError(false);
+    try {
       const cached = questionId ? await readCachedExplanation(questionId) : null;
       if (cached) {
         setAnswer(cached);
-        setLoading(false);
         return;
       }
       const res = await generateAndCacheExplanation(q, questionId);
-      setAnswer(res);
+      if (isFailureResponse(res)) {
+        setError(true);
+      } else {
+        setAnswer(res);
+      }
+    } catch {
+      setError(true);
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (next && answer === null && !loading) {
+      load();
     }
   };
 
@@ -247,6 +296,13 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
           {loading ? (
             <div className="flex items-center gap-2 py-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> AI বিশ্লেষণ করছে...
+            </div>
+          ) : error ? (
+            <div className="py-2 flex items-center gap-2 text-sm text-destructive">
+              <span>ব্যাখ্যা লোড করা যায়নি।</span>
+              <button type="button" onClick={load} className="underline font-medium">
+                আবার চেষ্টা করুন
+              </button>
             </div>
           ) : (
             <div className="pt-2 space-y-2">{answer && renderAnswer(answer)}</div>
@@ -300,6 +356,18 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
         ? `${related.length}টি সম্পর্কিত MCQ পাওয়া গেছে, নিচে দেখো।`
         : "দুঃখিত, এই মুহূর্তে সম্পর্কিত কোনো MCQ খুঁজে পাওয়া যায়নি।";
       setMessages([...nextMessages, { role: "assistant", content: note, related }]);
+      setLoading(false);
+      return;
+    }
+
+    if (containsSexualContentRequest(msg)) {
+      setMessages([
+        ...nextMessages,
+        {
+          role: "assistant",
+          content: "দুঃখিত, এই ধরনের বিষয়ে আমি সাহায্য করতে পারবো না। এই MCQ সম্পর্কে অন্য কোনো প্রশ্ন থাকলে জিজ্ঞেস করো। 📚",
+        },
+      ]);
       setLoading(false);
       return;
     }

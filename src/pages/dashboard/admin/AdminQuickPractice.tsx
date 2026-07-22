@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, UploadCloud, Zap, Loader2 } from "lucide-react";
+import { ChevronDown, Trash2, UploadCloud, Zap, Loader2, Pencil, Check, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -105,6 +105,30 @@ const AdminQuickPractice = () => {
   const [saving, setSaving] = useState(false);
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
+  const [expandedTopic, setExpandedTopic] = useState<number | null>(null);
+
+  // Topic add/rename state
+  const [newTopicName, setNewTopicName] = useState("");
+  const [addingTopic, setAddingTopic] = useState(false);
+  const [editingTopicId, setEditingTopicId] = useState<number | null>(null);
+  const [editTopicName, setEditTopicName] = useState("");
+  const [savingTopicName, setSavingTopicName] = useState(false);
+
+  // Inline rename state for subject/chapter
+  const [editingSubjectId, setEditingSubjectId] = useState<number | null>(null);
+  const [editSubjectName, setEditSubjectName] = useState("");
+  const [savingSubjectName, setSavingSubjectName] = useState(false);
+  const [editingChapterId, setEditingChapterId] = useState<number | null>(null);
+  const [editChapterName, setEditChapterName] = useState("");
+  const [savingChapterName, setSavingChapterName] = useState(false);
+
+  // Inline edit state for an existing MCQ
+  const [editingMcqId, setEditingMcqId] = useState<number | null>(null);
+  const [editQuestion, setEditQuestion] = useState("");
+  const [editOptions, setEditOptions] = useState<string[]>([]);
+  const [editCorrect, setEditCorrect] = useState(0);
+  const [editExplanation, setEditExplanation] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
 
   useEffect(() => {
     document.title = "Quick Practice — Admin";
@@ -145,14 +169,52 @@ const AdminQuickPractice = () => {
     },
   });
 
+  const { data: topicsOfChapter } = useQuery({
+    queryKey: ["admin-qp-topics", expandedChapter],
+    enabled: expandedChapter !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_topics")
+        .select("id, name, chapter_id, sort_order")
+        .eq("chapter_id", expandedChapter!)
+        .order("sort_order", { ascending: true });
+      if (error) throw error;
+      const withCounts = await Promise.all(
+        (data || []).map(async (t) => {
+          const { count } = await supabase
+            .from("qp_mcqs")
+            .select("id", { count: "exact", head: true })
+            .eq("topic_id", t.id);
+          return { ...t, mcqCount: count || 0 };
+        })
+      );
+      return withCounts;
+    },
+  });
+
   const { data: mcqsOfChapter } = useQuery({
     queryKey: ["admin-qp-mcqs", expandedChapter],
     enabled: expandedChapter !== null,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("qp_mcqs")
-        .select("id, question, options, correct_index")
+        .select("id, question, options, correct_index, explanation, topic_id")
         .eq("chapter_id", expandedChapter!)
+        .is("topic_id", null)
+        .order("id", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const { data: mcqsOfTopic } = useQuery({
+    queryKey: ["admin-qp-topic-mcqs", expandedTopic],
+    enabled: expandedTopic !== null,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_mcqs")
+        .select("id, question, options, correct_index, explanation, topic_id")
+        .eq("topic_id", expandedTopic!)
         .order("id", { ascending: true });
       if (error) throw error;
       return data || [];
@@ -183,6 +245,54 @@ const AdminQuickPractice = () => {
     if (fileRef.current) fileRef.current.value = "";
   };
 
+  const findOrCreateSubject = async (name: string): Promise<number> => {
+    const { data: existingSubj } = await supabase
+      .from("qp_subjects")
+      .select("id")
+      .eq("name", name.trim())
+      .maybeSingle();
+    if (existingSubj) return existingSubj.id;
+    const { data: lastSubj } = await supabase
+      .from("qp_subjects")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sort = (lastSubj?.sort_order || 0) + 1;
+    const { data: newSubj, error } = await supabase
+      .from("qp_subjects")
+      .insert({ name: name.trim(), sort_order: sort })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return newSubj.id;
+  };
+
+  const findOrCreateChapter = async (subjId: number, name: string): Promise<number> => {
+    const { data: existingChap } = await supabase
+      .from("qp_chapters")
+      .select("id")
+      .eq("subject_id", subjId)
+      .eq("name", name.trim())
+      .maybeSingle();
+    if (existingChap) return existingChap.id;
+    const { data: lastChap } = await supabase
+      .from("qp_chapters")
+      .select("sort_order")
+      .eq("subject_id", subjId)
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const sortC = (lastChap?.sort_order || 0) + 1;
+    const { data: newChap, error } = await supabase
+      .from("qp_chapters")
+      .insert({ subject_id: subjId, name: name.trim(), sort_order: sortC })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return newChap.id;
+  };
+
   const saveAll = async () => {
     if (!subjectName.trim() || !chapterName.trim()) {
       toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
@@ -194,59 +304,8 @@ const AdminQuickPractice = () => {
     }
     setSaving(true);
     try {
-      // find-or-create subject
-      let subjId: number;
-      const { data: existingSubj } = await supabase
-        .from("qp_subjects")
-        .select("id")
-        .eq("name", subjectName.trim())
-        .maybeSingle();
-      if (existingSubj) {
-        subjId = existingSubj.id;
-      } else {
-        const { data: lastSubj } = await supabase
-          .from("qp_subjects")
-          .select("sort_order")
-          .order("sort_order", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const sort = (lastSubj?.sort_order || 0) + 1;
-        const { data: newSubj, error } = await supabase
-          .from("qp_subjects")
-          .insert({ name: subjectName.trim(), sort_order: sort })
-          .select("id")
-          .single();
-        if (error) throw error;
-        subjId = newSubj.id;
-      }
-
-      // find-or-create chapter
-      let chapId: number;
-      const { data: existingChap } = await supabase
-        .from("qp_chapters")
-        .select("id")
-        .eq("subject_id", subjId)
-        .eq("name", chapterName.trim())
-        .maybeSingle();
-      if (existingChap) {
-        chapId = existingChap.id;
-      } else {
-        const { data: lastChap } = await supabase
-          .from("qp_chapters")
-          .select("sort_order")
-          .eq("subject_id", subjId)
-          .order("sort_order", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        const sortC = (lastChap?.sort_order || 0) + 1;
-        const { data: newChap, error } = await supabase
-          .from("qp_chapters")
-          .insert({ subject_id: subjId, name: chapterName.trim(), sort_order: sortC })
-          .select("id")
-          .single();
-        if (error) throw error;
-        chapId = newChap.id;
-      }
+      const subjId = await findOrCreateSubject(subjectName);
+      const chapId = await findOrCreateChapter(subjId, chapterName);
 
       const rows = csvData.map((d) => ({
         chapter_id: chapId,
@@ -267,6 +326,183 @@ const AdminQuickPractice = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const startEditMcq = (m: { id: number; question: string; options: string[]; correct_index: number; explanation?: string | null }) => {
+    setEditingMcqId(m.id);
+    setEditQuestion(m.question);
+    const opts = [...m.options];
+    while (opts.length < 4) opts.push("");
+    setEditOptions(opts);
+    setEditCorrect(m.correct_index);
+    setEditExplanation(m.explanation || "");
+  };
+
+  const cancelEditMcq = () => {
+    setEditingMcqId(null);
+    setEditQuestion("");
+    setEditOptions([]);
+    setEditCorrect(0);
+    setEditExplanation("");
+  };
+
+  const saveEditMcq = async () => {
+    if (editingMcqId === null) return;
+    const filledOptions = editOptions.map((o) => o.trim()).filter(Boolean);
+    if (!editQuestion.trim() || filledOptions.length < 2) {
+      toast({ title: "প্রশ্ন ও অন্তত ২টি অপশন দিন", variant: "destructive" });
+      return;
+    }
+    if (editCorrect >= filledOptions.length) {
+      toast({ title: "সঠিক অপশন বেছে নিন", variant: "destructive" });
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      const { error } = await supabase
+        .from("qp_mcqs")
+        .update({
+          question: editQuestion.trim(),
+          options: filledOptions,
+          correct_index: editCorrect,
+          explanation: editExplanation.trim() || null,
+        })
+        .eq("id", editingMcqId);
+      if (error) throw error;
+      toast({ title: "MCQ আপডেট হয়েছে" });
+      cancelEditMcq();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const startEditSubject = (s: { id: number; name: string }) => {
+    setEditingSubjectId(s.id);
+    setEditSubjectName(s.name);
+  };
+
+  const cancelEditSubject = () => {
+    setEditingSubjectId(null);
+    setEditSubjectName("");
+  };
+
+  const saveEditSubject = async () => {
+    if (editingSubjectId === null || !editSubjectName.trim()) return;
+    setSavingSubjectName(true);
+    try {
+      const { error } = await supabase
+        .from("qp_subjects")
+        .update({ name: editSubjectName.trim() })
+        .eq("id", editingSubjectId);
+      if (error) throw error;
+      toast({ title: "বিষয়ের নাম আপডেট হয়েছে" });
+      cancelEditSubject();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-subjects"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingSubjectName(false);
+    }
+  };
+
+  const startEditChapter = (ch: { id: number; name: string }) => {
+    setEditingChapterId(ch.id);
+    setEditChapterName(ch.name);
+  };
+
+  const cancelEditChapter = () => {
+    setEditingChapterId(null);
+    setEditChapterName("");
+  };
+
+  const saveEditChapter = async () => {
+    if (editingChapterId === null || !editChapterName.trim()) return;
+    setSavingChapterName(true);
+    try {
+      const { error } = await supabase
+        .from("qp_chapters")
+        .update({ name: editChapterName.trim() })
+        .eq("id", editingChapterId);
+      if (error) throw error;
+      toast({ title: "অধ্যায়ের নাম আপডেট হয়েছে" });
+      cancelEditChapter();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingChapterName(false);
+    }
+  };
+
+  const addTopic = async (chapId: number) => {
+    if (!newTopicName.trim()) return;
+    setAddingTopic(true);
+    try {
+      const { data: lastTopic } = await supabase
+        .from("qp_topics")
+        .select("sort_order")
+        .eq("chapter_id", chapId)
+        .order("sort_order", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const sortT = (lastTopic?.sort_order || 0) + 1;
+      const { error } = await supabase
+        .from("qp_topics")
+        .insert({ chapter_id: chapId, name: newTopicName.trim(), sort_order: sortT });
+      if (error) throw error;
+      toast({ title: "টপিক যোগ হয়েছে" });
+      setNewTopicName("");
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-topics", chapId] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setAddingTopic(false);
+    }
+  };
+
+  const startEditTopic = (t: { id: number; name: string }) => {
+    setEditingTopicId(t.id);
+    setEditTopicName(t.name);
+  };
+
+  const cancelEditTopic = () => {
+    setEditingTopicId(null);
+    setEditTopicName("");
+  };
+
+  const saveEditTopic = async () => {
+    if (editingTopicId === null || !editTopicName.trim()) return;
+    setSavingTopicName(true);
+    try {
+      const { error } = await supabase
+        .from("qp_topics")
+        .update({ name: editTopicName.trim() })
+        .eq("id", editingTopicId);
+      if (error) throw error;
+      toast({ title: "টপিকের নাম আপডেট হয়েছে" });
+      cancelEditTopic();
+      queryClient.invalidateQueries({ queryKey: ["admin-qp-topics"] });
+    } catch (e: any) {
+      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSavingTopicName(false);
+    }
+  };
+
+  const deleteTopic = async (topicId: number, chapId: number) => {
+    if (!confirm("এই টপিক ডিলিট হবে। এর MCQ গুলো টপিকহীন অধ্যায়ে থেকে যাবে। নিশ্চিত?")) return;
+    const { error } = await supabase.from("qp_topics").delete().eq("id", topicId);
+    if (error) {
+      toast({ title: "ডিলিট ব্যর্থ", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "টপিক ডিলিট হয়েছে" });
+    if (expandedTopic === topicId) setExpandedTopic(null);
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topics", chapId] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs", chapId] });
   };
 
   const deleteChapter = async (chapId: number) => {
@@ -298,7 +534,9 @@ const AdminQuickPractice = () => {
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["admin-qp-mcqs"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topic-mcqs"] });
     queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-qp-topics"] });
   };
 
   return (
@@ -385,23 +623,63 @@ const AdminQuickPractice = () => {
             const isOpen = expandedSubject === s.id;
             return (
               <div key={s.id} className="border rounded-xl overflow-hidden">
-                <div className="w-full flex items-center gap-2 p-3 hover:bg-muted/40">
-                  <button
-                    onClick={() => setExpandedSubject(isOpen ? null : s.id)}
-                    className="flex-1 flex items-center gap-2 text-left"
-                  >
-                    <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-                    <span className="font-semibold text-sm">{s.name}</span>
-                  </button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    onClick={() => deleteSubject(s.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {editingSubjectId === s.id ? (
+                  <div className="flex items-center gap-2 p-3">
+                    <Input
+                      value={editSubjectName}
+                      onChange={(e) => setEditSubjectName(e.target.value)}
+                      className="h-8 text-sm flex-1"
+                      autoFocus
+                    />
+                    <Button
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={saveEditSubject}
+                      disabled={savingSubjectName}
+                    >
+                      {savingSubjectName ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={cancelEditSubject}
+                      disabled={savingSubjectName}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="w-full flex items-center gap-2 p-3 hover:bg-muted/40">
+                    <button
+                      onClick={() => setExpandedSubject(isOpen ? null : s.id)}
+                      className="flex-1 flex items-center gap-2 text-left"
+                    >
+                      <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+                      <span className="font-semibold text-sm">{s.name}</span>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      onClick={() => startEditSubject(s)}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => deleteSubject(s.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
 
                 {isOpen && (
                   <div className="border-t bg-muted/20 p-2 space-y-1.5">
@@ -409,6 +687,37 @@ const AdminQuickPractice = () => {
                       const chOpen = expandedChapter === ch.id;
                       return (
                         <div key={ch.id} className="border rounded-lg bg-card overflow-hidden">
+                          {editingChapterId === ch.id ? (
+                            <div className="flex items-center gap-1.5 p-2.5">
+                              <Input
+                                value={editChapterName}
+                                onChange={(e) => setEditChapterName(e.target.value)}
+                                className="h-7 text-xs flex-1"
+                                autoFocus
+                              />
+                              <Button
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={saveEditChapter}
+                                disabled={savingChapterName}
+                              >
+                                {savingChapterName ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Check className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={cancelEditChapter}
+                                disabled={savingChapterName}
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          ) : (
                           <div className="flex items-center gap-2 p-2.5">
                             <button
                               onClick={() => setExpandedChapter(chOpen ? null : ch.id)}
@@ -423,30 +732,323 @@ const AdminQuickPractice = () => {
                             <Button
                               variant="ghost"
                               size="icon"
+                              className="h-7 w-7 text-muted-foreground"
+                              onClick={() => startEditChapter(ch)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               className="h-7 w-7 text-destructive hover:text-destructive"
                               onClick={() => deleteChapter(ch.id)}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
+                          )}
                           {chOpen && (
-                            <div className="border-t p-2 space-y-1.5 max-h-64 overflow-y-auto">
-                              {mcqsOfChapter?.map((m) => (
-                                <div
-                                  key={m.id}
-                                  className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
-                                >
-                                  <span className="flex-1">{m.question}</span>
+                            <div className="border-t p-2 space-y-1.5">
+                              {/* Topics list */}
+                              <div className="space-y-1.5">
+                                {topicsOfChapter?.map((t) => {
+                                  const tOpen = expandedTopic === t.id;
+                                  return (
+                                    <div key={t.id} className="border rounded-md bg-background overflow-hidden">
+                                      {editingTopicId === t.id ? (
+                                        <div className="flex items-center gap-1.5 p-2">
+                                          <Input
+                                            value={editTopicName}
+                                            onChange={(e) => setEditTopicName(e.target.value)}
+                                            className="h-6 text-[11px] flex-1"
+                                            autoFocus
+                                          />
+                                          <Button
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={saveEditTopic}
+                                            disabled={savingTopicName}
+                                          >
+                                            {savingTopicName ? (
+                                              <Loader2 className="h-3 w-3 animate-spin" />
+                                            ) : (
+                                              <Check className="h-3 w-3" />
+                                            )}
+                                          </Button>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            className="h-6 w-6"
+                                            onClick={cancelEditTopic}
+                                            disabled={savingTopicName}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      ) : (
+                                        <div className="flex items-center gap-1.5 p-2">
+                                          <button
+                                            onClick={() => setExpandedTopic(tOpen ? null : t.id)}
+                                            className="flex-1 flex items-center gap-1.5 text-left text-[11px]"
+                                          >
+                                            <ChevronDown
+                                              className={cn("h-3 w-3 transition-transform", tOpen && "rotate-180")}
+                                            />
+                                            <span className="font-medium">📁 {t.name}</span>
+                                            <span className="text-muted-foreground">({t.mcqCount} MCQ)</span>
+                                          </button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-muted-foreground"
+                                            onClick={() => startEditTopic(t)}
+                                          >
+                                            <Pencil className="h-3 w-3" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-6 w-6 text-destructive hover:text-destructive"
+                                            onClick={() => deleteTopic(t.id, ch.id)}
+                                          >
+                                            <Trash2 className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      )}
+                                      {tOpen && (
+                                        <div className="border-t p-1.5 space-y-1.5 max-h-64 overflow-y-auto">
+                                          {mcqsOfTopic?.map((m) => {
+                                            const isEditing = editingMcqId === m.id;
+                                            if (isEditing) {
+                                              return (
+                                                <div key={m.id} className="bg-card border rounded-md p-2 space-y-1.5">
+                                                  <Input
+                                                    value={editQuestion}
+                                                    onChange={(e) => setEditQuestion(e.target.value)}
+                                                    className="text-xs h-7"
+                                                    placeholder="প্রশ্ন"
+                                                  />
+                                                  <div className="grid grid-cols-2 gap-1.5">
+                                                    {editOptions.map((opt, i) => (
+                                                      <div key={i} className="flex items-center gap-1">
+                                                        <button
+                                                          type="button"
+                                                          onClick={() => setEditCorrect(i)}
+                                                          className={cn(
+                                                            "h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center text-[9px] font-bold",
+                                                            editCorrect === i
+                                                              ? "bg-emerald-500 border-emerald-500 text-white"
+                                                              : "border-border text-muted-foreground"
+                                                          )}
+                                                        >
+                                                          {String.fromCharCode(65 + i)}
+                                                        </button>
+                                                        <Input
+                                                          value={opt}
+                                                          onChange={(e) =>
+                                                            setEditOptions((prev) =>
+                                                              prev.map((o, idx) => (idx === i ? e.target.value : o))
+                                                            )
+                                                          }
+                                                          className="text-[11px] h-7"
+                                                          placeholder={`অপশন ${i + 1}`}
+                                                        />
+                                                      </div>
+                                                    ))}
+                                                  </div>
+                                                  <Input
+                                                    value={editExplanation}
+                                                    onChange={(e) => setEditExplanation(e.target.value)}
+                                                    className="text-xs h-7"
+                                                    placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+                                                  />
+                                                  <div className="flex gap-1.5">
+                                                    <Button
+                                                      size="sm"
+                                                      className="h-7 flex-1 text-[11px]"
+                                                      onClick={saveEditMcq}
+                                                      disabled={savingEdit}
+                                                    >
+                                                      {savingEdit ? (
+                                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                                      ) : (
+                                                        <Check className="h-3 w-3 mr-1" />
+                                                      )}
+                                                      সেভ
+                                                    </Button>
+                                                    <Button
+                                                      size="sm"
+                                                      variant="outline"
+                                                      className="h-7 text-[11px]"
+                                                      onClick={cancelEditMcq}
+                                                      disabled={savingEdit}
+                                                    >
+                                                      <X className="h-3 w-3 mr-1" />
+                                                      বাতিল
+                                                    </Button>
+                                                  </div>
+                                                </div>
+                                              );
+                                            }
+                                            return (
+                                              <div
+                                                key={m.id}
+                                                className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
+                                              >
+                                                <span className="flex-1">{m.question}</span>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                                  onClick={() => startEditMcq(m)}
+                                                >
+                                                  <Pencil className="h-3 w-3" />
+                                                </Button>
+                                                <Button
+                                                  variant="ghost"
+                                                  size="icon"
+                                                  className="h-5 w-5 text-destructive flex-shrink-0"
+                                                  onClick={() => deleteMcq(m.id)}
+                                                >
+                                                  <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                              </div>
+                                            );
+                                          })}
+                                          {mcqsOfTopic?.length === 0 && (
+                                            <p className="text-[11px] text-muted-foreground text-center py-1.5">
+                                              কোনো MCQ নেই
+                                            </p>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                                <div className="flex items-center gap-1.5">
+                                  <Input
+                                    value={expandedChapter === ch.id ? newTopicName : ""}
+                                    onChange={(e) => setNewTopicName(e.target.value)}
+                                    placeholder="নতুন টপিকের নাম (ঐচ্ছিক)"
+                                    className="h-7 text-[11px]"
+                                  />
                                   <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-5 w-5 text-destructive flex-shrink-0"
-                                    onClick={() => deleteMcq(m.id)}
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 text-[11px] shrink-0"
+                                    onClick={() => addTopic(ch.id)}
+                                    disabled={addingTopic || !newTopicName.trim()}
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    {addingTopic ? (
+                                      <Loader2 className="h-3 w-3 animate-spin" />
+                                    ) : (
+                                      "টপিক যোগ"
+                                    )}
                                   </Button>
                                 </div>
-                              ))}
+                              </div>
+
+                              <div className="pt-1 text-[10px] text-muted-foreground px-0.5">
+                                টপিক ছাড়া MCQ সমূহ
+                              </div>
+                              {mcqsOfChapter?.map((m) => {
+                                const isEditing = editingMcqId === m.id;
+                                if (isEditing) {
+                                  return (
+                                    <div key={m.id} className="bg-card border rounded-md p-2 space-y-1.5">
+                                      <Input
+                                        value={editQuestion}
+                                        onChange={(e) => setEditQuestion(e.target.value)}
+                                        className="text-xs h-7"
+                                        placeholder="প্রশ্ন"
+                                      />
+                                      <div className="grid grid-cols-2 gap-1.5">
+                                        {editOptions.map((opt, i) => (
+                                          <div key={i} className="flex items-center gap-1">
+                                            <button
+                                              type="button"
+                                              onClick={() => setEditCorrect(i)}
+                                              className={cn(
+                                                "h-5 w-5 shrink-0 rounded-full border-2 flex items-center justify-center text-[9px] font-bold",
+                                                editCorrect === i
+                                                  ? "bg-emerald-500 border-emerald-500 text-white"
+                                                  : "border-border text-muted-foreground"
+                                              )}
+                                            >
+                                              {String.fromCharCode(65 + i)}
+                                            </button>
+                                            <Input
+                                              value={opt}
+                                              onChange={(e) =>
+                                                setEditOptions((prev) =>
+                                                  prev.map((o, idx) => (idx === i ? e.target.value : o))
+                                                )
+                                              }
+                                              className="text-[11px] h-7"
+                                              placeholder={`অপশন ${i + 1}`}
+                                            />
+                                          </div>
+                                        ))}
+                                      </div>
+                                      <Input
+                                        value={editExplanation}
+                                        onChange={(e) => setEditExplanation(e.target.value)}
+                                        className="text-xs h-7"
+                                        placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+                                      />
+                                      <div className="flex gap-1.5">
+                                        <Button
+                                          size="sm"
+                                          className="h-7 flex-1 text-[11px]"
+                                          onClick={saveEditMcq}
+                                          disabled={savingEdit}
+                                        >
+                                          {savingEdit ? (
+                                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                                          ) : (
+                                            <Check className="h-3 w-3 mr-1" />
+                                          )}
+                                          সেভ
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          className="h-7 text-[11px]"
+                                          onClick={cancelEditMcq}
+                                          disabled={savingEdit}
+                                        >
+                                          <X className="h-3 w-3 mr-1" />
+                                          বাতিল
+                                        </Button>
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div
+                                    key={m.id}
+                                    className="flex items-start gap-2 text-[11px] bg-muted/30 rounded-md p-2"
+                                  >
+                                    <span className="flex-1">{m.question}</span>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-muted-foreground flex-shrink-0"
+                                      onClick={() => startEditMcq(m)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-5 w-5 text-destructive flex-shrink-0"
+                                      onClick={() => deleteMcq(m.id)}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </Button>
+                                  </div>
+                                );
+                              })}
                               {mcqsOfChapter?.length === 0 && (
                                 <p className="text-[11px] text-muted-foreground text-center py-2">
                                   কোনো MCQ নেই

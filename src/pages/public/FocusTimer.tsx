@@ -28,6 +28,24 @@ const MOOD_META: Record<Mood, { label: string; icon: typeof BookOpen; color: str
   sleep: { label: "Sleep", icon: Moon, color: "text-indigo-400", bg: "from-indigo-500 to-violet-500" },
 };
 
+// AtlasApp-style always-on dark gradients per mood (inactive state), the vivid
+// gradient + glow-pulse animation when active, and matching digital-timer box tint.
+const MOOD_BTN_IDLE: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-[#0f4c2a] via-[#166534] to-[#15803d] border-emerald-500/40",
+  break: "bg-gradient-to-br from-[#5c3a00] via-[#92400e] to-[#b45309] border-amber-500/30",
+  sleep: "bg-gradient-to-br from-[#1e1b4b] via-[#312e81] to-[#3730a3] border-indigo-500/30",
+};
+const MOOD_BTN_ACTIVE: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 border-emerald-500 shadow-[0_4px_16px_rgba(16,185,129,.4)] animate-mood-glow-study",
+  break: "bg-gradient-to-br from-amber-500 via-amber-600 to-amber-700 border-amber-500 shadow-[0_4px_16px_rgba(245,158,11,.4)] animate-mood-glow-break",
+  sleep: "bg-gradient-to-br from-indigo-500 via-indigo-600 to-indigo-700 border-indigo-500 shadow-[0_4px_16px_rgba(99,102,241,.4)] animate-mood-glow-sleep",
+};
+const MOOD_DIGIT_BOX: Record<Mood, string> = {
+  study: "bg-gradient-to-br from-[#0d2a1a] to-[#0f3d22] border-emerald-500/30",
+  break: "bg-gradient-to-br from-[#2a1800] to-[#3d2200] border-amber-500/30",
+  sleep: "bg-gradient-to-br from-[#0e0d2a] to-[#17163d] border-indigo-500/30",
+};
+
 const STATE_KEY = "atlas_focus_state_v1";
 const MAX_BREAK_SEC = 3600; // 1 hour break cap, auto-ends and returns to Study
 
@@ -112,11 +130,11 @@ const FocusTimer = () => {
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
-  const [pendingMood, setPendingMood] = useState<Mood | null>(null);
+  const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [stopStats, setStopStats] = useState<{ breaks: number; sleepSeconds: number } | null>(null);
+  const [stopStats, setStopStats] = useState<{ studySeconds: number; breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
   const [sessionNumber, setSessionNumber] = useState(1);
   const hasStoppedOnceRef = useRef(false);
@@ -235,6 +253,19 @@ const FocusTimer = () => {
     enabled: !!compareTarget && cmpDays > 1,
   });
 
+  const { data: cmpBreaksToday } = useQuery({
+    queryKey: ["focus-breaks-today", compareTarget?.userId, user?.id],
+    queryFn: async () => {
+      if (!compareTarget || !user) return { mine: 0, theirs: 0 };
+      const [mine, theirs] = await Promise.all([
+        supabase.rpc("focus_breaks_today" as any, { p_user_id: user.id }),
+        supabase.rpc("focus_breaks_today" as any, { p_user_id: compareTarget.userId }),
+      ]);
+      return { mine: Number(mine.data || 0), theirs: Number(theirs.data || 0) };
+    },
+    enabled: !!compareTarget && !!user,
+  });
+
   const { data: myTotalToday } = useQuery({
     queryKey: ["focus-my-today", user?.id],
     enabled: !!user,
@@ -285,20 +316,23 @@ const FocusTimer = () => {
 
   const start = async () => {
     if (!user) return;
-    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: mood });
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
     if (error || data == null) return;
     const id = data as number;
     elapsedRef.current = 0;
     pausedRef.current = false;
     sessionIdRef.current = id;
-    moodRef.current = mood;
+    moodRef.current = "study";
     setSessionId(id);
+    setMood("study");
+    setBreaksUsed(0);
+    setSelectedBatch("all");
     setElapsed(0);
     setRunning(true);
     setPaused(false);
     startTicking();
     startHeartbeat();
-    saveState({ sessionId: id, mood, elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
     if (hasStoppedOnceRef.current) {
       const next = sessionNumber + 1;
       setSessionNumber(next);
@@ -356,7 +390,7 @@ const FocusTimer = () => {
     const id = data as number;
     elapsedRef.current = pausedSecs;
     pausedRef.current = false;
-    pauseStartRef.current = null;
+    pauseStartRef.current = Date.now(); // reset so further night-pauses keep converting to sleep, matching AtlasApp
     sessionIdRef.current = id;
     moodRef.current = "sleep";
     setSessionId(id);
@@ -380,30 +414,42 @@ const FocusTimer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Tapping a mood button: if Study is actively running, confirm before switching away.
+  // Tapping a mood button switches instantly — AtlasApp's confirmation popup exists in
+  // markup but is never actually triggered in the real code, so real behavior is instant switch.
   const requestSwitchMood = (m: Mood) => {
-    if (m === moodRef.current) return;
-    if (running && moodRef.current === "study" && !pausedRef.current) {
-      setPendingMood(m);
+    if (!running) {
+      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setTimeout(() => setToast(null), 2500);
       return;
     }
+    if (m === moodRef.current) return;
     void switchMood(m);
   };
 
-  const confirmMoodSwitch = () => {
-    if (pendingMood) void switchMood(pendingMood);
-    setPendingMood(null);
-  };
+  const closeOverlay = useCallback(() => {
+    setOverlayMood(null);
+    try {
+      if (window.history.state?.focusOverlay) window.history.back();
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
-  const closeMoodPopup = () => setPendingMood(null);
+  // Back button closes the mood overlay instead of navigating away, matching AtlasApp.
+  useEffect(() => {
+    const onPopState = () => setOverlayMood(null);
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   const switchMood = async (m: Mood) => {
     if (!running) {
-      setMood(m);
-      moodRef.current = m;
+      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setTimeout(() => setToast(null), 2500);
       return;
     }
-    // end current live segment, start a fresh one under the new mood
+    if (m === moodRef.current) return;
+    // end current live segment, freeze its elapsed time into that mood's own bucket
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (sessionIdRef.current != null) {
       await supabase.rpc("focus_end_session", {
@@ -413,27 +459,44 @@ const FocusTimer = () => {
     }
     if (moodRef.current === "break") {
       accumulatedBreakRef.current += elapsedRef.current;
-    }
-    if (moodRef.current === "sleep") {
+    } else if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
+    } else if (moodRef.current === "study") {
+      accumulatedStudyRef.current += elapsedRef.current;
     }
-    if (m === "break" && moodRef.current !== "break") {
+    if (m === "break" && moodRef.current === "study") {
       setBreaksUsed((n) => n + 1);
     }
+    setLeaderboardDays(1);
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: m });
     if (error || data == null) return;
     const id = data as number;
-    elapsedRef.current = 0;
+    // Resume the target mood's timer from where it was left, not from 0.
+    let resumeSecs = 0;
+    if (m === "break") {
+      resumeSecs = accumulatedBreakRef.current;
+      accumulatedBreakRef.current = 0;
+    } else if (m === "sleep") {
+      resumeSecs = sleepSecsRef.current;
+      sleepSecsRef.current = 0;
+    } else if (m === "study") {
+      resumeSecs = accumulatedStudyRef.current;
+      accumulatedStudyRef.current = 0;
+    }
+    elapsedRef.current = resumeSecs;
     pausedRef.current = false;
     sessionIdRef.current = id;
     moodRef.current = m;
     setSessionId(id);
     setMood(m);
-    setElapsed(0);
+    setElapsed(resumeSecs);
     setPaused(false);
     startTicking();
-    saveState({ sessionId: id, mood: m, elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    const moodStartNames: Record<Mood, string> = { study: "📚 Study", break: "☕ বিরতি", sleep: "😴 ঘুম" };
+    setToast(`${moodStartNames[m]} শুরু হলো`);
+    setTimeout(() => setToast(null), 2500);
   };
 
   // Break time limit reached — auto-return to Study mood.
@@ -446,20 +509,25 @@ const FocusTimer = () => {
       });
     }
     accumulatedBreakRef.current += elapsedRef.current;
+    setBreaksUsed((n) => n + 1);
     const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
     if (error || data == null) return;
     const id = data as number;
-    elapsedRef.current = 0;
+    const resumeSecs = accumulatedStudyRef.current;
+    accumulatedStudyRef.current = 0;
+    elapsedRef.current = resumeSecs;
     pausedRef.current = false;
     sessionIdRef.current = id;
     moodRef.current = "study";
     setSessionId(id);
     setMood("study");
-    setElapsed(0);
+    setElapsed(resumeSecs);
     setPaused(false);
     startTicking();
-    saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user!.id, savedAt: Date.now() });
+    saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    setToast("⏰ বিরতির সময় শেষ — Study Mood এ ফিরে এলে");
+    setTimeout(() => setToast(null), 4000);
   };
 
   const stop = async () => {
@@ -474,8 +542,11 @@ const FocusTimer = () => {
     if (moodRef.current === "sleep") {
       sleepSecsRef.current += elapsedRef.current;
     }
+    if (moodRef.current === "study") {
+      accumulatedStudyRef.current += elapsedRef.current;
+    }
     clearState();
-    setStopStats({ breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
+    setStopStats({ studySeconds: accumulatedStudyRef.current, breaks: breaksUsed, sleepSeconds: sleepSecsRef.current });
     hasStoppedOnceRef.current = true;
     sessionIdRef.current = null;
     setSessionId(null);
@@ -483,6 +554,7 @@ const FocusTimer = () => {
     setPaused(false);
     setElapsed(0);
     accumulatedBreakRef.current = 0;
+    accumulatedStudyRef.current = 0;
     sleepSecsRef.current = 0;
     setBreaksUsed(0);
     pauseStartRef.current = null;
@@ -533,12 +605,29 @@ const FocusTimer = () => {
         {showIntro && (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-extrabold text-sm">কীভাবে কাজ করে</h3>
+              <div>
+                <h3 className="font-extrabold text-sm">ATLAS Focus Timer</h3>
+                <p className="text-[11px] text-muted-foreground">মনোযোগী পড়াশোনার জন্য বাংলাদেশের সেরা টাইমার</p>
+              </div>
               <button onClick={dismissIntro} className="text-xs font-bold text-muted-foreground hover:text-foreground">
                 ✕
               </button>
             </div>
+
+            <div className="rounded-xl border bg-card p-3 space-y-1.5">
+              <div className="text-xs font-extrabold flex items-center gap-1">
+                <Trophy className="h-3 w-3 text-primary" /> কেন ব্যবহার করবে?
+              </div>
+              <ul className="text-[11px] space-y-1 list-disc pl-4 text-muted-foreground">
+                <li>পড়াশোনার সময় track করো এবং নিজেকে motivate রাখো</li>
+                <li>Live দেখো কতজন student এই মুহূর্তে পড়ছে</li>
+                <li>Top Focused Student হওয়ার সুযোগ পাও</li>
+                <li>Study, Break ও Sleep Mood আলাদাভাবে track হবে</li>
+              </ul>
+            </div>
+
             <div className="space-y-2 text-xs">
+              <div className="text-xs font-extrabold">কীভাবে ব্যবহার করবে?</div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">১</span>
                 <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mode timer শুরু হবে</span>
@@ -549,14 +638,18 @@ const FocusTimer = () => {
               </div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৩</span>
-                <span>রাতে Study paused থাকলে ১.৫ ঘণ্টা পর নিজে থেকেই Sleep Mode চালু হয়ে যাবে</span>
+                <span>Sleep Mode on থাকলে phone off করলেও timer চলতে থাকবে</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৪</span>
+                <span>পড়া শেষে Stop — সময় সেভ হবে এবং rank update হবে</span>
               </div>
             </div>
             <button
               onClick={dismissIntro}
               className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
             >
-              বুঝেছি, শুরু করি
+              পড়াশোনা শুরু করো
             </button>
           </div>
         )}
@@ -610,7 +703,7 @@ const FocusTimer = () => {
           )}
         >
           {/* Mood switcher (top row, inside unified box) */}
-          <div className="grid grid-cols-3 gap-2 w-full">
+          <div className="grid grid-cols-3 gap-1.5 w-full">
             {(Object.keys(MOOD_META) as Mood[]).map((m) => {
               const md = MOOD_META[m];
               const MIcon = md.icon;
@@ -620,14 +713,18 @@ const FocusTimer = () => {
                   key={m}
                   onClick={() => requestSwitchMood(m)}
                   className={cn(
-                    "flex flex-col items-center gap-1.5 rounded-xl py-3 border-2 transition-all",
-                    active
-                      ? `bg-gradient-to-br ${md.bg} border-transparent text-white shadow-md`
-                      : "border-border bg-card text-muted-foreground hover:border-primary/30"
+                    "relative overflow-hidden flex flex-col items-center gap-1 rounded-xl py-2 border-[1.5px] text-white transition-all duration-300",
+                    active ? MOOD_BTN_ACTIVE[m] : MOOD_BTN_IDLE[m]
                   )}
                 >
-                  <MIcon className="h-5 w-5" />
-                  <span className="text-xs font-bold">{md.label}</span>
+                  <MIcon className="h-4 w-4" />
+                  <span className="text-[9px] font-extrabold tracking-wide">{md.label}</span>
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full transition-all",
+                      active ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "bg-white/40"
+                    )}
+                  />
                 </button>
               );
             })}
@@ -653,41 +750,32 @@ const FocusTimer = () => {
           <div className="flex items-center gap-1.5">
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{h}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">HRS</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{min}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">MIN</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner",
-                "bg-card/80",
-                mood === "study" && "border-emerald-500/25",
-                mood === "break" && "border-amber-500/25",
-                mood === "sleep" && "border-indigo-500/25"
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider">{s}</span>
-              <span className="text-[8px] font-bold text-muted-foreground tracking-widest">SEC</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{s}</span>
+              <span className="text-[8px] font-bold text-white/60 tracking-widest">SEC</span>
             </div>
           </div>
 
@@ -701,7 +789,7 @@ const FocusTimer = () => {
                 <Play className="h-4 w-4 fill-current" /> পড়াশোনা শুরু করো
               </button>
             )}
-            {running && !paused && (
+            {running && mood === "study" && !paused && (
               <>
                 <button
                   onClick={pause}
@@ -717,7 +805,7 @@ const FocusTimer = () => {
                 </button>
               </>
             )}
-            {running && paused && (
+            {running && mood === "study" && paused && (
               <>
                 <button
                   onClick={resume}
@@ -733,6 +821,7 @@ const FocusTimer = () => {
                 </button>
               </>
             )}
+            {/* Break/Sleep mood: no Pause/Resume/Stop controls — switching mood (tabs above) is enough, matching AtlasApp exactly */}
           </div>
         </div>
 
@@ -744,7 +833,15 @@ const FocusTimer = () => {
             return (
               <button
                 key={m}
-                onClick={() => { setOverlayMood(m); setOverlayDays(1); }}
+                onClick={() => {
+                  setOverlayMood(m);
+                  setOverlayDays(1);
+                  try {
+                    window.history.pushState({ focusOverlay: true }, "");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
                 className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
               >
                 <span className={cn("text-lg font-black", md.color)}>{count}</span>
@@ -761,7 +858,7 @@ const FocusTimer = () => {
             className="flex items-center gap-2 text-sm font-extrabold"
           >
             <Users className="h-4 w-4 text-sky-500" />
-            এখন যারা অনলাইনে আছে
+            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
             <span className="text-[10px] font-bold text-muted-foreground">
               {showLiveNow ? "লুকাও" : "দেখাও"}
             </span>
@@ -770,8 +867,9 @@ const FocusTimer = () => {
             <>
               {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
               {(() => {
+                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
                 const batches = Array.from(
-                  new Set((liveNow || []).map((r: any) => r.hsc_batch || "অন্যান্য"))
+                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
                 );
                 if (batches.length <= 1) return null;
                 return (
@@ -785,10 +883,10 @@ const FocusTimer = () => {
                           : "bg-card border-border text-muted-foreground"
                       )}
                     >
-                      সবাই ({(liveNow || []).length})
+                      সবাই ({moodPool.length})
                     </button>
                     {batches.map((b) => {
-                      const cnt = (liveNow || []).filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
                       return (
                         <button
                           key={b as string}
@@ -810,13 +908,20 @@ const FocusTimer = () => {
 
               <div className="space-y-1.5">
                 {(() => {
-                  const filtered = (liveNow || []).filter(
+                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                  const filtered = moodPool.filter(
                     (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
                   );
                   if (filtered.length === 0) {
+                    const emptyMsg =
+                      mood === "break"
+                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
+                        : mood === "sleep"
+                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
+                        : "এই মুহূর্তে কেউ নেই";
                     return (
                       <p className="text-center text-xs text-muted-foreground py-4">
-                        এখন কেউ সেশনে নেই।
+                        {emptyMsg}
                       </p>
                     );
                   }
@@ -906,10 +1011,59 @@ const FocusTimer = () => {
                 এখনো কেউ এই মোডে সময় রেকর্ড করেনি।
               </p>
             )}
+            {/* Top 3 Podium — matches AtlasApp's Top Performers graph */}
+            {leaderboard && leaderboard.length > 0 && (() => {
+              const top3 = leaderboard.slice(0, 3);
+              const maxSec = Math.max(1, ...top3.map((s: any) => Number(s.total_seconds)));
+              const crowns = ["👑", "🥈", "🥉"];
+              const rankLabels = ["১ম", "২য়", "৩য়"];
+              const barColors = ["bg-amber-500", "bg-slate-400", "bg-amber-700"];
+              const textColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
+              return (
+                <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-primary/5 p-3 mb-2">
+                  <div className="text-center text-[10px] font-black tracking-wider text-amber-500 mb-2.5 flex items-center justify-center gap-1">
+                    <Trophy className="h-3 w-3" /> TOP PERFORMERS
+                  </div>
+                  <div className="flex items-end justify-center gap-2">
+                    {top3.map((s: any, i: number) => {
+                      const secs = Number(s.total_seconds);
+                      const pct = Math.max(10, Math.round((secs / maxSec) * 72));
+                      const t = formatHMS(secs);
+                      return (
+                        <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
+                          <div className="text-sm">{crowns[i]}</div>
+                          {s.avatar_url ? (
+                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-full object-cover border" />
+                          ) : null}
+                          <div className="w-full flex justify-center">
+                            <div
+                              className={cn("w-8 rounded-t", barColors[i])}
+                              style={{ height: `${pct}px`, boxShadow: "0 0 8px rgba(0,0,0,0.15)" }}
+                            />
+                          </div>
+                          <div className={cn("text-[10px] font-black", textColors[i])}>{rankLabels[i]}</div>
+                          <div className="text-[10px] font-extrabold truncate max-w-[70px] text-center">
+                            {s.full_name || "Student"}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground">{t.h}h {t.m}m</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
             {leaderboard?.map((row: any, i: number) => {
               const isMe = row.user_id === user?.id;
               const t = formatHMS(Number(row.total_seconds));
               const md = MOOD_META[leaderboardMood];
+              const isPausedRow = row.live_mood === "study" && row.is_paused;
+              const isLiveRow = row.live_mood && !isPausedRow;
+              const liveStatusMeta: Record<string, { label: string; cls: string }> = {
+                study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
+                break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
+                sleep: { label: "ঘুম", cls: "bg-indigo-400/15 text-indigo-400" },
+              };
               return (
                 <button
                   key={row.user_id}
@@ -923,13 +1077,32 @@ const FocusTimer = () => {
                   <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
                     #{i + 1}
                   </div>
-                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
-                    {(row.full_name || "S").charAt(0).toUpperCase()}
+                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0 overflow-hidden", md.color, "bg-current/10")}>
+                    {row.avatar_url ? (
+                      <img src={row.avatar_url} alt={row.full_name || "Student"} className="h-full w-full object-cover" />
+                    ) : (
+                      (row.full_name || "S").charAt(0).toUpperCase()
+                    )}
                   </div>
-                  <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                    {row.full_name || "Student"}
-                    {isMe && " (তুমি)"}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold truncate">
+                      {row.full_name || "Student"}
+                      {isMe && " (তুমি)"}
+                    </div>
+                    {row.hsc_batch && (
+                      <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
+                    )}
                   </div>
+                  {isPausedRow && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive flex-shrink-0">
+                      Pause
+                    </span>
+                  )}
+                  {isLiveRow && liveStatusMeta[row.live_mood] && (
+                    <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0", liveStatusMeta[row.live_mood].cls)}>
+                      {liveStatusMeta[row.live_mood].label}
+                    </span>
+                  )}
                   <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
                     {t.h}h {t.m}m
                   </div>
@@ -939,32 +1112,6 @@ const FocusTimer = () => {
           </div>
         </div>
       </div>
-
-      {/* Mood switch confirmation — shown when Study is running and user taps Break/Sleep */}
-      {pendingMood && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
-          <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-base font-extrabold">⚠️ মোড পরিবর্তন</h3>
-            <p className="text-sm text-muted-foreground">
-              Study Timer চলছে। Break / Sleep Mode on করতে হলে আগে বন্ধ করো। এই সময়গুলো Top Focused rank এ count হয়।
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={confirmMoodSwitch}
-                className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
-              >
-                এই Mood বন্ধ করো
-              </button>
-              <button
-                onClick={closeMoodPopup}
-                className="flex-1 py-2.5 rounded-xl border font-bold text-sm hover:bg-muted"
-              >
-                বাতিল
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {toast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
@@ -978,6 +1125,12 @@ const FocusTimer = () => {
           <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
             <h3 className="text-base font-extrabold">সেশন শেষ হয়েছে 🎉</h3>
+            <div className="rounded-xl bg-primary/10 py-3">
+              <div className="text-2xl font-black text-primary">
+                {formatHMS(stopStats.studySeconds).h}h {formatHMS(stopStats.studySeconds).m}m
+              </div>
+              <div className="text-[11px] font-bold text-muted-foreground mt-0.5">পড়েছো</div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-xl bg-muted/50 py-3">
                 <div className="text-xl font-black">{stopStats.breaks}</div>
@@ -1008,7 +1161,7 @@ const FocusTimer = () => {
         <div className="fixed inset-0 bg-background z-[70] flex flex-col">
           <div className="flex items-center gap-3 px-4 py-3 border-b">
             <button
-              onClick={() => setOverlayMood(null)}
+              onClick={closeOverlay}
               className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -1188,6 +1341,15 @@ const FocusTimer = () => {
                   </div>
                 </div>
               </div>
+
+              {cmpDays === 1 && cmpBreaksToday && (
+                <div className="rounded-lg border px-3 py-2 flex items-center justify-between text-xs font-bold bg-muted/30">
+                  <span className="text-muted-foreground">বিরতি (আজ)</span>
+                  <span>
+                    তুমি: {cmpBreaksToday.mine}টি &nbsp;|&nbsp; {compareTarget.name}: {cmpBreaksToday.theirs}টি
+                  </span>
+                </div>
+              )}
 
               {cmpDays > 1 && (
                 <div className="border-t pt-2.5 space-y-1.5">

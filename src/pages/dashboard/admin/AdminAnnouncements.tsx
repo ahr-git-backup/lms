@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { PostEditor } from "@/components/PostEditor";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageUploader } from "@/components/ui/image-uploader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -16,8 +17,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 const announcementSchema = z.object({
   id: z.string().optional(),
   title: z.string().trim().min(1, "Title is required").max(200),
-  body: z.string().trim().min(1, "Body is required").max(4000),
+  body: z.string().trim().max(4000).optional().default(""),
+  image_url: z.string().optional().nullable(),
   course_id: z.string().optional().nullable(),
+}).refine((val) => (val.body && val.body.length > 0) || (val.image_url && val.image_url.length > 0), {
+  message: "Add text or an image",
+  path: ["body"],
 });
 
 const PAGE_SIZE = 10;
@@ -26,6 +31,7 @@ const AdminAnnouncements = () => {
   const [form, setForm] = useState<z.infer<typeof announcementSchema>>({
     title: "",
     body: "",
+    image_url: "",
     course_id: null,
   });
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -58,7 +64,21 @@ const AdminAnnouncements = () => {
         .order("published_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
-      return { data: data || [], count: count || 0 };
+
+      const ids = (data || []).map((a) => a.id);
+      let seenCounts: Record<string, number> = {};
+      if (ids.length > 0) {
+        const { data: reads } = await supabase
+          .from("announcement_reads")
+          .select("announcement_id")
+          .in("announcement_id", ids);
+        seenCounts = (reads || []).reduce((acc: Record<string, number>, r: any) => {
+          acc[r.announcement_id] = (acc[r.announcement_id] || 0) + 1;
+          return acc;
+        }, {});
+      }
+
+      return { data: data || [], count: count || 0, seenCounts };
     },
   });
 
@@ -71,6 +91,7 @@ const AdminAnnouncements = () => {
       id: undefined,
       title: "",
       body: "",
+      image_url: "",
       course_id: null,
     });
     setIsFormVisible(false);
@@ -81,7 +102,8 @@ const AdminAnnouncements = () => {
       const parsed = announcementSchema.parse(values);
       const payload: Partial<Announcement> = {
         title: parsed.title,
-        body: parsed.body,
+        body: parsed.body || "",
+        image_url: parsed.image_url || null,
         course_id: parsed.course_id || null,
       };
 
@@ -133,6 +155,7 @@ const AdminAnnouncements = () => {
       id: announcement.id,
       title: announcement.title ?? "",
       body: announcement.body ?? "",
+      image_url: announcement.image_url ?? "",
       course_id: announcement.course_id ?? null,
     });
     setIsFormVisible(true);
@@ -207,11 +230,22 @@ const AdminAnnouncements = () => {
             </div>
 
             <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="body">Body</Label>
-              <PostEditor
-                key={form.id || 'new'}
-                initialValue={form.body}
-                onChange={(val) => setForm((prev) => ({ ...prev, body: val }))}
+              <Label htmlFor="body">Text</Label>
+              <Textarea
+                id="body"
+                value={form.body}
+                onChange={(e) => setForm((prev) => ({ ...prev, body: e.target.value }))}
+                placeholder="Notice text (optional if image added)"
+                className="min-h-[150px]"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label>Image (optional)</Label>
+              <ImageUploader
+                value={form.image_url || ""}
+                onChange={(url) => setForm((prev) => ({ ...prev, image_url: url }))}
+                placeholder="Image URL or upload"
               />
             </div>
 
@@ -259,6 +293,7 @@ const AdminAnnouncements = () => {
                     <TableHead>Title</TableHead>
                     <TableHead>Course</TableHead>
                     <TableHead>Date</TableHead>
+                    <TableHead>Seen</TableHead>
                     <TableHead className="w-[80px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -275,6 +310,9 @@ const AdminAnnouncements = () => {
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {new Date(announcement.published_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">
+                        {announcementsData?.seenCounts?.[announcement.id] || 0}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button

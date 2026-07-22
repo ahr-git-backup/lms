@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, Calendar, Coffee, Lightbulb, Moon } from "lucide-react";
@@ -45,7 +45,7 @@ const StudyHistory = () => {
   const [selectedDay, setSelectedDay] = useState<DayRow | null>(null);
   const [showAdvice, setShowAdvice] = useState(false);
 
-  const { data: rows, isLoading } = useQuery({
+  const { data: rows, isLoading, refetch: refetchHistory } = useQuery({
     queryKey: ["focus-history-daily"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("focus_history_daily" as any, { p_days: 0 });
@@ -53,7 +53,22 @@ const StudyHistory = () => {
       return ((data as unknown) || []) as DayRow[];
     },
     enabled: !!user,
+    refetchInterval: (query) => {
+      const data = query.state.data as DayRow[] | undefined;
+      return data?.some((r) => r.is_ongoing) ? 6000 : false;
+    },
+    refetchOnWindowFocus: true,
   });
+
+  // Re-sync immediately when the user comes back to this tab/page (e.g. from Focus Timer),
+  // so the numbers here don't lag behind what's shown on the live timer screen.
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void refetchHistory();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refetchHistory]);
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -72,6 +87,9 @@ const StudyHistory = () => {
     return { study, brk, slp };
   }, [periodRows]);
 
+  const periodLabel =
+    periodDays === 1 ? "আজকে" : periodDays === 0 ? "সবসময়" : `বিগত ${periodDays} দিন`;
+
   // Last 7 days for the chart, always relative to today regardless of period filter
   const chartDays = useMemo(() => {
     const map = new Map((rows || []).map((r) => [r.day, r]));
@@ -88,6 +106,16 @@ const StudyHistory = () => {
   const maxChartSecs = Math.max(...chartDays.map((d) => d.secs), 1);
 
   const advice = useMemo(() => buildAdvice(rows || [], today), [rows, today]);
+
+  useEffect(() => {
+    if (selectedDay || showAdvice) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [selectedDay, showAdvice]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -132,12 +160,12 @@ const StudyHistory = () => {
               ))}
             </div>
 
-            {/* Today boxes (reflect selected period) */}
+            {/* Today boxes (reflect selected period, label changes with period) */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-center py-2.5">
                 <div className="text-base font-black text-emerald-500">{fmtHM(periodTotals.study)}</div>
                 <div className="text-[9px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
-                  <BookOpen className="h-2.5 w-2.5" /> পড়েছে
+                  <BookOpen className="h-2.5 w-2.5" /> {periodLabel}
                 </div>
               </div>
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 text-center py-2.5">
@@ -214,9 +242,13 @@ const StudyHistory = () => {
                 return (
                   <button
                     key={g.day}
-                    onClick={() => setSelectedDay(g)}
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setSelectedDay(g);
+                    }}
                     className={cn(
-                      "w-full text-left rounded-2xl border p-3 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-amber-500/5",
+                      "w-full text-left rounded-2xl border p-3 bg-gradient-to-br from-primary/5 via-emerald-500/5 to-amber-500/5 active:scale-[0.98] transition-transform",
                       g.is_ongoing ? "border-emerald-500/30" : "border-primary/20"
                     )}
                   >
@@ -362,14 +394,15 @@ function dayFeedback(day: DayRow) {
 
 function buildAdvice(rows: DayRow[], today: string) {
   const map = new Map(rows.map((r) => [r.day, r]));
-  const days: { date: string; studySecs: number; breaksUsed: number }[] = [];
+  const days: { date: string; studySecs: number; breaksUsed: number; sleepSecs: number }[] = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
     const row = map.get(d);
-    days.push({ date: d, studySecs: row?.study_seconds || 0, breaksUsed: row?.breaks_used || 0 });
+    days.push({ date: d, studySecs: row?.study_seconds || 0, breaksUsed: row?.breaks_used || 0, sleepSecs: row?.sleep_seconds || 0 });
   }
 
   const totalStudy = days.reduce((a, d) => a + d.studySecs, 0);
+  const totalSleepSecs = days.reduce((a, d) => a + d.sleepSecs, 0);
   const avgStudy = totalStudy / 7;
   const activeDays = days.filter((d) => d.studySecs > 0).length;
   const totalBreaks = days.reduce((a, d) => a + d.breaksUsed, 0);
@@ -419,6 +452,8 @@ function buildAdvice(rows: DayRow[], today: string) {
     statusIcon = "🏆";
     headline = `চমৎকার পারফরম্যান্স! গড়ে দৈনিক ${fmtHM(avgStudy)} পড়ছো`;
     tips.push("এই ধারাবাহিকতা বজায় রাখো — তুমি দারুণ পথে আছো!");
+    if (totalSleepSecs / 7 < 18000) tips.push("তবে ঘুমের প্রতি একটু বেশি যত্ন নাও — পর্যাপ্ত বিশ্রাম দীর্ঘমেয়াদে পড়াশোনার মান বাড়ায়।");
+    else tips.push("ঘুম ও পড়াশোনার ভারসাম্য ভালো আছে — এভাবেই চালিয়ে যাও।");
   } else if (trendUp) {
     statusColor = "#10B981";
     statusIcon = "📈";

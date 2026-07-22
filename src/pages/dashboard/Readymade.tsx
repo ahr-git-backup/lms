@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useNavigationType } from "react-router-dom";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
@@ -30,6 +31,7 @@ const Readymade = () => {
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+  const navigationType = useNavigationType(); // "POP" = browser back/forward, "PUSH"/"REPLACE" = normal link click
 
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -64,6 +66,15 @@ const Readymade = () => {
   // so navigating away to take an exam and coming back (via result page's Back
   // button) lands the user exactly where they left off instead of the top-level list.
   useEffect(() => {
+    // Only restore saved drill-down (subject/chapter) state when the user
+    // arrived here via browser Back (e.g. from an exam/result page). A fresh
+    // click from the sidebar or dashboard should always show the main
+    // Readymade landing page, not wherever the user previously drilled into.
+    if (navigationType !== "POP") {
+      try { sessionStorage.removeItem(READYMADE_STATE_KEY); } catch { /* ignore */ }
+      hasRestoredRef.restored = true;
+      return;
+    }
     try {
       const saved = sessionStorage.getItem(READYMADE_STATE_KEY);
       if (saved) {
@@ -468,7 +479,7 @@ const ExamGrid = ({ exams, navigate }: { exams: any[], navigate: any }) => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
     {exams.map((exam) => (
       <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-        onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+        onClick={() => { setExamSourceList(exam.id, "/dashboard/readymade"); navigate(`/dashboard/take-exam/${exam.id}`); }}>
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start gap-2">
             <div className="space-y-1">

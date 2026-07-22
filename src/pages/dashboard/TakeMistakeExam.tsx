@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, ChevronLeft, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator } from "lucide-react";
+import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,7 +35,7 @@ const TakeMistakeExam = () => {
     const { toast } = useToast();
     const { user } = useAuth();
 
-    const state = location.state as { examIds: string[]; filterMode: 'wrong' | 'skipped' | 'both' } | undefined;
+    const state = location.state as { examIds: string[]; filterMode: 'wrong' | 'skipped' | 'both'; sourceAttemptId?: string } | undefined;
 
     const [answers, setAnswers] = useState<Record<string, string>>({});
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -294,11 +294,13 @@ const TakeMistakeExam = () => {
             <div className="min-h-screen bg-background font-sans pb-20">
                 <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <Button variant="ghost" onClick={() => navigate("/dashboard/my-mistakes")} className="pl-0">
-                            <ChevronLeft className="h-4 w-4 mr-2" /> Back to Mistakes
-                        </Button>
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-end gap-4">
                         <div className="flex gap-2">
+                             {state.sourceAttemptId && (
+                                 <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
+                                    <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
+                                 </Button>
+                             )}
                              <Button size="sm" onClick={() => window.location.reload()}>
                                 <RotateCw className="h-4 w-4 mr-2" /> Practice Again
                              </Button>

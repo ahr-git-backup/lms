@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,6 +7,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 
 // Define shape of dashboard data
@@ -35,7 +36,7 @@ const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeF
 };
 
 const DashboardHome = () => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { toast } = useToast();
@@ -132,6 +133,32 @@ const DashboardHome = () => {
     enabled: !!user,
   });
 
+  const { data: pendingReportsCount } = useQuery({
+    queryKey: ["admin-pending-reports-count"],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from("question_reports")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      return count || 0;
+    },
+    enabled: !!isAdmin,
+  });
+
+  const { data: qpPoints } = useQuery({
+    queryKey: ["qp-user-points", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_user_points")
+        .select("total_points")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) return 0;
+      return data?.total_points ?? 0;
+    },
+  });
+
   if (dashboardLoading) {
     return <div className="p-8 text-center text-sm text-muted-foreground">Loading dashboard...</div>;
   }
@@ -177,12 +204,96 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <Card
+        className="cursor-pointer border-amber-400/50 bg-gradient-to-r from-amber-400/10 via-amber-400/5 to-transparent hover:border-amber-400 transition-all"
+        onClick={() => navigate("/quick-practice/leaderboard")}
+      >
+        <CardContent className="p-4 flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Trophy className="h-5 w-5 text-amber-950" />
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-sm">Quick Practice Points</p>
+            <p className="text-xs text-muted-foreground">Leaderboard-এ নিজের rank দেখুন</p>
+          </div>
+          <div className="text-2xl font-black text-amber-500">{qpPoints ?? 0}</div>
+          <Button
+            size="sm"
+            className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold shrink-0"
+            onClick={(e) => { e.stopPropagation(); navigate("/quick-practice"); }}
+          >
+            Start Now
+          </Button>
+        </CardContent>
+      </Card>
+
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
         <p className="text-sm text-muted-foreground">
           Get a quick overview of your upcoming activities.
         </p>
       </header>
+
+      {/* Admin-only quick actions */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+            onClick={() => navigate("/admin/reports")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Reports</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingReportsCount ?? "..."} pending
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            onClick={() => navigate("/admin/announcements")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Notice</p>
+                <p className="text-xs text-muted-foreground">Send to all users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            onClick={() => navigate("/admin/syllabus-tracker")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Study Tracker</p>
+                <p className="text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            onClick={() => navigate("/admin/quick-practice")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Zap className="h-6 w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Quick Practice</p>
+                <p className="text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* User Notifications (Approvals/Declines) */}
       {userNotifications && userNotifications.length > 0 && (
@@ -345,7 +456,7 @@ const DashboardHome = () => {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                       <Button size="sm" onClick={() => navigate(`/dashboard/take-exam/${exam?.id}`)} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
+                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
                           Take Exam
                        </Button>
                     </CardContent>
@@ -460,7 +571,7 @@ const DashboardHome = () => {
                                        {unreadNoticeCount > 9 ? "9+" : unreadNoticeCount}
                                    </span>
                                )}
-                               <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : ''}`} />
+                               <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
                            <p className="font-medium text-sm">{item.title}</p>
                        </CardContent>

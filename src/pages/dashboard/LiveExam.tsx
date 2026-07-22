@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SUBJECTS } from "@/lib/constants";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import ReactMarkdown from "react-markdown";
 
 const LiveExam = () => {
@@ -124,7 +125,7 @@ const LiveExam = () => {
                 <Button variant="outline" onClick={() => setSelectedExamForPopup(null)}>
                     Cancel
                 </Button>
-                <Button onClick={() => navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`)}>
+                <Button onClick={() => { if (selectedExamForPopup?.id) setExamSourceList(selectedExamForPopup.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`); }}>
                     Start Exam
                 </Button>
             </DialogFooter>

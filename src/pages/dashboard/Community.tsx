@@ -9,6 +9,7 @@ import { Send, Facebook, Link as LinkIcon, Users, MessageCircle, ExternalLink, C
 const Community = () => {
   const { user } = useAuth();
   const [page, setPage] = useState(1);
+  const [platformFilter, setPlatformFilter] = useState<"all" | "facebook" | "telegram">("all");
   const PAGE_SIZE = 5;
 
   useEffect(() => {
@@ -101,9 +102,17 @@ const Community = () => {
       );
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const platformFilteredLinks = (links || []).filter((link: any) => {
+      if (platformFilter === "all") return true;
+      if (platformFilter === "telegram") return link.url.includes("t.me");
+      if (platformFilter === "facebook") return link.url.includes("facebook.com") || link.url.includes("fb.me");
+      return true;
+  });
+
   // Group links by course name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedLinks = (links || []).reduce((acc: Record<string, any[]>, link: any) => {
+  const groupedLinks = platformFilteredLinks.reduce((acc: Record<string, any[]>, link: any) => {
       const courseName = link.course_name || "Public Community";
       if (!acc[courseName]) acc[courseName] = [];
       acc[courseName].push(link);
@@ -120,6 +129,24 @@ const Community = () => {
           <h1 className="text-2xl font-semibold tracking-tight">FB & Telegram Group</h1>
           <p className="text-sm text-muted-foreground">Join our community channels to stay updated.</p>
       </header>
+
+      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+          {([
+              { key: "all", label: "All" },
+              { key: "facebook", label: "Facebook" },
+              { key: "telegram", label: "Telegram" },
+          ] as const).map((p) => (
+              <button
+                  key={p.key}
+                  type="button"
+                  onClick={() => { setPlatformFilter(p.key); setPage(1); }}
+                  className={`px-3 py-2 rounded-lg border text-sm font-bold uppercase tracking-wide transition-colors shrink-0 whitespace-nowrap ${platformFilter === p.key ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"}`}
+              >
+                  {p.label}
+              </button>
+          ))}
+      </div>
+
 
       {isLoading ? (
           <div className="text-muted-foreground py-10 text-center">Loading community links...</div>

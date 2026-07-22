@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -363,7 +364,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { setExamSourceList(exam.id, window.location.pathname); navigate(`/dashboard/take-exam/${exam.id}`); }}>
                             Start Exam
                         </Button>
                     </CardFooter>
@@ -408,7 +409,7 @@ const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { setExamSourceList(exam.id, window.location.pathname); navigate(`/dashboard/take-exam/${exam.id}`); }}>
                             Start Exam
                         </Button>
                     </CardFooter>
@@ -495,7 +496,7 @@ const ArchiveExamList = ({ courseId, subject, chapter }: any) => {
                         </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
-                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/take-exam/${exam.id}`)}>
+                        <Button size="sm" className="w-full" onClick={() => { setExamSourceList(exam.id, window.location.pathname); navigate(`/dashboard/take-exam/${exam.id}`); }}>
                             Start Exam
                         </Button>
                     </CardFooter>

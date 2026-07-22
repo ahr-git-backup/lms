@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SUBJECTS } from "@/lib/constants";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import ReactMarkdown from "react-markdown";
 
 const PastExamCatalog = () => {
@@ -125,7 +126,7 @@ const PastExamCatalog = () => {
                 <Button variant="outline" onClick={() => setSelectedExamForPopup(null)}>
                     Cancel
                 </Button>
-                <Button onClick={() => navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`)}>
+                <Button onClick={() => { if (selectedExamForPopup?.id) setExamSourceList(selectedExamForPopup.id, "/dashboard/past-exam"); navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`); }}>
                     Start Exam
                 </Button>
             </DialogFooter>

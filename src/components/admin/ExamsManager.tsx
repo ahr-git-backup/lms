@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
@@ -49,6 +50,8 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
+  const [readymadeSubCategory, setReadymadeSubCategory] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -81,8 +84,33 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     enabled: !isFreeMode
   });
 
+  const { data: readymadeCategories } = useQuery({
+    queryKey: ["admin-exams-readymade-categories"],
+    queryFn: async () => {
+      const set = new Set<string>();
+      const BATCH = 1000;
+      let from = 0;
+      // Paginate through ALL readymade exams — a plain select() is capped at
+      // 1000 rows by Supabase/PostgREST, which was silently dropping
+      // categories that only appeared later in the table.
+      while (true) {
+        const { data, error } = await supabase
+          .from("exams")
+          .select("readymade_category")
+          .eq("is_readymade", true)
+          .not("readymade_category", "is", null)
+          .range(from, from + BATCH - 1);
+        if (error) throw error;
+        (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+        if (!data || data.length < BATCH) break;
+        from += BATCH;
+      }
+      return Array.from(set).sort();
+    },
+  });
+
   const { data: examsData, isLoading } = useQuery({
-    queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch],
+    queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch, mainCategory, readymadeSubCategory],
     queryFn: async () => {
       let query = supabase
         .from("exams")
@@ -102,6 +130,17 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       }
       if (debouncedSearch) {
           query = query.ilike("title", `%${debouncedSearch}%`);
+      }
+
+      if (mainCategory === "readymade") {
+          query = query.eq("is_readymade", true);
+          if (readymadeSubCategory !== "all") {
+              query = query.eq("readymade_category", readymadeSubCategory);
+          }
+      } else if (mainCategory === "live") {
+          query = query.eq("is_readymade", false).eq("exam_type", "live");
+      } else if (mainCategory === "practice") {
+          query = query.eq("is_readymade", false).eq("exam_type", "practice");
       }
 
       const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -400,6 +439,56 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                     )}
                 </div>
             </div>
+
+            {/* Main Category Tabs */}
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                {([
+                    { key: "all", label: "All" },
+                    { key: "live", label: "Live" },
+                    { key: "practice", label: "Practice" },
+                    { key: "readymade", label: "Readymade" },
+                ] as const).map((c) => (
+                    <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => { setMainCategory(c.key); setReadymadeSubCategory("all"); setPage(0); }}
+                        className={cn(
+                            "px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border text-xs sm:text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap",
+                            mainCategory === c.key ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"
+                        )}
+                    >
+                        {c.label}
+                    </button>
+                ))}
+            </div>
+
+            {mainCategory === "readymade" && readymadeCategories && readymadeCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-1">
+                    <button
+                        type="button"
+                        onClick={() => { setReadymadeSubCategory("all"); setPage(0); }}
+                        className={cn(
+                            "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap",
+                            readymadeSubCategory === "all" ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
+                        )}
+                    >
+                        All
+                    </button>
+                    {readymadeCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => { setReadymadeSubCategory(cat); setPage(0); }}
+                            className={cn(
+                                "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap",
+                                readymadeSubCategory === cat ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="text-sm text-muted-foreground">Loading exams...</div>

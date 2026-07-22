@@ -144,6 +144,11 @@ const Announcements = () => {
               localStorage.setItem("read_announcements_ids", JSON.stringify(newRead));
               // Also update last viewed globally to prevent dot from reappearing immediately
               localStorage.setItem("last_viewed_announcements", new Date().toISOString());
+              if (user) {
+                  supabase.from("announcement_reads")
+                      .upsert({ announcement_id: id, user_id: user.id }, { onConflict: "announcement_id,user_id" })
+                      .then(() => {});
+              }
           }
       }
   };
@@ -300,7 +305,17 @@ const Announcements = () => {
                         {isExpanded && (
                             <CardContent className="pl-9 pt-0 pb-4 animate-in slide-in-from-top-2 duration-200">
                                 <div className="h-px w-full bg-border/50 mb-3" />
-                                <p className="text-sm whitespace-pre-wrap">{announcement.body}</p>
+                                {announcement.image_url && (
+                                    <img
+                                        src={announcement.image_url}
+                                        alt=""
+                                        className="w-full max-w-md rounded-lg mb-3 object-cover"
+                                        loading="lazy"
+                                    />
+                                )}
+                                {announcement.body && (
+                                    <p className="text-sm whitespace-pre-wrap">{announcement.body}</p>
+                                )}
                             </CardContent>
                         )}
                         </Card>
