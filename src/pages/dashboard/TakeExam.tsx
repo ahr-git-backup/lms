@@ -339,19 +339,15 @@ const TakeExam = () => {
     setQpTimeLeft(30);
   };
 
-  // Full reset so a new Quick Practice attempt starts clean instead of reusing
-  // the previous run's finished/answered state (bug: re-entering practice mode
-  // without a full page remount kept showing the old finished results).
+  // Send the user back to the pre-exam screen (mode/count select) instead of
+  // silently restarting — matches how a fresh attempt should begin.
   const qpRestart = () => {
     setQpFinished(false);
     setQpAnswers({});
     setQpCurrent(0);
     setQpTimeLeft(30);
-    const shuffled = [...(practiceQuestions || [])].sort(() => Math.random() - 0.5);
-    const finalSet = selectedQuestionCount && selectedQuestionCount < shuffled.length
-      ? shuffled.slice(0, selectedQuestionCount)
-      : shuffled;
-    setQpQuestions(finalSet);
+    setQpQuestions([]);
+    setHasStarted(false);
   };
 
   // Shuffle Questions Effect
