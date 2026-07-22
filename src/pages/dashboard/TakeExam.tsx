@@ -302,7 +302,7 @@ const TakeExam = () => {
   const qpSelectOption = (optionKey: string) => {
     if (qpAnswers[qpCurrent]) return;
     const q = qpQuestions[qpCurrent];
-    const correct = optionKey === q.correct_option;
+    const correct = optionKey.toUpperCase() === String(q.correct_option).toUpperCase();
     setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: optionKey, correct, skipped: false } }));
     playSound(correct, qpSoundVol, qpRightPack, qpWrongPack);
   };
@@ -337,6 +337,21 @@ const TakeExam = () => {
     }
     setQpCurrent((c) => c + 1);
     setQpTimeLeft(30);
+  };
+
+  // Full reset so a new Quick Practice attempt starts clean instead of reusing
+  // the previous run's finished/answered state (bug: re-entering practice mode
+  // without a full page remount kept showing the old finished results).
+  const qpRestart = () => {
+    setQpFinished(false);
+    setQpAnswers({});
+    setQpCurrent(0);
+    setQpTimeLeft(30);
+    const shuffled = [...(practiceQuestions || [])].sort(() => Math.random() - 0.5);
+    const finalSet = selectedQuestionCount && selectedQuestionCount < shuffled.length
+      ? shuffled.slice(0, selectedQuestionCount)
+      : shuffled;
+    setQpQuestions(finalSet);
   };
 
   // Shuffle Questions Effect
@@ -1076,7 +1091,10 @@ const TakeExam = () => {
               <div className="text-[10px] text-muted-foreground">Skipped</div>
             </div>
           </div>
-          <Button onClick={() => { qpCleanupStorage(); navigate(-1); }} className="mt-2 rounded-xl">ফিরে যাও</Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={() => { qpCleanupStorage(); navigate(-1); }} className="rounded-xl">ফিরে যাও</Button>
+            <Button onClick={qpRestart} className="rounded-xl">আবার Practice করুন</Button>
+          </div>
         </div>
       );
     }
@@ -1182,7 +1200,7 @@ const TakeExam = () => {
             {options.map((opt) => {
               let cls = "border-border bg-card hover:border-primary/40";
               if (ans) {
-                if (opt.key === q.correct_option) cls = "border-emerald-500 bg-emerald-500/10";
+                if (opt.key.toUpperCase() === String(q.correct_option).toUpperCase()) cls = "border-emerald-500 bg-emerald-500/10";
                 else if (opt.key === ans.selected) cls = "border-destructive bg-destructive/10";
                 else cls = "border-border bg-card opacity-50";
               }
@@ -1194,7 +1212,7 @@ const TakeExam = () => {
                   className={cn("flex items-center gap-3 px-4 py-3.5 rounded-xl border-2 text-sm text-left transition-all active:scale-[0.98]", cls)}
                 >
                   <span className={cn("h-7 w-7 rounded-lg flex items-center justify-center font-extrabold text-xs shrink-0",
-                    ans && opt.key === q.correct_option ? "bg-emerald-500 text-white"
+                    ans && opt.key.toUpperCase() === String(q.correct_option).toUpperCase() ? "bg-emerald-500 text-white"
                     : ans && opt.key === ans.selected ? "bg-destructive text-white"
                     : "bg-muted text-muted-foreground")}>
                     {opt.key.toUpperCase()}
