@@ -23,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSearchParams } from "react-router-dom";
+import { cn } from "@/lib/utils";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
@@ -49,6 +50,8 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
+  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
+  const [readymadeSubCategory, setReadymadeSubCategory] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -81,8 +84,23 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     enabled: !isFreeMode
   });
 
+  const { data: readymadeCategories } = useQuery({
+    queryKey: ["admin-exams-readymade-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("readymade_category")
+        .eq("is_readymade", true)
+        .not("readymade_category", "is", null);
+      if (error) throw error;
+      const set = new Set<string>();
+      (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+      return Array.from(set).sort();
+    },
+  });
+
   const { data: examsData, isLoading } = useQuery({
-    queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch],
+    queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch, mainCategory, readymadeSubCategory],
     queryFn: async () => {
       let query = supabase
         .from("exams")
@@ -102,6 +120,17 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       }
       if (debouncedSearch) {
           query = query.ilike("title", `%${debouncedSearch}%`);
+      }
+
+      if (mainCategory === "readymade") {
+          query = query.eq("is_readymade", true);
+          if (readymadeSubCategory !== "all") {
+              query = query.eq("readymade_category", readymadeSubCategory);
+          }
+      } else if (mainCategory === "live") {
+          query = query.eq("is_readymade", false).eq("exam_type", "live");
+      } else if (mainCategory === "practice") {
+          query = query.eq("is_readymade", false).eq("exam_type", "practice");
       }
 
       const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -400,6 +429,56 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                     )}
                 </div>
             </div>
+
+            {/* Main Category Tabs */}
+            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                {([
+                    { key: "all", label: "All" },
+                    { key: "live", label: "Live" },
+                    { key: "practice", label: "Practice" },
+                    { key: "readymade", label: "Readymade" },
+                ] as const).map((c) => (
+                    <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => { setMainCategory(c.key); setReadymadeSubCategory("all"); setPage(0); }}
+                        className={cn(
+                            "px-3 py-2 rounded-lg border text-sm font-bold uppercase tracking-wide transition-colors shrink-0 whitespace-nowrap",
+                            mainCategory === c.key ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"
+                        )}
+                    >
+                        {c.label}
+                    </button>
+                ))}
+            </div>
+
+            {mainCategory === "readymade" && readymadeCategories && readymadeCategories.length > 0 && (
+                <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1 pl-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+                    <button
+                        type="button"
+                        onClick={() => { setReadymadeSubCategory("all"); setPage(0); }}
+                        className={cn(
+                            "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 whitespace-nowrap",
+                            readymadeSubCategory === "all" ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
+                        )}
+                    >
+                        All
+                    </button>
+                    {readymadeCategories.map((cat) => (
+                        <button
+                            key={cat}
+                            type="button"
+                            onClick={() => { setReadymadeSubCategory(cat); setPage(0); }}
+                            className={cn(
+                                "px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors shrink-0 whitespace-nowrap",
+                                readymadeSubCategory === cat ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"
+                            )}
+                        >
+                            {cat}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {isLoading ? (
                 <div className="text-sm text-muted-foreground">Loading exams...</div>
