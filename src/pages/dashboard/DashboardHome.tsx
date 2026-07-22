@@ -217,6 +217,13 @@ const DashboardHome = () => {
             <p className="text-xs text-muted-foreground">Leaderboard-এ নিজের rank দেখুন</p>
           </div>
           <div className="text-2xl font-black text-amber-500">{qpPoints ?? 0}</div>
+          <Button
+            size="sm"
+            className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold shrink-0"
+            onClick={(e) => { e.stopPropagation(); navigate("/quick-practice"); }}
+          >
+            Start Now
+          </Button>
         </CardContent>
       </Card>
 
