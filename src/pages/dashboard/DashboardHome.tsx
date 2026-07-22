@@ -234,7 +234,7 @@ const DashboardHome = () => {
               className="shrink-0 gap-1.5"
               onClick={() => setShowTutorialVideo(true)}
             >
-              <Video className="h-4 w-4" />
+              <Video className="h-4 w-4 animate-icon-float text-primary" />
               Watch Tutorial
             </Button>
           )}
@@ -279,36 +279,36 @@ const DashboardHome = () => {
             className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
-              <p className="font-semibold text-sm">My Progress</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">My Progress</p>
             </CardContent>
           </Card>
           <Card
             className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
             onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Target className="h-6 w-6 text-red-500 flex-shrink-0" />
-              <p className="font-semibold text-sm">Weak Topics & Analysis</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
             </CardContent>
           </Card>
           <Card
             className="cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
             onClick={() => navigate("/study-history")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <History className="h-6 w-6 text-purple-500 flex-shrink-0" />
-              <p className="font-semibold text-sm">History</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">History</p>
             </CardContent>
           </Card>
           <Card
             className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             onClick={() => navigate("/quick-practice/leaderboard")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Trophy className="h-6 w-6 text-yellow-500 flex-shrink-0" />
-              <p className="font-semibold text-sm">Top Performer</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Top Performer</p>
             </CardContent>
           </Card>
         </div>
