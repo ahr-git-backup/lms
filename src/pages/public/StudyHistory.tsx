@@ -53,6 +53,10 @@ const StudyHistory = () => {
       return ((data as unknown) || []) as DayRow[];
     },
     enabled: !!user,
+    refetchInterval: (query) => {
+      const data = query.state.data as DayRow[] | undefined;
+      return data?.some((r) => r.is_ongoing) ? 30000 : false;
+    },
   });
 
   const today = new Date().toISOString().slice(0, 10);
@@ -71,6 +75,9 @@ const StudyHistory = () => {
     const slp = periodRows.reduce((a, r) => a + r.sleep_seconds, 0);
     return { study, brk, slp };
   }, [periodRows]);
+
+  const periodLabel =
+    periodDays === 1 ? "আজকে" : periodDays === 0 ? "সবসময়" : `বিগত ${periodDays} দিন`;
 
   // Last 7 days for the chart, always relative to today regardless of period filter
   const chartDays = useMemo(() => {
@@ -142,12 +149,12 @@ const StudyHistory = () => {
               ))}
             </div>
 
-            {/* Today boxes (reflect selected period) */}
+            {/* Today boxes (reflect selected period, label changes with period) */}
             <div className="grid grid-cols-3 gap-2 mb-3">
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 text-center py-2.5">
                 <div className="text-base font-black text-emerald-500">{fmtHM(periodTotals.study)}</div>
                 <div className="text-[9px] font-bold text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
-                  <BookOpen className="h-2.5 w-2.5" /> পড়েছে
+                  <BookOpen className="h-2.5 w-2.5" /> {periodLabel}
                 </div>
               </div>
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 text-center py-2.5">
