@@ -110,6 +110,23 @@ const TakeExam = () => {
     },
   });
 
+  // Direct Quick Practice deep-link: if ?qp=1 is present (from post-exam header button),
+  // skip the pre-exam mode-select screen entirely and jump straight into the same
+  // quiz-style Quick Practice experience as the toggle-and-Start flow.
+  const qpAutoStartTriggered = useRef(false);
+  useEffect(() => {
+    if (qpAutoStartTriggered.current) return;
+    if (searchParams.get("qp") !== "1") return;
+    if (!exam || !exam.is_readymade || hasStarted) return;
+    qpAutoStartTriggered.current = true;
+    localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`, "1");
+    if (selectedQuestionCount) {
+      localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`, selectedQuestionCount.toString());
+    }
+    setIsQuickPracticeMode(true);
+    setHasStarted(true);
+  }, [exam, hasStarted, searchParams, selectedQuestionCount, LOCAL_STORAGE_KEY_PREFIX]);
+
   // Check for previous attempts if exam is LIVE
   const { data: existingAttempts, isLoading: attemptsLoading } = useQuery({
     queryKey: ["existing-attempts", examId, user?.id],
