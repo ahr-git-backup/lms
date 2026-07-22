@@ -231,13 +231,13 @@ const DashboardHome = () => {
       </div>
 
       <Card className="w-full">
-        <CardContent className="p-2 flex items-center justify-between gap-3">
-          <h1 className="text-base font-semibold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
+        <CardContent className="p-3 flex flex-col items-center gap-2">
+          <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
           {tutorialVideoUrl && (
             <Button
               size="sm"
               variant="outline"
-              className="shrink-0 gap-1.5 h-7 px-2 text-xs"
+              className="shrink-0 gap-1.5 h-7 px-3 text-xs"
               onClick={() => setShowTutorialVideo(true)}
             >
               <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
