@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getEmbedUrl } from "@/lib/videoUtils";
+
+const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
 // Define shape of dashboard data
 interface DashboardData {
@@ -43,6 +47,16 @@ const DashboardHome = () => {
   const queryClient = useQueryClient();
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+  const [showTutorialVideo, setShowTutorialVideo] = useState(false);
+
+  const { data: tutorialVideoUrl } = useQuery({
+    queryKey: ["dashboard-tutorial-video"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
+      if (error) throw error;
+      return data?.value as string | null;
+    },
+  });
 
   useEffect(() => {
     const updateCount = () => {
@@ -227,12 +241,95 @@ const DashboardHome = () => {
         </CardContent>
       </Card>
 
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Get a quick overview of your upcoming activities.
-        </p>
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
+          <p className="text-sm text-muted-foreground">
+            Get a quick overview of your upcoming activities.
+          </p>
+        </div>
+        {tutorialVideoUrl && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5"
+            onClick={() => setShowTutorialVideo(true)}
+          >
+            <Video className="h-4 w-4" />
+            Watch Tutorial
+          </Button>
+        )}
       </header>
+
+      <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Dashboard Tutorial</DialogTitle>
+          </DialogHeader>
+          {tutorialVideoUrl && (
+            <div className="aspect-video w-full">
+              <iframe
+                src={getEmbedUrl(tutorialVideoUrl)}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Dashboard Tutorial"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Tracking System */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold tracking-tight text-center">Smart Tracking System</h2>
+        <div className="grid grid-cols-2 gap-3">
+          <Card
+            className="cursor-pointer hover:border-primary/40 transition-all"
+            onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-blue-500" />
+              </div>
+              <p className="font-medium text-sm">My Progress</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/40 transition-all"
+            onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-red-50 dark:bg-red-950 flex items-center justify-center">
+                <Target className="h-5 w-5 text-red-500" />
+              </div>
+              <p className="font-medium text-sm">Weak Topics & Analysis</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/40 transition-all"
+            onClick={() => navigate("/study-history")}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-purple-50 dark:bg-purple-950 flex items-center justify-center">
+                <History className="h-5 w-5 text-purple-500" />
+              </div>
+              <p className="font-medium text-sm">History</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:border-primary/40 transition-all"
+            onClick={() => navigate("/quick-practice/leaderboard")}
+          >
+            <CardContent className="p-4 flex flex-col items-center text-center gap-2">
+              <div className="h-10 w-10 rounded-xl bg-yellow-50 dark:bg-yellow-950 flex items-center justify-center">
+                <Trophy className="h-5 w-5 text-yellow-500" />
+              </div>
+              <p className="font-medium text-sm">Top Performer</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       {/* Admin-only quick actions */}
       {isAdmin && (

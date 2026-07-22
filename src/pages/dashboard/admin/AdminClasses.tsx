@@ -16,13 +16,18 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassForm } from "@/components/admin/ClassForm";
 import { ClassSortableList } from "@/components/admin/ClassSortableList";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
-import { ArrowUpDown, Plus, List, LayoutGrid } from "lucide-react";
+import { ArrowUpDown, Plus, List, LayoutGrid, Video as VideoIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 const PAGE_SIZE = 30;
+const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showTutorialDialog, setShowTutorialDialog] = useState(false);
+  const [tutorialVideoInput, setTutorialVideoInput] = useState("");
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
   const [reorderCourseId, setReorderCourseId] = useState<string | null>(null);
@@ -97,6 +102,34 @@ const AdminClasses = () => {
     },
   });
 
+  const { data: tutorialVideoData } = useQuery({
+    queryKey: ["dashboard-tutorial-video"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
+      if (error) throw error;
+      return data?.value as string | null;
+    },
+  });
+
+  useEffect(() => {
+    if (showTutorialDialog) setTutorialVideoInput(tutorialVideoData || "");
+  }, [showTutorialDialog, tutorialVideoData]);
+
+  const saveTutorialVideoMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const { error } = await supabase.from("app_settings").upsert({ key: TUTORIAL_VIDEO_KEY, value: url }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Tutorial video updated" });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-tutorial-video"] });
+      setShowTutorialDialog(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to update tutorial video", variant: "destructive" });
+    },
+  });
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -114,8 +147,35 @@ const AdminClasses = () => {
             <Button onClick={() => setShowForm(!showForm)} className="shrink-0" variant={showForm || editingClass ? "secondary" : "default"}>
                 {showForm || editingClass ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Add Class</>}
             </Button>
+            <Button onClick={() => setShowTutorialDialog(true)} className="shrink-0" variant="outline">
+                <VideoIcon className="h-4 w-4 mr-2" /> Dashboard Tutorial Video
+            </Button>
         </div>
       </header>
+
+      <Dialog open={showTutorialDialog} onOpenChange={setShowTutorialDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Dashboard Tutorial Video</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="tutorial-video-url">YouTube Video Link</Label>
+            <Input
+              id="tutorial-video-url"
+              placeholder="https://www.youtube.com/watch?v=..."
+              value={tutorialVideoInput}
+              onChange={(e) => setTutorialVideoInput(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Student dashboard-e "Watch Tutorial" button-e click korle ei video dekhabe.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTutorialDialog(false)}>Cancel</Button>
+            <Button onClick={() => saveTutorialVideoMutation.mutate(tutorialVideoInput.trim())} disabled={saveTutorialVideoMutation.isPending}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="grid gap-6">
         {(showForm || editingClass) && (
