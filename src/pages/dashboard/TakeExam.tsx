@@ -1307,7 +1307,18 @@ const TakeExam = () => {
         </div>
 
         <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col overflow-y-auto pb-24">
-          <p className="text-[16px] font-bold leading-relaxed mb-5"><MathText text={q.question_text} /></p>
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <p className="text-[16px] font-bold leading-relaxed flex-1"><MathText text={q.question_text} /></p>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <ReportQuestionDialog questionId={q.id} questionText={q.question_text} onClose={() => {}} />
+              <button
+                onClick={() => toggleBookmark(q.id)}
+                className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted"
+              >
+                <Bookmark className={cn("h-4 w-4", bookmarkedIds.has(q.id) && "fill-current text-amber-500")} />
+              </button>
+            </div>
+          </div>
 
           <div className="flex flex-col gap-2.5">
             {options.map((opt) => {
