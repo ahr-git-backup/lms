@@ -121,31 +121,10 @@ const Readymade = () => {
   const resetToChapter = () => { setSelectedSubChapter(null); };
 
   return (
-    <div className="space-y-3">
-      <header>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
-      </header>
-
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex flex-wrap gap-2 flex-1 min-w-0">
-          {!selectedSubject && parentTopics?.map(topic => (
-            <Button
-              key={topic.value}
-              variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
-              size="sm"
-              className="rounded-full shadow-sm text-xs h-8 hover:scale-105 transition-transform whitespace-nowrap"
-              onClick={() => {
-                setPage(0);
-                setSelectedParentTopics(prev =>
-                  prev.includes(topic.value) ? prev.filter(t => t !== topic.value) : [...prev, topic.value]
-                );
-              }}
-            >
-              {topic.label}
-            </Button>
-          ))}
-        </div>
-        <div className="relative shrink-0 flex items-center justify-end">
+        <div className="relative shrink-0">
           {isSearchExpanded ? (
             <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -168,6 +147,27 @@ const Readymade = () => {
           )}
         </div>
       </div>
+
+      {!selectedSubject && parentTopics && parentTopics.length > 0 && (
+        <div className="grid grid-cols-3 gap-1.5">
+          {parentTopics.map(topic => (
+            <Button
+              key={topic.value}
+              variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
+              size="sm"
+              className="rounded-full shadow-sm text-[11px] h-7 px-2 hover:scale-105 transition-transform truncate"
+              onClick={() => {
+                setPage(0);
+                setSelectedParentTopics(prev =>
+                  prev.includes(topic.value) ? prev.filter(t => t !== topic.value) : [...prev, topic.value]
+                );
+              }}
+            >
+              {topic.label}
+            </Button>
+          ))}
+        </div>
+      )}
 
       {isAdmin && !selectedSubject && currentSubjectsList.length > 0 && (
         <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
@@ -353,16 +353,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   // --- LEVEL 4: EXAMS (filtered by sub-chapter if present, else no sub-chapter filter) ---
+  // No .range() here on purpose — user wants every exam in the chapter/session
+  // visible on a single page, no "Next page" pagination for this level.
   const { data: examsData, isLoading: loadingExams } = useQuery({
-    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedSubChapter, page, enrolledIds.join(','), selectedParentTopics],
+    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedSubChapter, enrolledIds.join(','), selectedParentTopics],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return { data: [], count: 0 };
       let query = supabase.from("exams")
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
         .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
-        .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+        .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       // If subChapters exist for this chapter, only show exams for the selected sub-chapter
       if (selectedSubChapter) query = query.eq("readymade_sub_chapter", selectedSubChapter);
@@ -459,10 +460,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
   }
 
-  // LEVEL 4: Exams list
+  // LEVEL 4: Exams list — all exams shown on a single page, no pagination
   const exams = examsData?.data || [];
-  const totalCount = examsData?.count || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
     <div className="space-y-3">
@@ -487,10 +486,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
       ) : (
-        <>
-          <ExamGrid exams={exams} navigate={navigate} />
-          <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
-        </>
+        <ExamGrid exams={exams} navigate={navigate} />
       )}
     </div>
   );
