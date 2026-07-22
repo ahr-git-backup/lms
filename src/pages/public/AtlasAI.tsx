@@ -354,8 +354,8 @@ function sleep(ms: number) {
 // kono ekta try success hole shathe shathe result dekhano hoy, r shudhu shob
 // koyta try-i fail korle (truly rare — real outage) tobei friendly "busy" message
 // dekhano hoy. Erokom-e user proyoget kokhono raw/mid-way failure dekhena.
-const MAX_CLIENT_RETRIES = 3;
-const RETRY_DELAY_MS = 1500;
+const MAX_CLIENT_RETRIES = 4;
+const RETRY_DELAY_MS = 1200;
 
 export async function askAI(
   question: string,
@@ -732,10 +732,24 @@ const AtlasAI = () => {
 
     // Recent conversation history so the AI can judge whether this question
     // relates to the previous one and answer with continuity.
-    const recentHistory = messages.slice(-12);
+    // bug fix (root cause of frequent "সব provider fail" / user always seeing
+    // busy message): this used to embed the last 12 FULL messages (including
+    // long assistant explanations) into every request. Combined with the
+    // subject-specific system prompt (NCTB syllabus text, ~1500+ chars), this
+    // regularly pushed a single request past Groq's 8000 TPM limit — which
+    // fails on EVERY key (it's a per-request size problem, not a key
+    // problem), so key rotation/health-tracking couldn't help at all. Now:
+    // fewer messages (6, not 12) AND each one truncated to a short summary
+    // length, keeping total context small enough that Groq's TPM limit is
+    // reliably respected regardless of how long past replies were.
+    const HISTORY_MSG_LIMIT = 3;
+    const HISTORY_MSG_MAX_CHARS = 220;
+    const truncate = (s: string) =>
+      s.length > HISTORY_MSG_MAX_CHARS ? s.slice(0, HISTORY_MSG_MAX_CHARS) + "…" : s;
+    const recentHistory = messages.slice(-HISTORY_MSG_LIMIT);
     const historyBlock = recentHistory.length
       ? recentHistory
-          .map((m) => `${m.role === "user" ? "ইউজার" : "তুমি"}: ${m.text}`)
+          .map((m) => `${m.role === "user" ? "ইউজার" : "তুমি"}: ${truncate(m.text)}`)
           .join("\n") + "\n\n"
       : "";
     const questionWithContext = historyBlock
