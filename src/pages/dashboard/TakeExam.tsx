@@ -37,9 +37,12 @@ const TakeExam = () => {
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
-  const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
+  const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(() => {
+    const c = parseInt(searchParams.get("count") || "", 10);
+    return c > 0 ? c : null;
+  });
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
-  const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
+  const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(() => searchParams.get("qp") === "1");
   const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
