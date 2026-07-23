@@ -821,142 +821,6 @@ const FocusTimer = () => {
           </div>
         </div>
 
-        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
-            const md = MOOD_META[m];
-            return (
-              <button
-                key={m}
-                onClick={() => {
-                  setOverlayMood(m);
-                  setOverlayDays(1);
-                  try {
-                    window.history.pushState({ focusOverlay: true }, "");
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
-              >
-                <span className={cn("text-lg font-black", md.color)}>{count}</span>
-                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Live "studying now" toggle + list */}
-        <div className="space-y-3">
-          <button
-            onClick={() => setShowLiveNow((v) => !v)}
-            className="flex items-center gap-2 text-sm font-extrabold"
-          >
-            <Users className="h-4 w-4 text-sky-500" />
-            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
-            <span className="text-[10px] font-bold text-muted-foreground">
-              {showLiveNow ? "লুকাও" : "দেখাও"}
-            </span>
-          </button>
-          {showLiveNow && (
-            <>
-              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
-              {(() => {
-                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                const batches = Array.from(
-                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
-                );
-                if (batches.length <= 1) return null;
-                return (
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setSelectedBatch("all")}
-                      className={cn(
-                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                        selectedBatch === "all"
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card border-border text-muted-foreground"
-                      )}
-                    >
-                      সবাই ({moodPool.length})
-                    </button>
-                    {batches.map((b) => {
-                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
-                      return (
-                        <button
-                          key={b as string}
-                          onClick={() => setSelectedBatch(b as string)}
-                          className={cn(
-                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                            selectedBatch === b
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card border-border text-muted-foreground"
-                          )}
-                        >
-                          {b as string} ({cnt})
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
-              <div className="space-y-1.5">
-                {(() => {
-                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                  const filtered = moodPool.filter(
-                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
-                  );
-                  if (filtered.length === 0) {
-                    const emptyMsg =
-                      mood === "break"
-                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
-                        : mood === "sleep"
-                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
-                        : "এই মুহূর্তে কেউ নেই";
-                    return (
-                      <p className="text-center text-xs text-muted-foreground py-4">
-                        {emptyMsg}
-                      </p>
-                    );
-                  }
-                  return filtered.map((row: any) => {
-                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
-                    const MIcon = md.icon;
-                    const t = formatHMS(row.duration_seconds);
-                    const isMe = row.user_id === user?.id;
-                    return (
-                      <div
-                        key={row.user_id}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                          isMe && "border-primary/40 bg-primary/5"
-                        )}
-                      >
-                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
-                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
-                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
-                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                          {row.full_name || "Student"}
-                          {isMe && " (তুমি)"}
-                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
-                        </div>
-                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                          {t.h}h {t.m}m
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </>
-          )}
-        </div>
-
         {/* Leaderboard — per mood */}
         <div id="focus-leaderboard" className="space-y-3">
           <div className="flex items-center gap-2">
@@ -1107,6 +971,143 @@ const FocusTimer = () => {
             })}
           </div>
         </div>
+
+        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
+            const md = MOOD_META[m];
+            return (
+              <button
+                key={m}
+                onClick={() => {
+                  setOverlayMood(m);
+                  setOverlayDays(1);
+                  try {
+                    window.history.pushState({ focusOverlay: true }, "");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
+              >
+                <span className={cn("text-lg font-black", md.color)}>{count}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Live "studying now" toggle + list */}
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowLiveNow((v) => !v)}
+            className="flex items-center gap-2 text-sm font-extrabold"
+          >
+            <Users className="h-4 w-4 text-sky-500" />
+            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
+            <span className="text-[10px] font-bold text-muted-foreground">
+              {showLiveNow ? "লুকাও" : "দেখাও"}
+            </span>
+          </button>
+          {showLiveNow && (
+            <>
+              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
+              {(() => {
+                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                const batches = Array.from(
+                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
+                );
+                if (batches.length <= 1) return null;
+                return (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setSelectedBatch("all")}
+                      className={cn(
+                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                        selectedBatch === "all"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border text-muted-foreground"
+                      )}
+                    >
+                      সবাই ({moodPool.length})
+                    </button>
+                    {batches.map((b) => {
+                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      return (
+                        <button
+                          key={b as string}
+                          onClick={() => setSelectedBatch(b as string)}
+                          className={cn(
+                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                            selectedBatch === b
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border text-muted-foreground"
+                          )}
+                        >
+                          {b as string} ({cnt})
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div className="space-y-1.5">
+                {(() => {
+                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                  const filtered = moodPool.filter(
+                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+                  );
+                  if (filtered.length === 0) {
+                    const emptyMsg =
+                      mood === "break"
+                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
+                        : mood === "sleep"
+                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
+                        : "এই মুহূর্তে কেউ নেই";
+                    return (
+                      <p className="text-center text-xs text-muted-foreground py-4">
+                        {emptyMsg}
+                      </p>
+                    );
+                  }
+                  return filtered.map((row: any) => {
+                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
+                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
+                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
+                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </>
+          )}
+        </div>
+
       </div>
 
       {toast && (
