@@ -750,27 +750,27 @@ const FocusTimer = () => {
           <div className="flex items-center gap-1.5">
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border transition-colors duration-500 shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)]",
                 MOOD_DIGIT_BOX[mood]
               )}
             >
               <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
             </div>
-            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink opacity-60">:</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border transition-colors duration-500 shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)]",
                 MOOD_DIGIT_BOX[mood]
               )}
             >
               <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
             </div>
-            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink opacity-60">:</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
             <div
               className={cn(
-                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
+                "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border transition-colors duration-500 shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)]",
                 MOOD_DIGIT_BOX[mood]
               )}
             >
