@@ -148,13 +148,12 @@ const ExamReview = () => {
   const { data: attempt, isLoading: attemptLoading } = useQuery({
     queryKey: ["exam-attempt", attemptId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exam_attempts")
-        .select("*, exam:exams(*)")
-        .eq("id", attemptId)
-        .single();
+      const { data, error } = await supabase.rpc("get_exam_attempt_for_review", {
+        p_attempt_id: attemptId,
+      });
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("Attempt not found");
+      return data as any;
     },
     enabled: !!attemptId,
   });
