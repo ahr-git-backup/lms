@@ -1,6 +1,4 @@
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   LayoutGrid,
@@ -22,15 +20,6 @@ const scrollToId = (id: string) => {
 
 export const QuickActionsSection = () => {
   const navigate = useNavigate();
-
-  const { data: mockTestEnabled } = useQuery({
-    queryKey: ["app-setting", "mock_test_enabled"],
-    queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_app_setting", { p_key: "mock_test_enabled" });
-      if (error) return false;
-      return data === true;
-    },
-  });
 
   return (
     <section className="rounded-2xl border border-border/60 bg-muted/20 p-2.5 space-y-2 -mt-1">
@@ -113,30 +102,21 @@ export const QuickActionsSection = () => {
         </button>
       </div>
 
-      {/* Row 5: Study Tracker / Mock Test */}
-      {mockTestEnabled ? (
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            onClick={() => navigate("/syllabus-tracker")}
-            className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
-          >
-            <BarChart3 className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.2s" }} /> Study Tracker
-          </Button>
-          <Button
-            onClick={() => navigate("/mock-test")}
-            className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
-          >
-            <ClipboardCheck className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.35s" }} /> Mock Test
-          </Button>
-        </div>
-      ) : (
+      {/* Row 5: Study Tracker / Unlimited Mock Test (always shown, no toggle) */}
+      <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => navigate("/syllabus-tracker")}
           className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
         >
           <BarChart3 className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.2s" }} /> Study Tracker
         </Button>
-      )}
+        <Button
+          onClick={() => navigate("/mock-test")}
+          className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+        >
+          <ClipboardCheck className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.35s" }} /> Unlimited Mock Test
+        </Button>
+      </div>
     </section>
   );
 };

@@ -137,12 +137,12 @@ const Index = () => {
           </div>
       </div>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pb-10 pt-6 sm:pt-8 flex-1">
 
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (
-            <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
-            <section id="special-exams" className="space-y-6">
+            <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+            <section id="special-exams" className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">বিশেষ ঘোষণা</h2>
@@ -254,13 +254,13 @@ const Index = () => {
         <QuickActionsSection />
 
         {/* Paid Courses Section (Grid View) */}
-        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
         <CourseSection />
         </div>
 
         {/* Free Service/Courses Section */}
-        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
-        <section id="free-resources" className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
+        <section id="free-resources" className="space-y-3">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">ফ্রি লার্নিং রিসোর্স</h2>
                 <p className="text-sm text-muted-foreground">আজই শুরু করুন সম্পূর্ণ ফ্রিতে।</p>
@@ -307,8 +307,8 @@ const Index = () => {
         </div>
 
         {/* Unique Services Section */}
-        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
-        <section className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
+        <section className="space-y-3">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
                 <p className="text-sm text-muted-foreground">কেন বাছবেন এটলাস?</p>
@@ -334,8 +334,8 @@ const Index = () => {
         </div>
 
         {/* Success Stats Section */}
-        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}>
-        <section id="success-stories" className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}>
+        <section id="success-stories" className="space-y-3">
              <div className="text-center space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">সাফল্যের গল্প</h2>
                 <p className="text-muted-foreground">প্রতি বছর ধারাবাহিক সাফল্য।</p>
