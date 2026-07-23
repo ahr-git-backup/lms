@@ -401,11 +401,11 @@ const ExamReview = () => {
 
   return (
     <div className="min-h-screen bg-background font-sans pb-20">
-      <div className="container max-w-4xl mx-auto px-[5px] py-2 md:p-6 space-y-3 overflow-x-hidden">
+      <div className="container max-w-4xl mx-auto px-[5px] pt-1 pb-2 md:pt-3 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
 
         {/* Header */}
-        <div className="flex flex-col gap-1.5">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-8 self-start">
+        <div className="flex flex-col gap-1">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-7 self-start -mt-1">
                 <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
