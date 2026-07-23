@@ -290,8 +290,8 @@ export const DashboardLayout = () => {
               >
                 <Bell className="h-4 w-4" />
                 {unreadNoticeCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] px-1 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold">
-                    {unreadNoticeCount > 9 ? "9+" : unreadNoticeCount}
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] px-1 text-[10px] font-bold text-red-600 dark:text-red-500">
+                    {unreadNoticeCount}
                   </span>
                 )}
               </Button>
