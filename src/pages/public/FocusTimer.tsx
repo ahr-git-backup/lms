@@ -1007,30 +1007,54 @@ const FocusTimer = () => {
                 }
                 return filtered.map((row: any) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
-                  const MIcon = md.icon;
-                  const t = formatHMS(row.duration_seconds);
                   const isMe = row.user_id === user?.id;
+                  const liveExtra = (isMe && !paused && mood === row.mood) ? elapsed : 0;
+                  const t = formatHMS(row.duration_seconds + liveExtra);
+                  const isPaused = !!row.is_paused;
                   return (
                     <div
                       key={row.user_id}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                        isMe && "border-primary/40 bg-primary/5"
+                        "relative flex items-center gap-2 rounded-[10px] border px-2 py-1.5 bg-white/[0.04] backdrop-blur-md overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]",
+                        !isPaused && "border-emerald-500/30",
+                        isPaused && "opacity-50 !border-red-500/40"
                       )}
                     >
-                      <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
-                        <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
-                        <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
-                          <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                        {row.full_name || "Student"}
-                        {isMe && " (তুমি)"}
-                        {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                      <div className="h-[42px] w-[42px] rounded-lg flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
+                        {row.avatar_url ? (
+                          <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-[22px] w-[22px] text-indigo-400/60" />
+                        )}
                       </div>
-                      <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                        {t.h}h {t.m}m
+                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                        <div className="text-xs font-black truncate flex items-center gap-1">
+                          <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
+                          {row.is_premium && (
+                            <span className="shrink-0 text-[7px] font-black px-[5px] py-px rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-400 tracking-wide">
+                              PRO
+                            </span>
+                          )}
+                        </div>
+                        {row.hsc_batch && (
+                          <div className="relative overflow-hidden inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
+                            HSC {row.hsc_batch}
+                            <span className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent animate-batch-shimmer" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <span className={cn(
+                          "inline-flex items-center gap-1 text-[7.5px] font-black px-[5px] py-px rounded-md font-mono tracking-wide",
+                          isPaused ? "bg-red-500/12 text-red-500 border border-red-500/25" :
+                          row.mood === "break" ? "bg-amber-500/12 text-amber-500 border border-amber-500/20" :
+                          row.mood === "sleep" ? "bg-indigo-400/12 text-indigo-400 border border-indigo-400/20" :
+                          "bg-emerald-500/12 text-emerald-500 border border-emerald-500/20"
+                        )}>
+                          <span className="h-1 w-1 rounded-full bg-current animate-focus-blink" />
+                          {isPaused ? "Pause" : row.mood === "break" ? "বিরতি" : row.mood === "sleep" ? "ঘুম" : "Live"}
+                        </span>
+                        <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m</div>
                       </div>
                     </div>
                   );
