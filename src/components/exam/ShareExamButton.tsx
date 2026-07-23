@@ -15,7 +15,7 @@ interface ShareExamButtonProps {
 }
 
 export default function ShareExamButton({ examId, examTitle, className }: ShareExamButtonProps) {
-  const shareUrl = `${window.location.origin}/open-exam/${examId}`;
+  const shareUrl = `${window.location.origin}/take-exam/${examId}`;
   const shareText = `${examTitle} — এই ফ্রি এক্সামটি দাও:`;
 
   const copyLink = async () => {

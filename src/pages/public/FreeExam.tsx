@@ -190,7 +190,7 @@ const FreeExam = () => {
                                   <Card
                                       key={exam.id}
                                       className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                                      onClick={() => navigate(`/open-exam/${exam.id}`)}
+                                      onClick={() => navigate(`/take-exam/${exam.id}`)}
                                   >
                                       <CardHeader className="pb-2">
                                           <div className="flex justify-between items-start gap-2">
@@ -470,7 +470,7 @@ const FreeExam = () => {
                     <Card
                         key={exam.id}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                        onClick={() => navigate(`/open-exam/${exam.id}`)}
+                        onClick={() => navigate(`/take-exam/${exam.id}`)}
                     >
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start gap-2">

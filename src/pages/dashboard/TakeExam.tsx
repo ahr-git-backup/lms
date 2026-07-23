@@ -20,6 +20,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
+import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
+import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 
 const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
     const { toast } = useToast();
@@ -105,6 +107,11 @@ const TakeExam = () => {
   const { user, profile, loading: authLoading } = useAuth();
   const { updateStreak, updateStats } = useStudyTools();
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
+
+  // Guest (login-free) attempt support — only relevant when there's no
+  // logged-in user AND the exam is visible on the Free Exam page.
+  const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
+  const [showGuestDialog, setShowGuestDialog] = useState(false);
 
   // State
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -501,7 +508,8 @@ const TakeExam = () => {
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
-      if (!user || !examId || !exam) return;
+      if (!examId || !exam) return;
+      if (!user && !guestInfo) return; // guest info not yet collected — nothing to restore
 
       const savedAnswers = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
       const savedViolations = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
@@ -547,18 +555,18 @@ const TakeExam = () => {
       if (savedViolations) {
           setViolationCount(parseInt(savedViolations));
       }
-  }, [user, examId, LOCAL_STORAGE_KEY_PREFIX, exam, QUESTIONS_STORAGE_KEY]);
+  }, [user, guestInfo, examId, LOCAL_STORAGE_KEY_PREFIX, exam, QUESTIONS_STORAGE_KEY]);
 
   // Save state on changes
   useEffect(() => {
-      if (!user || !examId) return;
+      if (!examId || (!user && !guestInfo)) return;
       localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`, JSON.stringify(answers));
       localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`, violationCount.toString());
-  }, [answers, violationCount, user, examId, LOCAL_STORAGE_KEY_PREFIX]);
+  }, [answers, violationCount, user, guestInfo, examId, LOCAL_STORAGE_KEY_PREFIX]);
 
   // Timer logic with persistence
   useEffect(() => {
-    if (!exam?.duration_minutes || !user || !hasStarted || isQuickPracticeMode) return;
+    if (!exam?.duration_minutes || (!user && !guestInfo) || !hasStarted || isQuickPracticeMode) return;
 
     const isExpiredPractice = exam.exam_type === 'live' && exam.time_window_end && new Date() > new Date(exam.time_window_end);
     const startTimeKey = `${LOCAL_STORAGE_KEY_PREFIX}_start_time`;
@@ -603,14 +611,16 @@ const TakeExam = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [exam, user, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount, isQuickPracticeMode]);
+  }, [exam, user, guestInfo, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount, isQuickPracticeMode]);
 
   // Auto-submit
   const submitExamMutation = useMutation({
     mutationFn: async () => {
-        if (!user || !exam) throw new Error("Invalid state");
-        // Explicitly check profile presence before submission
-        if (!profile || !profile.id) throw new Error("User profile not found. Please contact support.");
+        const isGuestAttempt = !user && !!guestInfo;
+        if ((!user && !isGuestAttempt) || !exam) throw new Error("Invalid state");
+        // Explicitly check profile presence before submission (logged-in users only —
+        // guests have no profile row).
+        if (user && (!profile || !profile.id)) throw new Error("User profile not found. Please contact support.");
 
         // Build the answers list from ALL questions shown in this attempt (shuffledQuestions),
         // not just the ones answered, so skipped questions are recorded too.
@@ -629,7 +639,13 @@ const TakeExam = () => {
             p_exam_id: exam.id,
             p_answers: answersList,
             p_violation_count: violationCount,
-            p_time_taken_seconds: timeTaken
+            p_time_taken_seconds: timeTaken,
+            ...(!user && guestInfo ? {
+                p_guest_name: guestInfo.name,
+                p_guest_hsc_batch: guestInfo.hscBatch,
+                p_guest_college_name: guestInfo.collegeName,
+                p_guest_phone: guestInfo.phone,
+            } : {}),
         });
 
         if (error) throw error;
@@ -652,7 +668,7 @@ const TakeExam = () => {
       localStorage.removeItem(QUESTIONS_STORAGE_KEY); // Clear questions cache
 
       toast({ title: "Exam submitted successfully!" });
-      navigate(`/dashboard/exam-review/${attemptId}`);
+      navigate(user ? `/dashboard/exam-review/${attemptId}` : `/exam-review/${attemptId}`);
     },
     onError: (error: Error) => {
       toast({
@@ -1127,6 +1143,11 @@ const TakeExam = () => {
                                       });
                                       return;
                                   }
+                                  // Guest (not logged in) on a Free Exam — collect name/batch/college/phone first.
+                                  if (!user && exam?.is_visible_on_free && !guestInfo) {
+                                      setShowGuestDialog(true);
+                                      return;
+                                  }
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
                                   } else if (isQuickPracticeMode && exam.is_readymade) {
@@ -1149,6 +1170,16 @@ const TakeExam = () => {
                       </div>
                   </div>
               </Card>
+
+              <GuestExamInfoDialog
+                  open={showGuestDialog}
+                  onOpenChange={setShowGuestDialog}
+                  onConfirm={(info) => {
+                      setGuestInfoState(info);
+                      setShowGuestDialog(false);
+                      setHasStarted(true);
+                  }}
+              />
           </div>
       );
   }

@@ -231,6 +231,16 @@ const App = () => {
                 <Route path="student/:studentId/course-results/:courseId" element={<ProtectedRoute requireAdmin><StudentCourseResults /></ProtectedRoute>} />
               </Route>
 
+              {/* Public/guest-accessible exam routes — used for Free Exam attempts by
+                  visitors who are NOT logged in. These render the exact same
+                  TakeExam/ExamReview components as the dashboard versions (all
+                  features identical), just without the ProtectedRoute login gate
+                  and without the dashboard sidebar/topbar. TakeExam/ExamReview
+                  internally detect the guest case (no user + is_visible_on_free
+                  exam) and prompt for guest info instead of requiring login. */}
+              <Route path="/take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+              <Route path="/exam-review/:attemptId" element={<ErrorBoundary><ExamReview /></ErrorBoundary>} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
             </Routes>

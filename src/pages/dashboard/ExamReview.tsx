@@ -225,14 +225,15 @@ const ExamReview = () => {
           }
       }
 
-      // 2. Fetch bookmarks — always use the current logged-in user's bookmarks
+      // 2. Fetch bookmarks — only meaningful for a logged-in user (guests have
+      // no account to bookmark against).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const questionIds = qData.map((q: any) => q.question_id || q.id); // RPC returns question_id
 
-      const { data: bData } = questionIds.length > 0 ? await supabase
+      const { data: bData } = (user && questionIds.length > 0) ? await supabase
         .from("bookmarks")
         .select("question_id")
-        .eq("profile_id", user!.id)
+        .eq("profile_id", user.id)
         .in("question_id", questionIds) : { data: [] };
 
       const bookmarkedIds = new Set(bData?.map(b => b.question_id));
@@ -262,15 +263,16 @@ const ExamReview = () => {
           };
       });
     },
-    enabled: !!attempt?.id && !!user,
+    enabled: !!attempt?.id,
   });
 
   const toggleBookmarkMutation = useMutation({
       mutationFn: async ({ questionId, isBookmarked }: { questionId: string, isBookmarked: boolean }) => {
+          if (!user) return; // guests have no account to bookmark against
           if (isBookmarked) {
-              await supabase.from("bookmarks").delete().eq("profile_id", user!.id).eq("question_id", questionId);
+              await supabase.from("bookmarks").delete().eq("profile_id", user.id).eq("question_id", questionId);
           } else {
-              await supabase.from("bookmarks").insert({ profile_id: user!.id, question_id: questionId });
+              await supabase.from("bookmarks").insert({ profile_id: user.id, question_id: questionId });
           }
       },
       onSuccess: () => {
@@ -408,28 +410,42 @@ const ExamReview = () => {
                 <ArrowLeft className="h-5 w-5 mr-2" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                 {exam.is_readymade && (
+                 {user && exam.is_readymade && (
                  <Button variant="outline" onClick={() => setIsQpDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Sparkles className="h-5 w-5 mr-1.5 text-violet-500 shrink-0" /> <span className="truncate">Quick Practice</span>
                  </Button>
                  )}
+                 {user && (
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
+                 )}
+                 {user && (
                  <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
+                 )}
                  <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
                  </Button>
+                 {user && (
                  <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <ListChecks className="h-5 w-5 mr-1.5 text-red-500 shrink-0" /> <span className="truncate">Mistake Practice</span>
                  </Button>
+                 )}
+                 {user && (
                  <Button variant="outline" onClick={() => navigate(getExamSourceList(attempt.exam_id))} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <ListOrdered className="h-5 w-5 mr-1.5 text-emerald-500 shrink-0" /> <span className="truncate">Exam List</span>
                  </Button>
+                 )}
             </div>
         </div>
+
+        {!user && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-center">
+            আরও ফিচার (Leaderboard, Mistake Practice, ইত্যাদি) পেতে <a href="/register" className="font-bold text-primary underline">অ্যাকাউন্ট খোলো</a> — সম্পূর্ণ ফ্রি।
+          </div>
+        )}
 
         {/* Quick Practice Mood Select Dialog */}
         <Dialog open={isQpDialogOpen} onOpenChange={(open) => { setIsQpDialogOpen(open); if (!open) { setQpCustomMode(false); setQpCustomCount(""); } }}>
