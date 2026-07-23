@@ -49,6 +49,17 @@ export const PublicHeader = () => {
         </nav>
 
         <div className="flex items-center gap-2">
+          {/* Mobile Theme Toggle — same single toggle as desktop, placed right by Login */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(isDark ? "light" : "dark")}
+            aria-label="Toggle theme"
+            className="sm:hidden rounded-full"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
           {/* Mobile Login Button */}
           <a href="/login" className="sm:hidden">
             <Button size="sm" variant="default" className="h-9 px-4">
