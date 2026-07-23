@@ -662,7 +662,7 @@ const FocusTimer = () => {
         {/* User header — name/batch + Study Time History (matches AtlasApp position, above banner) */}
         <div className="flex items-center justify-between rounded-2xl border bg-card px-3 py-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
               {(profile?.full_name || "?").charAt(0).toUpperCase()}
             </div>
             <div className="flex flex-col leading-tight">
@@ -1357,7 +1357,7 @@ const FocusTimer = () => {
                         <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
                           <div className="text-sm">{crowns[i]}</div>
                           {s.avatar_url ? (
-                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-full object-cover border" />
+                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-md object-cover border" />
                           ) : null}
                           <div className="w-full flex justify-center">
                             <div
