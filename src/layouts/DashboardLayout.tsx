@@ -280,10 +280,15 @@ export const DashboardLayout = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <div className="bg-white rounded p-1 hidden xs:block">
+                <Link to="/" className="bg-white rounded p-1 shrink-0" aria-label="Go to homepage">
                   <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
-                </div>
-                <h1 className="text-sm font-semibold">Dashboard</h1>
+                </Link>
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="text-sm font-semibold hover:underline"
+                >
+                  Dashboard
+                </button>
               </div>
             </div>
             <div className="flex items-center gap-3">
