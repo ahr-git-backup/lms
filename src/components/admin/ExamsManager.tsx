@@ -50,7 +50,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
-  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
+  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade" | "free">("all");
   const [readymadeSubCategory, setReadymadeSubCategory] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -111,6 +111,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const { data: examsData, isLoading } = useQuery({
     queryKey: ["admin-exams", isFreeMode, subjectFilter, courseFilter, page, debouncedSearch, mainCategory, readymadeSubCategory],
+    staleTime: 30000,
     queryFn: async () => {
       let query = supabase
         .from("exams")
@@ -141,6 +142,8 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
           query = query.eq("is_readymade", false).eq("exam_type", "live");
       } else if (mainCategory === "practice") {
           query = query.eq("is_readymade", false).eq("exam_type", "practice");
+      } else if (mainCategory === "free") {
+          query = query.is("course_id", null).eq("is_readymade", false);
       }
 
       const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -447,6 +450,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                     { key: "live", label: "Live" },
                     { key: "practice", label: "Practice" },
                     { key: "readymade", label: "Readymade" },
+                    { key: "free", label: "Free" },
                 ] as const).map((c) => (
                     <button
                         key={c.key}

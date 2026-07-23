@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,10 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { getEmbedUrl } from "@/lib/videoUtils";
+
+const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
 // Define shape of dashboard data
 interface DashboardData {
@@ -43,6 +47,17 @@ const DashboardHome = () => {
   const queryClient = useQueryClient();
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+  const [showTutorialVideo, setShowTutorialVideo] = useState(false);
+
+  const { data: tutorialVideoUrl } = useQuery({
+    queryKey: ["dashboard-tutorial-video"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
+      if (error) throw error;
+      const v = data?.value;
+      return typeof v === "string" ? v : (v ? String(v) : null);
+    },
+  });
 
   useEffect(() => {
     const updateCount = () => {
@@ -184,10 +199,9 @@ const DashboardHome = () => {
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
   const navigationItems = [
-      { title: "Notice", icon: Bell, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/announcements" },
+      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
       { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
       { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
-      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
       { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
@@ -203,207 +217,42 @@ const DashboardHome = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <Card
-        className="cursor-pointer border-amber-400/50 bg-gradient-to-r from-amber-400/10 via-amber-400/5 to-transparent hover:border-amber-400 transition-all"
-        onClick={() => navigate("/quick-practice/leaderboard")}
-      >
-        <CardContent className="p-4 flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <Trophy className="h-5 w-5 text-amber-950" />
-          </div>
-          <div className="flex-1">
-            <p className="font-bold text-sm">Quick Practice Points</p>
-            <p className="text-xs text-muted-foreground">Leaderboard-এ নিজের rank দেখুন</p>
-          </div>
-          <div className="text-2xl font-black text-amber-500">{qpPoints ?? 0}</div>
-          <Button
-            size="sm"
-            className="bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold shrink-0"
-            onClick={(e) => { e.stopPropagation(); navigate("/quick-practice"); }}
-          >
-            Start Now
-          </Button>
+    <div className="space-y-4 animate-in fade-in duration-500">
+      <Card className="w-full">
+        <CardContent className="p-3 flex flex-col items-center gap-2">
+          <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
+          {tutorialVideoUrl && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0 gap-1.5 h-7 px-3 text-xs"
+              onClick={() => setShowTutorialVideo(true)}
+            >
+              <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
+              Watch Tutorial
+            </Button>
+          )}
         </CardContent>
       </Card>
 
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome to Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Get a quick overview of your upcoming activities.
-        </p>
-      </header>
-
-      {/* Admin-only quick actions */}
-      {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-            onClick={() => navigate("/admin/reports")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Reports</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReportsCount ?? "..."} pending
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/admin/announcements")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Notice</p>
-                <p className="text-xs text-muted-foreground">Send to all users</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/admin/syllabus-tracker")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Study Tracker</p>
-                <p className="text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            onClick={() => navigate("/admin/quick-practice")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Zap className="h-6 w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Quick Practice</p>
-                <p className="text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* User Notifications (Approvals/Declines) */}
-      {userNotifications && userNotifications.length > 0 && (
-        <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-500">
-             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-             {userNotifications.map((notif: any) => {
-                const isExpanded = expandedNotifIds.includes(notif.id);
-                const isSuccess = notif.type === 'payment_approved';
-                return (
-                <Card key={notif.id}
-                      className={`border cursor-pointer transition-colors shadow-sm ${isSuccess ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}
-                      onClick={() => toggleExpandNotification(notif.id)}
-                >
-                    <CardHeader className="space-y-0 p-4">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
-                                <div>
-                                    <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
-                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if(confirm("Dismiss this notification?")) deleteNotificationMutation.mutate(notif.id);
-                                    }}
-                                >
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
-                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                                </Button>
-                            </div>
-                        </div>
-                    </CardHeader>
-                    {isExpanded && (
-                        <CardContent className="px-4 pb-4 pt-0">
-                            <div className="h-px w-full bg-border/20 mb-3" />
-                            <p className="text-sm text-foreground/90">{notif.body}</p>
-                        </CardContent>
-                    )}
-                </Card>
-            )})}
-        </div>
-      )}
-
-      {/* Enrollment Warning Card */}
-      {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
-        <>
-          {pendingPayments && pendingPayments.length > 0 ? (
-             <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-800">
-                <CardContent className="flex flex-col gap-4 p-6">
-                    <div className="flex items-start gap-4">
-                        <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">
-                            <AlertCircle className="h-6 w-6" />
-                        </div>
-                        <div className="space-y-2">
-                            <h3 className="font-semibold text-lg text-yellow-900 dark:text-yellow-200">
-                                এটলাসের কোর্সে আপনাকে স্বাগতম।
-                            </h3>
-                            <div className="text-yellow-800 dark:text-yellow-300 space-y-2 text-sm">
-                                <p>
-                                    <a href="https://t.me/atlasweb_robot" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-yellow-900">
-                                        @atlasweb_robot
-                                    </a> এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন। ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
-                                </p>
-                                <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
-                                <p>
-                                    ২৪ ঘন্টার মাঝে এক্সেস না পেলে মেসেজ দিন এই নাম্বারে <a href="http://wa.me/8801999681290" target="_blank" rel="noreferrer" className="underline font-bold hover:text-yellow-900">01999681290</a> (WhatsApp)
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-          ) : (
-            <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
-                <CardContent className="flex flex-col md:flex-row items-center justify-between gap-4 p-6">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-red-100 text-red-600 rounded-full dark:bg-red-900/30 dark:text-red-400">
-                            <AlertCircle className="h-6 w-6" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
-                                আপনার কোনো কোর্স চালু নেই
-                            </h3>
-                            <p className="text-red-700 dark:text-red-300">
-                                আপনি কোনো কোর্সে এনরোল করেননি। শুরু করতে একটি কোর্স কিনুন।
-                            </p>
-                            <p className="text-red-800 dark:text-red-300 mt-2 text-sm font-medium">
-                                কোর্সে পেমেন্ট করে থাকলে শীঘ্রই যোগাযোগ করুন টেলিগ্রাম বটে <a href="https://t.me/atlasweb_Robot" target="_blank" rel="noreferrer" className="underline hover:text-red-950">@atlasweb_Robot</a>
-                            </p>
-                        </div>
-                    </div>
-                    <Button
-                        onClick={() => navigate("/courses")}
-                        className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
-                    >
-                        Browse Courses
-                    </Button>
-                </CardContent>
-            </Card>
+      <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Dashboard Tutorial</DialogTitle>
+          </DialogHeader>
+          {tutorialVideoUrl && (
+            <div className="aspect-video w-full">
+              <iframe
+                src={getEmbedUrl(tutorialVideoUrl)}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title="Dashboard Tutorial"
+              />
+            </div>
           )}
-        </>
-      )}
+        </DialogContent>
+      </Dialog>
 
       {/* 1. Live Activity Section (Priority 1) */}
       {hasLiveActivity && (
@@ -530,6 +379,236 @@ const DashboardHome = () => {
                 )}
            </div>
         </div>
+      )}
+
+      {/* Smart Tracking System */}
+      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+        <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
+        <div className="grid grid-cols-2 gap-2">
+          <Card
+            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
+            onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">My Progress</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
+            onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
+            onClick={() => toast({ title: "Coming Soon", description: "History feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">History</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
+            onClick={() => toast({ title: "Coming Soon", description: "Top Performer feature আসছে খুব শীঘ্রই।" })}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Top Performer</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Admin-only quick actions */}
+      {isAdmin && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card
+            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+            onClick={() => navigate("/admin/reports")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Reports</p>
+                <p className="text-xs text-muted-foreground">
+                  {pendingReportsCount ?? "..."} pending
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            onClick={() => navigate("/admin/announcements")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Notice</p>
+                <p className="text-xs text-muted-foreground">Send to all users</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
+          <Card
+            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            onClick={() => navigate("/admin/syllabus-tracker")}
+          >
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            onClick={() => navigate("/admin/quick-practice")}
+          >
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+            onClick={() => navigate("/admin/mock-test")}
+          >
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* User Notifications (Approvals/Declines) */}
+      {userNotifications && userNotifications.length > 0 && (
+        <div className="space-y-2 animate-in fade-in slide-in-from-top-4 duration-500">
+             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+             {userNotifications.map((notif: any) => {
+                const isExpanded = expandedNotifIds.includes(notif.id);
+                const isSuccess = notif.type === 'payment_approved';
+                return (
+                <Card key={notif.id}
+                      className={`border cursor-pointer transition-colors shadow-sm ${isSuccess ? 'border-green-500/50 bg-green-500/5' : 'border-red-500/50 bg-red-500/5'}`}
+                      onClick={() => toggleExpandNotification(notif.id)}
+                >
+                    <CardHeader className="space-y-0 p-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
+                                <div>
+                                    <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
+                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        if(confirm("Dismiss this notification?")) deleteNotificationMutation.mutate(notif.id);
+                                    }}
+                                >
+                                    <Trash2 className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground">
+                                    {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                </Button>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    {isExpanded && (
+                        <CardContent className="px-4 pb-4 pt-0">
+                            <div className="h-px w-full bg-border/20 mb-3" />
+                            <p className="text-sm text-foreground/90">{notif.body}</p>
+                        </CardContent>
+                    )}
+                </Card>
+            )})}
+        </div>
+      )}
+
+      {/* Enrollment Warning Card */}
+      {!enrollmentsLoading && enrollments && enrollments.length === 0 && (
+        <>
+          {pendingPayments && pendingPayments.length > 0 ? (
+             <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/10 dark:border-yellow-800">
+                <CardContent className="flex flex-col gap-4 p-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 bg-yellow-100 text-yellow-600 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400">
+                            <AlertCircle className="h-6 w-6" />
+                        </div>
+                        <div className="space-y-2">
+                            <h3 className="font-semibold text-lg text-yellow-900 dark:text-yellow-200">
+                                এটলাসের কোর্সে আপনাকে স্বাগতম।
+                            </h3>
+                            <div className="text-yellow-800 dark:text-yellow-300 space-y-2 text-sm">
+                                <p>
+                                    <a href="https://t.me/atlasweb_robot" target="_blank" rel="noreferrer" className="font-semibold underline hover:text-yellow-900">
+                                        @atlasweb_robot
+                                    </a> এ আপনার পেমেন্ট এর স্ক্রিনশট দিয়ে যোগাযোগ করুন। ২৪ ঘন্টার মাঝে এটলাস টিম যাবতীয় তথ্য চেক করে ওয়েবসাইটে এক্সেস দিয়ে দিবে।
+                                </p>
+                                <p>এক্সেস পেলে নোটিশ এ মেসেজ আসবে।</p>
+                                <p>
+                                    ২৪ ঘন্টার মাঝে এক্সেস না পেলে মেসেজ দিন এই নাম্বারে <a href="http://wa.me/8801999681290" target="_blank" rel="noreferrer" className="underline font-bold hover:text-yellow-900">01999681290</a> (WhatsApp)
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800">
+                <CardContent className="flex flex-col md:flex-row items-center justify-between gap-4 p-6">
+                    <div className="flex items-center gap-4">
+                        <div className="p-3 bg-red-100 text-red-600 rounded-full dark:bg-red-900/30 dark:text-red-400">
+                            <AlertCircle className="h-6 w-6" />
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg text-red-900 dark:text-red-200">
+                                আপনার কোনো কোর্স চালু নেই
+                            </h3>
+                            <p className="text-red-700 dark:text-red-300">
+                                আপনি কোনো কোর্সে এনরোল করেননি। শুরু করতে একটি কোর্স কিনুন।
+                            </p>
+                            <p className="text-red-800 dark:text-red-300 mt-2 text-sm font-medium">
+                                কোর্সে পেমেন্ট করে থাকলে শীঘ্রই যোগাযোগ করুন টেলিগ্রাম বটে <a href="https://t.me/atlasweb_Robot" target="_blank" rel="noreferrer" className="underline hover:text-red-950">@atlasweb_Robot</a>
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={() => navigate("/courses")}
+                        className="bg-red-600 hover:bg-red-700 text-white whitespace-nowrap"
+                    >
+                        Browse Courses
+                    </Button>
+                </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* 3. Navigation Cards Section */}

@@ -12,24 +12,54 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
-  const { profile, signOut, isAdmin, isTeacher } = useAuth();
+  const { profile, signOut, isAdmin, isTeacher, user } = useAuth();
   const { sendNotification, permission, requestPermission } = useNotification();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { data: enrollments } = useEnrollments();
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
   const [isDevMode, setIsDevMode] = useState(() => localStorage.getItem("dev_mode") === "true");
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(() => {
+    const stored = localStorage.getItem("unread_notification_count");
+    return stored ? parseInt(stored, 10) || 0 : 0;
+  });
+
+  useEffect(() => {
+    const updateCount = () => {
+      const stored = localStorage.getItem("unread_notification_count");
+      setUnreadNoticeCount(stored ? parseInt(stored, 10) : 0);
+    };
+    updateCount();
+    window.addEventListener("unread-notifications-updated", updateCount);
+    return () => window.removeEventListener("unread-notifications-updated", updateCount);
+  }, []);
+
+  const { data: qpPoints } = useQuery({
+    queryKey: ["qp-user-points", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_user_points")
+        .select("total_points")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) return 0;
+      return data?.total_points ?? 0;
+    },
+  });
 
   useEffect(() => {
     localStorage.setItem("admin_sound_muted", String(isMuted));
@@ -197,8 +227,9 @@ export const DashboardLayout = () => {
 
         const hasUnread = (unreadUserNotifs && unreadUserNotifs.length > 0) || (unreadDirectNotes && unreadDirectNotes.length > 0);
 
-        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0);
+        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0) + (hasNewAnnouncements && count ? count : 0);
         localStorage.setItem("unread_notification_count", String(totalUnreadCount));
+        setUnreadNoticeCount(totalUnreadCount);
         window.dispatchEvent(new Event("unread-notifications-updated"));
 
         if (hasNewAnnouncements || hasUnread) {
@@ -212,6 +243,16 @@ export const DashboardLayout = () => {
 
     checkReminders(); // Run immediately
   }, [profile, enrollments, sendNotification, permission, isAdmin]);
+
+  // Keep badge count in sync with localStorage updates (e.g. after visiting announcements page)
+  useEffect(() => {
+    const syncCount = () => {
+      const stored = localStorage.getItem("unread_notification_count");
+      setUnreadNoticeCount(stored ? parseInt(stored, 10) || 0 : 0);
+    };
+    window.addEventListener("unread-notifications-updated", syncCount);
+    return () => window.removeEventListener("unread-notifications-updated", syncCount);
+  }, []);
   
   return (
     <StudyToolsProvider>
@@ -240,13 +281,43 @@ export const DashboardLayout = () => {
                 <ArrowLeft className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <div className="bg-white rounded p-1 hidden xs:block">
-                  <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
-                </div>
-                <h1 className="text-sm font-semibold">Dashboard</h1>
+                {location.pathname === "/dashboard" ? (
+                  <Link to="/" className="bg-white rounded p-1 shrink-0" aria-label="Go to homepage">
+                    <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => navigate("/dashboard")}
+                    className="text-sm font-semibold hover:underline"
+                  >
+                    Dashboard
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate("/quick-practice")}
+                className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-2 py-1 transition-all"
+                title="Quick Practice Points"
+              >
+                <Trophy className="h-3.5 w-3.5 text-amber-500" />
+                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
+              </button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="relative shrink-0"
+                aria-label="Notifications"
+                onClick={() => navigate("/dashboard/announcements")}
+              >
+                <Bell className="h-4 w-4" />
+                {unreadNoticeCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] px-1 text-[10px] font-bold text-red-600 dark:text-red-500">
+                    {unreadNoticeCount}
+                  </span>
+                )}
+              </Button>
               {isAdmin && (
                 <>
                   <Button
@@ -298,17 +369,6 @@ export const DashboardLayout = () => {
 
               <Button variant="outline" size="sm" onClick={() => signOut()} className="hidden sm:inline-flex">
                 Logout
-              </Button>
-
-              {/* Announcements Icon (Mobile) */}
-              <Button
-                variant="ghost"
-                size="icon"
-                className="sm:hidden relative"
-                onClick={() => navigate("/dashboard/announcements")}
-              >
-                <Megaphone className="h-5 w-5" />
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-blue-500 hidden" id="mobile-announcement-dot" />
               </Button>
 
               {/* Notification Audio Element */}

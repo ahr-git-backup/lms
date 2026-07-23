@@ -525,10 +525,11 @@ async function callGemini(env, question, systemPrompt, image, budget) {
   parts.push({ text: systemPrompt + "\n\n\u09AA\u09CD\u09B0\u09B6\u09CD\u09A8: " + (question || "\u098F\u0987 \u099B\u09AC\u09BF\u099F\u09BF \u09AC\u09BF\u09B6\u09CD\u09B2\u09C7\u09B7\u09A3 \u0995\u09B0\u09CB\u0964") });
   let lastError = "Gemini: no keys/models worked";
   const exhaustedKeys = /* @__PURE__ */ new Set();
+  const shuffledGeminiKeys = shuffleKeys(keys);
   let consecutive429 = 0;
   outerGemini:
     for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
-      const healthyKeys = keys.filter((k) => !exhaustedKeys.has(k));
+      const healthyKeys = shuffledGeminiKeys.filter((k) => !exhaustedKeys.has(k));
       if (!healthyKeys.length)
         break;
       for (const model of GEMINI_MODELS) {
@@ -591,9 +592,10 @@ async function callOpenRouter(env, question, systemPrompt, image, budget) {
     userContent = question;
   }
   let lastError = "OpenRouter: no keys/models worked";
+  const shuffledOpenRouterKeys = shuffleKeys(keys);
   for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
     for (const model of OPENROUTER_MODELS) {
-      for (const key of keys) {
+      for (const key of shuffledOpenRouterKeys) {
         const outcome = await attemptWithStatus((signal) => fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -631,6 +633,20 @@ async function callOpenRouter(env, question, systemPrompt, image, budget) {
   return { error: lastError };
 }
 __name(callOpenRouter, "callOpenRouter");
+// Load-balancing fix: without this, every concurrent request iterates keys
+// in the same fixed order (keys[0] first), so under simultaneous load all
+// users hammer the same single key until it alone hits its per-day limit,
+// instead of spreading load across every available key. Shuffling per-call
+// distributes concurrent traffic roughly evenly from the very first request.
+function shuffleKeys(keys) {
+  const arr = [...keys];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+__name(shuffleKeys, "shuffleKeys");
 function getGroqKeys(env) {
   const keys = [];
   if (env.GROQ_KEYS)
@@ -731,6 +747,7 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
   }
   let lastError = "Groq: no keys/models worked";
   const exhaustedKeys = /* @__PURE__ */ new Set();
+  const shuffledKeys = shuffleKeys(keys);
   for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
     for (const model of models) {
       const isTextModel = GROQ_TEXT_MODELS.includes(model);
@@ -744,8 +761,8 @@ GURUTTOPURNO: \u09B6\u09C1\u09A7\u09C1\u09AE\u09BE\u09A4\u09CD\u09B0 \u098F\u098
           : {})
       };
       let keyResult = null;
-      const healthyKeys = keys.filter((k) => !exhaustedKeys.has(k));
-      for (const key of healthyKeys.length ? healthyKeys : keys) {
+      const healthyKeys = shuffledKeys.filter((k) => !exhaustedKeys.has(k));
+      for (const key of healthyKeys.length ? healthyKeys : shuffledKeys) {
         const outcome = await attemptWithStatus((signal) => fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
@@ -825,9 +842,10 @@ async function callCerebras(env, question, systemPrompt, image, budget) {
   if (!keys.length)
     return { error: "CEREBRAS_API_KEY not set" };
   let lastError = "Cerebras: no keys/models worked";
+  const shuffledCerebrasKeys = shuffleKeys(keys);
   for (let round = 0; round < MAX_ROTATION_ROUNDS; round++) {
     for (const model of CEREBRAS_MODELS) {
-      for (const key of keys) {
+      for (const key of shuffledCerebrasKeys) {
         const outcome = await attemptWithStatus((signal) => fetch("https://api.cerebras.ai/v1/chat/completions", {
           method: "POST",
           headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },

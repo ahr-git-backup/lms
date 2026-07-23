@@ -148,13 +148,12 @@ const ExamReview = () => {
   const { data: attempt, isLoading: attemptLoading } = useQuery({
     queryKey: ["exam-attempt", attemptId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exam_attempts")
-        .select("*, exam:exams(*)")
-        .eq("id", attemptId)
-        .single();
+      const { data, error } = await supabase.rpc("get_exam_attempt_for_review", {
+        p_attempt_id: attemptId,
+      });
       if (error) throw error;
-      return data;
+      if (!data) throw new Error("Attempt not found");
+      return data as any;
     },
     enabled: !!attemptId,
   });
@@ -225,14 +224,15 @@ const ExamReview = () => {
           }
       }
 
-      // 2. Fetch bookmarks — always use the current logged-in user's bookmarks
+      // 2. Fetch bookmarks — only meaningful for a logged-in user (guests have
+      // no account to bookmark against).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const questionIds = qData.map((q: any) => q.question_id || q.id); // RPC returns question_id
 
-      const { data: bData } = questionIds.length > 0 ? await supabase
+      const { data: bData } = (user && questionIds.length > 0) ? await supabase
         .from("bookmarks")
         .select("question_id")
-        .eq("profile_id", user!.id)
+        .eq("profile_id", user.id)
         .in("question_id", questionIds) : { data: [] };
 
       const bookmarkedIds = new Set(bData?.map(b => b.question_id));
@@ -262,15 +262,16 @@ const ExamReview = () => {
           };
       });
     },
-    enabled: !!attempt?.id && !!user,
+    enabled: !!attempt?.id,
   });
 
   const toggleBookmarkMutation = useMutation({
       mutationFn: async ({ questionId, isBookmarked }: { questionId: string, isBookmarked: boolean }) => {
+          if (!user) return; // guests have no account to bookmark against
           if (isBookmarked) {
-              await supabase.from("bookmarks").delete().eq("profile_id", user!.id).eq("question_id", questionId);
+              await supabase.from("bookmarks").delete().eq("profile_id", user.id).eq("question_id", questionId);
           } else {
-              await supabase.from("bookmarks").insert({ profile_id: user!.id, question_id: questionId });
+              await supabase.from("bookmarks").insert({ profile_id: user.id, question_id: questionId });
           }
       },
       onSuccess: () => {
@@ -399,37 +400,51 @@ const ExamReview = () => {
   ].filter(d => d.value > 0);
 
   return (
-    <div className="min-h-screen bg-background font-sans pb-20">
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
+    <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+      <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
 
         {/* Header */}
-        <div className="flex flex-col gap-2">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 self-start">
-                <ArrowLeft className="h-5 w-5 mr-2" /> Back
+        <div className="flex flex-col gap-1">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-7 self-start">
+                <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-                 {exam.is_readymade && (
+                 {user && exam.is_readymade && (
                  <Button variant="outline" onClick={() => setIsQpDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Sparkles className="h-5 w-5 mr-1.5 text-violet-500 shrink-0" /> <span className="truncate">Quick Practice</span>
                  </Button>
                  )}
+                 {user && (
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
+                 )}
+                 {user && (
                  <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
                  </Button>
+                 )}
                  <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
                  </Button>
-                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
-                    <ListChecks className="h-5 w-5 mr-1.5 text-red-500 shrink-0" /> <span className="truncate">Mistake Practice</span>
+                 {user && (
+                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-2 py-2 w-full sm:w-auto">
+                    <ListChecks className="h-5 w-5 mr-1 text-red-500 shrink-0" /> <span className="text-sm whitespace-nowrap">Mistake Practice</span>
                  </Button>
+                 )}
+                 {user && (
                  <Button variant="outline" onClick={() => navigate(getExamSourceList(attempt.exam_id))} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <ListOrdered className="h-5 w-5 mr-1.5 text-emerald-500 shrink-0" /> <span className="truncate">Exam List</span>
                  </Button>
+                 )}
             </div>
         </div>
+
+        {!user && (
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-center">
+            আরও ফিচার (Leaderboard, Mistake Practice, ইত্যাদি) পেতে <a href="/register" className="font-bold text-primary underline">অ্যাকাউন্ট খোলো</a> — সম্পূর্ণ ফ্রি।
+          </div>
+        )}
 
         {/* Quick Practice Mood Select Dialog */}
         <Dialog open={isQpDialogOpen} onOpenChange={(open) => { setIsQpDialogOpen(open); if (!open) { setQpCustomMode(false); setQpCustomCount(""); } }}>
@@ -514,35 +529,36 @@ const ExamReview = () => {
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="text-center md:text-left">
-                        <h1 className="text-2xl font-bold mb-1">{attempt.exam.title}</h1>
-                        <p className="text-sm text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
+            <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-6">
+                    <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                        <h1 className="text-2xl font-extrabold mb-0.5">{attempt.exam.title}</h1>
+                        <p className="text-xs text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-1 md:my-0">
+                    <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
                         {/* Marks */}
-                        <div className="text-center">
-                             <div className="text-4xl font-bold text-primary">
+                        <div className="text-center flex-shrink-0 pr-4 border-r border-border/60">
+                             <div className="text-4xl font-extrabold text-primary">
                                 {Number(score).toFixed(2)}
-                                <span className="text-lg text-muted-foreground font-normal"> / {displayTotalMarks}</span>
+                                <span className="text-4xl text-muted-foreground font-extrabold"> / {displayTotalMarks}</span>
                              </div>
-                             <div className="text-xs uppercase font-bold text-muted-foreground mt-1">Marks Obtained</div>
+                             <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-40 w-40 relative flex-shrink-0 -my-2 md:my-0">
+                        <div className="shrink-0" style={{ height: 112, width: 112 }}>
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={pieData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={35}
-                                        outerRadius={55}
+                                        innerRadius={26}
+                                        outerRadius={42}
                                         paddingAngle={2}
                                         dataKey="value"
+                                        isAnimationActive={false}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -555,18 +571,18 @@ const ExamReview = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-2 text-center">
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-1.5 text-center">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Correct</div>
-                            <div className="text-lg sm:text-xl font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
+                            <div className="text-lg font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
                         </div>
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Wrong</div>
-                            <div className="text-lg sm:text-xl font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
+                            <div className="text-lg font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
                         </div>
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Skipped</div>
-                            <div className="text-lg sm:text-xl font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
+                            <div className="text-lg font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
                         </div>
                     </div>
                 </div>

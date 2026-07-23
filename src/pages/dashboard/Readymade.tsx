@@ -16,6 +16,23 @@ import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 
 const PAGE_SIZE = 15;
 
+// Supabase/PostgREST caps a plain select() at 1000 rows. For aggregation queries
+// (distinct subjects/chapters/topics) that must see every row, paginate through
+// all of them instead — otherwise later categories silently disappear.
+async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): Promise<T[]> {
+  const BATCH = 1000;
+  let from = 0;
+  let all: T[] = [];
+  while (true) {
+    const { data, error } = await buildQuery(from, from + BATCH - 1);
+    if (error) throw error;
+    all = all.concat(data || []);
+    if (!data || data.length < BATCH) break;
+    from += BATCH;
+  }
+  return all;
+}
+
 // Helper: build the enrollment filter OR clause
 const buildEnrollmentFilter = (enrolledIds: string[]) => {
   if (enrolledIds.length === 0) return "is_visible_on_free.eq.true";
@@ -46,18 +63,21 @@ const Readymade = () => {
     queryKey: ["readymade-parent-topics", enrollments?.map((e: any) => e.course_id).join(',')],
     queryFn: async () => {
       const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
-      let query = supabase
-        .from("exams")
-        .select("readymade_topic")
-        .eq("is_readymade", true)
-        .eq("is_published", true)
-        .not("readymade_topic", "is", null);
       const filter = buildEnrollmentFilter(enrolledIds);
-      if (filter) query = query.or(filter);
-      else query = query.eq("is_visible_on_free", true);
-      const { data } = await query;
+      const data = await fetchAllRows<{ readymade_topic: string | null }>((from, to) => {
+        let query = supabase
+          .from("exams")
+          .select("readymade_topic")
+          .eq("is_readymade", true)
+          .eq("is_published", true)
+          .not("readymade_topic", "is", null)
+          .range(from, to);
+        if (filter) query = query.or(filter);
+        else query = query.eq("is_visible_on_free", true);
+        return query;
+      });
       const unique = new Set<string>();
-      data?.forEach(row => { if (row.readymade_topic) unique.add(row.readymade_topic); });
+      data.forEach(row => { if (row.readymade_topic) unique.add(row.readymade_topic); });
       return Array.from(unique).sort().map(topic => ({ label: topic, value: topic }));
     }
   });
@@ -150,6 +170,14 @@ const Readymade = () => {
 
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
+          <Button
+            variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
+            size="sm"
+            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
+            onClick={() => { setPage(0); setSelectedParentTopics([]); }}
+          >
+            All
+          </Button>
           {parentTopics.map(topic => (
             <Button
               key={topic.value}
@@ -274,13 +302,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
     queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics],
     queryFn: async () => {
-      let query = supabase.from("exams").select("subject, course_id, shared_course_ids")
-        .eq("is_readymade", true).eq("is_published", true);
-      if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-      query = applyAccessFilter(query);
-      const { data } = await query;
+      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null }>((from, to) => {
+        let query = supabase.from("exams").select("subject, course_id, shared_course_ids")
+          .eq("is_readymade", true).eq("is_published", true).range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        return applyAccessFilter(query);
+      });
       const unique = new Set<string>();
-      data?.forEach((row: any) => {
+      data.forEach((row: any) => {
         if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
         else if (typeof row.subject === 'string') unique.add(row.subject);
       });
@@ -301,16 +330,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics],
     queryFn: async () => {
       if (!selectedSubject) return [];
-      let query = supabase.from("exams").select("chapter, course_id, shared_course_ids, sort_order")
-        .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]);
-      if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-      query = applyAccessFilter(query);
-      const { data } = await query;
+      const data = await fetchAllRows<{ chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; sort_order: number | null }>((from, to) => {
+        let query = supabase.from("exams").select("chapter, course_id, shared_course_ids, sort_order")
+          .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        return applyAccessFilter(query);
+      });
       const unique = new Set<string>(); const orderMap = new Map<string, number>();
       const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
-      data?.forEach((row: any) => {
+      data.forEach((row: any) => {
         if (row.chapter) {
           unique.add(row.chapter);
           const cur = orderMap.get(row.chapter) || 0;
@@ -337,16 +367,18 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return [];
-      let query = supabase.from("exams")
-        .select("readymade_sub_chapter")
-        .eq("is_readymade", true).eq("is_published", true)
-        .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
-        .not("readymade_sub_chapter", "is", null);
-      if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-      query = applyAccessFilter(query);
-      const { data } = await query;
+      const data = await fetchAllRows<{ readymade_sub_chapter: string | null }>((from, to) => {
+        let query = supabase.from("exams")
+          .select("readymade_sub_chapter")
+          .eq("is_readymade", true).eq("is_published", true)
+          .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+          .not("readymade_sub_chapter", "is", null)
+          .range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        return applyAccessFilter(query);
+      });
       const unique = new Set<string>();
-      data?.forEach((row: any) => { if (row.readymade_sub_chapter) unique.add(row.readymade_sub_chapter); });
+      data.forEach((row: any) => { if (row.readymade_sub_chapter) unique.add(row.readymade_sub_chapter); });
       return Array.from(unique).sort();
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedSubChapter && !searchQuery

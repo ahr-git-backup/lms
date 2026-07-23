@@ -60,73 +60,77 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const { toast } = useToast();
 
   const fetchProfile = async (userId: string) => {
-    let { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      let { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-    // If profile is missing, attempt to create it from user metadata
-    if (!data) {
-      console.log("Profile not found, attempting to create...");
-      const { data: userData } = await supabase.auth.getUser();
+      // If profile is missing, attempt to create it from user metadata
+      if (!data) {
+        console.log("Profile not found, attempting to create...");
+        const { data: userData } = await supabase.auth.getUser();
 
-      if (userData.user && userData.user.id === userId) {
-        const meta = userData.user.user_metadata;
+        if (userData.user && userData.user.id === userId) {
+          const meta = userData.user.user_metadata;
 
-        // Only attempt insert if we have the necessary metadata
-        if (meta && meta.registration_id) {
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: userId,
-              registration_id: meta.registration_id,
-              full_name: meta.full_name || "",
-              extra_time_multiplier: 1,
-            });
-
-          if (!insertError) {
-             console.log("Profile created successfully via lazy loading.");
-             // Refetch
-             const retry = await supabase
+          // Only attempt insert if we have the necessary metadata
+          if (meta && meta.registration_id) {
+            const { error: insertError } = await supabase
               .from("profiles")
-              .select("*")
-              .eq("id", userId)
-              .single();
-             data = retry.data;
-             error = retry.error;
-          } else {
-            console.error("Failed to create profile lazy:", insertError);
+              .insert({
+                id: userId,
+                registration_id: meta.registration_id,
+                full_name: meta.full_name || "",
+                extra_time_multiplier: 1,
+              });
+
+            if (!insertError) {
+               console.log("Profile created successfully via lazy loading.");
+               // Refetch
+               const retry = await supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", userId)
+                .single();
+               data = retry.data;
+               error = retry.error;
+            } else {
+              console.error("Failed to create profile lazy:", insertError);
+            }
           }
         }
       }
-    }
 
-    if (!error && data) {
-      // Check for ban status
-      if (data.status === 'banned') {
-          console.warn("User is banned. Logging out.");
-          toast({
-              title: "Account Suspended",
-              description: "Your account has been banned. Please contact support.",
-              variant: "destructive",
-              duration: 5000
-          });
-          await signOut(true);
-          return;
+      if (!error && data) {
+        // Check for ban status
+        if (data.status === 'banned') {
+            console.warn("User is banned. Logging out.");
+            toast({
+                title: "Account Suspended",
+                description: "Your account has been banned. Please contact support.",
+                variant: "destructive",
+                duration: 5000
+            });
+            await signOut(true);
+            return;
+        }
+
+        setProfile(data);
+        
+        // Check roles
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId);
+        
+        const roleList = roles?.map(r => r.role) || [];
+        setIsAdmin(roleList.includes("admin"));
+        setIsTeacher(roleList.includes("teacher"));
       }
-
-      setProfile(data);
-      
-      // Check roles
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId);
-      
-      const roleList = roles?.map(r => r.role) || [];
-      setIsAdmin(roleList.includes("admin"));
-      setIsTeacher(roleList.includes("teacher"));
+    } catch (err) {
+      console.error("fetchProfile failed:", err);
     }
   };
 
@@ -142,16 +146,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
+        fetchProfile(session.user.id).finally(() => setLoading(false));
       } else {
         setProfile(null);
         setIsAdmin(false);
         setIsTeacher(false);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     // THEN check for existing session
@@ -160,9 +161,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).finally(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -183,7 +185,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
-        return { error: { message: "Invalid registration ID or password" } };
+        // Only mask genuine wrong-credential errors with the friendly message.
+        // Anything else (network failure, service unavailable, rate limit)
+        // should surface honestly — otherwise a real infrastructure problem
+        // looks identical to "wrong password" and can't be diagnosed or
+        // reported correctly by the user.
+        const code = (error as { message?: string; status?: number }).message || "";
+        const isCredentialError = /invalid login credentials|invalid.*credentials/i.test(code);
+        if (isCredentialError) {
+          return { error: { message: "Invalid registration ID or password" } };
+        }
+        return { error: { message: `লগইন করা যায়নি: ${code || "অজানা সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।` } };
       }
 
       if (data.user) {
@@ -226,7 +238,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      return { error: { message: "Invalid registration ID or password" } };
+      // bug fix: this used to show "Invalid registration ID or password" for
+      // EVERY failure, including network errors or the auth service being
+      // temporarily unreachable — which made a real infrastructure problem
+      // indistinguishable from an actually wrong password, and impossible to
+      // diagnose from a screenshot/report. Surface the real reason instead.
+      return {
+        error: {
+          message: `লগইন করা যায়নি: ${error?.message || "নেটওয়ার্ক সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।`,
+        },
+      };
     }
   }, []); // Dependencies likely just supabase (imported)
 

@@ -9,6 +9,7 @@ import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers, Plu
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
+import ShareExamButton from "@/components/exam/ShareExamButton";
 
 // Types
 interface Exam {
@@ -22,7 +23,6 @@ interface Exam {
   questions_count: { count: number }[];
 }
 
-const FREE_EXAM_CATEGORIES = ["HSC", "Medical", "Varsity", "Onushilon"] as const;
 const CATEGORY_LABELS: Record<string, string> = { Onushilon: "Onushiloni" };
 const categoryLabel = (cat: string) => CATEGORY_LABELS[cat] || cat;
 
@@ -63,6 +63,7 @@ const FreeExam = () => {
         .select("id, title, subject, chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
         .is("course_id", null)
         .eq("is_published", true)
+        .eq("is_readymade", false)
         // @ts-ignore
         .eq("is_visible_on_free", true);
 
@@ -81,6 +82,7 @@ const FreeExam = () => {
               .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)", { count: 'exact' })
               .is("course_id", null)
               .eq("is_published", true)
+              .eq("is_readymade", false)
               // @ts-ignore
               .eq("is_visible_on_free", true)
               .ilike("title", `%${debouncedSearch}%`)
@@ -188,7 +190,7 @@ const FreeExam = () => {
                                   <Card
                                       key={exam.id}
                                       className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                                      onClick={() => navigate(`/open-exam/${exam.id}`)}
+                                      onClick={() => navigate(`/take-exam/${exam.id}`)}
                                   >
                                       <CardHeader className="pb-2">
                                           <div className="flex justify-between items-start gap-2">
@@ -197,9 +199,12 @@ const FreeExam = () => {
                                                       {exam.title}
                                                   </CardTitle>
                                               </div>
-                                              <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                                  {exam.exam_type}
-                                              </Badge>
+                                              <div className="flex flex-col gap-1 items-end">
+                                                  <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                                      {exam.exam_type}
+                                                  </Badge>
+                                                  <ShareExamButton examId={exam.id} examTitle={exam.title} />
+                                              </div>
                                           </div>
                                       </CardHeader>
                                       <CardContent className="flex-1">
@@ -284,7 +289,15 @@ const FreeExam = () => {
              </div>
         ) : (
             <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {FREE_EXAM_CATEGORIES.map(cat => (
+                {(() => {
+                    const PREFERRED_ORDER = ["HSC", "Medical", "Varsity", "Onushilon"];
+                    const present = Array.from(new Set((exams || []).map(e => e.free_exam_category || "HSC")));
+                    const ordered = [
+                        ...PREFERRED_ORDER.filter(c => present.includes(c)),
+                        ...present.filter(c => !PREFERRED_ORDER.includes(c)).sort(),
+                    ];
+                    return ordered;
+                })().map(cat => (
                     <Card
                         key={cat}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
@@ -457,7 +470,7 @@ const FreeExam = () => {
                     <Card
                         key={exam.id}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                        onClick={() => navigate(`/open-exam/${exam.id}`)}
+                        onClick={() => navigate(`/take-exam/${exam.id}`)}
                     >
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start gap-2">
@@ -470,6 +483,7 @@ const FreeExam = () => {
                                     <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
                                         {exam.exam_type}
                                     </Badge>
+                                    <ShareExamButton examId={exam.id} examTitle={exam.title} />
                                     {isAdmin && (
                                         <Button
                                             variant="ghost"

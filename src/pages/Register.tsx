@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send } from "lucide-react";
@@ -24,6 +25,7 @@ const Register = () => {
   const [hscBatch, setHscBatch] = useState("2025");
   const [hscGpa, setHscGpa] = useState("");
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const [gender, setGender] = useState("");
   const [duplicatePhone, setDuplicatePhone] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,6 +64,16 @@ const Register = () => {
     const hscGpaForm = formData.get("hscGpa") as string;
     const password = formData.get("password") as string;
     const confirmPassword = formData.get("confirmPassword") as string;
+
+    if (!gender) {
+      toast({
+        title: "Registration failed",
+        description: "Please select your gender",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
 
     if (collegeName.trim().length < 10) {
       toast({
@@ -140,6 +152,7 @@ const Register = () => {
             ssc_gpa: sscGpa,
             hsc_gpa: hscGpaForm,
             phone: phone,
+            gender: gender,
             is_second_timer: isSecondTimer,
           }
         }
@@ -241,6 +254,20 @@ const Register = () => {
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender <span className="text-red-500">*</span></Label>
+                  <Select value={gender} onValueChange={setGender}>
+                    <SelectTrigger id="gender">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="male">Male</SelectItem>
+                      <SelectItem value="female">Female</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="space-y-2">
