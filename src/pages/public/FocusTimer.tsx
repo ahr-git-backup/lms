@@ -638,7 +638,7 @@ const FocusTimer = () => {
               <div className="text-xs font-extrabold">কীভাবে ব্যবহার করবে?</div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">১</span>
-                <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mode timer শুরু হবে</span>
+                <span>"পড়াশোনা শুরু করো" বাটনে চাপো — Study Mood timer শুরু হবে</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">২</span>
@@ -646,7 +646,7 @@ const FocusTimer = () => {
               </div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৩</span>
-                <span>Sleep Mode on থাকলে phone off করলেও timer চলতে থাকবে</span>
+                <span>Sleep Mood on থাকলে phone off করলেও timer চলতে থাকবে</span>
               </div>
               <div className="flex items-start gap-2">
                 <span className="h-5 w-5 rounded-full bg-primary text-primary-foreground font-black text-[10px] flex items-center justify-center flex-shrink-0">৪</span>
