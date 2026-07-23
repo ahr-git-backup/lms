@@ -1,4 +1,4 @@
-import { Flame, Menu, Moon, Sun } from "lucide-react";
+import { Flame, Menu, Moon, Sun, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 
@@ -11,11 +11,13 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import InstallPWA from "@/components/InstallPWA";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const PublicHeader = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const isDark = theme === "dark";
+  const { user, profile } = useAuth();
 
   return (
     <header className="w-full border-b bg-background/80 backdrop-blur">
@@ -43,9 +45,11 @@ export const PublicHeader = () => {
           <a href="/tutorial" className="underline-offset-4 hover:underline">
             টিউটোরিয়াল
           </a>
-          <a href="/login" className="underline-offset-4 hover:underline">
-            লগইন
-          </a>
+          {!user && (
+            <a href="/login" className="underline-offset-4 hover:underline">
+              লগইন
+            </a>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
@@ -60,12 +64,24 @@ export const PublicHeader = () => {
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
-          {/* Mobile Login Button */}
-          <a href="/login" className="sm:hidden">
-            <Button size="sm" variant="default" className="h-9 px-4">
-              লগইন
-            </Button>
-          </a>
+          {/* Mobile Login Button / Profile Avatar */}
+          {user ? (
+            <a href="/dashboard" className="sm:hidden">
+              <div className="h-9 w-9 rounded-full overflow-hidden border flex items-center justify-center bg-primary/10">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={profile.full_name || "Profile"} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-4.5 w-4.5 text-primary" />
+                )}
+              </div>
+            </a>
+          ) : (
+            <a href="/login" className="sm:hidden">
+              <Button size="sm" variant="default" className="h-9 px-4">
+                লগইন
+              </Button>
+            </a>
+          )}
 
           {/* Desktop Theme Toggle */}
           <Button
@@ -106,9 +122,22 @@ export const PublicHeader = () => {
                   <a href="/tutorial" className="text-lg font-medium hover:text-primary">
                     টিউটোরিয়াল
                   </a>
-                  <a href="/login" className="text-lg font-medium hover:text-primary">
-                    লগইন
-                  </a>
+                  {user ? (
+                    <a href="/dashboard" className="text-lg font-medium hover:text-primary flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-full overflow-hidden border flex items-center justify-center bg-primary/10 flex-shrink-0">
+                        {profile?.avatar_url ? (
+                          <img src={profile.avatar_url} alt={profile.full_name || "Profile"} className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-3.5 w-3.5 text-primary" />
+                        )}
+                      </div>
+                      {profile?.full_name || "প্রোফাইল"}
+                    </a>
+                  ) : (
+                    <a href="/login" className="text-lg font-medium hover:text-primary">
+                      লগইন
+                    </a>
+                  )}
 
                   {/* Mobile Theme Toggle in Menu */}
                   <div className="flex items-center justify-between mt-4 border-t pt-4">

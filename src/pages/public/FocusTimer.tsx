@@ -600,14 +600,6 @@ const FocusTimer = () => {
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
-      <div className="sticky top-0 z-30 flex items-center px-4 py-2 bg-card border-b">
-        <button
-          onClick={() => navigate("/")}
-          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-      </div>
 
       <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
         {showIntro && (
@@ -1006,8 +998,10 @@ const FocusTimer = () => {
                     </p>
                   );
                 }
+                const liveAdjusted = (row: any) =>
+                  row.duration_seconds + ((row.user_id === user?.id && !paused && mood === row.mood) ? elapsed : 0);
                 return [...filtered]
-                  .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
+                  .sort((a: any, b: any) => liveAdjusted(b) - liveAdjusted(a))
                   .map((row: any, i: number) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
                   const isMe = row.user_id === user?.id;
