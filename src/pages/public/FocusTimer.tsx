@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpen,
@@ -215,6 +215,7 @@ const FocusTimer = () => {
     refetchInterval: 15000,
   });
 
+  const queryClient = useQueryClient();
   const { data: liveNow, refetch: refetchLiveNow } = useQuery({
     queryKey: ["focus-live-now"],
     queryFn: async () => {
@@ -497,6 +498,17 @@ const FocusTimer = () => {
     setPaused(false);
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
+    // Optimistically patch our own row in the liveNow cache right away — don't wait for the
+    // network round-trip, so counts/lists reflect the new mood the instant the button is tapped.
+    queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
+      if (!old) return old;
+      const rest = old.filter((r: any) => r.user_id !== user?.id);
+      const selfRow = old.find((r: any) => r.user_id === user?.id);
+      return [
+        ...rest,
+        { ...(selfRow || { user_id: user?.id, full_name: profile?.full_name, hsc_batch: profile?.hsc_batch }), mood: m, duration_seconds: resumeSecs, is_paused: false },
+      ];
+    });
     refetchLeaderboard();
     refetchLiveNow();
     const moodToastCopy: Record<Mood, { title: string; sub: string; mood: Mood }> = {
