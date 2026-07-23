@@ -112,22 +112,26 @@ export const QuickActionsSection = () => {
 
       {/* Row 5: Study Tracker / Unlimited Mock Test (always shown, no toggle) */}
       <div className="grid grid-cols-2 gap-2">
-        <Button
+        <button
           onClick={() => navigate("/syllabus-tracker")}
-          className="animate-border-chase w-full h-auto min-h-10 py-2 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2 whitespace-normal leading-tight"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-600/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
-          <BarChart3 className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.2s" }} />
-          <span>Study Tracker</span>
-        </Button>
-        <Button
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
+            <BarChart3 className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.2s" }} />
+          </div>
+          <span className="text-xs font-bold">Study Tracker</span>
+        </button>
+        <button
           onClick={() => navigate("/mock-test")}
-          className="animate-border-chase w-full h-auto min-h-10 py-2 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2 whitespace-normal leading-tight"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-fuchsia-500/10 to-pink-600/10 border border-fuchsia-500/20 hover:border-fuchsia-500/50 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
-          <ClipboardCheck className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.35s" }} />
-          <span>Unlimited Mock Test</span>
-        </Button>
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-sm">
+            <ClipboardCheck className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.35s" }} />
+          </div>
+          <span className="text-xs font-bold text-center leading-tight px-1">Unlimited Mock Test</span>
+        </button>
       </div>
     </section>
   );
