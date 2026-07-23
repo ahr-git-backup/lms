@@ -401,12 +401,12 @@ const ExamReview = () => {
 
   return (
     <div className="min-h-screen bg-background font-sans pb-20">
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
+      <div className="container max-w-4xl mx-auto px-[5px] py-2 md:p-6 space-y-3 overflow-x-hidden">
 
         {/* Header */}
-        <div className="flex flex-col gap-2">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 self-start">
-                <ArrowLeft className="h-5 w-5 mr-2" /> Back
+        <div className="flex flex-col gap-1.5">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-8 self-start">
+                <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                  {user && exam.is_readymade && (
@@ -529,33 +529,33 @@ const ExamReview = () => {
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-                    <div className="text-center md:text-left">
-                        <h1 className="text-2xl font-bold mb-1">{attempt.exam.title}</h1>
-                        <p className="text-sm text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
+            <CardContent className="p-3 md:p-4">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-6">
+                    <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                        <h1 className="text-xl font-bold mb-0.5">{attempt.exam.title}</h1>
+                        <p className="text-xs text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-4 md:gap-8 my-1 md:my-0">
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
                         {/* Marks */}
                         <div className="text-center">
-                             <div className="text-4xl font-bold text-primary">
+                             <div className="text-3xl font-bold text-primary">
                                 {Number(score).toFixed(2)}
-                                <span className="text-lg text-muted-foreground font-normal"> / {displayTotalMarks}</span>
+                                <span className="text-base text-muted-foreground font-normal"> / {displayTotalMarks}</span>
                              </div>
-                             <div className="text-xs uppercase font-bold text-muted-foreground mt-1">Marks Obtained</div>
+                             <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-40 w-40 relative flex-shrink-0 -my-2 md:my-0">
+                        <div className="h-28 w-28 relative flex-shrink-0">
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={pieData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={35}
-                                        outerRadius={55}
+                                        innerRadius={26}
+                                        outerRadius={42}
                                         paddingAngle={2}
                                         dataKey="value"
                                     >
@@ -570,18 +570,18 @@ const ExamReview = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-2 text-center">
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-1.5 text-center">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Correct</div>
-                            <div className="text-lg sm:text-xl font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
+                            <div className="text-lg font-bold text-green-600 order-2 md:order-1">{correctCount}</div>
                         </div>
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Wrong</div>
-                            <div className="text-lg sm:text-xl font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
+                            <div className="text-lg font-bold text-red-500 order-2 md:order-1">{wrongCount}</div>
                         </div>
-                         <div className="flex-1 border rounded-lg p-2 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                         <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
                             <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Skipped</div>
-                            <div className="text-lg sm:text-xl font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
+                            <div className="text-lg font-bold text-slate-400 order-2 md:order-1">{skippedCount}</div>
                         </div>
                     </div>
                 </div>
