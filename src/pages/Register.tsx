@@ -416,12 +416,19 @@ const Register = () => {
                 </div>
               </div>
 
+              {/* Turnstile temporarily disabled: dummy test site key
+                  (1x00000000000000000000AA) always issues the same
+                  XXXX.DUMMY.TOKEN.XXXX token, which a real Supabase-side
+                  secret key rejects — causing device-dependent failures.
+                  Re-enable once a real Cloudflare Turnstile site key is
+                  available.
               <div className="flex justify-center py-2">
                 <Turnstile
                   siteKey="1x00000000000000000000AA"
                   onSuccess={(token) => setCaptchaToken(token)}
                 />
               </div>
+              */}
 
               <div className="flex items-start space-x-2 py-2 mt-2 mb-1">
                 <Checkbox
@@ -433,7 +440,7 @@ const Register = () => {
                 </Label>
               </div>
 
-              <Button type="submit" className="mt-4 w-full" disabled={loading || !captchaToken}>
+              <Button type="submit" className="mt-4 w-full" disabled={loading}>
                 {loading ? "Creating Account..." : "Register"}
               </Button>
             </form>

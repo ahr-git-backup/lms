@@ -9,6 +9,8 @@ import { Label } from "@/components/ui/label";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, LayoutDashboard, LogOut, AlertTriangle, Send, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+// Turnstile import kept for when the widget is re-enabled (see disabled block below)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Turnstile } from "@marsidev/react-turnstile";
 import {
   Dialog,
@@ -33,6 +35,8 @@ const Login = () => {
   const { signIn, user, signOut, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Kept for when Turnstile is re-enabled (see disabled block below)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<{ message: string; identifier: string } | null>(null);
 
@@ -66,7 +70,8 @@ const Login = () => {
       email = `${identifier}@beshijoss.com`;
     }
 
-    const { error } = await signIn(email, password, captchaToken);
+    // captchaToken intentionally omitted — Turnstile is disabled (see below)
+    const { error } = await signIn(email, password);
 
     if (error) {
       setLoginError({ message: error.message || "Invalid credentials", identifier });
@@ -158,14 +163,21 @@ const Login = () => {
                     </Button>
                   </div>
                 </div>
+                {/* Turnstile temporarily disabled: dummy test site key
+                    (1x00000000000000000000AA) always issues the same
+                    XXXX.DUMMY.TOKEN.XXXX token, which a real Supabase-side
+                    secret key rejects — causing device-dependent login
+                    failures with correct credentials. Re-enable once a real
+                    Cloudflare Turnstile site key is available.
                 <div className="flex justify-center py-2">
                   <Turnstile
                     siteKey="1x00000000000000000000AA"
                     onSuccess={(token) => setCaptchaToken(token)}
                   />
                 </div>
+                */}
 
-                <Button type="submit" className="mt-2 w-full" disabled={loading || !captchaToken}>
+                <Button type="submit" className="mt-2 w-full" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
 
