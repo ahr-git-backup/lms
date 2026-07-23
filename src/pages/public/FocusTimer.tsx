@@ -588,19 +588,13 @@ const FocusTimer = () => {
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
-      <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-2.5 bg-card border-b">
+      <div className="sticky top-0 z-30 flex items-center px-4 py-2 bg-card border-b">
         <button
           onClick={() => navigate("/")}
           className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <h1 className="flex-1 font-extrabold text-[17px]">Focus Timer</h1>
-        {typeof myTotalToday === "number" && (
-          <span className="text-xs font-bold text-emerald-500">
-            আজ {formatHMS(myTotalToday).h}h {formatHMS(myTotalToday).m}m
-          </span>
-        )}
       </div>
 
       <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
@@ -759,7 +753,7 @@ const FocusTimer = () => {
               <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
             </div>
-            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink opacity-60">:</span>
             <div
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",
@@ -769,7 +763,7 @@ const FocusTimer = () => {
               <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
             </div>
-            <span className="pb-4 text-lg font-black text-muted-foreground animate-pulse">:</span>
+            <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink opacity-60">:</span>
             <div
               className={cn(
                 "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border shadow-inner transition-colors duration-500",

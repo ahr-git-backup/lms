@@ -105,6 +105,10 @@ export default {
   			'focus-blink': {
   				'0%, 100%': { opacity: '1' },
   				'50%': { opacity: '.3' }
+  			},
+  			'colon-blink': {
+  				'0%, 100%': { opacity: '1' },
+  				'50%': { opacity: '.15' }
   			}
   		},
   		animation: {
@@ -115,7 +119,8 @@ export default {
   			'mood-glow-break': 'mood-glow-break 2s ease-in-out infinite alternate',
   			'mood-glow-sleep': 'mood-glow-sleep 2s ease-in-out infinite alternate',
   			'batch-shimmer': 'batch-shimmer 3s ease-in-out infinite',
-  			'focus-blink': 'focus-blink 1.2s ease-in-out infinite'
+  			'focus-blink': 'focus-blink 1.2s ease-in-out infinite',
+  			'colon-blink': 'colon-blink 1s step-end infinite'
   		},
 			fontFamily: {
 				sans: [
