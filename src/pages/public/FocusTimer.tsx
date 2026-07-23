@@ -864,10 +864,16 @@ const FocusTimer = () => {
           {(Object.keys(MOOD_META) as Mood[]).map((m) => {
             const count = (liveNow || []).filter((r: any) => r.mood === m).length;
             const md = MOOD_META[m];
+            const isActive = mood === m;
             return (
               <div
                 key={m}
-                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2"
+                className={cn(
+                  "flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 transition-colors duration-200",
+                  isActive && m === "study" && "border-emerald-500 bg-emerald-500/[0.08]",
+                  isActive && m === "break" && "border-amber-500 bg-amber-500/[0.08]",
+                  isActive && m === "sleep" && "border-indigo-400 bg-indigo-400/[0.08]"
+                )}
               >
                 <span className={cn("text-lg font-black", md.color)}>{count}</span>
                 <span className="text-[10px] font-bold text-muted-foreground">{md.statLabel}</span>
