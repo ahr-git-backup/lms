@@ -408,7 +408,7 @@ const DashboardHome = () => {
           <Card
             className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
-            onClick={() => navigate("/study-history")}
+            onClick={() => toast({ title: "Coming Soon", description: "History feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
@@ -418,7 +418,7 @@ const DashboardHome = () => {
           <Card
             className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
-            onClick={() => navigate("/quick-practice/leaderboard")}
+            onClick={() => toast({ title: "Coming Soon", description: "Top Performer feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
