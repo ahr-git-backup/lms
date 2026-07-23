@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ClipboardCheck, Clock, ArrowRight } from "lucide-react";
+import { ClipboardCheck, Clock, ArrowRight, Target } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +33,21 @@ const MockTest = () => {
           <p className="text-sm text-muted-foreground">Subject/chapter/topic-wise practice tests. Unlimited attempts.</p>
         </div>
       </div>
+
+      <Card className="border-fuchsia-500/30 bg-fuchsia-500/5">
+        <CardContent className="py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Target className="h-8 w-8 text-fuchsia-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm">নিজের মতো টেস্ট বানান</p>
+              <p className="text-xs text-muted-foreground">সাবজেক্ট/চ্যাপ্টার/টপিক বেছে র‍্যান্ডম প্রশ্নে টেস্ট দিন</p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => navigate("/dashboard/mock-test/unlimited")}>
+            শুরু করুন
+          </Button>
+        </CardContent>
+      </Card>
 
       {isLoading && <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>}
 

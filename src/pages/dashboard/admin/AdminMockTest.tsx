@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, Plus, Trash2, Edit, Link2 } from "lucide-react";
+import { ClipboardCheck, Plus, Trash2, Edit, Link2, Target } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { MockTestForm } from "@/components/admin/MockTestForm";
 
 const AdminMockTest = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editingMockExam, setEditingMockExam] = useState<any>(null);
@@ -61,9 +63,14 @@ const AdminMockTest = () => {
             Standalone content ecosystem — separate from the main Exam system.
           </p>
         </div>
-        <Button onClick={() => setShowForm(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New Mock Test
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/admin/mock-test/pool")}>
+            <Target className="h-4 w-4 mr-1" /> Unlimited Mock (Question Pool)
+          </Button>
+          <Button onClick={() => setShowForm(true)}>
+            <Plus className="h-4 w-4 mr-1" /> New Mock Test
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-3">

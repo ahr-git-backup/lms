@@ -67,6 +67,7 @@ import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockTest from "./pages/dashboard/admin/AdminMockTest";
+import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
@@ -86,6 +87,8 @@ import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
 import MockTest from "./pages/dashboard/MockTest";
 import TakeMockTest from "./pages/dashboard/TakeMockTest";
+import UnlimitedMockTest from "./pages/dashboard/UnlimitedMockTest";
+import PlayUnlimitedMock from "./pages/dashboard/PlayUnlimitedMock";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
 import QuickPracticeLeaderboard from "./pages/public/QuickPracticeLeaderboard";
@@ -180,6 +183,8 @@ const App = () => {
                 <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
                 <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
                 <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+                <Route path="mock-test/unlimited" element={<ErrorBoundary><UnlimitedMockTest /></ErrorBoundary>} />
+                <Route path="mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
                 <Route path="mock-test/:mockExamId" element={<ErrorBoundary><TakeMockTest /></ErrorBoundary>} />
                 <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
                 <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
@@ -230,6 +235,7 @@ const App = () => {
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
                 <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockTest /></ProtectedRoute>} />
+                <Route path="mock-test/pool" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockPool /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
                 <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />
