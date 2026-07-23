@@ -335,6 +335,7 @@ const FocusTimer = () => {
     startHeartbeat();
     saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
     refetchLeaderboard();
+    refetchLiveNow();
     if (hasStoppedOnceRef.current) {
       const next = sessionNumber + 1;
       setSessionNumber(next);
@@ -402,6 +403,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "sleep", elapsed: pausedSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    refetchLiveNow();
     setToast({ title: "Sleep মোড চালু", sub: "দীর্ঘ সময় নিষ্ক্রিয় দেখে স্বয়ংক্রিয়ভাবে চালু হলো", mood: "sleep" });
     setTimeout(() => setToast(null), 4000);
   };
@@ -496,6 +498,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    refetchLiveNow();
     const moodToastCopy: Record<Mood, { title: string; sub: string; mood: Mood }> = {
       study: { title: "Study মোড চালু", sub: "মনোযোগ ধরে রাখো, সময় এখন গুনছে", mood: "study" },
       break: { title: "বিরতি চালু", sub: "কিছুক্ষণ রিল্যাক্স করো, তারপর আবার ফিরে আসো", mood: "break" },
@@ -532,6 +535,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
+    refetchLiveNow();
     setToast({ title: "বিরতির সময় শেষ", sub: "Study মোডে ফিরে এলে", mood: "study" });
     setTimeout(() => setToast(null), 4000);
   };
@@ -996,21 +1000,29 @@ const FocusTimer = () => {
                     </p>
                   );
                 }
-                return filtered.map((row: any) => {
+                return [...filtered]
+                  .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
+                  .map((row: any, i: number) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
                   const isMe = row.user_id === user?.id;
                   const liveExtra = (isMe && !paused && mood === row.mood) ? elapsed : 0;
                   const t = formatHMS(row.duration_seconds + liveExtra);
                   const isPaused = !!row.is_paused;
+                  const isRankOne = i === 0;
                   return (
                     <div
                       key={row.user_id}
                       className={cn(
                         "relative flex items-center gap-2 rounded-[10px] border px-2 py-1.5 bg-white/[0.04] backdrop-blur-md overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]",
-                        !isPaused && "border-emerald-500/30",
+                        !isPaused && !isRankOne && "border-emerald-500/30",
+                        isRankOne && !isPaused && "border-amber-400/35 bg-gradient-to-br from-amber-400/[0.07] to-white/[0.03]",
                         isPaused && "opacity-50 !border-red-500/40"
                       )}
                     >
+                      {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
+                      <div className="w-[26px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
+                        {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[11px]">#{i + 1}</span>}
+                      </div>
                       <div className="h-[42px] w-[42px] rounded-lg flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
                         {row.avatar_url ? (
                           <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
