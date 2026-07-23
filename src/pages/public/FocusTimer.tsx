@@ -12,6 +12,7 @@ import {
   Square,
   Trophy,
   Users,
+  User,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -1115,30 +1116,66 @@ const FocusTimer = () => {
                   .sort((a: any, b: any) => b.duration_seconds - a.duration_seconds)
                   .map((row: any, i: number) => {
                     const md = MOOD_META[overlayMood];
-                    const MIcon = md.icon;
                     const t = formatHMS(row.duration_seconds);
                     const isMe = row.user_id === user?.id;
+                    const isRankOne = i === 0;
+                    const isPaused = !!row.is_paused;
                     return (
                       <div
                         key={row.user_id}
                         className={cn(
-                          "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
-                          isMe && "border-primary/40 bg-primary/5"
+                          "relative flex items-center gap-2 rounded-[10px] border px-2 py-1.5 bg-white/[0.04] backdrop-blur-md overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]",
+                          isRankOne && "border-amber-400/35 bg-gradient-to-br from-amber-400/[0.07] to-white/[0.03]",
+                          !isRankOne && !isPaused && "border-emerald-500/30",
+                          isPaused && "opacity-50 !border-red-500/40"
                         )}
                       >
-                        <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
-                          #{i + 1}
+                        {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
+                        <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
+                          {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
                         </div>
-                        <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0", md.color, "bg-current/10")}>
-                          <MIcon className={cn("h-4 w-4", md.color)} />
+                        <div className="h-[42px] w-[42px] rounded-lg -ml-1.5 flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
+                          {row.avatar_url ? (
+                            <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <User className="h-[22px] w-[22px] text-indigo-400/60" />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0 text-sm font-bold truncate">
-                          {row.full_name || "Student"}
-                          {isMe && " (তুমি)"}
-                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                          <div className="text-xs font-black truncate flex items-center gap-1">
+                            <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
+                            {row.is_premium && (
+                              <span className="shrink-0 text-[7px] font-black px-[5px] py-px rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-400 tracking-wide">
+                                PRO
+                              </span>
+                            )}
+                          </div>
+                          {row.hsc_batch && (
+                            <div className="inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
+                              HSC {row.hsc_batch}
+                            </div>
+                          )}
                         </div>
-                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                          {t.h}h {t.m}m
+                        <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                          <span className={cn(
+                            "inline-flex items-center gap-1 text-[7.5px] font-black px-[5px] py-px rounded-md font-mono tracking-wide",
+                            isPaused ? "bg-red-500/12 text-red-500 border border-red-500/25" :
+                            overlayMood === "break" ? "bg-amber-500/12 text-amber-500 border border-amber-500/20" :
+                            overlayMood === "sleep" ? "bg-indigo-400/12 text-indigo-400 border border-indigo-400/20" :
+                            "bg-emerald-500/12 text-emerald-500 border border-emerald-500/20"
+                          )}>
+                            <span className="h-1 w-1 rounded-full bg-current animate-pulse" />
+                            {isPaused ? "Pause" : overlayMood === "break" ? "বিরতি" : overlayMood === "sleep" ? "ঘুম" : "Live"}
+                          </span>
+                          <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m</div>
+                          {!isMe && (
+                            <button
+                              onClick={() => (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: row.duration_seconds }), setCmpDays(1))}
+                              className="text-[9px] font-bold px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.04] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                            >
+                              তুলনা করো
+                            </button>
+                          )}
                         </div>
                       </div>
                     );
@@ -1150,29 +1187,53 @@ const FocusTimer = () => {
                   <p className="text-center text-sm text-muted-foreground py-10">এই সময়ে কেউ এই মোডে সময় দেয়নি।</p>
                 )}
                 {overlayRanking?.map((row: any, i: number) => {
-                  const md = MOOD_META[overlayMood];
                   const t = formatHMS(Number(row.total_seconds));
                   const isMe = row.user_id === user?.id;
+                  const isRankOne = i === 0;
                   return (
                     <div
                       key={row.user_id}
                       className={cn(
-                        "flex items-center gap-2.5 rounded-lg border px-3 py-2.5 bg-card/50",
-                        isMe && "border-primary/40 bg-primary/5"
+                        "relative flex items-center gap-2 rounded-[10px] border px-2 py-1.5 bg-white/[0.04] backdrop-blur-md overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.07)]",
+                        isRankOne ? "border-amber-400/35 bg-gradient-to-br from-amber-400/[0.07] to-white/[0.03]" : "border-white/[0.09]"
                       )}
                     >
-                      <div className="w-6 text-center font-black text-xs text-muted-foreground font-mono">
-                        #{i + 1}
+                      {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
+                      <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
+                        {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
                       </div>
-                      <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0", md.color, "bg-current/10")}>
-                        {(row.full_name || "S").charAt(0).toUpperCase()}
+                      <div className="h-[42px] w-[42px] rounded-lg -ml-1.5 flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
+                        {row.avatar_url ? (
+                          <img src={row.avatar_url} alt="" className="h-full w-full object-cover" />
+                        ) : (
+                          <User className="h-[22px] w-[22px] text-indigo-400/60" />
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0 text-sm font-bold truncate">
-                        {row.full_name || "Student"}
-                        {isMe && " (তুমি)"}
+                      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                        <div className="text-xs font-black truncate flex items-center gap-1">
+                          <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
+                          {row.is_premium && (
+                            <span className="shrink-0 text-[7px] font-black px-[5px] py-px rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-400 tracking-wide">
+                              PRO
+                            </span>
+                          )}
+                        </div>
+                        {row.hsc_batch && (
+                          <div className="inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
+                            HSC {row.hsc_batch}
+                          </div>
+                        )}
                       </div>
-                      <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                        {t.h}h {t.m}m
+                      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
+                        <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m</div>
+                        {!isMe && (
+                          <button
+                            onClick={() => (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(overlayDays))}
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.04] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                          >
+                            তুলনা করো
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
