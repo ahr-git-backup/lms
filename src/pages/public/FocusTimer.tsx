@@ -1045,7 +1045,7 @@ const FocusTimer = () => {
                           <span className="h-1 w-1 rounded-full bg-current animate-focus-blink" />
                           {isPaused ? "Pause" : row.mood === "break" ? "বিরতি" : row.mood === "sleep" ? "ঘুম" : "Live"}
                         </span>
-                        <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m</div>
+                        <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m {t.s}s</div>
                       </div>
                     </div>
                   );
