@@ -745,7 +745,7 @@ const TakeExam = () => {
      </div>;
   }
 
-  if (examLoading || questionsLoading || attemptsLoading || enrollmentsLoading) {
+  if (examLoading || questionsLoading || attemptsLoading || (user && enrollmentsLoading)) {
     return <div className="p-8 text-center flex items-center justify-center min-h-[50vh]">
         <div className="space-y-4">
             <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
@@ -769,6 +769,7 @@ const TakeExam = () => {
           }
       }
 
+      if (!user) return false; // guests only ever get access via is_visible_on_free above
       if (!enrollments) return false;
 
       const enrolledIds = enrollments.map((e: any) => e.course_id);
