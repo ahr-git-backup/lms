@@ -125,7 +125,7 @@ const FocusTimer = () => {
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
-  const [showLiveNow, setShowLiveNow] = useState(false);
+  // (removed unused showLiveNow toggle — live list is now always visible, matching AtlasApp)
   const [selectedBatch, setSelectedBatch] = useState<string>("all");
   const [breaksUsed, setBreaksUsed] = useState(0);
   const accumulatedBreakRef = useRef(0); // break seconds used before the current live break segment
@@ -1017,60 +1017,53 @@ const FocusTimer = () => {
           })}
         </div>
 
-        {/* Live "studying now" toggle + list */}
+        {/* Live "studying now" banner + list — always visible, matching AtlasApp's live-today-title */}
         <div className="space-y-3">
-          <button
-            onClick={() => setShowLiveNow((v) => !v)}
-            className="flex items-center gap-2 text-sm font-extrabold"
-          >
-            <Users className="h-4 w-4 text-sky-500" />
+          <div className="flex items-center justify-center gap-1.5 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 rounded-lg px-3 py-2.5">
+            <span className="h-[7px] w-[7px] rounded-full bg-emerald-500 animate-pulse" />
             {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
-            <span className="text-[10px] font-bold text-muted-foreground">
-              {showLiveNow ? "লুকাও" : "দেখাও"}
-            </span>
-          </button>
-          {showLiveNow && (
-            <>
-              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
-              {(() => {
-                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                const batches = Array.from(
-                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
-                );
-                if (batches.length <= 1) return null;
-                return (
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setSelectedBatch("all")}
-                      className={cn(
-                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                        selectedBatch === "all"
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card border-border text-muted-foreground"
-                      )}
-                    >
-                      সবাই ({moodPool.length})
-                    </button>
-                    {batches.map((b) => {
-                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
-                      return (
-                        <button
-                          key={b as string}
-                          onClick={() => setSelectedBatch(b as string)}
-                          className={cn(
-                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                            selectedBatch === b
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card border-border text-muted-foreground"
-                          )}
-                        >
-                          {b as string} ({cnt})
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
+          </div>
+          <>
+            {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
+            {(() => {
+              const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+              const batches = Array.from(
+                new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
+              );
+              if (batches.length <= 1) return null;
+              return (
+                <div className="flex gap-1.5 overflow-x-auto pb-1">
+                  <button
+                    onClick={() => setSelectedBatch("all")}
+                    className={cn(
+                      "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                      selectedBatch === "all"
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-card border-border text-muted-foreground"
+                    )}
+                  >
+                    সবাই ({moodPool.length})
+                  </button>
+                  {batches.map((b) => {
+                    const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                    return (
+                      <button
+                        key={b as string}
+                        onClick={() => setSelectedBatch(b as string)}
+                        className={cn(
+                          "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                          selectedBatch === b
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-card border-border text-muted-foreground"
+                        )}
+                      >
+                        {b as string} ({cnt})
+                      </button>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
               <div className="space-y-1.5">
                 {(() => {
@@ -1124,7 +1117,6 @@ const FocusTimer = () => {
                 })()}
               </div>
             </>
-          )}
         </div>
 
       </div>
