@@ -863,22 +863,13 @@ const FocusTimer = () => {
             const count = (liveNow || []).filter((r: any) => r.mood === m).length;
             const md = MOOD_META[m];
             return (
-              <button
+              <div
                 key={m}
-                onClick={() => {
-                  setOverlayMood(m);
-                  setOverlayDays(1);
-                  try {
-                    window.history.pushState({ focusOverlay: true }, "");
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
+                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2"
               >
                 <span className={cn("text-lg font-black", md.color)}>{count}</span>
                 <span className="text-[10px] font-bold text-muted-foreground">{md.statLabel}</span>
-              </button>
+              </div>
             );
           })}
         </div>
