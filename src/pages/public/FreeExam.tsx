@@ -9,6 +9,7 @@ import { ChevronRight, ArrowLeft, Trophy, Clock, CheckCircle, Flame, Layers, Plu
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
+import ShareExamButton from "@/components/exam/ShareExamButton";
 
 // Types
 interface Exam {
@@ -197,9 +198,12 @@ const FreeExam = () => {
                                                       {exam.title}
                                                   </CardTitle>
                                               </div>
-                                              <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                                  {exam.exam_type}
-                                              </Badge>
+                                              <div className="flex flex-col gap-1 items-end">
+                                                  <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                                      {exam.exam_type}
+                                                  </Badge>
+                                                  <ShareExamButton examId={exam.id} examTitle={exam.title} />
+                                              </div>
                                           </div>
                                       </CardHeader>
                                       <CardContent className="flex-1">
@@ -470,6 +474,7 @@ const FreeExam = () => {
                                     <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
                                         {exam.exam_type}
                                     </Badge>
+                                    <ShareExamButton examId={exam.id} examTitle={exam.title} />
                                     {isAdmin && (
                                         <Button
                                             variant="ghost"
