@@ -317,11 +317,10 @@ const TakeMistakeExam = () => {
     // --- RESULT VIEW ---
     if (isFinished && resultData) {
         return (
-            <div className="min-h-screen bg-background font-sans pb-20">
-                <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6">
+            <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+                <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-3 md:pb-8 md:px-8 space-y-3">
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-end gap-4">
-                        <div className="flex gap-2">
+                    <div className="flex flex-wrap items-center justify-end gap-2">
                              {state.sourceAttemptId && (
                                  <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
                                     <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
@@ -330,7 +329,6 @@ const TakeMistakeExam = () => {
                              <Button size="sm" onClick={() => window.location.reload()}>
                                 <RotateCw className="h-4 w-4 mr-2" /> Practice Again
                              </Button>
-                        </div>
                     </div>
 
                     {/* Score Card */}
@@ -569,7 +567,7 @@ const TakeMistakeExam = () => {
     const isLowTime = timeLeft !== null && timeLeft < 60;
 
     return (
-        <div className="min-h-screen bg-background pb-20 relative font-sans">
+        <div className="min-h-screen bg-background pb-20 relative font-sans overflow-x-hidden">
             {/* Header / Timer */}
             <div className="fixed top-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
                 <div className="flex gap-2 pointer-events-auto mt-2">
@@ -585,7 +583,7 @@ const TakeMistakeExam = () => {
                 </div>
             </div>
 
-            <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24">
+            <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24 overflow-x-hidden">
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-2xl font-bold">Practice Session</h1>
