@@ -8,12 +8,20 @@ export const useGlobalMetadata = (type?: MetadataType) => {
     return useQuery({
         queryKey: ["global-metadata", type],
         queryFn: async () => {
-            let query = supabase.from("global_metadata").select("type, value");
-            if (type) {
-                query = query.eq("type", type);
+            const BATCH = 1000;
+            let from = 0;
+            let data: { type: string; value: string }[] = [];
+            while (true) {
+                let query = supabase.from("global_metadata").select("type, value").range(from, from + BATCH - 1);
+                if (type) {
+                    query = query.eq("type", type);
+                }
+                const { data: batchData, error } = await query;
+                if (error) throw error;
+                data = data.concat(batchData || []);
+                if (!batchData || batchData.length < BATCH) break;
+                from += BATCH;
             }
-            const { data, error } = await query;
-            if (error) throw error;
 
             // Group by type if not filtered
             if (!type) {
