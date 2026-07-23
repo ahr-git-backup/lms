@@ -50,7 +50,7 @@ export const QuickActionsSection = () => {
           style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
         >
           <Video className="h-4 w-4 text-primary animate-icon-float" />
-          <span className="text-xs font-semibold">Free Class</span>
+          <span className="text-sm font-semibold">Free Class</span>
         </button>
         <button
           onClick={() => navigate("/free-exam")}
@@ -58,7 +58,7 @@ export const QuickActionsSection = () => {
           style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
         >
           <FileQuestion className="h-4 w-4 text-primary animate-icon-float" style={{ animationDelay: "0.3s" }} />
-          <span className="text-xs font-semibold">Free Exam</span>
+          <span className="text-sm font-semibold">Free Exam</span>
         </button>
       </div>
 
@@ -72,7 +72,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
             <Zap className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.6s" }} />
           </div>
-          <span className="text-xs font-bold">Quick Practice</span>
+          <span className="text-sm font-bold">Quick Practice</span>
         </button>
         <button
           onClick={() => navigate("/focus-timer")}
@@ -82,7 +82,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
             <Timer className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.9s" }} />
           </div>
-          <span className="text-xs font-bold">Focus Timer</span>
+          <span className="text-sm font-bold">Focus Timer</span>
         </button>
       </div>
 
@@ -96,7 +96,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
             <Sparkles className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.5s" }} />
           </div>
-          <span className="text-xs font-bold">ATLAS AI</span>
+          <span className="text-sm font-bold">ATLAS AI</span>
         </button>
         <button
           onClick={() => navigate("/pomodoro")}
@@ -106,7 +106,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
             <Clock className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.8s" }} />
           </div>
-          <span className="text-xs font-bold">Pomodoro Timer</span>
+          <span className="text-sm font-bold">Pomodoro Timer</span>
         </button>
       </div>
 
@@ -120,7 +120,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
             <BarChart3 className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.2s" }} />
           </div>
-          <span className="text-xs font-bold">Study Tracker</span>
+          <span className="text-sm font-bold">Study Tracker</span>
         </button>
         <button
           onClick={() => navigate("/mock-test")}
@@ -130,7 +130,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-sm">
             <ClipboardCheck className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.35s" }} />
           </div>
-          <span className="text-xs font-bold text-center leading-tight px-1">Unlimited Mock Test</span>
+          <span className="text-sm font-bold text-center leading-tight px-1">Unlimited Mock Test</span>
         </button>
       </div>
     </section>
