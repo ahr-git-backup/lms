@@ -23,7 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { startOfWeek, startOfMonth, format, isPast } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 const profileSchema = z.object({
   full_name: z.string().trim().max(120).optional().or(z.literal("")),
@@ -44,6 +44,7 @@ const profileSchema = z.object({
   hsc_batch: z.string().optional(),
   ssc_gpa: z.coerce.number().min(1).max(5).optional(),
   hsc_gpa: z.coerce.number().min(1).max(5).optional(),
+  gender: z.enum(["male", "female", "other"]).optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -65,6 +66,28 @@ const StudentProfile = () => {
   const [stats, setStats] = useState<any>(null);
   const [timeRange, setTimeRange] = useState("daily");
   const [isEditing, setIsEditing] = useState(false);
+  const [searchParams] = useSearchParams();
+
+  // Deep-link support: /dashboard/profile?complete=gender or ?complete=photo
+  // opens edit mode and scrolls/focuses the relevant field. Used by the
+  // "profile info missing" reminder toast shown elsewhere in the app.
+  useEffect(() => {
+    const complete = searchParams.get("complete");
+    if (!complete) return;
+    setIsEditing(true);
+    const target = complete === "photo" ? "avatar-upload" : "gender";
+    // Wait a tick for the edit form to render before scrolling/focusing.
+    setTimeout(() => {
+      const el = document.getElementById(target);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (complete === "photo") {
+        el?.closest("div")?.classList.add("ring-2", "ring-primary", "rounded-full");
+      } else {
+        el?.focus();
+      }
+    }, 150);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [isChangingEmail, setIsChangingEmail] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [updatingEmail, setUpdatingEmail] = useState(false);
@@ -221,6 +244,8 @@ const StudentProfile = () => {
       ssc_gpa: (profile as any)?.ssc_gpa ?? 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hsc_gpa: (profile as any)?.hsc_gpa ?? 0,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      gender: (profile as any)?.gender ?? undefined,
     },
     // Using values to update form when profile loads
     values: {
@@ -242,6 +267,8 @@ const StudentProfile = () => {
       ssc_gpa: (profile as any)?.ssc_gpa ?? 0,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       hsc_gpa: (profile as any)?.hsc_gpa ?? 0,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      gender: (profile as any)?.gender ?? undefined,
     },
   });
 
@@ -264,6 +291,8 @@ const StudentProfile = () => {
         hsc_batch: values.hsc_batch,
         ssc_gpa: values.ssc_gpa,
         hsc_gpa: values.hsc_gpa,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        gender: values.gender as any,
       })
       .eq("id", profile.id);
 
@@ -453,6 +482,22 @@ const StudentProfile = () => {
                             <div className="space-y-2">
                                 <Label htmlFor="phone">Phone</Label>
                                 <Input id="phone" {...form.register("phone")} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="gender">Gender</Label>
+                                <Select
+                                value={form.watch("gender")}
+                                onValueChange={(val: "male" | "female" | "other") => form.setValue("gender", val)}
+                                >
+                                <SelectTrigger id="gender">
+                                    <SelectValue placeholder="Select gender" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="male">Male</SelectItem>
+                                    <SelectItem value="female">Female</SelectItem>
+                                    <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                                </Select>
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="father_name">Father's Name</Label>

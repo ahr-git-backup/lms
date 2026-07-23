@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
+import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
@@ -557,6 +558,7 @@ export const DashboardLayout = () => {
           </main>
         </div>
         <FloatingStudyTools />
+        <ProfileCompletionReminder />
       </div>
     </SidebarProvider>
     </StudyToolsProvider>
