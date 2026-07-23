@@ -114,19 +114,19 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => navigate("/syllabus-tracker")}
-          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          className="animate-border-chase w-full h-auto min-h-10 py-2 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2 whitespace-normal leading-tight"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
           <BarChart3 className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.2s" }} />
-          <span className="truncate">Study Tracker</span>
+          <span>Study Tracker</span>
         </Button>
         <Button
           onClick={() => navigate("/mock-test")}
-          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          className="animate-border-chase w-full h-auto min-h-10 py-2 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2 whitespace-normal leading-tight"
           style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
           <ClipboardCheck className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.35s" }} />
-          <span className="truncate">Unlimited Mock Test</span>
+          <span>Unlimited Mock Test</span>
         </Button>
       </div>
     </section>
