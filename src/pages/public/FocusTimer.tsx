@@ -825,7 +825,7 @@ const FocusTimer = () => {
         <div id="focus-leaderboard" className="space-y-3">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
-            <h2 className="font-extrabold text-sm">Focus Leaderboard</h2>
+            <h2 className="font-extrabold text-sm">Ultimate Leaderboard</h2>
           </div>
 
           <div className="flex gap-2">
@@ -915,10 +915,15 @@ const FocusTimer = () => {
             })()}
             {leaderboard?.map((row: any, i: number) => {
               const isMe = row.user_id === user?.id;
-              const t = formatHMS(Number(row.total_seconds));
+              // Live ticker: for my own row, when I'm actively in this exact mood (not paused),
+              // add the current in-progress elapsed seconds on top of the DB total so my time
+              // visibly counts up in real-time without waiting for the 15s refetch.
+              const liveExtra = (isMe && mood === leaderboardMood && !paused) ? elapsed : 0;
+              const t = formatHMS(Number(row.total_seconds) + liveExtra);
               const md = MOOD_META[leaderboardMood];
               const isPausedRow = row.live_mood === "study" && row.is_paused;
               const isLiveRow = row.live_mood && !isPausedRow;
+              const isRankOne = i === 0;
               const liveStatusMeta: Record<string, { label: string; cls: string }> = {
                 study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
                 break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
@@ -929,11 +934,15 @@ const FocusTimer = () => {
                   key={row.user_id}
                   onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
                   className={cn(
-                    "w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left",
+                    "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden",
                     isMe && "border-primary/40 bg-primary/5",
-                    !isMe && "hover:border-primary/30 transition-colors"
+                    !isMe && "hover:border-primary/30 transition-colors",
+                    isRankOne && "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.35)] bg-gradient-to-r from-amber-500/10 via-card/50 to-card/50"
                   )}
                 >
+                  {isRankOne && (
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-amber-400/10 via-transparent to-transparent" />
+                  )}
                   <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
                     #{i + 1}
                   </div>
@@ -945,9 +954,13 @@ const FocusTimer = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold truncate">
-                      {row.full_name || "Student"}
-                      {isMe && " (তুমি)"}
+                    <div className="text-xs font-bold truncate flex items-center gap-1">
+                      <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
+                      {row.is_premium && (
+                        <span className="shrink-0 text-[7px] font-black px-1 py-0.5 rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-500 tracking-wide">
+                          PRO
+                        </span>
+                      )}
                     </div>
                     {row.hsc_batch && (
                       <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
