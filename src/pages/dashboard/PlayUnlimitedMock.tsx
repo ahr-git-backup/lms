@@ -154,7 +154,7 @@ const PlayUnlimitedMock = () => {
   const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (questions.length === 0) navigate("/dashboard/mock-test");
+    if (questions.length === 0) navigate("/mock-test");
   }, [questions, navigate]);
 
   useEffect(() => {
@@ -332,7 +332,7 @@ const PlayUnlimitedMock = () => {
               )}
               <Button
                 variant="outline"
-                onClick={() => navigate("/dashboard/mock-test")}
+                onClick={() => navigate("/mock-test")}
                 className="h-10 px-3 py-2 w-full sm:w-auto"
               >
                 <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" />{" "}
