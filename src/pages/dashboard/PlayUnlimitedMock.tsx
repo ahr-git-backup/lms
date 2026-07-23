@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle2, XCircle, SkipForward, RotateCcw, BookOpen } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, SkipForward, RotateCcw, BookOpen, Bookmark } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MathText from "@/components/MathText";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface PoolQuestion {
   id: string;
@@ -23,6 +24,7 @@ const NEGATIVE_MARK = 0.25;
 const PlayUnlimitedMock = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const questions: PoolQuestion[] = useMemo(() => {
     try {
@@ -39,6 +41,44 @@ const PlayUnlimitedMock = () => {
   const [secondsLeft, setSecondsLeft] = useState(minutes * 60);
   const [submitted, setSubmitted] = useState(false);
   const [filter, setFilter] = useState<"all" | "correct" | "wrong" | "skipped">("all");
+  const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
+
+  const questionKey = (q: PoolQuestion) => q.question_text.slice(0, 200);
+
+  const toggleBookmark = async (q: PoolQuestion) => {
+    if (!user) {
+      toast({ title: "বুকমার্ক করতে লগইন করুন", variant: "destructive" });
+      return;
+    }
+    const key = questionKey(q);
+    const isBookmarked = bookmarked[q.id];
+    setBookmarked((prev) => ({ ...prev, [q.id]: !isBookmarked }));
+    try {
+      if (isBookmarked) {
+        await supabase
+          .from("mock_question_bookmarks")
+          .delete()
+          .eq("user_id", user.id)
+          .eq("question_key", key);
+      } else {
+        await supabase.from("mock_question_bookmarks").insert({
+          user_id: user.id,
+          question_key: key,
+          exam_name: title,
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          correct_option: q.correct_option,
+          explanation: q.explanation || null,
+        });
+      }
+    } catch {
+      setBookmarked((prev) => ({ ...prev, [q.id]: isBookmarked }));
+      toast({ title: "বুকমার্ক ব্যর্থ", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     if (questions.length === 0) {
@@ -192,21 +232,30 @@ const PlayUnlimitedMock = () => {
                     <span className="text-xs font-semibold text-muted-foreground">
                       প্রশ্ন {questions.indexOf(q) + 1}/{questions.length}
                     </span>
-                    {status === "correct" && (
-                      <span className="text-xs font-semibold text-green-500 flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" /> সঠিক
-                      </span>
-                    )}
-                    {status === "wrong" && (
-                      <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
-                        <XCircle className="h-3.5 w-3.5" /> ভুল
-                      </span>
-                    )}
-                    {status === "skipped" && (
-                      <span className="text-xs font-semibold text-amber-500 flex items-center gap-1">
-                        <SkipForward className="h-3.5 w-3.5" /> স্কিপ
-                      </span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => toggleBookmark(q)}
+                        className={bookmarked[q.id] ? "text-amber-500" : "text-muted-foreground"}
+                        title="বুকমার্ক"
+                      >
+                        <Bookmark className="h-4 w-4" fill={bookmarked[q.id] ? "currentColor" : "none"} />
+                      </button>
+                      {status === "correct" && (
+                        <span className="text-xs font-semibold text-green-500 flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" /> সঠিক
+                        </span>
+                      )}
+                      {status === "wrong" && (
+                        <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
+                          <XCircle className="h-3.5 w-3.5" /> ভুল
+                        </span>
+                      )}
+                      {status === "skipped" && (
+                        <span className="text-xs font-semibold text-amber-500 flex items-center gap-1">
+                          <SkipForward className="h-3.5 w-3.5" /> স্কিপ
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <MathText text={q.question_text} />
                   <div className="space-y-1.5">
