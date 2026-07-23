@@ -27,7 +27,7 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => scrollToId("courses")}
-          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}
         >
           <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
@@ -35,7 +35,7 @@ export const QuickActionsSection = () => {
         <Button
           onClick={() => navigate("/reviews")}
           variant="outline"
-          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-2 border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 hover:bg-primary/5 transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
         >
           <Star className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "0.15s" }} /> Course Review
@@ -114,7 +114,7 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => navigate("/syllabus-tracker")}
-          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
           <BarChart3 className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.2s" }} />
@@ -122,7 +122,7 @@ export const QuickActionsSection = () => {
         </Button>
         <Button
           onClick={() => navigate("/mock-test")}
-          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
           style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
           <ClipboardCheck className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.35s" }} />

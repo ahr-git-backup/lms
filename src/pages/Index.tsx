@@ -251,7 +251,9 @@ const Index = () => {
 
 
         {/* Quick Actions (All Courses / Free Class / Free Exam / Quick Practice / Focus Timer / Atlas AI / Pomodoro) */}
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}>
         <QuickActionsSection />
+        </div>
 
         {/* Paid Courses Section (Grid View) */}
         <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
