@@ -16,7 +16,7 @@ import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
-import { useGlobalMetadata, useAddGlobalMetadata } from "@/hooks/useGlobalMetadata";
+import { useGlobalMetadata, useAddGlobalMetadata, useRenameGlobalMetadata, useDeleteGlobalMetadata, MetadataType } from "@/hooks/useGlobalMetadata";
 import Papa from "papaparse";
 
 const examSchema = z.object({
@@ -83,9 +83,17 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: globalMeta } = useGlobalMetadata() as any;
     const addMetadata = useAddGlobalMetadata();
+    const renameMetadata = useRenameGlobalMetadata();
+    const deleteMetadata = useDeleteGlobalMetadata();
 
-    const handleCreateMeta = (type: 'subject' | 'chapter' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter', value: string) => {
+    const handleCreateMeta = (type: 'subject' | 'chapter' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter' | 'free_exam_category', value: string) => {
         addMetadata.mutate({ type, value });
+    };
+    const handleRenameMeta = (type: MetadataType, oldValue: string, newValue: string) => {
+        renameMetadata.mutate({ type, oldValue, newValue });
+    };
+    const handleDeleteMeta = (type: MetadataType, value: string) => {
+        deleteMetadata.mutate({ type, value });
     };
 
     const [form, setForm] = useState<z.infer<typeof examSchema>>({
@@ -667,6 +675,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       handleCreateMeta('chapter', val);
                       setForm((prev) => ({ ...prev, chapter: val }));
                   }}
+                  onRename={(oldVal, newVal) => handleRenameMeta('chapter', oldVal, newVal)}
+                  onDelete={(val) => handleDeleteMeta('chapter', val)}
                   placeholder="Select or Create Chapter"
                 />
               </div>
@@ -760,22 +770,25 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
                   <div className="space-y-2">
                       <Label htmlFor="free_exam_category">Free Exam Category</Label>
-                      <Select
-                          value={form.free_exam_category}
-                          onValueChange={(value) =>
-                              setForm((prev) => ({ ...prev, free_exam_category: value }))
+                      <CreatableSelect
+                          options={
+                              (globalMeta?.free_exam_category?.length ? globalMeta.free_exam_category : [
+                                  { label: "HSC", value: "HSC" },
+                                  { label: "Medical", value: "Medical" },
+                                  { label: "Varsity", value: "Varsity" },
+                                  { label: "Onushiloni", value: "Onushilon" },
+                              ])
                           }
-                      >
-                          <SelectTrigger id="free_exam_category">
-                              <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                              <SelectItem value="HSC">HSC</SelectItem>
-                              <SelectItem value="Medical">Medical</SelectItem>
-                              <SelectItem value="Varsity">Varsity</SelectItem>
-                              <SelectItem value="Onushilon">Onushiloni</SelectItem>
-                          </SelectContent>
-                      </Select>
+                          value={form.free_exam_category}
+                          onChange={(val) => setForm((prev) => ({ ...prev, free_exam_category: val }))}
+                          onCreate={(val) => {
+                              handleCreateMeta('free_exam_category', val);
+                              setForm((prev) => ({ ...prev, free_exam_category: val }));
+                          }}
+                          onRename={(oldVal, newVal) => handleRenameMeta('free_exam_category', oldVal, newVal)}
+                          onDelete={(val) => handleDeleteMeta('free_exam_category', val)}
+                          placeholder="Select or Create category"
+                      />
                   </div>
               )}
 
@@ -878,6 +891,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                                                handleCreateMeta('readymade_topic', val);
                                                setForm((prev) => ({ ...prev, readymade_topic: val }));
                                            }}
+                                           onRename={(oldVal, newVal) => handleRenameMeta('readymade_topic', oldVal, newVal)}
+                                           onDelete={(val) => handleDeleteMeta('readymade_topic', val)}
                                            placeholder="Select or Create Topic"
                                        />
                                    </div>
@@ -891,6 +906,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                                                handleCreateMeta('readymade_category', val);
                                                setForm((prev: any) => ({ ...prev, readymade_category: val }));
                                            }}
+                                           onRename={(oldVal, newVal) => handleRenameMeta('readymade_category', oldVal, newVal)}
+                                           onDelete={(val) => handleDeleteMeta('readymade_category', val)}
                                            placeholder="Select or Create Board"
                                        />
                                    </div>
@@ -904,6 +921,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                                                handleCreateMeta('readymade_sub_chapter', val);
                                                setForm((prev: any) => ({ ...prev, readymade_sub_chapter: val }));
                                            }}
+                                           onRename={(oldVal, newVal) => handleRenameMeta('readymade_sub_chapter', oldVal, newVal)}
+                                           onDelete={(val) => handleDeleteMeta('readymade_sub_chapter', val)}
                                            placeholder="Select or Create Session"
                                        />
                                    </div>

@@ -23,7 +23,6 @@ interface Exam {
   questions_count: { count: number }[];
 }
 
-const FREE_EXAM_CATEGORIES = ["HSC", "Medical", "Varsity", "Onushilon"] as const;
 const CATEGORY_LABELS: Record<string, string> = { Onushilon: "Onushiloni" };
 const categoryLabel = (cat: string) => CATEGORY_LABELS[cat] || cat;
 
@@ -288,7 +287,15 @@ const FreeExam = () => {
              </div>
         ) : (
             <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {FREE_EXAM_CATEGORIES.map(cat => (
+                {(() => {
+                    const PREFERRED_ORDER = ["HSC", "Medical", "Varsity", "Onushilon"];
+                    const present = Array.from(new Set((exams || []).map(e => e.free_exam_category || "HSC")));
+                    const ordered = [
+                        ...PREFERRED_ORDER.filter(c => present.includes(c)),
+                        ...present.filter(c => !PREFERRED_ORDER.includes(c)).sort(),
+                    ];
+                    return ordered;
+                })().map(cat => (
                     <Card
                         key={cat}
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
