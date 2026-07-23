@@ -400,12 +400,12 @@ const ExamReview = () => {
   ].filter(d => d.value > 0);
 
   return (
-    <div className="min-h-screen bg-background font-sans pb-20">
-      <div className="container max-w-4xl mx-auto px-[5px] pt-1 pb-2 md:pt-3 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
+    <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+      <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
 
         {/* Header */}
         <div className="flex flex-col gap-1">
-            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-7 self-start -mt-1">
+            <Button variant="ghost" onClick={() => navigate(-1)} className="pl-0 h-7 self-start">
                 <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
             </Button>
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
@@ -530,24 +530,24 @@ const ExamReview = () => {
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
             <CardContent className="p-3 md:p-4">
-                <div className="flex flex-col md:flex-row justify-between items-center gap-3 md:gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-6">
                     <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
-                        <h1 className="text-xl font-bold mb-0.5">{attempt.exam.title}</h1>
+                        <h1 className="text-2xl font-extrabold mb-0.5">{attempt.exam.title}</h1>
                         <p className="text-xs text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                    <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
                         {/* Marks */}
-                        <div className="text-center">
-                             <div className="text-3xl font-bold text-primary">
+                        <div className="text-center flex-shrink-0 pr-4 border-r border-border/60">
+                             <div className="text-4xl font-extrabold text-primary">
                                 {Number(score).toFixed(2)}
-                                <span className="text-base text-muted-foreground font-normal"> / {displayTotalMarks}</span>
+                                <span className="text-lg text-muted-foreground font-normal"> / {displayTotalMarks}</span>
                              </div>
                              <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="h-28 w-28 relative flex-shrink-0">
+                        <div className="shrink-0" style={{ height: 112, width: 112 }}>
                              <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -558,6 +558,7 @@ const ExamReview = () => {
                                         outerRadius={42}
                                         paddingAngle={2}
                                         dataKey="value"
+                                        isAnimationActive={false}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
