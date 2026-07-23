@@ -12,7 +12,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotification } from "@/contexts/NotificationContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
@@ -26,6 +26,7 @@ export const DashboardLayout = () => {
   const { profile, signOut, isAdmin, isTeacher, user } = useAuth();
   const { sendNotification, permission, requestPermission } = useNotification();
   const navigate = useNavigate();
+  const location = useLocation();
   const { theme, setTheme } = useTheme();
   const { data: enrollments } = useEnrollments();
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
@@ -283,12 +284,14 @@ export const DashboardLayout = () => {
                 <Link to="/" className="bg-white rounded p-1 shrink-0" aria-label="Go to homepage">
                   <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
                 </Link>
-                <button
-                  onClick={() => navigate("/dashboard")}
-                  className="text-sm font-semibold hover:underline"
-                >
-                  Dashboard
-                </button>
+                {location.pathname !== "/dashboard" && (
+                  <button
+                    onClick={() => navigate("/dashboard")}
+                    className="text-sm font-semibold hover:underline"
+                  >
+                    Dashboard
+                  </button>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-3">
