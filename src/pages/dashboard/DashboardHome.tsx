@@ -382,7 +382,7 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="rounded-lg border p-3 space-y-2">
+      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-2 gap-2">
           <Card
