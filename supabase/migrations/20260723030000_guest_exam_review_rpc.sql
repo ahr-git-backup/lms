@@ -3,6 +3,11 @@
 -- anyone holding the attempt id — same as how a guest already gets their
 -- result link right after submitting. Logged-in-owner check is unchanged.
 
+-- Postgres refuses CREATE OR REPLACE when the OUT-parameter row type
+-- differs from an existing overload with the same signature in some
+-- environments — drop first to guarantee a clean redefine.
+DROP FUNCTION IF EXISTS public.get_student_exam_review(uuid);
+
 CREATE OR REPLACE FUNCTION public.get_student_exam_review(p_attempt_id uuid)
 RETURNS TABLE(question_id uuid, question_text text, option_a text, option_b text, option_c text, option_d text, correct_option text, marks numeric, explanation text, question_index integer)
     LANGUAGE plpgsql SECURITY DEFINER
