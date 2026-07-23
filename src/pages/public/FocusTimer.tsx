@@ -1064,6 +1064,14 @@ const FocusTimer = () => {
                           {isPaused ? "Pause" : row.mood === "break" ? "বিরতি" : row.mood === "sleep" ? "ঘুম" : "Live"}
                         </span>
                         <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m {t.s}s</div>
+                        {!isMe && (
+                          <button
+                            onClick={() => (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: row.duration_seconds }), setCmpDays(1))}
+                            className="text-[9px] font-bold px-2 py-0.5 rounded-md border border-white/10 bg-white/[0.04] text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+                          >
+                            তুলনা করো
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
