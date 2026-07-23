@@ -27,14 +27,16 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => scrollToId("courses")}
-          className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}
         >
           <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
         </Button>
         <Button
           onClick={() => navigate("/reviews")}
           variant="outline"
-          className="w-full h-10 text-sm font-bold rounded-xl border-2 border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-2 border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
         >
           <Star className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "0.15s" }} /> Course Review
         </Button>
@@ -44,14 +46,16 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/free-class")}
-          className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
         >
           <Video className="h-4 w-4 text-primary animate-icon-float" />
           <span className="text-xs font-semibold">Free Class</span>
         </button>
         <button
           onClick={() => navigate("/free-exam")}
-          className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
         >
           <FileQuestion className="h-4 w-4 text-primary animate-icon-float" style={{ animationDelay: "0.3s" }} />
           <span className="text-xs font-semibold">Free Exam</span>
@@ -62,7 +66,8 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/quick-practice")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
             <Zap className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.6s" }} />
@@ -71,7 +76,8 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/focus-timer")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
             <Timer className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.9s" }} />
@@ -84,7 +90,8 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/atlas-ai")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/50 hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(24 95% 53%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
             <Sparkles className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.5s" }} />
@@ -93,7 +100,8 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/pomodoro")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
             <Clock className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.8s" }} />
@@ -106,15 +114,19 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => navigate("/syllabus-tracker")}
-          className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
-          <BarChart3 className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.2s" }} /> Study Tracker
+          <BarChart3 className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.2s" }} />
+          <span className="truncate">Study Tracker</span>
         </Button>
         <Button
           onClick={() => navigate("/mock-test")}
-          className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          className="animate-border-chase w-full h-10 text-xs sm:text-sm font-bold rounded-xl bg-gradient-to-r from-fuchsia-500 to-pink-600 hover:opacity-90 shadow-sm hover:shadow-md transition-all px-2"
+          style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
-          <ClipboardCheck className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "1.35s" }} /> Unlimited Mock Test
+          <ClipboardCheck className="mr-1.5 h-4 w-4 shrink-0 animate-icon-float" style={{ animationDelay: "1.35s" }} />
+          <span className="truncate">Unlimited Mock Test</span>
         </Button>
       </div>
     </section>
