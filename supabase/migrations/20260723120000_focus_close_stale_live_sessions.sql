@@ -82,6 +82,8 @@ GRANT EXECUTE ON FUNCTION public.focus_live_now() TO authenticated, anon;
 --    stale session there would similarly inflate/freeze a student's ranked
 --    time. Wrap it to sweep stale sessions first, keeping the exact same
 --    ranking logic/signature as before.
+DROP FUNCTION IF EXISTS public.focus_mood_leaderboard(text, int);
+
 CREATE OR REPLACE FUNCTION public.focus_mood_leaderboard(p_mood text, p_days int)
 RETURNS TABLE(user_id uuid, full_name text, hsc_batch text, total_seconds bigint)
 LANGUAGE plpgsql

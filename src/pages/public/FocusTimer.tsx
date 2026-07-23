@@ -47,7 +47,6 @@ const MOOD_DIGIT_BOX: Record<Mood, string> = {
 };
 
 const STATE_KEY = "atlas_focus_state_v1";
-const MAX_BREAK_SEC = 3600; // 1 hour break cap, auto-ends and returns to Study
 
 interface PersistedState {
   sessionId: number;
@@ -290,9 +289,6 @@ const FocusTimer = () => {
     intervalRef.current = setInterval(() => {
       elapsedRef.current += 1;
       setElapsed(elapsedRef.current);
-      if (moodRef.current === "break" && accumulatedBreakRef.current + elapsedRef.current >= MAX_BREAK_SEC) {
-        void autoEndBreak();
-      }
     }, 1000);
   };
 
@@ -356,6 +352,11 @@ const FocusTimer = () => {
         p_is_paused: true,
       });
     }
+    // Pausing Study immediately switches to Break mode — time keeps counting
+    // there instead of sitting idle, matching the requested behavior.
+    if (moodRef.current === "study") {
+      void switchMood("break");
+    }
   };
 
   const resume = () => {
@@ -409,9 +410,47 @@ const FocusTimer = () => {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // ৬ ঘণ্টা টানা Break মোডে থাকলে (running/active, normal 1h auto-return
+  // miss হয়ে গেলেও — যেমন ট্যাব inactive থাকা অবস্থায়) স্বয়ংক্রিয়ভাবে Sleep
+  // মোডে চলে যায়, যাতে সারারাত ভুলবশত "Break" হিসেবে গণনা না হয়।
+  const MAX_CONTINUOUS_BREAK_SEC = 6 * 3600; // 6 hours
+  const checkAutoSleepFromLongBreak = async () => {
+    if (moodRef.current !== "break" || sessionIdRef.current == null) return;
+    const totalBreakSecs = accumulatedBreakRef.current + elapsedRef.current;
+    if (totalBreakSecs < MAX_CONTINUOUS_BREAK_SEC) return;
+
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (sessionIdRef.current != null) {
+      await supabase.rpc("focus_end_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+      });
+    }
+    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "sleep" });
+    if (error || data == null) return;
+    const id = data as number;
+    elapsedRef.current = sleepSecsRef.current;
+    sleepSecsRef.current = 0;
+    accumulatedBreakRef.current = 0;
+    pausedRef.current = false;
+    sessionIdRef.current = id;
+    moodRef.current = "sleep";
+    setSessionId(id);
+    setMood("sleep");
+    setElapsed(elapsedRef.current);
+    setPaused(false);
+    startTicking();
+    saveState({ sessionId: id, mood: "sleep", elapsed: elapsedRef.current, paused: false, userId: user!.id, savedAt: Date.now() });
+    refetchLeaderboard();
+    refetchLiveNow();
+    setToast({ title: "Sleep মোড চালু", sub: "দীর্ঘ সময় বিরতিতে থাকায় স্বয়ংক্রিয়ভাবে চালু হলো", mood: "sleep" });
+    setTimeout(() => setToast(null), 4000);
+  };
+
   useEffect(() => {
     autoSleepCheckRef.current = setInterval(() => {
       void checkAutoSleepFromPause();
+      void checkAutoSleepFromLongBreak();
     }, 30000);
     return () => {
       if (autoSleepCheckRef.current) clearInterval(autoSleepCheckRef.current);
@@ -521,37 +560,6 @@ const FocusTimer = () => {
   };
 
   // Break time limit reached — auto-return to Study mood.
-  const autoEndBreak = async () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    if (sessionIdRef.current != null) {
-      await supabase.rpc("focus_end_session", {
-        p_id: sessionIdRef.current,
-        p_duration_seconds: elapsedRef.current,
-      });
-    }
-    accumulatedBreakRef.current += elapsedRef.current;
-    setBreaksUsed((n) => n + 1);
-    const { data, error } = await supabase.rpc("focus_start_session", { p_mood: "study" });
-    if (error || data == null) return;
-    const id = data as number;
-    const resumeSecs = accumulatedStudyRef.current;
-    accumulatedStudyRef.current = 0;
-    elapsedRef.current = resumeSecs;
-    pausedRef.current = false;
-    sessionIdRef.current = id;
-    moodRef.current = "study";
-    setSessionId(id);
-    setMood("study");
-    setElapsed(resumeSecs);
-    setPaused(false);
-    startTicking();
-    saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
-    refetchLeaderboard();
-    refetchLiveNow();
-    setToast({ title: "বিরতির সময় শেষ", sub: "Study মোডে ফিরে এলে", mood: "study" });
-    setTimeout(() => setToast(null), 4000);
-  };
-
   const stop = async () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
     if (heartbeatRef.current) clearInterval(heartbeatRef.current);
@@ -747,12 +755,6 @@ const FocusTimer = () => {
               </span>
             )}
           </div>
-          {mood === "break" && running && MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed) <= 300 && (
-            <div className="w-full text-center text-[11px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/30 rounded-lg py-1.5 px-3 animate-pulse">
-              ⚠️ বিরতি শেষ হতে {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).m}m{" "}
-              {formatHMS(Math.max(0, MAX_BREAK_SEC - (accumulatedBreakRef.current + elapsed))).s}s বাকি
-            </div>
-          )}
           <div className="flex items-center gap-1.5">
             <div
               className={cn(
