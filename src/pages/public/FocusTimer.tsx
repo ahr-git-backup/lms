@@ -935,9 +935,11 @@ const FocusTimer = () => {
                   key={row.user_id}
                   onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
                   className={cn(
-                    "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden",
+                    "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden transition-colors",
                     isMe && "border-primary/40 bg-primary/5",
                     !isMe && "hover:border-primary/30 transition-colors",
+                    isLiveRow && !isRankOne && "border-emerald-500/30 shadow-[0_0_0_1px_rgba(16,185,129,0.1)]",
+                    isPausedRow && "opacity-50 border-destructive/40 shadow-[0_0_0_1px_rgba(239,68,68,0.15)]",
                     isRankOne && "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.35)] bg-gradient-to-r from-amber-500/10 via-card/50 to-card/50"
                   )}
                 >
