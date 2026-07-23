@@ -386,7 +386,8 @@ const DashboardHome = () => {
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-2 gap-2">
           <Card
-            className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
             onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -395,7 +396,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
             onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -404,7 +406,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
+            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
             onClick={() => navigate("/study-history")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -413,7 +416,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
             onClick={() => navigate("/quick-practice/leaderboard")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
