@@ -1131,6 +1131,7 @@ const FocusTimer = () => {
                         )}
                       >
                         {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
+                        {isRankOne && <div className="absolute top-0 right-0 bottom-0 w-[50px] rounded-r-[10px] bg-gradient-to-l from-amber-400/5 to-transparent pointer-events-none" />}
                         <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
                           {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
                         </div>
@@ -1151,8 +1152,9 @@ const FocusTimer = () => {
                             )}
                           </div>
                           {row.hsc_batch && (
-                            <div className="inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
+                            <div className="relative overflow-hidden inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
                               HSC {row.hsc_batch}
+                              <span className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent animate-batch-shimmer" />
                             </div>
                           )}
                         </div>
@@ -1164,7 +1166,7 @@ const FocusTimer = () => {
                             overlayMood === "sleep" ? "bg-indigo-400/12 text-indigo-400 border border-indigo-400/20" :
                             "bg-emerald-500/12 text-emerald-500 border border-emerald-500/20"
                           )}>
-                            <span className="h-1 w-1 rounded-full bg-current animate-pulse" />
+                            <span className="h-1 w-1 rounded-full bg-current animate-focus-blink" />
                             {isPaused ? "Pause" : overlayMood === "break" ? "বিরতি" : overlayMood === "sleep" ? "ঘুম" : "Live"}
                           </span>
                           <div className="text-xs font-black font-mono text-emerald-500 tracking-wide">{t.h}h {t.m}m</div>
@@ -1199,6 +1201,7 @@ const FocusTimer = () => {
                       )}
                     >
                       {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
+                        {isRankOne && <div className="absolute top-0 right-0 bottom-0 w-[50px] rounded-r-[10px] bg-gradient-to-l from-amber-400/5 to-transparent pointer-events-none" />}
                       <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
                         {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
                       </div>
@@ -1219,8 +1222,9 @@ const FocusTimer = () => {
                           )}
                         </div>
                         {row.hsc_batch && (
-                          <div className="inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
+                          <div className="relative overflow-hidden inline-flex items-center gap-0.5 self-start px-1.5 py-px rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-[8.5px] font-black text-indigo-400 font-mono tracking-wide">
                             HSC {row.hsc_batch}
+                            <span className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white/15 to-transparent animate-batch-shimmer" />
                           </div>
                         )}
                       </div>

@@ -97,6 +97,14 @@ export default {
   			'mood-glow-sleep': {
   				'0%': { boxShadow: '0 4px 16px rgba(99,102,241,.3)' },
   				'100%': { boxShadow: '0 4px 24px rgba(99,102,241,.6)' }
+  			},
+  			'batch-shimmer': {
+  				'0%': { left: '-100%' },
+  				'100%': { left: '200%' }
+  			},
+  			'focus-blink': {
+  				'0%, 100%': { opacity: '1' },
+  				'50%': { opacity: '.3' }
   			}
   		},
   		animation: {
@@ -105,7 +113,9 @@ export default {
   			'icon-float': 'icon-float 2.4s ease-in-out infinite',
   			'mood-glow-study': 'mood-glow-study 2s ease-in-out infinite alternate',
   			'mood-glow-break': 'mood-glow-break 2s ease-in-out infinite alternate',
-  			'mood-glow-sleep': 'mood-glow-sleep 2s ease-in-out infinite alternate'
+  			'mood-glow-sleep': 'mood-glow-sleep 2s ease-in-out infinite alternate',
+  			'batch-shimmer': 'batch-shimmer 3s ease-in-out infinite',
+  			'focus-blink': 'focus-blink 1.2s ease-in-out infinite'
   		},
 			fontFamily: {
 				sans: [
