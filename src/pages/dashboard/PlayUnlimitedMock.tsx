@@ -14,6 +14,7 @@ import {
   Flag,
   LayoutGrid,
   Lock,
+  AlertTriangle,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -154,11 +155,83 @@ const PlayUnlimitedMock = () => {
   const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
   const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
+  const [violationCount, setViolationCount] = useState(0);
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Stable key for this attempt's localStorage persistence — mirrors
+  // TakeExam.tsx's LOCAL_STORAGE_KEY_PREFIX pattern, so refreshing mid-test
+  // (or the browser closing) doesn't lose progress, while a genuinely new
+  // test (new session id from UnlimitedMockTest.tsx) starts clean.
+  const sessionId = sessionStorage.getItem("unlimitedMockSessionId") || "unlimited_mock_default";
+  const STORAGE_KEY_PREFIX = `mock_attempt_${sessionId}`;
 
   useEffect(() => {
     if (questions.length === 0) navigate("/mock-test");
   }, [questions, navigate]);
+
+  // Restore answers/violations from localStorage on mount (survives a page
+  // refresh or the browser being closed and reopened), mirroring
+  // TakeExam.tsx's persistence so a Mock Test attempt is never lost.
+  useEffect(() => {
+    try {
+      const savedAnswers = localStorage.getItem(`${STORAGE_KEY_PREFIX}_answers`);
+      const savedViolations = localStorage.getItem(`${STORAGE_KEY_PREFIX}_violations`);
+      if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
+      if (savedViolations) setViolationCount(parseInt(savedViolations, 10) || 0);
+    } catch {
+      // ignore corrupt/missing saved state
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save answers/violations on every change so progress survives a refresh.
+  useEffect(() => {
+    if (submitted) return;
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}_answers`, JSON.stringify(answers));
+    localStorage.setItem(`${STORAGE_KEY_PREFIX}_violations`, violationCount.toString());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answers, violationCount, submitted]);
+
+  // Anti-cheat: tab-switch detection + refresh warning — identical behavior
+  // to TakeExam.tsx, so Mock Test feels the same as a real exam.
+  useEffect(() => {
+    if (submitted) return;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        setViolationCount((prev) => prev + 1);
+        toast({
+          title: "⚠️ Warning: Tab Switch Detected",
+          description: "Leaving the test tab is recorded. Multiple violations may disqualify you.",
+          variant: "destructive",
+          duration: 5000,
+        });
+      }
+    };
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "Are you sure you want to refresh? You might lose your progress if not saved.";
+      return e.returnValue;
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [submitted, toast]);
+
+  // Clear this attempt's saved progress once submitted, so a stale answer
+  // set can't leak into a future attempt that happens to reuse the same key.
+  useEffect(() => {
+    if (submitted) {
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}_answers`);
+      localStorage.removeItem(`${STORAGE_KEY_PREFIX}_violations`);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
 
   useEffect(() => {
     if (submitted) return;
@@ -295,6 +368,10 @@ const PlayUnlimitedMock = () => {
     setSecondsLeft(minutes * 60);
     setSubmitted(false);
     setFilter("all");
+    sessionStorage.setItem(
+      "unlimitedMockSessionId",
+      `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    );
   };
 
   const startMistakePractice = (mode: "wrong" | "both") => {
@@ -303,9 +380,11 @@ const PlayUnlimitedMock = () => {
     const target = mode === "wrong" ? wrongQs : [...wrongQs, ...skippedQs];
     if (target.length === 0) return;
     setIsMistakeDialogOpen(false);
+    const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(target));
     sessionStorage.setItem("unlimitedMockTitle", `${title} — Mistake Practice`);
     sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(target.length / 1.5)));
+    sessionStorage.setItem("unlimitedMockSessionId", sessionId);
     window.location.reload();
   };
 
@@ -705,6 +784,13 @@ const PlayUnlimitedMock = () => {
             <Clock className="h-4 w-4" />
             {formatTime(secondsLeft)}
           </div>
+
+          {violationCount > 0 && (
+            <div className="px-4 py-2 rounded-full font-bold shadow-lg border bg-yellow-500/10 backdrop-blur border-yellow-500/50 text-yellow-600 dark:text-yellow-400 flex items-center gap-2 animate-in fade-in zoom-in">
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm">Warnings: {violationCount}</span>
+            </div>
+          )}
         </div>
       </div>
 

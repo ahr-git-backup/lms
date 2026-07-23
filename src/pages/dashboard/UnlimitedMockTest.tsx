@@ -123,6 +123,7 @@ const UnlimitedMockTest = () => {
       }));
 
       const time = finalMinutes || Math.ceil(finalCount / 1.5);
+      const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
       sessionStorage.setItem(
@@ -130,6 +131,7 @@ const UnlimitedMockTest = () => {
         `${subject} - ${chapter} (Mock Test)`
       );
       sessionStorage.setItem("unlimitedMockTime", String(time));
+      sessionStorage.setItem("unlimitedMockSessionId", sessionId);
 
       navigate("/dashboard/mock-test/play");
     } catch (e: any) {
