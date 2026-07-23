@@ -662,8 +662,14 @@ const FocusTimer = () => {
         {/* User header — name/batch + Study Time History (matches AtlasApp position, above banner) */}
         <div className="flex items-center justify-between rounded-2xl border bg-card px-3 py-2.5">
           <div className="flex items-center gap-2.5">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-              {(profile?.full_name || "?").charAt(0).toUpperCase()}
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white font-black text-sm flex-shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+              {(profile as any)?.avatar_url ? (
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                <img src={(profile as any).avatar_url} alt={profile?.full_name || "Profile"} className="h-full w-full object-cover" />
+              ) : (
+                (profile?.full_name || "?").charAt(0).toUpperCase()
+              )}
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-xs font-extrabold">{profile?.full_name || "লোড হচ্ছে..."}</span>
