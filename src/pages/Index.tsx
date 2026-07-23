@@ -159,7 +159,7 @@ const Index = () => {
 
                       if (isAnnouncement) {
                         return (
-                          <div key={exam.id} className="relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group">
+                          <div key={exam.id} className="animate-border-chase relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
                             {/* Accent gradient top bar */}
                             <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
                             {exam.image_url && (
@@ -196,7 +196,7 @@ const Index = () => {
 
                       // ── Exam Card ─────────────────────────────────────────────────
                       return (
-                        <Card key={exam.id} className="overflow-hidden flex flex-col hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 border-primary/10 hover:border-primary/30 group rounded-2xl">
+                        <Card key={exam.id} className="animate-border-chase overflow-hidden flex flex-col hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 border-primary/10 hover:border-primary/30 group rounded-2xl" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                             {exam.image_url && (
                                 <div className="h-44 w-full overflow-hidden bg-muted">
                                     <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -266,7 +266,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">আজই শুরু করুন সম্পূর্ণ ফ্রিতে।</p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
-                <Card className="border-2 border-primary/20 bg-primary/5">
+                <Card className="animate-border-chase border-2 border-primary/20 bg-primary/5" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Flame className="h-5 w-5 text-primary" /> ফ্রি এক্সাম
@@ -284,7 +284,7 @@ const Index = () => {
                         </Button>
                     </CardFooter>
                 </Card>
-                 <Card className="border-2 border-primary/20 bg-primary/5">
+                 <Card className="animate-border-chase border-2 border-primary/20 bg-primary/5" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <InfinityIcon className="h-5 w-5 text-primary" /> ফ্রি ক্লাস
@@ -316,7 +316,7 @@ const Index = () => {
             <div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {FEATURES.map((feature, i) => (
-                        <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+                        <Card key={i} className="animate-border-chase border-2 border-primary/10 hover:border-primary/30 transition-colors" style={{ ["--border-chase-color" as any]: ["hsl(217 91% 60%)","hsl(0 84% 60%)","hsl(271 81% 60%)","hsl(45 93% 55%)","hsl(160 84% 39%)","hsl(24 95% 53%)","hsl(199 89% 48%)","hsl(330 81% 60%)"][i % 8] as any }}>
                             <CardContent className="flex flex-col items-center text-center p-4 gap-2">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                     <feature.icon className="h-5 w-5" />
@@ -342,7 +342,7 @@ const Index = () => {
              </div>
              <div className="grid gap-4 md:grid-cols-3">
                  {STATS.map((stat, i) => (
-                     <Card key={i} className="text-center bg-primary/5 border-primary/20">
+                     <Card key={i} className="animate-border-chase text-center bg-primary/5 border-primary/20" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                          <CardHeader>
                              <CardTitle className="text-4xl font-bold text-primary">{stat.year}</CardTitle>
                              <CardDescription className="font-semibold uppercase tracking-wider">{stat.title}</CardDescription>
