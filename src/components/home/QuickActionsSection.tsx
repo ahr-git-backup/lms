@@ -9,6 +9,7 @@ import {
   Sparkles,
   Clock,
   BarChart3,
+  Star,
 } from "lucide-react";
 
 const scrollToId = (id: string) => {
@@ -21,13 +22,22 @@ export const QuickActionsSection = () => {
 
   return (
     <section className="rounded-2xl border border-border/60 bg-muted/20 p-2.5 space-y-2 -mt-1">
-      {/* Row 1: All Courses */}
-      <Button
-        onClick={() => scrollToId("courses")}
-        className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
-      >
-        <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
-      </Button>
+      {/* Row 1: All Courses / Course Reviews */}
+      <div className="grid grid-cols-2 gap-2">
+        <Button
+          onClick={() => scrollToId("courses")}
+          className="w-full h-10 text-sm font-bold rounded-xl bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+        >
+          <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
+        </Button>
+        <Button
+          onClick={() => navigate("/reviews")}
+          variant="outline"
+          className="w-full h-10 text-sm font-bold rounded-xl border-2 border-primary/40 hover:border-primary hover:bg-primary/5 transition-all"
+        >
+          <Star className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "0.15s" }} /> Course Review
+        </Button>
+      </div>
 
       {/* Row 2: Free Class / Free Exam */}
       <div className="grid grid-cols-2 gap-2">
