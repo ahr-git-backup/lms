@@ -1200,7 +1200,9 @@ const FocusTimer = () => {
             >
               <ArrowLeft className="h-4 w-4" /> ফিরে যাও
             </button>
-            <h2 className="flex-1 text-center font-extrabold text-sm">Ultimate Leaderboard</h2>
+            <h2 className="flex-1 text-center font-extrabold text-sm">
+              Ultimate Leaderboard — বিগত {leaderboardDays} দিন
+            </h2>
             <div className="w-16" />
           </div>
 
@@ -1277,14 +1279,7 @@ const FocusTimer = () => {
               const liveExtra = (isMe && mood === leaderboardMood && !paused) ? elapsed : 0;
               const t = formatHMS(Number(row.total_seconds) + liveExtra);
               const md = MOOD_META[leaderboardMood];
-              const isPausedRow = row.live_mood === "study" && row.is_paused;
-              const isLiveRow = row.live_mood && !isPausedRow;
               const isRankOne = i === 0;
-              const liveStatusMeta: Record<string, { label: string; cls: string }> = {
-                study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
-                break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
-                sleep: { label: "ঘুম", cls: "bg-indigo-400/15 text-indigo-400" },
-              };
               return (
                 <button
                   key={row.user_id}
@@ -1293,8 +1288,6 @@ const FocusTimer = () => {
                     "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden transition-colors",
                     isMe && "border-primary/40 bg-primary/5",
                     !isMe && "hover:border-primary/30 transition-colors",
-                    isLiveRow && !isRankOne && "border-emerald-500/30 shadow-[0_0_0_1px_rgba(16,185,129,0.1)]",
-                    isPausedRow && "opacity-50 border-destructive/40 shadow-[0_0_0_1px_rgba(239,68,68,0.15)]",
                     isRankOne && "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.35)] bg-gradient-to-r from-amber-500/10 via-card/50 to-card/50"
                   )}
                 >
@@ -1327,16 +1320,6 @@ const FocusTimer = () => {
                       <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
                     )}
                   </div>
-                  {isPausedRow && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive flex-shrink-0">
-                      Pause
-                    </span>
-                  )}
-                  {isLiveRow && liveStatusMeta[row.live_mood] && (
-                    <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0", liveStatusMeta[row.live_mood].cls)}>
-                      {liveStatusMeta[row.live_mood].label}
-                    </span>
-                  )}
                   <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
                     {t.h}h {t.m}m
                   </div>
