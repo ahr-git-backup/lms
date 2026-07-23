@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpen,
-  Calendar,
   CheckCircle2,
   Coffee,
   Moon,
@@ -133,7 +132,7 @@ const FocusTimer = () => {
   const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ title: string; sub: string; mood?: Mood } | null>(null);
   const [stopStats, setStopStats] = useState<{ studySeconds: number; breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
   const [sessionNumber, setSessionNumber] = useState(1);
@@ -400,7 +399,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "sleep", elapsed: pausedSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    setToast("🌙 রাতে দীর্ঘ বিরতি দেখে Sleep Mode চালু হলো");
+    setToast({ title: "Sleep মোড চালু", sub: "দীর্ঘ সময় নিষ্ক্রিয় দেখে স্বয়ংক্রিয়ভাবে চালু হলো", mood: "sleep" });
     setTimeout(() => setToast(null), 4000);
   };
 
@@ -418,7 +417,7 @@ const FocusTimer = () => {
   // markup but is never actually triggered in the real code, so real behavior is instant switch.
   const requestSwitchMood = (m: Mood) => {
     if (!running) {
-      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setToast({ title: "আগে পড়াশোনা শুরু করো", sub: "Study মোড চালু না করলে মোড পরিবর্তন করা যাবে না" });
       setTimeout(() => setToast(null), 2500);
       return;
     }
@@ -444,7 +443,7 @@ const FocusTimer = () => {
 
   const switchMood = async (m: Mood) => {
     if (!running) {
-      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setToast({ title: "আগে পড়াশোনা শুরু করো", sub: "Study মোড চালু না করলে মোড পরিবর্তন করা যাবে না" });
       setTimeout(() => setToast(null), 2500);
       return;
     }
@@ -494,9 +493,13 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    const moodStartNames: Record<Mood, string> = { study: "📚 Study", break: "☕ বিরতি", sleep: "😴 ঘুম" };
-    setToast(`${moodStartNames[m]} শুরু হলো`);
-    setTimeout(() => setToast(null), 2500);
+    const moodToastCopy: Record<Mood, { title: string; sub: string; mood: Mood }> = {
+      study: { title: "Study মোড চালু", sub: "মনোযোগ ধরে রাখো, সময় এখন গুনছে", mood: "study" },
+      break: { title: "বিরতি চালু", sub: "কিছুক্ষণ রিল্যাক্স করো, তারপর আবার ফিরে আসো", mood: "break" },
+      sleep: { title: "ঘুম মোড চালু", sub: "ভালো ঘুম মানে পরদিনের ভালো প্রস্তুতি", mood: "sleep" },
+    };
+    setToast(moodToastCopy[m]);
+    setTimeout(() => setToast(null), 3000);
   };
 
   // Break time limit reached — auto-return to Study mood.
@@ -526,7 +529,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    setToast("⏰ বিরতির সময় শেষ — Study Mood এ ফিরে এলে");
+    setToast({ title: "বিরতির সময় শেষ", sub: "Study মোডে ফিরে এলে", mood: "study" });
     setTimeout(() => setToast(null), 4000);
   };
 
@@ -587,13 +590,6 @@ const FocusTimer = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="flex-1 font-extrabold text-[17px]">Focus Timer</h1>
-        <button
-          onClick={() => navigate("/focus-timer/history")}
-          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
-          aria-label="Study History"
-        >
-          <Calendar className="h-4 w-4" />
-        </button>
         {typeof myTotalToday === "number" && (
           <span className="text-xs font-bold text-emerald-500">
             আজ {formatHMS(myTotalToday).h}h {formatHMS(myTotalToday).m}m
@@ -675,7 +671,7 @@ const FocusTimer = () => {
             </div>
           </div>
           <button
-            onClick={() => document.getElementById("focus-leaderboard")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => navigate("/focus-timer/history")}
             className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground border rounded-lg px-2 py-1.5 hover:bg-muted"
           >
             <Trophy className="h-3 w-3" /> Study Time History
@@ -823,142 +819,6 @@ const FocusTimer = () => {
             )}
             {/* Break/Sleep mood: no Pause/Resume/Stop controls — switching mood (tabs above) is enough, matching AtlasApp exactly */}
           </div>
-        </div>
-
-        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
-        <div className="grid grid-cols-3 gap-2">
-          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
-            const md = MOOD_META[m];
-            return (
-              <button
-                key={m}
-                onClick={() => {
-                  setOverlayMood(m);
-                  setOverlayDays(1);
-                  try {
-                    window.history.pushState({ focusOverlay: true }, "");
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
-              >
-                <span className={cn("text-lg font-black", md.color)}>{count}</span>
-                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Live "studying now" toggle + list */}
-        <div className="space-y-3">
-          <button
-            onClick={() => setShowLiveNow((v) => !v)}
-            className="flex items-center gap-2 text-sm font-extrabold"
-          >
-            <Users className="h-4 w-4 text-sky-500" />
-            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
-            <span className="text-[10px] font-bold text-muted-foreground">
-              {showLiveNow ? "লুকাও" : "দেখাও"}
-            </span>
-          </button>
-          {showLiveNow && (
-            <>
-              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
-              {(() => {
-                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                const batches = Array.from(
-                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
-                );
-                if (batches.length <= 1) return null;
-                return (
-                  <div className="flex gap-1.5 overflow-x-auto pb-1">
-                    <button
-                      onClick={() => setSelectedBatch("all")}
-                      className={cn(
-                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                        selectedBatch === "all"
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : "bg-card border-border text-muted-foreground"
-                      )}
-                    >
-                      সবাই ({moodPool.length})
-                    </button>
-                    {batches.map((b) => {
-                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
-                      return (
-                        <button
-                          key={b as string}
-                          onClick={() => setSelectedBatch(b as string)}
-                          className={cn(
-                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
-                            selectedBatch === b
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-card border-border text-muted-foreground"
-                          )}
-                        >
-                          {b as string} ({cnt})
-                        </button>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
-              <div className="space-y-1.5">
-                {(() => {
-                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                  const filtered = moodPool.filter(
-                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
-                  );
-                  if (filtered.length === 0) {
-                    const emptyMsg =
-                      mood === "break"
-                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
-                        : mood === "sleep"
-                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
-                        : "এই মুহূর্তে কেউ নেই";
-                    return (
-                      <p className="text-center text-xs text-muted-foreground py-4">
-                        {emptyMsg}
-                      </p>
-                    );
-                  }
-                  return filtered.map((row: any) => {
-                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
-                    const MIcon = md.icon;
-                    const t = formatHMS(row.duration_seconds);
-                    const isMe = row.user_id === user?.id;
-                    return (
-                      <div
-                        key={row.user_id}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                          isMe && "border-primary/40 bg-primary/5"
-                        )}
-                      >
-                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
-                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
-                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
-                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                          {row.full_name || "Student"}
-                          {isMe && " (তুমি)"}
-                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
-                        </div>
-                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                          {t.h}h {t.m}m
-                        </div>
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </>
-          )}
         </div>
 
         {/* Leaderboard — per mood */}
@@ -1111,11 +971,172 @@ const FocusTimer = () => {
             })}
           </div>
         </div>
+
+        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
+        <div className="grid grid-cols-3 gap-2">
+          {(Object.keys(MOOD_META) as Mood[]).map((m) => {
+            const count = (liveNow || []).filter((r: any) => r.mood === m).length;
+            const md = MOOD_META[m];
+            return (
+              <button
+                key={m}
+                onClick={() => {
+                  setOverlayMood(m);
+                  setOverlayDays(1);
+                  try {
+                    window.history.pushState({ focusOverlay: true }, "");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
+              >
+                <span className={cn("text-lg font-black", md.color)}>{count}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Live "studying now" toggle + list */}
+        <div className="space-y-3">
+          <button
+            onClick={() => setShowLiveNow((v) => !v)}
+            className="flex items-center gap-2 text-sm font-extrabold"
+          >
+            <Users className="h-4 w-4 text-sky-500" />
+            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
+            <span className="text-[10px] font-bold text-muted-foreground">
+              {showLiveNow ? "লুকাও" : "দেখাও"}
+            </span>
+          </button>
+          {showLiveNow && (
+            <>
+              {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
+              {(() => {
+                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                const batches = Array.from(
+                  new Set(moodPool.map((r: any) => r.hsc_batch || "অন্যান্য"))
+                );
+                if (batches.length <= 1) return null;
+                return (
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
+                    <button
+                      onClick={() => setSelectedBatch("all")}
+                      className={cn(
+                        "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                        selectedBatch === "all"
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-card border-border text-muted-foreground"
+                      )}
+                    >
+                      সবাই ({moodPool.length})
+                    </button>
+                    {batches.map((b) => {
+                      const cnt = moodPool.filter((r: any) => (r.hsc_batch || "অন্যান্য") === b).length;
+                      return (
+                        <button
+                          key={b as string}
+                          onClick={() => setSelectedBatch(b as string)}
+                          className={cn(
+                            "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                            selectedBatch === b
+                              ? "bg-primary text-primary-foreground border-primary"
+                              : "bg-card border-border text-muted-foreground"
+                          )}
+                        >
+                          {b as string} ({cnt})
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+
+              <div className="space-y-1.5">
+                {(() => {
+                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                  const filtered = moodPool.filter(
+                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+                  );
+                  if (filtered.length === 0) {
+                    const emptyMsg =
+                      mood === "break"
+                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
+                        : mood === "sleep"
+                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
+                        : "এই মুহূর্তে কেউ নেই";
+                    return (
+                      <p className="text-center text-xs text-muted-foreground py-4">
+                        {emptyMsg}
+                      </p>
+                    );
+                  }
+                  return filtered.map((row: any) => {
+                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
+                    const MIcon = md.icon;
+                    const t = formatHMS(row.duration_seconds);
+                    const isMe = row.user_id === user?.id;
+                    return (
+                      <div
+                        key={row.user_id}
+                        className={cn(
+                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
+                          isMe && "border-primary/40 bg-primary/5"
+                        )}
+                      >
+                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
+                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
+                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
+                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
+                          {row.full_name || "Student"}
+                          {isMe && " (তুমি)"}
+                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
+                        </div>
+                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                          {t.h}h {t.m}m
+                        </div>
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </>
+          )}
+        </div>
+
       </div>
 
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
-          {toast}
+        <div
+          className={cn(
+            "fixed top-16 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md max-w-[92vw] animate-in fade-in slide-in-from-top-2",
+            toast.mood
+              ? "bg-gradient-to-br " + MOOD_META[toast.mood].bg + " border-white/20"
+              : "bg-card border-destructive/30"
+          )}
+        >
+          <div className={cn(
+            "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
+            toast.mood ? "bg-white/20" : "bg-destructive/10"
+          )}>
+            {toast.mood ? (
+              (() => { const ToastIcon = MOOD_META[toast.mood].icon; return <ToastIcon className="h-4.5 w-4.5 text-white" />; })()
+            ) : (
+              <BookOpen className="h-4.5 w-4.5 text-destructive" />
+            )}
+          </div>
+          <div className="text-left">
+            <p className={cn("text-sm font-black leading-tight", toast.mood ? "text-white" : "text-foreground")}>
+              {toast.title}
+            </p>
+            <p className={cn("text-[11px] font-medium leading-tight mt-0.5", toast.mood ? "text-white/85" : "text-muted-foreground")}>
+              {toast.sub}
+            </p>
+          </div>
         </div>
       )}
 

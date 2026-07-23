@@ -53,7 +53,7 @@ export const WRONG_PACKS: Record<string, { label: string; play: (ctx: AudioConte
   vine: { label: "Vine Boom", play: (ctx, v) => { sweep(ctx, 150, 40, 0, 0.35, "sine", v); } },
 };
 
-function playPack(packMap: typeof RIGHT_PACKS, key: string, v: number) {
+export function playPack(packMap: typeof RIGHT_PACKS, key: string, v: number) {
   const ctx = getCtx();
   const pack = packMap[key] || Object.values(packMap)[0];
   pack.play(ctx, v);

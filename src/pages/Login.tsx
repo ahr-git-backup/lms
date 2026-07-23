@@ -6,20 +6,39 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { Eye, EyeOff, LayoutDashboard, LogOut, AlertTriangle } from "lucide-react";
+import { Eye, EyeOff, LayoutDashboard, LogOut, AlertTriangle, Send, MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
+// Turnstile import kept for when the widget is re-enabled (see disabled block below)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Turnstile } from "@marsidev/react-turnstile";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+
+const TELEGRAM_SUPPORT_BOT = "https://t.me/AtlasWeb_Robot";
+const WHATSAPP_HELPLINE = "https://wa.me/8801999681290";
+
+function buildTelegramSupportLink(errorMessage: string, identifier: string) {
+  const text = `আসসালামু আলাইকুম, আমি লগইন করতে সমস্যায় পড়েছি।\nEmail/ID: ${identifier || "(দেওয়া হয়নি)"}\nError: ${errorMessage}\nদয়া করে সাহায্য করুন।`;
+  return `${TELEGRAM_SUPPORT_BOT}?text=${encodeURIComponent(text)}`;
+}
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signIn, user, signOut, profile } = useAuth();
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  // Kept for when Turnstile is re-enabled (see disabled block below)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+  const [loginError, setLoginError] = useState<{ message: string; identifier: string } | null>(null);
 
   useEffect(() => {
     document.title = "Login – Atlas";
@@ -51,14 +70,11 @@ const Login = () => {
       email = `${identifier}@beshijoss.com`;
     }
 
-    const { error } = await signIn(email, password, captchaToken);
+    // captchaToken intentionally omitted — Turnstile is disabled (see below)
+    const { error } = await signIn(email, password);
 
     if (error) {
-      toast({
-        title: "Login failed",
-        description: error.message || "Invalid credentials",
-        variant: "destructive",
-      });
+      setLoginError({ message: error.message || "Invalid credentials", identifier });
       setLoading(false);
     } else {
       // Fetch user roles quickly to decide redirect
@@ -147,14 +163,21 @@ const Login = () => {
                     </Button>
                   </div>
                 </div>
+                {/* Turnstile temporarily disabled: dummy test site key
+                    (1x00000000000000000000AA) always issues the same
+                    XXXX.DUMMY.TOKEN.XXXX token, which a real Supabase-side
+                    secret key rejects — causing device-dependent login
+                    failures with correct credentials. Re-enable once a real
+                    Cloudflare Turnstile site key is available.
                 <div className="flex justify-center py-2">
                   <Turnstile
                     siteKey="1x00000000000000000000AA"
                     onSuccess={(token) => setCaptchaToken(token)}
                   />
                 </div>
+                */}
 
-                <Button type="submit" className="mt-2 w-full" disabled={loading || !captchaToken}>
+                <Button type="submit" className="mt-2 w-full" disabled={loading}>
                   {loading ? "Logging in..." : "Login"}
                 </Button>
 
@@ -179,6 +202,48 @@ const Login = () => {
           </Card>
         )}
       </main>
+
+      <Dialog open={!!loginError} onOpenChange={(open) => !open && setLoginError(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Login failed
+            </DialogTitle>
+            <DialogDescription className="text-sm text-foreground pt-1">
+              {loginError?.message}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-xs text-muted-foreground">
+            সমস্যা সমাধান না হলে আমাদের সাপোর্টে যোগাযোগ করো:
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <Button
+              asChild
+              className="w-full gap-2 bg-[#229ED9] hover:bg-[#1b87bd] text-white"
+            >
+              <a
+                href={buildTelegramSupportLink(loginError?.message || "", loginError?.identifier || "")}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Send className="h-4 w-4" />
+                Telegram-এ মেসেজ করো
+              </a>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="w-full gap-2 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+            >
+              <a href={WHATSAPP_HELPLINE} target="_blank" rel="noopener noreferrer">
+                <MessageCircle className="h-4 w-4" />
+                WhatsApp হেল্পলাইন
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

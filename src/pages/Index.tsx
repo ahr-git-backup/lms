@@ -137,11 +137,12 @@ const Index = () => {
           </div>
       </div>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pb-10 pt-6 sm:pt-8 flex-1">
 
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (
-            <section id="special-exams" className="space-y-6">
+            <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+            <section id="special-exams" className="space-y-3">
                 <div className="flex items-center justify-between">
                     <div>
                         <h2 className="text-2xl font-bold tracking-tight">বিশেষ ঘোষণা</h2>
@@ -158,7 +159,7 @@ const Index = () => {
 
                       if (isAnnouncement) {
                         return (
-                          <div key={exam.id} className="relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group">
+                          <div key={exam.id} className="animate-border-chase relative flex flex-col overflow-hidden rounded-2xl border bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
                             {/* Accent gradient top bar */}
                             <div className="h-1.5 w-full bg-gradient-to-r from-violet-500 via-fuchsia-500 to-pink-500" />
                             {exam.image_url && (
@@ -195,7 +196,7 @@ const Index = () => {
 
                       // ── Exam Card ─────────────────────────────────────────────────
                       return (
-                        <Card key={exam.id} className="overflow-hidden flex flex-col hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 border-primary/10 hover:border-primary/30 group rounded-2xl">
+                        <Card key={exam.id} className="animate-border-chase overflow-hidden flex flex-col hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300 border-primary/10 hover:border-primary/30 group rounded-2xl" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                             {exam.image_url && (
                                 <div className="h-44 w-full overflow-hidden bg-muted">
                                     <img src={exam.image_url} alt={exam.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -245,23 +246,29 @@ const Index = () => {
                     })}
                 </div>
             </section>
+            </div>
         )}
 
 
         {/* Quick Actions (All Courses / Free Class / Free Exam / Quick Practice / Focus Timer / Atlas AI / Pomodoro) */}
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}>
         <QuickActionsSection />
+        </div>
 
         {/* Paid Courses Section (Grid View) */}
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
         <CourseSection />
+        </div>
 
         {/* Free Service/Courses Section */}
-        <section id="free-resources" className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
+        <section id="free-resources" className="space-y-3">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">ফ্রি লার্নিং রিসোর্স</h2>
                 <p className="text-sm text-muted-foreground">আজই শুরু করুন সম্পূর্ণ ফ্রিতে।</p>
             </div>
             <div className="grid gap-6 md:grid-cols-2">
-                <Card className="border-2 border-primary/20 bg-primary/5">
+                <Card className="animate-border-chase border-2 border-primary/20 bg-primary/5" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <Flame className="h-5 w-5 text-primary" /> ফ্রি এক্সাম
@@ -279,7 +286,7 @@ const Index = () => {
                         </Button>
                     </CardFooter>
                 </Card>
-                 <Card className="border-2 border-primary/20 bg-primary/5">
+                 <Card className="animate-border-chase border-2 border-primary/20 bg-primary/5" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
                             <InfinityIcon className="h-5 w-5 text-primary" /> ফ্রি ক্লাস
@@ -299,9 +306,11 @@ const Index = () => {
                 </Card>
             </div>
         </section>
+        </div>
 
         {/* Unique Services Section */}
-        <section className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
+        <section className="space-y-3">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
                 <p className="text-sm text-muted-foreground">কেন বাছবেন এটলাস?</p>
@@ -309,7 +318,7 @@ const Index = () => {
             <div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {FEATURES.map((feature, i) => (
-                        <Card key={i} className="border-2 border-primary/10 hover:border-primary/30 transition-colors">
+                        <Card key={i} className="animate-border-chase border-2 border-primary/10 hover:border-primary/30 transition-colors" style={{ ["--border-chase-color" as any]: ["hsl(217 91% 60%)","hsl(0 84% 60%)","hsl(271 81% 60%)","hsl(45 93% 55%)","hsl(160 84% 39%)","hsl(24 95% 53%)","hsl(199 89% 48%)","hsl(330 81% 60%)"][i % 8] as any }}>
                             <CardContent className="flex flex-col items-center text-center p-4 gap-2">
                                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                                     <feature.icon className="h-5 w-5" />
@@ -324,16 +333,18 @@ const Index = () => {
                  </div>
             </div>
         </section>
+        </div>
 
         {/* Success Stats Section */}
-        <section id="success-stories" className="space-y-6">
+        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}>
+        <section id="success-stories" className="space-y-3">
              <div className="text-center space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">সাফল্যের গল্প</h2>
                 <p className="text-muted-foreground">প্রতি বছর ধারাবাহিক সাফল্য।</p>
              </div>
              <div className="grid gap-4 md:grid-cols-3">
                  {STATS.map((stat, i) => (
-                     <Card key={i} className="text-center bg-primary/5 border-primary/20">
+                     <Card key={i} className="animate-border-chase text-center bg-primary/5 border-primary/20" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
                          <CardHeader>
                              <CardTitle className="text-4xl font-bold text-primary">{stat.year}</CardTitle>
                              <CardDescription className="font-semibold uppercase tracking-wider">{stat.title}</CardDescription>
@@ -345,6 +356,7 @@ const Index = () => {
                  ))}
              </div>
         </section>
+        </div>
 
         {/* Student Reviews */}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -382,11 +382,12 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="rounded-lg border p-3 space-y-2">
+      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-2 gap-2">
           <Card
-            className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
             onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -395,7 +396,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
             onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -404,7 +406,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
+            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
             onClick={() => navigate("/study-history")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -413,7 +416,8 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
             onClick={() => navigate("/quick-practice/leaderboard")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -457,16 +461,16 @@ const DashboardHome = () => {
       )}
 
       {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-3 gap-2 sm:gap-4">
           <Card
             className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
             onClick={() => navigate("/admin/syllabus-tracker")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
               <div>
-                <p className="font-semibold text-sm">Study Tracker</p>
-                <p className="text-xs text-muted-foreground">Manage content</p>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
               </div>
             </CardContent>
           </Card>
@@ -474,11 +478,23 @@ const DashboardHome = () => {
             className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
             onClick={() => navigate("/admin/quick-practice")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Zap className="h-6 w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
               <div>
-                <p className="font-semibold text-sm">Quick Practice</p>
-                <p className="text-xs text-muted-foreground">Manage content</p>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+            onClick={() => navigate("/admin/mock-test")}
+          >
+            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
+                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
               </div>
             </CardContent>
           </Card>

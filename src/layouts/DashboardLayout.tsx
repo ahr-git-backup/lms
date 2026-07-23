@@ -31,7 +31,10 @@ export const DashboardLayout = () => {
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
   const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
   const [isDevMode, setIsDevMode] = useState(() => localStorage.getItem("dev_mode") === "true");
-  const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(() => {
+    const stored = localStorage.getItem("unread_notification_count");
+    return stored ? parseInt(stored, 10) || 0 : 0;
+  });
 
   useEffect(() => {
     const updateCount = () => {
@@ -223,8 +226,9 @@ export const DashboardLayout = () => {
 
         const hasUnread = (unreadUserNotifs && unreadUserNotifs.length > 0) || (unreadDirectNotes && unreadDirectNotes.length > 0);
 
-        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0);
+        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0) + (hasNewAnnouncements && count ? count : 0);
         localStorage.setItem("unread_notification_count", String(totalUnreadCount));
+        setUnreadNoticeCount(totalUnreadCount);
         window.dispatchEvent(new Event("unread-notifications-updated"));
 
         if (hasNewAnnouncements || hasUnread) {
@@ -238,6 +242,16 @@ export const DashboardLayout = () => {
 
     checkReminders(); // Run immediately
   }, [profile, enrollments, sendNotification, permission, isAdmin]);
+
+  // Keep badge count in sync with localStorage updates (e.g. after visiting announcements page)
+  useEffect(() => {
+    const syncCount = () => {
+      const stored = localStorage.getItem("unread_notification_count");
+      setUnreadNoticeCount(stored ? parseInt(stored, 10) || 0 : 0);
+    };
+    window.addEventListener("unread-notifications-updated", syncCount);
+    return () => window.removeEventListener("unread-notifications-updated", syncCount);
+  }, []);
   
   return (
     <StudyToolsProvider>

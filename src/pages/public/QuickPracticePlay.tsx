@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
+import { RIGHT_PACKS, WRONG_PACKS, playSound, playPack } from "@/lib/quizSounds";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -371,7 +371,6 @@ const QuickPracticePlay = () => {
   const chooseSound = (type: "right" | "wrong", key: string) => {
     const v = 0.6 * (soundVol || 1);
     try {
-      const ctx = getCtx();
       if (type === "right") {
         setRightPack(key);
         localStorage.setItem("qpp-right-pack", key);

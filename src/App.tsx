@@ -66,6 +66,7 @@ import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
+import AdminMockTest from "./pages/dashboard/admin/AdminMockTest";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
@@ -83,6 +84,8 @@ import StudyHistory from "./pages/public/StudyHistory";
 import AtlasAI from "./pages/public/AtlasAI";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
+import MockTest from "./pages/dashboard/MockTest";
+import TakeMockTest from "./pages/dashboard/TakeMockTest";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
 import QuickPracticeLeaderboard from "./pages/public/QuickPracticeLeaderboard";
@@ -168,6 +171,7 @@ const App = () => {
               <Route path="/pomodoro" element={<ErrorBoundary><Pomodoro /></ErrorBoundary>} />
               <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />
+              <Route path="/mock-test" element={<ErrorBoundary><MockTest /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
@@ -176,6 +180,7 @@ const App = () => {
                 <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
                 <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
                 <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+                <Route path="mock-test/:mockExamId" element={<ErrorBoundary><TakeMockTest /></ErrorBoundary>} />
                 <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
                 <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
                 <Route path="results" element={<ErrorBoundary><ExamResults /></ErrorBoundary>} />
@@ -224,12 +229,23 @@ const App = () => {
                 <Route path="reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
+                <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockTest /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
                 <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />
                 <Route path="student/:studentId" element={<ProtectedRoute requireAdmin><StudentProfileView /></ProtectedRoute>} />
                 <Route path="student/:studentId/course-results/:courseId" element={<ProtectedRoute requireAdmin><StudentCourseResults /></ProtectedRoute>} />
               </Route>
+
+              {/* Public/guest-accessible exam routes — used for Free Exam attempts by
+                  visitors who are NOT logged in. These render the exact same
+                  TakeExam/ExamReview components as the dashboard versions (all
+                  features identical), just without the ProtectedRoute login gate
+                  and without the dashboard sidebar/topbar. TakeExam/ExamReview
+                  internally detect the guest case (no user + is_visible_on_free
+                  exam) and prompt for guest info instead of requiring login. */}
+              <Route path="/take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+              <Route path="/exam-review/:attemptId" element={<ErrorBoundary><ExamReview /></ErrorBoundary>} />
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />

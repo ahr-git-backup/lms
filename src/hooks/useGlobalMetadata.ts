@@ -2,18 +2,26 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-export type MetadataType = 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter';
+export type MetadataType = 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter' | 'free_exam_category';
 
 export const useGlobalMetadata = (type?: MetadataType) => {
     return useQuery({
         queryKey: ["global-metadata", type],
         queryFn: async () => {
-            let query = supabase.from("global_metadata").select("type, value");
-            if (type) {
-                query = query.eq("type", type);
+            const BATCH = 1000;
+            let from = 0;
+            let data: { type: string; value: string }[] = [];
+            while (true) {
+                let query = supabase.from("global_metadata").select("type, value").range(from, from + BATCH - 1);
+                if (type) {
+                    query = query.eq("type", type);
+                }
+                const { data: batchData, error } = await query;
+                if (error) throw error;
+                data = data.concat(batchData || []);
+                if (!batchData || batchData.length < BATCH) break;
+                from += BATCH;
             }
-            const { data, error } = await query;
-            if (error) throw error;
 
             // Group by type if not filtered
             if (!type) {
@@ -27,6 +35,7 @@ export const useGlobalMetadata = (type?: MetadataType) => {
                     readymade_topic: [],
                     readymade_category: [],
                     readymade_sub_chapter: [],
+                    free_exam_category: [],
                 };
                 data.forEach(item => {
                     if (grouped[item.type]) {
@@ -65,6 +74,88 @@ export const useAddGlobalMetadata = () => {
         onError: (err) => {
             console.error("Failed to add metadata:", err);
             toast({ title: "Error adding metadata", description: err.message, variant: "destructive" });
+        }
+    });
+};
+
+// Exam columns that directly store metadata values and must stay in sync on rename/delete.
+// "array" columns (e.g. subject) use array-contains updates; "text" columns are plain equality.
+const METADATA_EXAM_COLUMN: Partial<Record<MetadataType, { column: string; kind: "text" | "array" }>> = {
+    subject: { column: "subject", kind: "array" },
+    chapter: { column: "chapter", kind: "text" },
+    readymade_topic: { column: "readymade_topic", kind: "text" },
+    readymade_category: { column: "readymade_category", kind: "text" },
+    readymade_sub_chapter: { column: "readymade_sub_chapter", kind: "text" },
+    free_exam_category: { column: "free_exam_category", kind: "text" },
+};
+
+export const useRenameGlobalMetadata = () => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ type, oldValue, newValue }: { type: MetadataType; oldValue: string; newValue: string }) => {
+            newValue = newValue.trim();
+            if (!newValue || newValue === oldValue) return;
+
+            const { error: updateErr } = await supabase
+                .from("global_metadata")
+                .update({ value: newValue })
+                .eq("type", type)
+                .eq("value", oldValue);
+            if (updateErr) throw updateErr;
+
+            const col = METADATA_EXAM_COLUMN[type];
+            if (col) {
+                if (col.kind === "text") {
+                    const { error } = await supabase.from("exams").update({ [col.column]: newValue }).eq(col.column, oldValue);
+                    if (error) throw error;
+                } else {
+                    // Array column: fetch affected rows, replace the one element, write back.
+                    const { data: rows, error: fetchErr } = await supabase
+                        .from("exams")
+                        .select(`id, ${col.column}`)
+                        .contains(col.column, [oldValue]);
+                    if (fetchErr) throw fetchErr;
+                    for (const row of (rows as any[]) || []) {
+                        const updated = (row[col.column] as string[]).map((v) => (v === oldValue ? newValue : v));
+                        const { error } = await supabase.from("exams").update({ [col.column]: updated }).eq("id", row.id);
+                        if (error) throw error;
+                    }
+                }
+            }
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+            queryClient.invalidateQueries({ queryKey: ["admin-exams-readymade-categories"] });
+            toast({ title: "Updated" });
+        },
+        onError: (err: any) => {
+            console.error("Failed to rename metadata:", err);
+            toast({ title: "Error updating", description: err.message, variant: "destructive" });
+        }
+    });
+};
+
+export const useDeleteGlobalMetadata = () => {
+    const { toast } = useToast();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: async ({ type, value }: { type: MetadataType; value: string }) => {
+            const { error } = await supabase.from("global_metadata").delete().eq("type", type).eq("value", value);
+            if (error) throw error;
+            // Note: intentionally does NOT clear the value off existing exams — deleting an
+            // option just removes it from future pick-lists, old exams keep their data intact.
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
+            toast({ title: "Deleted" });
+        },
+        onError: (err: any) => {
+            console.error("Failed to delete metadata:", err);
+            toast({ title: "Error deleting", description: err.message, variant: "destructive" });
         }
     });
 };
