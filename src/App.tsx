@@ -172,6 +172,7 @@ const App = () => {
               <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />
               <Route path="/mock-test" element={<ErrorBoundary><UnlimitedMockTest /></ErrorBoundary>} />
+              <Route path="/mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
@@ -180,7 +181,6 @@ const App = () => {
                 <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
                 <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
                 <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
-                <Route path="mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
                 <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
                 <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
                 <Route path="results" element={<ErrorBoundary><ExamResults /></ErrorBoundary>} />
