@@ -4,7 +4,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeft,
   BookOpen,
-  Calendar,
   CheckCircle2,
   Coffee,
   Moon,
@@ -587,13 +586,6 @@ const FocusTimer = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="flex-1 font-extrabold text-[17px]">Focus Timer</h1>
-        <button
-          onClick={() => navigate("/focus-timer/history")}
-          className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted flex-shrink-0"
-          aria-label="Study History"
-        >
-          <Calendar className="h-4 w-4" />
-        </button>
         {typeof myTotalToday === "number" && (
           <span className="text-xs font-bold text-emerald-500">
             আজ {formatHMS(myTotalToday).h}h {formatHMS(myTotalToday).m}m
@@ -675,7 +667,7 @@ const FocusTimer = () => {
             </div>
           </div>
           <button
-            onClick={() => document.getElementById("focus-leaderboard")?.scrollIntoView({ behavior: "smooth" })}
+            onClick={() => navigate("/focus-timer/history")}
             className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground border rounded-lg px-2 py-1.5 hover:bg-muted"
           >
             <Trophy className="h-3 w-3" /> Study Time History
