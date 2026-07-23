@@ -253,6 +253,32 @@ const TakeMistakeExam = () => {
         }
     };
 
+    // After answering a question, auto-scroll to the next unanswered question.
+    const scrollToNextUnanswered = (currentQuestionId: string, latestAnswers: Record<string, string>) => {
+        const list = questions;
+        if (!list || list.length === 0) return;
+        const currentIndex = list.findIndex((q) => q.id === currentQuestionId);
+        if (currentIndex === -1) return;
+
+        let targetId: string | null = null;
+        for (let i = currentIndex + 1; i < list.length; i++) {
+            if (!latestAnswers[list[i].id]) { targetId = list[i].id; break; }
+        }
+        if (!targetId) {
+            for (let i = 0; i < currentIndex; i++) {
+                if (!latestAnswers[list[i].id]) { targetId = list[i].id; break; }
+            }
+        }
+        if (!targetId) return;
+
+        const finalTargetId = targetId;
+        setTimeout(() => {
+            requestAnimationFrame(() => {
+                questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+            });
+        }, 300);
+    };
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
@@ -610,7 +636,11 @@ const TakeMistakeExam = () => {
                                                     key={optionKey}
                                                     onClick={() => {
                                                         if (!isAnswered) {
-                                                            setAnswers(prev => ({ ...prev, [q.id]: optionKey }))
+                                                            setAnswers(prev => {
+                                                                const updated = { ...prev, [q.id]: optionKey };
+                                                                scrollToNextUnanswered(q.id, updated);
+                                                                return updated;
+                                                            });
                                                         }
                                                     }}
                                                     className={cn(
