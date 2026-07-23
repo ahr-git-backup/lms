@@ -132,6 +132,8 @@ const FocusTimer = () => {
   const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoBreakCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const runningRef = useRef(false);
   const [toast, setToast] = useState<{ title: string; sub: string; mood?: Mood } | null>(null);
   const [stopStats, setStopStats] = useState<{ studySeconds: number; breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
@@ -190,11 +192,14 @@ const FocusTimer = () => {
       setMood(saved.mood);
       setElapsed(saved.elapsed);
       setPaused(saved.paused);
-      setRunning(true);
+      setRunning(true); runningRef.current = true;
       sessionIdRef.current = id;
       moodRef.current = saved.mood;
       elapsedRef.current = saved.elapsed;
       pausedRef.current = saved.paused;
+      // Keep ticking + heartbeat in sync with the same paused check — a prior mismatch
+      // here (heartbeat always starting regardless of paused state) was the likely
+      // cause of sessions showing "Live" with a frozen duration.
       if (!saved.paused) startTicking();
       startHeartbeat();
     })();
@@ -326,7 +331,7 @@ const FocusTimer = () => {
     setBreaksUsed(0);
     setSelectedBatch("all");
     setElapsed(0);
-    setRunning(true);
+    setRunning(true); runningRef.current = true;
     setPaused(false);
     startTicking();
     startHeartbeat();
@@ -446,6 +451,50 @@ const FocusTimer = () => {
     setToast({ title: "Sleep মোড চালু", sub: "দীর্ঘ সময় বিরতিতে থাকায় স্বয়ংক্রিয়ভাবে চালু হলো", mood: "sleep" });
     setTimeout(() => setToast(null), 4000);
   };
+
+  // যদি Study Mood কোনো কারণে (browser/tab ছেড়ে যাওয়া, বা ম্যানুয়াল) paused অবস্থায়
+  // ১ ঘণ্টা পার হয়ে যায়, স্বয়ংক্রিয়ভাবে Break মোডে চলে যায়।
+  const checkAutoBreakFromPause = async () => {
+    if (!pauseStartRef.current || moodRef.current !== "study" || !pausedRef.current) return;
+    const pausedSecs = Math.floor((Date.now() - pauseStartRef.current) / 1000);
+    if (pausedSecs < 3600) return; // 1 hour
+    pauseStartRef.current = null;
+    await switchMood("break");
+  };
+
+  useEffect(() => {
+    autoBreakCheckRef.current = setInterval(() => {
+      void checkAutoBreakFromPause();
+    }, 30000);
+    return () => {
+      if (autoBreakCheckRef.current) clearInterval(autoBreakCheckRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Tab/browser ছেড়ে গেলে (background/minimize) Study মোড শুধু pause হবে (mode বদলাবে না)।
+  // ফিরে আসলে আবার resume হবে — যদি না ইতিমধ্যে ১ ঘণ্টা পার হয়ে Break-এ চলে গিয়ে থাকে।
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (
+          moodRef.current === "study" &&
+          runningRef.current &&
+          !pausedRef.current &&
+          sessionIdRef.current != null
+        ) {
+          pause();
+        }
+      } else {
+        if (moodRef.current === "study" && runningRef.current && pausedRef.current) {
+          resume();
+        }
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     autoSleepCheckRef.current = setInterval(() => {
@@ -580,7 +629,7 @@ const FocusTimer = () => {
     hasStoppedOnceRef.current = true;
     sessionIdRef.current = null;
     setSessionId(null);
-    setRunning(false);
+    setRunning(false); runningRef.current = false;
     setPaused(false);
     setElapsed(0);
     accumulatedBreakRef.current = 0;
@@ -800,7 +849,7 @@ const FocusTimer = () => {
             {running && mood === "study" && !paused && (
               <>
                 <button
-                  onClick={pause}
+                  onClick={() => void switchMood("break")}
                   className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-bold text-sm hover:bg-muted"
                 >
                   <Pause className="h-4 w-4" /> Pause
