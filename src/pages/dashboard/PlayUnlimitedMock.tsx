@@ -1,12 +1,46 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle2, XCircle, SkipForward, RotateCcw, BookOpen, Bookmark } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import {
+  Clock,
+  Check,
+  X,
+  Trophy,
+  Bookmark,
+  Repeat,
+  FileDown,
+  ListChecks,
+  Calculator,
+  Flag,
+} from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import MathText from "@/components/MathText";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
+import { openSolvePdf } from "@/lib/solvePdf";
 
 interface PoolQuestion {
   id: string;
@@ -21,9 +55,84 @@ interface PoolQuestion {
 
 const NEGATIVE_MARK = 0.25;
 
+const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const [reportText, setReportText] = useState("");
+  const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
+  const [isOpen, setIsOpen] = useState(false);
+
+  const reportMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("Must be logged in");
+      const { error } = await supabase.from("question_reports").insert({
+        question_id: null,
+        user_id: user.id,
+        report_text: `[Unlimited Mock Test] ${questionText.slice(0, 120)} — ${reportText}`,
+        suggested_correct_option: suggestedOption,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "রিপোর্ট জমা হয়েছে", description: "ধন্যবাদ আপনার ফিডব্যাকের জন্য।" });
+      setReportText("");
+      setSuggestedOption(undefined);
+      setIsOpen(false);
+    },
+    onError: (e: any) => toast({ title: "রিপোর্ট ব্যর্থ", description: e.message, variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-red-500">
+          <Flag className="h-5 w-5" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Report Mistake</DialogTitle>
+          <DialogDescription>প্রশ্নে কোনো ভুল পেলে জানান।</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-4">
+          <div className="text-sm text-muted-foreground line-clamp-2 italic bg-muted p-2 rounded">
+            <MathText text={questionText} />
+          </div>
+          <div className="space-y-2">
+            <Label>সমস্যা বর্ণনা করুন</Label>
+            <Textarea value={reportText} onChange={(e) => setReportText(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>সঠিক অপশন (ঐচ্ছিক)</Label>
+            <Select value={suggestedOption} onValueChange={setSuggestedOption}>
+              <SelectTrigger>
+                <SelectValue placeholder="নির্বাচন করুন" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="A">Option A</SelectItem>
+                <SelectItem value="B">Option B</SelectItem>
+                <SelectItem value="C">Option C</SelectItem>
+                <SelectItem value="D">Option D</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setIsOpen(false)}>
+            বাতিল
+          </Button>
+          <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending}>
+            {reportMutation.isPending ? "জমা হচ্ছে..." : "জমা দিন"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const PlayUnlimitedMock = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth() as any;
   const { toast } = useToast();
 
   const questions: PoolQuestion[] = useMemo(() => {
@@ -40,8 +149,64 @@ const PlayUnlimitedMock = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState(minutes * 60);
   const [submitted, setSubmitted] = useState(false);
-  const [filter, setFilter] = useState<"all" | "correct" | "wrong" | "skipped">("all");
+  const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
   const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
+  const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (questions.length === 0) navigate("/dashboard/mock-test");
+  }, [questions, navigate]);
+
+  useEffect(() => {
+    if (submitted) return;
+    if (secondsLeft <= 0) {
+      handleSubmit();
+      return;
+    }
+    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [secondsLeft, submitted]);
+
+  useEffect(() => {
+    if (submitted && questions.length > 0) {
+      prewarmExplanations(questions as any);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitted]);
+
+  const stats = useMemo(() => {
+    let correct = 0,
+      wrong = 0,
+      skipped = 0;
+    questions.forEach((q) => {
+      const ua = answers[q.id];
+      if (!ua) skipped++;
+      else if (ua === q.correct_option) correct++;
+      else wrong++;
+    });
+    const negMark = wrong * NEGATIVE_MARK;
+    const finalScore = correct - negMark;
+    return { correct, wrong, skipped, negMark, correctMarks: correct, finalScore };
+  }, [answers, questions]);
+
+  const handleSubmit = async () => {
+    if (submitted) return;
+    setSubmitted(true);
+    if (user) {
+      try {
+        await supabase.from("mock_exam_attempts").insert({
+          mock_exam_id: null,
+          user_id: user.id,
+          score: stats.finalScore,
+          total_marks: questions.length,
+          answers,
+          submitted_at: new Date().toISOString(),
+        });
+      } catch {
+        // best-effort logging only
+      }
+    }
+  };
 
   const questionKey = (q: PoolQuestion) => q.question_text.slice(0, 200);
 
@@ -80,56 +245,6 @@ const PlayUnlimitedMock = () => {
     }
   };
 
-  useEffect(() => {
-    if (questions.length === 0) {
-      navigate("/dashboard/mock-test");
-    }
-  }, [questions, navigate]);
-
-  useEffect(() => {
-    if (submitted) return;
-    if (secondsLeft <= 0) {
-      handleSubmit();
-      return;
-    }
-    const t = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => clearTimeout(t);
-  }, [secondsLeft, submitted]);
-
-  const stats = useMemo(() => {
-    let correct = 0,
-      wrong = 0,
-      skipped = 0;
-    questions.forEach((q) => {
-      const ua = answers[q.id];
-      if (!ua) skipped++;
-      else if (ua === q.correct_option) correct++;
-      else wrong++;
-    });
-    const negMark = wrong * NEGATIVE_MARK;
-    const finalScore = correct - negMark;
-    return { correct, wrong, skipped, negMark, finalScore };
-  }, [answers, questions]);
-
-  const handleSubmit = async () => {
-    if (submitted) return;
-    setSubmitted(true);
-    if (user) {
-      try {
-        await supabase.from("mock_exam_attempts").insert({
-          mock_exam_id: null,
-          user_id: user.id,
-          score: stats.finalScore,
-          total_marks: questions.length,
-          answers,
-          submitted_at: new Date().toISOString(),
-        });
-      } catch {
-        // best-effort logging only
-      }
-    }
-  };
-
   const retakeExam = () => {
     setAnswers({});
     setCurrent(0);
@@ -138,166 +253,391 @@ const PlayUnlimitedMock = () => {
     setFilter("all");
   };
 
-  const mistakePractice = () => {
+  const startMistakePractice = (mode: "wrong" | "both") => {
     const wrongQs = questions.filter((q) => answers[q.id] && answers[q.id] !== q.correct_option);
-    if (wrongQs.length === 0) return;
-    sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(wrongQs));
+    const skippedQs = questions.filter((q) => !answers[q.id]);
+    const target = mode === "wrong" ? wrongQs : [...wrongQs, ...skippedQs];
+    if (target.length === 0) return;
+    setIsMistakeDialogOpen(false);
+    sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(target));
     sessionStorage.setItem("unlimitedMockTitle", `${title} — Mistake Practice`);
-    sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(wrongQs.length / 1.5)));
+    sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(target.length / 1.5)));
     window.location.reload();
+  };
+
+  const handleSolvePdf = () => {
+    if (!questions.length) return;
+    openSolvePdf({
+      examName: title,
+      studentName: profile?.full_name || undefined,
+      questions: questions.map((q) => ({
+        question_text: q.question_text,
+        option_a: q.option_a,
+        option_b: q.option_b,
+        option_c: q.option_c,
+        option_d: q.option_d,
+        correct_option: q.correct_option,
+        user_answer: answers[q.id] || null,
+        explanation: q.explanation,
+      })),
+      totalMarks: questions.length,
+      score: stats.finalScore,
+    });
   };
 
   if (questions.length === 0) return null;
 
   if (submitted) {
-    const scoreClass =
-      stats.finalScore > 0 ? "text-green-500" : stats.finalScore < 0 ? "text-red-500" : "text-muted-foreground";
+    const pieData = [
+      { name: "Correct", value: stats.correct, color: "#16a34a" },
+      { name: "Wrong", value: stats.wrong, color: "#ef4444" },
+      { name: "Skipped", value: stats.skipped, color: "#94a3b8" },
+    ].filter((d) => d.value > 0);
 
-    const visibleQuestions = questions.filter((q) => {
-      if (filter === "all") return true;
+    const questionPositionMap = new Map(questions.map((q, i) => [q.id, i + 1]));
+
+    const filteredQuestions = questions.filter((q) => {
       const ua = answers[q.id];
-      const status = !ua ? "skipped" : ua === q.correct_option ? "correct" : "wrong";
-      return status === filter;
+      if (filter === "all") return true;
+      if (filter === "correct") return ua === q.correct_option;
+      if (filter === "incorrect") return ua && ua !== q.correct_option;
+      if (filter === "skipped") return !ua;
+      return true;
     });
 
     return (
-      <div className="max-w-2xl mx-auto py-6 space-y-5">
-        <Card>
-          <CardContent className="pt-6 text-center space-y-1">
-            <p className="text-xs text-muted-foreground">{title}</p>
-            <p className={`text-4xl font-extrabold ${scoreClass}`}>
-              {stats.finalScore.toFixed(2)}
-              <span className="text-lg text-muted-foreground font-medium"> / {questions.length}</span>
-            </p>
-          </CardContent>
-        </Card>
-
-        <div className="grid grid-cols-4 gap-2 text-center">
-          <div>
-            <p className="text-lg font-bold text-green-500">{stats.correct}</p>
-            <p className="text-[10px] text-muted-foreground">সঠিক</p>
+      <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+        <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
+          <div className="flex flex-col gap-1">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              {user && (
+                <Button variant="outline" onClick={retakeExam} className="h-10 px-3 py-2 w-full sm:w-auto">
+                  <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" />{" "}
+                  <span className="truncate">Practice Again</span>
+                </Button>
+              )}
+              <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
+                <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" />{" "}
+                <span className="truncate">Solve PDF</span>
+              </Button>
+              {user && (
+                <Button
+                  variant="outline"
+                  onClick={() => setIsMistakeDialogOpen(true)}
+                  className="h-10 px-2 py-2 w-full sm:w-auto"
+                >
+                  <ListChecks className="h-5 w-5 mr-1 text-red-500 shrink-0" />{" "}
+                  <span className="text-sm whitespace-nowrap">Mistake Practice</span>
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={() => navigate("/dashboard/mock-test")}
+                className="h-10 px-3 py-2 w-full sm:w-auto"
+              >
+                <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" />{" "}
+                <span className="truncate">Mock Test তালিকা</span>
+              </Button>
+            </div>
           </div>
-          <div>
-            <p className="text-lg font-bold text-red-500">{stats.wrong}</p>
-            <p className="text-[10px] text-muted-foreground">ভুল</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-amber-500">{stats.skipped}</p>
-            <p className="text-[10px] text-muted-foreground">স্কিপ</p>
-          </div>
-          <div>
-            <p className="text-lg font-bold text-red-400">-{stats.negMark.toFixed(2)}</p>
-            <p className="text-[10px] text-muted-foreground">নেগেটিভ</p>
-          </div>
-        </div>
 
-        <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={retakeExam}>
-            <RotateCcw className="h-4 w-4 mr-1" /> Practice Again
-          </Button>
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={mistakePractice}
-            disabled={stats.wrong === 0}
-          >
-            <XCircle className="h-4 w-4 mr-1" /> Mistake Practice
-          </Button>
-        </div>
+          {!user && (
+            <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm text-center">
+              আরও ফিচার (বুকমার্ক, Mistake Practice, ইত্যাদি) পেতে{" "}
+              <a href="/register" className="font-bold text-primary underline">
+                অ্যাকাউন্ট খোলো
+              </a>{" "}
+              — সম্পূর্ণ ফ্রি।
+            </div>
+          )}
 
-        <div className="flex gap-1.5 flex-wrap">
-          {(["all", "correct", "wrong", "skipped"] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${
-                filter === f
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground"
-              }`}
-            >
-              {f === "all" ? "সব" : f === "correct" ? "সঠিক" : f === "wrong" ? "ভুল" : "স্কিপ"}
-            </button>
-          ))}
-        </div>
+          <Dialog open={isMistakeDialogOpen} onOpenChange={setIsMistakeDialogOpen}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Mistake Practice</DialogTitle>
+                <DialogDescription>Kon question gulo practice korte chao?</DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 py-2">
+                <button
+                  onClick={() => startMistakePractice("wrong")}
+                  disabled={stats.wrong === 0}
+                  className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <div className="font-semibold">Only Wrong ({stats.wrong})</div>
+                  <div className="text-xs text-muted-foreground">Shudhu vul kora question gulo</div>
+                </button>
+                <button
+                  onClick={() => startMistakePractice("both")}
+                  disabled={stats.wrong + stats.skipped === 0}
+                  className="p-4 border rounded-lg text-left hover:bg-muted/50 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <div className="font-semibold">Wrong + Skip ({stats.wrong + stats.skipped})</div>
+                  <div className="text-xs text-muted-foreground">Vul o baad deya shob question</div>
+                </button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
-        <div className="space-y-3">
-          {visibleQuestions.map((q, i) => {
-            const ua = answers[q.id];
-            const status = !ua ? "skipped" : ua === q.correct_option ? "correct" : "wrong";
-            return (
-              <Card key={q.id}>
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-muted-foreground">
-                      প্রশ্ন {questions.indexOf(q) + 1}/{questions.length}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => toggleBookmark(q)}
-                        className={bookmarked[q.id] ? "text-amber-500" : "text-muted-foreground"}
-                        title="বুকমার্ক"
-                      >
-                        <Bookmark className="h-4 w-4" fill={bookmarked[q.id] ? "currentColor" : "none"} />
-                      </button>
-                      {status === "correct" && (
-                        <span className="text-xs font-semibold text-green-500 flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> সঠিক
-                        </span>
-                      )}
-                      {status === "wrong" && (
-                        <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
-                          <XCircle className="h-3.5 w-3.5" /> ভুল
-                        </span>
-                      )}
-                      {status === "skipped" && (
-                        <span className="text-xs font-semibold text-amber-500 flex items-center gap-1">
-                          <SkipForward className="h-3.5 w-3.5" /> স্কিপ
-                        </span>
-                      )}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-6">
+                <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                  <h1 className="text-2xl font-extrabold mb-0.5">{title}</h1>
+                  <p className="text-xs text-muted-foreground">Submitted just now</p>
+                </div>
+
+                <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                  <div className="text-center flex-shrink-0 pr-4 border-r border-border/60">
+                    <div className="text-4xl font-extrabold text-primary">
+                      {stats.finalScore.toFixed(2)}
+                      <span className="text-4xl text-muted-foreground font-extrabold"> / {questions.length}</span>
+                    </div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">
+                      Marks Obtained
                     </div>
                   </div>
-                  <MathText text={q.question_text} />
-                  <div className="space-y-1.5">
-                    {(["A", "B", "C", "D"] as const).map((opt) => {
-                      const text = q[`option_${opt.toLowerCase()}` as "option_a"];
-                      if (!text) return null;
-                      const isCorrect = opt === q.correct_option;
-                      const isUserWrong = opt === ua && ua !== q.correct_option;
-                      return (
-                        <div
-                          key={opt}
-                          className={`px-3 py-1.5 rounded-md text-sm border ${
-                            isCorrect
-                              ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400 font-medium"
-                              : isUserWrong
-                              ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400 line-through"
-                              : "border-border"
-                          }`}
+
+                  <div className="shrink-0" style={{ height: 112, width: 112 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={26}
+                          outerRadius={42}
+                          paddingAngle={2}
+                          dataKey="value"
+                          isAnimationActive={false}
                         >
-                          <span className="font-semibold mr-1.5">{opt}.</span>
-                          <MathText text={text} />
-                        </div>
-                      );
-                    })}
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                  {q.explanation && (
-                    <div className="bg-muted/50 border-l-2 border-primary rounded-r-md px-3 py-2 text-xs">
-                      <p className="font-semibold text-primary mb-1 flex items-center gap-1">
-                        <BookOpen className="h-3 w-3" /> ব্যাখ্যা
-                      </p>
-                      <p className="text-muted-foreground">{q.explanation}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+                </div>
 
-        <Button className="w-full" variant="outline" onClick={() => navigate("/dashboard/mock-test")}>
-          এক্সাম লিস্টে যান
-        </Button>
+                <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-1.5 text-center">
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">
+                      Correct
+                    </div>
+                    <div className="text-lg font-bold text-green-600 order-2 md:order-1">{stats.correct}</div>
+                  </div>
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">
+                      Wrong
+                    </div>
+                    <div className="text-lg font-bold text-red-500 order-2 md:order-1">{stats.wrong}</div>
+                  </div>
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">
+                      Skipped
+                    </div>
+                    <div className="text-lg font-bold text-slate-400 order-2 md:order-1">{stats.skipped}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border shadow-sm">
+            <CardContent className="p-4 md:p-6">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
+                <Calculator className="h-5 w-5" /> Score Breakdown
+              </h3>
+              <div className="grid grid-cols-3 gap-2 md:hidden text-xs">
+                <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
+                  <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Correct</div>
+                  <div className="text-base font-bold text-green-600 font-mono">
+                    +{stats.correctMarks.toFixed(1)}
+                  </div>
+                </div>
+                <div className="p-2 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
+                  <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Negative</div>
+                  <div className="text-base font-bold text-red-500 font-mono">-{stats.negMark.toFixed(1)}</div>
+                </div>
+                <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 text-center">
+                  <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Total</div>
+                  <div className="text-base font-bold text-primary font-mono">{stats.finalScore.toFixed(2)}</div>
+                </div>
+              </div>
+
+              <div className="hidden md:flex flex-row gap-4 items-center text-sm">
+                <div className="flex-1 p-3 bg-green-500/5 rounded-xl border border-green-500/20 text-left">
+                  <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">
+                    Correct Marks
+                  </div>
+                  <div className="text-xl font-bold text-green-600 font-mono">
+                    +{stats.correctMarks.toFixed(2)}
+                  </div>
+                </div>
+                <div className="text-muted-foreground font-bold text-xl">-</div>
+                <div className="flex-1 p-3 bg-red-500/5 rounded-xl border border-red-500/20 text-left">
+                  <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">
+                    Negative ({stats.wrong})
+                  </div>
+                  <div className="text-xl font-bold text-red-500 font-mono">-{stats.negMark.toFixed(2)}</div>
+                </div>
+                <div className="text-muted-foreground font-bold text-xl">=</div>
+                <div className="flex-1 p-3 bg-primary/5 rounded-xl border border-primary/20 text-left">
+                  <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">
+                    Final Score
+                  </div>
+                  <div className="text-xl font-bold text-primary font-mono">{stats.finalScore.toFixed(2)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex flex-wrap gap-2 pb-2">
+            {[
+              { label: "All", value: "all", count: questions.length },
+              { label: "Correct", value: "correct", count: stats.correct },
+              { label: "Incorrect", value: "incorrect", count: stats.wrong },
+              { label: "Skipped", value: "skipped", count: stats.skipped },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value as any)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs sm:text-sm font-medium border transition-colors",
+                  filter === f.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted"
+                )}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-6">
+            {filteredQuestions.map((q) => {
+              const ua = answers[q.id];
+              const isCorrect = ua === q.correct_option;
+              const isSkipped = !ua;
+              const isWrong = !isCorrect && !isSkipped;
+
+              return (
+                <Card
+                  key={q.id}
+                  className="rounded-[30px] overflow-hidden shadow-sm border max-w-full break-inside-avoid page-break-inside-avoid print:break-inside-avoid"
+                >
+                  <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
+                    <div className="flex items-center justify-between gap-2 print:hidden">
+                      <span
+                        className={cn(
+                          "text-xs font-bold px-2.5 py-1 rounded-full",
+                          isCorrect
+                            ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                            : isWrong
+                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {questionPositionMap.get(q.id)}/{questions.length}
+                      </span>
+                      <div className="flex items-center gap-0.5">
+                        <AiChatButton q={q} questionId={q.id} />
+                        <ReportQuestionDialog questionText={q.question_text} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleBookmark(q)}
+                          className={cn(
+                            "h-8 w-8 hover:bg-transparent",
+                            bookmarked[q.id] ? "text-primary fill-primary" : "text-muted-foreground"
+                          )}
+                        >
+                          <Bookmark className={cn("h-5 w-5", bookmarked[q.id] && "fill-current")} />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                        <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                          <MathText
+                            text={q.question_text}
+                            className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                        const optionText = q[`option_${optionKey.toLowerCase()}` as "option_a"];
+                        if (!optionText) return null;
+                        const isSelected = ua === optionKey;
+                        const isCorrectOption = q.correct_option === optionKey;
+
+                        let circleClass = "border-muted-foreground/30 text-muted-foreground";
+                        let icon = <span className="text-sm font-bold">{optionKey}</span>;
+
+                        if (isCorrectOption) {
+                          circleClass = "bg-green-500 border-green-500 text-white";
+                          icon = <Check className="h-4 w-4" />;
+                        } else if (isSelected && !isCorrectOption) {
+                          circleClass = "bg-red-500 border-red-500 text-white";
+                          icon = <X className="h-4 w-4" />;
+                        }
+
+                        return (
+                          <div key={optionKey} className="flex items-start gap-4 max-w-full">
+                            <div
+                              className={cn(
+                                "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
+                                circleClass
+                              )}
+                            >
+                              {icon}
+                            </div>
+                            <div
+                              className={cn(
+                                "flex-1 min-w-0 text-base whitespace-normal pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain",
+                                isCorrectOption
+                                  ? "text-green-700 dark:text-green-400 font-medium"
+                                  : isSelected
+                                  ? "text-red-600 dark:text-red-400"
+                                  : "text-foreground"
+                              )}
+                            >
+                              <MathText
+                                text={optionText}
+                                className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && (
+                      <div className="mt-4 pt-4 border-t border-dashed">
+                        <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
+                        <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
+                          <MathText
+                            text={q.explanation}
+                            className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="print:hidden">
+                      <AiExplanationBox q={q} questionId={q.id} />
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
       </div>
     );
   }
@@ -356,4 +696,3 @@ const PlayUnlimitedMock = () => {
 };
 
 export default PlayUnlimitedMock;
-
