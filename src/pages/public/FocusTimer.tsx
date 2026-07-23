@@ -332,6 +332,7 @@ const FocusTimer = () => {
     startTicking();
     startHeartbeat();
     saveState({ sessionId: id, mood: "study", elapsed: 0, paused: false, userId: user.id, savedAt: Date.now() });
+    refetchLeaderboard();
     if (hasStoppedOnceRef.current) {
       const next = sessionNumber + 1;
       setSessionNumber(next);
