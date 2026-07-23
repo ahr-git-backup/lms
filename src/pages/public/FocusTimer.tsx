@@ -824,44 +824,25 @@ const FocusTimer = () => {
 
         {/* Leaderboard — per mood */}
         <div id="focus-leaderboard" className="space-y-3">
+          {/* ═══ ULTIMATE LEADERBOARD — title + বিগত X দিন period row (matches AtlasApp leaderboard-section exactly) ═══ */}
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
             <h2 className="font-extrabold text-sm">Ultimate Leaderboard</h2>
           </div>
 
           <div className="flex gap-2">
-            {(Object.keys(MOOD_META) as Mood[]).map((m) => {
-              const md = MOOD_META[m];
-              return (
-                <button
-                  key={m}
-                  onClick={() => setLeaderboardMood(m)}
-                  className={cn(
-                    "flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border",
-                    leaderboardMood === m
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border text-muted-foreground"
-                  )}
-                >
-                  {md.label}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="flex gap-2">
-            {[1, 3, 7, 15, 30].map((d) => (
+            {[3, 7, 15, 30].map((d) => (
               <button
                 key={d}
-                onClick={() => setLeaderboardDays(d)}
+                onClick={() => { setLeaderboardMood("study"); setLeaderboardDays(d); }}
                 className={cn(
-                  "px-3 py-1.5 rounded-full text-[11px] font-bold border",
+                  "flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border",
                   leaderboardDays === d
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card border-border text-muted-foreground"
                 )}
               >
-                {d === 1 ? "আজকে" : `বিগত ${d} দিন`}
+                বিগত {d} দিন
               </button>
             ))}
           </div>
@@ -991,7 +972,9 @@ const FocusTimer = () => {
           </div>
         </div>
 
-        {/* Live count chips — tap Break/Sleep to see everyone in that mood right now (Atlas: live-stats-row, right after unified box) */}
+        <div className="border-t" />
+
+        {/* ═══ LIVE STATS ROW — পড়ছে/বিরতিতে/ঘুমাচ্ছে counts (matches AtlasApp live-stats-row) ═══ */}
         <div className="grid grid-cols-3 gap-2">
           {(Object.keys(MOOD_META) as Mood[]).map((m) => {
             const count = (liveNow || []).filter((r: any) => r.mood === m).length;
@@ -1017,7 +1000,7 @@ const FocusTimer = () => {
           })}
         </div>
 
-        {/* Live "studying now" banner + list — always visible, matching AtlasApp's live-today-title */}
+        {/* ═══ TODAY LIVE — always-visible pulsing green banner + batch filter + আজকে/X দিন row + list (matches AtlasApp live-today-section) ═══ */}
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-1.5 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 rounded-lg px-3 py-2.5">
             <span className="h-[7px] w-[7px] rounded-full bg-emerald-500 animate-pulse" />
@@ -1065,93 +1048,77 @@ const FocusTimer = () => {
               );
             })()}
 
-              <div className="space-y-1.5">
-                {(() => {
-                  const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
-                  const filtered = moodPool.filter(
-                    (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+            {/* আজকে/৩/৭/১৫/৩০ দিন — Atlas: mood-period-row-compact, no "বিগত" prefix here */}
+            <div className="flex gap-1.5 overflow-x-auto pb-1">
+              {[1, 3, 7, 15, 30].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setLeaderboardDays(d)}
+                  className={cn(
+                    "flex-shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border",
+                    leaderboardDays === d
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border text-muted-foreground"
+                  )}
+                >
+                  {d === 1 ? "আজকে" : `${d} দিন`}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-1.5">
+              {(() => {
+                const moodPool = mood === "study" ? (liveNow || []) : (liveNow || []).filter((r: any) => r.mood === mood);
+                const filtered = moodPool.filter(
+                  (r: any) => selectedBatch === "all" || (r.hsc_batch || "অন্যান্য") === selectedBatch
+                );
+                if (filtered.length === 0) {
+                  const emptyMsg =
+                    mood === "break"
+                      ? "এই মুহূর্তে কেউ বিরতিতে নেই"
+                      : mood === "sleep"
+                      ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
+                      : "এই মুহূর্তে কেউ নেই";
+                  return (
+                    <p className="text-center text-xs text-muted-foreground py-4">
+                      {emptyMsg}
+                    </p>
                   );
-                  if (filtered.length === 0) {
-                    const emptyMsg =
-                      mood === "break"
-                        ? "এই মুহূর্তে কেউ বিরতিতে নেই"
-                        : mood === "sleep"
-                        ? "এই মুহূর্তে কেউ ঘুমাচ্ছে না"
-                        : "এই মুহূর্তে কেউ নেই";
-                    return (
-                      <p className="text-center text-xs text-muted-foreground py-4">
-                        {emptyMsg}
-                      </p>
-                    );
-                  }
-                  return filtered.map((row: any) => {
-                    const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
-                    const MIcon = md.icon;
-                    const t = formatHMS(row.duration_seconds);
-                    const isMe = row.user_id === user?.id;
-                    return (
-                      <div
-                        key={row.user_id}
-                        className={cn(
-                          "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
-                          isMe && "border-primary/40 bg-primary/5"
-                        )}
-                      >
-                        <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
-                          <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
-                          <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
-                            <MIcon className={cn("h-3.5 w-3.5", md.color)} />
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0 text-xs font-bold truncate">
-                          {row.full_name || "Student"}
-                          {isMe && " (তুমি)"}
-                          {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
-                        </div>
-                        <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                          {t.h}h {t.m}m
-                        </div>
+                }
+                return filtered.map((row: any) => {
+                  const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
+                  const MIcon = md.icon;
+                  const t = formatHMS(row.duration_seconds);
+                  const isMe = row.user_id === user?.id;
+                  return (
+                    <div
+                      key={row.user_id}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50",
+                        isMe && "border-primary/40 bg-primary/5"
+                      )}
+                    >
+                      <Avatar className="h-7 w-7 rounded-lg flex-shrink-0">
+                        <AvatarImage src={row.avatar_url || undefined} alt={row.full_name || "Student"} />
+                        <AvatarFallback className={cn("rounded-lg", md.color, "bg-current/10")}>
+                          <MIcon className={cn("h-3.5 w-3.5", md.color)} />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 text-xs font-bold truncate">
+                        {row.full_name || "Student"}
+                        {isMe && " (তুমি)"}
+                        {row.is_paused && <span className="text-muted-foreground font-normal"> · paused</span>}
                       </div>
-                    );
-                  });
-                })()}
-              </div>
-            </>
+                      <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                        {t.h}h {t.m}m
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          </>
         </div>
-
-      </div>
-
-      {toast && (
-        <div
-          className={cn(
-            "fixed top-16 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md max-w-[92vw] animate-in fade-in slide-in-from-top-2",
-            toast.mood
-              ? "bg-gradient-to-br " + MOOD_META[toast.mood].bg + " border-white/20"
-              : "bg-card border-destructive/30"
-          )}
-        >
-          <div className={cn(
-            "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
-            toast.mood ? "bg-white/20" : "bg-destructive/10"
-          )}>
-            {toast.mood ? (
-              (() => { const ToastIcon = MOOD_META[toast.mood].icon; return <ToastIcon className="h-4.5 w-4.5 text-white" />; })()
-            ) : (
-              <BookOpen className="h-4.5 w-4.5 text-destructive" />
-            )}
-          </div>
-          <div className="text-left">
-            <p className={cn("text-sm font-black leading-tight", toast.mood ? "text-white" : "text-foreground")}>
-              {toast.title}
-            </p>
-            <p className={cn("text-[11px] font-medium leading-tight mt-0.5", toast.mood ? "text-white/85" : "text-muted-foreground")}>
-              {toast.sub}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Session summary — shown after Stop */}
       {stopStats && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
           <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
