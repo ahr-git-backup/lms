@@ -1000,6 +1000,43 @@ const FocusTimer = () => {
           })}
         </div>
 
+        {/* ═══ MOOD INLINE LIST — only when own current mood is break/sleep, shows a small
+             chip list of everyone else currently in that same mood (matches AtlasApp's
+             updateMoodInlineList / #moodInlineList exactly) ═══ */}
+        {(mood === "break" || mood === "sleep") && (() => {
+          const list = (liveNow || []).filter((r: any) => r.mood === mood);
+          const selfInList = list.some((r: any) => r.user_id === user?.id);
+          const others = list.filter((r: any) => r.user_id !== user?.id);
+          if (list.length === 0 || (list.length === 1 && selfInList)) {
+            return (
+              <div className="mx-0 mb-2 px-2.5 py-2 rounded-lg border bg-card flex items-center">
+                <span className="text-[11px] text-muted-foreground">
+                  {mood === "break" ? "🧃 এখন তুমি একাই বিরতিতে" : "🌙 এখন তুমি একাই ঘুমে"}
+                </span>
+              </div>
+            );
+          }
+          return (
+            <div className="mx-0 mb-2 px-2.5 py-2 rounded-lg border bg-card flex flex-wrap gap-1.5 items-center">
+              {list.map((r: any) => {
+                const isMe = r.user_id === user?.id;
+                return (
+                  <span
+                    key={r.user_id}
+                    className={cn(
+                      "inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10.5px] font-bold",
+                      mood === "break" ? "bg-amber-500/12 text-amber-500" : "bg-indigo-400/12 text-indigo-400",
+                      isMe && "font-black shadow-[0_0_0_1.5px_currentColor_inset]"
+                    )}
+                  >
+                    {mood === "break" ? "☕" : "😴"} {isMe ? "তুমি" : (r.full_name || "Student")}
+                  </span>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* ═══ TODAY LIVE — always-visible pulsing green banner + batch filter + আজকে/X দিন row + list (matches AtlasApp live-today-section) ═══ */}
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-1.5 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 rounded-lg px-3 py-2.5">
