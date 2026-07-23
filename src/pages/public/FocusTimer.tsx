@@ -138,6 +138,7 @@ const FocusTimer = () => {
   const [sessionNumber, setSessionNumber] = useState(1);
   const hasStoppedOnceRef = useRef(false);
   const [overlayMood, setOverlayMood] = useState<Mood | null>(null);
+  const [showLbFullScreen, setShowLbFullScreen] = useState(false); // Ultimate Leaderboard fullscreen — matches AtlasApp's openLbView()
   const [compareTarget, setCompareTarget] = useState<{ userId: string; name: string; secs: number } | null>(null);
   const [cmpDays, setCmpDays] = useState(1);
   const [overlayDays, setOverlayDays] = useState(1);
@@ -437,7 +438,7 @@ const FocusTimer = () => {
 
   // Back button closes the mood overlay instead of navigating away, matching AtlasApp.
   useEffect(() => {
-    const onPopState = () => setOverlayMood(null);
+    const onPopState = () => { setOverlayMood(null); setShowLbFullScreen(false); };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
@@ -822,9 +823,10 @@ const FocusTimer = () => {
           </div>
         </div>
 
-        {/* Leaderboard — per mood */}
+        {/* ═══ ULTIMATE LEADERBOARD TRIGGER — title + বিগত X দিন period row ONLY.
+             Matches AtlasApp exactly: tapping a period button opens a separate fullscreen
+             view (openLbView) — the podium + ranked list do NOT render inline here. ═══ */}
         <div id="focus-leaderboard" className="space-y-3">
-          {/* ═══ ULTIMATE LEADERBOARD — title + বিগত X দিন period row (matches AtlasApp leaderboard-section exactly) ═══ */}
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-500" />
             <h2 className="font-extrabold text-sm">Ultimate Leaderboard</h2>
@@ -834,143 +836,24 @@ const FocusTimer = () => {
             {[3, 7, 15, 30].map((d) => (
               <button
                 key={d}
-                onClick={() => { setLeaderboardMood("study"); setLeaderboardDays(d); }}
-                className={cn(
-                  "flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border",
-                  leaderboardDays === d
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card border-border text-muted-foreground"
-                )}
+                onClick={() => {
+                  setLeaderboardMood("study");
+                  setLeaderboardDays(d);
+                  setShowLbFullScreen(true);
+                  try {
+                    window.history.pushState({ focusLbFullScreen: true }, "");
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border bg-card border-border text-muted-foreground hover:border-primary/40 transition-colors"
               >
                 বিগত {d} দিন
               </button>
             ))}
           </div>
-
-          <div className="space-y-1.5">
-            {(!leaderboard || leaderboard.length === 0) && (
-              <p className="text-center text-xs text-muted-foreground py-6">
-                এখনো কেউ এই মোডে সময় রেকর্ড করেনি।
-              </p>
-            )}
-            {/* Top 3 Podium — matches AtlasApp's Top Performers graph */}
-            {leaderboard && leaderboard.length > 0 && (() => {
-              const top3 = leaderboard.slice(0, 3);
-              const maxSec = Math.max(1, ...top3.map((s: any) => Number(s.total_seconds)));
-              const crowns = ["👑", "🥈", "🥉"];
-              const rankLabels = ["১ম", "২য়", "৩য়"];
-              const barColors = ["bg-amber-500", "bg-slate-400", "bg-amber-700"];
-              const textColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
-              return (
-                <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-primary/5 p-3 mb-2">
-                  <div className="text-center text-[10px] font-black tracking-wider text-amber-500 mb-2.5 flex items-center justify-center gap-1">
-                    <Trophy className="h-3 w-3" /> TOP PERFORMERS
-                  </div>
-                  <div className="flex items-end justify-center gap-2">
-                    {top3.map((s: any, i: number) => {
-                      const secs = Number(s.total_seconds);
-                      const pct = Math.max(10, Math.round((secs / maxSec) * 72));
-                      const t = formatHMS(secs);
-                      return (
-                        <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
-                          <div className="text-sm">{crowns[i]}</div>
-                          {s.avatar_url ? (
-                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-full object-cover border" />
-                          ) : null}
-                          <div className="w-full flex justify-center">
-                            <div
-                              className={cn("w-8 rounded-t", barColors[i])}
-                              style={{ height: `${pct}px`, boxShadow: "0 0 8px rgba(0,0,0,0.15)" }}
-                            />
-                          </div>
-                          <div className={cn("text-[10px] font-black", textColors[i])}>{rankLabels[i]}</div>
-                          <div className="text-[10px] font-extrabold truncate max-w-[70px] text-center">
-                            {s.full_name || "Student"}
-                          </div>
-                          <div className="text-[9px] text-muted-foreground">{t.h}h {t.m}m</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })()}
-            {leaderboard?.map((row: any, i: number) => {
-              const isMe = row.user_id === user?.id;
-              // Live ticker: for my own row, when I'm actively in this exact mood (not paused),
-              // add the current in-progress elapsed seconds on top of the DB total so my time
-              // visibly counts up in real-time without waiting for the 15s refetch.
-              const liveExtra = (isMe && mood === leaderboardMood && !paused) ? elapsed : 0;
-              const t = formatHMS(Number(row.total_seconds) + liveExtra);
-              const md = MOOD_META[leaderboardMood];
-              const isPausedRow = row.live_mood === "study" && row.is_paused;
-              const isLiveRow = row.live_mood && !isPausedRow;
-              const isRankOne = i === 0;
-              const liveStatusMeta: Record<string, { label: string; cls: string }> = {
-                study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
-                break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
-                sleep: { label: "ঘুম", cls: "bg-indigo-400/15 text-indigo-400" },
-              };
-              return (
-                <button
-                  key={row.user_id}
-                  onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
-                  className={cn(
-                    "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden transition-colors",
-                    isMe && "border-primary/40 bg-primary/5",
-                    !isMe && "hover:border-primary/30 transition-colors",
-                    isLiveRow && !isRankOne && "border-emerald-500/30 shadow-[0_0_0_1px_rgba(16,185,129,0.1)]",
-                    isPausedRow && "opacity-50 border-destructive/40 shadow-[0_0_0_1px_rgba(239,68,68,0.15)]",
-                    isRankOne && "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.35)] bg-gradient-to-r from-amber-500/10 via-card/50 to-card/50"
-                  )}
-                >
-                  {isRankOne && (
-                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-amber-400/10 via-transparent to-transparent" />
-                  )}
-                  <div className={cn(
-                    "h-7 w-7 rounded-full flex items-center justify-center font-black text-xs font-mono flex-shrink-0",
-                    isRankOne ? "bg-amber-500 text-amber-950" : "text-muted-foreground"
-                  )}>
-                    {i + 1}
-                  </div>
-                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0 overflow-hidden", md.color, "bg-current/10")}>
-                    {row.avatar_url ? (
-                      <img src={row.avatar_url} alt={row.full_name || "Student"} className="h-full w-full object-cover" />
-                    ) : (
-                      (row.full_name || "S").charAt(0).toUpperCase()
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold truncate flex items-center gap-1">
-                      <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
-                      {row.is_premium && (
-                        <span className="shrink-0 text-[7px] font-black px-1 py-0.5 rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-500 tracking-wide">
-                          PRO
-                        </span>
-                      )}
-                    </div>
-                    {row.hsc_batch && (
-                      <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
-                    )}
-                  </div>
-                  {isPausedRow && (
-                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive flex-shrink-0">
-                      Pause
-                    </span>
-                  )}
-                  {isLiveRow && liveStatusMeta[row.live_mood] && (
-                    <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0", liveStatusMeta[row.live_mood].cls)}>
-                      {liveStatusMeta[row.live_mood].label}
-                    </span>
-                  )}
-                  <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
-                    {t.h}h {t.m}m
-                  </div>
-                </button>
-              );
-            })}
-          </div>
         </div>
+
 
         <div className="border-t" />
 
@@ -1297,6 +1180,170 @@ const FocusTimer = () => {
                 })}
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* ═══ ULTIMATE LEADERBOARD FULLSCREEN — matches AtlasApp's #lbFullScreen exactly:
+           back button + title + বিগত X দিন period row + Top Performers podium + ranked list ═══ */}
+      {showLbFullScreen && (
+        <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+          <div className="sticky top-0 z-10 bg-background border-b px-4 py-3 flex items-center gap-3">
+            <button
+              onClick={() => {
+                setShowLbFullScreen(false);
+                try {
+                  window.history.back();
+                } catch {
+                  /* ignore */
+                }
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-muted-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" /> ফিরে যাও
+            </button>
+            <h2 className="flex-1 text-center font-extrabold text-sm">Ultimate Leaderboard</h2>
+            <div className="w-16" />
+          </div>
+
+          <div className="px-4 py-3 flex gap-2">
+            {[3, 7, 15, 30].map((d) => (
+              <button
+                key={d}
+                onClick={() => setLeaderboardDays(d)}
+                className={cn(
+                  "flex-1 px-2 py-1.5 rounded-full text-[11px] font-bold border",
+                  leaderboardDays === d
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border text-muted-foreground"
+                )}
+              >
+                বিগত {d} দিন
+              </button>
+            ))}
+          </div>
+
+          <div className="px-4 pb-6 space-y-1.5">
+            {(!leaderboard || leaderboard.length === 0) && (
+              <p className="text-center text-xs text-muted-foreground py-6">
+                এখনো কেউ এই মোডে সময় রেকর্ড করেনি।
+              </p>
+            )}
+            {/* Top 3 Podium — matches AtlasApp's Top Performers graph */}
+            {leaderboard && leaderboard.length > 0 && (() => {
+              const top3 = leaderboard.slice(0, 3);
+              const maxSec = Math.max(1, ...top3.map((s: any) => Number(s.total_seconds)));
+              const crowns = ["👑", "🥈", "🥉"];
+              const rankLabels = ["১ম", "২য়", "৩য়"];
+              const barColors = ["bg-amber-500", "bg-slate-400", "bg-amber-700"];
+              const textColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
+              return (
+                <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-primary/5 p-3 mb-2">
+                  <div className="text-center text-[10px] font-black tracking-wider text-amber-500 mb-2.5 flex items-center justify-center gap-1">
+                    <Trophy className="h-3 w-3" /> TOP PERFORMERS
+                  </div>
+                  <div className="flex items-end justify-center gap-2">
+                    {top3.map((s: any, i: number) => {
+                      const secs = Number(s.total_seconds);
+                      const pct = Math.max(10, Math.round((secs / maxSec) * 72));
+                      const t = formatHMS(secs);
+                      return (
+                        <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
+                          <div className="text-sm">{crowns[i]}</div>
+                          {s.avatar_url ? (
+                            <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-full object-cover border" />
+                          ) : null}
+                          <div className="w-full flex justify-center">
+                            <div
+                              className={cn("w-8 rounded-t", barColors[i])}
+                              style={{ height: `${pct}px`, boxShadow: "0 0 8px rgba(0,0,0,0.15)" }}
+                            />
+                          </div>
+                          <div className={cn("text-[10px] font-black", textColors[i])}>{rankLabels[i]}</div>
+                          <div className="text-[10px] font-extrabold truncate max-w-[70px] text-center">
+                            {s.full_name || "Student"}
+                          </div>
+                          <div className="text-[9px] text-muted-foreground">{t.h}h {t.m}m</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })()}
+            {leaderboard?.map((row: any, i: number) => {
+              const isMe = row.user_id === user?.id;
+              // Live ticker: for my own row, when I'm actively in this exact mood (not paused),
+              // add the current in-progress elapsed seconds on top of the DB total so my time
+              // visibly counts up in real-time without waiting for the 15s refetch.
+              const liveExtra = (isMe && mood === leaderboardMood && !paused) ? elapsed : 0;
+              const t = formatHMS(Number(row.total_seconds) + liveExtra);
+              const md = MOOD_META[leaderboardMood];
+              const isPausedRow = row.live_mood === "study" && row.is_paused;
+              const isLiveRow = row.live_mood && !isPausedRow;
+              const isRankOne = i === 0;
+              const liveStatusMeta: Record<string, { label: string; cls: string }> = {
+                study: { label: "Live", cls: "bg-emerald-500/15 text-emerald-500" },
+                break: { label: "বিরতি", cls: "bg-amber-500/15 text-amber-500" },
+                sleep: { label: "ঘুম", cls: "bg-indigo-400/15 text-indigo-400" },
+              };
+              return (
+                <button
+                  key={row.user_id}
+                  onClick={() => !isMe && (setCompareTarget({ userId: row.user_id, name: row.full_name || "Student", secs: Number(row.total_seconds) }), setCmpDays(1))}
+                  className={cn(
+                    "relative w-full flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50 text-left overflow-hidden transition-colors",
+                    isMe && "border-primary/40 bg-primary/5",
+                    !isMe && "hover:border-primary/30 transition-colors",
+                    isLiveRow && !isRankOne && "border-emerald-500/30 shadow-[0_0_0_1px_rgba(16,185,129,0.1)]",
+                    isPausedRow && "opacity-50 border-destructive/40 shadow-[0_0_0_1px_rgba(239,68,68,0.15)]",
+                    isRankOne && "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.35)] bg-gradient-to-r from-amber-500/10 via-card/50 to-card/50"
+                  )}
+                >
+                  {isRankOne && (
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-amber-400/10 via-transparent to-transparent" />
+                  )}
+                  <div className={cn(
+                    "h-7 w-7 rounded-full flex items-center justify-center font-black text-xs font-mono flex-shrink-0",
+                    isRankOne ? "bg-amber-500 text-amber-950" : "text-muted-foreground"
+                  )}>
+                    {i + 1}
+                  </div>
+                  <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0 overflow-hidden", md.color, "bg-current/10")}>
+                    {row.avatar_url ? (
+                      <img src={row.avatar_url} alt={row.full_name || "Student"} className="h-full w-full object-cover" />
+                    ) : (
+                      (row.full_name || "S").charAt(0).toUpperCase()
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-bold truncate flex items-center gap-1">
+                      <span className="truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</span>
+                      {row.is_premium && (
+                        <span className="shrink-0 text-[7px] font-black px-1 py-0.5 rounded bg-gradient-to-r from-amber-400/20 to-amber-500/10 border border-amber-400/30 text-amber-500 tracking-wide">
+                          PRO
+                        </span>
+                      )}
+                    </div>
+                    {row.hsc_batch && (
+                      <div className="text-[9px] text-muted-foreground font-semibold">HSC {row.hsc_batch}</div>
+                    )}
+                  </div>
+                  {isPausedRow && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-destructive/15 text-destructive flex-shrink-0">
+                      Pause
+                    </span>
+                  )}
+                  {isLiveRow && liveStatusMeta[row.live_mood] && (
+                    <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0", liveStatusMeta[row.live_mood].cls)}>
+                      {liveStatusMeta[row.live_mood].label}
+                    </span>
+                  )}
+                  <div className={cn("text-xs font-black font-mono flex-shrink-0", md.color)}>
+                    {t.h}h {t.m}m
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
