@@ -149,13 +149,13 @@ const Readymade = () => {
       </div>
 
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
           {parentTopics.map(topic => (
             <Button
               key={topic.value}
               variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-7 sm:h-8 px-2 hover:scale-105 transition-transform truncate"
+              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
               onClick={() => {
                 setPage(0);
                 setSelectedParentTopics(prev =>
