@@ -861,7 +861,7 @@ const FocusTimer = () => {
                     : "bg-card border-border text-muted-foreground"
                 )}
               >
-                {d === 1 ? "আজকে" : `${d} দিন`}
+                {d === 1 ? "আজকে" : `বিগত ${d} দিন`}
               </button>
             ))}
           </div>
@@ -946,8 +946,11 @@ const FocusTimer = () => {
                   {isRankOne && (
                     <div className="absolute inset-0 pointer-events-none bg-gradient-to-r from-amber-400/10 via-transparent to-transparent" />
                   )}
-                  <div className="w-7 text-center font-black text-xs text-muted-foreground font-mono">
-                    #{i + 1}
+                  <div className={cn(
+                    "h-7 w-7 rounded-full flex items-center justify-center font-black text-xs font-mono flex-shrink-0",
+                    isRankOne ? "bg-amber-500 text-amber-950" : "text-muted-foreground"
+                  )}>
+                    {i + 1}
                   </div>
                   <div className={cn("h-8 w-8 rounded-lg border flex items-center justify-center font-extrabold text-xs flex-shrink-0 overflow-hidden", md.color, "bg-current/10")}>
                     {row.avatar_url ? (
