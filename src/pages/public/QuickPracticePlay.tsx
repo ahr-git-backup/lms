@@ -366,6 +366,9 @@ const QuickPracticePlay = () => {
   const changeVol = (v: number) => {
     setSoundVol(v);
     localStorage.setItem("atlas-sound-vol", String(v));
+    if (v > 0) {
+      try { playPack(RIGHT_PACKS, rightPack, 0.6 * v); } catch { /* ignore */ }
+    }
   };
 
   const chooseSound = (type: "right" | "wrong", key: string) => {
