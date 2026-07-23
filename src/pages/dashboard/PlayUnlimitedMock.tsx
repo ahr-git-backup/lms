@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import {
@@ -12,6 +12,8 @@ import {
   ListChecks,
   Calculator,
   Flag,
+  LayoutGrid,
+  Lock,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -145,13 +147,14 @@ const PlayUnlimitedMock = () => {
   const title = sessionStorage.getItem("unlimitedMockTitle") || "Mock Test";
   const minutes = Number(sessionStorage.getItem("unlimitedMockTime") || "30");
 
-  const [current, setCurrent] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState(minutes * 60);
   const [submitted, setSubmitted] = useState(false);
   const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
   const [bookmarked, setBookmarked] = useState<Record<string, boolean>>({});
   const [isMistakeDialogOpen, setIsMistakeDialogOpen] = useState(false);
+  const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
+  const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (questions.length === 0) navigate("/mock-test");
@@ -208,6 +211,48 @@ const PlayUnlimitedMock = () => {
     }
   };
 
+  // After answering a question, auto-scroll to the next unanswered question —
+  // mirrors TakeExam.tsx's behavior so Mock Test feels identical to a real exam.
+  const scrollToNextUnanswered = (currentQuestionId: string, latestAnswers: Record<string, string>) => {
+    const list = questions;
+    if (!list || list.length === 0) return;
+    const currentIndex = list.findIndex((q) => q.id === currentQuestionId);
+    if (currentIndex === -1) return;
+
+    let targetId: string | null = null;
+    for (let i = currentIndex + 1; i < list.length; i++) {
+      if (!latestAnswers[list[i].id]) {
+        targetId = list[i].id;
+        break;
+      }
+    }
+    if (!targetId) {
+      for (let i = 0; i < currentIndex; i++) {
+        if (!latestAnswers[list[i].id]) {
+          targetId = list[i].id;
+          break;
+        }
+      }
+    }
+    if (targetId && questionRefs.current[targetId]) {
+      questionRefs.current[targetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
+
+  const scrollToQuestion = (index: number) => {
+    const questionId = questions?.[index]?.id;
+    if (questionId && questionRefs.current[questionId]) {
+      questionRefs.current[questionId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setIsNavigatorOpen(false);
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+  };
+
   const questionKey = (q: PoolQuestion) => q.question_text.slice(0, 200);
 
   const toggleBookmark = async (q: PoolQuestion) => {
@@ -247,7 +292,6 @@ const PlayUnlimitedMock = () => {
 
   const retakeExam = () => {
     setAnswers({});
-    setCurrent(0);
     setSecondsLeft(minutes * 60);
     setSubmitted(false);
     setFilter("all");
@@ -642,57 +686,197 @@ const PlayUnlimitedMock = () => {
     );
   }
 
-  const q = questions[current];
-  const mins = Math.floor(secondsLeft / 60);
-  const secs = secondsLeft % 60;
+  const answeredCount = questions.filter((q) => !!answers[q.id]).length;
+  const isLowTime = secondsLeft < 300; // < 5 mins
 
   return (
-    <div className="max-w-2xl mx-auto py-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">
-          প্রশ্ন {current + 1} / {questions.length}
-        </span>
-        <span className="text-sm font-mono font-bold text-primary flex items-center gap-1">
-          <Clock className="h-3.5 w-3.5" /> {mins}:{secs.toString().padStart(2, "0")}
-        </span>
+    <div className="min-h-screen bg-background pb-20 relative font-sans">
+      {/* Floating Status Bar (Timer) — mirrors TakeExam.tsx */}
+      <div className="fixed top-16 left-0 right-0 z-50 flex justify-center pointer-events-none">
+        <div className="flex gap-2 pointer-events-auto mt-2">
+          <div
+            className={cn(
+              "px-4 py-2 rounded-full font-mono font-bold shadow-lg border flex items-center gap-2 transition-all duration-300",
+              isLowTime
+                ? "bg-red-600 text-white border-red-700 animate-pulse"
+                : "bg-background/90 backdrop-blur border-primary/20 text-primary"
+            )}
+          >
+            <Clock className="h-4 w-4" />
+            {formatTime(secondsLeft)}
+          </div>
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">{title}</p>
-      <Card>
-        <CardContent className="p-5 space-y-4">
-          <MathText text={q?.question_text || ""} />
-          <div className="space-y-2">
-            {(["A", "B", "C", "D"] as const).map((opt) => {
-              const text = q?.[`option_${opt.toLowerCase()}` as "option_a"];
-              if (!text) return null;
-              const selected = answers[q.id] === opt;
+
+      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24 overflow-x-hidden">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">
+              Answered: {answeredCount} / {questions.length}
+            </p>
+          </div>
+        </div>
+
+        {questions.map((q, idx) => (
+          <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-24">
+            <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
+              <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
+                {/* Question Row */}
+                <div className="flex items-start gap-4 max-w-full">
+                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                    <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                      <MathText
+                        text={q.question_text}
+                        className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 flex items-center gap-1">
+                    <ReportQuestionDialog questionText={q.question_text} />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+                      onClick={() => toggleBookmark(q)}
+                    >
+                      <Bookmark className={cn("h-5 w-5", bookmarked[q.id] && "fill-current text-amber-500")} />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Options Row */}
+                <div className="space-y-2 pt-2 max-w-full">
+                  {(["A", "B", "C", "D"] as const).map((opt) => {
+                    const text = q[`option_${opt.toLowerCase()}` as "option_a"];
+                    if (!text) return null;
+                    const isSelected = answers[q.id] === opt;
+                    const isAnswered = !!answers[q.id];
+                    const isDisabled = isAnswered && !isSelected;
+
+                    return (
+                      <div
+                        key={opt}
+                        onClick={() => {
+                          if (!isAnswered) {
+                            const updated = { ...answers, [q.id]: opt };
+                            setAnswers(updated);
+                            scrollToNextUnanswered(q.id, updated);
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-4 group max-w-full",
+                          !isAnswered && "cursor-pointer",
+                          isDisabled && "opacity-50 pointer-events-none"
+                        )}
+                      >
+                        <div
+                          className={cn(
+                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                            isSelected
+                              ? "border-primary bg-primary text-primary-foreground scale-110"
+                              : "border-muted-foreground/30 text-muted-foreground",
+                            !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
+                            isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
+                          )}
+                        >
+                          {opt}
+                        </div>
+                        <div
+                          className={cn(
+                            "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg transition-all",
+                            isSelected
+                              ? "text-primary font-medium bg-primary/10 border border-primary/50 shadow-sm"
+                              : "text-foreground hover:bg-muted/30"
+                          )}
+                        >
+                          <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                            <MathText
+                              text={text}
+                              className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words"
+                            />
+                          </div>
+                          {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        ))}
+
+        <div className="flex justify-center mt-8 pb-12">
+          <Button
+            size="lg"
+            onClick={() => {
+              if (confirm("Finish and submit exam?")) handleSubmit();
+            }}
+            className="bg-green-600 hover:bg-green-700 w-full max-w-sm h-12 text-lg rounded-full"
+          >
+            Finish Exam
+          </Button>
+        </div>
+      </div>
+
+      {/* Floating Submit Button */}
+      <div className="fixed bottom-6 right-6 z-40">
+        <Button
+          size="default"
+          className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
+          onClick={() => {
+            if (confirm("Are you sure you want to submit?")) handleSubmit();
+          }}
+        >
+          Submit
+        </Button>
+      </div>
+
+      {/* Floating Navigator Button */}
+      <div className="fixed top-1/2 right-4 -translate-y-1/2 z-40">
+        <Button
+          size="icon"
+          className="h-12 w-12 rounded-full shadow-xl bg-primary hover:bg-primary/90"
+          onClick={() => setIsNavigatorOpen(true)}
+        >
+          <LayoutGrid className="h-6 w-6" />
+        </Button>
+      </div>
+
+      {/* Question Navigator Modal */}
+      <Dialog open={isNavigatorOpen} onOpenChange={setIsNavigatorOpen}>
+        <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Question Navigator</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-5 gap-3 p-2">
+            {questions.map((q, idx) => {
+              const isAnswered = !!answers[q.id];
               return (
                 <button
-                  key={opt}
-                  onClick={() => setAnswers((prev) => ({ ...prev, [q.id]: opt }))}
-                  className={`w-full text-left px-4 py-2.5 rounded-lg border-2 transition-colors ${
-                    selected ? "border-primary bg-primary/10" : "border-border hover:border-primary/40"
-                  }`}
+                  key={q.id}
+                  onClick={() => scrollToQuestion(idx)}
+                  className={cn(
+                    "h-10 w-10 rounded-lg border-2 flex items-center justify-center font-bold text-sm transition-all",
+                    isAnswered
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "border-muted-foreground/30 text-muted-foreground hover:border-primary/50"
+                  )}
                 >
-                  <span className="font-semibold mr-2">{opt}.</span>
-                  <MathText text={text} />
+                  {idx + 1}
                 </button>
               );
             })}
           </div>
-        </CardContent>
-      </Card>
-      <div className="flex justify-between gap-2">
-        <Button variant="outline" disabled={current === 0} onClick={() => setCurrent((c) => c - 1)}>
-          Prev
-        </Button>
-        {current < questions.length - 1 ? (
-          <Button onClick={() => setCurrent((c) => c + 1)}>Next</Button>
-        ) : (
-          <Button onClick={handleSubmit}>Submit</Button>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
 
 export default PlayUnlimitedMock;
+
