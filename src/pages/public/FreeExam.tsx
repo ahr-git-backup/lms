@@ -63,6 +63,7 @@ const FreeExam = () => {
         .select("id, title, subject, chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
         .is("course_id", null)
         .eq("is_published", true)
+        .eq("is_readymade", false)
         // @ts-ignore
         .eq("is_visible_on_free", true);
 
@@ -81,6 +82,7 @@ const FreeExam = () => {
               .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)", { count: 'exact' })
               .is("course_id", null)
               .eq("is_published", true)
+              .eq("is_readymade", false)
               // @ts-ignore
               .eq("is_visible_on_free", true)
               .ilike("title", `%${debouncedSearch}%`)
