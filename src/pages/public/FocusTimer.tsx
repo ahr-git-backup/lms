@@ -21,10 +21,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 type Mood = "study" | "break" | "sleep";
 
-const MOOD_META: Record<Mood, { label: string; icon: typeof BookOpen; color: string; bg: string }> = {
-  study: { label: "Study", icon: BookOpen, color: "text-emerald-500", bg: "from-emerald-500 to-teal-500" },
-  break: { label: "Break", icon: Coffee, color: "text-amber-500", bg: "from-amber-500 to-orange-500" },
-  sleep: { label: "Sleep", icon: Moon, color: "text-indigo-400", bg: "from-indigo-500 to-violet-500" },
+const MOOD_META: Record<Mood, { label: string; statLabel: string; icon: typeof BookOpen; color: string; bg: string }> = {
+  study: { label: "Study", statLabel: "পড়ছে", icon: BookOpen, color: "text-emerald-500", bg: "from-emerald-500 to-teal-500" },
+  break: { label: "Break", statLabel: "বিরতিতে", icon: Coffee, color: "text-amber-500", bg: "from-amber-500 to-orange-500" },
+  sleep: { label: "Sleep", statLabel: "ঘুমাচ্ছে", icon: Moon, color: "text-indigo-400", bg: "from-indigo-500 to-violet-500" },
 };
 
 // AtlasApp-style always-on dark gradients per mood (inactive state), the vivid
@@ -876,7 +876,7 @@ const FocusTimer = () => {
                 className="flex flex-col items-center gap-0.5 rounded-xl border bg-card py-2 hover:bg-muted/50 transition-colors"
               >
                 <span className={cn("text-lg font-black", md.color)}>{count}</span>
-                <span className="text-[10px] font-bold text-muted-foreground">{md.label}</span>
+                <span className="text-[10px] font-bold text-muted-foreground">{md.statLabel}</span>
               </button>
             );
           })}
