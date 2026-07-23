@@ -85,6 +85,7 @@ import AtlasAI from "./pages/public/AtlasAI";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
 import MockTest from "./pages/dashboard/MockTest";
+import TakeMockTest from "./pages/dashboard/TakeMockTest";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
 import QuickPracticeLeaderboard from "./pages/public/QuickPracticeLeaderboard";
@@ -179,6 +180,7 @@ const App = () => {
                 <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
                 <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
                 <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+                <Route path="mock-test/:mockExamId" element={<ErrorBoundary><TakeMockTest /></ErrorBoundary>} />
                 <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
                 <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
                 <Route path="results" element={<ErrorBoundary><ExamResults /></ErrorBoundary>} />

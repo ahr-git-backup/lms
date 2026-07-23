@@ -1,77 +1,113 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ClipboardCheck, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ClipboardCheck, Plus, Trash2, Edit, Link2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { MockTestForm } from "@/components/admin/MockTestForm";
 
 const AdminMockTest = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [editingMockExam, setEditingMockExam] = useState<any>(null);
 
-  const { data: enabled, isLoading } = useQuery({
-    queryKey: ["app-setting", "mock_test_enabled"],
+  const { data: mockExams, isLoading } = useQuery({
+    queryKey: ["admin-mock-exams"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_app_setting", { p_key: "mock_test_enabled" });
+      const { data, error } = await supabase
+        .from("mock_exams")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) throw error;
-      return data === true;
+      return data || [];
     },
   });
 
-  const handleToggle = async (checked: boolean) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({ key: "mock_test_enabled", value: checked });
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("mock_exams").delete().eq("id", id);
       if (error) throw error;
-      queryClient.setQueryData(["app-setting", "mock_test_enabled"], checked);
-      toast({ title: checked ? "Mock Test enabled" : "Mock Test hidden", description: "Home page tile updated." });
-    } catch (e: any) {
-      toast({ title: "Failed to update", description: e.message, variant: "destructive" });
-    } finally {
-      setSaving(false);
-    }
-  };
+    },
+    onSuccess: () => {
+      toast({ title: "Mock Test deleted" });
+      queryClient.invalidateQueries({ queryKey: ["admin-mock-exams"] });
+    },
+    onError: (e: any) => toast({ title: "Delete failed", description: e.message, variant: "destructive" }),
+  });
+
+  if (showForm) {
+    return (
+      <MockTestForm
+        mockExam={editingMockExam}
+        onClose={() => {
+          setShowForm(false);
+          setEditingMockExam(null);
+        }}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <ClipboardCheck className="h-6 w-6 text-fuchsia-600" /> Mock Test
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage the Unlimited Mock Test feature and its visibility on the home page.
-        </p>
+    <div className="space-y-6 max-w-4xl">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <ClipboardCheck className="h-6 w-6 text-fuchsia-600" /> Unlimited Mock Test
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Standalone content ecosystem — separate from the main Exam system.
+          </p>
+        </div>
+        <Button onClick={() => setShowForm(true)}>
+          <Plus className="h-4 w-4 mr-1" /> New Mock Test
+        </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Visibility</CardTitle>
-          <CardDescription>Show the "Mock Test" tile next to Study Tracker on the home page.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex items-center gap-3">
-          {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          ) : (
-            <Switch checked={!!enabled} onCheckedChange={handleToggle} disabled={saving} />
-          )}
-          <span className="text-sm font-medium">{enabled ? "Visible to students" : "Hidden from students"}</span>
-        </CardContent>
-      </Card>
-
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="text-base">Content management</CardTitle>
-          <CardDescription>Coming soon</CardDescription>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          Full content authoring (subject/chapter/topic, CSV upload, question bank, and linking readymade exams)
-          will be added here, reusing the same building blocks as the Exam tab.
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
+        {!isLoading && (!mockExams || mockExams.length === 0) && (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No mock tests yet. Click "New Mock Test" to add subjects/chapters/topics, upload a CSV, pick from the
+              question bank, or link a readymade exam.
+            </CardContent>
+          </Card>
+        )}
+        {(mockExams || []).map((exam: any) => (
+          <Card key={exam.id}>
+            <CardHeader className="flex flex-row items-center justify-between py-4">
+              <div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {exam.title}
+                  {exam.is_published ? (
+                    <Badge className="bg-green-500/10 text-green-700 border-green-500/20">Published</Badge>
+                  ) : (
+                    <Badge variant="outline">Draft</Badge>
+                  )}
+                  {exam.linked_exam_id && (
+                    <Badge variant="secondary" className="gap-1"><Link2 className="h-3 w-3" /> Linked</Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>
+                  {[exam.subject, exam.chapter, exam.topic].filter(Boolean).join(" • ") || "No subject/chapter/topic set"}
+                  {" · "}{exam.duration_minutes} min
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button variant="outline" size="icon" onClick={() => { setEditingMockExam(exam); setShowForm(true); }}>
+                  <Edit className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="icon" onClick={() => deleteMutation.mutate(exam.id)}>
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </CardHeader>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };
