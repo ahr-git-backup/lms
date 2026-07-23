@@ -55,6 +55,20 @@ export const useStudyTools = () => {
   return context;
 };
 
+// Safe variant for components that may render outside StudyToolsProvider
+// (e.g. the public/guest take-exam and exam-review routes, which sit
+// outside DashboardLayout). Returns no-op functions instead of throwing.
+export const useStudyToolsOptional = () => {
+  const context = useContext(StudyToolsContext);
+  if (!context) {
+    return {
+      updateStreak: async () => {},
+      updateStats: async () => {},
+    };
+  }
+  return context;
+};
+
 // Sound Assets
 export const SOUNDS = [
   { id: "rain", name: "Rain", url: "https://cdn.pixabay.com/audio/2025/07/23/audio_63d9f37e74.mp3" },

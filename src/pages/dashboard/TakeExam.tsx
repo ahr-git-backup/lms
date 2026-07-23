@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
-import { useStudyTools } from "@/contexts/StudyToolsContext";
+import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
@@ -105,7 +105,7 @@ const TakeExam = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, profile, loading: authLoading } = useAuth();
-  const { updateStreak, updateStats } = useStudyTools();
+  const { updateStreak, updateStats } = useStudyToolsOptional();
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
 
   // Guest (login-free) attempt support — only relevant when there's no
