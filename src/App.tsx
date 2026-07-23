@@ -66,6 +66,7 @@ import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
+import AdminMockTest from "./pages/dashboard/admin/AdminMockTest";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
@@ -83,6 +84,7 @@ import StudyHistory from "./pages/public/StudyHistory";
 import AtlasAI from "./pages/public/AtlasAI";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
+import MockTest from "./pages/dashboard/MockTest";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
 import QuickPracticeLeaderboard from "./pages/public/QuickPracticeLeaderboard";
@@ -168,6 +170,7 @@ const App = () => {
               <Route path="/pomodoro" element={<ErrorBoundary><Pomodoro /></ErrorBoundary>} />
               <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />
+              <Route path="/mock-test" element={<ErrorBoundary><MockTest /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
@@ -224,6 +227,7 @@ const App = () => {
                 <Route path="reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
+                <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockTest /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
                 <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />

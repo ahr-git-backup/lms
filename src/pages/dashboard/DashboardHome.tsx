@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -483,6 +483,18 @@ const DashboardHome = () => {
               <div>
                 <p className="font-semibold text-sm">Quick Practice</p>
                 <p className="text-xs text-muted-foreground">Manage content</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20 col-span-2"
+            onClick={() => navigate("/admin/mock-test")}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <ClipboardCheck className="h-6 w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+              <div>
+                <p className="font-semibold text-sm">Mock Test</p>
+                <p className="text-xs text-muted-foreground">Manage content &amp; visibility on home page</p>
               </div>
             </CardContent>
           </Card>
