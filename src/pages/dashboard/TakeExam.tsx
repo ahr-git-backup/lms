@@ -897,31 +897,31 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex flex-col items-center justify-center pt-8 pb-6 p-4 space-y-4">
+          <div className="min-h-screen bg-background flex flex-col items-center justify-start pt-2 p-3 space-y-2">
               {/* Card 1: Header/Info */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-4">
-                      <div className="text-center space-y-1.5">
-                          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{exam.title}</h1>
-                          <p className="text-muted-foreground text-sm">Please review the details below before starting.</p>
+                  <div className="p-3 md:p-4 space-y-2.5">
+                      <div className="text-center space-y-0.5">
+                          <h1 className="text-lg font-bold tracking-tight">{exam.title}</h1>
+                          <p className="text-muted-foreground text-[11px]">Please review the details below before starting.</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-primary">
+                      <div className="grid grid-cols-3 gap-2.5">
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-primary">
                                   {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
                                       ? Math.ceil((selectedQuestionCount * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Questions</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-red-500">{exam.negative_mark_per_question}</span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Negative</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-xl">
+                              <span className="text-base font-bold text-red-500">{exam.negative_mark_per_question}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Negative</span>
                           </div>
                       </div>
                   </div>
@@ -930,12 +930,12 @@ const TakeExam = () => {
               {/* Card: Quick Practice Mode toggle */}
               {exam.is_readymade && !exam.external_exam_link && (
                   <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
-                      <div className="px-5 py-4 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                              <Zap className="h-5 w-5 text-violet-500 shrink-0" />
+                      <div className="px-4 py-3 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                              <Zap className="h-4 w-4 text-violet-500 shrink-0" />
                               <div className="min-w-0">
-                                  <p className="text-sm font-bold truncate">Quick Practice Mode</p>
-                                  <p className="text-xs text-muted-foreground leading-snug">
+                                  <p className="text-xs font-bold truncate">Quick Practice Mode</p>
+                                  <p className="text-[10px] text-muted-foreground leading-tight">
                                       Quiz-style: প্রতি প্রশ্নে ৩০ সেকেন্ড, উত্তর দিলেই সাথে সাথে সঠিক/ভুল দেখাবে, মাঝপথে শেষ করা যাবে।
                                   </p>
                               </div>
@@ -996,15 +996,15 @@ const TakeExam = () => {
                               </div>
                           </div>
                       )}
-                      <div className="px-5 pt-3">
-                          <p className="text-sm font-bold text-foreground">
+                      <div className="px-4 pt-2">
+                          <p className="text-[11px] font-bold text-foreground">
                               যদি নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চান, নিচের বক্সে সংখ্যা লিখুন। খালি রাখলে সব MCQ দিয়ে পরীক্ষা শুরু হবে।
                           </p>
                       </div>
-                      <div className="px-5 py-3 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                              <Zap className="h-5 w-5 text-violet-500 shrink-0" />
-                              <span className="text-sm font-semibold truncate">MCQs to attempt</span>
+                      <div className="px-4 py-2 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                              <Zap className="h-3.5 w-3.5 text-violet-500 shrink-0" />
+                              <span className="text-xs font-semibold truncate">MCQs to attempt</span>
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0">
@@ -1079,8 +1079,8 @@ const TakeExam = () => {
                               </button>
                           </div>
                       </div>
-                      <div className="px-5 pb-2 -mt-1">
-                          <span className="text-xs text-muted-foreground">
+                      <div className="px-4 pb-1.5 -mt-1">
+                          <span className="text-[10px] text-muted-foreground">
                               Tap the number to type directly · Max {effectiveQuestions?.length || 0}
                           </span>
                       </div>
@@ -1089,18 +1089,18 @@ const TakeExam = () => {
 
               {/* Card 2: Instructions */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-2.5">
-                      <h3 className="text-base font-semibold flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  <div className="p-3 md:p-4 space-y-1.5">
+                      <h3 className="text-xs font-semibold flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500" />
                           Instructions
                       </h3>
-                      <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto">
+                      <div className="text-xs text-muted-foreground leading-relaxed max-h-16 overflow-y-auto">
                           {exam.instructions ? (
                               <div className="prose prose-sm max-w-none dark:prose-invert">
                                   <MathText text={exam.instructions} />
                               </div>
                           ) : (
-                              <ul className="list-disc pl-5 space-y-1">
+                              <ul className="list-disc pl-4 space-y-0.5">
                                   <li>Ensure you have a stable internet connection.</li>
                                   <li>Do not switch tabs or windows. Violations are recorded.</li>
                                   <li>The exam will auto-submit when the timer ends.</li>
@@ -1113,28 +1113,28 @@ const TakeExam = () => {
 
               {/* Card 3: Actions */}
               <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-4">
-                      <div className="flex items-center space-x-2.5 p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="p-3 md:p-4 space-y-2">
+                      <div className="flex items-center space-x-2 p-1 rounded-lg hover:bg-muted/50 transition-colors">
                           <Checkbox
                               id="terms"
                               checked={agreedToInstructions}
                               onCheckedChange={(c) => setAgreedToInstructions(!!c)}
-                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
                           />
                           <label
                               htmlFor="terms"
-                              className="text-sm font-medium leading-none cursor-pointer flex-1"
+                              className="text-xs font-medium leading-none cursor-pointer flex-1"
                           >
                               I have read and understood the instructions.
                           </label>
                       </div>
 
                       <div className="flex gap-3">
-                          <Button variant="outline" className="flex-1 h-12 text-base rounded-xl" onClick={() => navigate(-1)}>
+                          <Button variant="outline" className="flex-1 h-10 rounded-xl" onClick={() => navigate(-1)}>
                               Cancel
                           </Button>
                           <Button
-                              className="flex-[2] h-12 text-base rounded-xl font-semibold shadow-md"
+                              className="flex-[2] h-10 rounded-xl font-semibold shadow-md"
                               onClick={() => {
                                   if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !isQuickPracticeMode && !contentMode) {
                                       toast({
