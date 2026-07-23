@@ -141,6 +141,7 @@ const Index = () => {
 
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (
+            <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
             <section id="special-exams" className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
@@ -245,6 +246,7 @@ const Index = () => {
                     })}
                 </div>
             </section>
+            </div>
         )}
 
 
@@ -252,9 +254,12 @@ const Index = () => {
         <QuickActionsSection />
 
         {/* Paid Courses Section (Grid View) */}
+        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
         <CourseSection />
+        </div>
 
         {/* Free Service/Courses Section */}
+        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}>
         <section id="free-resources" className="space-y-6">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">ফ্রি লার্নিং রিসোর্স</h2>
@@ -299,8 +304,10 @@ const Index = () => {
                 </Card>
             </div>
         </section>
+        </div>
 
         {/* Unique Services Section */}
+        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
         <section className="space-y-6">
             <div className="text-center md:text-left">
                 <h2 className="text-2xl font-semibold tracking-tight">আমাদের বিশেষত্ব</h2>
@@ -324,8 +331,10 @@ const Index = () => {
                  </div>
             </div>
         </section>
+        </div>
 
         {/* Success Stats Section */}
+        <div className="animate-border-chase rounded-2xl border p-4 sm:p-6" style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}>
         <section id="success-stories" className="space-y-6">
              <div className="text-center space-y-2">
                 <h2 className="text-2xl font-semibold tracking-tight">সাফল্যের গল্প</h2>
@@ -345,6 +354,7 @@ const Index = () => {
                  ))}
              </div>
         </section>
+        </div>
 
         {/* Student Reviews */}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
