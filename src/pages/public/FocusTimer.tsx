@@ -132,7 +132,7 @@ const FocusTimer = () => {
   const accumulatedStudyRef = useRef(0); // study seconds accumulated before the current live study segment
   const pauseStartRef = useRef<number | null>(null);
   const autoSleepCheckRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ title: string; sub: string; mood?: Mood } | null>(null);
   const [stopStats, setStopStats] = useState<{ studySeconds: number; breaks: number; sleepSeconds: number } | null>(null);
   const sleepSecsRef = useRef(0); // accumulated sleep seconds across this run (for the stop summary)
   const [sessionNumber, setSessionNumber] = useState(1);
@@ -399,7 +399,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "sleep", elapsed: pausedSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    setToast("🌙 রাতে দীর্ঘ বিরতি দেখে Sleep Mode চালু হলো");
+    setToast({ title: "Sleep মোড চালু", sub: "দীর্ঘ সময় নিষ্ক্রিয় দেখে স্বয়ংক্রিয়ভাবে চালু হলো", mood: "sleep" });
     setTimeout(() => setToast(null), 4000);
   };
 
@@ -417,7 +417,7 @@ const FocusTimer = () => {
   // markup but is never actually triggered in the real code, so real behavior is instant switch.
   const requestSwitchMood = (m: Mood) => {
     if (!running) {
-      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setToast({ title: "আগে পড়াশোনা শুরু করো", sub: "Study মোড চালু না করলে মোড পরিবর্তন করা যাবে না" });
       setTimeout(() => setToast(null), 2500);
       return;
     }
@@ -443,7 +443,7 @@ const FocusTimer = () => {
 
   const switchMood = async (m: Mood) => {
     if (!running) {
-      setToast("⚠️ আগে পড়াশোনা শুরু করো");
+      setToast({ title: "আগে পড়াশোনা শুরু করো", sub: "Study মোড চালু না করলে মোড পরিবর্তন করা যাবে না" });
       setTimeout(() => setToast(null), 2500);
       return;
     }
@@ -493,9 +493,13 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: m, elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    const moodStartNames: Record<Mood, string> = { study: "📚 Study", break: "☕ বিরতি", sleep: "😴 ঘুম" };
-    setToast(`${moodStartNames[m]} শুরু হলো`);
-    setTimeout(() => setToast(null), 2500);
+    const moodToastCopy: Record<Mood, { title: string; sub: string; mood: Mood }> = {
+      study: { title: "Study মোড চালু", sub: "মনোযোগ ধরে রাখো, সময় এখন গুনছে", mood: "study" },
+      break: { title: "বিরতি চালু", sub: "কিছুক্ষণ রিল্যাক্স করো, তারপর আবার ফিরে আসো", mood: "break" },
+      sleep: { title: "ঘুম মোড চালু", sub: "ভালো ঘুম মানে পরদিনের ভালো প্রস্তুতি", mood: "sleep" },
+    };
+    setToast(moodToastCopy[m]);
+    setTimeout(() => setToast(null), 3000);
   };
 
   // Break time limit reached — auto-return to Study mood.
@@ -525,7 +529,7 @@ const FocusTimer = () => {
     startTicking();
     saveState({ sessionId: id, mood: "study", elapsed: resumeSecs, paused: false, userId: user!.id, savedAt: Date.now() });
     refetchLeaderboard();
-    setToast("⏰ বিরতির সময় শেষ — Study Mood এ ফিরে এলে");
+    setToast({ title: "বিরতির সময় শেষ", sub: "Study মোডে ফিরে এলে", mood: "study" });
     setTimeout(() => setToast(null), 4000);
   };
 
@@ -1106,8 +1110,32 @@ const FocusTimer = () => {
       </div>
 
       {toast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[60] bg-card border shadow-lg rounded-xl px-4 py-2.5 text-sm font-bold max-w-[90vw] text-center">
-          {toast}
+        <div
+          className={cn(
+            "fixed top-16 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-3 rounded-2xl border px-4 py-3 shadow-xl backdrop-blur-md max-w-[92vw] animate-in fade-in slide-in-from-top-2",
+            toast.mood
+              ? "bg-gradient-to-br " + MOOD_META[toast.mood].bg + " border-white/20"
+              : "bg-card border-destructive/30"
+          )}
+        >
+          <div className={cn(
+            "h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0",
+            toast.mood ? "bg-white/20" : "bg-destructive/10"
+          )}>
+            {toast.mood ? (
+              (() => { const ToastIcon = MOOD_META[toast.mood].icon; return <ToastIcon className="h-4.5 w-4.5 text-white" />; })()
+            ) : (
+              <BookOpen className="h-4.5 w-4.5 text-destructive" />
+            )}
+          </div>
+          <div className="text-left">
+            <p className={cn("text-sm font-black leading-tight", toast.mood ? "text-white" : "text-foreground")}>
+              {toast.title}
+            </p>
+            <p className={cn("text-[11px] font-medium leading-tight mt-0.5", toast.mood ? "text-white/85" : "text-muted-foreground")}>
+              {toast.sub}
+            </p>
+          </div>
         </div>
       )}
 
