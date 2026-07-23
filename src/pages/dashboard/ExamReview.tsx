@@ -541,7 +541,7 @@ const ExamReview = () => {
                         <div className="text-center flex-shrink-0 pr-4 border-r border-border/60">
                              <div className="text-4xl font-extrabold text-primary">
                                 {Number(score).toFixed(2)}
-                                <span className="text-lg text-muted-foreground font-normal"> / {displayTotalMarks}</span>
+                                <span className="text-4xl text-muted-foreground font-extrabold"> / {displayTotalMarks}</span>
                              </div>
                              <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                         </div>
