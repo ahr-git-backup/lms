@@ -428,8 +428,8 @@ const ExamReview = () => {
                     <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
                  </Button>
                  {user && (
-                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-3 py-2 w-full sm:w-auto">
-                    <ListChecks className="h-5 w-5 mr-1.5 text-red-500 shrink-0" /> <span className="truncate">Mistake Practice</span>
+                 <Button variant="outline" onClick={() => setIsMistakeDialogOpen(true)} className="h-10 px-2 py-2 w-full sm:w-auto">
+                    <ListChecks className="h-5 w-5 mr-1 text-red-500 shrink-0" /> <span className="text-sm whitespace-nowrap">Mistake Practice</span>
                  </Button>
                  )}
                  {user && (
