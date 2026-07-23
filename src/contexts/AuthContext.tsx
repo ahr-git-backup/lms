@@ -185,7 +185,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       });
 
       if (error) {
-        return { error: { message: "Invalid registration ID or password" } };
+        // Only mask genuine wrong-credential errors with the friendly message.
+        // Anything else (network failure, service unavailable, rate limit)
+        // should surface honestly — otherwise a real infrastructure problem
+        // looks identical to "wrong password" and can't be diagnosed or
+        // reported correctly by the user.
+        const code = (error as { message?: string; status?: number }).message || "";
+        const isCredentialError = /invalid login credentials|invalid.*credentials/i.test(code);
+        if (isCredentialError) {
+          return { error: { message: "Invalid registration ID or password" } };
+        }
+        return { error: { message: `লগইন করা যায়নি: ${code || "অজানা সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।` } };
       }
 
       if (data.user) {
@@ -228,7 +238,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { error: null };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
-      return { error: { message: "Invalid registration ID or password" } };
+      // bug fix: this used to show "Invalid registration ID or password" for
+      // EVERY failure, including network errors or the auth service being
+      // temporarily unreachable — which made a real infrastructure problem
+      // indistinguishable from an actually wrong password, and impossible to
+      // diagnose from a screenshot/report. Surface the real reason instead.
+      return {
+        error: {
+          message: `লগইন করা যায়নি: ${error?.message || "নেটওয়ার্ক সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।`,
+        },
+      };
     }
   }, []); // Dependencies likely just supabase (imported)
 
