@@ -348,6 +348,32 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                 <Badge variant="secondary" className="text-[10px] py-0">+{exam.subject.length - 3}</Badge>
                                             )}
                                         </div>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="mt-1 text-xs h-7"
+                                            onClick={async (e) => {
+                                                e.stopPropagation();
+                                                const { data, error } = await supabase
+                                                    .from("exam_questions")
+                                                    .select("*")
+                                                    .eq("exam_id", exam.id)
+                                                    .order("question_index", { ascending: true });
+                                                if (error) {
+                                                    console.error(error);
+                                                    return;
+                                                }
+                                                const mapped = (data || []).map((q: any) => ({
+                                                    question: q.question_text,
+                                                    options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                                                    correct_answer: q.correct_option,
+                                                    explanation: q.explanation || "",
+                                                }));
+                                                onSelect(mapped);
+                                            }}
+                                        >
+                                            পুরো এক্সাম যোগ করুন (সব MCQ)
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
