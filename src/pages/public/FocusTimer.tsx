@@ -1459,6 +1459,7 @@ const FocusTimer = () => {
         );
       })()}
     </div>
+    </div>
   );
 };
 
