@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Clock, CheckCircle2 } from "lucide-react";
+import { Clock, CheckCircle2, XCircle, SkipForward, RotateCcw, BookOpen } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import MathText from "@/components/MathText";
@@ -17,6 +17,8 @@ interface PoolQuestion {
   correct_option: string;
   explanation?: string;
 }
+
+const NEGATIVE_MARK = 0.25;
 
 const PlayUnlimitedMock = () => {
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ const PlayUnlimitedMock = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [secondsLeft, setSecondsLeft] = useState(minutes * 60);
   const [submitted, setSubmitted] = useState(false);
+  const [filter, setFilter] = useState<"all" | "correct" | "wrong" | "skipped">("all");
 
   useEffect(() => {
     if (questions.length === 0) {
@@ -53,13 +56,20 @@ const PlayUnlimitedMock = () => {
     return () => clearTimeout(t);
   }, [secondsLeft, submitted]);
 
-  const score = useMemo(() => {
-    let s = 0;
+  const stats = useMemo(() => {
+    let correct = 0,
+      wrong = 0,
+      skipped = 0;
     questions.forEach((q) => {
-      if (answers[q.id] && answers[q.id] === q.correct_option) s += 1;
+      const ua = answers[q.id];
+      if (!ua) skipped++;
+      else if (ua === q.correct_option) correct++;
+      else wrong++;
     });
-    return s;
-  }, [answers, questions, submitted]);
+    const negMark = wrong * NEGATIVE_MARK;
+    const finalScore = correct - negMark;
+    return { correct, wrong, skipped, negMark, finalScore };
+  }, [answers, questions]);
 
   const handleSubmit = async () => {
     if (submitted) return;
@@ -69,7 +79,7 @@ const PlayUnlimitedMock = () => {
         await supabase.from("mock_exam_attempts").insert({
           mock_exam_id: null,
           user_id: user.id,
-          score,
+          score: stats.finalScore,
           total_marks: questions.length,
           answers,
           submitted_at: new Date().toISOString(),
@@ -80,17 +90,165 @@ const PlayUnlimitedMock = () => {
     }
   };
 
+  const retakeExam = () => {
+    setAnswers({});
+    setCurrent(0);
+    setSecondsLeft(minutes * 60);
+    setSubmitted(false);
+    setFilter("all");
+  };
+
+  const mistakePractice = () => {
+    const wrongQs = questions.filter((q) => answers[q.id] && answers[q.id] !== q.correct_option);
+    if (wrongQs.length === 0) return;
+    sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(wrongQs));
+    sessionStorage.setItem("unlimitedMockTitle", `${title} — Mistake Practice`);
+    sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(wrongQs.length / 1.5)));
+    window.location.reload();
+  };
+
   if (questions.length === 0) return null;
 
   if (submitted) {
+    const scoreClass =
+      stats.finalScore > 0 ? "text-green-500" : stats.finalScore < 0 ? "text-red-500" : "text-muted-foreground";
+
+    const visibleQuestions = questions.filter((q) => {
+      if (filter === "all") return true;
+      const ua = answers[q.id];
+      const status = !ua ? "skipped" : ua === q.correct_option ? "correct" : "wrong";
+      return status === filter;
+    });
+
     return (
-      <div className="max-w-lg mx-auto py-10 space-y-4 text-center">
-        <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
-        <h2 className="text-xl font-bold">পরীক্ষা শেষ!</h2>
-        <p className="text-2xl font-bold text-primary">
-          {score} / {questions.length}
-        </p>
-        <Button onClick={() => navigate("/dashboard/mock-test")}>আবার টেস্ট দিন</Button>
+      <div className="max-w-2xl mx-auto py-6 space-y-5">
+        <Card>
+          <CardContent className="pt-6 text-center space-y-1">
+            <p className="text-xs text-muted-foreground">{title}</p>
+            <p className={`text-4xl font-extrabold ${scoreClass}`}>
+              {stats.finalScore.toFixed(2)}
+              <span className="text-lg text-muted-foreground font-medium"> / {questions.length}</span>
+            </p>
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <div>
+            <p className="text-lg font-bold text-green-500">{stats.correct}</p>
+            <p className="text-[10px] text-muted-foreground">সঠিক</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-red-500">{stats.wrong}</p>
+            <p className="text-[10px] text-muted-foreground">ভুল</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-amber-500">{stats.skipped}</p>
+            <p className="text-[10px] text-muted-foreground">স্কিপ</p>
+          </div>
+          <div>
+            <p className="text-lg font-bold text-red-400">-{stats.negMark.toFixed(2)}</p>
+            <p className="text-[10px] text-muted-foreground">নেগেটিভ</p>
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button variant="outline" className="flex-1" onClick={retakeExam}>
+            <RotateCcw className="h-4 w-4 mr-1" /> Practice Again
+          </Button>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={mistakePractice}
+            disabled={stats.wrong === 0}
+          >
+            <XCircle className="h-4 w-4 mr-1" /> Mistake Practice
+          </Button>
+        </div>
+
+        <div className="flex gap-1.5 flex-wrap">
+          {(["all", "correct", "wrong", "skipped"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border-2 ${
+                filter === f
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground"
+              }`}
+            >
+              {f === "all" ? "সব" : f === "correct" ? "সঠিক" : f === "wrong" ? "ভুল" : "স্কিপ"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {visibleQuestions.map((q, i) => {
+            const ua = answers[q.id];
+            const status = !ua ? "skipped" : ua === q.correct_option ? "correct" : "wrong";
+            return (
+              <Card key={q.id}>
+                <CardContent className="p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      প্রশ্ন {questions.indexOf(q) + 1}/{questions.length}
+                    </span>
+                    {status === "correct" && (
+                      <span className="text-xs font-semibold text-green-500 flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> সঠিক
+                      </span>
+                    )}
+                    {status === "wrong" && (
+                      <span className="text-xs font-semibold text-red-500 flex items-center gap-1">
+                        <XCircle className="h-3.5 w-3.5" /> ভুল
+                      </span>
+                    )}
+                    {status === "skipped" && (
+                      <span className="text-xs font-semibold text-amber-500 flex items-center gap-1">
+                        <SkipForward className="h-3.5 w-3.5" /> স্কিপ
+                      </span>
+                    )}
+                  </div>
+                  <MathText text={q.question_text} />
+                  <div className="space-y-1.5">
+                    {(["A", "B", "C", "D"] as const).map((opt) => {
+                      const text = q[`option_${opt.toLowerCase()}` as "option_a"];
+                      if (!text) return null;
+                      const isCorrect = opt === q.correct_option;
+                      const isUserWrong = opt === ua && ua !== q.correct_option;
+                      return (
+                        <div
+                          key={opt}
+                          className={`px-3 py-1.5 rounded-md text-sm border ${
+                            isCorrect
+                              ? "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-400 font-medium"
+                              : isUserWrong
+                              ? "bg-red-500/10 border-red-500/30 text-red-700 dark:text-red-400 line-through"
+                              : "border-border"
+                          }`}
+                        >
+                          <span className="font-semibold mr-1.5">{opt}.</span>
+                          <MathText text={text} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {q.explanation && (
+                    <div className="bg-muted/50 border-l-2 border-primary rounded-r-md px-3 py-2 text-xs">
+                      <p className="font-semibold text-primary mb-1 flex items-center gap-1">
+                        <BookOpen className="h-3 w-3" /> ব্যাখ্যা
+                      </p>
+                      <p className="text-muted-foreground">{q.explanation}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <Button className="w-full" variant="outline" onClick={() => navigate("/dashboard/mock-test")}>
+          এক্সাম লিস্টে যান
+        </Button>
       </div>
     );
   }
@@ -149,3 +307,4 @@ const PlayUnlimitedMock = () => {
 };
 
 export default PlayUnlimitedMock;
+
