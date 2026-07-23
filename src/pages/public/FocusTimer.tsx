@@ -583,8 +583,7 @@ const FocusTimer = () => {
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
-
-      <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-card border-b">
+      <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-2.5 bg-card border-b">
         <button
           onClick={() => navigate("/")}
           className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted"
@@ -599,7 +598,7 @@ const FocusTimer = () => {
         )}
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 pt-5 space-y-6">
+      <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
         {showIntro && (
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
