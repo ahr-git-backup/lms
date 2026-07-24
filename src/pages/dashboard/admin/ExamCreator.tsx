@@ -127,6 +127,7 @@ const ExamCreator = () => {
                         B: q.option_b,
                         C: q.option_c,
                         D: q.option_d,
+                        ...(q.option_e ? { E: q.option_e } : {}),
                     },
                     correct_answer: q.correct_option,
                     explanation: q.explanation || "",
@@ -258,6 +259,7 @@ const ExamCreator = () => {
               option_b: q.options.B,
               option_c: q.options.C,
               option_d: q.options.D,
+              option_e: q.options.E || null,
               correct_option: q.correct_answer,
               explanation: q.explanation,
               marks: 1,
@@ -296,7 +298,7 @@ const ExamCreator = () => {
              const loaded = refreshedData.map((q: any) => ({
                 id: q.id,
                 question: q.question_text,
-                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d, ...(q.option_e ? { E: q.option_e } : {}) },
                 correct_answer: q.correct_option,
                 explanation: q.explanation || "",
                 subject: q.subject || "",
@@ -354,6 +356,7 @@ const ExamCreator = () => {
               option_b: q.options.B,
               option_c: q.options.C,
               option_d: q.options.D,
+              option_e: q.options.E || null,
               correct_option: q.correct_answer,
               explanation: q.explanation,
               marks: 1,
@@ -387,7 +390,7 @@ const ExamCreator = () => {
              const loaded = refreshedData.map((q: any) => ({
                 id: q.id,
                 question: q.question_text,
-                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d, ...(q.option_e ? { E: q.option_e } : {}) },
                 correct_answer: q.correct_option,
                 explanation: q.explanation || "",
                 subject: q.subject || "",
@@ -464,6 +467,7 @@ const ExamCreator = () => {
         option_b: q.options.B,
         option_c: q.options.C,
         option_d: q.options.D,
+        option_e: q.options.E || null,
         correct_option: q.correct_answer,
         explanation: q.explanation,
         marks: 1,
@@ -513,7 +517,7 @@ const ExamCreator = () => {
                         }
                     }
 
-                    // If options are empty strings, build from column format: option1, option2, option3, option4
+                    // If options are empty strings, build from column format: option1, option2, option3, option4, option5
                     if (options.A === "" && options.B === "") {
                          options = {
                             A: q.option1 || q.option_a || q.A || q["Option A"] || "",
@@ -521,13 +525,16 @@ const ExamCreator = () => {
                             C: q.option3 || q.option_c || q.C || q["Option C"] || "",
                             D: q.option4 || q.option_d || q.D || q["Option D"] || ""
                         };
+                        const optionE = q.option5 || q.option_e || q.E || q["Option E"] || "";
+                        if (optionE) options.E = optionE;
                     }
 
-                    // Map answer number to letter (1->A, 2->B, 3->C, 4->D)
+                    // Map answer number to letter (1->A, 2->B, 3->C, 4->D, 5->E)
                     if (correct_answer === "1") correct_answer = "A";
                     else if (correct_answer === "2") correct_answer = "B";
                     else if (correct_answer === "3") correct_answer = "C";
                     else if (correct_answer === "4") correct_answer = "D";
+                    else if (correct_answer === "5") correct_answer = "E";
                 }
 
                 // Parse tags if it's a string in CSV
