@@ -232,6 +232,46 @@ const ExamCreator = () => {
 
   const handleSaveToDatabase = async () => {
       if (!examId) return;
+
+      // Validate each question BEFORE saving, so admin knows exactly which
+      // question (by number) has which problem.
+      const problems: string[] = [];
+      questions.forEach((q, idx) => {
+          const qNum = idx + 1;
+          if (!q.question || !q.question.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: প্রশ্নের লেখা (Question Text) খালি আছে`);
+          }
+          if (!q.options.A || !q.options.A.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: Option A খালি আছে`);
+          }
+          if (!q.options.B || !q.options.B.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: Option B খালি আছে`);
+          }
+          if (!q.options.C || !q.options.C.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: Option C খালি আছে`);
+          }
+          if (!q.options.D || !q.options.D.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: Option D খালি আছে`);
+          }
+          if (!q.correct_answer || !q.correct_answer.trim()) {
+              problems.push(`প্রশ্ন #${qNum}: সঠিক উত্তর (Correct Answer) নির্বাচন করা হয়নি`);
+          } else if (!["A", "B", "C", "D", "E"].includes(q.correct_answer)) {
+              problems.push(`প্রশ্ন #${qNum}: সঠিক উত্তর "${q.correct_answer}" — এটি A/B/C/D/E এর মধ্যে না`);
+          } else if (q.correct_answer === "E" && (!q.options.E || !q.options.E.trim())) {
+              problems.push(`প্রশ্ন #${qNum}: সঠিক উত্তর E সিলেক্ট করা কিন্তু Option E খালি আছে`);
+          }
+      });
+
+      if (problems.length > 0) {
+          toast({
+              title: `${problems.length} টি সমস্যা পাওয়া গেছে — Save হয়নি`,
+              description: problems.slice(0, 6).join("\n") + (problems.length > 6 ? `\n...আরও ${problems.length - 6} টি সমস্যা আছে` : ""),
+              variant: "destructive",
+              duration: 15000,
+          });
+          return;
+      }
+
       if (!confirm("This will update existing questions. Continue?")) return;
 
       setIsSaving(true);
@@ -278,10 +318,31 @@ const ExamCreator = () => {
               if (delError) throw delError;
           }
 
-          // 4. Upsert Questions
+          // 4. Upsert Questions (one-by-one so a single bad row doesn't hide
+          // which question actually failed on the DB side, e.g. a check
+          // constraint violation on correct_option or a bad exam_code).
           if (upsertData.length > 0) {
-              const { error: upsertError } = await supabase.from("exam_questions").upsert(upsertData);
-              if (upsertError) throw upsertError;
+              const failedRows: { qNum: number; message: string }[] = [];
+              for (let i = 0; i < upsertData.length; i++) {
+                  const { error: rowError } = await supabase.from("exam_questions").upsert([upsertData[i]]);
+                  if (rowError) {
+                      failedRows.push({ qNum: i + 1, message: rowError.message });
+                  }
+              }
+              if (failedRows.length > 0) {
+                  const desc = failedRows
+                      .slice(0, 6)
+                      .map(f => `প্রশ্ন #${f.qNum}: ${f.message}`)
+                      .join("\n") + (failedRows.length > 6 ? `\n...আরও ${failedRows.length - 6} টি প্রশ্নে সমস্যা আছে` : "");
+                  toast({
+                      title: `${failedRows.length} টি প্রশ্ন Save হয়নি`,
+                      description: desc,
+                      variant: "destructive",
+                      duration: 15000,
+                  });
+                  setIsSaving(false);
+                  return;
+              }
           }
 
           toast({ title: "Success", description: "Exam questions saved and re-indexed successfully." });
