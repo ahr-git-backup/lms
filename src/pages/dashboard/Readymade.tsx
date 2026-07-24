@@ -58,6 +58,31 @@ const Readymade = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
+  const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
+
+  const { data: boards } = useQuery({
+    queryKey: ["readymade-boards", enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
+    queryFn: async () => {
+      const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
+      const filter = buildEnrollmentFilter(enrolledIds);
+      const data = await fetchAllRows<{ readymade_category: string | null }>((from, to) => {
+        let query = supabase
+          .from("exams")
+          .select("readymade_category")
+          .eq("is_readymade", true)
+          .eq("is_published", true)
+          .not("readymade_category", "is", null)
+          .range(from, to);
+        if (selectedParentTopics.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        if (filter) query = query.or(filter);
+        else query = query.eq("is_visible_on_free", true);
+        return query;
+      });
+      const unique = new Set<string>();
+      data.forEach(row => { if (row.readymade_category) unique.add(row.readymade_category); });
+      return Array.from(unique).sort().map(b => ({ label: b, value: b }));
+    }
+  });
 
   const { data: parentTopics } = useQuery({
     queryKey: ["readymade-parent-topics", enrollments?.map((e: any) => e.course_id).join(',')],
@@ -108,6 +133,8 @@ const Readymade = () => {
         if (s.searchQuery) { setSearchQuery(s.searchQuery); setDebouncedSearch(s.searchQuery); setIsSearchExpanded(true); }
         if (typeof s.page === "number") setPage(s.page);
         if (Array.isArray(s.selectedParentTopics)) setSelectedParentTopics(s.selectedParentTopics);
+        if (Array.isArray(s.selectedBoards)) setSelectedBoards(s.selectedBoards);
+        if (Array.isArray(s.selectedBoards)) setSelectedBoards(s.selectedBoards);
       }
     } catch { /* ignore */ }
     hasRestoredRef.restored = true;
@@ -121,11 +148,11 @@ const Readymade = () => {
     if (!hasRestoredRef.restored) return;
     try {
       sessionStorage.setItem(READYMADE_STATE_KEY, JSON.stringify({
-        selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics,
+        selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards,
       }));
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics]);
+  }, [selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards]);
 
   useEffect(() => { document.title = "Readymade – Atlas"; }, []);
 
@@ -174,7 +201,7 @@ const Readymade = () => {
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
             size="sm"
             className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
-            onClick={() => { setPage(0); setSelectedParentTopics([]); }}
+            onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); }}
           >
             All
           </Button>
@@ -186,12 +213,42 @@ const Readymade = () => {
               className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
               onClick={() => {
                 setPage(0);
+                setSelectedBoards([]);
                 setSelectedParentTopics(prev =>
                   prev.includes(topic.value) ? prev.filter(t => t !== topic.value) : [...prev, topic.value]
                 );
               }}
             >
               {topic.label}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {!selectedSubject && boards && boards.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
+          <Button
+            variant={selectedBoards.length === 0 ? "default" : "outline"}
+            size="sm"
+            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
+            onClick={() => { setPage(0); setSelectedBoards([]); }}
+          >
+            All Boards
+          </Button>
+          {boards.map(board => (
+            <Button
+              key={board.value}
+              variant={selectedBoards.includes(board.value) ? "default" : "outline"}
+              size="sm"
+              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
+              onClick={() => {
+                setPage(0);
+                setSelectedBoards(prev =>
+                  prev.includes(board.value) ? prev.filter(b => b !== board.value) : [...prev, board.value]
+                );
+              }}
+            >
+              {board.label}
             </Button>
           ))}
         </div>
@@ -257,6 +314,7 @@ const Readymade = () => {
           page={page}
           setPage={setPage}
           selectedParentTopics={selectedParentTopics}
+          selectedBoards={selectedBoards}
           setCurrentChaptersList={setCurrentChaptersList}
           setCurrentSubjectsList={setCurrentSubjectsList}
         />
@@ -266,7 +324,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, setCurrentChaptersList, setCurrentSubjectsList }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
   const filterOrClause = buildEnrollmentFilter(enrolledIds);
@@ -278,7 +336,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- SEARCH ---
   const { data: searchResults, isLoading: searching } = useQuery({
-    queryKey: ["readymade-exams-search", enrolledIds.join(','), searchQuery, page, selectedParentTopics],
+    queryKey: ["readymade-exams-search", enrolledIds.join(','), searchQuery, page, selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
       if (!safeQuery) return { data: [], count: 0 };
@@ -290,6 +348,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
       query = applyAccessFilter(query);
       const { data, error, count } = await query;
       if (error) throw error;
@@ -300,12 +359,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 1: SUBJECTS ---
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
-    queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics],
+    queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null }>((from, to) => {
         let query = supabase.from("exams").select("subject, course_id, shared_course_ids")
           .eq("is_readymade", true).eq("is_published", true).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
         return applyAccessFilter(query);
       });
       const unique = new Set<string>();
@@ -327,13 +387,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 2: CHAPTERS ---
   const { data: chapters, isLoading: loadingChapters } = useQuery({
-    queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics],
+    queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject) return [];
       const data = await fetchAllRows<{ chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; sort_order: number | null }>((from, to) => {
         let query = supabase.from("exams").select("chapter, course_id, shared_course_ids, sort_order")
           .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
         return applyAccessFilter(query);
       });
       const unique = new Set<string>(); const orderMap = new Map<string, number>();
@@ -364,7 +425,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
-    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics],
+    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return [];
       const data = await fetchAllRows<{ readymade_sub_chapter: string | null }>((from, to) => {
@@ -375,6 +436,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .not("readymade_sub_chapter", "is", null)
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
         return applyAccessFilter(query);
       });
       const unique = new Set<string>();
@@ -388,7 +450,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // No .range() here on purpose — user wants every exam in the chapter/session
   // visible on a single page, no "Next page" pagination for this level.
   const { data: examsData, isLoading: loadingExams } = useQuery({
-    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedSubChapter, enrolledIds.join(','), selectedParentTopics],
+    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedSubChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return { data: [], count: 0 };
       let query = supabase.from("exams")
@@ -397,6 +459,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
       // If subChapters exist for this chapter, only show exams for the selected sub-chapter
       if (selectedSubChapter) query = query.eq("readymade_sub_chapter", selectedSubChapter);
       query = applyAccessFilter(query);
