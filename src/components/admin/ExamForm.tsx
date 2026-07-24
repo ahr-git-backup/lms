@@ -11,7 +11,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { FileUp, BookOpen, X } from "lucide-react";
+import { Upload, BookOpen, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import type { QuestionData } from "@/types/exam";
@@ -992,95 +992,29 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               )}
 
               <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="questions_json">Bulk questions (JSON)</Label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={(e) => handleFileUpload(e, 'json')}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <Button type="button" variant="outline" size="sm" className="pointer-events-none">
-                      <FileUp className="h-4 w-4 mr-2" />
-                      Upload JSON
-                    </Button>
-                  </div>
-                </div>
-                <div
-                  className={`relative ${isDraggingJSON ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
-                  onDragOver={(e) => handleDragOver(e, 'json')}
-                  onDragLeave={(e) => handleDragLeave(e, 'json')}
-                  onDrop={(e) => handleDrop(e, 'json')}
-                >
-                    <Textarea
-                      id="questions_json"
-                      rows={6}
-                      value={form.questions_json}
-                      onChange={(e) => setForm((prev) => ({ ...prev, questions_json: e.target.value }))}
-                      placeholder={
-                        "Paste an array of JSON questions, or drag and drop a .json file here. Supported formats include your coaching JSON with options A–D and correct_answer."
-                      }
-                      className="w-full"
-                    />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  On create, questions will be imported into exam_questions. Editing an existing exam does not change existing
-                  questions yet.
-                </p>
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <Label htmlFor="questions_csv">Bulk questions (CSV)</Label>
-                      <div className="relative">
-                        <input
-                          type="file"
-                          accept=".csv"
-                          onChange={(e) => handleFileUpload(e, 'csv')}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                        <Button type="button" variant="outline" size="sm" className="pointer-events-none">
-                          <FileUp className="h-4 w-4 mr-2" />
-                          Upload CSV
-                        </Button>
-                      </div>
-                    </div>
-                    <div
-                      className={`relative ${isDraggingCSV ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
-                      onDragOver={(e) => handleDragOver(e, 'csv')}
-                      onDragLeave={(e) => handleDragLeave(e, 'csv')}
-                      onDrop={(e) => handleDrop(e, 'csv')}
-                    >
-                        <Textarea
-                          id="questions_csv"
-                          rows={6}
-                          value={form.questions_csv}
-                          onChange={(e) => setForm((prev) => ({ ...prev, questions_csv: e.target.value }))}
-                          placeholder={
-                            'Paste CSV content, or drag and drop a .csv file here. Header: "questions","option1","option2","option3","option4","option5","answer","explanation","type","section"'
-                          }
-                          className="w-full"
-                        />
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      One question per line. Answer is 1–4 mapping to option1–4. Explanation, type, and section are optional.
-                    </p>
+                  <div
+                    className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center h-[calc(100%-1.75rem)] min-h-[140px]"
+                    onClick={() => document.getElementById('csv-upload-input')?.click()}
+                  >
+                    <input
+                      id="csv-upload-input"
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => handleFileUpload(e, 'csv')}
+                      className="hidden"
+                    />
+                    <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                    <p className="text-sm">CSV আপলোড করুন</p>
                   </div>
 
                   <div>
-                    <Label className="mb-2 block">Question Bank</Label>
                     <div
                       className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center h-[calc(100%-1.75rem)] min-h-[140px]"
                       onClick={() => setIsQbOpen(true)}
                     >
                       <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                      <p className="text-sm">Select from Question Bank</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Import a full readymade exam or individual MCQs
-                      </p>
+                      <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
                       {!!qbQuestions.length && (
                         <div className="mt-2 flex items-center gap-2">
                           <p className="text-xs text-primary">{qbQuestions.length} question(s) selected</p>
