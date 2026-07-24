@@ -52,7 +52,7 @@ const examSchema = z.object({
   time_window_start: z.string().optional(),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
-  is_visible_on_free: z.boolean().optional().default(true),
+  is_visible_on_free: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
@@ -126,7 +126,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         time_window_start: "",
         time_window_end: "",
         is_published: false,
-        is_visible_on_free: true,
+        is_visible_on_free: false,
         free_exam_category: "HSC",
         restrict_solution: false,
         questions_json: "",
@@ -187,7 +187,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
-                is_visible_on_free: exam.is_visible_on_free ?? true,
+                is_visible_on_free: exam.is_visible_on_free ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
@@ -235,10 +235,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 count = Array.isArray(jsonData) ? jsonData.length : 0;
                 setForm((prev: any) => {
                     const newForm = { ...prev, questions_json: content };
-                    if (!prev.total_marks) {
-                        newForm.total_marks = String(count);
-                        newForm.duration_minutes = String(Math.floor(count / 2));
-                    }
+                    newForm.total_marks = String(count);
+                    newForm.duration_minutes = String(Math.ceil((count * 30) / 60));
                     return newForm;
                 });
               } else {
@@ -250,10 +248,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 count = result.data.length;
                 setForm((prev: any) => {
                     const newForm = { ...prev, questions_csv: content };
-                    if (!prev.total_marks) {
-                        newForm.total_marks = String(count);
-                        newForm.duration_minutes = String(Math.floor(count / 2));
-                    }
+                    newForm.total_marks = String(count);
+                    newForm.duration_minutes = String(Math.ceil((count * 30) / 60));
                     return newForm;
                 });
               }
@@ -279,7 +275,15 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const [isQbOpen, setIsQbOpen] = useState(false);
 
     const handleQbSelect = (questions: QuestionData[]) => {
-      setQbQuestions((prev) => [...prev, ...questions]);
+      setQbQuestions((prev) => {
+        const updated = [...prev, ...questions];
+        setForm((f: any) => ({
+          ...f,
+          total_marks: String(updated.length),
+          duration_minutes: String(Math.ceil((updated.length * 30) / 60)),
+        }));
+        return updated;
+      });
       setIsQbOpen(false);
     };
 
@@ -331,7 +335,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
-            is_visible_on_free: parsed.is_visible_on_free ?? true,
+            is_visible_on_free: parsed.is_visible_on_free ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
@@ -546,7 +550,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_start: "",
                 time_window_end: "",
                 is_published: false,
-                is_visible_on_free: true,
+                is_visible_on_free: false,
                 free_exam_category: "HSC",
                 restrict_solution: false,
                 questions_json: "",
