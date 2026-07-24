@@ -99,7 +99,18 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         deleteMetadata.mutate({ type, value });
     };
 
-    const [form, setForm] = useState<z.infer<typeof examSchema>>({
+    const DRAFT_KEY = "examForm_draft";
+    const loadDraft = (): Partial<z.infer<typeof examSchema>> | null => {
+        if (exam) return null; // don't restore draft when editing an existing exam
+        try {
+            const raw = sessionStorage.getItem(DRAFT_KEY);
+            return raw ? JSON.parse(raw) : null;
+        } catch {
+            return null;
+        }
+    };
+
+    const [form, setForm] = useState<z.infer<typeof examSchema>>(() => ({
         course_id: defaultCourseId || "",
         shared_course_ids: [],
         archive_course_ids: [],
@@ -127,7 +138,18 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         disable_second_timer_deduction: false,
         is_only_live: false,
         is_archive: isArchiveMode,
-    });
+        ...loadDraft(),
+    }));
+
+    // Auto-save draft (only for new exam creation, not while editing existing)
+    useEffect(() => {
+        if (exam) return;
+        try {
+            sessionStorage.setItem(DRAFT_KEY, JSON.stringify(form));
+        } catch {
+            // ignore quota errors
+        }
+    }, [form, exam]);
 
     const loadedExamIdRef = useRef<string | null>(null);
 
@@ -536,6 +558,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 is_only_live: false,
               });
           }
+          if (!exam) sessionStorage.removeItem(DRAFT_KEY);
           onSuccess();
         },
         onError: (error: Error) => {
@@ -1087,7 +1110,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={onCancel}
+                    onClick={() => { if (!exam) sessionStorage.removeItem(DRAFT_KEY); onCancel(); }}
                     disabled={upsertExamMutation.isPending}
                   >
                     Cancel

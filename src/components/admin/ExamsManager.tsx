@@ -43,7 +43,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const editId = searchParams.get("editId");
   const [editingExam, setEditingExam] = useState<any>(null);
   const [editingExternalExam, setEditingExternalExam] = useState<any>(null);
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowFormRaw] = useState(() => sessionStorage.getItem("examManager_showForm") === "1");
+  const setShowForm = (val: boolean) => {
+    setShowFormRaw(val);
+    if (val) sessionStorage.setItem("examManager_showForm", "1");
+    else sessionStorage.removeItem("examManager_showForm");
+  };
   const [showExternalForm, setShowExternalForm] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
