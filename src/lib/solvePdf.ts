@@ -9,7 +9,8 @@ interface SolvePdfQuestion {
   option_b: string;
   option_c: string;
   option_d: string;
-  correct_option: string; // 'A' | 'B' | 'C' | 'D'
+  option_e?: string;
+  correct_option: string; // 'A' | 'B' | 'C' | 'D' | 'E'
   user_answer: string | null;
   explanation?: string;
 }
@@ -22,8 +23,8 @@ interface SolvePdfParams {
   score?: number;
 }
 
-const OPTION_LETTERS_BN = ["ক", "খ", "গ", "ঘ"] as const;
-const OPTION_KEYS = ["A", "B", "C", "D"] as const;
+const OPTION_LETTERS_BN = ["ক", "খ", "গ", "ঘ", "ঙ"] as const;
+const OPTION_KEYS = ["A", "B", "C", "D", "E"] as const;
 
 function escapeHtml(str: string | undefined | null): string {
   if (!str) return "";

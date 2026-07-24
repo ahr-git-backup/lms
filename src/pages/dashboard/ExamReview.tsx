@@ -194,7 +194,7 @@ const ExamReview = () => {
 
          let eqQuery = supabase
             .from("exam_questions")
-            .select("id, question_index, question_text, option_a, option_b, option_c, option_d, correct_option, marks, explanation")
+            .select("id, question_index, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, marks, explanation")
             .eq("exam_id", attempt.exam_id)
             .order("question_index", { ascending: true });
 
@@ -316,6 +316,7 @@ const ExamReview = () => {
               option_b: q.option_b,
               option_c: q.option_c,
               option_d: q.option_d,
+              option_e: q.option_e,
               correct_option: q.correct_option,
               user_answer: q.user_answer,
               explanation: q.explanation,
@@ -761,8 +762,9 @@ const ExamReview = () => {
 
                                     {/* Options */}
                                     <div className="space-y-2 pt-2">
-                                        {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                                        {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                                             const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
+                                            if (!optionText) return null;
                                             const isSelected = q.user_answer === optionKey;
                                             const isCorrectOption = q.correct_option === optionKey;
 
