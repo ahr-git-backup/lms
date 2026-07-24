@@ -1111,15 +1111,33 @@ const ExamCreator = () => {
         {/* Questions List */}
         <div className="space-y-6 pb-32 pt-2">
             {questions.length === 0 && !activeForm && (
-                <div className="text-center py-20 rounded-3xl border border-dashed border-muted-foreground/30 bg-card">
-                    <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                        <Plus className="h-8 w-8 text-muted-foreground" />
+                <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-3">
+                        <div
+                            className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
+                            onClick={() => document.getElementById("impf")?.click()}
+                        >
+                            <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                            <p className="text-sm">CSV আপলোড করুন</p>
+                        </div>
+                        <div
+                            className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
+                            onClick={() => setShowBankSelector(true)}
+                        >
+                            <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                            <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+                        </div>
                     </div>
-                    <p className="text-xl font-semibold text-muted-foreground mb-2">No questions added yet</p>
-                    <p className="text-sm text-muted-foreground mb-6">Start building your exam by adding questions.</p>
-                    <Button onClick={() => handleShowForm(0, 'initial')}>
-                        Create Question
-                    </Button>
+                    <div className="text-center py-16 rounded-3xl border border-dashed border-muted-foreground/30 bg-card">
+                        <div className="mx-auto w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
+                            <Plus className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-xl font-semibold text-muted-foreground mb-2">No questions added yet</p>
+                        <p className="text-sm text-muted-foreground mb-6">Start building your exam by adding questions.</p>
+                        <Button onClick={() => handleShowForm(0, 'initial')}>
+                            Create Question
+                        </Button>
+                    </div>
                 </div>
             )}
 
