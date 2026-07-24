@@ -116,9 +116,10 @@ const UnlimitedMockTest = () => {
         option_b: qq.option_b || qq.option2 || "",
         option_c: qq.option_c || qq.option3 || "",
         option_d: qq.option_d || qq.option4 || "",
+        option_e: qq.option_e || qq.option5 || "",
         correct_option:
           qq.correct_option ||
-          (["A", "B", "C", "D"][(Number(qq.answer) || 1) - 1] ?? "A"),
+          (["A", "B", "C", "D", "E"][(Number(qq.answer) || 1) - 1] ?? "A"),
         explanation: qq.explanation || "",
       }));
 
