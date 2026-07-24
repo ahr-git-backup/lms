@@ -1008,7 +1008,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <Label htmlFor="questions_csv">Bulk questions (CSV)</Label>
@@ -1050,7 +1050,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   <div>
                     <Label className="mb-2 block">Question Bank</Label>
                     <div
-                      className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center h-[calc(100%-1.75rem)] min-h-[140px]"
+                      className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center h-[calc(100%-1.75rem)] min-h-[140px]"
                       onClick={() => setIsQbOpen(true)}
                     >
                       <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
