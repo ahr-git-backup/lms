@@ -16,4 +16,8 @@ registerSW({
   },
 });
 
+if (window.matchMedia("(display-mode: standalone)").matches) {
+  document.documentElement.classList.add("pwa-standalone");
+}
+
 createRoot(document.getElementById("root")!).render(<App />);

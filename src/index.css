@@ -62,6 +62,29 @@
     --spacing: 0.27rem;
   }
 
+  /* PWA-only theme: applies ONLY when installed & launched as standalone app.
+     Website in a normal browser tab is completely unaffected. */
+  @media (display-mode: standalone) {
+    :root:not(.dark) {
+      --background: 210 40% 98%;
+      --card: 0 0% 100%;
+      --primary: 217.2 91.2% 45%; /* App-only Blue instead of website's Green */
+      --primary-foreground: 0 0% 100%;
+      --accent: 217.2 91.2% 94%;
+      --accent-foreground: 217.2 91.2% 35%;
+      --radius: 1rem;
+    }
+    :root.dark {
+      --background: 222 47% 8%;
+      --card: 222 40% 12%;
+      --primary: 217.2 91.2% 55%;
+      --primary-foreground: 0 0% 100%;
+      --accent: 217.2 60% 20%;
+      --accent-foreground: 217.2 91.2% 80%;
+      --radius: 1rem;
+    }
+  }
+
   .dark {
     --background: 225 7.1429% 10.9804%;
     --foreground: 0 0% 94.1176%;
