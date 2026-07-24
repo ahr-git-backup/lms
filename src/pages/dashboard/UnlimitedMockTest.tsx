@@ -6,13 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +23,7 @@ const UnlimitedMockTest = () => {
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
+  const [paper, setPaper] = useState("");
   const [standard, setStandard] = useState("medical");
   const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
@@ -90,6 +84,20 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
+  const { data: papers } = useQuery({
+    queryKey: ["mock-pool-papers", subject, chapter],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("paper")
+        .eq("subject", subject)
+        .eq("chapter", chapter);
+      if (error) throw error;
+      return [...new Set((data || []).map((d: any) => d.paper).filter(Boolean))];
+    },
+    enabled: !!subject && !!chapter,
+  });
+
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
     if (!subject || !chapter) {
       toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
@@ -104,6 +112,7 @@ const UnlimitedMockTest = () => {
         .eq("chapter", chapter)
         .eq("standard", standard);
       if (topic) q = q.eq("topic", topic);
+      if (paper) q = q.eq("paper", paper);
 
       const { data, error } = await q;
       if (error) throw error;
@@ -190,66 +199,99 @@ const UnlimitedMockTest = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label>সাবজেক্ট</Label>
-            <Select
-              value={subject}
-              onValueChange={(v) => {
-                setSubject(v);
-                setChapter("");
-                setTopic("");
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="— নির্বাচন —" />
-              </SelectTrigger>
-              <SelectContent>
-                {(subjects || []).map((s: string) => (
-                  <SelectItem key={s} value={s}>
-                    {s}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label className="mb-2 block">সাবজেক্ট</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {(subjects || []).map((s: string) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setSubject(s);
+                    setChapter("");
+                    setTopic("");
+                    setPaper("");
+                  }}
+                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    subject === s
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div>
-            <Label>চ্যাপ্টার</Label>
-            <Select
-              value={chapter}
-              onValueChange={(v) => {
-                setChapter(v);
-                setTopic("");
-              }}
-              disabled={!subject}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder={subject ? "— নির্বাচন —" : "প্রথমে সাবজেক্ট"} />
-              </SelectTrigger>
-              <SelectContent>
+          {subject && (
+            <div>
+              <Label className="mb-2 block">চ্যাপ্টার</Label>
+              <div className="grid grid-cols-4 gap-2">
                 {(chapters || []).map((c: string) => (
-                  <SelectItem key={c} value={c}>
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setChapter(c);
+                      setTopic("");
+                      setPaper("");
+                    }}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      chapter === c
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
                     {c}
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
+            </div>
+          )}
 
-          <div>
-            <Label>টপিক (ঐচ্ছিক)</Label>
-            <Select value={topic} onValueChange={setTopic} disabled={!subject || !chapter}>
-              <SelectTrigger>
-                <SelectValue placeholder="— ঐচ্ছিক —" />
-              </SelectTrigger>
-              <SelectContent>
+          {subject && chapter && !!(topics || []).length && (
+            <div>
+              <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
+              <div className="grid grid-cols-4 gap-2">
                 {(topics || []).map((t: string) => (
-                  <SelectItem key={t} value={t}>
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTopic(topic === t ? "" : t)}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      topic === t
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
                     {t}
-                  </SelectItem>
+                  </button>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
+              </div>
+            </div>
+          )}
+
+          {subject && chapter && !!(papers || []).length && (
+            <div>
+              <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(papers || []).map((p: string) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPaper(paper === p ? "" : p)}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      paper === p
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
