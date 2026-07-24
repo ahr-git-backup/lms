@@ -11,7 +11,10 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { FileUp } from "lucide-react";
+import { FileUp, BookOpen, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import type { QuestionData } from "@/types/exam";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -250,6 +253,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
     const [isDraggingJSON, setIsDraggingJSON] = useState(false);
     const [isDraggingCSV, setIsDraggingCSV] = useState(false);
+    const [qbQuestions, setQbQuestions] = useState<QuestionData[]>([]);
+    const [isQbOpen, setIsQbOpen] = useState(false);
+
+    const handleQbSelect = (questions: QuestionData[]) => {
+      setQbQuestions((prev) => [...prev, ...questions]);
+      setIsQbOpen(false);
+    };
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>, type: 'json' | 'csv') => {
         e.preventDefault();
@@ -462,6 +472,21 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               allQuestionRows.push(...parseCsvQuestions(parsed.questions_csv));
             }
 
+            if (qbQuestions.length) {
+              qbQuestions.forEach((q: any) => {
+                allQuestionRows.push({
+                  question_text: q.question_text ?? q.question,
+                  option_a: q.option_a ?? q.options?.A ?? "",
+                  option_b: q.option_b ?? q.options?.B ?? "",
+                  option_c: q.option_c ?? q.options?.C ?? "",
+                  option_d: q.option_d ?? q.options?.D ?? "",
+                  correct_option: q.correct_option ?? q.correct_answer ?? "A",
+                  marks: q.marks ?? 1,
+                  explanation: q.explanation || null,
+                });
+              });
+            }
+
             if (allQuestionRows.length) {
               const rowsWithExam = allQuestionRows.map((q, index) => ({
                 exam_id: data.id,
@@ -528,6 +553,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     };
 
     return (
+        <>
         <Card className="border border-foreground/60">
           <CardHeader>
             <CardTitle className="text-base">
@@ -982,41 +1008,74 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="questions_csv">Bulk questions (CSV)</Label>
-                  <div className="relative">
-                    <input
-                      type="file"
-                      accept=".csv"
-                      onChange={(e) => handleFileUpload(e, 'csv')}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <Button type="button" variant="outline" size="sm" className="pointer-events-none">
-                      <FileUp className="h-4 w-4 mr-2" />
-                      Upload CSV
-                    </Button>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <Label htmlFor="questions_csv">Bulk questions (CSV)</Label>
+                      <div className="relative">
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={(e) => handleFileUpload(e, 'csv')}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                        <Button type="button" variant="outline" size="sm" className="pointer-events-none">
+                          <FileUp className="h-4 w-4 mr-2" />
+                          Upload CSV
+                        </Button>
+                      </div>
+                    </div>
+                    <div
+                      className={`relative ${isDraggingCSV ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
+                      onDragOver={(e) => handleDragOver(e, 'csv')}
+                      onDragLeave={(e) => handleDragLeave(e, 'csv')}
+                      onDrop={(e) => handleDrop(e, 'csv')}
+                    >
+                        <Textarea
+                          id="questions_csv"
+                          rows={6}
+                          value={form.questions_csv}
+                          onChange={(e) => setForm((prev) => ({ ...prev, questions_csv: e.target.value }))}
+                          placeholder={
+                            'Paste CSV content, or drag and drop a .csv file here. Header: "questions","option1","option2","option3","option4","option5","answer","explanation","type","section"'
+                          }
+                          className="w-full"
+                        />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      One question per line. Answer is 1–4 mapping to option1–4. Explanation, type, and section are optional.
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="mb-2 block">Question Bank</Label>
+                    <div
+                      className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center h-[calc(100%-1.75rem)] min-h-[140px]"
+                      onClick={() => setIsQbOpen(true)}
+                    >
+                      <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                      <p className="text-sm">Select from Question Bank</p>
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Import a full readymade exam or individual MCQs
+                      </p>
+                      {!!qbQuestions.length && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <p className="text-xs text-primary">{qbQuestions.length} question(s) selected</p>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setQbQuestions([]);
+                            }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div
-                  className={`relative ${isDraggingCSV ? "after:content-[''] after:absolute after:inset-0 after:bg-primary/5 after:border-2 after:border-primary/50 after:border-dashed after:z-10 after:rounded-md" : ""}`}
-                  onDragOver={(e) => handleDragOver(e, 'csv')}
-                  onDragLeave={(e) => handleDragLeave(e, 'csv')}
-                  onDrop={(e) => handleDrop(e, 'csv')}
-                >
-                    <Textarea
-                      id="questions_csv"
-                      rows={6}
-                      value={form.questions_csv}
-                      onChange={(e) => setForm((prev) => ({ ...prev, questions_csv: e.target.value }))}
-                      placeholder={
-                        'Paste CSV content, or drag and drop a .csv file here. Header: "questions","option1","option2","option3","option4","option5","answer","explanation","type","section"'
-                      }
-                      className="w-full"
-                    />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  One question per line. Answer is 1–4 mapping to option1–4. Explanation, type, and section are optional.
-                </p>
               </div>
 
               <div className="flex items-center gap-2 md:col-span-2">
@@ -1038,5 +1097,17 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             </form>
           </CardContent>
         </Card>
+
+        <Dialog open={isQbOpen} onOpenChange={setIsQbOpen}>
+          <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-0">
+              <DialogTitle>Select from Question Bank</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden p-4 pt-2 h-[calc(85vh-60px)]">
+              <QuestionBankSelector onSelect={handleQbSelect} />
+            </div>
+          </DialogContent>
+        </Dialog>
+        </>
     );
 };
