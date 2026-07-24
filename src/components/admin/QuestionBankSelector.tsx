@@ -16,11 +16,13 @@ interface QuestionBankSelectorProps {
 }
 
 export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) => {
-    const [view, setView] = useState<'category' | 'subjects' | 'exams' | 'questions'>('category');
+    const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>('category');
 
     // Selection state
     const [selectedCategory, setSelectedCategory] = useState<'exams' | 'readymade' | 'archive' | null>(null);
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
+    const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+    const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
     const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
     const [selectedExamTitle, setSelectedExamTitle] = useState<string>("");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -37,6 +39,8 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         setView('category');
         setSelectedCategory(null);
         setSelectedSubjects([]);
+        setSelectedChapter(null);
+        setSelectedSubChapter(null);
         setSelectedExamId(null);
         setSelectedIds(new Set());
         setSelectedExamIds(new Set());
@@ -105,20 +109,59 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         }
     });
 
-    // Fetch exams for selected subjects and category
+    const applyCategoryFilter = (query: any) => {
+        if (selectedCategory === 'readymade') return query.eq('is_readymade', true);
+        if (selectedCategory === 'archive') return query.eq('is_archive', true);
+        return query.eq('is_readymade', false).eq('is_archive', false);
+    };
+
+    // Fetch chapters for the selected subjects (step-by-step, like Readymade exam page)
+    const { data: chaptersData, isLoading: isLoadingChapters } = useQuery({
+        queryKey: ["qb-chapters", selectedCategory, selectedSubjects],
+        enabled: view === 'chapters' && !!selectedCategory && selectedSubjects.length > 0,
+        queryFn: async () => {
+            let query = supabase.from("exams").select("chapter, subject");
+            query = applyCategoryFilter(query);
+            query = query.overlaps('subject', selectedSubjects);
+            const { data, error } = await query;
+            if (error) throw error;
+            const set = new Set<string>();
+            (data || []).forEach((row: any) => { if (row.chapter) set.add(row.chapter); });
+            return Array.from(set).sort();
+        }
+    });
+
+    // Fetch sub-chapters (only shown if they exist for the selected chapter)
+    const { data: subChaptersData, isLoading: isLoadingSubChapters } = useQuery({
+        queryKey: ["qb-subchapters", selectedCategory, selectedSubjects, selectedChapter],
+        enabled: view === 'subchapters' && !!selectedCategory && !!selectedChapter,
+        queryFn: async () => {
+            let query = supabase.from("exams").select("readymade_sub_chapter, subject, chapter")
+                .not('readymade_sub_chapter', 'is', null);
+            query = applyCategoryFilter(query);
+            query = query.overlaps('subject', selectedSubjects).eq('chapter', selectedChapter);
+            const { data, error } = await query;
+            if (error) throw error;
+            const set = new Set<string>();
+            (data || []).forEach((row: any) => { if (row.readymade_sub_chapter) set.add(row.readymade_sub_chapter); });
+            return Array.from(set).sort();
+        }
+    });
+
+    // Auto-skip subchapters view straight to exams once we know none exist for this chapter
+    useEffect(() => {
+        if (view === 'subchapters' && !isLoadingSubChapters && subChaptersData && subChaptersData.length === 0) {
+            setView('exams');
+        }
+    }, [view, isLoadingSubChapters, subChaptersData]);
+
+    // Fetch exams for selected subjects/chapter/sub-chapter and category
     const { data: examsData, isLoading: isLoadingExams } = useQuery({
-        queryKey: ["qb-exams", selectedCategory, selectedSubjects],
-        enabled: view === 'exams' && !!selectedCategory && selectedSubjects.length > 0,
+        queryKey: ["qb-exams", selectedCategory, selectedSubjects, selectedChapter, selectedSubChapter],
+        enabled: view === 'exams' && !!selectedCategory && selectedSubjects.length > 0 && !!selectedChapter,
         queryFn: async () => {
             let query = supabase.from("exams").select("id, title, is_readymade, is_archive, subject");
-
-            if (selectedCategory === 'readymade') {
-                query = query.eq('is_readymade', true);
-            } else if (selectedCategory === 'archive') {
-                query = query.eq('is_archive', true);
-            } else {
-                query = query.eq('is_readymade', false).eq('is_archive', false);
-            }
+            query = applyCategoryFilter(query);
 
             // In Supabase, filtering array columns by intersection can be tricky.
             // We'll fetch exams and filter in memory if array overlaps aren't supported directly easily.
@@ -126,6 +169,8 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
             if (selectedSubjects.length > 0) {
                  query = query.overlaps('subject', selectedSubjects);
             }
+            if (selectedChapter) query = query.eq('chapter', selectedChapter);
+            if (selectedSubChapter) query = query.eq('readymade_sub_chapter', selectedSubChapter);
 
             const { data, error } = await query.order('created_at', { ascending: false });
             if (error) throw error;
@@ -213,7 +258,12 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                     {view !== 'category' && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => {
                             if (view === 'questions') setView('exams');
-                            else if (view === 'exams') setView('subjects');
+                            else if (view === 'exams') {
+                                if (subChaptersData && subChaptersData.length > 0) { setSelectedSubChapter(null); setView('subchapters'); }
+                                else { setSelectedChapter(null); setView('chapters'); }
+                            }
+                            else if (view === 'subchapters') { setSelectedChapter(null); setView('chapters'); }
+                            else if (view === 'chapters') { setSelectedSubjects([]); setView('subjects'); }
                             else if (view === 'subjects') setView('category');
                         }}>
                             <ChevronLeft className="h-4 w-4" />
@@ -238,15 +288,34 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                         </>
                     )}
 
-                    {(view === 'exams' || view === 'questions') && (
+                    {(view === 'chapters' || view === 'subchapters' || view === 'exams' || view === 'questions') && (
                         <>
                             <ChevronRight className="h-3 w-3 shrink-0" />
                             <span
-                                className={`cursor-pointer hover:text-foreground transition-colors ${view === 'exams' ? 'text-foreground font-semibold' : ''}`}
-                                onClick={() => setView('exams')}
+                                className={`cursor-pointer hover:text-foreground transition-colors ${view === 'chapters' ? 'text-foreground font-semibold' : ''}`}
+                                onClick={() => setView('chapters')}
                             >
                                 Subjects ({selectedSubjects.length})
                             </span>
+                        </>
+                    )}
+
+                    {(view === 'subchapters' || view === 'exams' || view === 'questions') && selectedChapter && (
+                        <>
+                            <ChevronRight className="h-3 w-3 shrink-0" />
+                            <span
+                                className={`cursor-pointer hover:text-foreground transition-colors ${view === 'subchapters' ? 'text-foreground font-semibold' : ''}`}
+                                onClick={() => setView('subchapters')}
+                            >
+                                {selectedChapter}
+                            </span>
+                        </>
+                    )}
+
+                    {view === 'exams' && selectedSubChapter && (
+                        <>
+                            <ChevronRight className="h-3 w-3 shrink-0" />
+                            <span className="text-foreground font-semibold">{selectedSubChapter}</span>
                         </>
                     )}
 
@@ -318,7 +387,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Select Subjects</h3>
                             <Button
-                                onClick={() => setView('exams')}
+                                onClick={() => setView('chapters')}
                                 disabled={selectedSubjects.length === 0}
                             >
                                 Continue ({selectedSubjects.length})
@@ -351,6 +420,58 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                             </div>
                         )}
                     </div>
+                )}
+
+                {/* View 2b: Chapters Selection (step-by-step, like Readymade exam page) */}
+                {view === 'chapters' && (
+                    <div className="max-w-3xl mx-auto">
+                        <h3 className="text-lg font-semibold mb-4">Select Chapter</h3>
+                        {isLoadingChapters ? (
+                            <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                        ) : chaptersData?.length === 0 ? (
+                            <div className="text-center py-10 text-muted-foreground">No chapters found for the selected subjects.</div>
+                        ) : (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {chaptersData?.map((chapter: string) => (
+                                    <div
+                                        key={chapter}
+                                        onClick={() => {
+                                            setSelectedChapter(chapter);
+                                            setSelectedSubChapter(null);
+                                            setView('subchapters');
+                                        }}
+                                        className="p-3 rounded-lg border cursor-pointer text-center text-sm font-medium transition-all bg-card hover:border-primary/50 hover:bg-muted/50"
+                                    >
+                                        {chapter}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* View 2c: Sub-Chapter Selection (only if sub-chapters exist for this chapter) */}
+                {view === 'subchapters' && (
+                    isLoadingSubChapters ? (
+                        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                    ) : subChaptersData && subChaptersData.length > 0 ? (
+                        <div className="max-w-3xl mx-auto">
+                            <h3 className="text-lg font-semibold mb-4">Select Session / Sub-Chapter — {selectedChapter}</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                {subChaptersData.map((sc: string) => (
+                                    <div
+                                        key={sc}
+                                        onClick={() => { setSelectedSubChapter(sc); setView('exams'); }}
+                                        className="p-3 rounded-lg border cursor-pointer text-center text-sm font-medium transition-all bg-card hover:border-primary/50 hover:bg-muted/50"
+                                    >
+                                        {sc}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+                    )
                 )}
 
                 {/* View 3: Exams Selection */}
