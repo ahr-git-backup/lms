@@ -121,7 +121,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         exam_type: "live",
         duration_minutes: "60",
         total_marks: "",
-        negative_mark_per_question: "0",
+        negative_mark_per_question: "0.25",
         instructions: "",
         time_window_start: "",
         time_window_end: "",
@@ -545,7 +545,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 exam_type: "live",
                 duration_minutes: "60",
                 total_marks: "",
-                negative_mark_per_question: "0",
+                negative_mark_per_question: "0.25",
                 instructions: "",
                 time_window_start: "",
                 time_window_end: "",
@@ -754,15 +754,23 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="negative_mark_per_question">Negative mark per wrong answer</Label>
-                <Input
-                  id="negative_mark_per_question"
-                  value={form.negative_mark_per_question}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, negative_mark_per_question: e.target.value }))
-                  }
-                  placeholder="Ex: 0.25"
-                />
+                <Label>Negative mark per wrong answer</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {["0", "0.25", "0.5", "1"].map((val) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, negative_mark_per_question: val }))}
+                      className={`rounded-lg border-2 px-2 py-2 text-xs font-semibold text-center transition-colors ${
+                        form.negative_mark_per_question === val
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                    >
+                      {val === "0" ? "No" : val}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="space-y-2 md:col-span-2">
