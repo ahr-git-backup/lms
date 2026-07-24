@@ -104,7 +104,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         if (exam) return null; // don't restore draft when editing an existing exam
         try {
             const raw = sessionStorage.getItem(DRAFT_KEY);
-            return raw ? JSON.parse(raw) : null;
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            // Scrub stale hardcoded "60" duration saved by old drafts before auto-calc was added
+            if (parsed?.duration_minutes === "60") {
+                delete parsed.duration_minutes;
+            }
+            return parsed;
         } catch {
             return null;
         }
@@ -853,69 +859,49 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </div>
               )}
 
-              <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <div className="flex flex-col gap-1.5 border p-2.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="restrict_solution" className="text-xs font-semibold leading-tight">Restrict Solution</Label>
-                    <Switch
-                      id="restrict_solution"
-                      checked={form.restrict_solution}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, restrict_solution: checked }))
-                      }
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground leading-snug">
-                      Hide detailed solution/answers after exam.
-                  </span>
+              <div className="md:col-span-2 grid grid-cols-3 gap-1.5">
+                <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
+                  <Switch
+                    id="restrict_solution"
+                    checked={form.restrict_solution}
+                    onCheckedChange={(checked) =>
+                      setForm((prev) => ({ ...prev, restrict_solution: checked }))
+                    }
+                  />
+                  <Label htmlFor="restrict_solution" className="text-[10px] font-semibold leading-tight">Restrict Solution</Label>
                 </div>
 
-                <div className="flex flex-col gap-1.5 border p-2.5 rounded-lg bg-red-50 dark:bg-red-900/10 border-red-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="disable_second_timer_deduction" className="text-xs font-semibold leading-tight">No 2nd Timer Deduction</Label>
-                    <Switch
-                      id="disable_second_timer_deduction"
-                      checked={form.disable_second_timer_deduction}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, disable_second_timer_deduction: checked }))
-                      }
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground leading-snug">
-                      No mark deduction for Second Timers.
-                  </span>
+                <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-red-50 dark:bg-red-900/10 border-red-200">
+                  <Switch
+                    id="disable_second_timer_deduction"
+                    checked={form.disable_second_timer_deduction}
+                    onCheckedChange={(checked) =>
+                      setForm((prev) => ({ ...prev, disable_second_timer_deduction: checked }))
+                    }
+                  />
+                  <Label htmlFor="disable_second_timer_deduction" className="text-[10px] font-semibold leading-tight">No 2nd Timer</Label>
                 </div>
 
-                <div className="flex flex-col gap-1.5 border p-2.5 rounded-lg bg-orange-50 dark:bg-orange-900/10 border-orange-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="is_only_live" className="text-xs font-semibold leading-tight">Only Live</Label>
-                    <Switch
-                      id="is_only_live"
-                      checked={form.is_only_live}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, is_only_live: checked }))
-                      }
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground leading-snug">
-                      No Practice mode after live period ends.
-                  </span>
+                <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-orange-50 dark:bg-orange-900/10 border-orange-200">
+                  <Switch
+                    id="is_only_live"
+                    checked={form.is_only_live}
+                    onCheckedChange={(checked) =>
+                      setForm((prev) => ({ ...prev, is_only_live: checked }))
+                    }
+                  />
+                  <Label htmlFor="is_only_live" className="text-[10px] font-semibold leading-tight">Only Live</Label>
                 </div>
 
-                <div className="flex flex-col gap-1.5 border p-2.5 rounded-lg bg-violet-50 dark:bg-violet-900/10 border-violet-200">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label htmlFor="is_omr" className="text-xs font-semibold leading-tight">OMR Scanner</Label>
-                    <Switch
-                      id="is_omr"
-                      checked={form.is_omr}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, is_omr: checked }))
-                      }
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground leading-snug">
-                      Show OMR scan & auto-fill section.
-                  </span>
+                <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-violet-50 dark:bg-violet-900/10 border-violet-200">
+                  <Switch
+                    id="is_omr"
+                    checked={form.is_omr}
+                    onCheckedChange={(checked) =>
+                      setForm((prev) => ({ ...prev, is_omr: checked }))
+                    }
+                  />
+                  <Label htmlFor="is_omr" className="text-[10px] font-semibold leading-tight">OMR Scanner</Label>
                 </div>
               </div>
 
