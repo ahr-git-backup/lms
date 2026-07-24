@@ -244,7 +244,7 @@ const PublicExamEntry = () => {
                                         </div>
                                         <div className="flex justify-center py-2">
                                             <Turnstile
-                                                siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                                                siteKey="1x00000000000000000000AA"
                                                 onSuccess={(token) => setCaptchaToken(token)}
                                             />
                                         </div>
@@ -400,7 +400,7 @@ const PublicExamEntry = () => {
 
                                         <div className="flex justify-center py-2">
                                             <Turnstile
-                                                siteKey="0x4AAAAAACpBHrpNCl36IKek"
+                                                siteKey="1x00000000000000000000AA"
                                                 onSuccess={(token) => setCaptchaToken(token)}
                                             />
                                         </div>
