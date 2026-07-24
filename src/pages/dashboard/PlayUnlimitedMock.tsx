@@ -52,6 +52,7 @@ interface PoolQuestion {
   option_b: string;
   option_c: string;
   option_d: string;
+  option_e?: string;
   correct_option: string;
   explanation?: string;
 }
@@ -353,6 +354,7 @@ const PlayUnlimitedMock = () => {
           option_b: q.option_b,
           option_c: q.option_c,
           option_d: q.option_d,
+          option_e: q.option_e || null,
           correct_option: q.correct_option,
           explanation: q.explanation || null,
         });
@@ -399,6 +401,7 @@ const PlayUnlimitedMock = () => {
         option_b: q.option_b,
         option_c: q.option_c,
         option_d: q.option_d,
+        option_e: q.option_e || null,
         correct_option: q.correct_option,
         user_answer: answers[q.id] || null,
         explanation: q.explanation,
@@ -693,7 +696,7 @@ const PlayUnlimitedMock = () => {
                     </div>
 
                     <div className="space-y-2 pt-2">
-                      {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                      {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                         const optionText = q[`option_${optionKey.toLowerCase()}` as "option_a"];
                         if (!optionText) return null;
                         const isSelected = ua === optionKey;
@@ -836,7 +839,7 @@ const PlayUnlimitedMock = () => {
 
                 {/* Options Row */}
                 <div className="space-y-2 pt-2 max-w-full">
-                  {(["A", "B", "C", "D"] as const).map((opt) => {
+                  {(["A", "B", "C", "D", "E"] as const).map((opt) => {
                     const text = q[`option_${opt.toLowerCase()}` as "option_a"];
                     if (!text) return null;
                     const isSelected = answers[q.id] === opt;
