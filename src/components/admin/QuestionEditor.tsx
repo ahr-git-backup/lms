@@ -192,6 +192,54 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
                         </div>
                     );
                 })}
+
+                {/* Option E - optional 5th option */}
+                {typeof data.options.E === 'string' ? (
+                    <div className={`flex items-center gap-2 sm:gap-3 p-1 rounded-[14px] transition-colors border ${data.correct_answer === 'E' ? 'border-green-500 bg-green-50/50 dark:bg-green-900/10' : 'border-transparent hover:border-border/50'}`}>
+                        <button
+                            type="button"
+                            onClick={() => update('correct_answer', 'E')}
+                            className={`w-8 h-8 sm:w-9 sm:h-9 shrink-0 flex items-center justify-center rounded-full text-xs sm:text-sm font-bold transition-all duration-200 border cursor-pointer ${
+                                data.correct_answer === 'E'
+                                ? 'bg-green-500 text-white border-green-600 shadow-sm'
+                                : 'bg-secondary/40 text-muted-foreground border-border hover:bg-secondary'
+                            }`}
+                            title="Mark option E as correct"
+                        >
+                            E
+                        </button>
+                        <Input
+                            value={data.options.E}
+                            onChange={(e) => updateOption('E', e.target.value)}
+                            placeholder="Option E"
+                            className={`rounded-[10px] flex-1 text-sm h-9 sm:h-10 transition-colors ${data.correct_answer === 'E' ? 'border-green-200 focus-visible:ring-green-500 dark:border-green-800' : 'focus-visible:ring-1'}`}
+                        />
+                        <Button variant="ghost" size="icon" onClick={() => handleOpenFormula('option_E')} className="text-xs shrink-0 text-muted-foreground h-8 w-8 rounded-full hover:bg-secondary/80">
+                           <ImageIcon className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                                const { E, ...rest } = data.options;
+                                onChange({ ...data, options: rest, correct_answer: data.correct_answer === 'E' ? '' : data.correct_answer });
+                            }}
+                            className="text-xs shrink-0 text-muted-foreground h-8 w-8 rounded-full hover:bg-destructive/10 hover:text-destructive"
+                            title="Remove option E"
+                        >
+                           <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ) : (
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onChange({ ...data, options: { ...data.options, E: "" } })}
+                        className="rounded-full text-xs h-8 px-3 border-dashed"
+                    >
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Option E
+                    </Button>
+                )}
             </div>
 
             {/* Explanation Box */}
