@@ -119,7 +119,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         subject: [],
         chapter: "",
         exam_type: "live",
-        duration_minutes: "60",
+        duration_minutes: "",
         total_marks: "",
         negative_mark_per_question: "0.25",
         instructions: "",
@@ -177,7 +177,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 subject: subjects,
                 chapter: exam.chapter || "",
                 exam_type: exam.exam_type === "practice" ? "practice" : "live",
-                duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "60",
+                duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "",
                 total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
                 negative_mark_per_question:
                     exam.negative_mark_per_question != null
@@ -543,7 +543,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 subject: [],
                 chapter: "",
                 exam_type: "live",
-                duration_minutes: "60",
+                duration_minutes: "",
                 total_marks: "",
                 negative_mark_per_question: "0.25",
                 instructions: "",
