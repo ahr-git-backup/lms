@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import { CreatableSelect } from "@/components/ui/creatable-select";
+import { useGlobalMetadata, useAddGlobalMetadata, useRenameGlobalMetadata, useDeleteGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import type { QuestionData } from "@/components/admin/QuestionEditor";
 
 const STANDARDS = [
@@ -47,80 +49,13 @@ const AdminMockPool = () => {
     },
   });
 
-  // Reusable Subject/Chapter master lists — once added, they stay available
-  // as datalist options for future adds (mirrors Quick Practice admin pattern).
-  const { data: mockSubjects } = useQuery({
-    queryKey: ["mock-subjects-master"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_subjects")
-        .select("id, name")
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: mockChapters } = useQuery({
-    queryKey: ["mock-chapters-master", subject],
-    enabled: !!subject.trim(),
-    queryFn: async () => {
-      const subj = mockSubjects?.find((s) => s.name === subject.trim());
-      if (!subj) return [];
-      const { data, error } = await supabase
-        .from("mock_chapters")
-        .select("id, name")
-        .eq("subject_id", subj.id)
-        .order("sort_order", { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const findOrCreateSubject = async (name: string): Promise<number> => {
-    const { data: existing } = await supabase
-      .from("mock_subjects")
-      .select("id")
-      .eq("name", name.trim())
-      .maybeSingle();
-    if (existing) return existing.id;
-    const { data: last } = await supabase
-      .from("mock_subjects")
-      .select("sort_order")
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const sort = (last?.sort_order || 0) + 1;
-    const { data: created, error } = await supabase
-      .from("mock_subjects")
-      .insert({ name: name.trim(), sort_order: sort })
-      .select("id")
-      .single();
-    if (error) throw error;
-    return created.id;
-  };
-
-  const findOrCreateChapter = async (subjectId: number, name: string): Promise<void> => {
-    const { data: existing } = await supabase
-      .from("mock_chapters")
-      .select("id")
-      .eq("subject_id", subjectId)
-      .eq("name", name.trim())
-      .maybeSingle();
-    if (existing) return;
-    const { data: last } = await supabase
-      .from("mock_chapters")
-      .select("sort_order")
-      .eq("subject_id", subjectId)
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const sort = (last?.sort_order || 0) + 1;
-    const { error } = await supabase
-      .from("mock_chapters")
-      .insert({ subject_id: subjectId, name: name.trim(), sort_order: sort });
-    if (error) throw error;
-  };
+  // Reusable Subject/Chapter/Topic lists — same global_metadata system used by
+  // the main exam creator, so once added they stay available as dropdown
+  // options everywhere (mock_subject/mock_chapter/mock_topic types).
+  const { data: globalMeta } = useGlobalMetadata() as any;
+  const addMeta = useAddGlobalMetadata();
+  const renameMeta = useRenameGlobalMetadata();
+  const deleteMeta = useDeleteGlobalMetadata();
 
   const handleCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -175,9 +110,6 @@ const AdminMockPool = () => {
       if (!sourceRows?.length) throw new Error("CSV আপলোড করুন অথবা Question Bank থেকে প্রশ্ন সিলেক্ট করুন");
       if (!subject.trim() || !chapter.trim()) throw new Error("সাবজেক্ট ও চ্যাপ্টার দিন");
 
-      const subjectId = await findOrCreateSubject(subject);
-      await findOrCreateChapter(subjectId, chapter);
-
       const { error } = await supabase.from("mock_question_pool").insert({
         subject: subject.trim(),
         paper: paper.trim() || null,
@@ -193,8 +125,7 @@ const AdminMockPool = () => {
     onSuccess: () => {
       toast({ title: "মক টেস্ট প্রশ্ন সেভ হয়েছে" });
       queryClient.invalidateQueries({ queryKey: ["admin-mock-pool"] });
-      queryClient.invalidateQueries({ queryKey: ["mock-subjects-master"] });
-      queryClient.invalidateQueries({ queryKey: ["mock-chapters-master"] });
+      queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
       clearForm();
     },
     onError: (e: any) => toast({ title: "সেভ ব্যর্থ", description: e.message, variant: "destructive" }),
@@ -234,20 +165,22 @@ const AdminMockPool = () => {
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <Label>সাবজেক্ট</Label>
-              <Input
+              <CreatableSelect
+                options={globalMeta?.mock_subject || []}
                 value={subject}
-                onChange={(e) => {
-                  setSubject(e.target.value);
+                onChange={(val) => {
+                  setSubject(val);
                   setChapter("");
                 }}
-                placeholder="সাবজেক্ট"
-                list="mock-subject-list"
+                onCreate={(val) => {
+                  addMeta.mutate({ type: "mock_subject", value: val });
+                  setSubject(val);
+                  setChapter("");
+                }}
+                onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_subject", oldValue: oldVal, newValue: newVal })}
+                onDelete={(val) => deleteMeta.mutate({ type: "mock_subject", value: val })}
+                placeholder="সাবজেক্ট বাছাই বা তৈরি করুন"
               />
-              <datalist id="mock-subject-list">
-                {mockSubjects?.map((s) => (
-                  <option key={s.id} value={s.name} />
-                ))}
-              </datalist>
             </div>
             <div>
               <Label>পেপার (ঐচ্ছিক)</Label>
@@ -256,21 +189,33 @@ const AdminMockPool = () => {
           </div>
           <div>
             <Label>চ্যাপ্টার</Label>
-            <Input
+            <CreatableSelect
+              options={globalMeta?.mock_chapter || []}
               value={chapter}
-              onChange={(e) => setChapter(e.target.value)}
-              placeholder="চ্যাপ্টার"
-              list="mock-chapter-list"
+              onChange={setChapter}
+              onCreate={(val) => {
+                addMeta.mutate({ type: "mock_chapter", value: val });
+                setChapter(val);
+              }}
+              onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_chapter", oldValue: oldVal, newValue: newVal })}
+              onDelete={(val) => deleteMeta.mutate({ type: "mock_chapter", value: val })}
+              placeholder="চ্যাপ্টার বাছাই বা তৈরি করুন"
             />
-            <datalist id="mock-chapter-list">
-              {mockChapters?.map((c) => (
-                <option key={c.id} value={c.name} />
-              ))}
-            </datalist>
           </div>
           <div>
             <Label>টপিক (ঐচ্ছিক)</Label>
-            <Input value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="টপিক" />
+            <CreatableSelect
+              options={globalMeta?.mock_topic || []}
+              value={topic}
+              onChange={setTopic}
+              onCreate={(val) => {
+                addMeta.mutate({ type: "mock_topic", value: val });
+                setTopic(val);
+              }}
+              onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_topic", oldValue: oldVal, newValue: newVal })}
+              onDelete={(val) => deleteMeta.mutate({ type: "mock_topic", value: val })}
+              placeholder="টপিক বাছাই বা তৈরি করুন"
+            />
           </div>
           <div>
             <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
