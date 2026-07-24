@@ -294,7 +294,7 @@ const TakeExam = () => {
                console.warn("RPC returned no questions. Attempting direct fallback...");
                const { data: directData, error: directError } = await supabase
                    .from("exam_questions")
-                   .select("id, question_text, option_a, option_b, option_c, option_d, question_index")
+                   .select("id, question_text, option_a, option_b, option_c, option_d, option_e, question_index")
                    .eq("exam_id", examId)
                    .order("question_index", { ascending: true });
 
@@ -370,7 +370,7 @@ const TakeExam = () => {
   // Only checks question_text + options — explanation is intentionally excluded.
   const isImageOrPatternQuestion = (q: any) => {
       if (!q) return false;
-      const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d];
+      const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
       const combined = fields.filter(Boolean).join(" ");
       if (/<img/i.test(combined)) return true;
       // Roman numeral list patterns: i. ii. iii. / (i) (ii) (iii) / i) ii) iii)
@@ -1251,6 +1251,7 @@ const TakeExam = () => {
       { key: "b", text: q.option_b },
       { key: "c", text: q.option_c },
       { key: "d", text: q.option_d },
+      { key: "e", text: q.option_e },
     ].filter((o) => !!o.text);
 
     return (
@@ -1514,8 +1515,9 @@ const TakeExam = () => {
 
                     {/* Options Row */}
                     <div className="space-y-2 pt-2 max-w-full">
-                        {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                        {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                             const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
+                            if (!optionText) return null;
                             const isSelected = answers[q.id] === optionKey;
                             const isAnswered = !!answers[q.id];
                             const isDisabled = isAnswered && !isSelected;
