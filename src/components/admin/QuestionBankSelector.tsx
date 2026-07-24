@@ -24,6 +24,8 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
     const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
     const [selectedExamTitle, setSelectedExamTitle] = useState<string>("");
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
+    const [isAddingBulkExams, setIsAddingBulkExams] = useState(false);
 
     // Search and pagination (for questions view)
     const [search, setSearch] = useState("");
@@ -37,6 +39,41 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         setSelectedSubjects([]);
         setSelectedExamId(null);
         setSelectedIds(new Set());
+        setSelectedExamIds(new Set());
+    };
+
+    const toggleExamSelect = (id: string) => {
+        setSelectedExamIds(prev => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id); else next.add(id);
+            return next;
+        });
+    };
+
+    const handleAddSelectedExams = async () => {
+        if (selectedExamIds.size === 0) return;
+        setIsAddingBulkExams(true);
+        try {
+            const { data, error } = await supabase
+                .from("exam_questions")
+                .select("*")
+                .in("exam_id", Array.from(selectedExamIds))
+                .order("question_index", { ascending: true });
+            if (error) {
+                console.error(error);
+                return;
+            }
+            const mapped = (data || []).map((q: any) => ({
+                question: q.question_text,
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                correct_answer: q.correct_option,
+                explanation: q.explanation || "",
+            }));
+            onSelect(mapped);
+            setSelectedExamIds(new Set());
+        } finally {
+            setIsAddingBulkExams(false);
+        }
     };
     // Fetch subjects for the selected category (from exams)
     const { data: subjectsData, isLoading: isLoadingSubjects } = useQuery({
@@ -319,7 +356,20 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 {/* View 3: Exams Selection */}
                 {view === 'exams' && (
                     <div className="max-w-4xl mx-auto">
-                        <h3 className="text-lg font-semibold mb-4">Select an Exam</h3>
+                        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                            <h3 className="text-lg font-semibold">Select Exam(s)</h3>
+                            {selectedExamIds.size > 0 && (
+                                <Button
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    disabled={isAddingBulkExams}
+                                    onClick={handleAddSelectedExams}
+                                >
+                                    {isAddingBulkExams ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                                    {selectedExamIds.size} টি এক্সাম যোগ করুন (সব MCQ)
+                                </Button>
+                            )}
+                        </div>
 
                         {isLoadingExams ? (
                             <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
@@ -330,17 +380,21 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 {examsData?.map((exam: any) => (
                                     <div
                                         key={exam.id}
-                                        onClick={() => {
-                                            setSelectedExamId(exam.id);
-                                            setSelectedExamTitle(exam.title);
-                                            setPage(1);
-                                            setSearch("");
-                                            setView('questions');
-                                        }}
-                                        className="p-4 rounded-lg border bg-card cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all flex flex-col gap-2"
+                                        className={`p-4 rounded-lg border bg-card transition-all flex flex-col gap-2 ${selectedExamIds.has(exam.id) ? 'border-primary/60 bg-primary/5' : ''}`}
                                     >
-                                        <div className="font-medium line-clamp-2">{exam.title}</div>
-                                        <div className="flex flex-wrap gap-1 mt-auto">
+                                        <div
+                                            className="flex items-start gap-2 cursor-pointer"
+                                            onClick={() => toggleExamSelect(exam.id)}
+                                        >
+                                            <Checkbox
+                                                checked={selectedExamIds.has(exam.id)}
+                                                onCheckedChange={() => toggleExamSelect(exam.id)}
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="mt-0.5"
+                                            />
+                                            <div className="font-medium line-clamp-2 flex-1">{exam.title}</div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1 mt-auto pl-6">
                                             {exam.subject?.slice(0, 3).map((sub: string) => (
                                                 <Badge key={sub} variant="secondary" className="text-[10px] py-0">{sub}</Badge>
                                             ))}
@@ -348,32 +402,22 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                 <Badge variant="secondary" className="text-[10px] py-0">+{exam.subject.length - 3}</Badge>
                                             )}
                                         </div>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="mt-1 text-xs h-7"
-                                            onClick={async (e) => {
-                                                e.stopPropagation();
-                                                const { data, error } = await supabase
-                                                    .from("exam_questions")
-                                                    .select("*")
-                                                    .eq("exam_id", exam.id)
-                                                    .order("question_index", { ascending: true });
-                                                if (error) {
-                                                    console.error(error);
-                                                    return;
-                                                }
-                                                const mapped = (data || []).map((q: any) => ({
-                                                    question: q.question_text,
-                                                    options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
-                                                    correct_answer: q.correct_option,
-                                                    explanation: q.explanation || "",
-                                                }));
-                                                onSelect(mapped);
-                                            }}
-                                        >
-                                            পুরো এক্সাম যোগ করুন (সব MCQ)
-                                        </Button>
+                                        <div className="flex gap-2 pl-6">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="text-xs h-7 px-2"
+                                                onClick={() => {
+                                                    setSelectedExamId(exam.id);
+                                                    setSelectedExamTitle(exam.title);
+                                                    setPage(1);
+                                                    setSearch("");
+                                                    setView('questions');
+                                                }}
+                                            >
+                                                প্রশ্ন বাছাই করে যোগ করুন
+                                            </Button>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
