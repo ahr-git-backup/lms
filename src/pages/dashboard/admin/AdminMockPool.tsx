@@ -237,9 +237,9 @@ const AdminMockPool = () => {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-2 gap-2 sm:gap-3">
             <div
-              className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50"
+              className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
               onClick={() => document.getElementById("mockPoolCSV")?.click()}
             >
               <FileUp className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
@@ -262,7 +262,7 @@ const AdminMockPool = () => {
             </div>
 
             <div
-              className="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
+              className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
               onClick={() => setIsQbOpen(true)}
             >
               <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
