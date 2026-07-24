@@ -16,7 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const STANDARDS = [
+const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
   { value: "varsity", label: "Varsity" },
   { value: "onushiloni", label: "Onushiloni" },
@@ -44,6 +44,24 @@ const UnlimitedMockTest = () => {
       return [...new Set((data || []).map((d: any) => d.subject))];
     },
   });
+
+  const { data: standardsFromPool } = useQuery({
+    queryKey: ["mock-pool-standards"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mock_question_pool").select("standard");
+      if (error) throw error;
+      return [...new Set((data || []).map((d: any) => d.standard).filter(Boolean))] as string[];
+    },
+  });
+
+  const STANDARDS = (() => {
+    const map = new Map<string, { value: string; label: string }>();
+    DEFAULT_STANDARDS.forEach((s) => map.set(s.value, s));
+    (standardsFromPool || []).forEach((v) => {
+      if (!map.has(v)) map.set(v, { value: v, label: v });
+    });
+    return Array.from(map.values());
+  })();
 
   const { data: chapters } = useQuery({
     queryKey: ["mock-pool-chapters", subject],

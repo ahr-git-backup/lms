@@ -15,7 +15,7 @@ import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useGlobalMetadata, useAddGlobalMetadata, useRenameGlobalMetadata, useDeleteGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import type { QuestionData } from "@/components/admin/QuestionEditor";
 
-const STANDARDS = [
+const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
   { value: "varsity", label: "Varsity" },
   { value: "onushiloni", label: "Onushiloni" },
@@ -56,6 +56,16 @@ const AdminMockPool = () => {
   const addMeta = useAddGlobalMetadata();
   const renameMeta = useRenameGlobalMetadata();
   const deleteMeta = useDeleteGlobalMetadata();
+
+  const standardOptions: { value: string; label: string }[] = (() => {
+    const extra = (globalMeta?.mock_standard || []) as { value: string; label: string }[];
+    const map = new Map<string, { value: string; label: string }>();
+    DEFAULT_STANDARDS.forEach((s) => map.set(s.value, s));
+    extra.forEach((s) => {
+      if (!map.has(s.value)) map.set(s.value, s);
+    });
+    return Array.from(map.values());
+  })();
 
   const handleCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -219,22 +229,21 @@ const AdminMockPool = () => {
           </div>
           <div>
             <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
-            <div className="flex gap-2 flex-wrap">
-              {STANDARDS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setStandard(s.value)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                    standard === s.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+            <CreatableSelect
+              options={standardOptions}
+              value={standard}
+              onChange={setStandard}
+              onCreate={(val) => {
+                addMeta.mutate({ type: "mock_standard", value: val });
+                setStandard(val);
+              }}
+              onRename={(oldVal, newVal) => {
+                renameMeta.mutate({ type: "mock_standard", oldValue: oldVal, newValue: newVal });
+                if (standard === oldVal) setStandard(newVal);
+              }}
+              onDelete={(val) => deleteMeta.mutate({ type: "mock_standard", value: val })}
+              placeholder="স্ট্যান্ডার্ড বাছাই বা তৈরি করুন"
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-2 sm:gap-3">
@@ -325,7 +334,7 @@ const AdminMockPool = () => {
                     {p.topic ? ` › ${p.topic}` : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {STANDARDS.find((s) => s.value === p.standard)?.label || p.standard} ·{" "}
+                    {standardOptions.find((s) => s.value === p.standard)?.label || p.standard} ·{" "}
                     {p.question_count} প্রশ্ন
                   </p>
                 </div>
