@@ -21,6 +21,7 @@ interface Question {
     option_b: string;
     option_c: string;
     option_d: string;
+    option_e?: string;
     correct_option: string;
     explanation?: string;
     exam_id: string;
@@ -436,9 +437,10 @@ const TakeMistakeExam = () => {
 
                                         {/* Options */}
                                         <div className="space-y-2 pt-2">
-                                            {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                                            {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                 const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
+                                                if (!optionText) return null;
                                                 const isSelected = selected === optionKey;
                                                 const isCorrectOption = q.correct_option === optionKey;
 
@@ -622,9 +624,10 @@ const TakeMistakeExam = () => {
                                     </div>
 
                                     <div className="space-y-2 pt-2">
-                                        {(["A", "B", "C", "D"] as const).map((optionKey) => {
+                                        {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
+                                            if (!optionText) return null;
                                             const isSelected = answers[q.id] === optionKey;
                                             const isAnswered = !!answers[q.id];
                                             const isThisSelected = isSelected;
