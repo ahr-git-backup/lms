@@ -335,7 +335,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
             <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 py-4 px-1.5 sm:px-2">
                 {/* View 1: Category Selection */}
                 {view === 'category' && (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:max-w-3xl sm:mx-auto mt-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-4">
                         <Card
                             className="p-6 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all text-center flex flex-col items-center gap-3"
                             onClick={() => { setSelectedCategory('exams'); setView('subjects'); }}
