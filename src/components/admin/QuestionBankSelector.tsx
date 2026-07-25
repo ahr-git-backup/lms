@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -10,124 +10,10 @@ import MathText from "@/components/MathText";
 import { QuestionData } from "@/types/exam";
 import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { Card } from "@/components/ui/card";
-import { VariableSizeList as List, ListChildComponentProps } from "react-window";
 
 interface QuestionBankSelectorProps {
     onSelect: (questions: QuestionData[]) => void;
 }
-
-// Row renderer for a single question card, measures its own height and reports back
-const QuestionRow = memo(({ index, style, data }: ListChildComponentProps) => {
-    const { items, selectedIds, handleToggle, setRowHeight } = data;
-    const q = items[index];
-    const rowRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (rowRef.current) {
-            const height = rowRef.current.getBoundingClientRect().height;
-            setRowHeight(index, height);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [q.id]);
-
-    return (
-        <div style={style}>
-            <div ref={rowRef} className="pb-3">
-                <div
-                    className={`py-3 px-2 sm:px-3 rounded-lg border transition-all cursor-pointer ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
-                    onClick={() => handleToggle(q.id)}
-                >
-                    <div className="flex gap-3">
-                        <div className="pt-1">
-                            <Checkbox
-                                checked={selectedIds.has(q.id)}
-                                onCheckedChange={() => handleToggle(q.id)}
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        </div>
-                        <div className="flex-1 space-y-3 min-w-0">
-                            <div className="text-sm font-medium">
-                                <span className="text-muted-foreground mr-2">{q.question_index}.</span>
-                                <MathText text={q.question_text} />
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                                <div className={`p-2 rounded border ${q.correct_option === 'A' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
-                                    <span className="font-semibold mr-2">A.</span> <MathText text={q.option_a} inline />
-                                </div>
-                                <div className={`p-2 rounded border ${q.correct_option === 'B' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
-                                    <span className="font-semibold mr-2">B.</span> <MathText text={q.option_b} inline />
-                                </div>
-                                <div className={`p-2 rounded border ${q.correct_option === 'C' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
-                                    <span className="font-semibold mr-2">C.</span> <MathText text={q.option_c} inline />
-                                </div>
-                                <div className={`p-2 rounded border ${q.correct_option === 'D' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
-                                    <span className="font-semibold mr-2">D.</span> <MathText text={q.option_d} inline />
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-});
-QuestionRow.displayName = "QuestionRow";
-
-// Virtualized list wrapper - measures container height and manages per-row dynamic heights
-const VirtualizedQuestionList = ({ items, selectedIds, handleToggle }: {
-    items: any[];
-    selectedIds: Set<string>;
-    handleToggle: (id: string) => void;
-}) => {
-    const containerRef = useRef<HTMLDivElement>(null);
-    const listRef = useRef<List>(null);
-    const rowHeights = useRef<Record<number, number>>({});
-    const [containerHeight, setContainerHeight] = useState(400);
-    const DEFAULT_HEIGHT = 160;
-
-    useEffect(() => {
-        const el = containerRef.current;
-        if (!el) return;
-        const observer = new ResizeObserver((entries) => {
-            for (const entry of entries) {
-                setContainerHeight(entry.contentRect.height);
-            }
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, []);
-
-    const getRowHeight = useCallback((index: number) => rowHeights.current[index] || DEFAULT_HEIGHT, []);
-
-    const setRowHeight = useCallback((index: number, height: number) => {
-        if (rowHeights.current[index] !== height) {
-            rowHeights.current[index] = height;
-            listRef.current?.resetAfterIndex(index);
-        }
-    }, []);
-
-    // Reset measured heights when the underlying item set changes (e.g. new search)
-    useEffect(() => {
-        rowHeights.current = {};
-        listRef.current?.resetAfterIndex(0);
-    }, [items]);
-
-    return (
-        <div ref={containerRef} className="flex-1 min-h-0">
-            <List
-                ref={listRef}
-                height={containerHeight}
-                width="100%"
-                itemCount={items.length}
-                itemSize={getRowHeight}
-                itemData={{ items, selectedIds, handleToggle, setRowHeight }}
-            >
-                {QuestionRow}
-            </List>
-        </div>
-    );
-};
 
 export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) => {
     const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>('category');
@@ -446,7 +332,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 )}
             </div>
 
-            <div className={`flex-1 min-h-0 bg-background/50 py-4 px-1.5 sm:px-2 ${view === 'questions' ? 'flex flex-col overflow-hidden' : 'overflow-y-auto'}`}>
+            <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 py-4 px-1.5 sm:px-2">
                 {/* View 1: Category Selection */}
                 {view === 'category' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-4">
@@ -677,11 +563,46 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                         ) : questionsData?.data?.length === 0 ? (
                             <div className="text-center py-10 text-muted-foreground">No questions found in this exam.</div>
                         ) : (
-                            <VirtualizedQuestionList
-                                items={questionsData?.data || []}
-                                selectedIds={selectedIds}
-                                handleToggle={handleToggle}
-                            />
+                            <div className="space-y-3 pb-4">
+                                {questionsData?.data?.map((q: any) => (
+                                    <div
+                                        key={q.id}
+                                        className={`py-3 px-2 sm:px-3 rounded-lg border transition-all cursor-pointer ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
+                                        onClick={() => handleToggle(q.id)}
+                                    >
+                                        <div className="flex gap-3">
+                                            <div className="pt-1">
+                                                <Checkbox
+                                                    checked={selectedIds.has(q.id)}
+                                                    onCheckedChange={() => handleToggle(q.id)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div className="flex-1 space-y-3 min-w-0">
+                                                <div className="text-sm font-medium">
+                                                    <span className="text-muted-foreground mr-2">{q.question_index}.</span>
+                                                    <MathText text={q.question_text} />
+                                                </div>
+
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                                                    <div className={`p-2 rounded border ${q.correct_option === 'A' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                                                        <span className="font-semibold mr-2">A.</span> <MathText text={q.option_a} inline />
+                                                    </div>
+                                                    <div className={`p-2 rounded border ${q.correct_option === 'B' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                                                        <span className="font-semibold mr-2">B.</span> <MathText text={q.option_b} inline />
+                                                    </div>
+                                                    <div className={`p-2 rounded border ${q.correct_option === 'C' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                                                        <span className="font-semibold mr-2">C.</span> <MathText text={q.option_c} inline />
+                                                    </div>
+                                                    <div className={`p-2 rounded border ${q.correct_option === 'D' ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                                                        <span className="font-semibold mr-2">D.</span> <MathText text={q.option_d} inline />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </div>
                 )}
