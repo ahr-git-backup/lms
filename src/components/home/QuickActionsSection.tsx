@@ -22,7 +22,7 @@ export const QuickActionsSection = () => {
   const navigate = useNavigate();
 
   return (
-    <section className="rounded-2xl border border-border/60 bg-muted/20 px-1 py-2.5 sm:px-2.5 space-y-2 -mt-1">
+    <section className="rounded-2xl border border-border/60 bg-muted/20 px-0.5 py-2.5 sm:px-1.5 space-y-2 -mt-1">
       {/* Row 1: All Courses / Course Reviews */}
       <div className="grid grid-cols-2 gap-2">
         <Button
