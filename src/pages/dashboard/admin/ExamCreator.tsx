@@ -599,7 +599,8 @@ const ExamCreator = () => {
                             C: q.option3 || q.option_c || q.C || q["Option C"] || "",
                             D: q.option4 || q.option_d || q.D || q["Option D"] || ""
                         };
-                        const optionE = q.option5 || q.option_e || q.E || q["Option E"] || "";
+                        const optionERaw = q.option5 || q.option_5 || q.optionE || q.option_e || q.E || q["Option E"] || q["Option5"] || q["Option 5"] || "";
+                        const optionE = String(optionERaw).trim();
                         if (optionE) options.E = optionE;
                     }
 
@@ -615,6 +616,12 @@ const ExamCreator = () => {
                 let tags = q.tags || [];
                 if (type === 'csv' && typeof q.tags === 'string') {
                     tags = q.tags.split(',').map((t: string) => t.trim()).filter(Boolean);
+                }
+
+                // Drop Option E if it's empty/whitespace so it doesn't falsely show as an added option
+                if (options.E !== undefined && !String(options.E).trim()) {
+                    const { E, ...rest } = options;
+                    options = rest;
                 }
 
                 return {
