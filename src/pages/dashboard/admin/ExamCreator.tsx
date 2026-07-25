@@ -1102,7 +1102,7 @@ const ExamCreator = () => {
         </div>
         {/* Question Bank (Side by Side) */}
         {showBankSelector && (
-            <div className="lg:w-[50%] flex flex-col h-[calc(100vh-6rem)] sticky top-4 border border-border/60 rounded-[20px] bg-card px-2 py-4 sm:p-6 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="-mx-4 sm:mx-0 lg:w-[50%] flex flex-col h-[calc(100vh-6rem)] sticky top-4 border border-border/60 sm:rounded-[20px] bg-card px-2 py-4 sm:p-6 shadow-sm animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50 shrink-0">
                      <div className="flex items-center gap-3">
                         <div className="p-2 bg-primary/10 text-primary rounded-xl shrink-0">
