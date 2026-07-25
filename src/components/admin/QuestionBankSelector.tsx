@@ -192,12 +192,8 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 query = query.ilike('question_text', `%${search}%`);
             }
 
-            const from = (page - 1) * PAGE_SIZE;
-            const to = from + PAGE_SIZE - 1;
-
             const { data, error, count } = await query
-                .order('question_index', { ascending: true })
-                .range(from, to);
+                .order('question_index', { ascending: true });
 
             if (error) throw error;
             return { data, count };
@@ -336,7 +332,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 )}
             </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 p-4">
+            <div className="flex-1 overflow-y-auto min-h-0 bg-background/50 py-4 px-1.5 sm:px-2">
                 {/* View 1: Category Selection */}
                 {view === 'category' && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl mx-auto mt-4">
@@ -571,7 +567,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 {questionsData?.data?.map((q: any) => (
                                     <div
                                         key={q.id}
-                                        className={`p-4 rounded-lg border transition-all cursor-pointer ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
+                                        className={`py-3 px-2 sm:px-3 rounded-lg border transition-all cursor-pointer ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
                                         onClick={() => handleToggle(q.id)}
                                     >
                                         <div className="flex gap-3">
@@ -612,19 +608,6 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 )}
             </div>
 
-            {/* Questions Pagination Footer */}
-            {view === 'questions' && questionsData && questionsData.count > PAGE_SIZE && (
-                <div className="p-2 sm:p-3 border-t bg-muted/20 flex items-center justify-between">
-                    <div className="flex items-center gap-1">
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Prev</Button>
-                        <span className="text-[10px] sm:text-xs min-w-[40px] text-center">Pg {page}</span>
-                        <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPage(p => p + 1)} disabled={page * PAGE_SIZE >= questionsData.count}>Next</Button>
-                    </div>
-                    <div className="text-xs text-muted-foreground hidden sm:block">
-                        Total {questionsData.count} questions
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
