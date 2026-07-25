@@ -1060,7 +1060,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             <DialogHeader className="p-4 pb-0">
               <DialogTitle>Select from Question Bank</DialogTitle>
             </DialogHeader>
-            <div className="flex-1 overflow-hidden p-4 pt-2 h-[calc(85vh-60px)]">
+            <div className="flex-1 overflow-hidden px-0.5 sm:p-4 pt-2 h-[calc(85vh-60px)]">
               <QuestionBankSelector onSelect={handleQbSelect} />
             </div>
           </DialogContent>
