@@ -156,7 +156,7 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
             {/* Options Box with Inline Correct Answer Selection */}
             <div className="border border-border/60 rounded-[20px] p-4 sm:p-5 bg-card shadow-sm space-y-3">
                 <div className="flex items-center justify-between mb-1">
-                    <Label className="text-sm font-semibold text-foreground/80">Options & Correct Answer <span className="text-destructive">*</span></Label>
+                    <Label className="text-sm font-semibold text-foreground/80">Options & Correct Answer (A-D required) <span className="text-destructive">*</span></Label>
                     <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Tap letter to mark correct</span>
                 </div>
                 {['A', 'B', 'C', 'D'].map((opt) => {
@@ -237,7 +237,7 @@ export const QuestionEditor = ({ data, onChange, onSave, onCancel }: QuestionEdi
                         onClick={() => onChange({ ...data, options: { ...data.options, E: "" } })}
                         className="rounded-full text-xs h-8 px-3 border-dashed"
                     >
-                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Option E
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Option E (optional)
                     </Button>
                 )}
             </div>

@@ -178,8 +178,21 @@ const ExamCreator = () => {
   const handleSaveQuestion = () => {
     if (!activeForm) return;
 
-    if (!activeForm.data.question || !activeForm.data.correct_answer) {
-        toast({ title: "Validation Error", description: "Question and Correct Answer are required.", variant: "destructive" });
+    const d = activeForm.data;
+    if (!d.question || !d.question.trim()) {
+        toast({ title: "Validation Error", description: "Question text is required.", variant: "destructive" });
+        return;
+    }
+    if (!d.options.A?.trim() || !d.options.B?.trim() || !d.options.C?.trim() || !d.options.D?.trim()) {
+        toast({ title: "Validation Error", description: "Option A, B, C, D are required. Option E is optional.", variant: "destructive" });
+        return;
+    }
+    if (!d.correct_answer) {
+        toast({ title: "Validation Error", description: "Please select the correct answer.", variant: "destructive" });
+        return;
+    }
+    if (d.correct_answer === "E" && !d.options.E?.trim()) {
+        toast({ title: "Validation Error", description: "Correct answer is set to E, but Option E is empty.", variant: "destructive" });
         return;
     }
 
