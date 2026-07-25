@@ -62,8 +62,8 @@ export const QuickActionsSection = () => {
         </button>
       </div>
 
-      {/* Row 3: Quick Practice / Focus Timer */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Row 3: Quick Practice / Focus Timer / ATLAS AI */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => navigate("/quick-practice")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
@@ -72,7 +72,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
             <Zap className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.6s" }} />
           </div>
-          <span className="text-sm font-bold">Quick Practice</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Quick Practice</span>
         </button>
         <button
           onClick={() => navigate("/focus-timer")}
@@ -82,12 +82,8 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
             <Timer className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.9s" }} />
           </div>
-          <span className="text-sm font-bold">Focus Timer</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Focus Timer</span>
         </button>
-      </div>
-
-      {/* Row 4: ATLAS AI / Pomodoro Timer */}
-      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/atlas-ai")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/50 hover:shadow-md transition-all"
@@ -96,8 +92,12 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
             <Sparkles className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.5s" }} />
           </div>
-          <span className="text-sm font-bold">ATLAS AI</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">ATLAS AI</span>
         </button>
+      </div>
+
+      {/* Row 4: Pomodoro Timer / Study Tracker / Unlimited Mock Test */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => navigate("/pomodoro")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
@@ -106,12 +106,8 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
             <Clock className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.8s" }} />
           </div>
-          <span className="text-sm font-bold">Pomodoro Timer</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Pomodoro Timer</span>
         </button>
-      </div>
-
-      {/* Row 5: Study Tracker / Unlimited Mock Test (always shown, no toggle) */}
-      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/syllabus-tracker")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-600/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
@@ -120,7 +116,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
             <BarChart3 className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.2s" }} />
           </div>
-          <span className="text-sm font-bold">Study Tracker</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Study Tracker</span>
         </button>
         <button
           onClick={() => navigate("/mock-test")}
@@ -130,7 +126,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-sm">
             <ClipboardCheck className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.35s" }} />
           </div>
-          <span className="text-sm font-bold text-center leading-tight px-1">Unlimited Mock Test</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Unlimited Mock Test</span>
         </button>
       </div>
     </section>
