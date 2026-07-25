@@ -137,7 +137,7 @@ const Index = () => {
           </div>
       </div>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 pb-10 pt-6 sm:pt-8 flex-1">
+      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-2 sm:px-4 pb-10 pt-6 sm:pt-8 flex-1">
 
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (
