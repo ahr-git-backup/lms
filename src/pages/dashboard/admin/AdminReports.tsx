@@ -143,6 +143,13 @@ Feedback: ${feedback}`;
 
                 if (updateError) throw updateError;
 
+                // 1b. Recalculate marks for all existing attempts on this exam
+                // so a changed correct answer reflects in already-submitted results too.
+                const { error: recalcError } = await supabase.rpc("recalculate_exam_attempts_for_question", {
+                    p_question_id: report.question.id,
+                });
+                if (recalcError) throw recalcError;
+
                 // 2. Delete the report
                 const { error: deleteError } = await supabase
                     .from("question_reports")
