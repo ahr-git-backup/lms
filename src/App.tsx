@@ -212,7 +212,6 @@ const App = () => {
                 <Route index element={<ErrorBoundary><AdminDashboardHome /></ErrorBoundary>} />
                 <Route path="courses" element={<ProtectedRoute requireAdmin><AdminCourses /></ProtectedRoute>} />
                 <Route path="students" element={<ProtectedRoute requireAdmin><AdminStudents /></ProtectedRoute>} />
-                <Route path="students/list/:filterType" element={<ProtectedRoute requireAdmin><AdminStudents /></ProtectedRoute>} />
                 <Route path="classes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminClasses /></ProtectedRoute>} />
                 <Route path="routines" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminRoutines /></ProtectedRoute>} />
                 <Route path="exams" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExams /></ProtectedRoute>} />
