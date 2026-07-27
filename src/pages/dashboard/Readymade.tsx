@@ -358,6 +358,7 @@ const Readymade = () => {
           userId={user?.id}
           lockedExam={lockedExam}
           setLockedExam={setLockedExam}
+          isAdmin={isAdmin}
         />
       )}
     </div>
@@ -365,7 +366,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
 
@@ -379,6 +380,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .from("exams")
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .ilike("title", `%${safeQuery}%`)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -540,6 +542,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       let query = supabase.from("exams")
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
@@ -560,7 +563,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     const count = searchResults?.count || 0;
     const totalPages = Math.ceil(count / PAGE_SIZE);
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
+    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -700,17 +703,155 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
       ) : (
-        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} />
+        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} />
       )}
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SplitExamDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) => {
+  const { toast } = useToast();
+  const [count, setCount] = useState("5");
+  const [saving, setSaving] = useState(false);
+  const totalQ = exam?.questions_count?.[0]?.count || 0;
+
+  const handleSplit = async () => {
+    const n = parseInt(count, 10);
+    if (!n || n < 1) {
+      toast({ title: "Invalid count", description: "Enter a valid MCQ count per exam.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc("create_split_exams", { p_parent_exam_id: exam.id, p_per_split_count: n });
+      if (error) throw error;
+      toast({ title: "Split হয়েছে", description: `Exam splitted into groups of ${n} MCQs.` });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Split করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!exam} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Split Exam</DialogTitle>
+          <DialogDescription>
+            মোট {totalQ}টি MCQ আছে। প্রতি exam-এ কতটি MCQ থাকবে লিখুন।
+          </DialogDescription>
+        </DialogHeader>
+        <Input
+          type="number"
+          min={1}
+          value={count}
+          onChange={(e) => setCount(e.target.value)}
+          placeholder="e.g. 5"
+        />
+        <div className="flex gap-2 mt-2">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button className="flex-1" onClick={handleSplit} disabled={saving}>{saving ? "..." : "Split করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void }) => {
+const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { data: splits, isLoading, refetch } = useQuery({
+    queryKey: ["split-exams", parentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, split_start, split_end")
+        .eq("parent_exam_id", parentId)
+        .order("split_start", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("exams").delete().eq("id", id);
+      if (error) throw error;
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Delete করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+        onClick={() => setOpen(o => !o)}
+      >
+        {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <span className="ml-1">Splits</span>
+      </Button>
+      {open && (
+        <div className="mt-1.5 space-y-1 border-l-2 border-primary/20 pl-2">
+          {isLoading ? (
+            <div className="text-[11px] text-muted-foreground">Loading...</div>
+          ) : !splits || splits.length === 0 ? (
+            <div className="text-[11px] text-muted-foreground">No splits yet.</div>
+          ) : (
+            splits.map((s: any) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+                onClick={() => {
+                  setExamSourceList(s.id, "/dashboard/readymade");
+                  navigate(`/dashboard/take-exam/${s.id}`);
+                }}
+              >
+                <span className="text-xs font-medium">{s.title}</span>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px]">Start</Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1.5 text-[10px] text-destructive hover:text-destructive"
+                      disabled={deletingId === s.id}
+                      onClick={(e) => handleDelete(e, s.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [splittingExam, setSplittingExam] = useState<any | null>(null);
 
   const handleDownloadPdf = async (e: React.MouseEvent, exam: any) => {
     e.stopPropagation();
@@ -748,6 +889,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams:
 
   return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {exams.map((exam) => {
       const unlocked = isExamUnlocked(exam, enrolledIds);
       return (
@@ -788,8 +930,23 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams:
                   {downloadingId === exam.id ? "..." : "PDF"}
                 </Button>
               )}
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                  onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
+                >
+                  Split
+                </Button>
+              )}
             </div>
           </CardContent>
+          {unlocked && (
+            <div className="px-4 pb-3 -mt-1" onClick={(e) => e.stopPropagation()}>
+              <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+            </div>
+          )}
         </Card>
       );
     })}
