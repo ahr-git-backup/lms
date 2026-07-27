@@ -827,31 +827,33 @@ const PlayUnlimitedMock = () => {
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
       <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
-        <div className="flex items-start justify-between gap-3 sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0">
-          <div className="min-w-0">
-            <h1 className="text-xl md:text-2xl font-bold truncate">{title}</h1>
+        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
+          <div className="rounded-xl border-2 border-primary/20 bg-primary/5 px-3 py-2">
+            <h1 className="text-base md:text-lg font-bold leading-snug break-words">{title}</h1>
+          </div>
+          <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               Answered: {answeredCount} / {questions.length}
             </p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div
-              className={cn(
-                "px-3 py-1.5 rounded-full font-mono font-bold shadow-sm border flex items-center gap-1.5 transition-all duration-300 text-sm",
-                isLowTime
-                  ? "bg-red-600 text-white border-red-700 animate-pulse"
-                  : "bg-background border-primary/20 text-primary"
-              )}
-            >
-              <Clock className="h-3.5 w-3.5" />
-              {formatTime(secondsLeft)}
-            </div>
-            {violationCount > 0 && (
-              <div className="px-3 py-1.5 rounded-full font-bold shadow-sm border bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5 text-sm animate-in fade-in zoom-in">
-                <AlertTriangle className="h-3.5 w-3.5" />
-                <span>{violationCount}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <div
+                className={cn(
+                  "px-3 py-1.5 rounded-full font-mono font-bold shadow-sm border flex items-center gap-1.5 transition-all duration-300 text-sm",
+                  isLowTime
+                    ? "bg-red-600 text-white border-red-700 animate-pulse"
+                    : "bg-background border-primary/20 text-primary"
+                )}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                {formatTime(secondsLeft)}
               </div>
-            )}
+              {violationCount > 0 && (
+                <div className="px-3 py-1.5 rounded-full font-bold shadow-sm border bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5 text-sm animate-in fade-in zoom-in">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>{violationCount}</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
