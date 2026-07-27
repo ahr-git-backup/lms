@@ -374,7 +374,7 @@ const UnlimitedMockTest = () => {
           <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => navigate("/")}
               className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
               aria-label="Back"
             >
