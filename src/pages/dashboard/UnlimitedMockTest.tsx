@@ -161,7 +161,7 @@ const UnlimitedMockTest = () => {
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
 
-      navigate("/dashboard/mock-test/play");
+      navigate("/mock-test/play");
     } catch (e: any) {
       toast({ title: "লোড করতে সমস্যা", description: e.message, variant: "destructive" });
     } finally {
