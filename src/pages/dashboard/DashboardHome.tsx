@@ -11,7 +11,6 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getEmbedUrl } from "@/lib/videoUtils";
-import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
 
 const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
@@ -49,7 +48,6 @@ const DashboardHome = () => {
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
-  const [showQuickAccessSort, setShowQuickAccessSort] = useState(false);
 
   const { data: tutorialVideoUrl } = useQuery({
     queryKey: ["dashboard-tutorial-video"],
@@ -162,15 +160,6 @@ const DashboardHome = () => {
     enabled: !!isAdmin,
   });
 
-  const { data: quickAccessOrder } = useQuery({
-    queryKey: ["quick-access-order"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("value").eq("key", QUICK_ACCESS_ORDER_KEY).maybeSingle();
-      if (error) return [];
-      return Array.isArray(data?.value) ? (data.value as string[]) : [];
-    },
-  });
-
   const { data: qpPoints } = useQuery({
     queryKey: ["qp-user-points", user?.id],
     enabled: !!user,
@@ -226,14 +215,6 @@ const DashboardHome = () => {
       { title: "Exam Routine", icon: CalendarClock, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/calendar" },
       { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
-
-  const orderedNavigationItems = (() => {
-    if (!quickAccessOrder || quickAccessOrder.length === 0) return navigationItems;
-    const byTitle = new Map(navigationItems.map((item) => [item.title, item]));
-    const ordered = quickAccessOrder.map((t) => byTitle.get(t)).filter(Boolean) as typeof navigationItems;
-    const remaining = navigationItems.filter((item) => !quickAccessOrder.includes(item.title));
-    return [...ordered, ...remaining];
-  })();
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
@@ -636,28 +617,9 @@ const DashboardHome = () => {
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
            <div className="rounded-lg border p-4">
-             <div className="flex items-center justify-center relative">
-               <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
-               {isAdmin && !showQuickAccessSort && (
-                 <Button
-                   size="sm"
-                   variant="ghost"
-                   className="absolute right-0 text-xs text-muted-foreground hover:text-primary"
-                   onClick={() => setShowQuickAccessSort(true)}
-                 >
-                   Reorder
-                 </Button>
-               )}
-             </div>
+             <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
              <hr className="mt-3 border-border" />
            </div>
-           {isAdmin && showQuickAccessSort ? (
-             <QuickAccessSortDialog
-               titles={orderedNavigationItems.map((item) => item.title)}
-               onClose={() => setShowQuickAccessSort(false)}
-             />
-           ) : (
-           <>
            <Link
              to="/dashboard/routine"
              className="flex items-center justify-center gap-2 w-full rounded-lg border bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
@@ -665,7 +627,7 @@ const DashboardHome = () => {
              <Calendar className="h-4 w-4" /> Routine
            </Link>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {orderedNavigationItems.map((item, index) => (
+               {navigationItems.map((item, index) => (
                    <Card
                         key={index}
                         className={`group hover:shadow-md transition-all cursor-pointer ${
@@ -698,8 +660,6 @@ const DashboardHome = () => {
                    </Card>
                ))}
            </div>
-           </>
-           )}
       </div>
 
     </div>
