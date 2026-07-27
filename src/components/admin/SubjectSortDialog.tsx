@@ -100,10 +100,11 @@ function SortableSubjectItem({
               className="text-sm py-1.5 min-h-0 resize-none"
               placeholder={"Xxx\n[yyy]"}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commitEdit(); }
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commitEdit(); }
                 if (e.key === "Escape") setEditing(false);
               }}
             />
+            <p className="text-[10px] text-muted-foreground -mt-0.5">Enter দিয়ে নতুন লাইন করা যাবে। Save করতে বাটনে ক্লিক করুন।</p>
             <div className="flex gap-1.5">
               <button type="button" onClick={commitEdit} disabled={isRenaming} className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium bg-primary text-primary-foreground disabled:opacity-50">
                 {isRenaming ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
