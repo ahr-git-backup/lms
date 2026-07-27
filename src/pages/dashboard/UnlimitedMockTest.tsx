@@ -585,7 +585,7 @@ const UnlimitedMockTest = () => {
           ) : (
           <div>
             <Label className="mb-2 block">সাবজেক্ট</Label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               {(subjects || []).map((s: string) => (
                 <button
                   key={s}
@@ -600,7 +600,7 @@ const UnlimitedMockTest = () => {
                     setTopic("");
                     setPaper("");
                   }}
-                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                  className={`w-full rounded-xl border-2 px-3 py-3 text-base font-semibold text-center break-words leading-snug transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/40"
@@ -616,7 +616,7 @@ const UnlimitedMockTest = () => {
           {!multiMode && subject && (
             <div>
               <Label className="mb-2 block">চ্যাপ্টার</Label>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {(chapters || []).map((c: string) => (
                   <button
                     key={c}
@@ -630,7 +630,7 @@ const UnlimitedMockTest = () => {
                       setTopic("");
                       setPaper("");
                     }}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                    className={`w-full rounded-xl border-2 px-3 py-3 text-base font-semibold text-center break-words leading-snug transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
