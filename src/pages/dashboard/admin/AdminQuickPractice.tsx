@@ -700,7 +700,6 @@ const AdminQuickPractice = () => {
         </p>
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-4">
         <Card>
           <CardHeader>
             <CardTitle className="text-base">নতুন MCQ যোগ করুন</CardTitle>
@@ -820,63 +819,6 @@ const AdminQuickPractice = () => {
             </div>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Question Bank-এ MCQ যোগ করুন</CardTitle>
-            <CardDescription>
-              CSV কলাম: question, option1, option2, option3, option4, option5 (ঐচ্ছিক), answer (১-৫), explanation
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-3">
-              <Input
-                placeholder="বিষয়ের নাম (যেমন: পদার্থবিজ্ঞান)"
-                value={qbSubjectName}
-                onChange={(e) => setQbSubjectName(e.target.value)}
-                list="qp-subject-list"
-              />
-              <Input
-                placeholder="অধ্যায়ের নাম (যেমন: ভেক্টর)"
-                value={qbChapterName}
-                onChange={(e) => setQbChapterName(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <div
-                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
-                onClick={() => qbFileRef.current?.click()}
-              >
-                <UploadCloud className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-                <p className="text-sm">{qbCsvFileName || "CSV আপলোড করুন"}</p>
-                <input
-                  ref={qbFileRef}
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleQbFile(e.target.files[0])}
-                />
-                {qbCsvData && (
-                  <p className="text-xs text-emerald-600 font-semibold mt-1.5">
-                    ✓ {qbCsvData.length}টি প্রশ্ন প্রস্তুত
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={saveQbAll} disabled={qbSaving} className="flex-1">
-                {qbSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                সেভ করুন
-              </Button>
-              <Button variant="outline" onClick={clearQbForm} disabled={qbSaving}>
-                ক্লিয়ার
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <Card>
         <CardHeader>
