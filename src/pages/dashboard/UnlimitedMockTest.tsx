@@ -217,6 +217,26 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
+  const { data: globalTotals } = useQuery({
+    queryKey: ["mock-pool-global-totals"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("subject, chapter, questions_json");
+      if (error) throw error;
+      const subjectsSet = new Set<string>();
+      const chaptersSet = new Set<string>();
+      let totalMcq = 0;
+      (data || []).forEach((row: any) => {
+        subjectsSet.add(row.subject);
+        chaptersSet.add(`${row.subject}__${row.chapter}`);
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        totalMcq += qs.length;
+      });
+      return { subjects: subjectsSet.size, chapters: chaptersSet.size, mcq: totalMcq };
+    },
+  });
+
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
     if (multiMode) {
       if (multiSelections.length === 0) {
@@ -370,21 +390,15 @@ const UnlimitedMockTest = () => {
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
-              <p className="text-xs font-semibold truncate">
-                {multiMode ? (multiSubjects.length > 0 ? `${multiSubjects.length}টি` : "-") : (subject || "-")}
-              </p>
+              <p className="text-xs font-semibold truncate">{globalTotals?.subjects ?? "-"}</p>
             </div>
             <div className="min-w-0 border-x border-border px-1">
               <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
-              <p className="text-xs font-semibold truncate">
-                {multiMode ? (multiSelections.length > 0 ? `${multiSelections.length}টি` : "-") : (chapter || "-")}
-              </p>
+              <p className="text-xs font-semibold truncate">{globalTotals?.chapters ?? "-"}</p>
             </div>
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
-              <p className="text-xs font-semibold">
-                {multiMode ? (multiAvailablePool ?? "-") : (availablePool ?? "-")}
-              </p>
+              <p className="text-xs font-semibold">{globalTotals?.mcq ?? "-"}</p>
             </div>
           </div>
         </CardContent>
