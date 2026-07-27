@@ -96,7 +96,7 @@ function SortableSubjectItem({
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
               rows={2}
-              autoFocus
+              ref={(el) => { if (el) setTimeout(() => el.focus({ preventScroll: true }), 0); }}
               className="text-sm py-1.5 min-h-0 resize-none"
               placeholder={"Xxx\n[yyy]"}
               onKeyDown={(e) => {
