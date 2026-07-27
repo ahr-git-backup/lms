@@ -580,6 +580,10 @@ const StudentProfile = () => {
                             </div>
                             <ProfileDetailItem label="Registration ID" value={profile.registration_id} />
                             <ProfileDetailItem label="Phone" value={profile.phone} />
+                            <ProfileDetailItem
+                                label="Joining Date & Time"
+                                value={profile.created_at ? format(new Date(profile.created_at), 'PPPp') : "-"}
+                            />
                         </div>
 
                         {/* Academic Group */}
