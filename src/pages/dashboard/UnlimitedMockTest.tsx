@@ -97,7 +97,28 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
-  const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
+  const { data: availablePool } = useQuery({
+    queryKey: ["mock-pool-available-count", subject, chapter, topic, paper, standard],
+    queryFn: async () => {
+      let q = supabase
+        .from("mock_question_pool")
+        .select("questions_json")
+        .eq("subject", subject)
+        .eq("chapter", chapter)
+        .eq("standard", standard);
+      if (topic) q = q.eq("topic", topic);
+      if (paper) q = q.eq("paper", paper);
+      const { data, error } = await q;
+      if (error) throw error;
+      let total = 0;
+      (data || []).forEach((row: any) => {
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        total += qs.length;
+      });
+      return total;
+    },
+    enabled: !!subject && !!chapter,
+  });
     if (!subject || !chapter) {
       toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
       return;
@@ -232,7 +253,7 @@ const UnlimitedMockTest = () => {
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
-                <p className="text-xs font-semibold">{count}</p>
+                <p className="text-xs font-semibold">{availablePool ?? "-"}</p>
               </div>
             </div>
           </CardContent>
@@ -360,7 +381,12 @@ const UnlimitedMockTest = () => {
           </div>
 
           <div>
-            <Label className="mb-2 block">প্রশ্ন সংখ্যা</Label>
+            <Label className="mb-2 block">
+              প্রশ্ন সংখ্যা
+              {subject && chapter && availablePool != null && (
+                <span className="text-muted-foreground font-normal"> (available {availablePool})</span>
+              )}
+            </Label>
             <div className="flex gap-2 flex-wrap">
               {COUNTS.map((c) => (
                 <button
