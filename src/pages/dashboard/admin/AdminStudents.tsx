@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Profile, Course, Enrollment } from "@/types/admin";
@@ -22,11 +22,13 @@ type ListFilter = 'all' | 'paid' | 'free' | 'admin' | 'teacher' | null;
 
 const AdminStudents = () => {
   const navigate = useNavigate();
+  const { filterType } = useParams<{ filterType?: string }>();
+  const isListPage = !!filterType;
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedCourseFilter = searchParams.get("course") || "all";
   const page = parseInt(searchParams.get("page") || "0");
 
-  const [listFilter, setListFilter] = useState<ListFilter>(null);
+  const [listFilter, setListFilter] = useState<ListFilter>((filterType as ListFilter) || null);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
@@ -326,8 +328,8 @@ const AdminStudents = () => {
       {/* Stats Cards - Clickable */}
       <div className="grid gap-6 grid-cols-2">
           <Card
-            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'paid' ? 'border-primary bg-primary/5' : ''}`}
-            onClick={() => setListFilter(listFilter === 'paid' ? null : 'paid')}
+            className="cursor-pointer transition-all hover:border-primary/50"
+            onClick={() => navigate("/admin/students/list/paid")}
           >
               <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -341,8 +343,8 @@ const AdminStudents = () => {
           </Card>
 
           <Card
-            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'free' ? 'border-primary bg-primary/5' : ''}`}
-            onClick={() => setListFilter(listFilter === 'free' ? null : 'free')}
+            className="cursor-pointer transition-all hover:border-primary/50"
+            onClick={() => navigate("/admin/students/list/free")}
           >
               <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -356,8 +358,8 @@ const AdminStudents = () => {
           </Card>
 
           <Card
-            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'teacher' ? 'border-primary bg-primary/5' : ''}`}
-            onClick={() => setListFilter(listFilter === 'teacher' ? null : 'teacher')}
+            className="cursor-pointer transition-all hover:border-primary/50"
+            onClick={() => navigate("/admin/students/list/teacher")}
           >
               <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -371,8 +373,8 @@ const AdminStudents = () => {
           </Card>
 
            <Card
-            className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'admin' ? 'border-primary bg-primary/5' : ''}`}
-            onClick={() => setListFilter(listFilter === 'admin' ? null : 'admin')}
+            className="cursor-pointer transition-all hover:border-primary/50"
+            onClick={() => navigate("/admin/students/list/admin")}
           >
               <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
@@ -398,11 +400,12 @@ const AdminStudents = () => {
         </Card>
       </div>
 
+      {isListPage && (
       <Card className="border border-foreground/60 min-h-[400px]">
         <CardHeader>
           <CardTitle className="text-base flex justify-between items-center">
               <span>Student List {listFilter ? `(${listFilter.toUpperCase()})` : ""}</span>
-              {listFilter && <Button variant="ghost" size="sm" onClick={() => setListFilter(null)}>Clear Filter</Button>}
+              <Button variant="ghost" size="sm" onClick={() => navigate("/admin/students")}>Back to Overview</Button>
           </CardTitle>
           <CardDescription className="flex justify-between items-center">
             <span>{listFilter ? "Showing filtered results." : "Select a category above or search to view students."}</span>
@@ -626,6 +629,7 @@ const AdminStudents = () => {
           )}
         </CardContent>
       </Card>
+      )}
       
       {/* Reset Password Dialog */}
       <ResetPasswordDialog userId={resetPasswordUserId} onClose={() => setResetPasswordUserId(null)} />
