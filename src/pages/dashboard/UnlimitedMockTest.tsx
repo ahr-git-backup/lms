@@ -585,7 +585,7 @@ const UnlimitedMockTest = () => {
           ) : (
           <div>
             <Label className="mb-2 block">সাবজেক্ট</Label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1">
               {(subjects || []).map((s: string) => (
                 <button
                   key={s}
@@ -600,12 +600,12 @@ const UnlimitedMockTest = () => {
                     setTopic("");
                     setPaper("");
                   }}
-                  className={`w-full rounded-xl border-2 px-1.5 py-1.5 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
+                  className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/40"
                   }`}
-                  style={{ fontSize: "clamp(0.75rem, 5.5vw, 1.25rem)" }}
+                  style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                 >
                   {s}
                 </button>
@@ -617,7 +617,7 @@ const UnlimitedMockTest = () => {
           {!multiMode && subject && (
             <div>
               <Label className="mb-2 block">চ্যাপ্টার</Label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-1">
                 {(chapters || []).map((c: string) => (
                   <button
                     key={c}
@@ -631,12 +631,12 @@ const UnlimitedMockTest = () => {
                       setTopic("");
                       setPaper("");
                     }}
-                    className={`w-full rounded-xl border-2 px-1.5 py-1.5 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
+                    className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
                     }`}
-                    style={{ fontSize: "clamp(0.75rem, 5.5vw, 1.25rem)" }}
+                    style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                   >
                     {c}
                   </button>
