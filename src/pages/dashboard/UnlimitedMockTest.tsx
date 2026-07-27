@@ -29,6 +29,18 @@ const UnlimitedMockTest = () => {
   const [customCount, setCustomCount] = useState("");
   const [starting, setStarting] = useState(false);
 
+  // Multi-select mood: allows picking multiple subject/chapter combos for one exam
+  const [multiMode, setMultiMode] = useState(false);
+  const [multiSelections, setMultiSelections] = useState<{ subject: string; chapter: string }[]>([]);
+
+  const toggleMultiSelection = (s: string, c: string) => {
+    setMultiSelections((prev) => {
+      const exists = prev.some((x) => x.subject === s && x.chapter === c);
+      if (exists) return prev.filter((x) => !(x.subject === s && x.chapter === c));
+      return [...prev, { subject: s, chapter: c }];
+    });
+  };
+
   const { data: subjects } = useQuery({
     queryKey: ["mock-pool-subjects"],
     queryFn: async () => {
@@ -97,6 +109,45 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
+  const { data: allSubjectChapterPairs } = useQuery({
+    queryKey: ["mock-pool-all-pairs"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("subject, chapter");
+      if (error) throw error;
+      const map = new Map<string, { subject: string; chapter: string }>();
+      (data || []).forEach((d: any) => {
+        const key = `${d.subject}||${d.chapter}`;
+        if (!map.has(key)) map.set(key, { subject: d.subject, chapter: d.chapter });
+      });
+      return Array.from(map.values());
+    },
+    enabled: multiMode,
+  });
+
+  const { data: multiAvailablePool } = useQuery({
+    queryKey: ["mock-pool-multi-available-count", multiSelections, standard],
+    queryFn: async () => {
+      let total = 0;
+      for (const sel of multiSelections) {
+        const { data, error } = await supabase
+          .from("mock_question_pool")
+          .select("questions_json")
+          .eq("subject", sel.subject)
+          .eq("chapter", sel.chapter)
+          .eq("standard", standard);
+        if (error) throw error;
+        (data || []).forEach((row: any) => {
+          const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+          total += qs.length;
+        });
+      }
+      return total;
+    },
+    enabled: multiMode && multiSelections.length > 0,
+  });
+
   const { data: availablePool } = useQuery({
     queryKey: ["mock-pool-available-count", subject, chapter, topic, paper, standard],
     queryFn: async () => {
@@ -119,23 +170,46 @@ const UnlimitedMockTest = () => {
     },
     enabled: !!subject && !!chapter,
   });
-    if (!subject || !chapter) {
+
+  const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
+    if (multiMode) {
+      if (multiSelections.length === 0) {
+        toast({ title: "অন্তত একটি সাবজেক্ট/চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
+        return;
+      }
+    } else if (!subject || !chapter) {
       toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
       return;
     }
     setStarting(true);
     try {
-      let q = supabase
-        .from("mock_question_pool")
-        .select("*")
-        .eq("subject", subject)
-        .eq("chapter", chapter)
-        .eq("standard", standard);
-      if (topic) q = q.eq("topic", topic);
-      if (paper) q = q.eq("paper", paper);
+      let data: any[] = [];
 
-      const { data, error } = await q;
-      if (error) throw error;
+      if (multiMode) {
+        for (const sel of multiSelections) {
+          const { data: rows, error } = await supabase
+            .from("mock_question_pool")
+            .select("*")
+            .eq("subject", sel.subject)
+            .eq("chapter", sel.chapter)
+            .eq("standard", standard);
+          if (error) throw error;
+          if (rows) data = data.concat(rows);
+        }
+      } else {
+        let q = supabase
+          .from("mock_question_pool")
+          .select("*")
+          .eq("subject", subject)
+          .eq("chapter", chapter)
+          .eq("standard", standard);
+        if (topic) q = q.eq("topic", topic);
+        if (paper) q = q.eq("paper", paper);
+
+        const { data: rows, error } = await q;
+        if (error) throw error;
+        data = rows || [];
+      }
 
       if (!data || data.length === 0) {
         toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
@@ -173,16 +247,17 @@ const UnlimitedMockTest = () => {
       const time = finalMinutes || Math.ceil((finalCount * 30) / 60);
       const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
+      const title = multiMode
+        ? `${multiSelections.length} সাব-চ্যাপ্টার (Mixed Mock Test)`
+        : `${subject} - ${chapter} (Mock Test)`;
+
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
-      sessionStorage.setItem(
-        "unlimitedMockTitle",
-        `${subject} - ${chapter} (Mock Test)`
-      );
+      sessionStorage.setItem("unlimitedMockTitle", title);
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
-      sessionStorage.setItem("unlimitedMockSubject", subject);
-      sessionStorage.setItem("unlimitedMockChapter", chapter);
-      sessionStorage.setItem("unlimitedMockTopic", topic || "");
+      sessionStorage.setItem("unlimitedMockSubject", multiMode ? "" : subject);
+      sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
+      sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : (topic || ""));
 
       navigate("/mock-test/play");
     } catch (e: any) {
@@ -262,9 +337,76 @@ const UnlimitedMockTest = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
+            <button
+              type="button"
+              onClick={() => {
+                setMultiMode((v) => !v);
+                setMultiSelections([]);
+              }}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors shrink-0 ${
+                multiMode
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/40"
+              }`}
+            >
+              <span
+                className={`h-4 w-7 rounded-full relative transition-colors ${
+                  multiMode ? "bg-primary" : "bg-muted-foreground/30"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
+                    multiMode ? "translate-x-3.5" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
+              মাল্টি-সিলেক্ট
+            </button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {multiMode ? (
+            <div>
+              <Label className="mb-2 block">
+                সাবজেক্ট/চ্যাপ্টার নির্বাচন করুন
+                {multiSelections.length > 0 && (
+                  <span className="text-muted-foreground font-normal">
+                    {" "}({multiSelections.length}টি নির্বাচিত
+                    {multiAvailablePool != null ? `, মোট MCQ ${multiAvailablePool}` : ""})
+                  </span>
+                )}
+              </Label>
+              <div className="space-y-1 max-h-80 overflow-y-auto rounded-xl border border-border p-2">
+                {(allSubjectChapterPairs || []).map((pair) => {
+                  const checked = multiSelections.some(
+                    (x) => x.subject === pair.subject && x.chapter === pair.chapter
+                  );
+                  return (
+                    <label
+                      key={`${pair.subject}||${pair.chapter}`}
+                      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
+                        checked ? "bg-primary/10" : "hover:bg-muted/60"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleMultiSelection(pair.subject, pair.chapter)}
+                        className="h-4 w-4 rounded border-2 border-border accent-primary shrink-0"
+                      />
+                      <span className="font-semibold">{pair.subject}</span>
+                      <span className="text-muted-foreground">— {pair.chapter}</span>
+                    </label>
+                  );
+                })}
+                {!(allSubjectChapterPairs || []).length && (
+                  <p className="text-xs text-muted-foreground text-center py-3">লোড হচ্ছে...</p>
+                )}
+              </div>
+            </div>
+          ) : (
           <div>
             <Label className="mb-2 block">সাবজেক্ট</Label>
             <div className="grid grid-cols-3 gap-2">
@@ -289,8 +431,9 @@ const UnlimitedMockTest = () => {
               ))}
             </div>
           </div>
+          )}
 
-          {subject && (
+          {!multiMode && subject && (
             <div>
               <Label className="mb-2 block">চ্যাপ্টার</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -316,7 +459,7 @@ const UnlimitedMockTest = () => {
             </div>
           )}
 
-          {subject && chapter && !!(topics || []).length && (
+          {!multiMode && subject && chapter && !!(topics || []).length && (
             <div>
               <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -338,7 +481,7 @@ const UnlimitedMockTest = () => {
             </div>
           )}
 
-          {subject && chapter && !!(papers || []).length && (
+          {!multiMode && subject && chapter && !!(papers || []).length && (
             <div>
               <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
               <div className="grid grid-cols-3 gap-2">
@@ -383,8 +526,11 @@ const UnlimitedMockTest = () => {
           <div>
             <Label className="mb-2 block">
               প্রশ্ন সংখ্যা
-              {subject && chapter && availablePool != null && (
+              {!multiMode && subject && chapter && availablePool != null && (
                 <span className="text-muted-foreground font-normal"> (available {availablePool})</span>
+              )}
+              {multiMode && multiAvailablePool != null && (
+                <span className="text-muted-foreground font-normal"> (available {multiAvailablePool})</span>
               )}
             </Label>
             <div className="flex gap-2 flex-wrap">
@@ -432,7 +578,7 @@ const UnlimitedMockTest = () => {
             className="w-full"
             size="lg"
             onClick={() => buildAndStart(count)}
-            disabled={starting}
+            disabled={starting || (multiMode && multiSelections.length === 0)}
           >
             {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             এক্সাম শুরু করুন
