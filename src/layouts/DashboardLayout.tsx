@@ -315,7 +315,7 @@ export const DashboardLayout = () => {
               >
                 <Bell className="h-4 w-4" />
                 {unreadNoticeCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] px-1 text-[10px] font-bold text-red-600 dark:text-red-500">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-[10px] font-bold text-white leading-none animate-pulse">
                     {unreadNoticeCount}
                   </span>
                 )}
