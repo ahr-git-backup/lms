@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Target, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Target, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,13 +16,9 @@ const DEFAULT_STANDARDS = [
 ];
 const COUNTS = [25, 35, 50, 75, 100];
 
-type Step = "subject" | "chapter" | "topic" | "setup";
-
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const [step, setStep] = useState<Step>("subject");
 
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
@@ -34,7 +30,7 @@ const UnlimitedMockTest = () => {
   const [customMinutes, setCustomMinutes] = useState("");
   const [starting, setStarting] = useState(false);
 
-  const { data: subjects, isLoading: loadingSubjects } = useQuery({
+  const { data: subjects } = useQuery({
     queryKey: ["mock-pool-subjects"],
     queryFn: async () => {
       const { data, error } = await supabase.from("mock_question_pool").select("subject");
@@ -61,7 +57,7 @@ const UnlimitedMockTest = () => {
     return Array.from(map.values());
   })();
 
-  const { data: chapters, isLoading: loadingChapters } = useQuery({
+  const { data: chapters } = useQuery({
     queryKey: ["mock-pool-chapters", subject],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -71,10 +67,10 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.chapter))];
     },
-    enabled: !!subject && step === "chapter",
+    enabled: !!subject,
   });
 
-  const { data: topics, isLoading: loadingTopics } = useQuery({
+  const { data: topics } = useQuery({
     queryKey: ["mock-pool-topics", subject, chapter],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -85,7 +81,7 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
     },
-    enabled: !!subject && !!chapter && step === "topic",
+    enabled: !!subject && !!chapter,
   });
 
   const { data: papers } = useQuery({
@@ -99,16 +95,8 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.paper).filter(Boolean))];
     },
-    enabled: !!subject && !!chapter && step === "setup",
+    enabled: !!subject && !!chapter,
   });
-
-  const goBack = () => {
-    if (step === "setup") {
-      if ((topics || []).length > 0) setStep("topic");
-      else setStep("chapter");
-    } else if (step === "topic") setStep("chapter");
-    else if (step === "chapter") setStep("subject");
-  };
 
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
     if (!subject || !chapter) {
@@ -206,270 +194,186 @@ const UnlimitedMockTest = () => {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center gap-2 space-y-0">
-          {step !== "subject" && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={goBack}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground overflow-x-auto whitespace-nowrap flex-1">
-            <span
-              className={`cursor-pointer hover:text-foreground ${step === "subject" ? "text-foreground font-semibold" : ""}`}
-              onClick={() => setStep("subject")}
-            >
-              সাবজেক্ট
-            </span>
-            {subject && (
-              <>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span
-                  className={`cursor-pointer hover:text-foreground ${step === "chapter" ? "text-foreground font-semibold" : ""}`}
-                  onClick={() => setStep("chapter")}
-                >
-                  {subject}
-                </span>
-              </>
-            )}
-            {chapter && (
-              <>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span
-                  className={`cursor-pointer hover:text-foreground ${step === "topic" ? "text-foreground font-semibold" : ""}`}
-                  onClick={() => setStep("topic")}
-                >
-                  {chapter}
-                </span>
-              </>
-            )}
-            {step === "setup" && topic && (
-              <>
-                <ChevronRight className="h-3 w-3 shrink-0" />
-                <span className="text-foreground font-semibold">{topic}</span>
-              </>
-            )}
-          </div>
+        <CardHeader>
+          <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Step 1: Subject */}
-          {step === "subject" && (
-            <div>
-              <Label className="mb-2 block">সাবজেক্ট বেছে নিন</Label>
-              {loadingSubjects ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (subjects || []).length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">কোনো সাবজেক্ট পাওয়া যায়নি।</div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {(subjects || []).map((s: string) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => {
-                        setSubject(s);
-                        setChapter("");
-                        setTopic("");
-                        setPaper("");
-                        setStep("chapter");
-                      }}
-                      className="rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
+          <div>
+            <Label className="mb-2 block">সাবজেক্ট</Label>
+            <div className="grid grid-cols-4 gap-2">
+              {(subjects || []).map((s: string) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => {
+                    setSubject(s);
+                    setChapter("");
+                    setTopic("");
+                    setPaper("");
+                  }}
+                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    subject === s
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* Step 2: Chapter */}
-          {step === "chapter" && (
+          {subject && (
             <div>
-              <Label className="mb-2 block">চ্যাপ্টার বেছে নিন</Label>
-              {loadingChapters ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (chapters || []).length === 0 ? (
-                <div className="text-center py-10 text-muted-foreground text-sm">এই সাবজেক্টে কোনো চ্যাপ্টার পাওয়া যায়নি।</div>
-              ) : (
-                <div className="grid grid-cols-3 gap-2">
-                  {(chapters || []).map((c: string) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => {
-                        setChapter(c);
-                        setTopic("");
-                        setPaper("");
-                        setStep("topic");
-                      }}
-                      className="rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Step 3: Topic (skip available if none / not needed) */}
-          {step === "topic" && (
-            <div>
-              <Label className="mb-2 block">টপিক বেছে নিন</Label>
-              {loadingTopics ? (
-                <div className="flex justify-center py-10">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : (topics || []).length === 0 ? (
-                <div className="space-y-3">
-                  <div className="text-center py-6 text-muted-foreground text-sm">এই চ্যাপ্টারে আলাদা টপিক নেই।</div>
-                  <Button className="w-full" onClick={() => { setTopic(""); setStep("setup"); }}>
-                    পরবর্তী ধাপে যান
-                  </Button>
-                </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(topics || []).map((t: string) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => {
-                          setTopic(t);
-                          setStep("setup");
-                        }}
-                        className="rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors border-border text-muted-foreground hover:border-primary/40 hover:text-primary"
-                      >
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    className="w-full mt-3"
+              <Label className="mb-2 block">চ্যাপ্টার</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(chapters || []).map((c: string) => (
+                  <button
+                    key={c}
+                    type="button"
                     onClick={() => {
+                      setChapter(c);
                       setTopic("");
-                      setStep("setup");
+                      setPaper("");
                     }}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      chapter === c
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
                   >
-                    সব টপিক (স্কিপ করুন)
-                  </Button>
-                </>
-              )}
+                    {c}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Step 4: Setup — paper, standard, count, custom, start */}
-          {step === "setup" && (
-            <>
-              {!!(papers || []).length && (
-                <div>
-                  <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {(papers || []).map((p: string) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setPaper(paper === p ? "" : p)}
-                        className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                          paper === p
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:border-primary/40"
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {STANDARDS.map((s) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => setStandard(s.value)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                        standard === s.value
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40"
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
+          {subject && chapter && !!(topics || []).length && (
+            <div>
+              <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(topics || []).map((t: string) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => setTopic(topic === t ? "" : t)}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      topic === t
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
               </div>
-
-              <div>
-                <Label className="mb-2 block">প্রশ্ন সংখ্যা</Label>
-                <div className="flex gap-2 flex-wrap">
-                  {COUNTS.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setCount(c)}
-                      className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                        count === c
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border text-muted-foreground hover:border-primary/40"
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <Card className="bg-muted/40">
-                <CardContent className="pt-4 space-y-2">
-                  <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    <Input
-                      type="number"
-                      min={5}
-                      max={200}
-                      placeholder="প্রশ্ন সংখ্যা"
-                      value={customCount}
-                      onChange={(e) => setCustomCount(e.target.value)}
-                      className="flex-1 min-w-[120px]"
-                    />
-                    <Input
-                      type="number"
-                      min={1}
-                      max={300}
-                      placeholder="মিনিট (ফাঁকা=auto)"
-                      value={customMinutes}
-                      onChange={(e) => setCustomMinutes(e.target.value)}
-                      className="flex-1 min-w-[120px]"
-                    />
-                    <Button onClick={handleCustomStart} disabled={starting}>
-                      শুরু
-                    </Button>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground">
-                    মিনিট ফাঁকা রাখলে: প্রশ্ন÷1.5 = সময়
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Button
-                className="w-full"
-                size="lg"
-                onClick={() => buildAndStart(count)}
-                disabled={starting}
-              >
-                {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                এক্সাম শুরু করুন
-              </Button>
-            </>
+            </div>
           )}
+
+          {subject && chapter && !!(papers || []).length && (
+            <div>
+              <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
+              <div className="grid grid-cols-4 gap-2">
+                {(papers || []).map((p: string) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPaper(paper === p ? "" : p)}
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                      paper === p
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground hover:border-primary/40"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
+            <div className="flex gap-2 flex-wrap">
+              {STANDARDS.map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  onClick={() => setStandard(s.value)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
+                    standard === s.value
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <Label className="mb-2 block">প্রশ্ন সংখ্যা</Label>
+            <div className="flex gap-2 flex-wrap">
+              {COUNTS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCount(c)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
+                    count === c
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/40"
+                  }`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <Card className="bg-muted/40">
+            <CardContent className="pt-4 space-y-2">
+              <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
+              <div className="flex gap-2 flex-wrap">
+                <Input
+                  type="number"
+                  min={5}
+                  max={200}
+                  placeholder="প্রশ্ন সংখ্যা"
+                  value={customCount}
+                  onChange={(e) => setCustomCount(e.target.value)}
+                  className="flex-1 min-w-[120px]"
+                />
+                <Input
+                  type="number"
+                  min={1}
+                  max={300}
+                  placeholder="মিনিট (ফাঁকা=auto)"
+                  value={customMinutes}
+                  onChange={(e) => setCustomMinutes(e.target.value)}
+                  className="flex-1 min-w-[120px]"
+                />
+                <Button onClick={handleCustomStart} disabled={starting}>
+                  শুরু
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                মিনিট ফাঁকা রাখলে: প্রশ্ন÷1.5 = সময়
+              </p>
+            </CardContent>
+          </Card>
+
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={() => buildAndStart(count)}
+            disabled={starting}
+          >
+            {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            এক্সাম শুরু করুন
+          </Button>
         </CardContent>
       </Card>
     </div>
