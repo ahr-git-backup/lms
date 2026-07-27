@@ -600,7 +600,7 @@ const UnlimitedMockTest = () => {
                     setTopic("");
                     setPaper("");
                   }}
-                  className={`w-full rounded-xl border-2 px-1.5 py-3 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
+                  className={`w-full rounded-xl border-2 px-1.5 py-1.5 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/40"
@@ -631,7 +631,7 @@ const UnlimitedMockTest = () => {
                       setTopic("");
                       setPaper("");
                     }}
-                    className={`w-full rounded-xl border-2 px-1.5 py-3 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
+                    className={`w-full rounded-xl border-2 px-1.5 py-1.5 text-lg font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
