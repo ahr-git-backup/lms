@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Target, Loader2 } from "lucide-react";
+import { Target, Loader2, ArrowLeft, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -160,6 +160,9 @@ const UnlimitedMockTest = () => {
       );
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
+      sessionStorage.setItem("unlimitedMockSubject", subject);
+      sessionStorage.setItem("unlimitedMockChapter", chapter);
+      sessionStorage.setItem("unlimitedMockTopic", topic || "");
 
       navigate("/mock-test/play");
     } catch (e: any) {
@@ -181,6 +184,26 @@ const UnlimitedMockTest = () => {
 
   return (
     <div className="space-y-6 max-w-lg mx-auto">
+      <div className="flex items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={() => navigate(-1)}
+          className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
+          aria-label="Back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => navigate("/mock-test/history")}
+        >
+          <History className="h-4 w-4" />
+          History
+        </Button>
+      </div>
+
       <div className="flex items-center gap-3">
         <div className="h-12 w-12 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
           <Target className="h-6 w-6 text-fuchsia-600" />

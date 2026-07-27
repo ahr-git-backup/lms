@@ -85,6 +85,7 @@ import AtlasAI from "./pages/public/AtlasAI";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
 import UnlimitedMockTest from "./pages/dashboard/UnlimitedMockTest";
+import MockTestHistory from "./pages/dashboard/MockTestHistory";
 import PlayUnlimitedMock from "./pages/dashboard/PlayUnlimitedMock";
 import QuickPractice from "./pages/public/QuickPractice";
 import QuickPracticePlay from "./pages/public/QuickPracticePlay";
@@ -172,6 +173,7 @@ const App = () => {
               <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />
               <Route path="/mock-test" element={<ErrorBoundary><UnlimitedMockTest /></ErrorBoundary>} />
+              <Route path="/mock-test/history" element={<ErrorBoundary><MockTestHistory /></ErrorBoundary>} />
               <Route path="/mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>

@@ -320,6 +320,13 @@ const PlayUnlimitedMock = () => {
           total_marks: questions.length,
           answers,
           submitted_at: new Date().toISOString(),
+          subject: sessionStorage.getItem("unlimitedMockSubject") || null,
+          chapter: sessionStorage.getItem("unlimitedMockChapter") || null,
+          topic: sessionStorage.getItem("unlimitedMockTopic") || null,
+          title,
+          session_id: sessionId,
+          total_questions: questions.length,
+          questions_snapshot: questions,
         });
       } catch {
         // best-effort logging only
