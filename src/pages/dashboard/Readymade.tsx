@@ -111,7 +111,7 @@ const Readymade = () => {
   const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const [currentSubjectsList, setCurrentSubjectsList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
-  const { data: enrollments } = useEnrollments();
+  const { data: enrollments, isLoading: loadingEnrollments } = useEnrollments();
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const navigationType = useNavigationType(); // "POP" = browser back/forward, "PUSH"/"REPLACE" = normal link click
@@ -359,6 +359,7 @@ const Readymade = () => {
           lockedExam={lockedExam}
           setLockedExam={setLockedExam}
           isAdmin={isAdmin}
+          loadingEnrollments={loadingEnrollments}
         />
       )}
     </div>
@@ -366,7 +367,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
 
@@ -558,7 +559,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // ---- RENDER ----
   if (searchQuery) {
-    if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
+    if (searching || loadingEnrollments) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
     const exams = searchResults?.data || [];
     const count = searchResults?.count || 0;
     const totalPages = Math.ceil(count / PAGE_SIZE);
@@ -698,7 +699,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         <h2 className="text-base font-bold mt-0.5">Available Readymade Exams</h2>
       </div>
 
-      {loadingExams ? (
+      {loadingExams || loadingEnrollments ? (
         <div className="text-muted-foreground">Loading exams...</div>
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
