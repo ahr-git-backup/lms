@@ -23,7 +23,6 @@ const UnlimitedMockTest = () => {
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
-  const [paper, setPaper] = useState("");
   const [standard, setStandard] = useState("medical");
   const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
@@ -126,20 +125,6 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
-  const { data: papers } = useQuery({
-    queryKey: ["mock-pool-papers", subject, chapter],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_question_pool")
-        .select("paper")
-        .eq("subject", subject)
-        .eq("chapter", chapter);
-      if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.paper).filter(Boolean))];
-    },
-    enabled: !!subject && !!chapter,
-  });
-
   const multiSubjectChapterQueries = useQueries({
     queries: (multiSubjects || []).map((s) => ({
       queryKey: ["mock-pool-multi-drill-chapters", s],
@@ -214,7 +199,7 @@ const UnlimitedMockTest = () => {
   });
 
   const { data: availablePool } = useQuery({
-    queryKey: ["mock-pool-available-count", subject, chapter, topic, paper, standard],
+    queryKey: ["mock-pool-available-count", subject, chapter, topic, standard],
     queryFn: async () => {
       let q = supabase
         .from("mock_question_pool")
@@ -223,7 +208,6 @@ const UnlimitedMockTest = () => {
         .eq("chapter", chapter)
         .eq("standard", standard);
       if (topic) q = q.eq("topic", topic);
-      if (paper) q = q.eq("paper", paper);
       const { data, error } = await q;
       if (error) throw error;
       let total = 0;
@@ -294,7 +278,6 @@ const UnlimitedMockTest = () => {
           .eq("chapter", chapter)
           .eq("standard", standard);
         if (topic) q = q.eq("topic", topic);
-        if (paper) q = q.eq("paper", paper);
 
         const { data: rows, error } = await q;
         if (error) throw error;
@@ -599,7 +582,6 @@ const UnlimitedMockTest = () => {
                     }
                     setChapter("");
                     setTopic("");
-                    setPaper("");
                   }}
                   className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                     subject === s
@@ -630,7 +612,6 @@ const UnlimitedMockTest = () => {
                         setChapter(c);
                       }
                       setTopic("");
-                      setPaper("");
                     }}
                     className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                       chapter === c
@@ -662,28 +643,6 @@ const UnlimitedMockTest = () => {
                     }`}
                   >
                     {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!multiMode && subject && chapter && !!(papers || []).length && (
-            <div>
-              <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(papers || []).map((p: string) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPaper(paper === p ? "" : p)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
-                      paper === p
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
-                    }`}
-                  >
-                    {p}
                   </button>
                 ))}
               </div>

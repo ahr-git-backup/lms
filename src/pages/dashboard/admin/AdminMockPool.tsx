@@ -28,7 +28,6 @@ const AdminMockPool = () => {
   const queryClient = useQueryClient();
 
   const [subject, setSubject] = useState("");
-  const [paper, setPaper] = useState("");
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
   const [standard, setStandard] = useState("medical");
@@ -40,7 +39,6 @@ const AdminMockPool = () => {
   // Edit-existing-entry dialog state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editSubject, setEditSubject] = useState("");
-  const [editPaper, setEditPaper] = useState("");
   const [editChapter, setEditChapter] = useState("");
   const [editTopic, setEditTopic] = useState("");
   const [editStandard, setEditStandard] = useState("medical");
@@ -104,7 +102,6 @@ const AdminMockPool = () => {
 
   const clearForm = () => {
     setSubject("");
-    setPaper("");
     setChapter("");
     setTopic("");
     setStandard("medical");
@@ -132,7 +129,6 @@ const AdminMockPool = () => {
 
       const { error } = await supabase.from("mock_question_pool").insert({
         subject: subject.trim(),
-        paper: paper.trim() || null,
         chapter: chapter.trim(),
         topic: topic.trim() || null,
         standard,
@@ -166,7 +162,6 @@ const AdminMockPool = () => {
   const openEdit = (p: any) => {
     setEditingId(p.id);
     setEditSubject(p.subject || "");
-    setEditPaper(p.paper || "");
     setEditChapter(p.chapter || "");
     setEditTopic(p.topic || "");
     setEditStandard(p.standard || "medical");
@@ -199,7 +194,6 @@ const AdminMockPool = () => {
         .from("mock_question_pool")
         .update({
           subject: editSubject.trim(),
-          paper: editPaper.trim() || null,
           chapter: editChapter.trim(),
           topic: editTopic.trim() || null,
           standard: editStandard,
@@ -236,30 +230,24 @@ const AdminMockPool = () => {
           <CardTitle className="text-base">মক টেস্ট যোগ/এডিট</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>সাবজেক্ট</Label>
-              <CreatableSelect
-                options={globalMeta?.mock_subject || []}
-                value={subject}
-                onChange={(val) => {
-                  setSubject(val);
-                  setChapter("");
-                }}
-                onCreate={(val) => {
-                  addMeta.mutate({ type: "mock_subject", value: val });
-                  setSubject(val);
-                  setChapter("");
-                }}
-                onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_subject", oldValue: oldVal, newValue: newVal })}
-                onDelete={(val) => deleteMeta.mutate({ type: "mock_subject", value: val })}
-                placeholder="সাবজেক্ট বাছাই বা তৈরি করুন"
-              />
-            </div>
-            <div>
-              <Label>পেপার (ঐচ্ছিক)</Label>
-              <Input value={paper} onChange={(e) => setPaper(e.target.value)} placeholder="পেপার" />
-            </div>
+          <div>
+            <Label>সাবজেক্ট</Label>
+            <CreatableSelect
+              options={globalMeta?.mock_subject || []}
+              value={subject}
+              onChange={(val) => {
+                setSubject(val);
+                setChapter("");
+              }}
+              onCreate={(val) => {
+                addMeta.mutate({ type: "mock_subject", value: val });
+                setSubject(val);
+                setChapter("");
+              }}
+              onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_subject", oldValue: oldVal, newValue: newVal })}
+              onDelete={(val) => deleteMeta.mutate({ type: "mock_subject", value: val })}
+              placeholder="সাবজেক্ট বাছাই বা তৈরি করুন"
+            />
           </div>
           <div>
             <Label>চ্যাপ্টার</Label>
@@ -393,8 +381,7 @@ const AdminMockPool = () => {
               >
                 <div className="text-sm">
                   <p className="font-semibold">
-                    {p.subject}
-                    {p.paper ? ` (${p.paper})` : ""} › {p.chapter}
+                    {p.subject} › {p.chapter}
                     {p.topic ? ` › ${p.topic}` : ""}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -426,25 +413,17 @@ const AdminMockPool = () => {
             <DialogTitle>এন্ট্রি এডিট করুন</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>সাবজেক্ট</Label>
-                <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} />
-              </div>
-              <div>
-                <Label>পেপার (ঐচ্ছিক)</Label>
-                <Input value={editPaper} onChange={(e) => setEditPaper(e.target.value)} />
-              </div>
+            <div>
+              <Label>সাবজেক্ট</Label>
+              <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} />
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label>চ্যাপ্টার</Label>
-                <Input value={editChapter} onChange={(e) => setEditChapter(e.target.value)} />
-              </div>
-              <div>
-                <Label>টপিক (ঐচ্ছিক)</Label>
-                <Input value={editTopic} onChange={(e) => setEditTopic(e.target.value)} />
-              </div>
+            <div>
+              <Label>চ্যাপ্টার</Label>
+              <Input value={editChapter} onChange={(e) => setEditChapter(e.target.value)} />
+            </div>
+            <div>
+              <Label>টপিক (ঐচ্ছিক)</Label>
+              <Input value={editTopic} onChange={(e) => setEditTopic(e.target.value)} />
             </div>
             <div>
               <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
