@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send, User } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const Register = () => {
@@ -27,6 +27,8 @@ const Register = () => {
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const [gender, setGender] = useState("");
   const [duplicatePhone, setDuplicatePhone] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
@@ -44,6 +46,21 @@ const Register = () => {
       '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
     };
     return str.split('').map(char => bengaliToEnglish[char] || char).join('');
+  };
+
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image under 5MB.", variant: "destructive" });
+      return;
+    }
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -169,6 +186,22 @@ const Register = () => {
       // Note: The public.profiles insertion is now handled safely by a database trigger (handle_new_user)
       // which automatically runs when the user is created in Supabase Auth. This prevents issues when email verification is required.
 
+      // Optional photo upload (non-blocking — registration succeeds even if this fails)
+      if (photoFile) {
+        try {
+          const ext = photoFile.name.split(".").pop() || "jpg";
+          const filePath = `${authData.user.id}/avatar.${ext}`;
+          const { error: uploadError } = await supabase.storage
+            .from("avatars")
+            .upload(filePath, photoFile, { upsert: true, cacheControl: "3600" });
+          if (!uploadError) {
+            const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
+            await supabase.from("profiles").update({ avatar_url: `${publicUrlData.publicUrl}?t=${Date.now()}` }).eq("id", authData.user.id);
+          }
+        } catch (photoErr) {
+          console.error("Photo upload failed (non-blocking):", photoErr);
+        }
+      }
 
       toast({
         title: "Registration successful",
@@ -238,6 +271,27 @@ const Register = () => {
               </div>
             )}
             <form className="space-y-4" onSubmit={handleSubmit}>
+              <div className="flex flex-col items-center gap-2 pb-2">
+                <div className="relative">
+                  <div className="h-20 w-20 rounded-full border-2 border-dashed border-muted-foreground/40 overflow-hidden flex items-center justify-center bg-muted">
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" className="h-full w-full object-cover" />
+                    ) : (
+                      <User className="h-8 w-8 text-muted-foreground/50" />
+                    )}
+                  </div>
+                  <label
+                    htmlFor="photoUpload"
+                    className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer text-xs"
+                    title="Upload photo"
+                  >
+                    +
+                  </label>
+                  <input id="photoUpload" type="file" accept="image/*" className="hidden" onChange={handlePhotoSelect} />
+                </div>
+                <p className="text-xs text-muted-foreground">Profile Photo (Optional)</p>
+              </div>
+
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="fullName">Own Full Name</Label>
