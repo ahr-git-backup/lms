@@ -288,34 +288,7 @@ const Readymade = () => {
         </div>
       )}
 
-      {!selectedSubject && boards && boards.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
-          <Button
-            variant={selectedBoards.length === 0 ? "default" : "outline"}
-            size="sm"
-            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
-            onClick={() => { setPage(0); setSelectedBoards([]); }}
-          >
-            All Boards
-          </Button>
-          {boards.map(board => (
-            <Button
-              key={board.value}
-              variant={selectedBoards.includes(board.value) ? "default" : "outline"}
-              size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
-              onClick={() => {
-                setPage(0);
-                setSelectedBoards(prev =>
-                  prev.includes(board.value) ? prev.filter(b => b !== board.value) : [...prev, board.value]
-                );
-              }}
-            >
-              {board.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Board/category filter row intentionally hidden — only Parent Topic pills shown above */}
 
       {isAdmin && !selectedSubject && currentSubjectsList.length > 0 && (
         <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
@@ -498,19 +471,31 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       let attemptedCount = 0;
 
       if (examIds.length > 0) {
-        const { count: mcqCount } = await supabase
-          .from("exam_questions")
-          .select("id", { count: 'exact', head: true })
-          .in("exam_id", examIds);
-        totalMcqs = mcqCount || 0;
+        // PostgREST chokes on very long .in() lists (URL length limit) once the
+        // platform has many readymade exams, silently returning 0. Batch the
+        // exam_id list so the count query always succeeds regardless of scale.
+        const ID_BATCH = 200;
+        for (let i = 0; i < examIds.length; i += ID_BATCH) {
+          const batchIds = examIds.slice(i, i + ID_BATCH);
+          const { count: mcqCount } = await supabase
+            .from("exam_questions")
+            .select("id", { count: 'exact', head: true })
+            .in("exam_id", batchIds);
+          totalMcqs += mcqCount || 0;
+        }
 
         if (userId) {
-          const { data: attemptRows } = await supabase
-            .from("exam_attempts")
-            .select("exam_id")
-            .eq("profile_id", userId)
-            .in("exam_id", examIds);
-          attemptedCount = new Set((attemptRows || []).map((r: any) => r.exam_id)).size;
+          const attemptedIds = new Set<string>();
+          for (let i = 0; i < examIds.length; i += ID_BATCH) {
+            const batchIds = examIds.slice(i, i + ID_BATCH);
+            const { data: attemptRows } = await supabase
+              .from("exam_attempts")
+              .select("exam_id")
+              .eq("profile_id", userId)
+              .in("exam_id", batchIds);
+            (attemptRows || []).forEach((r: any) => attemptedIds.add(r.exam_id));
+          }
+          attemptedCount = attemptedIds.size;
         }
       }
 
@@ -587,23 +572,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         {overallStats && (
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
-                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
+          <div className="flex justify-end gap-2">
+            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 w-24 sm:w-28">
+              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground leading-tight">Total Exams</span>
+                <span className="text-sm font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
               </CardContent>
             </Card>
-            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount} টি</span>
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining} টি</span>
+            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 w-24 sm:w-28">
+              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount}</span>
+                <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining}</span>
               </CardContent>
             </Card>
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
-                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 w-24 sm:w-28">
+              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[9px] text-muted-foreground leading-tight">Total MCQ</span>
+                <span className="text-sm font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
               </CardContent>
             </Card>
           </div>
