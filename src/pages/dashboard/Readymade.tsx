@@ -800,14 +800,14 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
       <Button
         size="sm"
         variant="ghost"
-        className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+        className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
         onClick={() => setOpen(o => !o)}
       >
         {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
       </Button>
       {open && (
-        <div className="mt-1.5 space-y-1 border-l-2 border-primary/20 pl-2">
+        <div className="mt-1 space-y-1 border-l-2 border-primary/20 pl-2">
           {isLoading ? (
             <div className="text-[11px] text-muted-foreground">Loading...</div>
           ) : !splits || splits.length === 0 ? (
@@ -899,51 +899,57 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = 
             setExamSourceList(exam.id, "/dashboard/readymade");
             navigate(`/dashboard/take-exam/${exam.id}`);
           }}>
-          <CardContent className="px-4 py-3.5 flex items-center gap-3">
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-mono uppercase text-muted-foreground">{exam.course?.name || "Public"}</p>
-              <p className={`text-sm font-bold leading-tight transition-colors ${unlocked ? "group-hover:text-primary" : "text-amber-700 dark:text-amber-500"}`}>{exam.title}</p>
-              <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
+          <CardContent className="px-4 py-2.5">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className={`text-base font-bold leading-tight transition-colors ${unlocked ? "group-hover:text-primary" : "text-amber-700 dark:text-amber-500"}`}>{exam.title}</p>
+              </div>
+              <div className="shrink-0">
+                {unlocked ? (
+                  <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-500 gap-1">
+                    <Lock className="h-3.5 w-3.5" />Locked
+                  </Button>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <p className="text-[10px] font-mono uppercase">{exam.course?.name || "Public"}</p>
                 <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
                 <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
                 <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
                 {!unlocked && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0 gap-0.5"><Lock className="h-2.5 w-2.5" />Premium</Badge>}
               </div>
-            </div>
-            <div className="flex flex-col items-end gap-1.5 shrink-0">
-              {unlocked ? (
-                <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
-              ) : (
-                <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-500 gap-1">
-                  <Lock className="h-3.5 w-3.5" />Locked
-                </Button>
-              )}
-              {unlocked && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-blue-600"
-                  disabled={downloadingId === exam.id}
-                  onClick={(e) => handleDownloadPdf(e, exam)}
-                >
-                  <FileDown className="h-3.5 w-3.5 mr-1" />
-                  {downloadingId === exam.id ? "..." : "PDF"}
-                </Button>
-              )}
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
-                  onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
-                >
-                  Split
-                </Button>
-              )}
+              <div className="shrink-0 flex items-center gap-1">
+                {unlocked && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-blue-600"
+                    disabled={downloadingId === exam.id}
+                    onClick={(e) => handleDownloadPdf(e, exam)}
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-1" />
+                    {downloadingId === exam.id ? "..." : "PDF"}
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
+                  >
+                    Split
+                  </Button>
+                )}
+              </div>
             </div>
           </CardContent>
           {unlocked && (
-            <div className="px-4 pb-3 -mt-1" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 pb-2 -mt-1" onClick={(e) => e.stopPropagation()}>
               <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
             </div>
           )}
