@@ -119,7 +119,7 @@ const AdminStudents = () => {
     },
   });
 
-  const { data: studentsData, isLoading } = useQuery({
+  const { data: studentsData, isLoading, error: studentsError } = useQuery({
     queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch, listFilter],
     queryFn: async () => {
       if (!listFilter && !debouncedSearch && selectedCourseFilter === 'all') return { data: [], count: 0 };
@@ -193,7 +193,7 @@ const AdminStudents = () => {
 
       if (selectedCourseFilter !== 'all') {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          resultData = data.map((e: any) => ({
+          resultData = resultData.map((e: any) => ({
               ...(e.profile as Profile),
               enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course, created_at: e.created_at }]
           }));
@@ -469,6 +469,10 @@ const AdminStudents = () => {
               <div className="text-center py-12 text-muted-foreground">
                   <p>Click a stats card or use search to view students.</p>
               </div>
+          ) : studentsError ? (
+            <div className="text-sm text-destructive py-8 text-center">
+              Failed to load students: {(studentsError as Error).message}
+            </div>
           ) : isLoading ? (
             <div className="text-sm text-muted-foreground">Loading students...</div>
           ) : students.length === 0 ? (
