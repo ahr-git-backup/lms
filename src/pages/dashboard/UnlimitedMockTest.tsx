@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,20 +16,28 @@ const DEFAULT_STANDARDS = [
   { value: "varsity", label: "Varsity" },
   { value: "onushiloni", label: "Onushiloni" },
 ];
-const COUNTS = [25, 35, 50, 75, 100];
+
+const SEC_PER_MCQ = 30;
 
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  // multi-select mode toggle
+  const [multiMode, setMultiMode] = useState(false);
+
+  // single-select (legacy) state
   const [subject, setSubject] = useState("");
   const [chapter, setChapter] = useState("");
   const [topic, setTopic] = useState("");
   const [paper, setPaper] = useState("");
+
+  // multi-select state: map of subject -> Set(chapter) ; "" chapter key means whole subject
+  const [selectedSubjects, setSelectedSubjects] = useState<Set<string>>(new Set());
+  const [selectedChapters, setSelectedChapters] = useState<Set<string>>(new Set()); // stored as "subject::chapter"
+
   const [standard, setStandard] = useState("medical");
-  const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
-  const [customMinutes, setCustomMinutes] = useState("");
   const [starting, setStarting] = useState(false);
 
   const { data: subjects } = useQuery({
@@ -57,6 +67,7 @@ const UnlimitedMockTest = () => {
     return Array.from(map.values());
   })();
 
+  // chapters for single-select mode
   const { data: chapters } = useQuery({
     queryKey: ["mock-pool-chapters", subject],
     queryFn: async () => {
@@ -67,7 +78,7 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.chapter))];
     },
-    enabled: !!subject,
+    enabled: !!subject && !multiMode,
   });
 
   const { data: topics } = useQuery({
@@ -81,7 +92,7 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
     },
-    enabled: !!subject && !!chapter,
+    enabled: !!subject && !!chapter && !multiMode,
   });
 
   const { data: papers } = useQuery({
@@ -95,39 +106,102 @@ const UnlimitedMockTest = () => {
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.paper).filter(Boolean))];
     },
-    enabled: !!subject && !!chapter,
+    enabled: !!subject && !!chapter && !multiMode,
   });
 
-  const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
-    if (!subject || !chapter) {
-      toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
-      return;
-    }
+  // all chapters for all subjects, for multi-select mode
+  const { data: allChaptersMap } = useQuery({
+    queryKey: ["mock-pool-all-chapters"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mock_question_pool").select("subject, chapter");
+      if (error) throw error;
+      const map: Record<string, Set<string>> = {};
+      (data || []).forEach((d: any) => {
+        if (!map[d.subject]) map[d.subject] = new Set();
+        map[d.subject].add(d.chapter);
+      });
+      const out: Record<string, string[]> = {};
+      Object.keys(map).forEach((k) => (out[k] = Array.from(map[k])));
+      return out;
+    },
+    enabled: multiMode,
+  });
+
+  const toggleSubjectExpand = (s: string) => {
+    setSelectedSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(s)) next.delete(s);
+      else next.add(s);
+      return next;
+    });
+  };
+
+  const toggleChapterSel = (subj: string, chap: string) => {
+    const key = `${subj}::${chap}`;
+    setSelectedChapters((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  const buildAndStart = async (finalCount: number) => {
     setStarting(true);
     try {
-      let q = supabase
-        .from("mock_question_pool")
-        .select("*")
-        .eq("subject", subject)
-        .eq("chapter", chapter)
-        .eq("standard", standard);
-      if (topic) q = q.eq("topic", topic);
-      if (paper) q = q.eq("paper", paper);
-
-      const { data, error } = await q;
-      if (error) throw error;
-
-      if (!data || data.length === 0) {
-        toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
-        setStarting(false);
-        return;
-      }
-
       let all: any[] = [];
-      data.forEach((row: any) => {
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        all = all.concat(qs);
-      });
+      let titleParts: string[] = [];
+
+      if (multiMode) {
+        if (selectedChapters.size === 0) {
+          toast({ title: "কমপক্ষে একটি চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
+          setStarting(false);
+          return;
+        }
+        const bySubject: Record<string, string[]> = {};
+        selectedChapters.forEach((key) => {
+          const [subj, chap] = key.split("::");
+          if (!bySubject[subj]) bySubject[subj] = [];
+          bySubject[subj].push(chap);
+        });
+
+        for (const subj of Object.keys(bySubject)) {
+          const { data, error } = await supabase
+            .from("mock_question_pool")
+            .select("*")
+            .eq("subject", subj)
+            .eq("standard", standard)
+            .in("chapter", bySubject[subj]);
+          if (error) throw error;
+          (data || []).forEach((row: any) => {
+            const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+            all = all.concat(qs);
+          });
+          titleParts.push(subj);
+        }
+      } else {
+        if (!subject || !chapter) {
+          toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
+          setStarting(false);
+          return;
+        }
+        let q = supabase
+          .from("mock_question_pool")
+          .select("*")
+          .eq("subject", subject)
+          .eq("chapter", chapter)
+          .eq("standard", standard);
+        if (topic) q = q.eq("topic", topic);
+        if (paper) q = q.eq("paper", paper);
+
+        const { data, error } = await q;
+        if (error) throw error;
+        (data || []).forEach((row: any) => {
+          const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+          all = all.concat(qs);
+        });
+        titleParts.push(`${subject} - ${chapter}`);
+      }
 
       if (all.length === 0) {
         toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
@@ -150,19 +224,16 @@ const UnlimitedMockTest = () => {
         explanation: qq.explanation || "",
       }));
 
-      const time = finalMinutes || Math.ceil(finalCount / 1.5);
+      const time = Math.ceil((picked.length * SEC_PER_MCQ) / 60);
       const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
-      sessionStorage.setItem(
-        "unlimitedMockTitle",
-        `${subject} - ${chapter} (Mock Test)`
-      );
+      sessionStorage.setItem("unlimitedMockTitle", `${titleParts.join(", ")} (Mock Test)`);
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
-      sessionStorage.setItem("unlimitedMockSubject", subject);
-      sessionStorage.setItem("unlimitedMockChapter", chapter);
-      sessionStorage.setItem("unlimitedMockTopic", topic || "");
+      sessionStorage.setItem("unlimitedMockSubject", multiMode ? titleParts.join(", ") : subject);
+      sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
+      sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : topic || "");
 
       navigate("/mock-test/play");
     } catch (e: any) {
@@ -178,8 +249,7 @@ const UnlimitedMockTest = () => {
       toast({ title: "প্রশ্ন সংখ্যা দিন", variant: "destructive" });
       return;
     }
-    const mins = parseInt(customMinutes) || undefined;
-    buildAndStart(c, mins);
+    buildAndStart(c);
   };
 
   return (
@@ -217,100 +287,166 @@ const UnlimitedMockTest = () => {
       </div>
 
       <Card>
+        <CardContent className="pt-4 flex items-center justify-between">
+          <div>
+            <Label className="font-semibold">কাস্টম মোড (একাধিক সাব/চ্যাপ্টার)</Label>
+            <p className="text-[11px] text-muted-foreground">
+              চালু করলে চেকবক্স দিয়ে একাধিক সাবজেক্ট/চ্যাপ্টার বেছে এক্সাম দেওয়া যাবে
+            </p>
+          </div>
+          <Switch checked={multiMode} onCheckedChange={setMultiMode} />
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label className="mb-2 block">সাবজেক্ট</Label>
-            <div className="grid grid-cols-4 gap-2">
-              {(subjects || []).map((s: string) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    setSubject(s);
-                    setChapter("");
-                    setTopic("");
-                    setPaper("");
-                  }}
-                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
-                    subject === s
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {subject && (
-            <div>
-              <Label className="mb-2 block">চ্যাপ্টার</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {(chapters || []).map((c: string) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      setChapter(c);
-                      setTopic("");
-                      setPaper("");
-                    }}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
-                      chapter === c
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+          {!multiMode && (
+            <>
+              <div>
+                <Label className="mb-2 block">সাবজেক্ট</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(subjects || []).map((s: string) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => {
+                        setSubject(s);
+                        setChapter("");
+                        setTopic("");
+                        setPaper("");
+                      }}
+                      className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
+                        subject === s
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground hover:border-primary/40"
+                      }`}
+                      title={s}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+
+              {subject && (
+                <div>
+                  <Label className="mb-2 block">চ্যাপ্টার</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(chapters || []).map((c: string) => (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => {
+                          setChapter(c);
+                          setTopic("");
+                          setPaper("");
+                        }}
+                        className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
+                          chapter === c
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
+                        }`}
+                        title={c}
+                      >
+                        {c}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {subject && chapter && !!(topics || []).length && (
+                <div>
+                  <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(topics || []).map((t: string) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTopic(topic === t ? "" : t)}
+                        className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
+                          topic === t
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
+                        }`}
+                        title={t}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {subject && chapter && !!(papers || []).length && (
+                <div>
+                  <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(papers || []).map((p: string) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setPaper(paper === p ? "" : p)}
+                        className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center whitespace-nowrap overflow-hidden text-ellipsis transition-colors ${
+                          paper === p
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border text-muted-foreground hover:border-primary/40"
+                        }`}
+                        title={p}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {subject && chapter && !!(topics || []).length && (
+          {multiMode && (
             <div>
-              <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {(topics || []).map((t: string) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTopic(topic === t ? "" : t)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
-                      topic === t
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {subject && chapter && !!(papers || []).length && (
-            <div>
-              <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-4 gap-2">
-                {(papers || []).map((p: string) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPaper(paper === p ? "" : p)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
-                      paper === p
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
-                    }`}
-                  >
-                    {p}
-                  </button>
+              <Label className="mb-2 block">সাবজেক্ট / চ্যাপ্টার নির্বাচন করুন</Label>
+              <div className="space-y-2">
+                {(subjects || []).map((s: string) => (
+                  <div key={s} className="border-2 border-border rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => toggleSubjectExpand(s)}
+                      className="w-full px-3 py-2 text-left text-sm font-semibold bg-muted/40 flex items-center justify-between"
+                    >
+                      <span className="whitespace-nowrap overflow-hidden text-ellipsis">{s}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {selectedSubjects.has(s) ? "−" : "+"}
+                      </span>
+                    </button>
+                    {selectedSubjects.has(s) && (
+                      <div className="p-2 grid grid-cols-3 gap-2">
+                        {(allChaptersMap?.[s] || []).map((c: string) => {
+                          const key = `${s}::${c}`;
+                          return (
+                            <label
+                              key={c}
+                              className="flex items-center gap-1.5 rounded-lg border px-2 py-2 text-xs cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={selectedChapters.has(key)}
+                                onCheckedChange={() => toggleChapterSel(s, c)}
+                              />
+                              <span
+                                className="whitespace-nowrap overflow-hidden text-ellipsis"
+                                title={c}
+                              >
+                                {c}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>
@@ -336,30 +472,10 @@ const UnlimitedMockTest = () => {
             </div>
           </div>
 
-          <div>
-            <Label className="mb-2 block">প্রশ্ন সংখ্যা</Label>
-            <div className="flex gap-2 flex-wrap">
-              {COUNTS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCount(c)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                    count === c
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <Card className="bg-muted/40">
             <CardContent className="pt-4 space-y-2">
-              <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
-              <div className="flex gap-2 flex-wrap">
+              <Label className="text-xs text-primary font-semibold">প্রশ্ন সংখ্যা দিন</Label>
+              <div className="flex gap-2">
                 <Input
                   type="number"
                   min={5}
@@ -367,36 +483,18 @@ const UnlimitedMockTest = () => {
                   placeholder="প্রশ্ন সংখ্যা"
                   value={customCount}
                   onChange={(e) => setCustomCount(e.target.value)}
-                  className="flex-1 min-w-[120px]"
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  max={300}
-                  placeholder="মিনিট (ফাঁকা=auto)"
-                  value={customMinutes}
-                  onChange={(e) => setCustomMinutes(e.target.value)}
-                  className="flex-1 min-w-[120px]"
+                  className="flex-1"
                 />
                 <Button onClick={handleCustomStart} disabled={starting}>
-                  শুরু
+                  {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Start
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                মিনিট ফাঁকা রাখলে: প্রশ্ন÷1.5 = সময়
+                প্রতি প্রশ্নে {SEC_PER_MCQ} সেকেন্ড করে সময় (অটো ক্যালকুলেটেড)
               </p>
             </CardContent>
           </Card>
-
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={() => buildAndStart(count)}
-            disabled={starting}
-          >
-            {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-            এক্সাম শুরু করুন
-          </Button>
         </CardContent>
       </Card>
     </div>
