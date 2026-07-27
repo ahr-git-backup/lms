@@ -365,49 +365,30 @@ const UnlimitedMockTest = () => {
         </CardContent>
       </Card>
 
-      {multiMode ? (
-        multiSelections.length > 0 && (
-          <Card>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
-                  <p className="text-xs font-semibold truncate">{multiSubjects.length}টি</p>
-                </div>
-                <div className="min-w-0 border-x border-border px-1">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
-                  <p className="text-xs font-semibold truncate">{multiSelections.length}টি</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
-                  <p className="text-xs font-semibold">{multiAvailablePool ?? "-"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      ) : (
-        (subject || chapter) && (
-          <Card>
-            <CardContent className="pt-4">
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
-                  <p className="text-xs font-semibold truncate">{subject || "-"}</p>
-                </div>
-                <div className="min-w-0 border-x border-border px-1">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
-                  <p className="text-xs font-semibold truncate">{chapter || "-"}</p>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
-                  <p className="text-xs font-semibold">{availablePool ?? "-"}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )
-      )}
+      <Card>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
+              <p className="text-xs font-semibold truncate">
+                {multiMode ? (multiSubjects.length > 0 ? `${multiSubjects.length}টি` : "-") : (subject || "-")}
+              </p>
+            </div>
+            <div className="min-w-0 border-x border-border px-1">
+              <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
+              <p className="text-xs font-semibold truncate">
+                {multiMode ? (multiSelections.length > 0 ? `${multiSelections.length}টি` : "-") : (chapter || "-")}
+              </p>
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
+              <p className="text-xs font-semibold">
+                {multiMode ? (multiAvailablePool ?? "-") : (availablePool ?? "-")}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
@@ -577,7 +558,11 @@ const UnlimitedMockTest = () => {
                   key={s}
                   type="button"
                   onClick={() => {
-                    setSubject(s);
+                    if (subject === s) {
+                      setSubject("");
+                    } else {
+                      setSubject(s);
+                    }
                     setChapter("");
                     setTopic("");
                     setPaper("");
@@ -604,7 +589,11 @@ const UnlimitedMockTest = () => {
                     key={c}
                     type="button"
                     onClick={() => {
-                      setChapter(c);
+                      if (chapter === c) {
+                        setChapter("");
+                      } else {
+                        setChapter(c);
+                      }
                       setTopic("");
                       setPaper("");
                     }}
