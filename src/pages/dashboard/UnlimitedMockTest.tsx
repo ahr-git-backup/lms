@@ -29,15 +29,46 @@ const UnlimitedMockTest = () => {
   const [customCount, setCustomCount] = useState("");
   const [starting, setStarting] = useState(false);
 
-  // Multi-select mood: allows picking multiple subject/chapter combos for one exam
+  // Custom mood: drill-down multi-select (subject -> chapter -> topic), multi-pick at each level
   const [multiMode, setMultiMode] = useState(false);
-  const [multiSelections, setMultiSelections] = useState<{ subject: string; chapter: string }[]>([]);
+  const [multiSubjects, setMultiSubjects] = useState<string[]>([]);
+  const [multiDrillSubject, setMultiDrillSubject] = useState(""); // which subject's chapters are shown
+  const [multiChapters, setMultiChapters] = useState<{ subject: string; chapter: string }[]>([]);
+  const [multiDrillChapter, setMultiDrillChapter] = useState<{ subject: string; chapter: string } | null>(null);
+  const [multiTopics, setMultiTopics] = useState<{ subject: string; chapter: string; topic: string }[]>([]);
 
-  const toggleMultiSelection = (s: string, c: string) => {
-    setMultiSelections((prev) => {
+  // Final selections used for building the exam = chapters chosen (topics further narrow within a chapter)
+  const multiSelections = multiChapters;
+
+  const toggleMultiSubject = (s: string) => {
+    setMultiSubjects((prev) => {
+      const exists = prev.includes(s);
+      if (exists) {
+        setMultiChapters((c) => c.filter((x) => x.subject !== s));
+        setMultiTopics((t) => t.filter((x) => x.subject !== s));
+        if (multiDrillSubject === s) setMultiDrillSubject("");
+        return prev.filter((x) => x !== s);
+      }
+      return [...prev, s];
+    });
+  };
+
+  const toggleMultiChapter = (s: string, c: string) => {
+    setMultiChapters((prev) => {
       const exists = prev.some((x) => x.subject === s && x.chapter === c);
-      if (exists) return prev.filter((x) => !(x.subject === s && x.chapter === c));
+      if (exists) {
+        setMultiTopics((t) => t.filter((x) => !(x.subject === s && x.chapter === c)));
+        return prev.filter((x) => !(x.subject === s && x.chapter === c));
+      }
       return [...prev, { subject: s, chapter: c }];
+    });
+  };
+
+  const toggleMultiTopic = (s: string, c: string, t: string) => {
+    setMultiTopics((prev) => {
+      const exists = prev.some((x) => x.subject === s && x.chapter === c && x.topic === t);
+      if (exists) return prev.filter((x) => !(x.subject === s && x.chapter === c && x.topic === t));
+      return [...prev, { subject: s, chapter: c, topic: t }];
     });
   };
 
@@ -109,34 +140,49 @@ const UnlimitedMockTest = () => {
     enabled: !!subject && !!chapter,
   });
 
-  const { data: allSubjectChapterPairs } = useQuery({
-    queryKey: ["mock-pool-all-pairs"],
+  const { data: multiDrillChapters } = useQuery({
+    queryKey: ["mock-pool-multi-drill-chapters", multiDrillSubject],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mock_question_pool")
-        .select("subject, chapter");
+        .select("chapter")
+        .eq("subject", multiDrillSubject);
       if (error) throw error;
-      const map = new Map<string, { subject: string; chapter: string }>();
-      (data || []).forEach((d: any) => {
-        const key = `${d.subject}||${d.chapter}`;
-        if (!map.has(key)) map.set(key, { subject: d.subject, chapter: d.chapter });
-      });
-      return Array.from(map.values());
+      return [...new Set((data || []).map((d: any) => d.chapter))];
     },
-    enabled: multiMode,
+    enabled: multiMode && !!multiDrillSubject,
+  });
+
+  const { data: multiDrillTopics } = useQuery({
+    queryKey: ["mock-pool-multi-drill-topics", multiDrillChapter?.subject, multiDrillChapter?.chapter],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("topic")
+        .eq("subject", multiDrillChapter!.subject)
+        .eq("chapter", multiDrillChapter!.chapter);
+      if (error) throw error;
+      return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
+    },
+    enabled: multiMode && !!multiDrillChapter,
   });
 
   const { data: multiAvailablePool } = useQuery({
-    queryKey: ["mock-pool-multi-available-count", multiSelections, standard],
+    queryKey: ["mock-pool-multi-available-count", multiSelections, multiTopics, standard],
     queryFn: async () => {
       let total = 0;
       for (const sel of multiSelections) {
-        const { data, error } = await supabase
+        const topicsForSel = multiTopics
+          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .map((t) => t.topic);
+        let q = supabase
           .from("mock_question_pool")
           .select("questions_json")
           .eq("subject", sel.subject)
           .eq("chapter", sel.chapter)
           .eq("standard", standard);
+        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
+        const { data, error } = await q;
         if (error) throw error;
         (data || []).forEach((row: any) => {
           const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
@@ -187,12 +233,17 @@ const UnlimitedMockTest = () => {
 
       if (multiMode) {
         for (const sel of multiSelections) {
-          const { data: rows, error } = await supabase
+          const topicsForSel = multiTopics
+            .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+            .map((t) => t.topic);
+          let q = supabase
             .from("mock_question_pool")
             .select("*")
             .eq("subject", sel.subject)
             .eq("chapter", sel.chapter)
             .eq("standard", standard);
+          if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
+          const { data: rows, error } = await q;
           if (error) throw error;
           if (rows) data = data.concat(rows);
         }
@@ -343,68 +394,166 @@ const UnlimitedMockTest = () => {
               type="button"
               onClick={() => {
                 setMultiMode((v) => !v);
-                setMultiSelections([]);
+                setMultiSubjects([]);
+                setMultiChapters([]);
+                setMultiTopics([]);
+                setMultiDrillSubject("");
+                setMultiDrillChapter(null);
               }}
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors shrink-0 ${
-                multiMode
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/40"
-              }`}
+              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground"
             >
+              কাস্টম মুড
               <span
-                className={`h-4 w-7 rounded-full relative transition-colors ${
+                className={`h-5 w-9 rounded-full relative transition-colors shrink-0 ${
                   multiMode ? "bg-primary" : "bg-muted-foreground/30"
                 }`}
               >
                 <span
-                  className={`absolute top-0.5 h-3 w-3 rounded-full bg-white transition-transform ${
-                    multiMode ? "translate-x-3.5" : "translate-x-0.5"
+                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    multiMode ? "translate-x-4" : "translate-x-0"
                   }`}
                 />
               </span>
-              মাল্টি-সিলেক্ট
             </button>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {multiMode ? (
-            <div>
-              <Label className="mb-2 block">
-                সাবজেক্ট/চ্যাপ্টার নির্বাচন করুন
-                {multiSelections.length > 0 && (
-                  <span className="text-muted-foreground font-normal">
-                    {" "}({multiSelections.length}টি নির্বাচিত
-                    {multiAvailablePool != null ? `, মোট MCQ ${multiAvailablePool}` : ""})
-                  </span>
-                )}
-              </Label>
-              <div className="space-y-1 max-h-80 overflow-y-auto rounded-xl border border-border p-2">
-                {(allSubjectChapterPairs || []).map((pair) => {
-                  const checked = multiSelections.some(
-                    (x) => x.subject === pair.subject && x.chapter === pair.chapter
-                  );
-                  return (
-                    <label
-                      key={`${pair.subject}||${pair.chapter}`}
-                      className={`flex items-center gap-2 px-2 py-2 rounded-lg cursor-pointer text-xs transition-colors ${
-                        checked ? "bg-primary/10" : "hover:bg-muted/60"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleMultiSelection(pair.subject, pair.chapter)}
-                        className="h-4 w-4 rounded border-2 border-border accent-primary shrink-0"
-                      />
-                      <span className="font-semibold">{pair.subject}</span>
-                      <span className="text-muted-foreground">— {pair.chapter}</span>
-                    </label>
-                  );
-                })}
-                {!(allSubjectChapterPairs || []).length && (
-                  <p className="text-xs text-muted-foreground text-center py-3">লোড হচ্ছে...</p>
-                )}
+            <div className="space-y-4">
+              <div>
+                <Label className="mb-2 block">
+                  সাবজেক্ট নির্বাচন করুন
+                  {multiSelections.length > 0 && (
+                    <span className="text-muted-foreground font-normal">
+                      {" "}({multiSelections.length}টি চ্যাপ্টার নির্বাচিত
+                      {multiAvailablePool != null ? `, মোট MCQ ${multiAvailablePool}` : ""})
+                    </span>
+                  )}
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(subjects || []).map((s: string) => {
+                    const checked = multiSubjects.includes(s);
+                    return (
+                      <div key={s} className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setMultiDrillSubject(multiDrillSubject === s ? "" : s)}
+                          className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                            multiDrillSubject === s
+                              ? "border-primary bg-primary/10 text-primary"
+                              : checked
+                              ? "border-primary/50 text-foreground"
+                              : "border-border text-muted-foreground hover:border-primary/40"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleMultiSubject(s);
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+
+              {multiDrillSubject && (
+                <div>
+                  <Label className="mb-2 block">চ্যাপ্টার — {multiDrillSubject}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(multiDrillChapters || []).map((c: string) => {
+                      const checked = multiChapters.some(
+                        (x) => x.subject === multiDrillSubject && x.chapter === c
+                      );
+                      const isDrilled =
+                        multiDrillChapter?.subject === multiDrillSubject && multiDrillChapter?.chapter === c;
+                      return (
+                        <div key={c} className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMultiDrillChapter(isDrilled ? null : { subject: multiDrillSubject, chapter: c })
+                            }
+                            className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                              isDrilled
+                                ? "border-primary bg-primary/10 text-primary"
+                                : checked
+                                ? "border-primary/50 text-foreground"
+                                : "border-border text-muted-foreground hover:border-primary/40"
+                            }`}
+                          >
+                            {c}
+                          </button>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleMultiChapter(multiDrillSubject, c);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary"
+                          />
+                        </div>
+                      );
+                    })}
+                    {!(multiDrillChapters || []).length && (
+                      <p className="col-span-3 text-xs text-muted-foreground text-center py-3">লোড হচ্ছে...</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {multiDrillChapter && (
+                <div>
+                  <Label className="mb-2 block">টপিক — {multiDrillChapter.chapter}</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {(multiDrillTopics || []).map((t: string) => {
+                      const checked = multiTopics.some(
+                        (x) =>
+                          x.subject === multiDrillChapter.subject &&
+                          x.chapter === multiDrillChapter.chapter &&
+                          x.topic === t
+                      );
+                      return (
+                        <div key={t} className="relative">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
+                            }
+                            className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                              checked
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground hover:border-primary/40"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            readOnly
+                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
+                          />
+                        </div>
+                      );
+                    })}
+                    {!(multiDrillTopics || []).length && (
+                      <p className="col-span-3 text-xs text-muted-foreground text-center py-3">
+                        এই চ্যাপ্টারে কোনো টপিক নেই — পুরো চ্যাপ্টার থেকে প্রশ্ন আসবে
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
           <div>
