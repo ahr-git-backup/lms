@@ -5,13 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, RotateCw, Repeat, XCircle, ChevronDown } from "lucide-react";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLive: boolean, navigate: any, profile: any }) => {
@@ -65,10 +63,10 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col flex-1 p-3 pt-0">
-            <div className="grid grid-cols-4 gap-1 mt-auto">
+            <div className="grid grid-cols-4 gap-1.5 mt-auto">
                 <Button
                     size="sm"
-                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[9px] h-8 px-1 flex-col gap-0.5"
+                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
                     onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
                 >
                     Your Result
@@ -76,47 +74,48 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                 <Button
                     size="sm"
                     variant="outline"
-                    className="rounded-lg text-[9px] h-8 px-1 flex-col gap-0.5"
+                    className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal"
                     onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}?qp=1`)}
                 >
-                    <Repeat className="h-3 w-3" />
+                    Practice Again
                 </Button>
 
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                <Popover>
+                    <PopoverTrigger asChild>
                         <Button
                             size="sm"
                             variant="outline"
                             disabled={!hasMistakes}
-                            className="rounded-lg text-[9px] h-8 px-1 flex-col gap-0.5 disabled:opacity-40"
+                            className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
                         >
-                            <XCircle className="h-3 w-3" />
+                            Mistake Practice
                         </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="center">
-                        <DropdownMenuItem
+                    </PopoverTrigger>
+                    <PopoverContent align="center" className="w-56 p-1.5">
+                        <button
                             disabled={wrongCount === 0}
                             onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "wrong" } })}
+                            className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
                         >
                             Only Wrong ({wrongCount})
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
+                        </button>
+                        <button
                             disabled={wrongCount === 0 && skipCount === 0}
                             onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "both" } })}
+                            className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted disabled:opacity-40 disabled:pointer-events-none"
                         >
                             Wrong + Skip ({wrongCount + skipCount})
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
+                        </button>
+                    </PopoverContent>
+                </Popover>
 
                 <Button
                     size="sm"
                     variant="outline"
                     onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
-                    title="View Leaderboard"
-                    className="rounded-lg text-[9px] h-8 px-1 flex-col gap-0.5"
+                    className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal"
                 >
-                    <Trophy className="h-3 w-3" />
+                    Leaderboard
                 </Button>
             </div>
         </CardContent>
@@ -234,7 +233,7 @@ const ExamResults = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 px-0.5">
+        <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 px-0.5">
           {filteredAttempts.map((attempt) => (
             <ResultCard
               key={attempt.id}
