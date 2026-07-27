@@ -572,23 +572,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         {overallStats && (
-          <div className="flex justify-end gap-2">
-            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 w-24 sm:w-28">
-              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground leading-tight">Total Exams</span>
-                <span className="text-sm font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
+                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
               </CardContent>
             </Card>
-            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 w-24 sm:w-28">
-              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount}</span>
-                <span className="text-[9px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining}</span>
+            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount} টি</span>
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining} টি</span>
               </CardContent>
             </Card>
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 w-24 sm:w-28">
-              <CardContent className="p-1.5 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[9px] text-muted-foreground leading-tight">Total MCQ</span>
-                <span className="text-sm font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
+                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
               </CardContent>
             </Card>
           </div>
