@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
+import { ReportFeedbackAlert } from "@/components/ReportFeedbackAlert";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
@@ -549,6 +550,7 @@ export const DashboardLayout = () => {
         </div>
         <FloatingStudyTools />
         <ProfileCompletionReminder />
+        <ReportFeedbackAlert />
       </div>
     </SidebarProvider>
     </StudyToolsProvider>
