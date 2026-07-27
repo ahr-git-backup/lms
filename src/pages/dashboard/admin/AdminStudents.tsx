@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail, AlertTriangle, Eye, CheckCircle2 } from "lucide-react";
+import { format } from "date-fns";
 
 const PAGE_SIZE = 10;
 
@@ -323,7 +324,7 @@ const AdminStudents = () => {
       </header>
 
       {/* Stats Cards - Clickable */}
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 grid-cols-2">
           <Card
             className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'paid' ? 'border-primary bg-primary/5' : ''}`}
             onClick={() => setListFilter(listFilter === 'paid' ? null : 'paid')}
@@ -365,6 +366,7 @@ const AdminStudents = () => {
               </CardHeader>
               <CardContent>
                   <div className="text-xl font-bold">{stats?.teachers ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
 
@@ -379,6 +381,7 @@ const AdminStudents = () => {
               </CardHeader>
               <CardContent>
                   <div className="text-xl font-bold">{stats?.admins ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
       </div>
@@ -481,7 +484,7 @@ const AdminStudents = () => {
                     <TableHead>Registration ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Courses (Access)</TableHead>
-                    {selectedCourseFilter !== 'all' && <TableHead>Enrolled On</TableHead>}
+                    {(selectedCourseFilter !== 'all' || listFilter === 'paid' || listFilter === 'free') && <TableHead>Enrolled On</TableHead>}
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -518,9 +521,13 @@ const AdminStudents = () => {
                             {(!student.enrollments || student.enrollments.length === 0) && <span className="text-muted-foreground">-</span>}
                         </div>
                       </TableCell>
-                      {selectedCourseFilter !== 'all' && (
+                      {(selectedCourseFilter !== 'all' || listFilter === 'paid' || listFilter === 'free') && (
                         <TableCell className="text-xs whitespace-nowrap">
-                          {student.enrollments?.[0]?.created_at ? format(new Date(student.enrollments[0].created_at), "dd MMM yyyy") : "-"}
+                          {student.enrollments?.[0]?.created_at
+                            ? format(new Date(student.enrollments[0].created_at), "dd MMM yyyy")
+                            : listFilter === 'free' ? "-" : (student as any).created_at
+                              ? format(new Date((student as any).created_at), "dd MMM yyyy")
+                              : "-"}
                         </TableCell>
                       )}
                       <TableCell className="text-xs whitespace-nowrap">
