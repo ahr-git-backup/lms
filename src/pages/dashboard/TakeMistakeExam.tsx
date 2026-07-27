@@ -505,59 +505,59 @@ const TakeMistakeExam = () => {
     // --- START SCREEN ---
     if (!hasStarted) {
         return (
-            <div className="min-h-screen flex items-center justify-center p-2 md:p-4">
-                <Card className="w-full max-w-2xl shadow-xl">
-                    <CardContent className="p-6 md:p-8 space-y-6 text-center">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold text-primary">Mistakes Practice</h1>
-                            <p className="text-base md:text-lg text-muted-foreground">
-                                You are about to practice {questions.length} questions based on your selection.
+            <div className="h-screen flex items-center justify-center p-2 overflow-hidden">
+                <Card className="w-full max-w-md shadow-xl">
+                    <CardContent className="p-4 space-y-3 text-center">
+                        <div className="space-y-1">
+                            <h1 className="text-lg font-bold text-primary">Mistakes Practice</h1>
+                            <p className="text-xs text-muted-foreground">
+                                {questions.length} questions based on your selection
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
-                             <div className="p-4 bg-muted rounded-xl">
-                                 <div className="text-sm font-medium text-muted-foreground uppercase">Questions</div>
-                                 <div className="text-3xl font-bold">{questions.length}</div>
+                        <div className="grid grid-cols-2 gap-2">
+                             <div className="p-2 bg-muted rounded-lg">
+                                 <div className="text-[10px] font-medium text-muted-foreground uppercase">Questions</div>
+                                 <div className="text-xl font-bold">{questions.length}</div>
                              </div>
-                             <div className="p-4 bg-muted rounded-xl">
-                                 <div className="text-sm font-medium text-muted-foreground uppercase">Duration</div>
-                                 <div className="text-3xl font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-sm font-normal text-muted-foreground">min</span></div>
+                             <div className="p-2 bg-muted rounded-lg">
+                                 <div className="text-[10px] font-medium text-muted-foreground uppercase">Duration</div>
+                                 <div className="text-xl font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-[10px] font-normal text-muted-foreground">min</span></div>
                              </div>
                         </div>
 
-                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-4 rounded-lg text-sm text-left mx-auto max-w-lg">
-                            <h3 className="font-bold flex items-center gap-2 mb-2">
-                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-2.5 rounded-lg text-[11px] text-left">
+                            <h3 className="font-bold flex items-center gap-1.5 mb-1">
+                                <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 shrink-0" />
                                 Note
                             </h3>
-                            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                                <li>You have <strong>45 seconds</strong> per question.</li>
-                                <li>This practice session does not affect your main exam statistics.</li>
-                                <li>Questions are gathered from multiple exams you've taken.</li>
+                            <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
+                                <li>45 seconds per question.</li>
+                                <li>Doesn't affect main exam statistics.</li>
+                                <li>Questions from multiple exams you've taken.</li>
                             </ul>
                         </div>
 
-                        <div className="flex items-center justify-center space-x-2 pt-2">
+                        <div className="flex items-center justify-center space-x-2">
                             <Checkbox
                                 id="terms"
                                 checked={agreedToInstructions}
                                 onCheckedChange={(c) => setAgreedToInstructions(!!c)}
                             />
-                            <label htmlFor="terms" className="text-sm font-medium cursor-pointer">
+                            <label htmlFor="terms" className="text-xs font-medium cursor-pointer">
                                 I am ready to start.
                             </label>
                         </div>
 
-                        <div className="flex gap-4 pt-4 justify-center">
-                            <Button variant="outline" size="lg" onClick={() => navigate(-1)}>Cancel</Button>
+                        <div className="flex gap-2 justify-center">
+                            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Cancel</Button>
                             <Button
-                                size="lg"
+                                size="sm"
                                 disabled={!agreedToInstructions}
                                 onClick={() => setHasStarted(true)}
-                                className="min-w-[150px]"
+                                className="min-w-[130px]"
                             >
-                                <PlayCircle className="mr-2 h-5 w-5" /> Start Now
+                                <PlayCircle className="mr-2 h-4 w-4" /> Start Now
                             </Button>
                         </div>
                     </CardContent>
