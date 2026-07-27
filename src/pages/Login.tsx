@@ -56,17 +56,7 @@ const Login = () => {
     const identifier = formData.get("identifier") as string; // Changed from registrationId to identifier
     const password = formData.get("password") as string;
 
-    let email = identifier;
-
-    // Legacy Support: Check if input looks like a phone number (digits only, length check)
-    // If it's a phone number, convert to synthetic email
-    const isPhone = /^\d+$/.test(identifier) || (identifier.startsWith('+') && /^\+?\d+$/.test(identifier));
-
-    if (isPhone && !identifier.includes('@')) {
-      email = `${identifier}@beshijoss.com`;
-    }
-
-    const { error } = await signIn(email, password, captchaToken);
+    const { error } = await signIn(identifier, password, captchaToken);
 
     if (error) {
       setLoginError({ message: error.message || "Invalid credentials", identifier });

@@ -173,11 +173,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = useCallback(async (identifier: string, password: string, captchaToken?: string) => {
     try {
       let email = identifier;
-      // If it looks like a registration ID (no @ symbol), format it as an internal email
+
+      // If input has no @, it's a phone number or legacy registration ID.
+      // We must resolve it to the actual auth email before attempting login,
+      // since registration now uses the student's real email (not a synthetic one).
       if (!identifier.includes("@")) {
-        email = `${identifier}@beshijoss.com`;
+        // @ts-expect-error rpc not in generated types
+        const { data: resolvedEmail } = await supabase.rpc('resolve_login_email', { p_identifier: identifier });
+        if (resolvedEmail) {
+          email = resolvedEmail;
+        } else {
+          // Fallback to legacy synthetic email pattern for old accounts
+          email = `${identifier}@beshijoss.com`;
+        }
       }
- 
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
