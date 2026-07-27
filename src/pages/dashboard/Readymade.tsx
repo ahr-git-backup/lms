@@ -6,7 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { openSolvePdf } from "@/lib/solvePdf";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { useNavigate, useNavigationType } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
@@ -39,6 +48,60 @@ const buildEnrollmentFilter = (enrolledIds: string[]) => {
   return `course_id.in.(${enrolledIds.join(',')}),shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}},is_visible_on_free.eq.true`;
 };
 
+// Determine whether a given exam is accessible to the current user (same rule as
+// buildEnrollmentFilter, evaluated client-side so we can render ALL exams and just
+// lock the ones the user doesn't have access to, instead of hiding them.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isExamUnlocked = (exam: any, enrolledIds: string[]): boolean => {
+  if (exam.is_visible_on_free) return true;
+  if (enrolledIds.length === 0) return false;
+  if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
+  if (Array.isArray(exam.shared_course_ids) && exam.shared_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+  if (Array.isArray(exam.readymade_course_ids) && exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+  return false;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const PremiumLockDialog = ({ exam, onClose, navigate }: { exam: any; onClose: () => void; navigate: any }) => {
+  const courseId = exam?.course_id;
+  return (
+    <Dialog open={!!exam} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
+            <Sparkles className="h-6 w-6 text-white" />
+          </div>
+          <DialogTitle className="text-center">Premium Exam — লক করা আছে</DialogTitle>
+          <DialogDescription className="text-center">
+            এই exam-টি দেখতে হলে আপনাকে পেইড ব্যাচে ভর্তি হতে হবে।
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-lg border border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20 p-3 text-sm space-y-1.5">
+          <p className="font-semibold text-amber-700 dark:text-amber-400">ভর্তি হলে যা যা পাবেন:</p>
+          <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+            <li>সব Premium Readymade Exam আনলিমিটেড অ্যাক্সেস</li>
+            <li>বিস্তারিত সমাধান ও ব্যাখ্যা</li>
+            <li>লাইভ ক্লাস ও প্রিমিয়াম সাপোর্ট</li>
+          </ul>
+        </div>
+        <div className="flex flex-col gap-2 mt-1">
+          {courseId && (
+            <Button className="w-full" onClick={() => { onClose(); navigate(`/courses/${courseId}/buy`); }}>
+              কোর্সে ভর্তি হোন
+            </Button>
+          )}
+          <a href="https://wa.me/8801999681290" target="_blank" rel="noopener noreferrer" className="w-full">
+            <Button variant="outline" className="w-full gap-2">
+              <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M17.6 6.32A7.85 7.85 0 0 0 12.05 4a7.94 7.94 0 0 0-6.87 11.87L4 20l4.24-1.11a7.9 7.9 0 0 0 3.8.97h.01A7.94 7.94 0 0 0 20 12a7.85 7.85 0 0 0-2.4-5.68Zm-5.55 12.2a6.6 6.6 0 0 1-3.36-.92l-.24-.14-2.5.66.67-2.44-.16-.25a6.58 6.58 0 0 1 5.6-10.11 6.53 6.53 0 0 1 4.63 1.92 6.53 6.53 0 0 1 1.92 4.63 6.6 6.6 0 0 1-6.56 6.55Zm3.6-4.9c-.2-.1-1.16-.57-1.34-.64-.18-.07-.31-.1-.44.1-.13.2-.5.63-.62.76-.11.13-.23.14-.42.05a5.4 5.4 0 0 1-1.6-.98 5.98 5.98 0 0 1-1.1-1.37c-.12-.2 0-.3.09-.4.1-.1.2-.24.3-.36.1-.12.13-.2.2-.34.07-.13.03-.25-.02-.35-.05-.1-.44-1.06-.6-1.45-.16-.38-.32-.33-.44-.34h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.66s.72 1.92.82 2.06c.1.13 1.4 2.15 3.4 3.01.48.2.85.33 1.14.42.48.15.91.13 1.26.08.38-.06 1.16-.47 1.33-.93.16-.46.16-.85.11-.93-.05-.08-.18-.13-.38-.23Z"/></svg>
+              WhatsApp-এ যোগাযোগ করুন
+            </Button>
+          </a>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
@@ -48,8 +111,8 @@ const Readymade = () => {
   const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const [currentSubjectsList, setCurrentSubjectsList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
-  const { data: enrollments } = useEnrollments();
-  const { isAdmin } = useAuth();
+  const { data: enrollments, isLoading: loadingEnrollments } = useEnrollments();
+  const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const navigationType = useNavigationType(); // "POP" = browser back/forward, "PUSH"/"REPLACE" = normal link click
 
@@ -59,6 +122,8 @@ const Readymade = () => {
   const [page, setPage] = useState(0);
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [lockedExam, setLockedExam] = useState<any | null>(null);
 
   const { data: boards } = useQuery({
     queryKey: ["readymade-boards", enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
@@ -225,34 +290,7 @@ const Readymade = () => {
         </div>
       )}
 
-      {!selectedSubject && boards && boards.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
-          <Button
-            variant={selectedBoards.length === 0 ? "default" : "outline"}
-            size="sm"
-            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
-            onClick={() => { setPage(0); setSelectedBoards([]); }}
-          >
-            All Boards
-          </Button>
-          {boards.map(board => (
-            <Button
-              key={board.value}
-              variant={selectedBoards.includes(board.value) ? "default" : "outline"}
-              size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
-              onClick={() => {
-                setPage(0);
-                setSelectedBoards(prev =>
-                  prev.includes(board.value) ? prev.filter(b => b !== board.value) : [...prev, board.value]
-                );
-              }}
-            >
-              {board.label}
-            </Button>
-          ))}
-        </div>
-      )}
+      {/* Board/category filter row intentionally hidden — only Parent Topic pills shown above */}
 
       {isAdmin && !selectedSubject && currentSubjectsList.length > 0 && (
         <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
@@ -317,6 +355,11 @@ const Readymade = () => {
           selectedBoards={selectedBoards}
           setCurrentChaptersList={setCurrentChaptersList}
           setCurrentSubjectsList={setCurrentSubjectsList}
+          userId={user?.id}
+          lockedExam={lockedExam}
+          setLockedExam={setLockedExam}
+          isAdmin={isAdmin}
+          loadingEnrollments={loadingEnrollments}
         />
       )}
     </div>
@@ -324,15 +367,9 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
-  const filterOrClause = buildEnrollmentFilter(enrolledIds);
-
-  const applyAccessFilter = (query: any) => {
-    if (filterOrClause) return query.or(filterOrClause);
-    return query.eq("is_visible_on_free", true);
-  };
 
   // --- SEARCH ---
   const { data: searchResults, isLoading: searching } = useQuery({
@@ -344,12 +381,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .from("exams")
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .ilike("title", `%${safeQuery}%`)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-      query = applyAccessFilter(query);
       const { data, error, count } = await query;
       if (error) throw error;
       return { data: data || [], count: count || 0 };
@@ -366,7 +403,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .eq("is_readymade", true).eq("is_published", true).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        return applyAccessFilter(query);
+        return query;
       });
       const unique = new Set<string>();
       data.forEach((row: any) => {
@@ -395,7 +432,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        return applyAccessFilter(query);
+        return query;
       });
       const unique = new Set<string>(); const orderMap = new Map<string, number>();
       const settingsKey = `chapter_order_global_${selectedSubject}`;
@@ -423,6 +460,56 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
+  // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
+  const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
+    queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
+    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const allExamRows = await fetchAllRows<{ id: string }>((from, to) => {
+        let q = supabase.from("exams").select("id")
+          .eq("is_readymade", true).eq("is_published", true).range(from, to);
+        return q;
+      });
+      const examIds = allExamRows.map(r => r.id);
+      const totalExams = examIds.length;
+
+      let totalMcqs = 0;
+      let attemptedCount = 0;
+
+      if (examIds.length > 0) {
+        // PostgREST chokes on very long .in() lists (URL length limit) once the
+        // platform has many readymade exams, silently returning 0. Batch the
+        // exam_id list so the count query always succeeds regardless of scale.
+        const ID_BATCH = 200;
+        for (let i = 0; i < examIds.length; i += ID_BATCH) {
+          const batchIds = examIds.slice(i, i + ID_BATCH);
+          const { count: mcqCount } = await supabase
+            .from("exam_questions")
+            .select("id", { count: 'exact', head: true })
+            .in("exam_id", batchIds);
+          totalMcqs += mcqCount || 0;
+        }
+
+        if (userId) {
+          const attemptedIds = new Set<string>();
+          for (let i = 0; i < examIds.length; i += ID_BATCH) {
+            const batchIds = examIds.slice(i, i + ID_BATCH);
+            const { data: attemptRows } = await supabase
+              .from("exam_attempts")
+              .select("exam_id")
+              .eq("profile_id", userId)
+              .in("exam_id", batchIds);
+            (attemptRows || []).forEach((r: any) => attemptedIds.add(r.exam_id));
+          }
+          attemptedCount = attemptedIds.size;
+        }
+      }
+
+      return { totalExams, totalMcqs, attemptedCount, remaining: Math.max(totalExams - attemptedCount, 0) };
+    },
+    enabled: !selectedSubject && !searchQuery
+  });
+
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
     queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
@@ -437,7 +524,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        return applyAccessFilter(query);
+        return query;
       });
       const unique = new Set<string>();
       data.forEach((row: any) => { if (row.readymade_sub_chapter) unique.add(row.readymade_sub_chapter); });
@@ -456,13 +543,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       let query = supabase.from("exams")
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
       // If subChapters exist for this chapter, only show exams for the selected sub-chapter
       if (selectedSubChapter) query = query.eq("readymade_sub_chapter", selectedSubChapter);
-      query = applyAccessFilter(query);
       const { data, count, error } = await query;
       if (error) throw error;
       return { data: data || [], count: count || 0 };
@@ -472,12 +559,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // ---- RENDER ----
   if (searchQuery) {
-    if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
+    if (searching || loadingEnrollments) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
     const exams = searchResults?.data || [];
     const count = searchResults?.count || 0;
     const totalPages = Math.ceil(count / PAGE_SIZE);
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-3"><ExamGrid exams={exams} navigate={navigate} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
+    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -490,7 +577,41 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       </div>
     );
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="space-y-3">
+        {overallStats ? (
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
+                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
+              </CardContent>
+            </Card>
+            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount} টি</span>
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining} টি</span>
+              </CardContent>
+            </Card>
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
+                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
+              </CardContent>
+            </Card>
+          </div>
+        ) : loadingOverallStats ? (
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="border-muted">
+                <CardContent className="p-2 flex flex-col items-center gap-1">
+                  <div className="h-2.5 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-8 bg-muted animate-pulse rounded" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : null}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
         {subjects.map(subject => (
           <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
@@ -498,10 +619,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
                 <Trophy className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div className="text-base sm:text-xl font-bold text-primary leading-tight">{subject}</div>
+              <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     );
   }
@@ -511,7 +633,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => setSelectedSubject(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
-        <h2 className="text-base font-bold">{selectedSubject}</h2>
+        <h2 className="text-base font-bold whitespace-pre-line">{selectedSubject}</h2>
         {loadingChapters ? <div className="text-muted-foreground">Loading chapters...</div>
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
@@ -560,6 +682,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   return (
     <div className="space-y-3">
+      <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} />
       <Button variant="ghost" size="sm" onClick={() => {
         if (selectedSubChapter && subChapters && subChapters.length > 0) setSelectedSubChapter(null);
         else setSelectedChapter(null);
@@ -576,39 +699,268 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         <h2 className="text-base font-bold mt-0.5">Available Readymade Exams</h2>
       </div>
 
-      {loadingExams ? (
+      {loadingExams || loadingEnrollments ? (
         <div className="text-muted-foreground">Loading exams...</div>
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
       ) : (
-        <ExamGrid exams={exams} navigate={navigate} />
+        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} />
       )}
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate }: { exams: any[], navigate: any }) => (
+const SplitExamDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) => {
+  const { toast } = useToast();
+  const [count, setCount] = useState("5");
+  const [saving, setSaving] = useState(false);
+  const totalQ = exam?.questions_count?.[0]?.count || 0;
+
+  const handleSplit = async () => {
+    const n = parseInt(count, 10);
+    if (!n || n < 1) {
+      toast({ title: "Invalid count", description: "Enter a valid MCQ count per exam.", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error } = await supabase.rpc("create_split_exams", { p_parent_exam_id: exam.id, p_per_split_count: n });
+      if (error) throw error;
+      toast({ title: "Split হয়েছে", description: `Exam splitted into groups of ${n} MCQs.` });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Split করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!exam} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <DialogContent className="max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Split Exam</DialogTitle>
+          <DialogDescription>
+            মোট {totalQ}টি MCQ আছে। প্রতি exam-এ কতটি MCQ থাকবে লিখুন।
+          </DialogDescription>
+        </DialogHeader>
+        <Input
+          type="number"
+          min={1}
+          value={count}
+          onChange={(e) => setCount(e.target.value)}
+          placeholder="e.g. 5"
+        />
+        <div className="flex gap-2 mt-2">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button className="flex-1" onClick={handleSplit} disabled={saving}>{saving ? "..." : "Split করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const { data: splits, isLoading, refetch } = useQuery({
+    queryKey: ["split-exams", parentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, split_start, split_end")
+        .eq("parent_exam_id", parentId)
+        .order("split_start", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: open,
+  });
+
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!isAdmin) return;
+    setDeletingId(id);
+    try {
+      const { error } = await supabase.from("exams").delete().eq("id", id);
+      if (error) throw error;
+      refetch();
+    } catch (err: any) {
+      toast({ title: "Delete করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  return (
+    <div onClick={(e) => e.stopPropagation()}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
+        onClick={() => setOpen(o => !o)}
+      >
+        {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
+      </Button>
+      {open && (
+        <div className="mt-1 space-y-1 border-l-2 border-primary/20 pl-2">
+          {isLoading ? (
+            <div className="text-[11px] text-muted-foreground">Loading...</div>
+          ) : !splits || splits.length === 0 ? (
+            <div className="text-[11px] text-muted-foreground">No splits yet.</div>
+          ) : (
+            splits.map((s: any) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+                onClick={() => {
+                  setExamSourceList(s.id, "/dashboard/readymade");
+                  navigate(`/dashboard/take-exam/${s.id}`);
+                }}
+              >
+                <span className="text-xs font-medium">{s.title}</span>
+                <div className="flex items-center gap-1">
+                  <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-1.5 text-[10px] text-destructive hover:text-destructive"
+                      disabled={deletingId === s.id}
+                      onClick={(e) => handleDelete(e, s.id)}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+  const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [splittingExam, setSplittingExam] = useState<any | null>(null);
+
+  const handleDownloadPdf = async (e: React.MouseEvent, exam: any) => {
+    e.stopPropagation();
+    if (downloadingId) return;
+    setDownloadingId(exam.id);
+    try {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
+        return;
+      }
+      openSolvePdf({
+        examName: exam.title,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        questions: data.map((q: any) => ({
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          option_e: q.option_e,
+          correct_option: q.correct_option,
+          user_answer: null,
+          explanation: q.explanation,
+        })),
+        totalMarks: data.length,
+      });
+    } catch (err: any) {
+      toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-    {exams.map((exam) => (
-      <Card key={exam.id} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
-        onClick={() => { setExamSourceList(exam.id, "/dashboard/readymade"); navigate(`/dashboard/take-exam/${exam.id}`); }}>
-        <CardContent className="px-4 py-3.5 flex items-center gap-3">
-          <div className="flex-1 min-w-0">
-            <p className="text-[10px] font-mono uppercase text-muted-foreground">{exam.course?.name || "Public"}</p>
-            <p className="text-sm font-bold leading-tight group-hover:text-primary transition-colors">{exam.title}</p>
-            <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1.5">
-              <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
-              <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
-              <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+    {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
+    {exams.map((exam) => {
+      const unlocked = isExamUnlocked(exam, enrolledIds);
+      return (
+        <Card key={exam.id} className={`cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
+          onClick={() => {
+            if (!unlocked) { onLockedClick?.(exam); return; }
+            setExamSourceList(exam.id, "/dashboard/readymade");
+            navigate(`/dashboard/take-exam/${exam.id}`);
+          }}>
+          <CardContent className="px-4 py-2.5">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className={`text-base font-bold leading-tight transition-colors ${unlocked ? "group-hover:text-primary" : "text-amber-700 dark:text-amber-500"}`}>{exam.title}</p>
+              </div>
+              <div className="shrink-0">
+                {unlocked ? (
+                  <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
+                ) : (
+                  <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-500 gap-1">
+                    <Lock className="h-3.5 w-3.5" />Locked
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
-          <Button size="sm" className="shrink-0 group-hover:bg-primary/90">Start</Button>
-        </CardContent>
-      </Card>
-    ))}
+            <div className="flex items-center gap-3 mt-1">
+              <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                <p className="text-[10px] font-mono uppercase">{exam.course?.name || "Public"}</p>
+                <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
+                <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
+                <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+                {!unlocked && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0 gap-0.5"><Lock className="h-2.5 w-2.5" />Premium</Badge>}
+              </div>
+              <div className="shrink-0 flex items-center gap-1">
+                {unlocked && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-blue-600"
+                    disabled={downloadingId === exam.id}
+                    onClick={(e) => handleDownloadPdf(e, exam)}
+                  >
+                    <FileDown className="h-3.5 w-3.5 mr-1" />
+                    {downloadingId === exam.id ? "..." : "PDF"}
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
+                  >
+                    Split
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+          {unlocked && (
+            <div className="px-4 pb-2 -mt-1" onClick={(e) => e.stopPropagation()}>
+              <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+            </div>
+          )}
+        </Card>
+      );
+    })}
   </div>
-);
+  );
+};
+
 
 const PaginationControls = ({ page, setPage, totalPages }: { page: number, setPage: (p: number) => void, totalPages: number }) => (
   <div className="flex items-center justify-between pt-4">

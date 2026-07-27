@@ -259,13 +259,15 @@ const TakeExam = () => {
       const cached = localStorage.getItem(QUESTIONS_STORAGE_KEY);
       if (cached) {
           try {
-            allQuestions = JSON.parse(cached);
-            console.log("Loaded questions from cache");
-
-            // Validate cache structure - ensure it's a non-empty array if supposed to be
-            if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
-                console.warn("Cached questions empty or invalid, refetching...");
-                allQuestions = null; // Force refetch
+            const parsed = JSON.parse(cached);
+            // Cache is stored as { examId, data } so we can verify it actually
+            // belongs to the exam being opened right now before trusting it.
+            if (parsed && parsed.examId === examId && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                allQuestions = parsed.data;
+                console.log("Loaded questions from cache");
+            } else {
+                console.warn("Cached questions empty, mismatched exam, or invalid, refetching...");
+                allQuestions = null;
             }
           } catch(e) {
             console.error("Cache parse error", e);
@@ -341,7 +343,7 @@ const TakeExam = () => {
       // Update cache with the final list (filtered or full)
       // Since the key is specific to the session (retake vs normal), caching the result is correct.
       try {
-         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(allQuestions));
+         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify({ examId, data: allQuestions }));
       } catch (e) {
          console.error("Cache save error", e);
       }
@@ -897,31 +899,32 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex flex-col items-center justify-center pt-8 pb-6 p-4 space-y-4">
+          <div className="min-h-screen bg-background flex flex-col items-start justify-start px-1 py-1.5 sm:px-1.5">
+          <div className="w-full max-w-2xl mx-auto space-y-2">
               {/* Card 1: Header/Info */}
-              <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-4">
-                      <div className="text-center space-y-1.5">
-                          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{exam.title}</h1>
-                          <p className="text-muted-foreground text-sm">Please review the details below before starting.</p>
+              <Card className="w-full rounded-xl shadow-sm border">
+                  <div className="p-3 md:p-4 space-y-2">
+                      <div className="text-center space-y-0.5">
+                          <h1 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">{exam.title}</h1>
+                          <p className="text-muted-foreground text-xs">Please review the details below before starting.</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-4">
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-primary">
+                      <div className="grid grid-cols-3 gap-2">
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
+                              <span className="text-lg font-bold text-primary">
                                   {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
                                       ? Math.ceil((selectedQuestionCount * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Minutes</span>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Questions</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
+                              <span className="text-lg font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-4 bg-secondary/30 rounded-xl">
-                              <span className="text-3xl font-bold text-red-500">{exam.negative_mark_per_question}</span>
-                              <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mt-1">Negative</span>
+                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
+                              <span className="text-lg font-bold text-red-500">{exam.negative_mark_per_question}</span>
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Negative</span>
                           </div>
                       </div>
                   </div>
@@ -929,14 +932,14 @@ const TakeExam = () => {
 
               {/* Card: Quick Practice Mode toggle */}
               {exam.is_readymade && !exam.external_exam_link && (
-                  <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
-                      <div className="px-5 py-4 flex items-center justify-between gap-3">
+                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden">
+                      <div className="px-3 py-2 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2.5 min-w-0">
                               <Zap className="h-5 w-5 text-violet-500 shrink-0" />
                               <div className="min-w-0">
-                                  <p className="text-sm font-bold truncate">Quick Practice Mode</p>
-                                  <p className="text-xs text-muted-foreground leading-snug">
-                                      Quiz-style: প্রতি প্রশ্নে ৩০ সেকেন্ড, উত্তর দিলেই সাথে সাথে সঠিক/ভুল দেখাবে, মাঝপথে শেষ করা যাবে।
+                                  <p className="text-xs font-bold truncate">Quick Practice Mode</p>
+                                  <p className="text-[10px] text-muted-foreground leading-snug line-clamp-1">
+                                      প্রতি প্রশ্নে ৩০ সেকেন্ড, তাৎক্ষণিক ফলাফল।
                                   </p>
                               </div>
                           </div>
@@ -962,52 +965,52 @@ const TakeExam = () => {
 
               {/* Card: Readymade MCQ Count Selector */}
               {exam.is_readymade && !exam.external_exam_link && (
-                  <Card className="w-full max-w-2xl rounded-2xl shadow-sm border overflow-hidden">
+                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden">
                       {hasImageOrPatternQuestions && (
-                          <div className="px-4 pt-2.5 pb-1.5 border-b space-y-1.5">
-                              <p className="text-[11px] font-bold text-foreground">
+                          <div className="px-3 pt-2 pb-1 border-b space-y-1">
+                              <p className="text-[10px] font-bold text-foreground">
                                   চিত্র/উদ্দীপকযুক্ত প্রশ্নের ধরন বেছে নিন:
                               </p>
-                              <div className="grid grid-cols-2 gap-2">
+                              <div className="grid grid-cols-2 gap-1.5">
                                   <button
                                       type="button"
                                       onClick={() => setContentMode('with')}
                                       className={cn(
-                                          "text-[11px] font-semibold rounded-lg border-2 px-2 py-1.5 leading-tight transition-colors",
+                                          "text-[10px] font-semibold rounded-md border-2 px-1.5 py-1 leading-tight transition-colors",
                                           contentMode === 'with'
                                               ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
                                               : "border-border text-muted-foreground hover:border-violet-300"
                                       )}
                                   >
-                                      চিত্র/উদ্দীপকসহ<br />(Board or Varsity Exam)
+                                      চিত্র/উদ্দীপকসহ
                                   </button>
                                   <button
                                       type="button"
                                       onClick={() => setContentMode('without')}
                                       className={cn(
-                                          "text-[11px] font-semibold rounded-lg border-2 px-2 py-1.5 leading-tight transition-colors",
+                                          "text-[10px] font-semibold rounded-md border-2 px-1.5 py-1 leading-tight transition-colors",
                                           contentMode === 'without'
                                               ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
                                               : "border-border text-muted-foreground hover:border-violet-300"
                                       )}
                                   >
-                                      চিত্র/উদ্দীপকছাড়া<br />(Medical Standard Exam)
+                                      চিত্র/উদ্দীপকছাড়া
                                   </button>
                               </div>
                           </div>
                       )}
-                      <div className="px-5 pt-3">
-                          <p className="text-sm font-bold text-foreground">
-                              যদি নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চান, নিচের বক্সে সংখ্যা লিখুন। খালি রাখলে সব MCQ দিয়ে পরীক্ষা শুরু হবে।
+                      <div className="px-3 pt-1.5">
+                          <p className="text-[10px] font-medium text-muted-foreground line-clamp-1">
+                              নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চাইলে লিখুন, খালি রাখলে সব MCQ থাকবে।
                           </p>
                       </div>
-                      <div className="px-5 py-3 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                              <Zap className="h-5 w-5 text-violet-500 shrink-0" />
-                              <span className="text-sm font-semibold truncate">MCQs to attempt</span>
+                      <div className="px-3 py-1.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                              <Zap className="h-4 w-4 text-violet-500 shrink-0" />
+                              <span className="text-xs font-semibold truncate">MCQs to attempt</span>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
                               <button
                                   type="button"
                                   onClick={() => {
@@ -1017,17 +1020,19 @@ const TakeExam = () => {
                                           return Math.min(Math.max(cur - 1, 1), max);
                                       });
                                   }}
-                                  className="h-8 w-8 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
+                                  className="h-6 w-6 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
                                   aria-label="Decrease count"
                               >
-                                  <Minus className="h-3.5 w-3.5" />
+                                  <Minus className="h-3 w-3" />
                               </button>
 
-                              <div className="relative rounded-xl border-2 border-violet-400 dark:border-violet-600">
-                                  <div className="h-11 w-16 rounded-[10px] flex items-center justify-center">
+                              <div className="relative rounded-lg border-2 border-violet-400 dark:border-violet-600">
+                                  <div className="h-8 w-12 rounded-[8px] flex items-center justify-center relative">
+                                      {selectedQuestionCount === null && (
+                                          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-violet-400 dark:text-violet-500 pointer-events-none select-none animate-pulse">|</span>
+                                      )}
                                       <input
                                           type="number"
-                                          autoFocus
                                           min={1}
                                           max={effectiveQuestions?.length || 1}
                                           value={selectedQuestionCount ?? ""}
@@ -1048,7 +1053,7 @@ const TakeExam = () => {
                                                   setSelectedQuestionCount(Math.min(Math.max(val, 1), max));
                                               }
                                           }}
-                                          className="w-full h-full bg-transparent text-center text-lg font-bold text-foreground focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                          className="w-full h-full bg-transparent text-center text-sm font-bold text-foreground focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                       />
                                   </div>
                                   {selectedQuestionCount !== null && (
@@ -1072,35 +1077,35 @@ const TakeExam = () => {
                                           return Math.min(Math.max(cur + 1, 1), max);
                                       });
                                   }}
-                                  className="h-8 w-8 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
+                                  className="h-6 w-6 shrink-0 rounded-full border-2 border-violet-300 dark:border-violet-700 flex items-center justify-center text-violet-600 dark:text-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950 active:scale-90 transition-all"
                                   aria-label="Increase count"
                               >
-                                  <Plus className="h-3.5 w-3.5" />
+                                  <Plus className="h-3 w-3" />
                               </button>
                           </div>
                       </div>
-                      <div className="px-5 pb-2 -mt-1">
-                          <span className="text-xs text-muted-foreground">
-                              Tap the number to type directly · Max {effectiveQuestions?.length || 0}
+                      <div className="px-3 pb-1.5 -mt-1">
+                          <span className="text-[10px] text-muted-foreground">
+                              Max {effectiveQuestions?.length || 0}
                           </span>
                       </div>
                   </Card>
               )}
 
               {/* Card 2: Instructions */}
-              <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-2.5">
-                      <h3 className="text-base font-semibold flex items-center gap-2">
-                          <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <Card className="w-full rounded-xl shadow-sm border">
+                  <div className="p-3 md:p-4 space-y-1.5">
+                      <h3 className="text-xs font-semibold flex items-center gap-1.5">
+                          <AlertTriangle className="h-4 w-4 text-amber-500" />
                           Instructions
                       </h3>
-                      <div className="text-sm text-muted-foreground leading-relaxed max-h-40 overflow-y-auto">
+                      <div className="text-xs text-muted-foreground leading-snug max-h-20 overflow-y-auto">
                           {exam.instructions ? (
                               <div className="prose prose-sm max-w-none dark:prose-invert">
                                   <MathText text={exam.instructions} />
                               </div>
                           ) : (
-                              <ul className="list-disc pl-5 space-y-1">
+                              <ul className="list-disc pl-4 space-y-0.5">
                                   <li>Ensure you have a stable internet connection.</li>
                                   <li>Do not switch tabs or windows. Violations are recorded.</li>
                                   <li>The exam will auto-submit when the timer ends.</li>
@@ -1112,29 +1117,29 @@ const TakeExam = () => {
               </Card>
 
               {/* Card 3: Actions */}
-              <Card className="w-full max-w-2xl rounded-2xl shadow-sm border">
-                  <div className="p-5 md:p-7 space-y-4">
-                      <div className="flex items-center space-x-2.5 p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+              <Card className="w-full rounded-xl shadow-sm border">
+                  <div className="p-3 md:p-4 space-y-2">
+                      <div className="flex items-center space-x-2 p-1 rounded-lg hover:bg-muted/50 transition-colors">
                           <Checkbox
                               id="terms"
                               checked={agreedToInstructions}
                               onCheckedChange={(c) => setAgreedToInstructions(!!c)}
-                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-5 w-5"
+                              className="data-[state=checked]:bg-primary data-[state=checked]:border-primary h-4 w-4"
                           />
                           <label
                               htmlFor="terms"
-                              className="text-sm font-medium leading-none cursor-pointer flex-1"
+                              className="text-xs font-medium leading-none cursor-pointer flex-1"
                           >
                               I have read and understood the instructions.
                           </label>
                       </div>
 
-                      <div className="flex gap-3">
-                          <Button variant="outline" className="flex-1 h-12 text-base rounded-xl" onClick={() => navigate(-1)}>
+                      <div className="flex gap-2">
+                          <Button variant="outline" className="flex-1 h-10 text-sm rounded-xl" onClick={() => navigate(-1)}>
                               Cancel
                           </Button>
                           <Button
-                              className="flex-[2] h-12 text-base rounded-xl font-semibold shadow-md"
+                              className="flex-[2] h-10 text-sm rounded-xl font-semibold shadow-md"
                               onClick={() => {
                                   if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !isQuickPracticeMode && !contentMode) {
                                       toast({
@@ -1181,6 +1186,7 @@ const TakeExam = () => {
                       setHasStarted(true);
                   }}
               />
+          </div>
           </div>
       );
   }
@@ -1546,8 +1552,8 @@ const TakeExam = () => {
                                         {optionKey}
                                     </div>
                                     <div className={cn(
-                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg transition-all",
-                                        isSelected ? "text-primary font-medium bg-primary/10 border border-primary/50 shadow-sm" : "text-foreground hover:bg-muted/30"
+                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                        isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
                                     )}>
                                          <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
                                             <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />

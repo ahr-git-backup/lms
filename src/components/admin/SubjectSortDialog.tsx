@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DndContext,
   closestCenter,
@@ -36,20 +37,41 @@ function SortableSubjectItem({
   total,
   onMoveUp,
   onMoveDown,
+  onRename,
+  isRenaming,
 }: {
   subject: string;
   index: number;
   total: number;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  onRename: (oldName: string, newName: string) => void;
+  isRenaming: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject });
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(subject);
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
     opacity: isDragging ? 0.85 : 1,
+  };
+
+  const startEdit = () => {
+    setDraft(subject);
+    setEditing(true);
+  };
+
+  const commitEdit = () => {
+    const trimmed = draft.replace(/\r\n/g, "\n").trim();
+    if (!trimmed || trimmed === subject) {
+      setEditing(false);
+      return;
+    }
+    onRename(subject, trimmed);
+    setEditing(false);
   };
 
   return (
@@ -68,8 +90,44 @@ function SortableSubjectItem({
         {index + 1}
       </span>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm leading-snug break-words">{subject}</h4>
+        {editing ? (
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={2}
+              ref={(el) => { if (el) setTimeout(() => el.focus({ preventScroll: true }), 0); }}
+              className="text-sm py-1.5 min-h-0 resize-none"
+              placeholder={"Xxx\n[yyy]"}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commitEdit(); }
+                if (e.key === "Escape") setEditing(false);
+              }}
+            />
+            <p className="text-[10px] text-muted-foreground -mt-0.5">Enter দিয়ে নতুন লাইন করা যাবে। Save করতে বাটনে ক্লিক করুন।</p>
+            <div className="flex gap-1.5">
+              <button type="button" onClick={commitEdit} disabled={isRenaming} className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium bg-primary text-primary-foreground disabled:opacity-50">
+                {isRenaming ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium border bg-background">
+                <XIcon className="h-3 w-3" /> Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <h4 className="font-medium text-sm leading-snug break-words whitespace-pre-line">{subject}</h4>
+        )}
       </div>
+      {!editing && (
+        <button
+          type="button"
+          onClick={startEdit}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background hover:bg-muted flex-shrink-0"
+          aria-label="Edit subject name"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="flex flex-col gap-0.5 flex-shrink-0">
         <button
           type="button"
@@ -140,6 +198,50 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
     });
   };
 
+  const renameMutation = useMutation({
+    mutationFn: async ({ oldName, newName }: { oldName: string; newName: string }) => {
+      // Find every exam row whose subject array contains the old name, then
+      // replace just that entry — other subjects on the same exam are untouched.
+      const { data: rows, error: fetchErr } = await supabase
+        .from("exams")
+        .select("id, subject")
+        .contains("subject", [oldName]);
+      if (fetchErr) throw fetchErr;
+
+      for (const row of rows || []) {
+        const updatedSubjects = (row.subject as string[]).map((s) => (s === oldName ? newName : s));
+        const { error: updateErr } = await supabase
+          .from("exams")
+          .update({ subject: updatedSubjects })
+          .eq("id", row.id);
+        if (updateErr) throw updateErr;
+      }
+
+      return newName;
+    },
+    onSuccess: (newName, { oldName }) => {
+      setItems((prev) => prev.map((s) => (s === oldName ? newName : s)));
+      toast({ title: "Subject renamed successfully!" });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to rename subject", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const handleRename = (oldName: string, newName: string) => {
+    renameMutation.mutate({ oldName, newName }, {
+      onSuccess: () => {
+        // Also keep the saved order list in sync with the new name so
+        // position is preserved after rename.
+        const newItems = items.map((s) => (s === oldName ? newName : s));
+        supabase.from("app_settings").upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
+      },
+    });
+  };
+
   const saveOrderMutation = useMutation({
     mutationFn: async (orderedItems: string[]) => {
       const { error } = await supabase
@@ -207,6 +309,8 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
                     total={items.length}
                     onMoveUp={() => moveItem(index, -1)}
                     onMoveDown={() => moveItem(index, 1)}
+                    onRename={handleRename}
+                    isRenaming={renameMutation.isPending}
                   />
                 ))}
               </SortableContext>

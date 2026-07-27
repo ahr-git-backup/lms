@@ -11,6 +11,7 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getEmbedUrl } from "@/lib/videoUtils";
+import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
 
 const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
@@ -48,6 +49,8 @@ const DashboardHome = () => {
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
   const [showTutorialVideo, setShowTutorialVideo] = useState(false);
+  const [showQuickAccessSort, setShowQuickAccessSort] = useState(false);
+  const [showAdminQuickActions, setShowAdminQuickActions] = useState(false);
 
   const { data: tutorialVideoUrl } = useQuery({
     queryKey: ["dashboard-tutorial-video"],
@@ -160,6 +163,15 @@ const DashboardHome = () => {
     enabled: !!isAdmin,
   });
 
+  const { data: quickAccessOrder } = useQuery({
+    queryKey: ["quick-access-order"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_settings").select("value").eq("key", QUICK_ACCESS_ORDER_KEY).maybeSingle();
+      if (error) return [];
+      return Array.isArray(data?.value) ? (data.value as string[]) : [];
+    },
+  });
+
   const { data: qpPoints } = useQuery({
     queryKey: ["qp-user-points", user?.id],
     enabled: !!user,
@@ -205,9 +217,8 @@ const DashboardHome = () => {
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
       { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Readymade Exam", icon: FileText, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950", url: "/dashboard/readymade" },
-      { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "Archive Class & Exam", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
+      { title: "Exam History", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
       { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
       { title: "FB & Telegram Group", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/community" },
       { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
@@ -215,6 +226,14 @@ const DashboardHome = () => {
       { title: "Exam Routine", icon: CalendarClock, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/calendar" },
       { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
   ];
+
+  const orderedNavigationItems = (() => {
+    if (!quickAccessOrder || quickAccessOrder.length === 0) return navigationItems;
+    const byTitle = new Map(navigationItems.map((item) => [item.title, item]));
+    const ordered = quickAccessOrder.map((t) => byTitle.get(t)).filter(Boolean) as typeof navigationItems;
+    const remaining = navigationItems.filter((item) => !quickAccessOrder.includes(item.title));
+    return [...ordered, ...remaining];
+  })();
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
@@ -384,7 +403,7 @@ const DashboardHome = () => {
       {/* Smart Tracking System */}
       <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Card
             className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
@@ -392,7 +411,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">My Progress</p>
+              <p className="font-medium text-xs leading-tight">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
@@ -403,16 +422,6 @@ const DashboardHome = () => {
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
-            </CardContent>
-          </Card>
-          <Card
-            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "History feature আসছে খুব শীঘ্রই।" })}
-          >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">History</p>
             </CardContent>
           </Card>
           <Card
@@ -428,76 +437,126 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Admin-only quick actions */}
-      {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
+      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+        <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
+        <div className="grid grid-cols-3 gap-2">
           <Card
-            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-            onClick={() => navigate("/admin/reports")}
+            className="animate-border-chase cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
+            onClick={() => navigate("/quick-practice")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Reports</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReportsCount ?? "..."} pending
-                </p>
-              </div>
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Zap className="h-5 w-5 text-violet-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Quick Practice</p>
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/admin/announcements")}
+            className="animate-border-chase cursor-pointer border-fuchsia-500/30 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
+            onClick={() => navigate("/mock-test")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Notice</p>
-                <p className="text-xs text-muted-foreground">Send to all users</p>
-              </div>
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Unlimited Mock Test</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-pink-500/30 hover:border-pink-500 transition-all bg-pink-50/50 dark:bg-pink-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
+            onClick={() => navigate("/dashboard/readymade")}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <FileText className="h-5 w-5 text-pink-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
-      )}
+      </div>
 
+      {/* Admin-only quick actions — collapsed by default behind a floating
+          toggle so the 5 admin cards don't push down content other users
+          see; nothing about the cards themselves changes, only visibility. */}
       {isAdmin && (
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card
-            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/admin/syllabus-tracker")}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowAdminQuickActions(v => !v)}
+            aria-label={showAdminQuickActions ? "Hide admin quick actions" : "Show admin quick actions"}
+            className="absolute -top-2 right-0 z-10 h-9 w-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center animate-pulse hover:animate-none transition-all"
           >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+            {showAdminQuickActions ? <ChevronUp className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          </button>
+          {showAdminQuickActions && (
+            <div className="space-y-4 pt-9 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Card
+                  className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+                  onClick={() => navigate("/admin/reports")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Reports</p>
+                      <p className="text-xs text-muted-foreground">
+                        {pendingReportsCount ?? "..."} pending
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+                  onClick={() => navigate("/admin/announcements")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Notice</p>
+                      <p className="text-xs text-muted-foreground">Send to all users</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            onClick={() => navigate("/admin/quick-practice")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <Card
+                  className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+                  onClick={() => navigate("/admin/syllabus-tracker")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
+                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+                  onClick={() => navigate("/admin/quick-practice")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
+                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+                  onClick={() => navigate("/admin/mock-test")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
+                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
-            onClick={() => navigate("/admin/mock-test")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -614,9 +673,28 @@ const DashboardHome = () => {
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
            <div className="rounded-lg border p-4">
-             <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+             <div className="flex items-center justify-center relative">
+               <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+               {isAdmin && !showQuickAccessSort && (
+                 <Button
+                   size="sm"
+                   variant="ghost"
+                   className="absolute right-0 text-xs text-muted-foreground hover:text-primary"
+                   onClick={() => setShowQuickAccessSort(true)}
+                 >
+                   Reorder
+                 </Button>
+               )}
+             </div>
              <hr className="mt-3 border-border" />
            </div>
+           {isAdmin && showQuickAccessSort ? (
+             <QuickAccessSortDialog
+               titles={orderedNavigationItems.map((item) => item.title)}
+               onClose={() => setShowQuickAccessSort(false)}
+             />
+           ) : (
+           <>
            <Link
              to="/dashboard/routine"
              className="flex items-center justify-center gap-2 w-full rounded-lg border bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
@@ -624,7 +702,7 @@ const DashboardHome = () => {
              <Calendar className="h-4 w-4" /> Routine
            </Link>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {navigationItems.map((item, index) => (
+               {orderedNavigationItems.map((item, index) => (
                    <Card
                         key={index}
                         className={`group hover:shadow-md transition-all cursor-pointer ${
@@ -657,6 +735,8 @@ const DashboardHome = () => {
                    </Card>
                ))}
            </div>
+           </>
+           )}
       </div>
 
     </div>

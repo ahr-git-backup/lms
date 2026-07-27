@@ -297,14 +297,15 @@ export const DashboardLayout = () => {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate("/quick-practice")}
-                className="flex items-center gap-1 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/50 hover:border-amber-400 rounded-full px-2 py-1 transition-all"
-                title="Quick Practice Points"
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0"
+                aria-label="Toggle theme"
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
-                <Trophy className="h-3.5 w-3.5 text-amber-500" />
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{qpPoints ?? 0}</span>
-              </button>
+                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              </Button>
               <Button
                 variant="outline"
                 size="icon"
@@ -314,7 +315,7 @@ export const DashboardLayout = () => {
               >
                 <Bell className="h-4 w-4" />
                 {unreadNoticeCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 min-w-[16px] px-1 text-[10px] font-bold text-red-600 dark:text-red-500">
+                  <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[16px] h-[16px] px-1 rounded-full bg-red-600 text-[10px] font-bold text-white leading-none animate-pulse">
                     {unreadNoticeCount}
                   </span>
                 )}
@@ -351,17 +352,6 @@ export const DashboardLayout = () => {
                   </Button>
                 </>
               )}
-              {/* Desktop theme toggle */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="hidden sm:inline-flex"
-                aria-label="Toggle theme"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-
               {profile && (
                 <span className="hidden text-xs text-muted-foreground sm:inline-flex">
                   Reg ID: {profile.registration_id}
@@ -428,10 +418,10 @@ export const DashboardLayout = () => {
                         <LayoutTemplate className="h-4 w-4 text-blue-400" /> Readymade Exam
                     </Link>
                     <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Archive className="h-4 w-4 text-gray-500" /> Archive
+                        <Archive className="h-4 w-4 text-gray-500" /> Archive Class & Exam
                     </Link>
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Trophy className="h-4 w-4 text-teal-500" /> Results
+                        <Trophy className="h-4 w-4 text-teal-500" /> Exam History
                     </Link>
                     <Link to="/dashboard/my-mistakes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <AlertCircle className="h-4 w-4 text-red-600" /> My Mistakes
