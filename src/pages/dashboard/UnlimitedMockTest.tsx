@@ -459,7 +459,7 @@ const UnlimitedMockTest = () => {
                             toggleMultiSubject(s);
                             setMultiDrillSubject(checked ? "" : s);
                           }}
-                          className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                          className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                             checked
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border text-muted-foreground hover:border-primary/40"
@@ -495,7 +495,7 @@ const UnlimitedMockTest = () => {
                               toggleMultiChapter(multiDrillSubject, c);
                               setMultiDrillChapter(checked ? null : { subject: multiDrillSubject, chapter: c });
                             }}
-                            className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                            className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
@@ -537,7 +537,7 @@ const UnlimitedMockTest = () => {
                             onClick={() =>
                               toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
                             }
-                            className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
+                            className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
