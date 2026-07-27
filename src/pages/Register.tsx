@@ -178,14 +178,7 @@ const Register = () => {
       if (authData.session) {
         navigate(location.state?.from || "/dashboard", { replace: true });
       } else {
-        // If no session (email verification required)
-        toast({
-          title: "Check your email",
-          description: "We sent you a verification link. Please verify your email to login.",
-        });
-        setTimeout(() => {
-          navigate("/login", { state: { from: location.state?.from } });
-        }, 3000);
+        navigate("/login", { state: { from: location.state?.from } });
       }
 
     } catch (error: any) {
@@ -425,11 +418,11 @@ const Register = () => {
 
               <div className="flex items-start space-x-2 py-2 mt-2 mb-1">
                 <Checkbox
-                  id="emailVerificationConfirm"
+                  id="termsConfirm"
                   required
                 />
-                <Label htmlFor="emailVerificationConfirm" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  I confirm that I understand an email verification link will be sent to the email address I provided, and I must verify it to login. (আমি বুঝতে পেরেছি যে আমার ইমেইলে একটি ভেরিফিকেশন লিংক যাবে এবং লগইন করার জন্য আমাকে সেটি ভেরিফাই করতে হবে।)
+                <Label htmlFor="termsConfirm" className="text-sm font-medium leading-tight peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  I confirm the information I provided is accurate. (আমি নিশ্চিত করছি যে প্রদত্ত তথ্য সঠিক।)
                 </Label>
               </div>
 
