@@ -27,7 +27,6 @@ const UnlimitedMockTest = () => {
   const [standard, setStandard] = useState("medical");
   const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
-  const [customMinutes, setCustomMinutes] = useState("");
   const [starting, setStarting] = useState(false);
 
   const { data: subjects } = useQuery({
@@ -150,7 +149,7 @@ const UnlimitedMockTest = () => {
         explanation: qq.explanation || "",
       }));
 
-      const time = finalMinutes || Math.ceil(finalCount / 1.5);
+      const time = finalMinutes || Math.ceil((finalCount * 30) / 60);
       const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
@@ -178,8 +177,7 @@ const UnlimitedMockTest = () => {
       toast({ title: "প্রশ্ন সংখ্যা দিন", variant: "destructive" });
       return;
     }
-    const mins = parseInt(customMinutes) || undefined;
-    buildAndStart(c, mins);
+    buildAndStart(c);
   };
 
   return (
@@ -359,7 +357,7 @@ const UnlimitedMockTest = () => {
           <Card className="bg-muted/40">
             <CardContent className="pt-4 space-y-2">
               <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2">
                 <Input
                   type="number"
                   min={5}
@@ -367,23 +365,14 @@ const UnlimitedMockTest = () => {
                   placeholder="প্রশ্ন সংখ্যা"
                   value={customCount}
                   onChange={(e) => setCustomCount(e.target.value)}
-                  className="flex-1 min-w-[120px]"
-                />
-                <Input
-                  type="number"
-                  min={1}
-                  max={300}
-                  placeholder="মিনিট (ফাঁকা=auto)"
-                  value={customMinutes}
-                  onChange={(e) => setCustomMinutes(e.target.value)}
-                  className="flex-1 min-w-[120px]"
+                  className="flex-1"
                 />
                 <Button onClick={handleCustomStart} disabled={starting}>
-                  শুরু
+                  Start
                 </Button>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                মিনিট ফাঁকা রাখলে: প্রশ্ন÷1.5 = সময়
+                প্রতি প্রশ্নে ৩০ সেকেন্ড করে সময় অটো ক্যালকুলেট হবে
               </p>
             </CardContent>
           </Card>
