@@ -182,37 +182,62 @@ const UnlimitedMockTest = () => {
 
   return (
     <div className="space-y-6 max-w-lg mx-auto">
-      <div className="flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
-          aria-label="Back"
-        >
-          <ArrowLeft className="h-4 w-4" />
-        </button>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5"
-          onClick={() => navigate("/mock-test/history")}
-        >
-          <History className="h-4 w-4" />
-          History
-        </Button>
-      </div>
+      <Card>
+        <CardContent className="pt-4 space-y-4">
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
+              aria-label="Back"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => navigate("/mock-test/history")}
+            >
+              <History className="h-4 w-4" />
+              History
+            </Button>
+          </div>
 
-      <div className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
-          <Target className="h-6 w-6 text-fuchsia-600" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">আনলিমিটেড মক টেস্ট</h1>
-          <p className="text-sm text-muted-foreground">
-            সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
-          </p>
-        </div>
-      </div>
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
+              <Target className="h-6 w-6 text-fuchsia-600" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold">আনলিমিটেড মক টেস্ট</h1>
+              <p className="text-sm text-muted-foreground">
+                সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {(subject || chapter) && (
+        <Card>
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
+                <p className="text-xs font-semibold truncate">{subject || "-"}</p>
+              </div>
+              <div className="min-w-0 border-x border-border px-1">
+                <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
+                <p className="text-xs font-semibold truncate">{chapter || "-"}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
+                <p className="text-xs font-semibold">{count}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>
