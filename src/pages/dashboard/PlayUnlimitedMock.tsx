@@ -139,12 +139,23 @@ const PlayUnlimitedMock = () => {
   const { user, profile } = useAuth() as any;
   const { toast } = useToast();
 
+  // sessionId must be resolved before `questions`, since the fallback below reads it.
+  const sessionId = sessionStorage.getItem("unlimitedMockSessionId") || "unlimited_mock_default";
+  const STORAGE_KEY_PREFIX = `mock_attempt_${sessionId}`;
+
   const questions: PoolQuestion[] = useMemo(() => {
     try {
-      return JSON.parse(sessionStorage.getItem("unlimitedMockQuestions") || "[]");
+      const fromSession = sessionStorage.getItem("unlimitedMockQuestions");
+      if (fromSession) return JSON.parse(fromSession);
+      // sessionStorage can be empty after certain reload paths — fall back to
+      // the snapshot saved alongside the submitted result so the result page
+      // can still render instead of bouncing back to the exam list.
+      const snapshot = localStorage.getItem(`${STORAGE_KEY_PREFIX}_questions_snapshot`);
+      return snapshot ? JSON.parse(snapshot) : [];
     } catch {
       return [];
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const title = sessionStorage.getItem("unlimitedMockTitle") || "Mock Test";
   const minutes = Number(sessionStorage.getItem("unlimitedMockTime") || "30");
@@ -163,11 +174,16 @@ const PlayUnlimitedMock = () => {
   // TakeExam.tsx's LOCAL_STORAGE_KEY_PREFIX pattern, so refreshing mid-test
   // (or the browser closing) doesn't lose progress, while a genuinely new
   // test (new session id from UnlimitedMockTest.tsx) starts clean.
-  const sessionId = sessionStorage.getItem("unlimitedMockSessionId") || "unlimited_mock_default";
-  const STORAGE_KEY_PREFIX = `mock_attempt_${sessionId}`;
 
   useEffect(() => {
-    if (questions.length === 0) navigate("/mock-test");
+    if (questions.length === 0) {
+      // Don't kick out a completed attempt whose result is being restored —
+      // only bounce back to the list if there's truly nothing to show.
+      const wasSubmitted = localStorage.getItem(`${STORAGE_KEY_PREFIX}_submitted`);
+      if (wasSubmitted === "1") return;
+      navigate("/mock-test");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [questions, navigate]);
 
   // Restore answers/violations from localStorage on mount (survives a page
@@ -243,6 +259,7 @@ const PlayUnlimitedMock = () => {
     if (submitted) {
       localStorage.setItem(`${STORAGE_KEY_PREFIX}_submitted`, "1");
       localStorage.setItem(`${STORAGE_KEY_PREFIX}_final_answers`, JSON.stringify(answers));
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}_questions_snapshot`, JSON.stringify(questions));
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}_answers`);
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}_violations`);
     }
