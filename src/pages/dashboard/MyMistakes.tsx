@@ -58,7 +58,7 @@ const MyMistakes = () => {
 
                     const isReadymade = !!examData.readymade_topic;
                     const isExpiredLive = examData.exam_type === 'live' && examData.time_window_end && new Date() > new Date(examData.time_window_end);
-                    const category = isReadymade ? 'readymade' : (isExpiredLive ? 'practice' : (examData.exam_type === 'live' ? 'live' : 'practice'));
+                    const category = isReadymade ? 'readymade' : (isExpiredLive ? 'practice' : 'live');
 
                     uniqueExamsMap.set(attempt.exam_id, {
                         id: examData.id,
