@@ -615,7 +615,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
                 <Trophy className="h-3.5 w-3.5 text-primary" />
               </div>
-              <div className="text-base sm:text-xl font-bold text-primary leading-tight">{subject}</div>
+              <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
             </CardContent>
           </Card>
         ))}
@@ -629,7 +629,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => setSelectedSubject(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
-        <h2 className="text-base font-bold">{selectedSubject}</h2>
+        <h2 className="text-base font-bold whitespace-pre-line">{selectedSubject}</h2>
         {loadingChapters ? <div className="text-muted-foreground">Loading chapters...</div>
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
