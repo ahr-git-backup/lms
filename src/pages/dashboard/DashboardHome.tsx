@@ -437,6 +437,7 @@ const DashboardHome = () => {
       </div>
 
       <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+        <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
             className="animate-border-chase cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
