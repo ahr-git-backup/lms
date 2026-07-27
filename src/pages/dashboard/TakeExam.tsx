@@ -1027,7 +1027,10 @@ const TakeExam = () => {
                               </button>
 
                               <div className="relative rounded-lg border-2 border-violet-400 dark:border-violet-600">
-                                  <div className="h-8 w-12 rounded-[8px] flex items-center justify-center">
+                                  <div className="h-8 w-12 rounded-[8px] flex items-center justify-center relative">
+                                      {selectedQuestionCount === null && (
+                                          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-violet-400 dark:text-violet-500 pointer-events-none select-none">|</span>
+                                      )}
                                       <input
                                           type="number"
                                           min={1}
