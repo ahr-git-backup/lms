@@ -49,7 +49,7 @@ const Readymade = () => {
   const [currentSubjectsList, setCurrentSubjectsList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
   const { data: enrollments } = useEnrollments();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const navigationType = useNavigationType(); // "POP" = browser back/forward, "PUSH"/"REPLACE" = normal link click
 
@@ -317,6 +317,7 @@ const Readymade = () => {
           selectedBoards={selectedBoards}
           setCurrentChaptersList={setCurrentChaptersList}
           setCurrentSubjectsList={setCurrentSubjectsList}
+          userId={user?.id}
         />
       )}
     </div>
@@ -324,7 +325,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
   const filterOrClause = buildEnrollmentFilter(enrolledIds);
@@ -423,6 +424,43 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
+  // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
+  const { data: overallStats } = useQuery({
+    queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
+    queryFn: async () => {
+      const allExamRows = await fetchAllRows<{ id: string }>((from, to) => {
+        let q = supabase.from("exams").select("id")
+          .eq("is_readymade", true).eq("is_published", true).range(from, to);
+        return applyAccessFilter(q);
+      });
+      const examIds = allExamRows.map(r => r.id);
+      const totalExams = examIds.length;
+
+      let totalMcqs = 0;
+      let attemptedCount = 0;
+
+      if (examIds.length > 0) {
+        const { count: mcqCount } = await supabase
+          .from("exam_questions")
+          .select("id", { count: 'exact', head: true })
+          .in("exam_id", examIds);
+        totalMcqs = mcqCount || 0;
+
+        if (userId) {
+          const { data: attemptRows } = await supabase
+            .from("exam_attempts")
+            .select("exam_id")
+            .eq("profile_id", userId)
+            .in("exam_id", examIds);
+          attemptedCount = new Set((attemptRows || []).map((r: any) => r.exam_id)).size;
+        }
+      }
+
+      return { totalExams, totalMcqs, attemptedCount, remaining: Math.max(totalExams - attemptedCount, 0) };
+    },
+    enabled: !selectedSubject && !searchQuery
+  });
+
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
     queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
@@ -490,7 +528,30 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       </div>
     );
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="space-y-3">
+        {overallStats && (
+          <div className="grid grid-cols-3 gap-2">
+            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
+                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
+              </CardContent>
+            </Card>
+            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Given / Left</span>
+                <span className="text-base font-bold text-emerald-600 leading-tight">{overallStats.attemptedCount}/{overallStats.totalExams} · {overallStats.remaining} left</span>
+              </CardContent>
+            </Card>
+            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
+                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
         {subjects.map(subject => (
           <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
@@ -502,6 +563,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             </CardContent>
           </Card>
         ))}
+        </div>
       </div>
     );
   }
