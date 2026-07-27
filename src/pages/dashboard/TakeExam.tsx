@@ -259,13 +259,15 @@ const TakeExam = () => {
       const cached = localStorage.getItem(QUESTIONS_STORAGE_KEY);
       if (cached) {
           try {
-            allQuestions = JSON.parse(cached);
-            console.log("Loaded questions from cache");
-
-            // Validate cache structure - ensure it's a non-empty array if supposed to be
-            if (!Array.isArray(allQuestions) || allQuestions.length === 0) {
-                console.warn("Cached questions empty or invalid, refetching...");
-                allQuestions = null; // Force refetch
+            const parsed = JSON.parse(cached);
+            // Cache is stored as { examId, data } so we can verify it actually
+            // belongs to the exam being opened right now before trusting it.
+            if (parsed && parsed.examId === examId && Array.isArray(parsed.data) && parsed.data.length > 0) {
+                allQuestions = parsed.data;
+                console.log("Loaded questions from cache");
+            } else {
+                console.warn("Cached questions empty, mismatched exam, or invalid, refetching...");
+                allQuestions = null;
             }
           } catch(e) {
             console.error("Cache parse error", e);
@@ -341,7 +343,7 @@ const TakeExam = () => {
       // Update cache with the final list (filtered or full)
       // Since the key is specific to the session (retake vs normal), caching the result is correct.
       try {
-         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify(allQuestions));
+         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify({ examId, data: allQuestions }));
       } catch (e) {
          console.error("Cache save error", e);
       }
