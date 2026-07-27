@@ -843,10 +843,13 @@ const AdminQuickPractice = () => {
               />
             </div>
 
-            <div>
-              <label className="flex items-center gap-2 border-2 border-dashed rounded-xl px-4 py-6 cursor-pointer hover:border-primary/50 transition-colors justify-center text-sm text-muted-foreground">
-                <UploadCloud className="h-4 w-4" />
-                {qbCsvFileName || "CSV ফাইল আপলোড করুন"}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
+                onClick={() => qbFileRef.current?.click()}
+              >
+                <UploadCloud className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">{qbCsvFileName || "CSV আপলোড করুন"}</p>
                 <input
                   ref={qbFileRef}
                   type="file"
@@ -854,12 +857,12 @@ const AdminQuickPractice = () => {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handleQbFile(e.target.files[0])}
                 />
-              </label>
-              {qbCsvData && (
-                <p className="text-xs text-emerald-600 font-semibold mt-1.5">
-                  ✓ {qbCsvData.length}টি প্রশ্ন প্রস্তুত
-                </p>
-              )}
+                {qbCsvData && (
+                  <p className="text-xs text-emerald-600 font-semibold mt-1.5">
+                    ✓ {qbCsvData.length}টি প্রশ্ন প্রস্তুত
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2">
