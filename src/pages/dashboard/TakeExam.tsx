@@ -905,7 +905,7 @@ const TakeExam = () => {
               <Card className="w-full rounded-xl shadow-sm border">
                   <div className="p-3 md:p-4 space-y-2">
                       <div className="text-center space-y-0.5">
-                          <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">{exam.title}</h1>
+                          <h1 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">{exam.title}</h1>
                           <p className="text-muted-foreground text-xs">Please review the details below before starting.</p>
                       </div>
 
