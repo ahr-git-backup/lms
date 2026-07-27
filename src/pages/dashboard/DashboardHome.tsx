@@ -384,7 +384,7 @@ const DashboardHome = () => {
       {/* Smart Tracking System */}
       <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Card
             className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
@@ -392,7 +392,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">My Progress</p>
+              <p className="font-medium text-xs leading-tight">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
@@ -403,16 +403,6 @@ const DashboardHome = () => {
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
-            </CardContent>
-          </Card>
-          <Card
-            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "History feature আসছে খুব শীঘ্রই।" })}
-          >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">History</p>
             </CardContent>
           </Card>
           <Card
