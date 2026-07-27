@@ -171,14 +171,18 @@ const TakeMistakeExam = () => {
 
             return allQuestions;
         },
-        enabled: !!state && !!user
+        enabled: !!state && !!user,
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
     });
 
     useEffect(() => {
-        if (loadedQuestions) {
+        if (loadedQuestions && questions.length === 0 && !isFinished) {
             setQuestions(loadedQuestions);
         }
-    }, [loadedQuestions]);
+    }, [loadedQuestions, questions.length, isFinished]);
 
     useEffect(() => {
         if (hasStarted && timeLeft === null && questions.length > 0) {
@@ -290,6 +294,12 @@ const TakeMistakeExam = () => {
         return <div className="p-8 text-center">Invalid State. Please start from My Mistakes page. <Button onClick={() => navigate('/dashboard/my-mistakes')} variant="link">Go Back</Button></div>;
     }
 
+    // --- RESULT VIEW (checked first so a background refetch never bumps the user back to loading/start) ---
+    if (isFinished && resultData) {
+        return (
+            <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+                <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
+
     if (isLoading) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -314,12 +324,6 @@ const TakeMistakeExam = () => {
             </div>
         );
     }
-
-    // --- RESULT VIEW ---
-    if (isFinished && resultData) {
-        return (
-            <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
-                <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-3 md:pb-8 md:px-8 space-y-3">
                     {/* Header */}
                     <div className="flex flex-wrap items-center justify-end gap-2">
                              {state.sourceAttemptId && (
