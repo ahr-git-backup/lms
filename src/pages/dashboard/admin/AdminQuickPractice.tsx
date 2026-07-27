@@ -15,7 +15,6 @@ interface CsvRow {
   explanation: string;
 }
 
-const QB_LETTERS = ["A", "B", "C", "D"] as const;
 
 function parseCsv(text: string): string[][] {
   // simple CSV parser handling quoted commas
@@ -105,13 +104,6 @@ const AdminQuickPractice = () => {
   const [csvData, setCsvData] = useState<CsvRow[] | null>(null);
   const [csvFileName, setCsvFileName] = useState("");
 
-  // Question Bank CSV card state
-  const [qbSubjectName, setQbSubjectName] = useState("");
-  const [qbChapterName, setQbChapterName] = useState("");
-  const [qbCsvData, setQbCsvData] = useState<CsvRow[] | null>(null);
-  const [qbCsvFileName, setQbCsvFileName] = useState("");
-  const [qbSaving, setQbSaving] = useState(false);
-  const qbFileRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
 
   // Import from Question Bank -> Quick Practice
@@ -334,65 +326,6 @@ const AdminQuickPractice = () => {
     setCsvData(null);
     setCsvFileName("");
     if (fileRef.current) fileRef.current.value = "";
-  };
-
-  const handleQbFile = (file: File) => {
-    setQbCsvFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = String(e.target?.result || "");
-      const parsed = parseCsvToMcqs(text);
-      if (!parsed.length) {
-        toast({ title: "CSV-এ কোনো ডাটা পাওয়া যায়নি", variant: "destructive" });
-        return;
-      }
-      setQbCsvData(parsed);
-      toast({ title: `${parsed.length}টি প্রশ্ন লোড হয়েছে` });
-    };
-    reader.readAsText(file);
-  };
-
-  const clearQbForm = () => {
-    setQbSubjectName("");
-    setQbChapterName("");
-    setQbCsvData(null);
-    setQbCsvFileName("");
-    if (qbFileRef.current) qbFileRef.current.value = "";
-  };
-
-  const saveQbAll = async () => {
-    if (!qbSubjectName.trim() || !qbChapterName.trim()) {
-      toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
-      return;
-    }
-    if (!qbCsvData?.length) {
-      toast({ title: "CSV আপলোড করুন", variant: "destructive" });
-      return;
-    }
-    setQbSaving(true);
-    try {
-      const rows = qbCsvData.map((d) => ({
-        question_text: d.question,
-        option_a: d.options[0] || null,
-        option_b: d.options[1] || null,
-        option_c: d.options[2] || null,
-        option_d: d.options[3] || null,
-        correct_option: QB_LETTERS[d.correct_index] || "A",
-        explanation: d.explanation || null,
-        subject: qbSubjectName.trim(),
-        chapter: qbChapterName.trim(),
-      }));
-      const { error: insertErr } = await supabase.from("question_bank").insert(rows);
-      if (insertErr) throw insertErr;
-
-      toast({ title: `${rows.length}টি প্রশ্ন Question Bank-এ সেভ হয়েছে` });
-      clearQbForm();
-      queryClient.invalidateQueries({ queryKey: ["question-bank"] });
-    } catch (e: any) {
-      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
-    } finally {
-      setQbSaving(false);
-    }
   };
 
   const findOrCreateSubject = async (name: string): Promise<number> => {
