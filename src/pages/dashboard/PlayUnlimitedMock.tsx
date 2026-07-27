@@ -783,42 +783,37 @@ const PlayUnlimitedMock = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
-      {/* Floating Status Bar (Timer) — mirrors TakeExam.tsx */}
-      <div className="fixed top-16 left-0 right-0 z-50 flex justify-center pointer-events-none">
-        <div className="flex gap-2 pointer-events-auto mt-2">
-          <div
-            className={cn(
-              "px-4 py-2 rounded-full font-mono font-bold shadow-lg border flex items-center gap-2 transition-all duration-300",
-              isLowTime
-                ? "bg-red-600 text-white border-red-700 animate-pulse"
-                : "bg-background/90 backdrop-blur border-primary/20 text-primary"
-            )}
-          >
-            <Clock className="h-4 w-4" />
-            {formatTime(secondsLeft)}
-          </div>
-
-          {violationCount > 0 && (
-            <div className="px-4 py-2 rounded-full font-bold shadow-lg border bg-yellow-500/10 backdrop-blur border-yellow-500/50 text-yellow-600 dark:text-yellow-400 flex items-center gap-2 animate-in fade-in zoom-in">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-sm">Warnings: {violationCount}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24 overflow-x-hidden">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold">{title}</h1>
+      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
+        <div className="flex items-start justify-between gap-3 sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0">
+          <div className="min-w-0">
+            <h1 className="text-xl md:text-2xl font-bold truncate">{title}</h1>
             <p className="text-sm text-muted-foreground">
               Answered: {answeredCount} / {questions.length}
             </p>
           </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div
+              className={cn(
+                "px-3 py-1.5 rounded-full font-mono font-bold shadow-sm border flex items-center gap-1.5 transition-all duration-300 text-sm",
+                isLowTime
+                  ? "bg-red-600 text-white border-red-700 animate-pulse"
+                  : "bg-background border-primary/20 text-primary"
+              )}
+            >
+              <Clock className="h-3.5 w-3.5" />
+              {formatTime(secondsLeft)}
+            </div>
+            {violationCount > 0 && (
+              <div className="px-3 py-1.5 rounded-full font-bold shadow-sm border bg-yellow-500/10 border-yellow-500/50 text-yellow-600 dark:text-yellow-400 flex items-center gap-1.5 text-sm animate-in fade-in zoom-in">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                <span>{violationCount}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {questions.map((q, idx) => (
-          <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-24">
+          <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-20">
             <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
               <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
                 {/* Question Row */}
