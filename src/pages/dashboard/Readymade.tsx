@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { openSolvePdf } from "@/lib/solvePdf";
 import {
   Dialog,
   DialogContent,
@@ -706,7 +708,45 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void }) => (
+const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void }) => {
+  const { toast } = useToast();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const handleDownloadPdf = async (e: React.MouseEvent, exam: any) => {
+    e.stopPropagation();
+    if (downloadingId) return;
+    setDownloadingId(exam.id);
+    try {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
+        return;
+      }
+      openSolvePdf({
+        examName: exam.title,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        questions: data.map((q: any) => ({
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          option_e: q.option_e,
+          correct_option: q.correct_option,
+          user_answer: null,
+          explanation: q.explanation,
+        })),
+        totalMarks: data.length,
+      });
+    } catch (err: any) {
+      toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {exams.map((exam) => {
       const unlocked = isExamUnlocked(exam, enrolledIds);
@@ -728,19 +768,34 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick }: { exams:
                 {!unlocked && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0 gap-0.5"><Lock className="h-2.5 w-2.5" />Premium</Badge>}
               </div>
             </div>
-            {unlocked ? (
-              <Button size="sm" className="shrink-0 group-hover:bg-primary/90">Start</Button>
-            ) : (
-              <Button size="sm" variant="outline" className="shrink-0 border-amber-400 text-amber-700 dark:text-amber-500 gap-1">
-                <Lock className="h-3.5 w-3.5" />Locked
-              </Button>
-            )}
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
+              {unlocked ? (
+                <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
+              ) : (
+                <Button size="sm" variant="outline" className="border-amber-400 text-amber-700 dark:text-amber-500 gap-1">
+                  <Lock className="h-3.5 w-3.5" />Locked
+                </Button>
+              )}
+              {unlocked && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-blue-600"
+                  disabled={downloadingId === exam.id}
+                  onClick={(e) => handleDownloadPdf(e, exam)}
+                >
+                  <FileDown className="h-3.5 w-3.5 mr-1" />
+                  {downloadingId === exam.id ? "..." : "PDF"}
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       );
     })}
   </div>
-);
+  );
+};
 
 
 const PaginationControls = ({ page, setPage, totalPages }: { page: number, setPage: (p: number) => void, totalPages: number }) => (
