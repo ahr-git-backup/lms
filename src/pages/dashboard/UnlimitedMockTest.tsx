@@ -467,7 +467,7 @@ const UnlimitedMockTest = () => {
                     </span>
                   )}
                 </Label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {(subjects || []).map((s: string) => {
                     const checked = multiSubjects.includes(s);
                     return (
@@ -477,7 +477,7 @@ const UnlimitedMockTest = () => {
                           onClick={() => {
                             toggleMultiSubject(s);
                           }}
-                          className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                          className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                             checked
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border text-muted-foreground hover:border-primary/40"
@@ -500,7 +500,7 @@ const UnlimitedMockTest = () => {
               {multiSubjects.map((subj) => (
                 <div key={subj}>
                   <Label className="mb-2 block">চ্যাপ্টার — {subj}</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {(multiSubjectChapters[subj] || []).map((c: string) => {
                       const checked = multiChapters.some(
                         (x) => x.subject === subj && x.chapter === c
@@ -513,7 +513,7 @@ const UnlimitedMockTest = () => {
                               toggleMultiChapter(subj, c);
                               setMultiDrillChapter(checked ? null : { subject: subj, chapter: c });
                             }}
-                            className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                            className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
@@ -540,7 +540,7 @@ const UnlimitedMockTest = () => {
               {multiDrillChapter && (
                 <div>
                   <Label className="mb-2 block">টপিক — {multiDrillChapter.chapter}</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {(multiDrillTopics || []).map((t: string) => {
                       const checked = multiTopics.some(
                         (x) =>
@@ -555,7 +555,7 @@ const UnlimitedMockTest = () => {
                             onClick={() =>
                               toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
                             }
-                            className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                            className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
