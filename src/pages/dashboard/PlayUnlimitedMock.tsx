@@ -457,8 +457,8 @@ const PlayUnlimitedMock = () => {
     });
 
     return (
-      <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
-        <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
+      <div className="min-h-screen bg-background font-sans pb-20">
+        <div className="container max-w-4xl mx-auto px-[5px] pt-4 pb-2 md:pt-6 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
           <div className="flex flex-col gap-1">
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               {user && (
