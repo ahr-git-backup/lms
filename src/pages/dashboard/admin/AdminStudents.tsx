@@ -423,34 +423,38 @@ const AdminStudents = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {listFilter === 'paid' && courses && courses.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedCourseFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSearchParams(prev => {
+                    prev.set("course", "all");
+                    prev.set("page", "0");
+                    return prev;
+                })}
+              >
+                All Courses
+              </Button>
+              {courses.map((course: Pick<Course, "id" | "name">) => (
+                <Button
+                  key={course.id}
+                  variant={selectedCourseFilter === course.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSearchParams(prev => {
+                      prev.set("course", course.id);
+                      prev.set("page", "0");
+                      return prev;
+                  })}
+                >
+                  {course.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full">
-                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                    <Select
-                    value={selectedCourseFilter}
-                    onValueChange={(v) => {
-                        setSearchParams(prev => {
-                            prev.set("course", v);
-                            prev.set("page", "0");
-                            return prev;
-                        });
-                        setListFilter('paid'); // Auto switch to showing list when course selected
-                    }}
-                    >
-                    <SelectTrigger className="w-full sm:w-56">
-                        <SelectValue placeholder="Filter by Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Courses</SelectItem>
-                        {courses?.map((course: Pick<Course, "id" | "name">) => (
-                        <SelectItem key={course.id} value={course.id}>
-                            {course.name}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                </div>
-
                 <div className="flex-1 w-full sm:max-w-xs">
                      <Input
                         placeholder="Search Name or ID..."
