@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,6 +138,25 @@ const UnlimitedMockTest = () => {
       return [...new Set((data || []).map((d: any) => d.paper).filter(Boolean))];
     },
     enabled: !!subject && !!chapter,
+  });
+
+  const multiSubjectChapterQueries = useQueries({
+    queries: (multiSubjects || []).map((s) => ({
+      queryKey: ["mock-pool-multi-drill-chapters", s],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("mock_question_pool")
+          .select("chapter")
+          .eq("subject", s);
+        if (error) throw error;
+        return [...new Set((data || []).map((d: any) => d.chapter))];
+      },
+      enabled: multiMode,
+    })),
+  });
+  const multiSubjectChapters: Record<string, string[]> = {};
+  multiSubjects.forEach((s, i) => {
+    multiSubjectChapters[s] = multiSubjectChapterQueries[i]?.data || [];
   });
 
   const { data: multiDrillChapters } = useQuery({
@@ -457,7 +476,6 @@ const UnlimitedMockTest = () => {
                           type="button"
                           onClick={() => {
                             toggleMultiSubject(s);
-                            setMultiDrillSubject(checked ? "" : s);
                           }}
                           className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                             checked
@@ -479,21 +497,21 @@ const UnlimitedMockTest = () => {
                 </div>
               </div>
 
-              {multiDrillSubject && (
-                <div>
-                  <Label className="mb-2 block">চ্যাপ্টার — {multiDrillSubject}</Label>
+              {multiSubjects.map((subj) => (
+                <div key={subj}>
+                  <Label className="mb-2 block">চ্যাপ্টার — {subj}</Label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(multiDrillChapters || []).map((c: string) => {
+                    {(multiSubjectChapters[subj] || []).map((c: string) => {
                       const checked = multiChapters.some(
-                        (x) => x.subject === multiDrillSubject && x.chapter === c
+                        (x) => x.subject === subj && x.chapter === c
                       );
                       return (
                         <div key={c} className="relative">
                           <button
                             type="button"
                             onClick={() => {
-                              toggleMultiChapter(multiDrillSubject, c);
-                              setMultiDrillChapter(checked ? null : { subject: multiDrillSubject, chapter: c });
+                              toggleMultiChapter(subj, c);
+                              setMultiDrillChapter(checked ? null : { subject: subj, chapter: c });
                             }}
                             className={`w-full h-10 flex items-center justify-center rounded-xl border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
                               checked
@@ -512,12 +530,12 @@ const UnlimitedMockTest = () => {
                         </div>
                       );
                     })}
-                    {!(multiDrillChapters || []).length && (
+                    {!(multiSubjectChapters[subj] || []).length && (
                       <p className="col-span-3 text-xs text-muted-foreground text-center py-3">লোড হচ্ছে...</p>
                     )}
                   </div>
                 </div>
-              )}
+              ))}
 
               {multiDrillChapter && (
                 <div>
