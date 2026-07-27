@@ -897,13 +897,13 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="h-screen bg-background flex flex-col items-center justify-center px-1 py-2 sm:px-2 overflow-hidden">
-          <div className="w-full max-w-2xl max-h-full overflow-y-auto space-y-2 py-1">
+          <div className="min-h-screen bg-background flex flex-col items-start justify-start px-1 py-1.5 sm:px-1.5">
+          <div className="w-full max-w-2xl mx-auto space-y-2">
               {/* Card 1: Header/Info */}
               <Card className="w-full rounded-xl shadow-sm border">
                   <div className="p-3 md:p-4 space-y-2">
                       <div className="text-center space-y-0.5">
-                          <h1 className="text-lg md:text-xl font-bold tracking-tight leading-tight">{exam.title}</h1>
+                          <h1 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">{exam.title}</h1>
                           <p className="text-muted-foreground text-xs">Please review the details below before starting.</p>
                       </div>
 
