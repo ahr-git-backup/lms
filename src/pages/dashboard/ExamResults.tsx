@@ -69,7 +69,7 @@ const ExamResults = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "Results – Atlas";
+    document.title = "Exam History – Atlas";
   }, []);
 
   const { data: attempts, isLoading } = useQuery({

@@ -421,7 +421,7 @@ export const DashboardLayout = () => {
                         <Archive className="h-4 w-4 text-gray-500" /> Archive
                     </Link>
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Trophy className="h-4 w-4 text-teal-500" /> Results
+                        <Trophy className="h-4 w-4 text-teal-500" /> Exam History
                     </Link>
                     <Link to="/dashboard/my-mistakes" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <AlertCircle className="h-4 w-4 text-red-600" /> My Mistakes
