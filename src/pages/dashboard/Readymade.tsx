@@ -825,7 +825,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
               >
                 <span className="text-xs font-medium">{s.title}</span>
                 <div className="flex items-center gap-1">
-                  <Button size="sm" variant="ghost" className="h-6 px-1.5 text-[10px] text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30">Start</Button>
+                  <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
                   {isAdmin && (
                     <Button
                       size="sm"
