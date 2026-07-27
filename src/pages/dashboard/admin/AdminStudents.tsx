@@ -149,7 +149,16 @@ const AdminStudents = () => {
 
       // Apply Search Filter (ALWAYS applied on top of list filter)
       if (debouncedSearch) {
-        query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
+        // @ts-expect-error rpc not in generated types
+        const { data: emailMatches } = await supabase.rpc('admin_search_users_by_email', { p_search: debouncedSearch });
+        const emailIds: string[] = (emailMatches || []).map((r: any) => r.id);
+        const orParts = [
+          `full_name.ilike.%${debouncedSearch}%`,
+          `registration_id.ilike.%${debouncedSearch}%`,
+          `phone.ilike.%${debouncedSearch}%`,
+        ];
+        if (emailIds.length > 0) orParts.push(`id.in.(${emailIds.join(',')})`);
+        query = query.or(orParts.join(','));
       }
 
       // Apply Course Filter (Overrides base query if specific)
@@ -159,7 +168,16 @@ const AdminStudents = () => {
             .eq("course_id", selectedCourseFilter);
 
            if (debouncedSearch) {
-              query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`, { foreignTable: "profiles" });
+              // @ts-expect-error rpc not in generated types
+              const { data: emailMatches2 } = await supabase.rpc('admin_search_users_by_email', { p_search: debouncedSearch });
+              const emailIds2: string[] = (emailMatches2 || []).map((r: any) => r.id);
+              const orParts2 = [
+                `full_name.ilike.%${debouncedSearch}%`,
+                `registration_id.ilike.%${debouncedSearch}%`,
+                `phone.ilike.%${debouncedSearch}%`,
+              ];
+              if (emailIds2.length > 0) orParts2.push(`id.in.(${emailIds2.join(',')})`);
+              query = query.or(orParts2.join(','), { foreignTable: "profiles" });
            }
       }
 
