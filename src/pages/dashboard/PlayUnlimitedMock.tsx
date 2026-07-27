@@ -924,10 +924,10 @@ const PlayUnlimitedMock = () => {
                         </div>
                         <div
                           className={cn(
-                            "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg transition-all",
+                            "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
                             isSelected
-                              ? "text-primary font-medium bg-primary/10 border border-primary/50 shadow-sm"
-                              : "text-foreground hover:bg-muted/30"
+                              ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm"
+                              : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
                           )}
                         >
                           <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
