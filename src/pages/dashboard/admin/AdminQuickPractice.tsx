@@ -5,8 +5,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import type { QuestionData } from "@/types/exam";
 
 interface CsvRow {
   question: string;
@@ -106,84 +109,16 @@ const AdminQuickPractice = () => {
 
   const [saving, setSaving] = useState(false);
 
-  // Import from Question Bank -> Quick Practice
-  const [qbImportOpen, setQbImportOpen] = useState(false);
-  const [qbImportSubject, setQbImportSubject] = useState("");
-  const [qbImportChapter, setQbImportChapter] = useState("");
-  const [qbImportTargetSubject, setQbImportTargetSubject] = useState("");
-  const [qbImportTargetChapter, setQbImportTargetChapter] = useState("");
-  const [qbImporting, setQbImporting] = useState(false);
+  // Import from Question Bank (readymade/regular/archive exams) -> Quick Practice
+  const [isQbOpen, setIsQbOpen] = useState(false);
+  const [qbQuestions, setQbQuestions] = useState<QuestionData[] | null>(null);
 
-  const { data: qbSubjectsList } = useQuery({
-    queryKey: ["question-bank-subjects"],
-    enabled: qbImportOpen,
-    queryFn: async () => {
-      const { data, error } = await supabase.from("question_bank").select("subject").not("subject", "is", null);
-      if (error) throw error;
-      return Array.from(new Set((data || []).map((r) => r.subject).filter(Boolean))) as string[];
-    },
-  });
-
-  const { data: qbChaptersList } = useQuery({
-    queryKey: ["question-bank-chapters", qbImportSubject],
-    enabled: qbImportOpen && !!qbImportSubject,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("question_bank")
-        .select("chapter")
-        .eq("subject", qbImportSubject)
-        .not("chapter", "is", null);
-      if (error) throw error;
-      return Array.from(new Set((data || []).map((r) => r.chapter).filter(Boolean))) as string[];
-    },
-  });
-
-  const importFromQuestionBank = async () => {
-    if (!qbImportSubject || !qbImportChapter) {
-      toast({ title: "Question Bank থেকে বিষয় ও অধ্যায় বেছে নিন", variant: "destructive" });
-      return;
-    }
-    if (!qbImportTargetSubject.trim() || !qbImportTargetChapter.trim()) {
-      toast({ title: "Quick Practice-এ কোন বিষয়/অধ্যায়ে যোগ হবে তা লিখুন", variant: "destructive" });
-      return;
-    }
-    setQbImporting(true);
-    try {
-      const { data: qRows, error: qErr } = await supabase
-        .from("question_bank")
-        .select("question_text, option_a, option_b, option_c, option_d, correct_option, explanation")
-        .eq("subject", qbImportSubject)
-        .eq("chapter", qbImportChapter);
-      if (qErr) throw qErr;
-      if (!qRows?.length) {
-        toast({ title: "এই বিষয়/অধ্যায়ে কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
-        return;
-      }
-      const subjId = await findOrCreateSubject(qbImportTargetSubject);
-      const chapId = await findOrCreateChapter(subjId, qbImportTargetChapter);
-      const correctIdxMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
-      const rows = qRows.map((r) => ({
-        chapter_id: chapId,
-        question: r.question_text,
-        options: [r.option_a, r.option_b, r.option_c, r.option_d].filter(Boolean),
-        correct_index: correctIdxMap[r.correct_option] ?? 0,
-        explanation: r.explanation || null,
-      }));
-      const { error: insertErr } = await supabase.from("qp_mcqs").insert(rows);
-      if (insertErr) throw insertErr;
-      toast({ title: `${rows.length}টি প্রশ্ন Quick Practice-এ যোগ হয়েছে` });
-      setQbImportOpen(false);
-      setQbImportSubject("");
-      setQbImportChapter("");
-      setQbImportTargetSubject("");
-      setQbImportTargetChapter("");
-      queryClient.invalidateQueries({ queryKey: ["admin-qp-subjects"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-qp-chapters"] });
-    } catch (e: any) {
-      toast({ title: "এরর হয়েছে", description: e.message, variant: "destructive" });
-    } finally {
-      setQbImporting(false);
-    }
+  const handleQbSelect = (questions: QuestionData[]) => {
+    setCsvData(null);
+    setCsvFileName("");
+    setQbQuestions((prev) => [...(prev || []), ...questions]);
+    setIsQbOpen(false);
+    toast({ title: `${questions.length}টি প্রশ্ন যোগ হয়েছে`, description: "নিচে সেভ করুন" });
   };
 
   const [expandedSubject, setExpandedSubject] = useState<number | null>(null);
@@ -306,6 +241,7 @@ const AdminQuickPractice = () => {
 
   const handleFile = (file: File) => {
     setCsvFileName(file.name);
+    setQbQuestions(null);
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = String(e.target?.result || "");
@@ -325,6 +261,7 @@ const AdminQuickPractice = () => {
     setChapterName("");
     setCsvData(null);
     setCsvFileName("");
+    setQbQuestions(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -381,8 +318,19 @@ const AdminQuickPractice = () => {
       toast({ title: "বিষয় ও অধ্যায়ের নাম দিন", variant: "destructive" });
       return;
     }
-    if (!csvData?.length) {
-      toast({ title: "CSV আপলোড করুন", variant: "destructive" });
+    const sourceRows = qbQuestions?.length
+      ? qbQuestions.map((q) => {
+          const correctIdxMap: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
+          return {
+            question: q.question,
+            options: [q.options?.A, q.options?.B, q.options?.C, q.options?.D].filter(Boolean),
+            correct_index: correctIdxMap[q.correct_answer as string] ?? 0,
+            explanation: q.explanation || "",
+          };
+        })
+      : csvData;
+    if (!sourceRows?.length) {
+      toast({ title: "CSV আপলোড করুন অথবা Question Bank থেকে প্রশ্ন সিলেক্ট করুন", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -390,7 +338,7 @@ const AdminQuickPractice = () => {
       const subjId = await findOrCreateSubject(subjectName);
       const chapId = await findOrCreateChapter(subjId, chapterName);
 
-      const rows = csvData.map((d) => ({
+      const rows = sourceRows.map((d) => ({
         chapter_id: chapId,
         question: d.question,
         options: d.options,
@@ -683,10 +631,28 @@ const AdminQuickPractice = () => {
 
               <div
                 className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
-                onClick={() => setQbImportOpen((v) => !v)}
+                onClick={() => setIsQbOpen(true)}
               >
                 <DatabaseIcon className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
                 <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  রেডিমেড Exam থেকে পুরো এক্সাম বা আলাদা MCQ যোগ করুন
+                </p>
+                {!!qbQuestions?.length && (
+                  <div className="mt-2 flex items-center gap-2">
+                    <p className="text-xs text-primary">{qbQuestions.length}টি প্রশ্ন সিলেক্ট করা হয়েছে</p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setQbQuestions(null);
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -699,59 +665,19 @@ const AdminQuickPractice = () => {
                 ক্লিয়ার
               </Button>
             </div>
-
-            <div>
-              {qbImportOpen && (
-                <div className="mt-3 space-y-2.5 bg-muted/30 rounded-lg p-3">
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <select
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={qbImportSubject}
-                      onChange={(e) => {
-                        setQbImportSubject(e.target.value);
-                        setQbImportChapter("");
-                      }}
-                    >
-                      <option value="">বিষয় বেছে নিন (Question Bank)</option>
-                      {qbSubjectsList?.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <select
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={qbImportChapter}
-                      onChange={(e) => setQbImportChapter(e.target.value)}
-                      disabled={!qbImportSubject}
-                    >
-                      <option value="">অধ্যায় বেছে নিন</option>
-                      {qbChaptersList?.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Quick Practice-এ কোন বিষয়/অধ্যায়ে যোগ হবে:</p>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <Input
-                      placeholder="Quick Practice বিষয়ের নাম"
-                      value={qbImportTargetSubject}
-                      onChange={(e) => setQbImportTargetSubject(e.target.value)}
-                      list="qp-subject-list"
-                    />
-                    <Input
-                      placeholder="Quick Practice অধ্যায়ের নাম"
-                      value={qbImportTargetChapter}
-                      onChange={(e) => setQbImportTargetChapter(e.target.value)}
-                    />
-                  </div>
-                  <Button size="sm" className="w-full" onClick={importFromQuestionBank} disabled={qbImporting}>
-                    {qbImporting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-                    আমদানি করুন
-                  </Button>
-                </div>
-              )}
-            </div>
           </CardContent>
         </Card>
+
+        <Dialog open={isQbOpen} onOpenChange={setIsQbOpen}>
+          <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+            <DialogHeader className="p-4 pb-0">
+              <DialogTitle>Question Bank থেকে প্রশ্ন সিলেক্ট করুন</DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 overflow-hidden p-4 pt-2 h-[calc(85vh-60px)]">
+              <QuestionBankSelector onSelect={handleQbSelect} />
+            </div>
+          </DialogContent>
+        </Dialog>
 
       <Card>
         <CardHeader>
