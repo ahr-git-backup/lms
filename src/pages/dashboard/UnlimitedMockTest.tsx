@@ -365,25 +365,48 @@ const UnlimitedMockTest = () => {
         </CardContent>
       </Card>
 
-      {(subject || chapter) && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
-                <p className="text-xs font-semibold truncate">{subject || "-"}</p>
+      {multiMode ? (
+        multiSelections.length > 0 && (
+          <Card>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
+                  <p className="text-xs font-semibold truncate">{multiSubjects.length}টি</p>
+                </div>
+                <div className="min-w-0 border-x border-border px-1">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
+                  <p className="text-xs font-semibold truncate">{multiSelections.length}টি</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
+                  <p className="text-xs font-semibold">{multiAvailablePool ?? "-"}</p>
+                </div>
               </div>
-              <div className="min-w-0 border-x border-border px-1">
-                <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
-                <p className="text-xs font-semibold truncate">{chapter || "-"}</p>
+            </CardContent>
+          </Card>
+        )
+      ) : (
+        (subject || chapter) && (
+          <Card>
+            <CardContent className="pt-4">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
+                  <p className="text-xs font-semibold truncate">{subject || "-"}</p>
+                </div>
+                <div className="min-w-0 border-x border-border px-1">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">চ্যাপ্টার</p>
+                  <p className="text-xs font-semibold truncate">{chapter || "-"}</p>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
+                  <p className="text-xs font-semibold">{availablePool ?? "-"}</p>
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-[10px] text-muted-foreground mb-0.5">মোট MCQ</p>
-                <p className="text-xs font-semibold">{availablePool ?? "-"}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )
       )}
 
       <Card>
@@ -437,12 +460,13 @@ const UnlimitedMockTest = () => {
                       <div key={s} className="relative">
                         <button
                           type="button"
-                          onClick={() => setMultiDrillSubject(multiDrillSubject === s ? "" : s)}
+                          onClick={() => {
+                            toggleMultiSubject(s);
+                            setMultiDrillSubject(checked ? "" : s);
+                          }}
                           className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
-                            multiDrillSubject === s
+                            checked
                               ? "border-primary bg-primary/10 text-primary"
-                              : checked
-                              ? "border-primary/50 text-foreground"
                               : "border-border text-muted-foreground hover:border-primary/40"
                           }`}
                         >
@@ -451,12 +475,8 @@ const UnlimitedMockTest = () => {
                         <input
                           type="checkbox"
                           checked={checked}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            toggleMultiSubject(s);
-                          }}
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary"
+                          readOnly
+                          className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
                         />
                       </div>
                     );
@@ -472,20 +492,17 @@ const UnlimitedMockTest = () => {
                       const checked = multiChapters.some(
                         (x) => x.subject === multiDrillSubject && x.chapter === c
                       );
-                      const isDrilled =
-                        multiDrillChapter?.subject === multiDrillSubject && multiDrillChapter?.chapter === c;
                       return (
                         <div key={c} className="relative">
                           <button
                             type="button"
-                            onClick={() =>
-                              setMultiDrillChapter(isDrilled ? null : { subject: multiDrillSubject, chapter: c })
-                            }
+                            onClick={() => {
+                              toggleMultiChapter(multiDrillSubject, c);
+                              setMultiDrillChapter(checked ? null : { subject: multiDrillSubject, chapter: c });
+                            }}
                             className={`w-full rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
-                              isDrilled
+                              checked
                                 ? "border-primary bg-primary/10 text-primary"
-                                : checked
-                                ? "border-primary/50 text-foreground"
                                 : "border-border text-muted-foreground hover:border-primary/40"
                             }`}
                           >
@@ -494,12 +511,8 @@ const UnlimitedMockTest = () => {
                           <input
                             type="checkbox"
                             checked={checked}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleMultiChapter(multiDrillSubject, c);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary"
+                            readOnly
+                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
                           />
                         </div>
                       );
