@@ -489,12 +489,10 @@ const PlayUnlimitedMock = () => {
         <div className="container max-w-4xl mx-auto px-[5px] pt-4 pb-2 md:pt-6 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
           <div className="flex flex-col gap-1">
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-              {user && (
-                <Button variant="outline" onClick={retakeExam} className="h-10 px-3 py-2 w-full sm:w-auto">
-                  <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" />{" "}
-                  <span className="truncate">Practice Again</span>
-                </Button>
-              )}
+              <Button variant="outline" onClick={retakeExam} className="h-10 px-3 py-2 w-full sm:w-auto">
+                <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" />{" "}
+                <span className="truncate">Practice Again</span>
+              </Button>
               <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
                 <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" />{" "}
                 <span className="truncate">Solve PDF</span>
