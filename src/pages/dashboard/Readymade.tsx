@@ -804,7 +804,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
         onClick={() => setOpen(o => !o)}
       >
         {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <span className="ml-1">Splits</span>
+        <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
       </Button>
       {open && (
         <div className="mt-1.5 space-y-1 border-l-2 border-primary/20 pl-2">
