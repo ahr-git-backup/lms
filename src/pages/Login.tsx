@@ -113,8 +113,8 @@ const Login = () => {
             <CardContent>
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                  <Label htmlFor="identifier">ইমেইল / ফোন নম্বর / Registration ID</Label>
-                  <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="Email, Phone অথবা Registration ID" />
+                  <Label htmlFor="identifier">ইমেইল / ফোন নম্বর</Label>
+                  <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="Email অথবা Phone Number" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
