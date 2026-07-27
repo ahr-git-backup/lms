@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, History as HistoryIcon, FileText, Loader2 } from "lucide-react";
+import { ArrowLeft, History as HistoryIcon, FileText, Loader2, BookOpen, ChevronRight, Layers } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,10 +22,14 @@ interface Attempt {
   submitted_at: string | null;
 }
 
+type ViewLevel = "subjects" | "chapters" | "exams";
+
 const MockTestHistory = () => {
   const navigate = useNavigate();
   const { user } = useAuth() as any;
+  const [view, setView] = useState<ViewLevel>("subjects");
   const [activeSubject, setActiveSubject] = useState<string | null>(null);
+  const [activeChapter, setActiveChapter] = useState<string | null>(null);
 
   const { data: attempts, isLoading } = useQuery({
     queryKey: ["mock-exam-attempts-history", user?.id],
@@ -42,16 +46,31 @@ const MockTestHistory = () => {
     enabled: !!user,
   });
 
-  const subjects = useMemo(() => {
-    const set = new Set<string>();
-    (attempts || []).forEach((a) => a.subject && set.add(a.subject));
-    return Array.from(set);
+  const grouped = useMemo(() => {
+    const map = new Map<string, Map<string, Attempt[]>>();
+    (attempts || []).forEach((a) => {
+      const subj = a.subject || "সাধারণ";
+      const chap = a.chapter || "সাধারণ অধ্যায়";
+      if (!map.has(subj)) map.set(subj, new Map());
+      const chapMap = map.get(subj)!;
+      if (!chapMap.has(chap)) chapMap.set(chap, []);
+      chapMap.get(chap)!.push(a);
+    });
+    return map;
   }, [attempts]);
 
-  const filtered = useMemo(() => {
-    if (!activeSubject) return attempts || [];
-    return (attempts || []).filter((a) => a.subject === activeSubject);
-  }, [attempts, activeSubject]);
+  const subjectList = useMemo(() => Array.from(grouped.keys()), [grouped]);
+
+  const chapterList = useMemo(() => {
+    if (!activeSubject) return [];
+    const chapMap = grouped.get(activeSubject);
+    return chapMap ? Array.from(chapMap.keys()) : [];
+  }, [grouped, activeSubject]);
+
+  const examList = useMemo(() => {
+    if (!activeSubject || !activeChapter) return [];
+    return grouped.get(activeSubject)?.get(activeChapter) || [];
+  }, [grouped, activeSubject, activeChapter]);
 
   const openResult = (a: Attempt) => {
     if (!a.session_id || !a.questions_snapshot) return;
@@ -76,12 +95,45 @@ const MockTestHistory = () => {
     });
   };
 
+  const goBack = () => {
+    if (view === "exams") {
+      setView("chapters");
+      setActiveChapter(null);
+    } else if (view === "chapters") {
+      setView("subjects");
+      setActiveSubject(null);
+    } else {
+      navigate(-1);
+    }
+  };
+
+  const openSubject = (s: string) => {
+    setActiveSubject(s);
+    setView("chapters");
+  };
+
+  const openChapter = (c: string) => {
+    setActiveChapter(c);
+    setView("exams");
+  };
+
+  const subjectCount = (s: string) => {
+    let total = 0;
+    grouped.get(s)?.forEach((arr) => (total += arr.length));
+    return total;
+  };
+
+  const chapterCount = (c: string) => {
+    if (!activeSubject) return 0;
+    return grouped.get(activeSubject)?.get(c)?.length || 0;
+  };
+
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       <div className="flex items-center justify-between gap-3">
         <button
           type="button"
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
           aria-label="Back"
         >
@@ -95,49 +147,62 @@ const MockTestHistory = () => {
         </div>
         <div>
           <h1 className="text-xl font-bold">মক টেস্ট হিস্টোরি</h1>
-          <p className="text-sm text-muted-foreground">সাবজেক্ট অনুযায়ী দেওয়া এক্সামগুলো দেখুন</p>
+          <p className="text-sm text-muted-foreground">
+            {view === "subjects" && "সাবজেক্ট বাছাই করুন"}
+            {view === "chapters" && `${activeSubject} — অধ্যায় বাছাই করুন`}
+            {view === "exams" && `${activeSubject} — ${activeChapter}`}
+          </p>
         </div>
       </div>
-
-      {subjects.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => setActiveSubject(null)}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-              activeSubject === null
-                ? "border-primary bg-primary/10 text-primary"
-                : "border-border text-muted-foreground hover:border-primary/40"
-            }`}
-          >
-            সব
-          </button>
-          {subjects.map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setActiveSubject(s)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                activeSubject === s
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/40"
-              }`}
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      ) : filtered.length === 0 ? (
+      ) : subjectList.length === 0 ? (
         <p className="text-sm text-muted-foreground text-center py-10">কোনো এক্সাম দেওয়া হয়নি</p>
+      ) : view === "subjects" ? (
+        <div className="grid grid-cols-2 gap-3">
+          {subjectList.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => openSubject(s)}
+              className="flex flex-col items-start gap-2 rounded-2xl border-2 border-border p-4 text-left hover:border-primary/50 hover:bg-primary/5 transition-colors"
+            >
+              <div className="h-10 w-10 rounded-xl bg-fuchsia-500/10 flex items-center justify-center">
+                <BookOpen className="h-5 w-5 text-fuchsia-600" />
+              </div>
+              <p className="font-semibold text-sm leading-tight">{s}</p>
+              <p className="text-xs text-muted-foreground">{subjectCount(s)}টি এক্সাম</p>
+            </button>
+          ))}
+        </div>
+      ) : view === "chapters" ? (
+        <div className="space-y-2.5">
+          {chapterList.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => openChapter(c)}
+              className="w-full flex items-center justify-between gap-3 rounded-xl border-2 border-border p-3.5 text-left hover:border-primary/50 hover:bg-primary/5 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-lg bg-fuchsia-500/10 flex items-center justify-center shrink-0">
+                  <Layers className="h-4 w-4 text-fuchsia-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm">{c}</p>
+                  <p className="text-xs text-muted-foreground">{chapterCount(c)}টি এক্সাম</p>
+                </div>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+            </button>
+          ))}
+        </div>
       ) : (
         <div className="space-y-3">
-          {filtered.map((a) => (
+          {examList.map((a) => (
             <Card key={a.id}>
               <CardContent className="pt-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
