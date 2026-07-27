@@ -185,7 +185,7 @@ const ExamResults = () => {
       </header>
 
       {/* Category Row */}
-      <div className="flex flex-wrap gap-1.5 px-1">
+      <div className="flex flex-nowrap gap-1.5 px-1 overflow-x-auto no-scrollbar">
         {([
           { key: "all", label: "All" },
           { key: "live", label: "Live Exam" },
@@ -196,9 +196,9 @@ const ExamResults = () => {
             key={c.key}
             size="sm"
             variant={category === c.key ? "default" : "outline"}
-            className="h-7 px-2.5 text-xs"
+            className="h-7 px-2.5 text-xs shrink-0"
             onClick={() => {
-              setCategory(c.key);
+              setCategory(category === c.key ? "all" : c.key);
               setReadymadeSubCategory(null);
             }}
           >
