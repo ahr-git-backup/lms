@@ -728,10 +728,10 @@ const AdminQuickPractice = () => {
               />
             </div>
 
-            <div>
-              <label className="flex items-center gap-2 border-2 border-dashed rounded-xl px-4 py-6 cursor-pointer hover:border-primary/50 transition-colors justify-center text-sm text-muted-foreground">
-                <UploadCloud className="h-4 w-4" />
-                {csvFileName || "CSV ফাইল আপলোড করুন"}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <label className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center">
+                <UploadCloud className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">CSV আপলোড করুন</p>
                 <input
                   ref={fileRef}
                   type="file"
@@ -739,12 +739,23 @@ const AdminQuickPractice = () => {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
+                {csvData && (
+                  <p className="text-xs text-emerald-600 font-semibold mt-1.5">
+                    ✓ {csvData.length}টি প্রশ্ন প্রস্তুত
+                  </p>
+                )}
               </label>
-              {csvData && (
-                <p className="text-xs text-emerald-600 font-semibold mt-1.5">
-                  ✓ {csvData.length}টি প্রশ্ন প্রস্তুত
+
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
+                onClick={() => setQbImportOpen(true)}
+              >
+                <DatabaseIcon className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">Question Bank থেকে নিন</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  বিষয়/অধ্যায় বেছে সব প্রশ্ন যোগ করুন
                 </p>
-              )}
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -755,66 +766,6 @@ const AdminQuickPractice = () => {
               <Button variant="outline" onClick={clearForm} disabled={saving}>
                 ক্লিয়ার
               </Button>
-            </div>
-
-            <div className="border-t pt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setQbImportOpen((v) => !v)}
-              >
-                <DatabaseIcon className="h-3.5 w-3.5 mr-1.5" />
-                Question Bank থেকে প্রশ্ন নিন
-              </Button>
-              {qbImportOpen && (
-                <div className="mt-3 space-y-2.5 bg-muted/30 rounded-lg p-3">
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <select
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={qbImportSubject}
-                      onChange={(e) => {
-                        setQbImportSubject(e.target.value);
-                        setQbImportChapter("");
-                      }}
-                    >
-                      <option value="">বিষয় বেছে নিন (Question Bank)</option>
-                      {qbSubjectsList?.map((s) => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                    <select
-                      className="h-9 rounded-md border bg-background px-2 text-sm"
-                      value={qbImportChapter}
-                      onChange={(e) => setQbImportChapter(e.target.value)}
-                      disabled={!qbImportSubject}
-                    >
-                      <option value="">অধ্যায় বেছে নিন</option>
-                      {qbChaptersList?.map((c) => (
-                        <option key={c} value={c}>{c}</option>
-                      ))}
-                    </select>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground">Quick Practice-এ কোন বিষয়/অধ্যায়ে যোগ হবে:</p>
-                  <div className="grid sm:grid-cols-2 gap-2">
-                    <Input
-                      placeholder="Quick Practice বিষয়ের নাম"
-                      value={qbImportTargetSubject}
-                      onChange={(e) => setQbImportTargetSubject(e.target.value)}
-                      list="qp-subject-list"
-                    />
-                    <Input
-                      placeholder="Quick Practice অধ্যায়ের নাম"
-                      value={qbImportTargetChapter}
-                      onChange={(e) => setQbImportTargetChapter(e.target.value)}
-                    />
-                  </div>
-                  <Button size="sm" className="w-full" onClick={importFromQuestionBank} disabled={qbImporting}>
-                    {qbImporting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-                    আমদানি করুন
-                  </Button>
-                </div>
-              )}
             </div>
           </CardContent>
         </Card>
