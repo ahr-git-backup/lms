@@ -127,51 +127,6 @@ const MyMistakes = () => {
                 </div>
             </div>
 
-            {/* Category Row */}
-            <div className="flex flex-wrap gap-1.5">
-                {([
-                    { key: 'all', label: 'All' },
-                    { key: 'live', label: 'Live Exam' },
-                    { key: 'practice', label: 'Practice Exam' },
-                    { key: 'readymade', label: 'Readymade Exam' },
-                ] as const).map(c => (
-                    <Button
-                        key={c.key}
-                        size="sm"
-                        variant={category === c.key ? 'default' : 'outline'}
-                        className="h-7 px-2.5 text-xs"
-                        onClick={() => { setCategory(c.key); setReadymadeSubCategory(null); setPage(0); }}
-                    >
-                        {c.label}
-                    </Button>
-                ))}
-            </div>
-
-            {/* Readymade Sub-category Row */}
-            {category === 'readymade' && readymadeTopics.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pl-1">
-                    <Button
-                        size="sm"
-                        variant={!readymadeSubCategory ? 'secondary' : 'ghost'}
-                        className="h-6 px-2 text-[11px]"
-                        onClick={() => { setReadymadeSubCategory(null); setPage(0); }}
-                    >
-                        All Topics
-                    </Button>
-                    {readymadeTopics.map((topic: string) => (
-                        <Button
-                            key={topic}
-                            size="sm"
-                            variant={readymadeSubCategory === topic ? 'secondary' : 'ghost'}
-                            className="h-6 px-2 text-[11px]"
-                            onClick={() => { setReadymadeSubCategory(topic); setPage(0); }}
-                        >
-                            {topic}
-                        </Button>
-                    ))}
-                </div>
-            )}
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
                 {/* Configuration Panel */}
                 <Card className="lg:col-span-1 h-fit">
@@ -218,6 +173,54 @@ const MyMistakes = () => {
                         </p>
                     </CardContent>
                 </Card>
+
+                {/* Category Row */}
+                <div className="lg:col-span-3 flex flex-wrap gap-1.5">
+                    {([
+                        { key: 'all', label: 'All' },
+                        { key: 'live', label: 'Live Exam' },
+                        { key: 'practice', label: 'Practice Exam' },
+                        { key: 'readymade', label: 'Readymade Exam' },
+                    ] as const).map(c => (
+                        <Button
+                            key={c.key}
+                            size="sm"
+                            variant={category === c.key ? 'default' : 'outline'}
+                            className="h-7 px-2.5 text-xs"
+                            onClick={() => {
+                                if (category === c.key) {
+                                    setCategory('all');
+                                } else {
+                                    setCategory(c.key);
+                                }
+                                setReadymadeSubCategory(null);
+                                setPage(0);
+                            }}
+                        >
+                            {c.label}
+                        </Button>
+                    ))}
+                </div>
+
+                {/* Readymade Sub-category Row */}
+                {category === 'readymade' && readymadeTopics.length > 0 && (
+                    <div className="lg:col-span-3 flex flex-wrap gap-1.5 pl-1">
+                        {readymadeTopics.map((topic: string) => (
+                            <Button
+                                key={topic}
+                                size="sm"
+                                variant={readymadeSubCategory === topic ? 'secondary' : 'ghost'}
+                                className="h-6 px-2 text-[11px]"
+                                onClick={() => {
+                                    setReadymadeSubCategory(readymadeSubCategory === topic ? null : topic);
+                                    setPage(0);
+                                }}
+                            >
+                                {topic}
+                            </Button>
+                        ))}
+                    </div>
+                )}
 
                 {/* Exam Selection List */}
                 <Card className="lg:col-span-2">
