@@ -223,7 +223,7 @@ const UnlimitedMockTest = () => {
         <CardContent className="space-y-4">
           <div>
             <Label className="mb-2 block">সাবজেক্ট</Label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {(subjects || []).map((s: string) => (
                 <button
                   key={s}
@@ -234,7 +234,7 @@ const UnlimitedMockTest = () => {
                     setTopic("");
                     setPaper("");
                   }}
-                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                  className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
                       : "border-border text-muted-foreground hover:border-primary/40"
@@ -249,7 +249,7 @@ const UnlimitedMockTest = () => {
           {subject && (
             <div>
               <Label className="mb-2 block">চ্যাপ্টার</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {(chapters || []).map((c: string) => (
                   <button
                     key={c}
@@ -259,7 +259,7 @@ const UnlimitedMockTest = () => {
                       setTopic("");
                       setPaper("");
                     }}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
@@ -275,13 +275,13 @@ const UnlimitedMockTest = () => {
           {subject && chapter && !!(topics || []).length && (
             <div>
               <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {(topics || []).map((t: string) => (
                   <button
                     key={t}
                     type="button"
                     onClick={() => setTopic(topic === t ? "" : t)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                       topic === t
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
@@ -297,13 +297,13 @@ const UnlimitedMockTest = () => {
           {subject && chapter && !!(papers || []).length && (
             <div>
               <Label className="mb-2 block">পেপার (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 {(papers || []).map((p: string) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setPaper(paper === p ? "" : p)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center transition-colors ${
+                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                       paper === p
                         ? "border-primary bg-primary/10 text-primary"
                         : "border-border text-muted-foreground hover:border-primary/40"
