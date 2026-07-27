@@ -18,8 +18,6 @@ const MyMistakes = () => {
     const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
     const [readymadeSubCategory, setReadymadeSubCategory] = useState<string | null>(null);
     const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
-    const [page, setPage] = useState(0);
-    const PAGE_SIZE = 10;
 
     const { data: exams, isLoading } = useQuery({
         queryKey: ["my-mistakes-exams", user?.id],
@@ -108,15 +106,12 @@ const MyMistakes = () => {
         });
     };
 
-    const paginatedExams = categoryFilteredExams.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-    const totalPages = Math.ceil((categoryFilteredExams.length || 0) / PAGE_SIZE);
-
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
 
     return (
-        <div className="container mx-auto px-2 py-3 md:px-4 space-y-3">
+        <div className="w-full px-0.5 py-3 space-y-3">
             <div className="flex items-center gap-2">
                 <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
                     <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
@@ -127,9 +122,9 @@ const MyMistakes = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 w-full">
                 {/* Configuration Panel */}
-                <Card className="lg:col-span-1 h-fit">
+                <Card className="lg:col-span-1 h-fit w-full">
                     <CardHeader className="py-2.5 px-3">
                         <CardTitle className="text-sm">Configuration</CardTitle>
                     </CardHeader>
@@ -194,7 +189,6 @@ const MyMistakes = () => {
                                     setCategory(c.key);
                                 }
                                 setReadymadeSubCategory(null);
-                                setPage(0);
                             }}
                         >
                             {c.label}
@@ -213,7 +207,6 @@ const MyMistakes = () => {
                                 className="h-6 px-2 text-[11px]"
                                 onClick={() => {
                                     setReadymadeSubCategory(readymadeSubCategory === topic ? null : topic);
-                                    setPage(0);
                                 }}
                             >
                                 {topic}
@@ -223,7 +216,7 @@ const MyMistakes = () => {
                 )}
 
                 {/* Exam Selection List */}
-                <Card className="lg:col-span-2">
+                <Card className="lg:col-span-2 w-full">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2.5 px-3">
                         <CardTitle className="text-sm">Select Exams</CardTitle>
                         <div className="flex gap-1.5">
@@ -234,8 +227,8 @@ const MyMistakes = () => {
                     <CardContent className="px-3 pb-3">
                         {categoryFilteredExams.length > 0 ? (
                             <div className="space-y-3">
-                                <div className="space-y-1.5 max-h-[60vh] overflow-y-auto pr-1">
-                                    {paginatedExams.map((exam: any) => (
+                                <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
+                                    {categoryFilteredExams.map((exam: any) => (
                                         <div
                                             key={exam.id}
                                             className="flex items-start space-x-2 p-2 rounded-md border hover:bg-muted/50 transition-colors"
@@ -265,34 +258,6 @@ const MyMistakes = () => {
                                     ))}
                                 </div>
 
-                                {/* Pagination Controls */}
-                                {totalPages > 1 && (
-                                    <div className="flex items-center justify-between pt-2 border-t">
-                                        <div className="text-[11px] text-muted-foreground">
-                                            Page {page + 1} of {totalPages}
-                                        </div>
-                                        <div className="flex gap-1.5">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 px-2 text-xs"
-                                                onClick={() => setPage(p => Math.max(0, p - 1))}
-                                                disabled={page === 0}
-                                            >
-                                                Previous
-                                            </Button>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 px-2 text-xs"
-                                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-                                                disabled={page >= totalPages - 1}
-                                            >
-                                                Next
-                                            </Button>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         ) : (
                             <div className="text-center py-6 text-xs text-muted-foreground">
