@@ -251,6 +251,16 @@ const PlayUnlimitedMock = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submitted]);
 
+  // Result view replaces the exam view entirely, but the browser keeps
+  // whatever scroll position the user was at mid-exam — so the score cards
+  // at the top of the result render off-screen until the user manually
+  // scrolls up. Force scroll-to-top the moment the result view mounts.
+  useEffect(() => {
+    if (submitted) {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    }
+  }, [submitted]);
+
   const stats = useMemo(() => {
     let correct = 0,
       wrong = 0,
