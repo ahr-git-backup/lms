@@ -175,6 +175,17 @@ const PlayUnlimitedMock = () => {
   // TakeExam.tsx's persistence so a Mock Test attempt is never lost.
   useEffect(() => {
     try {
+      // If this attempt was already submitted, restore the result view
+      // instead of restarting the exam — otherwise reloading/loading the
+      // result page kicks the user back into a fresh attempt.
+      const wasSubmitted = localStorage.getItem(`${STORAGE_KEY_PREFIX}_submitted`);
+      if (wasSubmitted === "1") {
+        const finalAnswers = localStorage.getItem(`${STORAGE_KEY_PREFIX}_final_answers`);
+        if (finalAnswers) setAnswers(JSON.parse(finalAnswers));
+        setSubmitted(true);
+        return;
+      }
+
       const savedAnswers = localStorage.getItem(`${STORAGE_KEY_PREFIX}_answers`);
       const savedViolations = localStorage.getItem(`${STORAGE_KEY_PREFIX}_violations`);
       if (savedAnswers) setAnswers(JSON.parse(savedAnswers));
@@ -224,10 +235,14 @@ const PlayUnlimitedMock = () => {
     };
   }, [submitted, toast]);
 
-  // Clear this attempt's saved progress once submitted, so a stale answer
-  // set can't leak into a future attempt that happens to reuse the same key.
+  // Clear this attempt's in-progress saved state once submitted (so a stale
+  // in-progress answer set can't leak into a future attempt reusing the same
+  // key), but persist a submitted flag + final answers snapshot so reloading
+  // the result page shows the result instead of restarting the exam.
   useEffect(() => {
     if (submitted) {
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}_submitted`, "1");
+      localStorage.setItem(`${STORAGE_KEY_PREFIX}_final_answers`, JSON.stringify(answers));
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}_answers`);
       localStorage.removeItem(`${STORAGE_KEY_PREFIX}_violations`);
     }
