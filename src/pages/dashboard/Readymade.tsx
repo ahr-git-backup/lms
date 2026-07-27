@@ -456,8 +456,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
   // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
-  const { data: overallStats } = useQuery({
+  const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
     queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
+    placeholderData: (prev) => prev,
     queryFn: async () => {
       const allExamRows = await fetchAllRows<{ id: string }>((from, to) => {
         let q = supabase.from("exams").select("id")
@@ -571,7 +572,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
     return (
       <div className="space-y-3">
-        {overallStats && (
+        {overallStats ? (
           <div className="grid grid-cols-3 gap-2">
             <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
               <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
@@ -592,7 +593,18 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               </CardContent>
             </Card>
           </div>
-        )}
+        ) : loadingOverallStats ? (
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 2, 3].map(i => (
+              <Card key={i} className="border-muted">
+                <CardContent className="p-2 flex flex-col items-center gap-1">
+                  <div className="h-2.5 w-12 bg-muted animate-pulse rounded" />
+                  <div className="h-4 w-8 bg-muted animate-pulse rounded" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : null}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
         {subjects.map(subject => (
           <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
