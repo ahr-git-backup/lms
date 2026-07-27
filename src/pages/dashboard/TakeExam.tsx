@@ -897,7 +897,7 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="h-screen bg-background flex flex-col items-center justify-center p-2 sm:p-3 overflow-hidden">
+          <div className="h-screen bg-background flex flex-col items-center justify-center px-1 py-2 sm:px-2 overflow-hidden">
           <div className="w-full max-w-2xl max-h-full overflow-y-auto space-y-2 py-1">
               {/* Card 1: Header/Info */}
               <Card className="w-full rounded-xl shadow-sm border">
