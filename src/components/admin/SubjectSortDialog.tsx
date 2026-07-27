@@ -65,7 +65,7 @@ function SortableSubjectItem({
   };
 
   const commitEdit = () => {
-    const trimmed = draft.trim();
+    const trimmed = draft.replace(/\r\n/g, "\n").trim();
     if (!trimmed || trimmed === subject) {
       setEditing(false);
       return;
@@ -222,9 +222,9 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
     onSuccess: (newName, { oldName }) => {
       setItems((prev) => prev.map((s) => (s === oldName ? newName : s)));
       toast({ title: "Subject renamed successfully!" });
-      queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
-      queryClient.invalidateQueries({ queryKey: ["readymade-exams-list"] });
-      queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapters"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
     },
     onError: (err: any) => {
       toast({ title: "Failed to rename subject", description: err.message, variant: "destructive" });
