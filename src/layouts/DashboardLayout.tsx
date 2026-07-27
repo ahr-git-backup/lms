@@ -418,7 +418,7 @@ export const DashboardLayout = () => {
                         <LayoutTemplate className="h-4 w-4 text-blue-400" /> Readymade Exam
                     </Link>
                     <Link to="/dashboard/archive" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
-                        <Archive className="h-4 w-4 text-gray-500" /> Archive
+                        <Archive className="h-4 w-4 text-gray-500" /> Archive Class & Exam
                     </Link>
                     <Link to="/dashboard/results" className="flex items-center gap-2 py-2 px-2 hover:bg-muted rounded-md">
                         <Trophy className="h-4 w-4 text-teal-500" /> Exam History
