@@ -14,9 +14,9 @@ import {
 import { MessageCircleWarning } from "lucide-react";
 
 // Shows a popup alert for unread "report_reply" notifications (admin feedback on
-// a reported MCQ). Re-prompts every 15s while the user is active on the site,
-// until the user opens Announcements (which marks them read) or clicks "দেখুন".
-const CHECK_INTERVAL_MS = 15000;
+// a reported MCQ). Re-prompts every ~12 minutes while the user is active on the
+// site, until the user opens Announcements (which marks them read) or clicks "দেখুন".
+const CHECK_INTERVAL_MS = 12 * 60 * 1000;
 
 export const ReportFeedbackAlert = () => {
   const { profile } = useAuth();
@@ -46,8 +46,8 @@ export const ReportFeedbackAlert = () => {
 
     const checkUnread = async () => {
       // Only pop up while the tab is visible and the user has interacted
-      // in the last 2 minutes — avoids nagging an idle/inactive tab.
-      const isActive = document.visibilityState === "visible" && Date.now() - lastActivityRef.current < 120000;
+      // recently — avoids nagging an idle/inactive tab.
+      const isActive = document.visibilityState === "visible" && Date.now() - lastActivityRef.current < 15 * 60 * 1000;
       if (!isActive) return;
 
       const { count, error } = await supabase

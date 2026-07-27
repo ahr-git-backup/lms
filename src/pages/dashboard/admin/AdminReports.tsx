@@ -388,13 +388,13 @@ Admin Feedback: ${feedback}`;
                 </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+            <div className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
                 {availableCategories.map((cat) => (
                     <button
                         key={cat}
                         type="button"
                         onClick={() => setActiveCategory(cat)}
-                        className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border text-xs sm:text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap ${cat === currentCategory ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"}`}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg border text-xs sm:text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap shrink-0 ${cat === currentCategory ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/70 hover:bg-secondary"}`}
                     >
                         {cat}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat === currentCategory ? "bg-primary-foreground/20" : "bg-background"}`}>
@@ -405,13 +405,13 @@ Admin Feedback: ${feedback}`;
             </div>
 
             {currentCategory === "Readymade Exam" && subjectTabs.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 sm:gap-2 pl-1">
+                <div className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 pl-1">
                     {subjectTabs.map((subj) => (
                         <button
                             key={subj}
                             type="button"
                             onClick={() => setActiveReadymadeSubject(subj)}
-                            className={`px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap ${subj === activeSubject ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"}`}
+                            className={`px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${subj === activeSubject ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"}`}
                         >
                             {subj}
                         </button>
