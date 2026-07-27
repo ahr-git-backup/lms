@@ -216,7 +216,6 @@ const DashboardHome = () => {
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
       { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Readymade Exam", icon: FileText, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950", url: "/dashboard/readymade" },
       { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
       { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
       { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
@@ -432,6 +431,41 @@ const DashboardHome = () => {
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
               <p className="font-medium text-xs leading-tight">Top Performer</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+        <div className="grid grid-cols-3 gap-2">
+          <Card
+            className="animate-border-chase cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
+            onClick={() => navigate("/quick-practice")}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Zap className="h-5 w-5 text-violet-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Quick Practice</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-fuchsia-500/30 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
+            onClick={() => navigate("/mock-test")}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Unlimited Mock Test</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-pink-500/30 hover:border-pink-500 transition-all bg-pink-50/50 dark:bg-pink-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
+            onClick={() => navigate("/dashboard/readymade")}
+          >
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <FileText className="h-5 w-5 text-pink-500 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
