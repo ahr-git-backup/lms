@@ -47,7 +47,7 @@ const DashboardHome = () => {
   const queryClient = useQueryClient();
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
-  const [showTutorialVideo, setShowTutorialVideo] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
 
   const { data: tutorialVideoUrl } = useQuery({
     queryKey: ["dashboard-tutorial-video"],
@@ -418,76 +418,89 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Admin-only quick actions */}
+      {/* Admin-only quick actions (floating toggle panel) */}
       {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-            onClick={() => navigate("/admin/reports")}
+        <div className="flex justify-end">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowAdminPanel(!showAdminPanel)}
+            className="gap-1.5 border-primary/40 text-primary"
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Reports</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReportsCount ?? "..."} pending
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/admin/announcements")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Notice</p>
-                <p className="text-xs text-muted-foreground">Send to all users</p>
-              </div>
-            </CardContent>
-          </Card>
+            {showAdminPanel ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            Admin Tools
+          </Button>
         </div>
       )}
+      {isAdmin && showAdminPanel && (
+        <div className="rounded-lg border border-primary/30 bg-muted/20 p-3 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="grid grid-cols-2 gap-4">
+            <Card
+              className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+              onClick={() => navigate("/admin/reports")}
+            >
+              <CardContent className="p-4 flex items-center gap-3">
+                <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+                <div>
+                  <p className="font-semibold text-sm">Reports</p>
+                  <p className="text-xs text-muted-foreground">
+                    {pendingReportsCount ?? "..."} pending
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+              onClick={() => navigate("/admin/announcements")}
+            >
+              <CardContent className="p-4 flex items-center gap-3">
+                <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+                <div>
+                  <p className="font-semibold text-sm">Notice</p>
+                  <p className="text-xs text-muted-foreground">Send to all users</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-      {isAdmin && (
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card
-            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/admin/syllabus-tracker")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            onClick={() => navigate("/admin/quick-practice")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
-            onClick={() => navigate("/admin/mock-test")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-3 gap-2 sm:gap-4">
+            <Card
+              className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+              onClick={() => navigate("/admin/syllabus-tracker")}
+            >
+              <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+                <div>
+                  <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
+                  <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+              onClick={() => navigate("/admin/quick-practice")}
+            >
+              <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+                <div>
+                  <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
+                  <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+              onClick={() => navigate("/admin/mock-test")}
+            >
+              <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+                <div>
+                  <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
+                  <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
