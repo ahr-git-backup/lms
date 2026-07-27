@@ -176,6 +176,10 @@ const PlayUnlimitedMock = () => {
   // test (new session id from UnlimitedMockTest.tsx) starts clean.
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
+  }, []);
+
+  useEffect(() => {
     if (questions.length === 0) {
       // Don't kick out a completed attempt whose result is being restored —
       // only bounce back to the list if there's truly nothing to show.

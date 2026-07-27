@@ -349,6 +349,7 @@ const UnlimitedMockTest = () => {
       sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
       sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : (topic || ""));
 
+      window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       navigate("/mock-test/play");
     } catch (e: any) {
       toast({ title: "লোড করতে সমস্যা", description: e.message, variant: "destructive" });
@@ -477,7 +478,7 @@ const UnlimitedMockTest = () => {
                           onClick={() => {
                             toggleMultiSubject(s);
                           }}
-                          className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                          className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                             checked
                               ? "border-primary bg-primary/10 text-primary"
                               : "border-border text-muted-foreground hover:border-primary/40"
@@ -513,7 +514,7 @@ const UnlimitedMockTest = () => {
                               toggleMultiChapter(subj, c);
                               setMultiDrillChapter(checked ? null : { subject: subj, chapter: c });
                             }}
-                            className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
@@ -555,7 +556,7 @@ const UnlimitedMockTest = () => {
                             onClick={() =>
                               toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
                             }
-                            className={`w-full h-9 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-colors ${
+                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40"
