@@ -460,17 +460,17 @@ const TakeMistakeExam = () => {
                                                 }
 
                                                 return (
-                                                    <div key={optionKey} className="flex items-start gap-4">
+                                                    <div key={optionKey} className="flex items-center gap-4 max-w-full">
                                                         <div className={cn(
-                                                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
+                                                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all",
                                                             circleClass
                                                         )}>
                                                             {icon}
                                                         </div>
                                                         <div className={cn(
-                                                            "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
-                                                            isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
-                                                            isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
+                                                            "flex-1 min-w-0 text-base whitespace-normal p-3 rounded-lg border transition-all overflow-x-auto no-scrollbar scroll-smooth",
+                                                            isCorrectOption ? "text-green-700 dark:text-green-400 font-medium bg-green-500/10 border-green-500/40" :
+                                                            isSelected ? "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/40" : "text-foreground border-border/60"
                                                         )}>
                                                             <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
                                                         </div>
@@ -623,14 +623,14 @@ const TakeMistakeExam = () => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 pt-2">
+                                    <div className="space-y-2 pt-2 max-w-full">
                                         {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
                                             if (!optionText) return null;
                                             const isSelected = answers[q.id] === optionKey;
                                             const isAnswered = !!answers[q.id];
-                                            const isThisSelected = isSelected;
+                                            const isDisabled = isAnswered && !isSelected;
 
                                             return (
                                                 <div
@@ -644,25 +644,26 @@ const TakeMistakeExam = () => {
                                                             });
                                                         }
                                                     }}
-                                                    className={cn(
-                                                        "flex items-start gap-4 group p-2 rounded-lg transition-colors",
-                                                        isThisSelected
-                                                            ? "bg-primary/5"
-                                                            : (!isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80")
-                                                    )}
+                                                    className={cn("flex items-center gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
                                                 >
                                                     <div className={cn(
-                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all mt-0.5",
-                                                        isThisSelected
+                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                                                        isSelected
                                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                                             : "border-muted-foreground/30 text-muted-foreground",
-                                                        !isAnswered && !isThisSelected && "group-hover:border-primary/50"
+                                                        !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
+                                                        isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
                                                     )}>
                                                         {optionKey}
                                                     </div>
-                                                    <div className={cn("flex-1 pt-1 flex items-center gap-2", isThisSelected ? "text-primary font-medium" : "text-foreground")}>
-                                                        <MathText text={optionText} />
-                                                        {isThisSelected && <Lock className="h-4 w-4 text-primary shrink-0" />}
+                                                    <div className={cn(
+                                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                                        isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
+                                                    )}>
+                                                        <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                                        </div>
+                                                        {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
                                                     </div>
                                                 </div>
                                             );

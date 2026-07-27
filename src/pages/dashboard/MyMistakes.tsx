@@ -27,8 +27,10 @@ const MyMistakes = () => {
             const { data, error } = await supabase
                 .from("exam_attempts")
                 .select(`
+                    id,
                     exam_id,
                     submitted_at,
+                    answers,
                     exams (
                         id,
                         title,
@@ -60,15 +62,42 @@ const MyMistakes = () => {
 
                     uniqueExamsMap.set(attempt.exam_id, {
                         id: examData.id,
+                        attemptId: attempt.id,
                         title: examData.title,
                         subject: subjectDisplay,
                         lastAttempt: attempt.submitted_at,
                         category,
                         readymadeTopic: examData.readymade_topic || null,
+                        answers: attempt.answers || [],
+                        wrongCount: 0,
+                        skipCount: 0,
                     });
                 }
             });
-            return Array.from(uniqueExamsMap.values());
+
+            const uniqueExams = Array.from(uniqueExamsMap.values());
+
+            // Compute wrong/skip counts per exam using the correct-answer review RPC
+            await Promise.all(uniqueExams.map(async (exam: any) => {
+                const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
+                    p_attempt_id: exam.attemptId
+                });
+                if (!reviewData) return;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const userAnswers = (exam.answers as any[]) || [];
+                let wrong = 0, skip = 0;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                reviewData.forEach((reviewQ: any) => {
+                    const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
+                    const selected = userAnswerObj?.selected_option;
+                    if (!selected) skip++;
+                    else if (selected !== reviewQ.correct_option) wrong++;
+                });
+                exam.wrongCount = wrong;
+                exam.skipCount = skip;
+            }));
+
+            return uniqueExams;
         },
         enabled: !!user
     });
@@ -106,13 +135,16 @@ const MyMistakes = () => {
         });
     };
 
+    const totalWrong = categoryFilteredExams.reduce((s: number, e: any) => s + (e.wrongCount || 0), 0);
+    const totalSkip = categoryFilteredExams.reduce((s: number, e: any) => s + (e.skipCount || 0), 0);
+
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
 
     return (
-        <div className="w-full px-0.5 py-3 space-y-3">
-            <div className="flex items-center gap-2">
+        <div className="w-full px-0 py-3 space-y-3">
+            <div className="flex items-center gap-2 px-1">
                 <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
                     <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
@@ -122,9 +154,25 @@ const MyMistakes = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 w-full">
+            {/* Stat Row */}
+            <div className="grid grid-cols-3 gap-1.5 px-1">
+                <Card className="p-2 text-center">
+                    <div className="text-[10px] text-muted-foreground font-medium">Total Exams</div>
+                    <div className="text-base font-bold">{categoryFilteredExams.length}</div>
+                </Card>
+                <Card className="p-2 text-center">
+                    <div className="text-[10px] text-red-600 dark:text-red-400 font-medium">Total Wrong</div>
+                    <div className="text-base font-bold text-red-600 dark:text-red-400">{totalWrong}</div>
+                </Card>
+                <Card className="p-2 text-center">
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">Total Skip</div>
+                    <div className="text-base font-bold text-amber-600 dark:text-amber-400">{totalSkip}</div>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-1.5 px-0.5 w-full">
                 {/* Configuration Panel */}
-                <Card className="lg:col-span-1 h-fit w-full">
+                <Card className="lg:col-span-1 h-fit w-full mx-0">
                     <CardHeader className="py-2.5 px-3">
                         <CardTitle className="text-sm">Configuration</CardTitle>
                     </CardHeader>
@@ -216,7 +264,7 @@ const MyMistakes = () => {
                 )}
 
                 {/* Exam Selection List */}
-                <Card className="lg:col-span-2 w-full">
+                <Card className="lg:col-span-2 w-full mx-0">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 py-2.5 px-3">
                         <CardTitle className="text-sm">Select Exams</CardTitle>
                         <div className="flex gap-1.5">
@@ -227,22 +275,22 @@ const MyMistakes = () => {
                     <CardContent className="px-3 pb-3">
                         {categoryFilteredExams.length > 0 ? (
                             <div className="space-y-3">
-                                <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1">
+                                <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ touchAction: 'pan-y' }}>
                                     {categoryFilteredExams.map((exam: any) => (
                                         <div
                                             key={exam.id}
-                                            className="flex items-start space-x-2 p-2 rounded-md border hover:bg-muted/50 transition-colors"
+                                            className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none"
                                         >
                                             <Checkbox
                                                 id={exam.id}
                                                 checked={selectedExamIds.includes(exam.id)}
                                                 onCheckedChange={() => toggleExam(exam.id)}
                                             />
-                                            <div className="grid gap-1 leading-none w-full cursor-pointer" onClick={() => toggleExam(exam.id)}>
+                                            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => toggleExam(exam.id)}>
                                                 <div className="flex justify-between items-start gap-2">
                                                     <label
                                                         htmlFor={exam.id}
-                                                        className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                                        className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer truncate min-w-0"
                                                     >
                                                         {exam.title}
                                                     </label>
@@ -253,6 +301,10 @@ const MyMistakes = () => {
                                                 <p className="text-[10px] text-muted-foreground">
                                                     Last attempt: {format(new Date(exam.lastAttempt), "PP")}
                                                 </p>
+                                                <div className="flex gap-1.5 pt-0.5">
+                                                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
+                                                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
