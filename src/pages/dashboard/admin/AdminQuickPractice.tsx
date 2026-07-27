@@ -728,10 +728,13 @@ const AdminQuickPractice = () => {
               />
             </div>
 
-            <div>
-              <label className="flex items-center gap-2 border-2 border-dashed rounded-xl px-4 py-6 cursor-pointer hover:border-primary/50 transition-colors justify-center text-sm text-muted-foreground">
-                <UploadCloud className="h-4 w-4" />
-                {csvFileName || "CSV ফাইল আপলোড করুন"}
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
+                onClick={() => fileRef.current?.click()}
+              >
+                <UploadCloud className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">{csvFileName || "CSV আপলোড করুন"}</p>
                 <input
                   ref={fileRef}
                   type="file"
@@ -739,12 +742,20 @@ const AdminQuickPractice = () => {
                   className="hidden"
                   onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
                 />
-              </label>
-              {csvData && (
-                <p className="text-xs text-emerald-600 font-semibold mt-1.5">
-                  ✓ {csvData.length}টি প্রশ্ন প্রস্তুত
-                </p>
-              )}
+                {csvData && (
+                  <p className="text-xs text-emerald-600 font-semibold mt-1.5">
+                    ✓ {csvData.length}টি প্রশ্ন প্রস্তুত
+                  </p>
+                )}
+              </div>
+
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
+                onClick={() => setQbImportOpen((v) => !v)}
+              >
+                <DatabaseIcon className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+              </div>
             </div>
 
             <div className="flex gap-2">
@@ -757,16 +768,7 @@ const AdminQuickPractice = () => {
               </Button>
             </div>
 
-            <div className="border-t pt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full"
-                onClick={() => setQbImportOpen((v) => !v)}
-              >
-                <DatabaseIcon className="h-3.5 w-3.5 mr-1.5" />
-                Question Bank থেকে প্রশ্ন নিন
-              </Button>
+            <div>
               {qbImportOpen && (
                 <div className="mt-3 space-y-2.5 bg-muted/30 rounded-lg p-3">
                   <div className="grid sm:grid-cols-2 gap-2">
