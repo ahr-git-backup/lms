@@ -701,15 +701,20 @@ const UnlimitedMockTest = () => {
             <CardContent className="pt-4 space-y-2">
               <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={5}
-                  max={200}
-                  placeholder="প্রশ্ন সংখ্যা"
-                  value={customCount}
-                  onChange={(e) => setCustomCount(e.target.value)}
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  {!customCount && (
+                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-primary/60 pointer-events-none select-none animate-pulse">|</span>
+                  )}
+                  <Input
+                    type="number"
+                    min={5}
+                    max={200}
+                    placeholder=""
+                    value={customCount}
+                    onChange={(e) => setCustomCount(e.target.value)}
+                    className="flex-1"
+                  />
+                </div>
                 <Button onClick={handleCustomStart} disabled={starting}>
                   Start
                 </Button>
