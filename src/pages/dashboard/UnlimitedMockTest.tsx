@@ -370,8 +370,8 @@ const UnlimitedMockTest = () => {
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       <Card>
-        <CardContent className="pt-4 space-y-4">
-          <div className="flex items-center justify-between gap-3">
+        <CardContent className="py-3">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => navigate("/")}
@@ -380,27 +380,28 @@ const UnlimitedMockTest = () => {
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
+
+            <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
+              <div className="h-10 w-10 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
+                <Target className="h-5 w-5 text-fuchsia-600" />
+              </div>
+              <div className="min-w-0 text-left">
+                <h1 className="text-base font-bold leading-tight truncate">আনলিমিটেড মক টেস্ট</h1>
+                <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
+                  সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
+                </p>
+              </div>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
-              className="gap-1.5"
+              className="gap-1 shrink-0 px-2"
               onClick={() => navigate("/mock-test/history")}
             >
               <History className="h-4 w-4" />
-              History
+              <span className="hidden xs:inline">History</span>
             </Button>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
-              <Target className="h-6 w-6 text-fuchsia-600" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">আনলিমিটেড মক টেস্ট</h1>
-              <p className="text-sm text-muted-foreground">
-                সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
-              </p>
-            </div>
           </div>
         </CardContent>
       </Card>
