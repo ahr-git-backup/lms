@@ -504,34 +504,38 @@ const TakeMistakeExam = () => {
 
     // --- START SCREEN ---
     if (!hasStarted) {
+        const uniqueExamTitles = Array.from(new Set(questions.map(q => q.exam_title).filter(Boolean)));
+        const headerTitle = uniqueExamTitles.length === 1 ? uniqueExamTitles[0] : "Mistakes Practice";
         return (
-            <div className="h-screen flex items-center justify-center p-2 overflow-hidden">
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-2">
                 <Card className="w-full max-w-md shadow-xl">
-                    <CardContent className="p-4 space-y-3 text-center">
-                        <div className="space-y-1">
-                            <h1 className="text-lg font-bold text-primary">Mistakes Practice</h1>
-                            <p className="text-xs text-muted-foreground">
-                                {questions.length} questions based on your selection
+                    <CardContent className="p-3 space-y-2 text-center">
+                        <div className="space-y-0.5">
+                            <h1 className="text-xl font-bold text-primary leading-tight truncate">{headerTitle}</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                {uniqueExamTitles.length > 1
+                                    ? `Mistakes Practice · ${uniqueExamTitles.length} exams · ${questions.length} questions`
+                                    : `${questions.length} questions based on your selection`}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
-                             <div className="p-2 bg-muted rounded-lg">
-                                 <div className="text-[10px] font-medium text-muted-foreground uppercase">Questions</div>
-                                 <div className="text-xl font-bold">{questions.length}</div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                             <div className="p-1.5 bg-muted rounded-lg">
+                                 <div className="text-[9px] font-medium text-muted-foreground uppercase">Questions</div>
+                                 <div className="text-lg font-bold">{questions.length}</div>
                              </div>
-                             <div className="p-2 bg-muted rounded-lg">
-                                 <div className="text-[10px] font-medium text-muted-foreground uppercase">Duration</div>
-                                 <div className="text-xl font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-[10px] font-normal text-muted-foreground">min</span></div>
+                             <div className="p-1.5 bg-muted rounded-lg">
+                                 <div className="text-[9px] font-medium text-muted-foreground uppercase">Duration</div>
+                                 <div className="text-lg font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-[9px] font-normal text-muted-foreground">min</span></div>
                              </div>
                         </div>
 
-                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-2.5 rounded-lg text-[11px] text-left">
-                            <h3 className="font-bold flex items-center gap-1.5 mb-1">
-                                <AlertTriangle className="h-3.5 w-3.5 text-yellow-600 shrink-0" />
+                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-2 rounded-lg text-[10px] text-left">
+                            <h3 className="font-bold flex items-center gap-1.5 mb-0.5">
+                                <AlertTriangle className="h-3 w-3 text-yellow-600 shrink-0" />
                                 Note
                             </h3>
-                            <ul className="list-disc pl-4 space-y-0.5 text-muted-foreground">
+                            <ul className="list-disc pl-3.5 space-y-0 text-muted-foreground">
                                 <li>45 seconds per question.</li>
                                 <li>Doesn't affect main exam statistics.</li>
                                 <li>Questions from multiple exams you've taken.</li>
@@ -560,6 +564,7 @@ const TakeMistakeExam = () => {
                                 <PlayCircle className="mr-2 h-4 w-4" /> Start Now
                             </Button>
                         </div>
+
                     </CardContent>
                 </Card>
             </div>
