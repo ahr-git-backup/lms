@@ -73,8 +73,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                 </Button>
                 <Button
                     size="sm"
-                    variant="outline"
-                    className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
                     onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}`)}
                 >
                     Practice Again
@@ -84,9 +83,8 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     <PopoverTrigger asChild>
                         <Button
                             size="sm"
-                            variant="outline"
                             disabled={!hasMistakes}
-                            className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                            className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
                         >
                             Mistake Practice
                         </Button>
@@ -111,9 +109,8 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
 
                 <Button
                     size="sm"
-                    variant="outline"
                     onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
-                    className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                    className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
                 >
                     Leaderboard
                 </Button>
