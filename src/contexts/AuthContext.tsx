@@ -193,7 +193,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const code = (error as { message?: string; status?: number }).message || "";
         const isCredentialError = /invalid login credentials|invalid.*credentials/i.test(code);
         if (isCredentialError) {
-          return { error: { message: "Invalid registration ID or password" } };
+          // @ts-expect-error rpc not in generated types
+          const { data: exists } = await supabase.rpc('check_identifier_exists', { p_identifier: identifier });
+          if (!exists) {
+            return { error: { message: "এই আইডি/ফোন/ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। Registration ID, ফোন নম্বর বা ইমেইল ঠিক আছে কিনা চেক করুন।" } };
+          }
+          return { error: { message: "পাসওয়ার্ড ভুল হয়েছে। আবার চেষ্টা করুন অথবা পাসওয়ার্ড রিসেট করুন।" } };
         }
         return { error: { message: `লগইন করা যায়নি: ${code || "অজানা সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।` } };
       }
