@@ -75,7 +75,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     size="sm"
                     variant="outline"
                     className="rounded-lg text-[10px] h-8 px-1 leading-tight whitespace-normal"
-                    onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}?qp=1`)}
+                    onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}`)}
                 >
                     Practice Again
                 </Button>
