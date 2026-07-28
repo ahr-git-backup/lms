@@ -34,7 +34,7 @@ const Bookmarks = () => {
             created_at,
             question:exam_questions (
                 *,
-                exam:exams(title, exam_type, is_readymade, readymade_category)
+                exam:exams(title, exam_type, is_readymade, readymade_category, time_window_end)
             )
         `)
         .eq("profile_id", user.id)
@@ -49,7 +49,12 @@ const Bookmarks = () => {
   const getCategory = (b: any): Exclude<CategoryFilter, "all"> => {
     const exam = b.question?.exam;
     if (exam?.is_readymade) return "readymade";
-    if (exam?.exam_type === "live") return "live";
+    if (exam?.exam_type === "live") {
+      // A live exam whose window has ended (missed) behaves as a practice
+      // exam from then on — its bookmarks should show under Practice.
+      const isPastDeadline = exam?.time_window_end && new Date(exam.time_window_end) < new Date();
+      return isPastDeadline ? "practice" : "live";
+    }
     return "practice";
   };
 
