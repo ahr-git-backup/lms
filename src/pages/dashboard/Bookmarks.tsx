@@ -16,6 +16,7 @@ const Bookmarks = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<CategoryFilter>("all");
+  const [readymadeSubCat, setReadymadeSubCat] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Bookmarks – Atlas";
@@ -33,7 +34,7 @@ const Bookmarks = () => {
             created_at,
             question:exam_questions (
                 *,
-                exam:exams(title, exam_type, is_readymade)
+                exam:exams(title, exam_type, is_readymade, readymade_category)
             )
         `)
         .eq("profile_id", user.id)
@@ -60,10 +61,24 @@ const Bookmarks = () => {
     return counts;
   }, [bookmarks]);
 
+  const readymadeSubCats = useMemo(() => {
+    const set = new Set<string>();
+    (bookmarks || []).forEach((b: any) => {
+      if (getCategory(b) === "readymade") {
+        const cat = b.question?.exam?.readymade_category;
+        if (cat) set.add(cat);
+      }
+    });
+    return Array.from(set);
+  }, [bookmarks]);
+
   const filteredBookmarks = useMemo(() => {
-    if (filter === "all") return bookmarks || [];
-    return (bookmarks || []).filter((b: any) => getCategory(b) === filter);
-  }, [bookmarks, filter]);
+    let list = filter === "all" ? (bookmarks || []) : (bookmarks || []).filter((b: any) => getCategory(b) === filter);
+    if (filter === "readymade" && readymadeSubCat) {
+      list = list.filter((b: any) => b.question?.exam?.readymade_category === readymadeSubCat);
+    }
+    return list;
+  }, [bookmarks, filter, readymadeSubCat]);
 
   const removeBookmarkMutation = useMutation({
       mutationFn: async (bookmarkId: string) => {
@@ -98,7 +113,7 @@ const Bookmarks = () => {
         ] as const).map((f) => (
           <button
             key={f.key}
-            onClick={() => setFilter(f.key)}
+            onClick={() => { setFilter(f.key); setReadymadeSubCat(null); }}
             className={cn(
               "px-3.5 py-1.5 rounded-full text-xs font-semibold border shrink-0 transition-colors",
               filter === f.key
@@ -110,6 +125,36 @@ const Bookmarks = () => {
           </button>
         ))}
       </div>
+
+      {filter === "readymade" && readymadeSubCats.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setReadymadeSubCat(null)}
+            className={cn(
+              "px-3 py-1 rounded-full text-[11px] font-semibold border shrink-0 transition-colors",
+              !readymadeSubCat
+                ? "bg-primary/15 text-primary border-primary/40"
+                : "bg-background text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            সব
+          </button>
+          {readymadeSubCats.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setReadymadeSubCat(cat)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[11px] font-semibold border shrink-0 transition-colors",
+                readymadeSubCat === cat
+                  ? "bg-primary/15 text-primary border-primary/40"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
 
       {filteredBookmarks && filteredBookmarks.length > 0 ? (
         <div className="space-y-6">
