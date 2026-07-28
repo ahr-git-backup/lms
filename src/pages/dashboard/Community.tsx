@@ -119,9 +119,23 @@ const Community = () => {
       return true;
   });
 
+  // Deduplicate by URL globally: if a student is enrolled in multiple courses
+  // that share the exact same FB/TG group link, only show it once (first occurrence).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dedupedLinks = (() => {
+      const seenUrls = new Set<string>();
+      const result: any[] = [];
+      for (const link of platformFilteredLinks) {
+          if (seenUrls.has(link.url)) continue;
+          seenUrls.add(link.url);
+          result.push(link);
+      }
+      return result;
+  })();
+
   // Group links by course name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedLinks = platformFilteredLinks.reduce((acc: Record<string, any[]>, link: any) => {
+  const groupedLinks = dedupedLinks.reduce((acc: Record<string, any[]>, link: any) => {
       const courseName = link.course_name || "Public Community";
       if (!acc[courseName]) acc[courseName] = [];
       acc[courseName].push(link);
