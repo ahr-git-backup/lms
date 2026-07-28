@@ -117,6 +117,13 @@ const TakeExam = () => {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [bookmarkedIds, setBookmarkedIds] = useState<Set<string>>(new Set());
 
+  // Ensure the page always opens at the top instead of retaining the
+  // previous page's scroll position (was causing the pre-exam review card
+  // to appear scrolled/cut-off on entry).
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -899,32 +906,32 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="min-h-screen bg-background flex flex-col items-start justify-start px-1 py-1.5 sm:px-1.5">
-          <div className="w-full max-w-2xl mx-auto space-y-2">
+          <div className="h-[100dvh] bg-background flex flex-col items-start justify-start px-1 py-1 sm:px-1.5 overflow-hidden">
+          <div className="w-full max-w-2xl mx-auto space-y-1.5 flex flex-col h-full justify-center">
               {/* Card 1: Header/Info */}
-              <Card className="w-full rounded-xl shadow-sm border">
-                  <div className="p-3 md:p-4 space-y-2">
+              <Card className="w-full rounded-xl shadow-sm border shrink-0">
+                  <div className="p-2 md:p-3 space-y-1">
                       <div className="text-center space-y-0.5">
-                          <h1 className="text-2xl md:text-3xl font-bold tracking-tight leading-tight">{exam.title}</h1>
-                          <p className="text-muted-foreground text-xs">Please review the details below before starting.</p>
+                          <h1 className="text-lg md:text-2xl font-bold tracking-tight leading-tight line-clamp-1">{exam.title}</h1>
+                          <p className="text-muted-foreground text-[10px]">Please review the details below before starting.</p>
                       </div>
 
-                      <div className="grid grid-cols-3 gap-2">
-                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
-                              <span className="text-lg font-bold text-primary">
+                      <div className="grid grid-cols-3 gap-1.5">
+                          <div className="flex flex-col items-center justify-center p-1.5 bg-secondary/30 rounded-lg">
+                              <span className="text-base font-bold text-primary">
                                   {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
                                       ? Math.ceil((selectedQuestionCount * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
-                              <span className="text-lg font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
+                          <div className="flex flex-col items-center justify-center p-1.5 bg-secondary/30 rounded-lg">
+                              <span className="text-base font-bold text-primary">{exam.external_exam_link ? 'N/A' : effectiveQuestions?.length}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Questions</span>
                           </div>
-                          <div className="flex flex-col items-center justify-center p-2 bg-secondary/30 rounded-lg">
-                              <span className="text-lg font-bold text-red-500">{exam.negative_mark_per_question}</span>
-                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Negative</span>
+                          <div className="flex flex-col items-center justify-center p-1.5 bg-secondary/30 rounded-lg">
+                              <span className="text-base font-bold text-red-500">{exam.negative_mark_per_question}</span>
+                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Negative</span>
                           </div>
                       </div>
                   </div>
@@ -932,13 +939,13 @@ const TakeExam = () => {
 
               {/* Card: Quick Practice Mode toggle */}
               {exam.is_readymade && !exam.external_exam_link && (
-                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden">
-                      <div className="px-3 py-2 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                              <Zap className="h-5 w-5 text-violet-500 shrink-0" />
+                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden shrink-0">
+                      <div className="px-2.5 py-1.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                              <Zap className="h-4 w-4 text-violet-500 shrink-0" />
                               <div className="min-w-0">
-                                  <p className="text-xs font-bold truncate">Quick Practice Mode</p>
-                                  <p className="text-[10px] text-muted-foreground leading-snug line-clamp-1">
+                                  <p className="text-[11px] font-bold truncate">Quick Practice Mode</p>
+                                  <p className="text-[9px] text-muted-foreground leading-snug line-clamp-1">
                                       প্রতি প্রশ্নে ৩০ সেকেন্ড, তাৎক্ষণিক ফলাফল।
                                   </p>
                               </div>
@@ -947,15 +954,15 @@ const TakeExam = () => {
                               type="button"
                               onClick={() => setIsQuickPracticeMode((v) => !v)}
                               className={cn(
-                                  "shrink-0 h-7 w-[52px] rounded-full relative transition-colors shadow-inner",
+                                  "shrink-0 h-6 w-[46px] rounded-full relative transition-colors shadow-inner",
                                   isQuickPracticeMode ? "bg-violet-500" : "bg-muted border border-border"
                               )}
                               aria-label="Toggle Quick Practice Mode"
                           >
                               <span
                                   className={cn(
-                                      "absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform",
-                                      isQuickPracticeMode ? "translate-x-[22px]" : "translate-x-0"
+                                      "absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
+                                      isQuickPracticeMode ? "translate-x-[20px]" : "translate-x-0"
                                   )}
                               />
                           </button>
