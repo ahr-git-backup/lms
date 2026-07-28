@@ -736,13 +736,14 @@ const TakeExam = () => {
     if (!targetId) return; // all answered
 
     const finalTargetId = targetId;
-    // Small delay lets the answered/disabled layout reflow settle first,
-    // then smooth-scroll without stutter.
+    // Delay lets the answer actually register and the layout reflow settle
+    // before scrolling — too short and it can fire before the click/state
+    // update finishes, causing it to jump early.
     setTimeout(() => {
       requestAnimationFrame(() => {
         questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
       });
-    }, 50);
+    }, 250);
   };
 
   // 0. Auth Loading / Profile Check
