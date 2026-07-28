@@ -736,9 +736,9 @@ const TakeExam = () => {
     if (!targetId) return; // all answered
 
     const finalTargetId = targetId;
-    // Scroll immediately on the next paint — no artificial delay, instant jump.
+    // Smooth scroll with no artificial delay — feels fast but not jerky.
     requestAnimationFrame(() => {
-      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "auto", block: "center" });
+      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
 
