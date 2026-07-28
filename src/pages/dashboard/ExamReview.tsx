@@ -323,6 +323,7 @@ const ExamReview = () => {
           })),
           totalMarks: displayTotalMarks,
           score: Number(score),
+          style: "style1",
       });
   };
 

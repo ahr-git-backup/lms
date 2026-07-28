@@ -22,6 +22,8 @@ interface SolvePdfParams {
   questions: SolvePdfQuestion[];
   totalMarks?: number;
   score?: number;
+  /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table. Defaults to style2. */
+  style?: "style1" | "style2";
 }
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
@@ -78,9 +80,40 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{.print-btn{display:none}}
 </style>`;
 
-export function generateSolvePdfHtml({ examName, questions }: SolvePdfParams): string {
+export function generateSolvePdfHtml({ examName, questions, style = "style2" }: SolvePdfParams): string {
   const heading = escapeHtml(examName) || "Exam";
 
+  if (style === "style1") {
+    // Ported 1:1 from QuizBot _build_print_style1: Q + inline answer circle + explanation together.
+    let body = `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns">`;
+
+    questions.forEach((q, idx) => {
+      const n = idx + 1;
+      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const isShort = checkShortOption(opts);
+      const qNum = String(n).padStart(2, "0");
+      const ai = OPTION_KEYS.indexOf(q.correct_option as any);
+      const ansCircle = `[${ai >= 0 ? OPTION_KEYS[ai] : "?"}]`;
+
+      body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+
+      if (isShort) {
+        body += `<table class="options-table-short"><tr><td class="option-col">(A) ${escapeHtml(opts[0])}</td><td class="option-col">(B) ${escapeHtml(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col">(C) ${escapeHtml(opts[2])}</td><td class="option-col">(D) ${escapeHtml(opts[3])}</td></tr></table>`;
+      } else {
+        body += `<ul class="options-list"><li>(A) ${escapeHtml(opts[0])}</li><li>(B) ${escapeHtml(opts[1])}</li><li>(C) ${escapeHtml(opts[2])}</li><li class="option-with-answer"><span>(D) ${escapeHtml(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
+      }
+      if (q.explanation) {
+        body += `<div class="explanation"><span class="explanation-label">ব্যাখ্যা:</span> ${escapeHtml(q.explanation)}</div>`;
+      }
+      body += "</div>";
+    });
+
+    body += "</div>";
+    body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
+  }
+
+  // style2 (default): questions page + separate answer table.
   let body = `<div class="exam-header"><h1>${heading} - Questions</h1></div><div class="content-columns">`;
 
   questions.forEach((q, idx) => {
