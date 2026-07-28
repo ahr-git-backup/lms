@@ -79,9 +79,9 @@ Feedback: ${feedback}`;
         return (
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="destructive" size="sm" className="w-full sm:w-auto">
-                        <X className="h-4 w-4 mr-2" />
-                        Decline (Delete)
+                    <Button variant="destructive" size="sm" className="flex-1 min-w-0 sm:flex-none sm:w-auto">
+                        <X className="h-4 w-4 mr-1 shrink-0" />
+                        <span className="truncate">Decline (Delete)</span>
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -187,9 +187,9 @@ Admin Feedback: ${feedback}`;
         return (
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogTrigger asChild>
-                    <Button variant="default" size="sm" className="w-full sm:w-auto">
-                        <Check className="h-4 w-4 mr-2" />
-                        Edit & Resolve
+                    <Button variant="default" size="sm" className="flex-1 min-w-0 sm:flex-none sm:w-auto">
+                        <Check className="h-4 w-4 mr-1 shrink-0" />
+                        <span className="truncate">Edit & Resolve</span>
                     </Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -369,7 +369,7 @@ Admin Feedback: ${feedback}`;
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 bg-muted/20 py-3 px-3">
+            <CardFooter className="flex flex-row justify-end gap-2 bg-muted/20 py-3 px-3 flex-wrap">
                 <DeclineDialog report={report} />
                 <EditQuestionDialog report={report} onClose={() => {}} />
             </CardFooter>
