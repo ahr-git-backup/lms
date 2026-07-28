@@ -1032,12 +1032,11 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = 
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-blue-600"
+                    className="h-7 px-2 text-[11px] bg-blue-500 hover:bg-blue-600 text-white hover:text-white"
                     disabled={downloadingId === exam.id}
                     onClick={(e) => handleDownloadPdf(e, exam)}
                   >
-                    <FileDown className="h-3.5 w-3.5 mr-1" />
-                    {downloadingId === exam.id ? "..." : "PDF"}
+                    {downloadingId === exam.id ? "..." : "Practice Sheet"}
                   </Button>
                 )}
                 {isAdmin && (
