@@ -220,7 +220,7 @@ const MyMistakes = () => {
                 </Card>
 
                 {/* Category Row */}
-                <div className="lg:col-span-3 flex flex-wrap gap-1.5">
+                <div className="lg:col-span-3 grid grid-cols-4 gap-1.5">
                     {([
                         { key: 'all', label: 'All' },
                         { key: 'live', label: 'Live Exam' },
@@ -231,7 +231,7 @@ const MyMistakes = () => {
                             key={c.key}
                             size="sm"
                             variant={category === c.key ? 'default' : 'outline'}
-                            className="h-7 px-2.5 text-xs"
+                            className="h-7 px-1.5 text-[11px] w-full truncate"
                             onClick={() => {
                                 if (category === c.key) {
                                     setCategory('all');
