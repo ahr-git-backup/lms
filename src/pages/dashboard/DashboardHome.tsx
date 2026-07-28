@@ -730,7 +730,7 @@ const DashboardHome = () => {
                                )}
                                <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
-                           <p className="font-medium text-base">{item.title}</p>
+                           <p className="font-semibold text-lg">{item.title}</p>
                        </CardContent>
                    </Card>
                ))}
