@@ -283,7 +283,7 @@ const PastExamCatalog = () => {
                     disabled={downloadingId === exam.id}
                     className="rounded-full text-xs px-2"
                   >
-                    <FileDown className="h-3.5 w-3.5 mr-1" /> Sheet
+                    <FileDown className="h-3.5 w-3.5 mr-1" /> Practice Sheet
                   </Button>
                   <Button
                     size="sm"
@@ -291,7 +291,7 @@ const PastExamCatalog = () => {
                     onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}
                     className="rounded-full text-xs px-2"
                   >
-                    <Trophy className="h-3.5 w-3.5 mr-1" /> Rank
+                    <Trophy className="h-3.5 w-3.5 mr-1" /> Leaderboard
                   </Button>
                 </div>
               </CardContent>
