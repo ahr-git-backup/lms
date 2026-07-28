@@ -116,7 +116,11 @@ const PastExamCatalog = () => {
     if (downloadingId) return;
     setDownloadingId(exam.id);
     try {
-      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("question_text, option_a, option_b, option_c, option_d, option_e, correct_option, explanation")
+        .eq("exam_id", exam.id)
+        .order("question_index", { ascending: true });
       if (error) throw error;
       if (!data || data.length === 0) {
         toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
@@ -279,7 +283,7 @@ const PastExamCatalog = () => {
                     disabled={downloadingId === exam.id}
                     className="rounded-full text-xs px-2"
                   >
-                    <FileDown className="h-3.5 w-3.5" />
+                    <FileDown className="h-3.5 w-3.5 mr-1" /> Sheet
                   </Button>
                   <Button
                     size="sm"
@@ -287,7 +291,7 @@ const PastExamCatalog = () => {
                     onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}
                     className="rounded-full text-xs px-2"
                   >
-                    <Trophy className="h-3.5 w-3.5" />
+                    <Trophy className="h-3.5 w-3.5 mr-1" /> Rank
                   </Button>
                 </div>
               </CardContent>
