@@ -27,7 +27,7 @@ interface CommunityLink {
 // They can confirm "যোগ হয়েছে" (already joined) to stop being asked about
 // that specific link, or click "যোগ দিন" to open it (which also marks it
 // as clicked automatically).
-const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const CHECK_INTERVAL_MS = 15 * 60 * 1000;
 
 export const CommunityJoinReminder = () => {
   const { user } = useAuth();
