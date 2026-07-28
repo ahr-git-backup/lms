@@ -45,7 +45,8 @@ const PastExamCatalog = () => {
             .or(`course_id.in.(${courseIds.join(',')}),shared_course_ids.ov.{${courseIds.join(',')}}`)
             .eq("is_published", true)
             // Either a dedicated practice exam OR a live exam whose window has ended (missed).
-            .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`);
+            .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`)
+            .eq("is_readymade", false);
 
         query = sortOrder === "old"
           ? query.order("time_window_start", { ascending: true }).order("created_at", { ascending: true })
