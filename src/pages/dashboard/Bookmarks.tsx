@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+import { getExamCategory } from "@/lib/examCategory";
+
 type CategoryFilter = "all" | "live" | "practice" | "readymade";
 
 const Bookmarks = () => {
@@ -46,17 +48,7 @@ const Bookmarks = () => {
     enabled: !!user,
   });
 
-  const getCategory = (b: any): Exclude<CategoryFilter, "all"> => {
-    const exam = b.question?.exam;
-    if (exam?.is_readymade) return "readymade";
-    if (exam?.exam_type === "live") {
-      // A live exam whose window has ended (missed) behaves as a practice
-      // exam from then on — its bookmarks should show under Practice.
-      const isPastDeadline = exam?.time_window_end && new Date(exam.time_window_end) < new Date();
-      return isPastDeadline ? "practice" : "live";
-    }
-    return "practice";
-  };
+  const getCategory = (b: any): Exclude<CategoryFilter, "all"> => getExamCategory(b.question?.exam);
 
   const categoryCounts = useMemo(() => {
     const counts = { all: bookmarks?.length || 0, live: 0, practice: 0, readymade: 0 };
