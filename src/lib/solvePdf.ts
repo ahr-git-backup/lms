@@ -51,7 +51,8 @@ function checkShortOption(opts: string[]): boolean {
 // Ported 1:1 from QuizBot's _PRINT_CSS.
 const PRINT_CSS = `<style>
 @page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}
-body{font-family:'Noto Sans Bengali','SolaimanLipi',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0;padding:10px;width:210mm;max-width:210mm}
+body{font-family:'Noto Sans Bengali','SolaimanLipi',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0 auto;padding:10px;width:210mm;max-width:210mm}
+@media screen{html{background:#e5e5e5}body{margin:10px auto;box-shadow:0 0 8px rgba(0,0,0,0.15)}}
 .exam-header{text-align:center;border:2px solid #4169E1;background-color:#F0F8FF;border-radius:6px;padding:10px;margin-bottom:15px}
 .exam-header h1{color:#191970;margin:0;font-size:15pt;font-weight:bold}
 .content-columns{column-count:2;column-gap:15px;column-fill:balance;column-rule:1px solid #ddd}
