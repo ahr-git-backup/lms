@@ -4,35 +4,38 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Trophy, FileDown, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { SUBJECTS } from "@/lib/constants";
 import { setExamSourceList } from "@/lib/examSourceTracker";
-import ReactMarkdown from "react-markdown";
+import { openSolvePdf } from "@/lib/solvePdf";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 
 const PastExamCatalog = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubject, setSelectedSubject] = useState<string>("all");
   const [sortOrder, setSortOrder] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     document.title = "Past Exams – Atlas";
   }, []);
 
   const { data: exams, isLoading: examsLoading } = useQuery({
-    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject, sortOrder, searchQuery],
+    queryKey: ["past-exam-catalog", user?.id, selectedCourse, selectedSubject, sortOrder, searchQuery, enrollments?.length],
     queryFn: async () => {
         if (!user || !enrollments || enrollments.length === 0) return [];
 
+        // Only courses the user actually has access to (enrolled + bonus/shared courses).
         const courseIds = enrollments.map(e => e.course_id);
         const now = new Date().toISOString();
 
@@ -41,23 +44,18 @@ const PastExamCatalog = () => {
             .select("*, course:courses(*)")
             .or(`course_id.in.(${courseIds.join(',')}),shared_course_ids.ov.{${courseIds.join(',')}}`)
             .eq("is_published", true)
-            // Filter: Either practice exam OR (live exam AND window ended)
+            // Either a dedicated practice exam OR a live exam whose window has ended (missed).
             .or(`exam_type.eq.practice,and(exam_type.eq.live,time_window_end.lt.${now})`);
 
-        if (sortOrder === "recent") {
-            query = query.order("time_window_start", { ascending: false }).order("created_at", { ascending: false });
-        } else if (sortOrder === "old") {
-            query = query.order("time_window_start", { ascending: true }).order("created_at", { ascending: true });
-        } else {
-            query = query.order("sort_order", { ascending: false }).order("created_at", { ascending: false });
-        }
+        query = sortOrder === "old"
+          ? query.order("time_window_start", { ascending: true }).order("created_at", { ascending: true })
+          : query.order("time_window_start", { ascending: false }).order("created_at", { ascending: false });
 
         const { data, error } = await query;
         if (error) throw error;
 
         let filteredData = data || [];
 
-        // Client-side filtering
         if (selectedCourse !== "all") {
             filteredData = filteredData.filter(e => {
                 if (e.course_id === selectedCourse) return true;
@@ -86,62 +84,77 @@ const PastExamCatalog = () => {
     enabled: !!user && !!enrollments,
   });
 
+  // Question count per exam (for the Duration + MCQ count line).
+  const examIds = (exams || []).map((e: any) => e.id);
+  const { data: questionCounts } = useQuery({
+    queryKey: ["past-exam-question-counts", examIds.join(",")],
+    queryFn: async () => {
+      if (examIds.length === 0) return {} as Record<string, number>;
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("exam_id")
+        .in("exam_id", examIds);
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        counts[row.exam_id] = (counts[row.exam_id] || 0) + 1;
+      });
+      return counts;
+    },
+    enabled: examIds.length > 0,
+  });
+
   const isLoading = enrollmentsLoading || examsLoading;
-  const [selectedExamForPopup, setSelectedExamForPopup] = useState<any>(null);
+
+  const handleStartPractice = (exam: any) => {
+    setExamSourceList(exam.id, "/dashboard/past-exam");
+    navigate(`/dashboard/take-exam/${exam.id}`);
+  };
+
+  const handleDownloadPdf = async (exam: any) => {
+    if (downloadingId) return;
+    setDownloadingId(exam.id);
+    try {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
+        return;
+      }
+      openSolvePdf({
+        examName: exam.title,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        questions: data.map((q: any) => ({
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          option_e: q.option_e,
+          correct_option: q.correct_option,
+          user_answer: null,
+          explanation: q.explanation,
+        })),
+        totalMarks: data.length,
+        style: "style2",
+      });
+    } catch (err: any) {
+      toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const fmtDate = (iso: string | null) => {
+    if (!iso) return null;
+    return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+  };
 
   return (
-    <div className="space-y-6">
-      <Dialog open={!!selectedExamForPopup} onOpenChange={(open) => !open && setSelectedExamForPopup(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-                <DialogTitle>{selectedExamForPopup?.title}</DialogTitle>
-                <DialogDescription>
-                    Review the details below before starting.
-                </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-muted p-3 rounded-md">
-                        <span className="font-semibold block">Duration</span>
-                        {selectedExamForPopup?.duration_minutes} minutes
-                    </div>
-                    <div className="bg-muted p-3 rounded-md">
-                        <span className="font-semibold block">Total Marks</span>
-                        {selectedExamForPopup?.total_marks || "N/A"}
-                    </div>
-                    <div className="bg-muted p-3 rounded-md">
-                        <span className="font-semibold block">Negative Marking</span>
-                        {selectedExamForPopup?.negative_mark_per_question || 0} per wrong answer
-                    </div>
-                    <div className="bg-muted p-3 rounded-md">
-                        <span className="font-semibold block">Type</span>
-                        {selectedExamForPopup?.exam_type === 'live' ? 'Expired Live' : 'Practice Exam'}
-                    </div>
-                </div>
-
-                {selectedExamForPopup?.instructions && (
-                    <div className="space-y-2">
-                        <h3 className="font-semibold text-sm">Instructions</h3>
-                        <div className="prose prose-sm dark:prose-invert max-w-none bg-muted/30 p-4 rounded-md text-sm">
-                            <ReactMarkdown>{selectedExamForPopup.instructions}</ReactMarkdown>
-                        </div>
-                    </div>
-                )}
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-                <Button variant="outline" onClick={() => setSelectedExamForPopup(null)}>
-                    Cancel
-                </Button>
-                <Button onClick={() => { if (selectedExamForPopup?.id) setExamSourceList(selectedExamForPopup.id, "/dashboard/past-exam"); navigate(`/dashboard/take-exam/${selectedExamForPopup?.id}`); }}>
-                    Start Exam
-                </Button>
-            </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Past Exams</h1>
-        <p className="text-sm text-muted-foreground">
+    <div className="space-y-3">
+      <header className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">Past Exams</h1>
+        <p className="text-xs text-muted-foreground">
             Practice with expired live exams or dedicated practice tests.
         </p>
       </header>
@@ -152,58 +165,56 @@ const PastExamCatalog = () => {
           placeholder="Search exams by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
+          className="pl-9 h-10"
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Course</div>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
-              {enrollments?.map((enrollment) => (
-                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                  {enrollment.course.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="h-10">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Courses</SelectItem>
+            {enrollments?.map((enrollment) => (
+              <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
+                {enrollment.course.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Sort</div>
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Default Order</SelectItem>
-              <SelectItem value="recent">Recent to Old</SelectItem>
-              <SelectItem value="old">Old to Recent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+          <SelectTrigger className="h-10">
+            <SelectValue placeholder="All Subjects" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Subjects</SelectItem>
+            {SUBJECTS.map((subject) => (
+              <SelectItem key={subject} value={subject}>
+                {subject}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Subjects" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subjects</SelectItem>
-              {SUBJECTS.map((subject) => (
-                <SelectItem key={subject} value={subject}>
-                  {subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Subject category quick-filter: 2 per row, "All Subjects" first */}
+      <div className="grid grid-cols-2 gap-2">
+        {["all", ...SUBJECTS].map((s) => (
+          <button
+            key={s}
+            onClick={() => setSelectedSubject(s)}
+            className={cn(
+              "h-10 rounded-lg border-2 px-2 text-xs font-semibold truncate transition-colors",
+              selectedSubject === s
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            )}
+          >
+            {s === "all" ? "All Subjects" : s}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (
@@ -216,7 +227,10 @@ const PastExamCatalog = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {exams.map((exam) => (
+          {exams.map((exam: any) => {
+            const qCount = questionCounts?.[exam.id];
+            const startDate = fmtDate(exam.time_window_start);
+            return (
             <Card key={exam.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
@@ -239,23 +253,46 @@ const PastExamCatalog = () => {
                     </div>
                 </div>
                 <CardTitle className="text-base">{exam.title}</CardTitle>
-                <CardDescription className="text-xs">
-                  Duration: {exam.duration_minutes} mins
-                </CardDescription>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+                  <span>Duration: {exam.duration_minutes} mins{qCount ? ` · ${qCount} MCQ` : ""}</span>
+                  {startDate && (
+                    <span className="inline-flex items-center gap-1">
+                      <CalendarDays className="h-3 w-3" /> {startDate}
+                    </span>
+                  )}
+                </div>
               </CardHeader>
               <CardContent className="flex flex-col flex-1">
-                <div className="mt-auto">
-                <Button
-                  size="sm"
-                  onClick={() => setSelectedExamForPopup(exam)}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-none"
-                >
-                  Start Practice
-                </Button>
+                <div className="mt-auto flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={() => handleStartPractice(exam)}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-none text-xs px-2"
+                  >
+                    Start Practice
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDownloadPdf(exam)}
+                    disabled={downloadingId === exam.id}
+                    className="rounded-full text-xs px-2"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}
+                    className="rounded-full text-xs px-2"
+                  >
+                    <Trophy className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
