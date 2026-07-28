@@ -33,6 +33,7 @@ export const CommunityJoinReminder = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [pendingLinks, setPendingLinks] = useState<CommunityLink[]>([]);
+  const [urlToIds, setUrlToIds] = useState<Record<string, string[]>>({});
   const [open, setOpen] = useState(false);
   const lastActivityRef = useRef(Date.now());
 
@@ -71,8 +72,25 @@ export const CommunityJoinReminder = () => {
       const clickedIds = new Set((clicks || []).map((c) => c.resource_id));
       const unclicked = (links as CommunityLink[]).filter((l) => !clickedIds.has(l.id));
 
-      if (unclicked.length > 0) {
-        setPendingLinks(unclicked);
+      // Same group/channel can be attached to more than one enrolled course
+      // (shared link) — show it once, not once per course, but remember all
+      // the resource ids behind that URL so confirming marks every duplicate
+      // as clicked too.
+      const idsByUrl: Record<string, string[]> = {};
+      unclicked.forEach((l) => {
+        if (!idsByUrl[l.url]) idsByUrl[l.url] = [];
+        idsByUrl[l.url].push(l.id);
+      });
+      const seenUrls = new Set<string>();
+      const deduped = unclicked.filter((l) => {
+        if (seenUrls.has(l.url)) return false;
+        seenUrls.add(l.url);
+        return true;
+      });
+
+      if (deduped.length > 0) {
+        setPendingLinks(deduped);
+        setUrlToIds(idsByUrl);
         setOpen(true);
       }
     };
@@ -82,11 +100,14 @@ export const CommunityJoinReminder = () => {
     return () => clearInterval(interval);
   }, [user]);
 
-  const markJoined = async (linkId: string) => {
+  const markJoined = async (link: CommunityLink) => {
     if (!user) return;
-    await supabase.rpc("record_community_link_click", { p_resource_id: linkId });
+    const allIds = urlToIds[link.url] || [link.id];
+    await Promise.all(
+      allIds.map((id) => supabase.rpc("record_community_link_click", { p_resource_id: id }))
+    );
     setPendingLinks((prev) => {
-      const next = prev.filter((l) => l.id !== linkId);
+      const next = prev.filter((l) => l.url !== link.url);
       if (next.length === 0) setOpen(false);
       return next;
     });
@@ -94,7 +115,7 @@ export const CommunityJoinReminder = () => {
 
   const openLink = (link: CommunityLink) => {
     window.open(link.url, "_blank", "noopener,noreferrer");
-    markJoined(link.id);
+    markJoined(link);
   };
 
   if (!user || pendingLinks.length === 0) return null;
@@ -122,7 +143,7 @@ export const CommunityJoinReminder = () => {
                 )}
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
-                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => markJoined(link.id)}>
+                <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => markJoined(link)}>
                   <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
                   যোগ হয়েছে
                 </Button>
