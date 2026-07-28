@@ -1431,7 +1431,7 @@ const TakeExam = () => {
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
 
-      <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
+      <div className="container max-w-6xl mx-auto px-1 py-4 md:px-4 md:py-8 space-y-6 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -1495,16 +1495,11 @@ const TakeExam = () => {
             className="scroll-mt-28"
           >
             <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
-                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
-                    {/* Question Row */}
-                    <div className="flex items-start gap-4 max-w-full">
+                <CardContent className="p-4 md:p-5 space-y-2 max-w-full overflow-x-hidden">
+                    {/* Top Row: number + icons */}
+                    <div className="flex items-center justify-between gap-2 max-w-full">
                         <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                             {idx + 1}
-                        </div>
-                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
-                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
-                            </div>
                         </div>
                         <div className="flex-shrink-0 flex items-center gap-1">
                             <ReportQuestionDialog questionId={q.id} questionText={q.question_text} onClose={() => {}} />
@@ -1516,6 +1511,13 @@ const TakeExam = () => {
                             >
                                 <Bookmark className={cn("h-5 w-5", bookmarkedIds.has(q.id) && "fill-current text-amber-500")} />
                             </Button>
+                        </div>
+                    </div>
+
+                    {/* Question Row - full width */}
+                    <div className="w-full min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                        <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                         </div>
                     </div>
 
