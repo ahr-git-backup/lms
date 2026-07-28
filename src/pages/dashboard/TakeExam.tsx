@@ -908,13 +908,13 @@ const TakeExam = () => {
 
   if (!hasStarted) {
       return (
-          <div className="h-[100dvh] bg-background flex flex-col items-start justify-start px-1 py-1 sm:px-1.5 overflow-hidden">
-          <div className="w-full max-w-2xl mx-auto space-y-1.5 flex flex-col h-full justify-center">
+          <div className="h-[100dvh] bg-background flex flex-col items-start justify-start px-1 py-1 sm:px-1.5 overflow-y-auto">
+          <div className="w-full max-w-2xl mx-auto space-y-1.5 flex flex-col pt-2">
               {/* Card 1: Header/Info */}
               <Card className="w-full rounded-xl shadow-sm border shrink-0">
                   <div className="p-2 md:p-3 space-y-1">
                       <div className="text-center space-y-0.5">
-                          <h1 className="text-lg md:text-2xl font-bold tracking-tight leading-tight line-clamp-1">{exam.title}</h1>
+                          <h1 className="text-xl md:text-3xl font-bold tracking-tight leading-tight">{exam.title}</h1>
                           <p className="text-muted-foreground text-[10px]">Please review the details below before starting.</p>
                       </div>
 
@@ -985,25 +985,25 @@ const TakeExam = () => {
                                       type="button"
                                       onClick={() => setContentMode('with')}
                                       className={cn(
-                                          "text-[10px] font-semibold rounded-md border-2 px-1.5 py-1 leading-tight transition-colors",
+                                          "text-xs font-semibold rounded-lg border-2 px-3 py-2.5 leading-tight transition-colors",
                                           contentMode === 'with'
                                               ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
                                               : "border-border text-muted-foreground hover:border-violet-300"
                                       )}
                                   >
-                                      চিত্র/উদ্দীপকসহ
+                                      চিত্র/উদ্দীপকসহ(HSC/Varsity)
                                   </button>
                                   <button
                                       type="button"
                                       onClick={() => setContentMode('without')}
                                       className={cn(
-                                          "text-[10px] font-semibold rounded-md border-2 px-1.5 py-1 leading-tight transition-colors",
+                                          "text-xs font-semibold rounded-lg border-2 px-3 py-2.5 leading-tight transition-colors",
                                           contentMode === 'without'
                                               ? "border-violet-500 bg-violet-500/10 text-violet-700 dark:text-violet-300"
                                               : "border-border text-muted-foreground hover:border-violet-300"
                                       )}
                                   >
-                                      চিত্র/উদ্দীপকছাড়া
+                                      চিত্র/উদ্দীপকছাড়া(Medical Standard)
                                   </button>
                               </div>
                           </div>
