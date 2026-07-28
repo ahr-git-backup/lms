@@ -55,6 +55,17 @@ const Announcements = () => {
             .eq("user_id", user.id)
             .eq("is_read", false);
 
+        // Also mark direct/personal announcements (recipient_profile_id) as read,
+        // and record that the general announcement feed was viewed just now —
+        // otherwise the badge count reappears on the next background poll.
+        await supabase
+            .from("announcements")
+            .update({ read_at: new Date().toISOString() })
+            .eq("recipient_profile_id", user.id)
+            .is("read_at", null);
+
+        localStorage.setItem("last_viewed_announcements", new Date().toISOString());
+
         // Invalidate query to refresh UI state
         queryClient.invalidateQueries({ queryKey: ["user-notifications"] });
         localStorage.setItem("unread_notification_count", "0");
