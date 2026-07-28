@@ -460,6 +460,42 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
+  // Per-chapter MCQ count badge — total questions across all exams in each
+  // chapter, for the chapter-selection cards.
+  const { data: chapterMcqCounts } = useQuery({
+    queryKey: ["readymade-exams-chapter-mcq-counts", selectedSubject, selectedParentTopics, selectedBoards],
+    queryFn: async () => {
+      if (!selectedSubject) return {};
+      const examRows = await fetchAllRows<{ id: string; chapter: string | null }>((from, to) => {
+        let query = supabase.from("exams").select("id, chapter")
+          .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+        return query;
+      });
+      const examIds = examRows.map(r => r.id);
+      if (examIds.length === 0) return {};
+
+      const examToChapter = new Map(examRows.map(r => [r.id, r.chapter]));
+      const chapterCounts: Record<string, number> = {};
+
+      const ID_BATCH = 200;
+      for (let i = 0; i < examIds.length; i += ID_BATCH) {
+        const batchIds = examIds.slice(i, i + ID_BATCH);
+        const { data: qRows } = await supabase
+          .from("exam_questions")
+          .select("exam_id")
+          .in("exam_id", batchIds);
+        (qRows || []).forEach((q: any) => {
+          const chapter = examToChapter.get(q.exam_id);
+          if (chapter) chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
+        });
+      }
+      return chapterCounts;
+    },
+    enabled: !!selectedSubject && !selectedChapter && !searchQuery
+  });
+
   // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
   const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
     queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
@@ -641,7 +677,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               {chapters.map(chapter => (
                 <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
                   <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                    <div className="text-sm sm:text-base font-semibold leading-tight">{chapter}</div>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="text-sm sm:text-base font-semibold leading-tight">{chapter}</div>
+                      {typeof chapterMcqCounts?.[chapter] === "number" && (
+                        <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                          {chapterMcqCounts[chapter]} MCQ
+                        </span>
+                      )}
+                    </div>
                     <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                   </CardContent>
                 </Card>
