@@ -11,12 +11,62 @@ import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { openSolvePdf } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 const MyMistakes = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const { toast } = useToast();
     const [pdfLoading, setPdfLoading] = useState<"wrong" | "both" | null>(null);
+    const [singlePdfLoadingId, setSinglePdfLoadingId] = useState<string | null>(null);
+
+    const generateSingleExamPdf = async (exam: any, mode: "all" | "wrong" | "both") => {
+        setSinglePdfLoadingId(exam.id);
+        try {
+            const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
+                p_attempt_id: exam.attemptId
+            });
+            if (!reviewData) {
+                toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+                return;
+            }
+            const userAnswers = (exam.answers as any[]) || [];
+            const qs: any[] = [];
+            reviewData.forEach((reviewQ: any) => {
+                const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
+                const selected = userAnswerObj?.selected_option;
+                const isSkipped = !selected;
+                const isWrong = !isSkipped && selected !== reviewQ.correct_option;
+                if (mode === "wrong" && !isWrong) return;
+                if (mode === "both" && !isWrong && !isSkipped) return;
+                qs.push({
+                    question_text: reviewQ.question_text,
+                    option_a: reviewQ.option_a,
+                    option_b: reviewQ.option_b,
+                    option_c: reviewQ.option_c,
+                    option_d: reviewQ.option_d,
+                    option_e: reviewQ.option_e,
+                    correct_option: reviewQ.correct_option,
+                    user_answer: selected || null,
+                    explanation: reviewQ.explanation,
+                });
+            });
+            if (qs.length === 0) {
+                toast({ title: "কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+                return;
+            }
+            openSolvePdf({
+                examName: exam.title,
+                questions: qs,
+                totalMarks: qs.length,
+                style: "style1",
+            });
+        } catch (e: any) {
+            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+        } finally {
+            setSinglePdfLoadingId(null);
+        }
+    };
 
     const [filterMode, setFilterMode] = useState<"wrong" | "skipped" | "both">("both");
     const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
@@ -375,6 +425,24 @@ const MyMistakes = () => {
                                                     {exam.subject && (
                                                         <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
                                                     )}
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-6 w-6 shrink-0"
+                                                                disabled={singlePdfLoadingId === exam.id}
+                                                                onClick={(e) => e.stopPropagation()}
+                                                            >
+                                                                {singlePdfLoadingId === exam.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                                                            </Button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "all")}>All Questions</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "wrong")}>Only Wrong</DropdownMenuItem>
+                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "both")}>Wrong + Skip</DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
                                                 </div>
                                                 <p className="text-[10px] text-muted-foreground">
                                                     Last attempt: {format(new Date(exam.lastAttempt), "PP")}
