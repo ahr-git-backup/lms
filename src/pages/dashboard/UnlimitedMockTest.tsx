@@ -464,10 +464,10 @@ const UnlimitedMockTest = () => {
                           onClick={() => {
                             toggleMultiSubject(s);
                           }}
-                          className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 dark:bg-white dark:text-black ${
+                          className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                             checked
-                              ? "border-primary bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/40"
+                              ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                              : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                           }`}
                         >
                           {s}
@@ -500,10 +500,10 @@ const UnlimitedMockTest = () => {
                               toggleMultiChapter(subj, c);
                               setMultiDrillChapter(checked ? null : { subject: subj, chapter: c });
                             }}
-                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 dark:bg-white dark:text-black ${
+                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
-                                ? "border-primary bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary"
-                                : "border-border text-muted-foreground hover:border-primary/40"
+                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                             }`}
                           >
                             {c}
@@ -542,10 +542,10 @@ const UnlimitedMockTest = () => {
                             onClick={() =>
                               toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
                             }
-                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 dark:bg-white dark:text-black ${
+                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
-                                ? "border-primary bg-primary/10 dark:bg-primary/10 text-primary dark:text-primary"
-                                : "border-border text-muted-foreground hover:border-primary/40"
+                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                             }`}
                           >
                             {t}
@@ -588,7 +588,7 @@ const UnlimitedMockTest = () => {
                   className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                   style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                 >
@@ -618,7 +618,7 @@ const UnlimitedMockTest = () => {
                     className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                     }`}
                     style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                   >
@@ -641,7 +641,7 @@ const UnlimitedMockTest = () => {
                     className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                       topic === t
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                     }`}
                   >
                     {t}
@@ -662,7 +662,7 @@ const UnlimitedMockTest = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
                     standard === s.value
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                 >
                   {s.label}
@@ -690,7 +690,7 @@ const UnlimitedMockTest = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
                     count === c
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                 >
                   {c}
@@ -714,7 +714,7 @@ const UnlimitedMockTest = () => {
                     placeholder=""
                     value={customCount}
                     onChange={(e) => setCustomCount(e.target.value)}
-                    className="flex-1 dark:bg-white dark:text-black"
+                    className="flex-1 dark:text-white"
                   />
                 </div>
                 <Button onClick={handleCustomStart} disabled={starting}>
