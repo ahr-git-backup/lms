@@ -443,15 +443,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         examToSubjects.set(r.id, subs);
       });
       const subjectCounts: Record<string, number> = {};
+      // Seed every subject with 0 so the badge renders even for subjects
+      // whose exams currently have no questions yet.
+      examToSubjects.forEach((subs) => { subs.forEach(s => { subjectCounts[s] = subjectCounts[s] || 0; }); });
 
-      const ID_BATCH = 200;
+      const ID_BATCH = 150;
       for (let i = 0; i < examIds.length; i += ID_BATCH) {
         const batchIds = examIds.slice(i, i + ID_BATCH);
-        const { data: qRows } = await supabase
-          .from("exam_questions")
-          .select("exam_id")
-          .in("exam_id", batchIds);
-        (qRows || []).forEach((q: any) => {
+        const qRows = await fetchAllRows<{ exam_id: string }>((from, to) =>
+          supabase.from("exam_questions").select("exam_id").in("exam_id", batchIds).range(from, to)
+        );
+        qRows.forEach((q) => {
           const subs = examToSubjects.get(q.exam_id) || [];
           subs.forEach(s => { subjectCounts[s] = (subjectCounts[s] || 0) + 1; });
         });
@@ -517,15 +519,20 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
       const examToChapter = new Map(examRows.map(r => [r.id, r.chapter]));
       const chapterCounts: Record<string, number> = {};
+      // Seed every chapter with 0 so the badge renders even for chapters
+      // whose exams currently have no questions yet.
+      examRows.forEach(r => { if (r.chapter) chapterCounts[r.chapter] = chapterCounts[r.chapter] || 0; });
 
-      const ID_BATCH = 200;
+      const ID_BATCH = 150;
       for (let i = 0; i < examIds.length; i += ID_BATCH) {
         const batchIds = examIds.slice(i, i + ID_BATCH);
-        const { data: qRows } = await supabase
-          .from("exam_questions")
-          .select("exam_id")
-          .in("exam_id", batchIds);
-        (qRows || []).forEach((q: any) => {
+        // Paginate — a single .select() without .range() is capped at 1000 rows
+        // by PostgREST, which would silently under-count chapters with lots
+        // of questions.
+        const qRows = await fetchAllRows<{ exam_id: string }>((from, to) =>
+          supabase.from("exam_questions").select("exam_id").in("exam_id", batchIds).range(from, to)
+        );
+        qRows.forEach((q) => {
           const chapter = examToChapter.get(q.exam_id);
           if (chapter) chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
         });
