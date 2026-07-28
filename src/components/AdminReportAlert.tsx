@@ -14,9 +14,12 @@ import {
 import { AlertCircle } from "lucide-react";
 
 // Popup alert for admins/teachers whenever there are pending question reports.
-// Re-checks and re-alerts every 5 minutes while the admin is active, for as
-// long as any report remains unresolved — not just brand-new ones.
+// Re-checks every 5 minutes while the admin is active, for as long as any
+// report remains unresolved. Dismissing (either button) snoozes it until the
+// next scheduled check — it does not re-check immediately on every page
+// navigation or component remount.
 const CHECK_INTERVAL_MS = 5 * 60 * 1000;
+const LAST_CHECK_KEY = "admin_report_alert_last_check";
 
 export const AdminReportAlert = () => {
   const navigate = useNavigate();
@@ -50,12 +53,21 @@ export const AdminReportAlert = () => {
         .select("id", { count: "exact", head: true });
       if (error) return;
 
+      sessionStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
+
       const n = count || 0;
       setPendingCount(n);
       if (n > 0) setOpen(true);
     };
 
-    checkPending();
+    // Only run an immediate check if we haven't checked recently (e.g. this
+    // is a fresh session/tab). On a same-session remount (route change,
+    // fast refresh, etc.) we wait for the next scheduled interval instead
+    // of re-popping the dialog right away.
+    const lastCheck = Number(sessionStorage.getItem(LAST_CHECK_KEY) || 0);
+    const dueForCheck = Date.now() - lastCheck >= CHECK_INTERVAL_MS;
+    if (dueForCheck) checkPending();
+
     const interval = setInterval(checkPending, CHECK_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
