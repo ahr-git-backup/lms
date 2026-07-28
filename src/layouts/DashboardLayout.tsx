@@ -552,7 +552,7 @@ export const DashboardLayout = () => {
         <FloatingStudyTools />
         <ProfileCompletionReminder />
         <ReportFeedbackAlert />
-        <CommunityJoinReminder />
+        {!isAdmin && !isTeacher && <CommunityJoinReminder />}
       </div>
     </SidebarProvider>
     </StudyToolsProvider>
