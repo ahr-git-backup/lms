@@ -405,13 +405,37 @@ const DashboardHome = () => {
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
-            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+            className="animate-border-chase border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20 col-span-3"
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">My Progress & History</p>
+            <CardContent className="p-2 space-y-2">
+              <div className="flex items-center justify-center gap-1.5">
+                <TrendingUp className="h-4 w-4 text-blue-500 flex-shrink-0" />
+                <p className="font-medium text-sm leading-tight">My Progress & History</p>
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  className="rounded-md border border-blue-500/30 bg-background/60 hover:border-blue-500 transition-colors p-1.5 text-center"
+                  onClick={() => toast({ title: "Coming Soon", description: "Exam History feature আসছে খুব শীঘ্রই।" })}
+                >
+                  <p className="text-xs font-medium leading-tight">Exam History</p>
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-blue-500/30 bg-background/60 hover:border-blue-500 transition-colors p-1.5 text-center"
+                  onClick={() => toast({ title: "Coming Soon", description: "Class History feature আসছে খুব শীঘ্রই।" })}
+                >
+                  <p className="text-xs font-medium leading-tight">Class History</p>
+                </button>
+                <button
+                  type="button"
+                  className="rounded-md border border-blue-500/30 bg-background/60 hover:border-blue-500 transition-colors p-1.5 text-center"
+                  onClick={() => toast({ title: "Coming Soon", description: "My Weak Topic feature আসছে খুব শীঘ্রই।" })}
+                >
+                  <p className="text-xs font-medium leading-tight">My Weak Topic</p>
+                </button>
+              </div>
             </CardContent>
           </Card>
           <Card
