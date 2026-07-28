@@ -422,6 +422,45 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     enabled: !selectedSubject && !searchQuery
   });
 
+  // Per-subject MCQ count badge — total questions across all exams in each
+  // subject, for the subject-selection cards.
+  const { data: subjectMcqCounts } = useQuery({
+    queryKey: ["readymade-exams-subject-mcq-counts", enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryFn: async () => {
+      const examRows = await fetchAllRows<{ id: string; subject: any }>((from, to) => {
+        let query = supabase.from("exams").select("id, subject")
+          .eq("is_readymade", true).eq("is_published", true).range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+        return query;
+      });
+      const examIds = examRows.map(r => r.id);
+      if (examIds.length === 0) return {};
+
+      const examToSubjects = new Map<string, string[]>();
+      examRows.forEach(r => {
+        const subs = Array.isArray(r.subject) ? r.subject : (typeof r.subject === "string" ? [r.subject] : []);
+        examToSubjects.set(r.id, subs);
+      });
+      const subjectCounts: Record<string, number> = {};
+
+      const ID_BATCH = 200;
+      for (let i = 0; i < examIds.length; i += ID_BATCH) {
+        const batchIds = examIds.slice(i, i + ID_BATCH);
+        const { data: qRows } = await supabase
+          .from("exam_questions")
+          .select("exam_id")
+          .in("exam_id", batchIds);
+        (qRows || []).forEach((q: any) => {
+          const subs = examToSubjects.get(q.exam_id) || [];
+          subs.forEach(s => { subjectCounts[s] = (subjectCounts[s] || 0) + 1; });
+        });
+      }
+      return subjectCounts;
+    },
+    enabled: !selectedSubject && !searchQuery
+  });
+
   // --- LEVEL 2: CHAPTERS ---
   const { data: chapters, isLoading: loadingChapters } = useQuery({
     queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics, selectedBoards],
@@ -656,6 +695,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <Trophy className="h-3.5 w-3.5 text-primary" />
               </div>
               <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
+              {typeof subjectMcqCounts?.[subject] === "number" && (
+                <span className="inline-block mt-1.5 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
+                  {subjectMcqCounts[subject]} MCQ
+                </span>
+              )}
             </CardContent>
           </Card>
         ))}
