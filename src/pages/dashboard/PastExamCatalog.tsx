@@ -231,13 +231,13 @@ const PastExamCatalog = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2.5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {exams.map((exam: any) => {
             const qCount = questionCounts?.[exam.id];
             const startDate = fmtDate(exam.time_window_start);
             return (
             <Card key={exam.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
-              <CardHeader className="space-y-1">
+              <CardHeader className="space-y-1 py-3 px-4">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
                     {exam.course?.name || "Public Exam"}
@@ -267,7 +267,7 @@ const PastExamCatalog = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col flex-1">
+              <CardContent className="flex flex-col flex-1 pt-0 pb-3 px-4">
                 <div className="mt-auto flex items-center gap-1.5">
                   <Button
                     size="sm"
