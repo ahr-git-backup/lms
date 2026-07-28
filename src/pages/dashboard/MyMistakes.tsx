@@ -224,15 +224,15 @@ const MyMistakes = () => {
                 <div className="lg:col-span-3 grid grid-cols-4 gap-1.5">
                     {([
                         { key: 'all', label: 'All' },
-                        { key: 'live', label: 'Live Exam' },
-                        { key: 'practice', label: 'Practice Exam' },
-                        { key: 'readymade', label: 'Readymade Exam' },
+                        { key: 'live', label: 'Live' },
+                        { key: 'practice', label: 'Practice' },
+                        { key: 'readymade', label: 'Readymade' },
                     ] as const).map(c => (
                         <Button
                             key={c.key}
                             size="sm"
                             variant={category === c.key ? 'default' : 'outline'}
-                            className="h-7 px-1.5 text-[11px] w-full truncate"
+                            className="h-8 !px-0.5 text-[11px] w-full overflow-hidden"
                             onClick={() => {
                                 if (category === c.key) {
                                     setCategory('all');
@@ -242,7 +242,7 @@ const MyMistakes = () => {
                                 setReadymadeSubCategory(null);
                             }}
                         >
-                            {c.label}
+                            <span className="truncate">{c.label}</span>
                         </Button>
                     ))}
                 </div>
