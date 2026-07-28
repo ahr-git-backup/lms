@@ -872,7 +872,9 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
       if (error) throw error;
       return data || [];
     },
-    enabled: open,
+    // Always check (not just when opened) so we know up front whether this
+    // exam has any splits at all — the toggle button itself should only
+    // render for exams the admin has actually split.
   });
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -889,6 +891,14 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
       setDeletingId(null);
     }
   };
+
+  // Nothing to show — this exam hasn't been split by admin, so don't render
+  // the "ভেঙে ভেঙে পরীক্ষা দাও" toggle at all for regular students.
+  // Admins still see it (as a loading/empty state) so they know the feature
+  // exists and can use the "Split" button to create some.
+  if (!isLoading && (!splits || splits.length === 0) && !isAdmin) {
+    return null;
+  }
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
