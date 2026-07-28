@@ -68,7 +68,13 @@ const PastExamCatalog = () => {
         }
 
         if (selectedSubject !== "all") {
-            filteredData = filteredData.filter(e => Array.isArray(e.subject) ? e.subject.includes(selectedSubject) : e.subject === selectedSubject);
+            const norm = (s: string) => (s || "").trim().toLowerCase();
+            const target = norm(selectedSubject);
+            filteredData = filteredData.filter(e =>
+              Array.isArray(e.subject)
+                ? e.subject.some((s: string) => norm(s) === target)
+                : norm(e.subject) === target
+            );
         }
 
         if (searchQuery.trim()) {
