@@ -425,16 +425,24 @@ const MyMistakes = () => {
                                                     {exam.subject && (
                                                         <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
                                                     )}
+                                                </div>
+                                                <p className="text-[10px] text-muted-foreground">
+                                                    Last attempt: {format(new Date(exam.lastAttempt), "PP")}
+                                                </p>
+                                                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                                                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
+                                                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
                                                     <DropdownMenu>
                                                         <DropdownMenuTrigger asChild>
                                                             <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="h-6 w-6 shrink-0"
+                                                                size="sm"
+                                                                variant="outline"
+                                                                className="h-6 text-[10px] px-2 ml-auto"
                                                                 disabled={singlePdfLoadingId === exam.id}
                                                                 onClick={(e) => e.stopPropagation()}
                                                             >
-                                                                {singlePdfLoadingId === exam.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <FileDown className="h-3.5 w-3.5" />}
+                                                                {singlePdfLoadingId === exam.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
+                                                                Practice Sheet
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -443,13 +451,6 @@ const MyMistakes = () => {
                                                             <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "both")}>Wrong + Skip</DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
-                                                </div>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    Last attempt: {format(new Date(exam.lastAttempt), "PP")}
-                                                </p>
-                                                <div className="flex gap-1.5 pt-0.5">
-                                                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
-                                                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
                                                 </div>
                                             </div>
                                         </div>
