@@ -736,13 +736,10 @@ const TakeExam = () => {
     if (!targetId) return; // all answered
 
     const finalTargetId = targetId;
-    // Wait for the DOM to commit the answered/disabled state before scrolling,
-    // then scroll on the next paint for reliable positioning on mobile.
-    setTimeout(() => {
-      requestAnimationFrame(() => {
-        questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-      });
-    }, 300);
+    // Scroll immediately on the next paint — no artificial delay, instant jump.
+    requestAnimationFrame(() => {
+      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "auto", block: "center" });
+    });
   };
 
   // 0. Auth Loading / Profile Check
