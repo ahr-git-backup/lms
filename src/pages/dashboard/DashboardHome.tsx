@@ -286,15 +286,15 @@ const DashboardHome = () => {
                   <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground">
                               {classItem?.course?.name || "Unknown Course"}
                           </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE CLASS
                           </span>
                       </div>
                       <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
@@ -311,15 +311,15 @@ const DashboardHome = () => {
                   <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground">
                               {exam?.course?.name || "Unknown Course"}
                           </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE EXAM
                           </span>
                       </div>
                       <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
@@ -351,11 +351,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextClass.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -381,11 +381,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextExam.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -411,7 +411,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">My Progress & History</p>
+              <p className="font-medium text-sm leading-tight">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
@@ -421,7 +421,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <BarChart3 className="h-5 w-5 text-sky-600 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Study Tracker</p>
+              <p className="font-medium text-sm leading-tight">Study Tracker</p>
             </CardContent>
           </Card>
           <Card
@@ -431,7 +431,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Top Performer</p>
+              <p className="font-medium text-sm leading-tight">Top Performer</p>
             </CardContent>
           </Card>
         </div>
@@ -447,7 +447,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Zap className="h-5 w-5 text-violet-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Quick Practice</p>
+              <p className="font-medium text-sm leading-tight">Quick Practice</p>
             </CardContent>
           </Card>
           <Card
@@ -457,7 +457,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Unlimited Mock Test</p>
+              <p className="font-medium text-sm leading-tight">Unlimited Mock Test</p>
             </CardContent>
           </Card>
           <Card
@@ -467,7 +467,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <FileText className="h-5 w-5 text-pink-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Readymade Exam</p>
+              <p className="font-medium text-sm leading-tight">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
@@ -497,7 +497,7 @@ const DashboardHome = () => {
                     <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
                     <div>
                       <p className="font-semibold text-sm">Reports</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {pendingReportsCount ?? "..."} pending
                       </p>
                     </div>
@@ -511,7 +511,7 @@ const DashboardHome = () => {
                     <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
                     <div>
                       <p className="font-semibold text-sm">Notice</p>
-                      <p className="text-xs text-muted-foreground">Send to all users</p>
+                      <p className="text-sm text-muted-foreground">Send to all users</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -525,8 +525,8 @@ const DashboardHome = () => {
                   <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
                     <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
                     <div>
-                      <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
-                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Study Tracker</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -537,8 +537,8 @@ const DashboardHome = () => {
                   <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
                     <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
                     <div>
-                      <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
-                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Quick Practice</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -549,8 +549,8 @@ const DashboardHome = () => {
                   <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
                     <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
                     <div>
-                      <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
-                      <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Mock Test</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
                     </div>
                   </CardContent>
                 </Card>
@@ -578,7 +578,7 @@ const DashboardHome = () => {
                                 {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
                                 <div>
                                     <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
-                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
+                                    <p className="text-sm text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
@@ -730,7 +730,7 @@ const DashboardHome = () => {
                                )}
                                <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
-                           <p className="font-medium text-sm">{item.title}</p>
+                           <p className="font-medium text-base">{item.title}</p>
                        </CardContent>
                    </Card>
                ))}
