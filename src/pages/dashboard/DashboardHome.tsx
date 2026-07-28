@@ -415,13 +415,13 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
+            className="animate-border-chase cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+            onClick={() => navigate("/syllabus-tracker")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
+              <BarChart3 className="h-5 w-5 text-sky-600 flex-shrink-0" />
+              <p className="font-medium text-xs leading-tight">Study Tracker</p>
             </CardContent>
           </Card>
           <Card
