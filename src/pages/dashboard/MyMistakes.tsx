@@ -6,13 +6,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
-import { Loader2, AlertCircle, PlayCircle } from "lucide-react";
+import { Loader2, AlertCircle, PlayCircle, FileDown } from "lucide-react";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
+import { openSolvePdf } from "@/lib/solvePdf";
+import { useToast } from "@/hooks/use-toast";
 
 const MyMistakes = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
+    const { toast } = useToast();
+    const [pdfLoading, setPdfLoading] = useState<"wrong" | "both" | null>(null);
 
     const [filterMode, setFilterMode] = useState<"wrong" | "skipped" | "both">("both");
     const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
@@ -141,19 +145,90 @@ const MyMistakes = () => {
     const totalWrong = categoryFilteredExams.reduce((s: number, e: any) => s + (e.wrongCount || 0), 0);
     const totalSkip = categoryFilteredExams.reduce((s: number, e: any) => s + (e.skipCount || 0), 0);
 
+    const generateMistakesPdf = async (mode: "wrong" | "both") => {
+        setPdfLoading(mode);
+        try {
+            const allQuestions: any[] = [];
+            for (const exam of categoryFilteredExams) {
+                const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
+                    p_attempt_id: exam.attemptId
+                });
+                if (!reviewData) continue;
+                const userAnswers = (exam.answers as any[]) || [];
+                reviewData.forEach((reviewQ: any) => {
+                    const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
+                    const selected = userAnswerObj?.selected_option;
+                    const isSkipped = !selected;
+                    const isWrong = !isSkipped && selected !== reviewQ.correct_option;
+                    if (mode === "wrong" && !isWrong) return;
+                    if (mode === "both" && !isWrong && !isSkipped) return;
+                    allQuestions.push({
+                        question_text: reviewQ.question_text,
+                        option_a: reviewQ.option_a,
+                        option_b: reviewQ.option_b,
+                        option_c: reviewQ.option_c,
+                        option_d: reviewQ.option_d,
+                        option_e: reviewQ.option_e,
+                        correct_option: reviewQ.correct_option,
+                        user_answer: selected || null,
+                        explanation: reviewQ.explanation,
+                    });
+                });
+            }
+            if (allQuestions.length === 0) {
+                toast({ title: "কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+                return;
+            }
+            openSolvePdf({
+                examName: mode === "wrong" ? "All Wrong Questions" : "All Wrong + Skipped Questions",
+                questions: allQuestions,
+                totalMarks: allQuestions.length,
+                style: "style1",
+            });
+        } catch (e: any) {
+            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+        } finally {
+            setPdfLoading(null);
+        }
+    };
+
     if (isLoading) {
         return <div className="flex justify-center p-8"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
     }
 
     return (
         <div className="w-full px-0 py-3 space-y-3">
-            <div className="flex items-center gap-2 px-1">
-                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
-                    <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+            <div className="flex items-center justify-between gap-2 px-1">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-full">
+                        <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                        <h1 className="text-lg font-bold leading-tight">My Mistakes</h1>
+                        <p className="text-xs text-muted-foreground">Practice questions you missed or skipped.</p>
+                    </div>
                 </div>
-                <div>
-                    <h1 className="text-lg font-bold leading-tight">My Mistakes</h1>
-                    <p className="text-xs text-muted-foreground">Practice questions you missed or skipped.</p>
+                <div className="flex flex-col gap-1.5 shrink-0">
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px] px-2"
+                        disabled={pdfLoading !== null}
+                        onClick={() => generateMistakesPdf("wrong")}
+                    >
+                        {pdfLoading === "wrong" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
+                        All Wrong PDF
+                    </Button>
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[11px] px-2"
+                        disabled={pdfLoading !== null}
+                        onClick={() => generateMistakesPdf("both")}
+                    >
+                        {pdfLoading === "both" ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
+                        All Wrong+Skip PDF
+                    </Button>
                 </div>
             </div>
 
