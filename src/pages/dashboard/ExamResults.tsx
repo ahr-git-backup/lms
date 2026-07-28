@@ -152,9 +152,11 @@ const ExamResults = () => {
     const exam = attempt.exam;
     if (!exam) return "practice";
     if (exam.readymade_topic) return "readymade";
-    const isExpiredLive = exam.exam_type === "live" && exam.time_window_end && new Date() > new Date(exam.time_window_end);
-    if (isExpiredLive) return "practice";
-    return exam.exam_type === "live" ? "live" : "practice";
+    // If the student actually attempted this live exam, it stays "Live" in
+    // their history regardless of whether the window has since expired —
+    // "Practice" is only for live exams they never attended (missed).
+    if (exam.exam_type === "live") return "live";
+    return "practice";
   };
 
   const readymadeTopics = Array.from(new Set(

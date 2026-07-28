@@ -57,8 +57,10 @@ const MyMistakes = () => {
                         : (examData.subject || "General");
 
                     const isReadymade = !!examData.readymade_topic;
-                    const isExpiredLive = examData.exam_type === 'live' && examData.time_window_end && new Date() > new Date(examData.time_window_end);
-                    const category = isReadymade ? 'readymade' : (isExpiredLive ? 'practice' : 'live');
+                    // Attempted live exams stay "live" in history even after
+                    // the window expires — "practice" is only for missed
+                    // (unattempted) live exams elsewhere in the app.
+                    const category = isReadymade ? 'readymade' : (examData.exam_type === 'live' ? 'live' : 'practice');
 
                     uniqueExamsMap.set(attempt.exam_id, {
                         id: examData.id,
