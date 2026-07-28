@@ -369,7 +369,7 @@ Admin Feedback: ${feedback}`;
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2 bg-muted/20 py-2 px-3">
+            <CardFooter className="flex flex-col sm:flex-row sm:justify-end gap-2 bg-muted/20 py-3 px-3">
                 <DeclineDialog report={report} />
                 <EditQuestionDialog report={report} onClose={() => {}} />
             </CardFooter>
