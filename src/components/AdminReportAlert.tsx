@@ -9,6 +9,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogAction,
+  AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 import { AlertCircle } from "lucide-react";
 
@@ -77,6 +78,7 @@ export const AdminReportAlert = () => {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
+          <AlertDialogCancel onClick={() => setOpen(false)}>পরে দেখব</AlertDialogCancel>
           <AlertDialogAction onClick={handleView}>দেখুন</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
