@@ -195,7 +195,7 @@ const QuickPractice = () => {
       {/* Sub-header */}
       <div className="sticky top-0 z-30 flex items-center gap-3 px-4 py-3 bg-card border-b">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(user ? "/dashboard" : "/")}
           className="h-9 w-9 rounded-full border flex items-center justify-center hover:bg-muted transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

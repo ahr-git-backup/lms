@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -18,6 +19,7 @@ const COUNTS = [25, 35, 50, 75, 100];
 
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [subject, setSubject] = useState("");
@@ -357,7 +359,7 @@ const UnlimitedMockTest = () => {
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(user ? "/dashboard" : "/")}
               className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
               aria-label="Back"
             >
