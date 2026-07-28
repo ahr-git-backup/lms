@@ -353,7 +353,7 @@ const UnlimitedMockTest = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
+    <div className="space-y-2.5 max-w-lg mx-auto">
       <Card>
         <CardContent className="py-3">
           <div className="flex items-center justify-between gap-2">
@@ -392,7 +392,7 @@ const UnlimitedMockTest = () => {
       </Card>
 
       <Card>
-        <CardContent className="pt-4">
+        <CardContent className="py-3">
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
