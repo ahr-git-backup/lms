@@ -1033,10 +1033,10 @@ const TakeExam = () => {
                                   <Minus className="h-3 w-3" />
                               </button>
 
-                              <div className="relative rounded-lg border-2 border-violet-400 dark:border-violet-600">
+                              <div className="relative rounded-lg border-2 border-violet-400 dark:border-violet-600 bg-white dark:bg-black">
                                   <div className="h-8 w-12 rounded-[8px] flex items-center justify-center relative">
                                       {selectedQuestionCount === null && (
-                                          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-violet-400 dark:text-violet-500 pointer-events-none select-none animate-pulse">|</span>
+                                          <span className="absolute inset-0 flex items-center justify-center text-sm font-bold text-black dark:text-white pointer-events-none select-none animate-pulse">|</span>
                                       )}
                                       <input
                                           type="number"
