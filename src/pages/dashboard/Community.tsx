@@ -90,7 +90,16 @@ const Community = () => {
                             className={`w-full h-8 text-xs font-semibold text-white shadow-sm ${getBtnColor(link.url) || "bg-primary hover:bg-primary/90"}`}
                             asChild
                         >
-                            <a href={link.url} target="_blank" rel="noopener noreferrer">
+                            <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => {
+                                    supabase.rpc("record_community_link_click", { p_resource_id: link.id }).then(({ error }) => {
+                                        if (error) console.error("Error recording link click", error);
+                                    });
+                                }}
+                            >
                                 <ExternalLink className="h-3 w-3 mr-2" />
                                 Join Now
                             </a>

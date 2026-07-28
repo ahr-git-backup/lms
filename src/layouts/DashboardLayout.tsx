@@ -22,6 +22,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
 import { ReportFeedbackAlert } from "@/components/ReportFeedbackAlert";
+import { CommunityJoinReminder } from "@/components/CommunityJoinReminder";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
@@ -551,6 +552,7 @@ export const DashboardLayout = () => {
         <FloatingStudyTools />
         <ProfileCompletionReminder />
         <ReportFeedbackAlert />
+        <CommunityJoinReminder />
       </div>
     </SidebarProvider>
     </StudyToolsProvider>
