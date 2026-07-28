@@ -151,7 +151,7 @@ const ExamResults = () => {
   const categorize = (attempt: any) => {
     const exam = attempt.exam;
     if (!exam) return "practice";
-    if (exam.readymade_topic) return "readymade";
+    if (exam.is_readymade || exam.readymade_topic) return "readymade";
     // If the student actually attempted this live exam, it stays "Live" in
     // their history regardless of whether the window has since expired —
     // "Practice" is only for live exams they never attended (missed).

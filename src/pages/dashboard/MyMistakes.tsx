@@ -37,6 +37,7 @@ const MyMistakes = () => {
                         subject,
                         exam_type,
                         readymade_topic,
+                        is_readymade,
                         time_window_end
                     )
                 `)
@@ -56,7 +57,7 @@ const MyMistakes = () => {
                         ? examData.subject.join(", ")
                         : (examData.subject || "General");
 
-                    const isReadymade = !!examData.readymade_topic;
+                    const isReadymade = !!examData.readymade_topic || !!examData.is_readymade;
                     // Attempted live exams stay "live" in history even after
                     // the window expires — "practice" is only for missed
                     // (unattempted) live exams elsewhere in the app.
