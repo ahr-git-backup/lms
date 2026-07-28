@@ -6,8 +6,8 @@ import { cn } from "@/lib/utils";
 type TabKey = "exam" | "class" | "weak";
 
 const TABS: { key: TabKey; label: string; icon: typeof History }[] = [
-  { key: "exam", label: "Exam History", icon: History },
-  { key: "class", label: "Class History", icon: Video },
+  { key: "exam", label: "Exam Report", icon: History },
+  { key: "class", label: "Class Report", icon: Video },
   { key: "weak", label: "My Weak Topic", icon: Target },
 ];
 
