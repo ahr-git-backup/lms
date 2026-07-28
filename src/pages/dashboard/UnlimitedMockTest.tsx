@@ -424,9 +424,9 @@ const UnlimitedMockTest = () => {
                 setMultiDrillSubject("");
                 setMultiDrillChapter(null);
               }}
-              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground"
+              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground border rounded-full px-3 py-1.5"
             >
-              কাস্টম মুড
+              Multi Mood
               <span
                 className={`h-5 w-9 rounded-full relative transition-colors shrink-0 ${
                   multiMode ? "bg-primary" : "bg-muted-foreground/30"
