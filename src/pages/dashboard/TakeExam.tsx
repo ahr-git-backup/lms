@@ -736,9 +736,9 @@ const TakeExam = () => {
     if (!targetId) return; // all answered
 
     const finalTargetId = targetId;
-    // Scroll immediately on the next paint — instant jump, no delay, no animation.
+    // Smooth scroll, no artificial delay.
     requestAnimationFrame(() => {
-      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "auto", block: "center" });
+      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   };
 
