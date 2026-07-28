@@ -736,10 +736,13 @@ const TakeExam = () => {
     if (!targetId) return; // all answered
 
     const finalTargetId = targetId;
-    // Smooth scroll, no artificial delay.
-    requestAnimationFrame(() => {
-      questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
-    });
+    // Small delay lets the answered/disabled layout reflow settle first,
+    // then smooth-scroll without stutter.
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        questionRefs.current[finalTargetId]?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    }, 50);
   };
 
   // 0. Auth Loading / Profile Check
