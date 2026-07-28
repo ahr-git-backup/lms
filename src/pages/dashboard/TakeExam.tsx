@@ -163,6 +163,7 @@ const TakeExam = () => {
   const [qpAnswers, setQpAnswers] = useState<Record<number, { selected: string | null; correct: boolean; skipped: boolean }>>({});
   const [qpTimeLeft, setQpTimeLeft] = useState(30);
   const [qpFinished, setQpFinished] = useState(false);
+  const [qpShowDetailResult, setQpShowDetailResult] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [qpQuestions, setQpQuestions] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1232,6 +1233,89 @@ const TakeExam = () => {
       const correctCount = Object.values(qpAnswers).filter((a) => a.correct).length;
       const skippedCount = Object.values(qpAnswers).filter((a) => a.skipped).length;
       const wrongCount = total - correctCount - skippedCount;
+
+      if (qpShowDetailResult) {
+        return (
+          <div className="min-h-screen bg-background pb-24">
+            <div className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b px-4 py-3 flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setQpShowDetailResult(false)}
+                className="h-9 w-9 rounded-full border flex items-center justify-center shrink-0 hover:bg-muted"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+              <div>
+                <h1 className="text-base font-bold">Detail Result</h1>
+                <p className="text-xs text-muted-foreground">Correct: {correctCount} · Wrong: {wrongCount} · Skipped: {skippedCount}</p>
+              </div>
+            </div>
+
+            <div className="max-w-2xl mx-auto px-3 py-4 space-y-4">
+              {qpQuestions.map((q: any, idx: number) => {
+                const ans = qpAnswers[idx];
+                const options: { key: string; text: string }[] = [
+                  { key: "a", text: q.option_a },
+                  { key: "b", text: q.option_b },
+                  { key: "c", text: q.option_c },
+                  { key: "d", text: q.option_d },
+                  { key: "e", text: q.option_e },
+                ].filter((o) => !!o.text);
+
+                return (
+                  <Card key={q.id ?? idx} className="rounded-2xl overflow-hidden shadow-sm border">
+                    <CardContent className="p-4 space-y-2">
+                      <span className={cn(
+                        "text-xs font-bold px-2.5 py-1 rounded-full inline-block",
+                        ans?.correct ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                        ans?.skipped ? "bg-muted text-muted-foreground" :
+                        "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      )}>
+                        {idx + 1}/{qpQuestions.length}
+                      </span>
+                      <div className="text-base font-medium leading-relaxed">
+                        <MathText text={q.question_text} />
+                      </div>
+                      <div className="space-y-2 pt-1">
+                        {options.map((opt) => {
+                          const isCorrectOpt = opt.key.toUpperCase() === String(q.correct_option).toUpperCase();
+                          const isSelected = ans?.selected === opt.key;
+                          return (
+                            <div key={opt.key} className="flex items-start gap-3">
+                              <div className={cn(
+                                "flex-shrink-0 h-7 w-7 rounded-full border-2 flex items-center justify-center text-xs font-bold mt-0.5",
+                                isCorrectOpt ? "bg-green-500 border-green-500 text-white"
+                                  : isSelected ? "bg-red-500 border-red-500 text-white"
+                                  : "border-muted-foreground/30 text-muted-foreground"
+                              )}>
+                                {opt.key.toUpperCase()}
+                              </div>
+                              <div className={cn(
+                                "flex-1 min-w-0 text-sm pt-1",
+                                isCorrectOpt ? "text-green-700 dark:text-green-400 font-medium" :
+                                isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
+                              )}>
+                                <MathText text={opt.text} />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {q.explanation && (
+                        <div className="mt-2 pt-2 border-t border-dashed text-sm text-foreground/80">
+                          <span className="font-bold text-muted-foreground mr-1">ব্যাখ্যা:</span>
+                          <MathText text={q.explanation} />
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 text-center">
           <h2 className="text-xl font-bold">Quick Practice শেষ!</h2>
@@ -1249,9 +1333,10 @@ const TakeExam = () => {
               <div className="text-[10px] text-muted-foreground">Skipped</div>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <Button variant="outline" onClick={() => { qpCleanupStorage(); navigate(-1); }} className="rounded-xl">ফিরে যাও</Button>
             <Button onClick={qpRestart} className="rounded-xl">আবার Practice করুন</Button>
+            <Button variant="secondary" onClick={() => setQpShowDetailResult(true)} className="rounded-xl">Detail Result</Button>
           </div>
         </div>
       );
@@ -1268,8 +1353,8 @@ const TakeExam = () => {
     ].filter((o) => !!o.text);
 
     return (
-      <div className="bg-background flex flex-col overflow-hidden" style={{ height: "100dvh" }}>
-        <div className="flex items-center gap-3 px-4 py-3 bg-card border-b sticky top-0 z-30">
+      <div className="fixed inset-0 z-40 bg-background flex flex-col overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3 bg-card border-b shrink-0">
           <div className="flex-1">
             <div className="text-[11px] text-muted-foreground mb-1">প্রশ্ন {qpCurrent + 1}/{qpQuestions.length}</div>
             <div className="h-1.5 rounded-full bg-muted overflow-hidden">
