@@ -1520,7 +1520,7 @@ const TakeExam = () => {
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
 
-      <div className="container max-w-6xl mx-auto px-1 py-4 md:px-4 md:py-8 space-y-3 overflow-x-hidden">
+      <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0.5 py-4 md:px-3 md:py-8 space-y-3 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
