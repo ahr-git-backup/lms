@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator } from "lucide-react";
+import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -326,6 +326,9 @@ const TakeMistakeExam = () => {
                 <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
                     {/* Header */}
                     <div className="flex flex-wrap items-center justify-end gap-2">
+                             <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/my-mistakes')}>
+                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exam List
+                             </Button>
                              {state.sourceAttemptId && (
                                  <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
                                     <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
