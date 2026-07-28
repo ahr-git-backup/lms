@@ -46,32 +46,11 @@ const Announcements = () => {
         }
     }
 
-    // Mark user notifications as read in DB
-    const markAsRead = async () => {
-        if (!user) return;
-        await supabase
-            .from("user_notifications")
-            .update({ is_read: true })
-            .eq("user_id", user.id)
-            .eq("is_read", false);
+    // Note: individual notifications are marked read (and the badge count
+    // decremented) only when the student actually opens/expands that specific
+    // notification — see toggleExpandNotification below. We intentionally do
+    // NOT bulk-mark everything as read just for visiting this page.
 
-        // Also mark direct/personal announcements (recipient_profile_id) as read,
-        // and record that the general announcement feed was viewed just now —
-        // otherwise the badge count reappears on the next background poll.
-        await supabase
-            .from("announcements")
-            .update({ read_at: new Date().toISOString() })
-            .eq("recipient_profile_id", user.id)
-            .is("read_at", null);
-
-        localStorage.setItem("last_viewed_announcements", new Date().toISOString());
-
-        // Invalidate query to refresh UI state
-        queryClient.invalidateQueries({ queryKey: ["user-notifications"] });
-        localStorage.setItem("unread_notification_count", "0");
-        window.dispatchEvent(new Event("unread-notifications-updated"));
-    };
-    markAsRead();
   }, [user, queryClient]);
 
   // Fetch Personal Notifications
@@ -160,6 +139,12 @@ const Announcements = () => {
                       .upsert({ announcement_id: id, user_id: user.id }, { onConflict: "announcement_id,user_id" })
                       .then(() => {});
               }
+
+              const stored = localStorage.getItem("unread_notification_count");
+              const current = stored ? parseInt(stored, 10) || 0 : 0;
+              const next = Math.max(0, current - 1);
+              localStorage.setItem("unread_notification_count", String(next));
+              window.dispatchEvent(new Event("unread-notifications-updated"));
           }
       }
   };
@@ -169,6 +154,25 @@ const Announcements = () => {
         setExpandedIds(expandedIds.filter(e => e !== id));
     } else {
         setExpandedIds([...expandedIds, id]);
+
+        // Mark just this notification as read, and decrement the badge count
+        // by exactly one — count should only go down for the item actually opened.
+        const notif = userNotifications?.find((n: any) => n.id === id);
+        if (user && notif && !notif.is_read) {
+            supabase
+                .from("user_notifications")
+                .update({ is_read: true })
+                .eq("id", id)
+                .then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["user-notifications"] });
+                });
+
+            const stored = localStorage.getItem("unread_notification_count");
+            const current = stored ? parseInt(stored, 10) || 0 : 0;
+            const next = Math.max(0, current - 1);
+            localStorage.setItem("unread_notification_count", String(next));
+            window.dispatchEvent(new Event("unread-notifications-updated"));
+        }
     }
   };
 
