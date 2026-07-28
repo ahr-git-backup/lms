@@ -22,12 +22,22 @@ interface CommunityLink {
   course_name: string | null;
 }
 
-// Reminds a student every ~5 minutes (while active) to join any FB/Telegram
+// Reminds a student every 10 minutes (while active) to join any FB/Telegram
 // community link for their enrolled courses that they haven't clicked yet.
 // They can confirm "যোগ হয়েছে" (already joined) to stop being asked about
 // that specific link, or click "যোগ দিন" to open it (which also marks it
-// as clicked automatically).
-const CHECK_INTERVAL_MS = 15 * 60 * 1000;
+// as clicked automatically). Suppressed while watching a class or taking an exam.
+const CHECK_INTERVAL_MS = 10 * 60 * 1000;
+
+const SUPPRESSED_ROUTE_PATTERNS = [
+  /^\/dashboard\/class\//,
+  /^\/dashboard\/take-exam\//,
+  /^\/take-exam\//,
+];
+
+function isOnSuppressedPage(pathname: string): boolean {
+  return SUPPRESSED_ROUTE_PATTERNS.some((re) => re.test(pathname));
+}
 
 export const CommunityJoinReminder = () => {
   const { user } = useAuth();
@@ -59,6 +69,7 @@ export const CommunityJoinReminder = () => {
     const checkPending = async () => {
       const isActive = document.visibilityState === "visible" && Date.now() - lastActivityRef.current < 15 * 60 * 1000;
       if (!isActive) return;
+      if (isOnSuppressedPage(window.location.pathname)) return;
 
       const { data: links, error: linksError } = await supabase.rpc("get_student_community_links");
       if (linksError || !links || links.length === 0) return;
@@ -88,7 +99,7 @@ export const CommunityJoinReminder = () => {
         return true;
       });
 
-      if (deduped.length > 0) {
+      if (deduped.length > 0 && !isOnSuppressedPage(window.location.pathname)) {
         setPendingLinks(deduped);
         setUrlToIds(idsByUrl);
         setOpen(true);

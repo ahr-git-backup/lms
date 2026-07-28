@@ -4,21 +4,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 
-const REMINDER_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
+const REMINDER_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 
-// Routes where an exam is actively being taken — never interrupt these with
-// a reminder toast (both the dashboard-protected and public guest-accessible
-// paths).
-const EXAM_ROUTE_PATTERNS = [/^\/dashboard\/take-exam\//, /^\/take-exam\//];
+// Routes where an exam is actively being taken, or a class is being watched —
+// never interrupt these with a reminder toast (both the dashboard-protected
+// and public guest-accessible paths).
+const SUPPRESSED_ROUTE_PATTERNS = [/^\/dashboard\/take-exam\//, /^\/take-exam\//, /^\/dashboard\/class\//];
 
 function isOnExamPage(pathname: string): boolean {
-  return EXAM_ROUTE_PATTERNS.some((re) => re.test(pathname));
+  return SUPPRESSED_ROUTE_PATTERNS.some((re) => re.test(pathname));
 }
 
 /**
  * Nudges a logged-in student to finish their profile (gender + photo) if
- * either is missing, once every 30 minutes, on any page except while an
- * exam is actively being taken. Mounted once in DashboardLayout.
+ * either is missing, once every 10 minutes, on any page except while an
+ * exam is being taken or a class is being watched. Mounted once in DashboardLayout.
  */
 export default function ProfileCompletionReminder() {
   const { user, profile } = useAuth();
@@ -61,7 +61,7 @@ export default function ProfileCompletionReminder() {
       });
     };
 
-    // First check shortly after mount, then every 30 minutes.
+    // First check shortly after mount, then every 10 minutes.
     const initialTimer = setTimeout(showReminderIfNeeded, 5000);
     intervalRef.current = setInterval(showReminderIfNeeded, REMINDER_INTERVAL_MS);
 
