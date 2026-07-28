@@ -1431,7 +1431,7 @@ const TakeExam = () => {
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
 
-      <div className="container max-w-6xl mx-auto px-1 py-4 md:px-4 md:py-8 space-y-6 overflow-x-hidden">
+      <div className="container max-w-6xl mx-auto px-1 py-4 md:px-4 md:py-8 space-y-3 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
@@ -1494,35 +1494,35 @@ const TakeExam = () => {
             ref={(el) => { questionRefs.current[q.id] = el; }}
             className="scroll-mt-28"
           >
-            <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
-                <CardContent className="p-4 md:p-5 space-y-2 max-w-full overflow-x-hidden">
+            <Card className="shadow-sm rounded-2xl overflow-hidden max-w-full">
+                <CardContent className="p-3 md:p-4 space-y-1.5 max-w-full overflow-x-hidden">
                     {/* Top Row: number + icons */}
                     <div className="flex items-center justify-between gap-2 max-w-full">
-                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                        <div className="flex-shrink-0 h-7 w-7 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
                             {idx + 1}
                         </div>
-                        <div className="flex-shrink-0 flex items-center gap-1">
+                        <div className="flex-shrink-0 flex items-center gap-0.5">
                             <ReportQuestionDialog questionId={q.id} questionText={q.question_text} onClose={() => {}} />
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-muted-foreground hover:text-amber-500"
+                                className="h-7 w-7 text-muted-foreground hover:text-amber-500"
                                 onClick={() => toggleBookmark(q.id)}
                             >
-                                <Bookmark className={cn("h-5 w-5", bookmarkedIds.has(q.id) && "fill-current text-amber-500")} />
+                                <Bookmark className={cn("h-4 w-4", bookmarkedIds.has(q.id) && "fill-current text-amber-500")} />
                             </Button>
                         </div>
                     </div>
 
                     {/* Question Row - full width */}
-                    <div className="w-full min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                        <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
+                    <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                        <div className="text-base font-medium leading-snug whitespace-normal min-w-0 break-words">
                             <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                         </div>
                     </div>
 
                     {/* Options Row */}
-                    <div className="space-y-2 pt-2 max-w-full">
+                    <div className="space-y-1.5 pt-1 max-w-full">
                         {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                             const optionText = q[`option_${optionKey.toLowerCase()}` as keyof typeof q];
                             if (!optionText) return null;
@@ -1540,11 +1540,11 @@ const TakeExam = () => {
                                             scrollToNextUnanswered(q.id, updated);
                                         }
                                     }}
-                                    className={cn("flex items-center gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
+                                    className={cn("flex items-center gap-2.5 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
                                 >
                                     <div
                                         className={cn(
-                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                                        "flex-shrink-0 h-7 w-7 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-all",
                                         isSelected
                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                             : "border-muted-foreground/30 text-muted-foreground",
@@ -1554,13 +1554,13 @@ const TakeExam = () => {
                                         {optionKey}
                                     </div>
                                     <div className={cn(
-                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                        "flex-1 min-w-0 text-sm whitespace-normal flex items-center justify-between gap-2 p-2 rounded-lg border transition-all",
                                         isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
                                     )}>
                                          <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
                                             <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
                                          </div>
-                                         {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
+                                         {isSelected && <Lock className="h-4 w-4 text-primary shrink-0 ml-auto" />}
                                     </div>
                                 </div>
                             );
