@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +9,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+type CategoryFilter = "all" | "live" | "practice" | "readymade";
+
 const Bookmarks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<CategoryFilter>("all");
 
   useEffect(() => {
     document.title = "Bookmarks – Atlas";
@@ -30,7 +33,7 @@ const Bookmarks = () => {
             created_at,
             question:exam_questions (
                 *,
-                exam:exams(title)
+                exam:exams(title, exam_type, is_readymade)
             )
         `)
         .eq("profile_id", user.id)
@@ -41,6 +44,26 @@ const Bookmarks = () => {
     },
     enabled: !!user,
   });
+
+  const getCategory = (b: any): Exclude<CategoryFilter, "all"> => {
+    const exam = b.question?.exam;
+    if (exam?.is_readymade) return "readymade";
+    if (exam?.exam_type === "live") return "live";
+    return "practice";
+  };
+
+  const categoryCounts = useMemo(() => {
+    const counts = { all: bookmarks?.length || 0, live: 0, practice: 0, readymade: 0 };
+    (bookmarks || []).forEach((b: any) => {
+      counts[getCategory(b)]++;
+    });
+    return counts;
+  }, [bookmarks]);
+
+  const filteredBookmarks = useMemo(() => {
+    if (filter === "all") return bookmarks || [];
+    return (bookmarks || []).filter((b: any) => getCategory(b) === filter);
+  }, [bookmarks, filter]);
 
   const removeBookmarkMutation = useMutation({
       mutationFn: async (bookmarkId: string) => {
@@ -66,10 +89,32 @@ const Bookmarks = () => {
         </p>
       </header>
 
-      {bookmarks && bookmarks.length > 0 ? (
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {([
+          { key: "all", label: "All" },
+          { key: "live", label: "Live" },
+          { key: "practice", label: "Practice" },
+          { key: "readymade", label: "Readymade" },
+        ] as const).map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold border shrink-0 transition-colors",
+              filter === f.key
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {f.label} ({categoryCounts[f.key]})
+          </button>
+        ))}
+      </div>
+
+      {filteredBookmarks && filteredBookmarks.length > 0 ? (
         <div className="space-y-6">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {bookmarks.map((b: any) => {
+            {filteredBookmarks.map((b: any) => {
                 const q = b.question;
                 if (!q) return null; // Should not happen
 
