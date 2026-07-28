@@ -23,6 +23,7 @@ import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
 import { ReportFeedbackAlert } from "@/components/ReportFeedbackAlert";
 import { CommunityJoinReminder } from "@/components/CommunityJoinReminder";
+import { AdminReportAlert } from "@/components/AdminReportAlert";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
 
 export const DashboardLayout = () => {
@@ -553,6 +554,7 @@ export const DashboardLayout = () => {
         <ProfileCompletionReminder />
         <ReportFeedbackAlert />
         {!isAdmin && !isTeacher && <CommunityJoinReminder />}
+        {(isAdmin || isTeacher) && <AdminReportAlert />}
       </div>
     </SidebarProvider>
     </StudyToolsProvider>
