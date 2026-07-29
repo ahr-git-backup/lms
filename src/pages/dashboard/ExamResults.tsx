@@ -79,7 +79,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     explanation: q.explanation,
                 })),
                 totalMarks: data.length,
-                style: "style2",
+                style: "style1",
             });
         } catch (e: any) {
             toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
@@ -210,7 +210,7 @@ const ExamResults = () => {
         .select("*")
         .eq("user_id", user.id)
         .not("submitted_at", "is", null)
-        .not("mock_exam_id", "is", null)
+        .not("questions_snapshot", "is", null)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
       return data || [];
