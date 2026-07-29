@@ -234,7 +234,7 @@ const CustomExamBuilder = () => {
 
   return (
     <div className="space-y-4 pb-24">
-      <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
+      <Dialog open={showTargetDialog} onOpenChange={(open) => setShowTargetDialog(open)}>
         <DialogContent
           className="w-[90vw] max-w-sm rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col gap-3"
           onInteractOutside={(e) => e.preventDefault()}
