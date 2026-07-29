@@ -152,6 +152,30 @@ const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: s
       </Card>
     );
   }
+
+  // Find the point with the highest percentage (score/total) to highlight on the graph
+  let bestIndex = -1;
+  let bestPct = -1;
+  data.forEach((d, i) => {
+    if (d.total && d.total > 0) {
+      const pct = d.score / d.total;
+      if (pct > bestPct) { bestPct = pct; bestIndex = i; }
+    }
+  });
+
+  const HighlightDot = (props: any) => {
+    const { cx, cy, index } = props;
+    if (index === bestIndex) {
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={7} fill="#f59e0b" stroke="#fff" strokeWidth={2} />
+          <circle cx={cx} cy={cy} r={2.5} fill="#fff" />
+        </g>
+      );
+    }
+    return <circle cx={cx} cy={cy} r={3} strokeWidth={1} fill="#fff" stroke="#2563eb" />;
+  };
+
   return (
     <Card className="shadow-sm border">
       <CardHeader className="py-2 px-3">
@@ -167,9 +191,10 @@ const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: s
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
                   const d = payload[0].payload;
+                  const isBest = d === data[bestIndex];
                   return (
                     <div className="bg-background border rounded-lg shadow-lg p-2 text-xs">
-                      <p className="font-bold mb-0.5">{d.fullTitle}</p>
+                      <p className="font-bold mb-0.5">{d.fullTitle} {isBest && <span className="text-amber-500">🏆 Best</span>}</p>
                       <p className="text-muted-foreground mb-1">{label}</p>
                       <p className="font-semibold text-primary">Score: {d.score} / {d.total}</p>
                     </div>
@@ -178,7 +203,7 @@ const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: s
                 return null;
               }}
             />
-            <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, strokeWidth: 1, fill: "#fff" }} activeDot={{ r: 5 }} />
+            <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={2} dot={<HighlightDot />} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
       </CardContent>
