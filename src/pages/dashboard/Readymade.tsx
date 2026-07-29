@@ -225,7 +225,7 @@ const Readymade = () => {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="flex items-center gap-2 shrink-0">
-          {enrolledIds.length > 0 && (
+          {(enrollments?.length || 0) > 0 && (
             <Button
               variant="outline"
               size="sm"
