@@ -610,7 +610,7 @@ const ExamAnalytics = () => {
   });
 
   return (
-    <section className="space-y-6 pb-10">
+    <section className="space-y-6 pb-10 overflow-x-hidden max-w-full">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Exam Analysis Report</h1>
         <p className="text-sm text-muted-foreground">
@@ -619,9 +619,9 @@ const ExamAnalytics = () => {
       </header>
 
       <Tabs defaultValue="routinewise" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="routinewise">Routinewise Exam Report</TabsTrigger>
-          <TabsTrigger value="readymade">ReadyMade Exam Report</TabsTrigger>
+        <TabsList className="w-full grid grid-cols-2 h-auto">
+          <TabsTrigger value="routinewise" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-normal leading-tight">Routinewise Exam Report</TabsTrigger>
+          <TabsTrigger value="readymade" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-normal leading-tight">ReadyMade Exam Report</TabsTrigger>
         </TabsList>
         <TabsContent value="routinewise">
           <RoutinewiseReport analyticsData={analyticsData} isLoading={isLoading} />
