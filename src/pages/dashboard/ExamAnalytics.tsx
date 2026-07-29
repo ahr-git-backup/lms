@@ -12,14 +12,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -64,7 +56,6 @@ type ReadymadeAttempt = {
   attempt_date: string;
 };
 
-const PAGE_SIZE = 10;
 
 type AnalyticsExam = {
   id: string;
@@ -208,11 +199,7 @@ const getPracticeStatus = (exam: AnalyticsExam) => {
 };
 
 const CourseTable = ({ courseName, exams }: { courseName: string, exams: AnalyticsExam[] }) => {
-  const [page, setPage] = useState(1);
-
-  const totalPages = Math.ceil(exams.length / PAGE_SIZE);
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const currentExams = exams.slice(startIndex, startIndex + PAGE_SIZE);
+  const currentExams = exams;
 
   // Summary Calculations
   const liveStats = exams.reduce((acc, exam) => {
@@ -398,44 +385,6 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
              );
         })}
       </div>
-
-      {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
-                className={page === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                (totalPages <= 7 || p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) ? (
-                     <PaginationItem key={p}>
-                        <PaginationLink
-                            href="#"
-                            isActive={page === p}
-                            onClick={(e) => { e.preventDefault(); setPage(p); }}
-                        >
-                        {p}
-                        </PaginationLink>
-                    </PaginationItem>
-                ) : (
-                    (p === 2 || p === totalPages - 1) && <PaginationItem key={`ellipsis-${p}`}><span className="flex h-9 w-9 items-center justify-center">...</span></PaginationItem>
-                )
-            ))}
-
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }}
-                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      )}
     </div>
   );
 };
