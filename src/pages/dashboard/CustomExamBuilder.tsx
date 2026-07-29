@@ -95,7 +95,14 @@ const CustomExamBuilder = () => {
         if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
         else if (typeof row.subject === "string") unique.add(row.subject);
       });
-      return Array.from(unique).sort();
+      const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
+      const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+      return Array.from(unique).sort((a, b) => {
+        const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1; if (iB !== -1) return 1;
+        return a.localeCompare(b);
+      });
     },
   });
 
@@ -106,14 +113,31 @@ const CustomExamBuilder = () => {
       if (!selectedSubject) return [];
       const { data, error } = await supabase
         .from("exams")
-        .select("chapter")
+        .select("chapter, sort_order")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
         .contains("subject", [selectedSubject]);
       if (error) throw error;
       const unique = new Set<string>();
-      (data || []).forEach((row: any) => { if (row.chapter) unique.add(row.chapter); });
-      return Array.from(unique).sort();
+      const orderMap = new Map<string, number>();
+      const settingsKey = `chapter_order_global_${selectedSubject}`;
+      const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+      const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
+      (data || []).forEach((row: any) => {
+        if (row.chapter) {
+          unique.add(row.chapter);
+          const cur = orderMap.get(row.chapter) || 0;
+          if ((row.sort_order || 0) > cur) orderMap.set(row.chapter, row.sort_order || 0);
+        }
+      });
+      return Array.from(unique).sort((a, b) => {
+        const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1; if (iB !== -1) return 1;
+        const oA = orderMap.get(a) || 0, oB = orderMap.get(b) || 0;
+        if (oA !== oB) return oB - oA;
+        return a.localeCompare(b);
+      });
     },
     enabled: !!selectedSubject,
   });
@@ -130,6 +154,7 @@ const CustomExamBuilder = () => {
         .is("parent_exam_id", null)
         .contains("subject", [selectedSubject])
         .eq("chapter", selectedChapter)
+        .order("sort_order", { ascending: false })
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
