@@ -227,20 +227,8 @@ const Readymade = () => {
       <ErrorBoundary label="Readymade header">
       <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
 
-      <div className="rounded-xl border bg-card p-2.5 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 shrink-0">
-          {(enrollments?.length || 0) > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 text-xs sm:text-sm border-primary/40 text-primary hover:bg-primary/10"
-              onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              এক্সাম বানাও
-            </Button>
-          )}
-        </div>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="relative">
         {isSearchExpanded ? (
           <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
@@ -267,7 +255,17 @@ const Readymade = () => {
       </ErrorBoundary>
 
       {!selectedSubject && (
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
+          {(enrollments?.length || 0) > 0 && (
+            <button
+              type="button"
+              onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
+              className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
+            >
+              <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
+              <p className="text-xs font-semibold leading-tight">এক্সাম বানাও</p>
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setActiveTypePanel(activeTypePanel === "type-based" ? null : "type-based")}
