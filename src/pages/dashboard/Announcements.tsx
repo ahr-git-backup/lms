@@ -6,16 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCircle, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bell, CheckCircle, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
-const PAGE_SIZE = 10;
 
 const Announcements = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [filterType, setFilterType] = useState<"all" | "unread">("all");
-  const [page, setPage] = useState(0);
   const { data: enrollments } = useEnrollments();
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -94,7 +92,7 @@ const Announcements = () => {
   const readAnnouncements = (readRows || []).map((r: any) => r.announcement_id);
 
   const { data: announcementsData, isLoading } = useQuery({
-    queryKey: ["announcements", selectedCourse, enrolledCourseIds, page],
+    queryKey: ["announcements", selectedCourse, enrolledCourseIds],
     queryFn: async () => {
       let query = supabase
         .from("announcements")
@@ -112,7 +110,7 @@ const Announcements = () => {
          }
       }
 
-      const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+      const { data, error, count } = await query;
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     },
@@ -120,7 +118,6 @@ const Announcements = () => {
 
   const announcements = announcementsData?.data || [];
   const totalCount = announcementsData?.count || 0;
-  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   // Combined stats across Personal Notifications + Course Announcements
   const totalNoticeCount = totalCount + (userNotifications?.length || 0);
@@ -211,7 +208,6 @@ const Announcements = () => {
                 value={selectedCourse}
                 onValueChange={(val) => {
                     setSelectedCourse(val);
-                    setPage(0);
                 }}
             >
             <SelectTrigger className="w-56">
@@ -359,32 +355,11 @@ const Announcements = () => {
                     )})
                 )}
 
-                {/* Pagination Controls */}
-                <div className="flex items-center justify-between pt-4">
-                     <div className="text-xs text-muted-foreground">
-                         Page {page + 1} of {totalPages || 1} ({totalCount} items)
-                     </div>
-                     <div className="flex gap-2">
-                         <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(p => Math.max(0, p - 1))}
-                            disabled={page === 0}
-                         >
-                             <ChevronLeft className="h-4 w-4" />
-                             Previous
-                         </Button>
-                         <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setPage(p => p + 1)}
-                            disabled={page >= totalPages - 1}
-                         >
-                             Next
-                             <ChevronRight className="h-4 w-4" />
-                         </Button>
-                     </div>
-                </div>
+                {totalCount > 0 && (
+                    <div className="text-xs text-muted-foreground pt-2">
+                        {totalCount} items
+                    </div>
+                )}
             </div>
         </div>
       )}
