@@ -236,7 +236,7 @@ const CustomExamBuilder = () => {
     <div className="space-y-4 pb-24">
       <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
         <DialogContent
-          className="w-[90vw] max-w-sm rounded-2xl"
+          className="w-[90vw] max-w-sm rounded-2xl max-h-[85vh] overflow-y-auto flex flex-col gap-3"
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
         >
@@ -378,16 +378,16 @@ const CustomExamBuilder = () => {
 
       {/* Sticky selection summary + count editor + submit */}
       {pickedList.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl z-50 flex flex-col max-h-[75vh]">
+        <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl z-50 flex flex-col max-h-[30vh]">
           <div className="flex items-center justify-between p-3 pb-2 shrink-0">
             <p className="text-sm font-semibold flex items-center gap-1.5">
               <ListChecks className="h-4 w-4 text-primary" /> নির্বাচিত: {pickedList.length}টি এক্সাম
             </p>
             <Badge className="bg-primary/10 text-primary border-primary/30">মোট MCQ: {totalSelectedMcq}</Badge>
           </div>
-          <div className="space-y-1.5 px-3 overflow-y-auto flex-1 min-h-0">
+          <div className="space-y-1 px-3 overflow-y-auto flex-1 min-h-0">
             {pickedList.map((e) => (
-              <div key={e.id} className="flex items-center gap-1.5 text-xs border rounded-lg px-2 py-1.5">
+              <div key={e.id} className="flex items-center gap-1.5 text-[11px] border rounded-lg px-2 py-1">
                 <p className="flex-1 min-w-0 truncate font-medium" title={e.title}>{e.title}</p>
                 <Input
                   type="number"
