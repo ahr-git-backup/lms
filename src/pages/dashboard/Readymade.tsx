@@ -224,8 +224,9 @@ const Readymade = () => {
   return (
     <div className="space-y-2">
       <ErrorBoundary label="Readymade header">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
+      <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
+
+      <div className="rounded-xl border bg-card p-2.5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 shrink-0">
           {(enrollments?.length || 0) > 0 && (
             <Button
@@ -238,28 +239,28 @@ const Readymade = () => {
               এক্সাম বানাও
             </Button>
           )}
-          <div className="relative">
-          {isSearchExpanded ? (
-            <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search exams..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-8"
-                autoFocus
-              />
-              <Button variant="ghost" size="icon" className="absolute right-0 h-9 w-9"
-                onClick={() => { setSearchQuery(""); setIsSearchExpanded(false); }}>
-                <X className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="icon" onClick={() => setIsSearchExpanded(true)}>
-              <Search className="h-4 w-4 text-muted-foreground" />
+        </div>
+        <div className="relative">
+        {isSearchExpanded ? (
+          <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search exams..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 pr-8"
+              autoFocus
+            />
+            <Button variant="ghost" size="icon" className="absolute right-0 h-9 w-9"
+              onClick={() => { setSearchQuery(""); setIsSearchExpanded(false); }}>
+              <X className="h-4 w-4 text-muted-foreground" />
             </Button>
-          )}
           </div>
+        ) : (
+          <Button variant="outline" size="icon" onClick={() => setIsSearchExpanded(true)}>
+            <Search className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        )}
         </div>
       </div>
       </ErrorBoundary>
