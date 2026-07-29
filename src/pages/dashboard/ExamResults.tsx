@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { openSolvePdf } from "@/lib/solvePdf";
+import { useToast } from "@/hooks/use-toast";
 import {
   Popover,
   PopoverContent,
@@ -47,6 +48,46 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
     const skipCount = mistakeCounts?.skip ?? 0;
     const hasMistakes = wrongCount > 0 || skipCount > 0;
 
+    const { toast } = useToast();
+    const [pdfLoading, setPdfLoading] = useState(false);
+
+    const handleSheetPdf = async () => {
+        setPdfLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from("exam_questions")
+                .select("question_text, option_a, option_b, option_c, option_d, option_e, correct_option, explanation")
+                .eq("exam_id", attempt.exam.id)
+                .order("question_index", { ascending: true });
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                toast({ title: "কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+                return;
+            }
+            const userAnswers = (attempt.answers as any[]) || [];
+            openSolvePdf({
+                examName: attempt.exam.title,
+                questions: data.map((q: any, idx: number) => ({
+                    question_text: q.question_text,
+                    option_a: q.option_a,
+                    option_b: q.option_b,
+                    option_c: q.option_c,
+                    option_d: q.option_d,
+                    option_e: q.option_e,
+                    correct_option: q.correct_option,
+                    user_answer: userAnswers[idx]?.selected_option || null,
+                    explanation: q.explanation,
+                })),
+                totalMarks: data.length,
+                style: "style2",
+            });
+        } catch (e: any) {
+            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+        } finally {
+            setPdfLoading(false);
+        }
+    };
+
     return (
     <Card className="border rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900">
         <CardHeader className="space-y-0.5 p-3 pb-2">
@@ -54,7 +95,18 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                 <p className="text-[10px] font-mono uppercase text-muted-foreground truncate">
                     {attempt.exam.course?.name || "Public Exam"}
                 </p>
-                {isLive && <span className="text-[9px] shrink-0 bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">LIVE</span>}
+                <div className="flex items-center gap-1 shrink-0">
+                    {isLive && <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">LIVE</span>}
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-6 px-1.5 text-[9px] bg-blue-500 hover:bg-blue-600 text-white hover:text-white border-none"
+                        disabled={pdfLoading}
+                        onClick={handleSheetPdf}
+                    >
+                        {pdfLoading ? "..." : "Practice Sheet"}
+                    </Button>
+                </div>
             </div>
             <CardTitle className="text-sm leading-tight">{attempt.exam.title}</CardTitle>
             <CardDescription className="text-[11px] leading-snug">
