@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -33,6 +33,23 @@ type PickedExam = {
   count: number; // user-editable MCQ count to pull from this exam
 };
 
+const SESSION_KEY = "customExamBuilderState";
+
+type StoredState = {
+  picked: [string, PickedExam][];
+  targetMarks: number | null;
+};
+
+function loadStoredState(): StoredState | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 const CustomExamBuilder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -41,13 +58,26 @@ const CustomExamBuilder = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
 
+  const initialStored = loadStoredState();
+
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [picked, setPicked] = useState<Map<string, PickedExam>>(new Map());
+  const [picked, setPicked] = useState<Map<string, PickedExam>>(new Map(initialStored?.picked || []));
   const [creating, setCreating] = useState(false);
-  const [targetMarks, setTargetMarks] = useState<number | null>(null);
-  const [showTargetDialog, setShowTargetDialog] = useState(true);
-  const [customTargetInput, setCustomTargetInput] = useState("");
+  const [targetMarks, setTargetMarks] = useState<number | null>(initialStored?.targetMarks ?? null);
+  const [showTargetDialog, setShowTargetDialog] = useState(!initialStored?.targetMarks);
+  const [customTargetInput, setCustomTargetInput] = useState(initialStored?.targetMarks ? String(initialStored.targetMarks) : "");
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({
+        picked: Array.from(picked.entries()),
+        targetMarks,
+      }));
+    } catch {
+      // ignore quota errors
+    }
+  }, [picked, targetMarks]);
 
   // --- Subjects ---
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
@@ -193,6 +223,7 @@ const CustomExamBuilder = () => {
       });
       if (error) throw error;
       toast({ title: "কাস্টম এক্সাম তৈরি হয়েছে!" });
+      try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
       navigate(`/dashboard/take-exam/${data}`);
     } catch (err: any) {
       toast({ title: "এক্সাম তৈরি করা যায়নি", description: err.message, variant: "destructive" });
@@ -204,7 +235,7 @@ const CustomExamBuilder = () => {
   return (
     <div className="space-y-4 pb-24">
       <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
-        <DialogContent className="sm:max-w-sm" onInteractOutside={(e) => { if (!targetMarks) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!targetMarks) e.preventDefault(); }}>
+        <DialogContent className="sm:max-w-sm [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> কত মার্কের এক্সাম বানাতে চাও?</DialogTitle>
             <DialogDescription>একটি টার্গেট বেছে নাও। পরে যতগুলো এক্সাম সিলেক্ট করবে, MCQ সংখ্যা এই টার্গেট অনুযায়ী auto-average হয়ে বসবে — চাইলে কমাতে/বাড়াতে পারবে।</DialogDescription>
@@ -334,37 +365,36 @@ const CustomExamBuilder = () => {
 
       {/* Sticky selection summary + count editor + submit */}
       {pickedList.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl p-4 space-y-3 z-50 max-h-[70vh] overflow-y-auto">
-          <div className="flex items-center justify-between">
+        <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl z-50 flex flex-col max-h-[75vh]">
+          <div className="flex items-center justify-between p-3 pb-2 shrink-0">
             <p className="text-sm font-semibold flex items-center gap-1.5">
               <ListChecks className="h-4 w-4 text-primary" /> নির্বাচিত: {pickedList.length}টি এক্সাম
             </p>
             <Badge className="bg-primary/10 text-primary border-primary/30">মোট MCQ: {totalSelectedMcq}</Badge>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-1.5 px-3 overflow-y-auto flex-1 min-h-0">
             {pickedList.map((e) => (
-              <div key={e.id} className="flex items-center gap-2 text-xs border rounded-lg p-2">
-                <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium">{e.title}</p>
-                  <p className="text-muted-foreground">{e.subject} • {e.chapter}</p>
-                </div>
+              <div key={e.id} className="flex items-center gap-1.5 text-xs border rounded-lg px-2 py-1.5">
+                <p className="flex-1 min-w-0 truncate font-medium" title={e.title}>{e.title}</p>
                 <Input
                   type="number"
                   min={1}
                   max={e.totalMcq}
                   value={e.count}
                   onChange={(ev) => updateCount(e.id, parseInt(ev.target.value, 10))}
-                  className="w-16 h-8 text-xs text-center"
+                  className="w-14 h-7 text-xs text-center px-1 shrink-0"
                 />
-                <span className="text-muted-foreground">/{e.totalMcq}</span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeExam(e.id)}>×</Button>
+                <span className="text-muted-foreground shrink-0">/{e.totalMcq}</span>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => removeExam(e.id)}>×</Button>
               </div>
             ))}
           </div>
-          <Button className="w-full" disabled={creating} onClick={handleCreate}>
-            {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
-            এক্সাম শুরু করো
-          </Button>
+          <div className="p-3 pt-2 shrink-0 border-t">
+            <Button className="w-full" disabled={creating} onClick={handleCreate}>
+              {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
+              এক্সাম শুরু করো
+            </Button>
+          </div>
         </div>
       )}
       </>
