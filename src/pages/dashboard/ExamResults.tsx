@@ -427,6 +427,16 @@ const ExamResults = () => {
               });
               const hasMistakes = wrongCount > 0 || skipCount > 0;
 
+              const startMockPracticeAgain = () => {
+                if (snapshot.length === 0) return;
+                const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(snapshot));
+                sessionStorage.setItem("unlimitedMockTitle", a.title || `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""}`);
+                sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(snapshot.length / 1.5)));
+                sessionStorage.setItem("unlimitedMockSessionId", newSessionId);
+                navigate("/mock-test/play");
+              };
+
               const startMockMistakePractice = () => {
                 const wrongQs = snapshot.filter((q: any) => answers[q.id] && answers[q.id] !== q.correct_option);
                 const skippedQs = snapshot.filter((q: any) => !answers[q.id]);
@@ -476,8 +486,9 @@ const ExamResults = () => {
                   <div className="grid grid-cols-3 gap-1.5 mt-auto pt-1.5">
                     <Button
                       size="sm"
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
-                      onClick={() => navigate("/mock-test")}
+                      disabled={!snapshot.length}
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      onClick={startMockPracticeAgain}
                     >
                       Practice Again
                     </Button>
