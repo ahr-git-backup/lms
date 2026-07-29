@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 const PAGE_SIZE = 15;
 
@@ -222,6 +223,7 @@ const Readymade = () => {
 
   return (
     <div className="space-y-2">
+      <ErrorBoundary label="Readymade header">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="flex items-center gap-2 shrink-0">
@@ -260,6 +262,7 @@ const Readymade = () => {
           </div>
         </div>
       </div>
+      </ErrorBoundary>
 
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
@@ -340,6 +343,7 @@ const Readymade = () => {
           onClose={() => setManageSubjects(false)}
         />
       ) : (
+        <ErrorBoundary label="Readymade exam browser">
         <ReadymadeExamView
           enrollments={enrollments}
           selectedSubject={selectedSubject}
@@ -364,6 +368,7 @@ const Readymade = () => {
           isAdmin={isAdmin}
           loadingEnrollments={loadingEnrollments}
         />
+        </ErrorBoundary>
       )}
     </div>
   );
