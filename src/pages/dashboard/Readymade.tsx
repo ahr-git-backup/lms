@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown } from "lucide-react";
+import { ExamForm } from "@/components/admin/ExamForm";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -120,6 +121,7 @@ const Readymade = () => {
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
   const [activeTypePanel, setActiveTypePanel] = useState<"type-based" | "model-test" | null>(null);
+  const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
 
@@ -299,15 +301,26 @@ const Readymade = () => {
           </DialogHeader>
           <div className="grid grid-cols-2 gap-2">
             {["মেডিকেল স্ট্যান্ডার্ড প্রশ্ন", "সত্য-মিথ্যার প্রশ্ন", "ছকভিত্তিক প্রশ্ন", "ছোট প্রশ্ন-বড় অপশন"].map((label) => (
-              <Button
-                key={label}
-                variant={selectedBoards.includes(label) ? "default" : "outline"}
-                size="sm"
-                className="h-auto py-2 text-xs whitespace-normal leading-tight"
-                onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
-              >
-                {label}
-              </Button>
+              <div key={label} className="relative">
+                <Button
+                  variant={selectedBoards.includes(label) ? "default" : "outline"}
+                  size="sm"
+                  className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
+                  onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+                >
+                  {label}
+                </Button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    aria-label={`Add question to ${label}`}
+                    onClick={(e) => { e.stopPropagation(); setAddQuestionCategory(label); }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
         </DialogContent>
@@ -320,17 +333,43 @@ const Readymade = () => {
           </DialogHeader>
           <div className="grid grid-cols-1 gap-2">
             {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
-              <Button
-                key={label}
-                variant={selectedBoards.includes(label) ? "default" : "outline"}
-                size="sm"
-                className="h-auto py-2 text-xs whitespace-normal leading-tight"
-                onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
-              >
-                {label}
-              </Button>
+              <div key={label} className="relative">
+                <Button
+                  variant={selectedBoards.includes(label) ? "default" : "outline"}
+                  size="sm"
+                  className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
+                  onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+                >
+                  {label}
+                </Button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    aria-label={`Add question to ${label}`}
+                    onClick={(e) => { e.stopPropagation(); setAddQuestionCategory(label); }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!addQuestionCategory} onOpenChange={(o) => { if (!o) setAddQuestionCategory(null); }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{addQuestionCategory} — নতুন এক্সাম যোগ করুন</DialogTitle>
+          </DialogHeader>
+          {addQuestionCategory && (
+            <ExamForm
+              exam={{ is_readymade: true, readymade_category: addQuestionCategory }}
+              onSuccess={() => setAddQuestionCategory(null)}
+              onCancel={() => setAddQuestionCategory(null)}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
