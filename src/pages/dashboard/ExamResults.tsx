@@ -121,8 +121,9 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
 };
 
 const ExamResults = () => {
-  const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
+  const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick">("all");
   const [readymadeSubCategory, setReadymadeSubCategory] = useState<string | null>(null);
+  const [subjectSubCategory, setSubjectSubCategory] = useState<string | null>(null);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
 
@@ -147,6 +148,60 @@ const ExamResults = () => {
     enabled: !!user,
   });
 
+  const { data: mockAttempts, isLoading: mockLoading } = useQuery({
+    queryKey: ["mock-exam-attempts-history-for-results", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("mock_exam_attempts")
+        .select("*")
+        .eq("user_id", user.id)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  const { data: qpAttemptsRaw, isLoading: qpLoading } = useQuery({
+    queryKey: ["qp-attempts-history-for-results", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase
+        .from("qp_attempts")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+
+  // Resolve subject names for qp_attempts via their chapter_ids -> qp_chapters -> qp_subjects.
+  const { data: qpChapterSubjectMap } = useQuery({
+    queryKey: ["qp-chapter-subject-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("qp_chapters")
+        .select("id, subject_id, qp_subjects(name)");
+      if (error) throw error;
+      const map: Record<number, string> = {};
+      (data || []).forEach((row: any) => {
+        map[row.id] = row.qp_subjects?.name || "সাধারণ";
+      });
+      return map;
+    },
+    enabled: !!user,
+  });
+
+  const qpAttempts = (qpAttemptsRaw || []).map((a: any) => {
+    const firstChapterId = Array.isArray(a.chapter_ids) ? a.chapter_ids[0] : null;
+    const subject = (firstChapterId && qpChapterSubjectMap?.[firstChapterId]) || "সাধারণ";
+    return { ...a, subject };
+  });
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const categorize = (attempt: any) => {
     const exam = attempt.exam;
@@ -165,6 +220,9 @@ const ExamResults = () => {
       .map(a => a.exam.readymade_topic)
   ));
 
+  const mockSubjects = Array.from(new Set((mockAttempts || []).map((a: any) => a.subject || "সাধারণ")));
+  const qpSubjects = Array.from(new Set(qpAttempts.map((a: any) => a.subject)));
+
   const filteredAttempts = (attempts || []).filter(a => {
     const cat = categorize(a);
     if (category === "all") return true;
@@ -173,8 +231,19 @@ const ExamResults = () => {
       if (readymadeSubCategory) return a.exam.readymade_topic === readymadeSubCategory;
       return true;
     }
+    if (category === "mock" || category === "quick") return false;
     return cat === category;
   });
+
+  const filteredMockAttempts = category === "mock"
+    ? (mockAttempts || []).filter((a: any) => !subjectSubCategory || (a.subject || "সাধারণ") === subjectSubCategory)
+    : [];
+
+  const filteredQpAttempts = category === "quick"
+    ? qpAttempts.filter((a: any) => !subjectSubCategory || a.subject === subjectSubCategory)
+    : [];
+
+  const isLoadingAny = isLoading || mockLoading || qpLoading;
 
   return (
     <div className="w-full px-0.5 py-3 space-y-3">
@@ -199,6 +268,29 @@ const ExamResults = () => {
             onClick={() => {
               setCategory(category === c.key ? "all" : c.key);
               setReadymadeSubCategory(null);
+              setSubjectSubCategory(null);
+            }}
+          >
+            {c.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Category Row 2 */}
+      <div className="flex flex-nowrap gap-1.5 px-1 overflow-x-auto no-scrollbar">
+        {([
+          { key: "mock", label: "Mock Test" },
+          { key: "quick", label: "Quick Practice" },
+        ] as const).map(c => (
+          <Button
+            key={c.key}
+            size="sm"
+            variant={category === c.key ? "default" : "outline"}
+            className="h-7 px-2.5 text-xs shrink-0"
+            onClick={() => {
+              setCategory(category === c.key ? "all" : c.key);
+              setReadymadeSubCategory(null);
+              setSubjectSubCategory(null);
             }}
           >
             {c.label}
@@ -223,8 +315,86 @@ const ExamResults = () => {
         </div>
       )}
 
-      {isLoading ? (
+      {/* Mock Test Sub-category (Subject) Row */}
+      {category === "mock" && mockSubjects.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1 pl-2.5">
+          {mockSubjects.map((subj: string) => (
+            <Button
+              key={subj}
+              size="sm"
+              variant={subjectSubCategory === subj ? "secondary" : "ghost"}
+              className="h-6 px-2 text-[11px]"
+              onClick={() => setSubjectSubCategory(subjectSubCategory === subj ? null : subj)}
+            >
+              {subj}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {/* Quick Practice Sub-category (Subject) Row */}
+      {category === "quick" && qpSubjects.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 px-1 pl-2.5">
+          {qpSubjects.map((subj: string) => (
+            <Button
+              key={subj}
+              size="sm"
+              variant={subjectSubCategory === subj ? "secondary" : "ghost"}
+              className="h-6 px-2 text-[11px]"
+              onClick={() => setSubjectSubCategory(subjectSubCategory === subj ? null : subj)}
+            >
+              {subj}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {isLoadingAny ? (
         <div className="text-sm text-muted-foreground px-1">Loading...</div>
+      ) : category === "mock" ? (
+        filteredMockAttempts.length === 0 ? (
+          <Card className="border border-foreground/50 mx-1">
+            <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+              No mock test results found.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 px-0.5">
+            {filteredMockAttempts.map((a: any) => (
+              <Card key={a.id} className="border rounded-2xl shadow-sm">
+                <CardContent className="p-3 space-y-1.5">
+                  <p className="text-sm font-semibold">{a.subject || "সাধারণ"} {a.chapter ? `- ${a.chapter}` : ""}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Score: <span className="font-bold text-foreground">{a.score ?? "-"}</span> / {a.total_marks ?? a.total_questions ?? "-"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{a.submitted_at && new Date(a.submitted_at).toLocaleDateString()}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
+      ) : category === "quick" ? (
+        filteredQpAttempts.length === 0 ? (
+          <Card className="border border-foreground/50 mx-1">
+            <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+              No quick practice results found.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 px-0.5">
+            {filteredQpAttempts.map((a: any) => (
+              <Card key={a.id} className="border rounded-2xl shadow-sm">
+                <CardContent className="p-3 space-y-1.5">
+                  <p className="text-sm font-semibold">{a.subject}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Correct: <span className="font-bold text-foreground">{a.correct_count}</span> / {a.total_questions} · Points: {a.points_earned}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">{a.created_at && new Date(a.created_at).toLocaleDateString()}</p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )
       ) : filteredAttempts.length === 0 ? (
         <Card className="border border-foreground/50 mx-1">
           <CardContent className="pt-6 text-center text-sm text-muted-foreground">
