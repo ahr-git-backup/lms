@@ -208,13 +208,24 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         .contains("subject", [oldName]);
       if (fetchErr) throw fetchErr;
 
-      for (const row of rows || []) {
-        const updatedSubjects = (row.subject as string[]).map((s) => (s === oldName ? newName : s));
-        const { error: updateErr } = await supabase
-          .from("exams")
-          .update({ subject: updatedSubjects })
-          .eq("id", row.id);
-        if (updateErr) throw updateErr;
+      const targetRows = rows || [];
+      // Run all updates in parallel and require every single one to succeed —
+      // a partial failure here is exactly what causes one subject to silently
+      // split into two groups (some exams renamed, some left on the old name).
+      const results = await Promise.allSettled(
+        targetRows.map((row) => {
+          const updatedSubjects = (row.subject as string[]).map((s) => (s === oldName ? newName : s));
+          return supabase.from("exams").update({ subject: updatedSubjects }).eq("id", row.id);
+        })
+      );
+
+      const failures = results.filter(
+        (r) => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)
+      );
+      if (failures.length > 0) {
+        throw new Error(
+          `${failures.length}/${targetRows.length} exams failed to rename — no changes were kept for "${oldName}" to avoid a split group. Please try again.`
+        );
       }
 
       return newName;
