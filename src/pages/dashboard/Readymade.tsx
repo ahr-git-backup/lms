@@ -99,6 +99,7 @@ const PremiumLockDialog = ({ exam, onClose, navigate }: { exam: any; onClose: ()
 const Readymade = () => {
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [selectedBoardStep, setSelectedBoardStep] = useState<string | null>(null);
   const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
@@ -180,6 +181,7 @@ const Readymade = () => {
         const s = JSON.parse(saved);
         if (s.selectedSubject) setSelectedSubject(s.selectedSubject);
         if (s.selectedChapter) setSelectedChapter(s.selectedChapter);
+        if (s.selectedBoardStep) setSelectedBoardStep(s.selectedBoardStep);
         if (s.selectedSubChapter) setSelectedSubChapter(s.selectedSubChapter);
         if (s.searchQuery) { setSearchQuery(s.searchQuery); setDebouncedSearch(s.searchQuery); setIsSearchExpanded(true); }
         if (typeof s.page === "number") setPage(s.page);
@@ -199,11 +201,11 @@ const Readymade = () => {
     if (!hasRestoredRef.restored) return;
     try {
       sessionStorage.setItem(READYMADE_STATE_KEY, JSON.stringify({
-        selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards,
+        selectedSubject, selectedChapter, selectedBoardStep, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards,
       }));
     } catch { /* ignore */ }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubject, selectedChapter, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards]);
+  }, [selectedSubject, selectedChapter, selectedBoardStep, selectedSubChapter, searchQuery, page, selectedParentTopics, selectedBoards]);
 
   useEffect(() => { document.title = "Readymade – Atlas"; }, []);
 
@@ -215,8 +217,8 @@ const Readymade = () => {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const resetToSubject = () => { setSelectedChapter(null); setSelectedSubChapter(null); };
-  const resetToChapter = () => { setSelectedSubChapter(null); };
+  const resetToSubject = () => { setSelectedChapter(null); setSelectedBoardStep(null); setSelectedSubChapter(null); };
+  const resetToChapter = () => { setSelectedBoardStep(null); setSelectedSubChapter(null); };
 
   return (
     <div className="space-y-2">
@@ -331,6 +333,8 @@ const Readymade = () => {
           setSelectedSubject={(s: string | null) => { setSelectedSubject(s); resetToSubject(); }}
           selectedChapter={selectedChapter}
           setSelectedChapter={(c: string | null) => { setSelectedChapter(c); resetToChapter(); }}
+          selectedBoardStep={selectedBoardStep}
+          setSelectedBoardStep={setSelectedBoardStep}
           selectedSubChapter={selectedSubChapter}
           setSelectedSubChapter={setSelectedSubChapter}
           navigate={navigate}
@@ -353,7 +357,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
 
@@ -517,9 +521,34 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     enabled: !selectedSubject && !searchQuery
   });
 
+  // --- LEVEL 2.5: BOARD/CATEGORY (readymade_category) — optional drill-down step
+  // within the selected chapter. Skipped automatically if the chapter has no
+  // exams carrying a readymade_category value.
+  const { data: chapterBoards, isLoading: loadingChapterBoards } = useQuery({
+    queryKey: ["readymade-exams-chapter-boards", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryFn: async () => {
+      if (!selectedSubject || !selectedChapter) return [];
+      const data = await fetchAllRows<{ readymade_category: string | null }>((from, to) => {
+        let query = supabase.from("exams")
+          .select("readymade_category")
+          .eq("is_readymade", true).eq("is_published", true)
+          .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+          .not("readymade_category", "is", null)
+          .range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+        return query;
+      });
+      const unique = new Set<string>();
+      data.forEach((row: any) => { if (row.readymade_category) unique.add(row.readymade_category); });
+      return Array.from(unique).sort();
+    },
+    enabled: !!selectedSubject && !!selectedChapter && !selectedBoardStep && !searchQuery
+  });
+
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
-    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, selectedBoardStep, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return [];
       const data = await fetchAllRows<{ readymade_sub_chapter: string | null }>((from, to) => {
@@ -531,6 +560,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+        if (selectedBoardStep) query = query.eq("readymade_category", selectedBoardStep);
         return query;
       });
       const unique = new Set<string>();
@@ -538,13 +568,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       return Array.from(unique).sort();
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedSubChapter && !searchQuery
+      && (!!selectedBoardStep || chapterBoards?.length === 0)
   });
 
   // --- LEVEL 4: EXAMS (filtered by sub-chapter if present, else no sub-chapter filter) ---
   // No .range() here on purpose — user wants every exam in the chapter/session
   // visible on a single page, no "Next page" pagination for this level.
   const { data: examsData, isLoading: loadingExams } = useQuery({
-    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedSubChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-list", selectedSubject, selectedChapter, selectedBoardStep, selectedSubChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return { data: [], count: 0 };
       let query = supabase.from("exams")
@@ -555,13 +586,16 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+      if (selectedBoardStep) query = query.eq("readymade_category", selectedBoardStep);
       // If subChapters exist for this chapter, only show exams for the selected sub-chapter
       if (selectedSubChapter) query = query.eq("readymade_sub_chapter", selectedSubChapter);
       const { data, count, error } = await query;
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     },
-    enabled: !!selectedSubject && !!selectedChapter && (!!selectedSubChapter || subChapters?.length === 0) && !searchQuery
+    enabled: !!selectedSubject && !!selectedChapter && !searchQuery
+      && (!!selectedBoardStep || chapterBoards?.length === 0)
+      && (!!selectedSubChapter || subChapters?.length === 0)
   });
 
   // ---- RENDER ----
@@ -670,13 +704,44 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
   }
 
-  // LEVEL 3: Sub-chapter (session) selection — only shown if sub-chapters exist
-  if (!selectedSubChapter && subChapters && subChapters.length > 0) {
+  // LEVEL 2.5: Board/Category selection — only shown if this chapter has boards
+  if (!selectedBoardStep && chapterBoards && chapterBoards.length > 0) {
     return (
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
+        </div>
+        <h2 className="text-base font-bold">Select Board / Category</h2>
+        {loadingChapterBoards ? <div className="text-muted-foreground">Loading boards...</div> : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+            {chapterBoards.map(board => (
+              <Card key={board} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedBoardStep(board)}>
+                <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                  <div className="text-sm sm:text-base font-semibold leading-tight">{board}</div>
+                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View <ChevronRight className="h-3 w-3 ml-1" /></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // LEVEL 3: Sub-chapter (session) selection — only shown if sub-chapters exist
+  if (!selectedSubChapter && subChapters && subChapters.length > 0) {
+    return (
+      <div className="space-y-3">
+        <Button variant="ghost" size="sm" onClick={() => {
+          if (selectedBoardStep && chapterBoards && chapterBoards.length > 0) setSelectedBoardStep(null);
+          else setSelectedChapter(null);
+        }} className="pl-0 h-8">
+          <ArrowLeft className="mr-2 h-4 w-4" /> {selectedBoardStep ? "Back to Boards" : "Back to Chapters"}
+        </Button>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
+          <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
+          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
         </div>
         <h2 className="text-base font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
@@ -703,15 +768,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} />
       <Button variant="ghost" size="sm" onClick={() => {
         if (selectedSubChapter && subChapters && subChapters.length > 0) setSelectedSubChapter(null);
+        else if (selectedBoardStep && chapterBoards && chapterBoards.length > 0) setSelectedBoardStep(null);
         else setSelectedChapter(null);
       }} className="pl-0 h-8">
-        <ArrowLeft className="mr-2 h-4 w-4" /> {selectedSubChapter ? "Back to Sessions" : "Back to Chapters"}
+        <ArrowLeft className="mr-2 h-4 w-4" /> {selectedSubChapter ? "Back to Sessions" : selectedBoardStep ? "Back to Boards" : "Back to Chapters"}
       </Button>
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <span>{selectedSubject}</span>
           <ChevronRight className="h-3 w-3" />
           <span>{selectedChapter}</span>
+          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
           {selectedSubChapter && <><ChevronRight className="h-3 w-3" /><span>{selectedSubChapter}</span></>}
         </div>
         <h2 className="text-base font-bold mt-0.5">Available Readymade Exams</h2>
