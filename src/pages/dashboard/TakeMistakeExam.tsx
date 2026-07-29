@@ -325,17 +325,17 @@ const TakeMistakeExam = () => {
             <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
                 <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
                     {/* Header */}
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                             <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/my-mistakes')}>
-                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exam List
+                    <div className="flex items-center justify-end gap-1.5 flex-nowrap overflow-x-auto">
+                             <Button size="sm" variant="outline" className="shrink-0 px-2 text-xs sm:text-sm sm:px-3" onClick={() => navigate('/dashboard/my-mistakes')}>
+                                <ArrowLeft className="h-4 w-4 mr-1 sm:mr-2" /> Exam List
                              </Button>
                              {state.sourceAttemptId && (
-                                 <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
-                                    <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
+                                 <Button size="sm" variant="outline" className="shrink-0 px-2 text-xs sm:text-sm sm:px-3" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
+                                    <RotateCcw className="h-4 w-4 mr-1 sm:mr-2" /> Main Result
                                  </Button>
                              )}
-                             <Button size="sm" onClick={() => window.location.reload()}>
-                                <RotateCw className="h-4 w-4 mr-2" /> Practice Again
+                             <Button size="sm" className="shrink-0 px-2 text-xs sm:text-sm sm:px-3" onClick={() => window.location.reload()}>
+                                <RotateCw className="h-4 w-4 mr-1 sm:mr-2" /> Practice Again
                              </Button>
                     </div>
 
