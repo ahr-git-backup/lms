@@ -235,7 +235,7 @@ const CustomExamBuilder = () => {
   return (
     <div className="space-y-4 pb-24">
       <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
-        <DialogContent className="sm:max-w-sm max-h-[85vh] overflow-y-auto top-[5%] translate-y-0 [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent className="sm:max-w-sm [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> কত মার্কের এক্সাম বানাতে চাও?</DialogTitle>
             <DialogDescription>একটি টার্গেট বেছে নাও। পরে যতগুলো এক্সাম সিলেক্ট করবে, MCQ সংখ্যা এই টার্গেট অনুযায়ী auto-average হয়ে বসবে — চাইলে কমাতে/বাড়াতে পারবে।</DialogDescription>
