@@ -210,6 +210,7 @@ const ExamResults = () => {
         .select("*")
         .eq("user_id", user.id)
         .not("submitted_at", "is", null)
+        .not("mock_exam_id", "is", null)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
       return data || [];
