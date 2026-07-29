@@ -61,6 +61,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [forceRotate, setForceRotate] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
@@ -289,10 +290,24 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
           await (containerRef.current as any).webkitRequestFullscreen();
         }
-        
-        // Attempt orientation lock on mobile
-        if (window.innerWidth < 768 && screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
+
+        // Attempt native orientation lock on mobile (works in some browsers).
+        // If it's unsupported or rejected (common on Chrome Android outside
+        // a PWA), fall back to a CSS rotation so landscape fullscreen still
+        // works everywhere.
+        if (window.innerWidth < 768) {
+          let lockedNatively = false;
+          if (screen.orientation && (screen.orientation as any).lock) {
+            try {
+              await (screen.orientation as any).lock('landscape');
+              lockedNatively = true;
+            } catch {
+              lockedNatively = false;
+            }
+          }
+          if (!lockedNatively) {
+            setForceRotate(true);
+          }
         }
       } else {
         if (document.exitFullscreen) {
@@ -348,6 +363,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
         if (screen.orientation && screen.orientation.unlock) {
           screen.orientation.unlock().catch(() => {});
         }
+        setForceRotate(false);
       }
     };
 
@@ -415,7 +431,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
     <TooltipProvider>
       <div
           ref={containerRef}
-          className="relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none"
+          className={`relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none ${forceRotate ? 'force-rotate-landscape' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isPlaying && setShowControls(false)}
           onDoubleClick={toggleFullscreen}

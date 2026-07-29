@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator } from "lucide-react";
+import { LayoutGrid, Clock, CheckCircle2, AlertTriangle, Loader2, PlayCircle, RotateCcw, Check, X, Bookmark, RotateCw, Trophy, Lock, Calculator, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -171,14 +171,18 @@ const TakeMistakeExam = () => {
 
             return allQuestions;
         },
-        enabled: !!state && !!user
+        enabled: !!state && !!user,
+        staleTime: Infinity,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
     });
 
     useEffect(() => {
-        if (loadedQuestions) {
+        if (loadedQuestions && questions.length === 0 && !isFinished) {
             setQuestions(loadedQuestions);
         }
-    }, [loadedQuestions]);
+    }, [loadedQuestions, questions.length, isFinished]);
 
     useEffect(() => {
         if (hasStarted && timeLeft === null && questions.length > 0) {
@@ -304,7 +308,7 @@ const TakeMistakeExam = () => {
         return <div className="p-8 text-center text-red-500">Error loading questions. Please try again.</div>;
     }
 
-    if (questions.length === 0) {
+    if (questions.length === 0 && !isFinished) {
         return (
             <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh]">
                 <CheckCircle2 className="h-16 w-16 text-green-500 mb-4" />
@@ -315,13 +319,16 @@ const TakeMistakeExam = () => {
         );
     }
 
-    // --- RESULT VIEW ---
+    // --- RESULT VIEW (checked first so a background refetch never bumps the user back to loading/start) ---
     if (isFinished && resultData) {
         return (
             <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
-                <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-3 md:pb-8 md:px-8 space-y-3">
+                <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
                     {/* Header */}
                     <div className="flex flex-wrap items-center justify-end gap-2">
+                             <Button size="sm" variant="outline" onClick={() => navigate('/dashboard/my-mistakes')}>
+                                <ArrowLeft className="h-4 w-4 mr-2" /> Back to Exam List
+                             </Button>
                              {state.sourceAttemptId && (
                                  <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/exam-review/${state.sourceAttemptId}`)}>
                                     <RotateCcw className="h-4 w-4 mr-2" /> Back to Main Result Page
@@ -460,17 +467,17 @@ const TakeMistakeExam = () => {
                                                 }
 
                                                 return (
-                                                    <div key={optionKey} className="flex items-start gap-4">
+                                                    <div key={optionKey} className="flex items-center gap-4 max-w-full">
                                                         <div className={cn(
-                                                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5",
+                                                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all",
                                                             circleClass
                                                         )}>
                                                             {icon}
                                                         </div>
                                                         <div className={cn(
-                                                            "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
-                                                            isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" :
-                                                            isSelected ? "text-red-600 dark:text-red-400" : "text-foreground"
+                                                            "flex-1 min-w-0 text-base whitespace-normal p-3 rounded-lg border transition-all overflow-x-auto no-scrollbar scroll-smooth",
+                                                            isCorrectOption ? "text-green-700 dark:text-green-400 font-medium bg-green-500/10 border-green-500/40" :
+                                                            isSelected ? "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/40" : "text-foreground border-border/60"
                                                         )}>
                                                             <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
                                                         </div>
@@ -500,62 +507,67 @@ const TakeMistakeExam = () => {
 
     // --- START SCREEN ---
     if (!hasStarted) {
+        const uniqueExamTitles = Array.from(new Set(questions.map(q => q.exam_title).filter(Boolean)));
+        const headerTitle = uniqueExamTitles.length === 1 ? uniqueExamTitles[0] : "Mistakes Practice";
         return (
-            <div className="min-h-screen flex items-center justify-center p-2 md:p-4">
-                <Card className="w-full max-w-2xl shadow-xl">
-                    <CardContent className="p-6 md:p-8 space-y-6 text-center">
-                        <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-bold text-primary">Mistakes Practice</h1>
-                            <p className="text-base md:text-lg text-muted-foreground">
-                                You are about to practice {questions.length} questions based on your selection.
+            <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-2">
+                <Card className="w-full max-w-md shadow-xl">
+                    <CardContent className="p-3 space-y-2 text-center">
+                        <div className="space-y-0.5">
+                            <h1 className="text-xl font-bold text-primary leading-tight truncate">{headerTitle}</h1>
+                            <p className="text-[11px] text-muted-foreground">
+                                {uniqueExamTitles.length > 1
+                                    ? `Mistakes Practice · ${uniqueExamTitles.length} exams · ${questions.length} questions`
+                                    : `${questions.length} questions based on your selection`}
                             </p>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
-                             <div className="p-4 bg-muted rounded-xl">
-                                 <div className="text-sm font-medium text-muted-foreground uppercase">Questions</div>
-                                 <div className="text-3xl font-bold">{questions.length}</div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                             <div className="p-1.5 bg-muted rounded-lg">
+                                 <div className="text-[9px] font-medium text-muted-foreground uppercase">Questions</div>
+                                 <div className="text-lg font-bold">{questions.length}</div>
                              </div>
-                             <div className="p-4 bg-muted rounded-xl">
-                                 <div className="text-sm font-medium text-muted-foreground uppercase">Duration</div>
-                                 <div className="text-3xl font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-sm font-normal text-muted-foreground">min</span></div>
+                             <div className="p-1.5 bg-muted rounded-lg">
+                                 <div className="text-[9px] font-medium text-muted-foreground uppercase">Duration</div>
+                                 <div className="text-lg font-bold text-primary">{Math.ceil((questions.length * 45) / 60)} <span className="text-[9px] font-normal text-muted-foreground">min</span></div>
                              </div>
                         </div>
 
-                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-4 rounded-lg text-sm text-left mx-auto max-w-lg">
-                            <h3 className="font-bold flex items-center gap-2 mb-2">
-                                <AlertTriangle className="h-4 w-4 text-yellow-600" />
+                        <div className="bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-900/20 p-2 rounded-lg text-[10px] text-left">
+                            <h3 className="font-bold flex items-center gap-1.5 mb-0.5">
+                                <AlertTriangle className="h-3 w-3 text-yellow-600 shrink-0" />
                                 Note
                             </h3>
-                            <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
-                                <li>You have <strong>45 seconds</strong> per question.</li>
-                                <li>This practice session does not affect your main exam statistics.</li>
-                                <li>Questions are gathered from multiple exams you've taken.</li>
+                            <ul className="list-disc pl-3.5 space-y-0 text-muted-foreground">
+                                <li>45 seconds per question.</li>
+                                <li>Doesn't affect main exam statistics.</li>
+                                <li>Questions from multiple exams you've taken.</li>
                             </ul>
                         </div>
 
-                        <div className="flex items-center justify-center space-x-2 pt-2">
+                        <div className="flex items-center justify-center space-x-2">
                             <Checkbox
                                 id="terms"
                                 checked={agreedToInstructions}
                                 onCheckedChange={(c) => setAgreedToInstructions(!!c)}
                             />
-                            <label htmlFor="terms" className="text-sm font-medium cursor-pointer">
+                            <label htmlFor="terms" className="text-xs font-medium cursor-pointer">
                                 I am ready to start.
                             </label>
                         </div>
 
-                        <div className="flex gap-4 pt-4 justify-center">
-                            <Button variant="outline" size="lg" onClick={() => navigate(-1)}>Cancel</Button>
+                        <div className="flex gap-2 justify-center">
+                            <Button variant="outline" size="sm" onClick={() => navigate(-1)}>Cancel</Button>
                             <Button
-                                size="lg"
+                                size="sm"
                                 disabled={!agreedToInstructions}
                                 onClick={() => setHasStarted(true)}
-                                className="min-w-[150px]"
+                                className="min-w-[130px]"
                             >
-                                <PlayCircle className="mr-2 h-5 w-5" /> Start Now
+                                <PlayCircle className="mr-2 h-4 w-4" /> Start Now
                             </Button>
                         </div>
+
                     </CardContent>
                 </Card>
             </div>
@@ -570,28 +582,26 @@ const TakeMistakeExam = () => {
 
     return (
         <div className="min-h-screen bg-background pb-20 relative font-sans overflow-x-hidden">
-            {/* Header / Timer */}
-            <div className="fixed top-16 left-0 right-0 z-40 flex justify-center pointer-events-none">
-                <div className="flex gap-2 pointer-events-auto mt-2">
-                    <div className={cn(
-                        "px-4 py-2 rounded-full font-mono font-bold shadow-lg border flex items-center gap-2 transition-all duration-300",
-                        isLowTime
-                            ? "bg-red-600 text-white border-red-700 animate-pulse"
-                            : "bg-background/90 backdrop-blur border-primary/20 text-primary"
-                    )}>
-                        <Clock className="h-4 w-4" />
-                        {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
-                    </div>
-                </div>
-            </div>
-
-            <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 pt-24 overflow-x-hidden">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Practice Session</h1>
-                        <p className="text-sm text-muted-foreground">
-                            {Object.keys(answers).length} of {questions.length} answered
-                        </p>
+            <div className="container max-w-4xl mx-auto px-[5px] py-4 md:p-8 space-y-6 overflow-x-hidden">
+                <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <h1 className="text-xl md:text-2xl font-bold truncate">Practice Session</h1>
+                            <p className="text-sm text-muted-foreground">
+                                {Object.keys(answers).length} of {questions.length} answered
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <div className={cn(
+                                "px-3 py-1.5 rounded-full font-mono font-bold shadow-sm border flex items-center gap-1.5 transition-all duration-300 text-sm",
+                                isLowTime
+                                    ? "bg-red-600 text-white border-red-700 animate-pulse"
+                                    : "bg-background border-primary/20 text-primary"
+                            )}>
+                                <Clock className="h-3.5 w-3.5" />
+                                {timeLeft !== null ? formatTime(timeLeft) : "--:--"}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -601,7 +611,7 @@ const TakeMistakeExam = () => {
                     const showHeader = idx === 0 || questions[idx-1].exam_title !== q.exam_title;
 
                     return (
-                        <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-24 space-y-4">
+                        <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-28">
                             {showHeader && (
                                 <div className="flex items-center gap-2 pt-4 pb-2">
                                     <div className="h-px bg-border flex-1" />
@@ -612,25 +622,25 @@ const TakeMistakeExam = () => {
                                 </div>
                             )}
 
-                            <Card className="shadow-sm rounded-[30px] overflow-hidden border-l-4 border-l-primary/20">
-                                <CardContent className="p-5 space-y-2">
-                                    <div className="flex items-start gap-4">
+                            <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
+                                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
+                                    <div className="flex items-start gap-4 max-w-full">
                                         <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
                                             {idx + 1}
                                         </div>
-                                        <div className="flex-1 min-w-0 pt-1">
-                                            <MathText text={q.question_text} className="text-lg font-medium" />
+                                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
+                                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2 pt-2">
+                                    <div className="space-y-2 pt-2 max-w-full">
                                         {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
                                             // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
                                             if (!optionText) return null;
                                             const isSelected = answers[q.id] === optionKey;
                                             const isAnswered = !!answers[q.id];
-                                            const isThisSelected = isSelected;
+                                            const isDisabled = isAnswered && !isSelected;
 
                                             return (
                                                 <div
@@ -644,25 +654,26 @@ const TakeMistakeExam = () => {
                                                             });
                                                         }
                                                     }}
-                                                    className={cn(
-                                                        "flex items-start gap-4 group p-2 rounded-lg transition-colors",
-                                                        isThisSelected
-                                                            ? "bg-primary/5"
-                                                            : (!isAnswered ? "cursor-pointer hover:bg-muted/50" : "cursor-not-allowed opacity-80")
-                                                    )}
+                                                    className={cn("flex items-center gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
                                                 >
                                                     <div className={cn(
-                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all mt-0.5",
-                                                        isThisSelected
+                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                                                        isSelected
                                                             ? "border-primary bg-primary text-primary-foreground scale-110"
                                                             : "border-muted-foreground/30 text-muted-foreground",
-                                                        !isAnswered && !isThisSelected && "group-hover:border-primary/50"
+                                                        !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
+                                                        isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
                                                     )}>
                                                         {optionKey}
                                                     </div>
-                                                    <div className={cn("flex-1 pt-1 flex items-center gap-2", isThisSelected ? "text-primary font-medium" : "text-foreground")}>
-                                                        <MathText text={optionText} />
-                                                        {isThisSelected && <Lock className="h-4 w-4 text-primary shrink-0" />}
+                                                    <div className={cn(
+                                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                                        isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
+                                                    )}>
+                                                        <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                                        </div>
+                                                        {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
                                                     </div>
                                                 </div>
                                             );

@@ -132,11 +132,19 @@ const AdminDashboardHome = () => {
                {quickLinks.map((item, index) => (
                    <Card
                         key={index}
+<<<<<<< HEAD
                         className="group hover:border-primary/50 transition-all cursor-pointer border-muted-foreground/20 relative"
                         onClick={() => navigate(item.url)}
                     >
                        {item.title === "Reports" && (stats?.pendingReports || 0) > 0 && (
                            <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 px-1 items-center justify-center rounded-full bg-red-600 text-white text-xs font-bold shadow-lg animate-pulse">
+=======
+                        className="group hover:border-primary/50 transition-all cursor-pointer border-muted-foreground/20 relative overflow-visible"
+                        onClick={() => navigate(item.url)}
+                    >
+                       {item.title === "Reports" && !isLoading && (stats?.pendingReports ?? 0) > 0 && (
+                           <span className="absolute -top-3 -right-3 min-w-[24px] h-[24px] px-1.5 flex items-center justify-center rounded-full bg-red-600 text-white text-xs font-bold shadow-lg z-20 animate-[focus-blink_1s_ease-in-out_infinite] ring-2 ring-white dark:ring-background">
+>>>>>>> 09c57a48b7a808dcdfc8a60bed404ee342e017a5
                                {stats.pendingReports}
                            </span>
                        )}

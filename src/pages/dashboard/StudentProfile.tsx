@@ -436,20 +436,20 @@ const StudentProfile = () => {
             </CardHeader>
             <CardContent>
             {profile && (
-                <div className="flex items-center gap-4 pb-4 mb-4 border-b border-border/50">
+                <div className="flex flex-col items-center gap-3 pb-4 mb-4 border-b border-border/50">
                     <div className="relative">
-                        <Avatar className="h-16 w-16 rounded-lg border-2 border-border">
-                            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || "Profile"} className="rounded-lg" />
+                        <Avatar className="h-32 w-24 rounded-lg border-2 border-border">
+                            <AvatarImage src={profile.avatar_url || undefined} alt={profile.full_name || "Profile"} className="rounded-lg object-cover" />
                             <AvatarFallback className="rounded-lg bg-muted" />
                         </Avatar>
                         <label
                             htmlFor="avatar-upload"
-                            className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm"
+                            className="absolute -bottom-1 -right-1 h-7 w-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center cursor-pointer hover:bg-primary/90 transition-colors shadow-sm"
                         >
                             {uploadingAvatar ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
-                                <Camera className="h-3.5 w-3.5" />
+                                <Camera className="h-4 w-4" />
                             )}
                         </label>
                         <input
@@ -461,7 +461,7 @@ const StudentProfile = () => {
                             disabled={uploadingAvatar}
                         />
                     </div>
-                    <div className="min-w-0">
+                    <div className="text-center min-w-0">
                         <p className="text-sm font-semibold truncate">{profile.full_name || "Student"}</p>
                         <p className="text-xs text-muted-foreground">Tap the camera icon to update your profile photo.</p>
                     </div>
@@ -580,6 +580,10 @@ const StudentProfile = () => {
                             </div>
                             <ProfileDetailItem label="Registration ID" value={profile.registration_id} />
                             <ProfileDetailItem label="Phone" value={profile.phone} />
+                            <ProfileDetailItem
+                                label="Joining Date & Time"
+                                value={profile.created_at ? format(new Date(profile.created_at), 'PPPp') : "-"}
+                            />
                         </div>
 
                         {/* Academic Group */}

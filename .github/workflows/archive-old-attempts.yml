@@ -1,0 +1,33 @@
+name: Archive Old Attempts
+
+on:
+  workflow_dispatch:
+    inputs:
+      live:
+        description: "Run LIVE (actually move+delete). Leave unchecked for dry run."
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 3 * * 0" # weekly, Sunday 03:00 UTC — dry run stays off by default via workflow_dispatch only for live runs
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install @supabase/supabase-js
+      - name: Run archive script
+        env:
+          MAIN_SUPABASE_URL: ${{ secrets.MAIN_SUPABASE_URL }}
+          MAIN_SUPABASE_SERVICE_KEY: ${{ secrets.MAIN_SUPABASE_SERVICE_KEY }}
+          ARCHIVE_SUPABASE_URL: ${{ secrets.ARCHIVE_SUPABASE_URL }}
+          ARCHIVE_SUPABASE_SERVICE_KEY: ${{ secrets.ARCHIVE_SUPABASE_SERVICE_KEY }}
+        run: |
+          if [ "${{ github.event.inputs.live }}" = "true" ]; then
+            node scripts/archive-old-attempts.mjs --live
+          else
+            node scripts/archive-old-attempts.mjs
+          fi

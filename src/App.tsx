@@ -34,6 +34,7 @@ import ExamReview from "./pages/dashboard/ExamReview";
 import Leaderboard from "./pages/dashboard/Leaderboard";
 import Bookmarks from "./pages/dashboard/Bookmarks";
 import MyMistakes from "./pages/dashboard/MyMistakes";
+import MyProgress from "./pages/dashboard/MyProgress";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
@@ -43,6 +44,7 @@ import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
+import CustomExamBuilder from "./pages/dashboard/CustomExamBuilder";
 import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
 import ExtraCourses from "./pages/dashboard/ExtraCourses";
@@ -190,6 +192,7 @@ const App = () => {
                 <Route path="leaderboard/:examId" element={<ErrorBoundary><Leaderboard /></ErrorBoundary>} />
                 <Route path="bookmarks" element={<ErrorBoundary><Bookmarks /></ErrorBoundary>} />
                 <Route path="my-mistakes" element={<ErrorBoundary><MyMistakes /></ErrorBoundary>} />
+                <Route path="my-progress" element={<ErrorBoundary><MyProgress /></ErrorBoundary>} />
                 <Route path="routine" element={<ErrorBoundary><Routine /></ErrorBoundary>} />
                 <Route path="class-notes" element={<ErrorBoundary><ClassNotes /></ErrorBoundary>} />
                 <Route path="class-notes/:noteId" element={<ErrorBoundary><NoteDetails /></ErrorBoundary>} />
@@ -200,6 +203,7 @@ const App = () => {
                 <Route path="program" element={<ErrorBoundary><Program /></ErrorBoundary>} />
                 <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
                 <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
                 <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />

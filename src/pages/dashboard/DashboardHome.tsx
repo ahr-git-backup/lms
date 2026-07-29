@@ -50,6 +50,7 @@ const DashboardHome = () => {
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
   const [showTutorialVideo, setShowTutorialVideo] = useState(false);
   const [showQuickAccessSort, setShowQuickAccessSort] = useState(false);
+  const [showAdminQuickActions, setShowAdminQuickActions] = useState(false);
 
   const { data: tutorialVideoUrl } = useQuery({
     queryKey: ["dashboard-tutorial-video"],
@@ -216,8 +217,8 @@ const DashboardHome = () => {
       { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
       { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
       { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+      { title: "Archive Class & Exam", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
+      { title: "Exam History", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
       { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
       { title: "FB & Telegram Group", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/community" },
       { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
@@ -285,15 +286,15 @@ const DashboardHome = () => {
                   <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground">
                               {classItem?.course?.name || "Unknown Course"}
                           </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE CLASS
                           </span>
                       </div>
                       <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
@@ -310,15 +311,15 @@ const DashboardHome = () => {
                   <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground">
                               {exam?.course?.name || "Unknown Course"}
                           </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE EXAM
                           </span>
                       </div>
                       <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
@@ -350,11 +351,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextClass.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -380,11 +381,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextExam.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -406,21 +407,21 @@ const DashboardHome = () => {
           <Card
             className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
+            onClick={() => navigate("/dashboard/my-progress")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">My Progress & History</p>
+              <p className="font-medium text-sm leading-tight">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
+            className="animate-border-chase cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+            onClick={() => navigate("/syllabus-tracker")}
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
+              <BarChart3 className="h-5 w-5 text-sky-600 flex-shrink-0" />
+              <p className="font-medium text-sm leading-tight">Study Tracker</p>
             </CardContent>
           </Card>
           <Card
@@ -430,7 +431,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Top Performer</p>
+              <p className="font-medium text-sm leading-tight">Top Performer</p>
             </CardContent>
           </Card>
         </div>
@@ -446,7 +447,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Zap className="h-5 w-5 text-violet-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Quick Practice</p>
+              <p className="font-medium text-sm leading-tight">Quick Practice</p>
             </CardContent>
           </Card>
           <Card
@@ -456,7 +457,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Unlimited Mock Test</p>
+              <p className="font-medium text-sm leading-tight">Unlimited Practice Exam</p>
             </CardContent>
           </Card>
           <Card
@@ -466,82 +467,96 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <FileText className="h-5 w-5 text-pink-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Readymade Exam</p>
+              <p className="font-medium text-sm leading-tight">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Admin-only quick actions */}
+      {/* Admin-only quick actions — collapsed by default behind a floating
+          toggle so the 5 admin cards don't push down content other users
+          see; nothing about the cards themselves changes, only visibility. */}
       {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
-          <Card
-            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-            onClick={() => navigate("/admin/reports")}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowAdminQuickActions(v => !v)}
+            aria-label={showAdminQuickActions ? "Hide admin quick actions" : "Show admin quick actions"}
+            className="absolute -top-2 right-0 z-10 h-9 w-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center animate-pulse hover:animate-none transition-all"
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Reports</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReportsCount ?? "..."} pending
-                </p>
+            {showAdminQuickActions ? <ChevronUp className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          </button>
+          {showAdminQuickActions && (
+            <div className="space-y-4 pt-9 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Card
+                  className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+                  onClick={() => navigate("/admin/reports")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Reports</p>
+                      <p className="text-sm text-muted-foreground">
+                        {pendingReportsCount ?? "..."} pending
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+                  onClick={() => navigate("/admin/announcements")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Notice</p>
+                      <p className="text-sm text-muted-foreground">Send to all users</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/admin/announcements")}
-          >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Notice</p>
-                <p className="text-xs text-muted-foreground">Send to all users</p>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
-      {isAdmin && (
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card
-            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/admin/syllabus-tracker")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <Card
+                  className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+                  onClick={() => navigate("/admin/syllabus-tracker")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Study Tracker</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+                  onClick={() => navigate("/admin/quick-practice")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Quick Practice</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+                  onClick={() => navigate("/admin/mock-test")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Mock Test</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            onClick={() => navigate("/admin/quick-practice")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
-            onClick={() => navigate("/admin/mock-test")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -563,7 +578,7 @@ const DashboardHome = () => {
                                 {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
                                 <div>
                                     <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
-                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
+                                    <p className="text-sm text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
@@ -715,7 +730,7 @@ const DashboardHome = () => {
                                )}
                                <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
-                           <p className="font-medium text-sm">{item.title}</p>
+                           <p className="font-semibold text-lg">{item.title}</p>
                        </CardContent>
                    </Card>
                ))}

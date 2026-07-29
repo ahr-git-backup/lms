@@ -39,6 +39,7 @@ const MockTestHistory = () => {
         .select("*")
         .eq("user_id", user.id)
         .not("submitted_at", "is", null)
+        .not("questions_snapshot", "is", null)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
       return (data || []) as Attempt[];
