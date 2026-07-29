@@ -225,8 +225,6 @@ const Readymade = () => {
   return (
     <div className="space-y-2">
       <ErrorBoundary label="Readymade header">
-      <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
-
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="relative">
