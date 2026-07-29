@@ -401,7 +401,7 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="animate-border-chase border-y sm:border sm:rounded-lg px-4 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
@@ -409,9 +409,9 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
             onClick={() => navigate("/dashboard/my-progress")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">My Progress & History</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <TrendingUp className="h-7 w-7 text-blue-500 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
@@ -419,9 +419,9 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
             onClick={() => navigate("/syllabus-tracker")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <BarChart3 className="h-5 w-5 text-sky-600 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Study Tracker</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <BarChart3 className="h-7 w-7 text-sky-600 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">Study Tracker</p>
             </CardContent>
           </Card>
           <Card
@@ -429,15 +429,15 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
             onClick={() => toast({ title: "Coming Soon", description: "Top Performer feature আসছে খুব শীঘ্রই।" })}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Top Performer</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <Trophy className="h-7 w-7 text-yellow-500 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">Top Performer</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="animate-border-chase border-y sm:border sm:rounded-lg px-4 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
@@ -445,9 +445,9 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
             onClick={() => navigate("/quick-practice")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Zap className="h-5 w-5 text-violet-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Quick Practice</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <Zap className="h-7 w-7 text-violet-500 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">Quick Practice</p>
             </CardContent>
           </Card>
           <Card
@@ -455,9 +455,9 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
             onClick={() => navigate("/mock-test")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Unlimited Practice Exam</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <Infinity className="h-7 w-7 text-fuchsia-500 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">Unlimited Practice Exam</p>
             </CardContent>
           </Card>
           <Card
@@ -465,9 +465,9 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
             onClick={() => navigate("/dashboard/readymade")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <FileText className="h-5 w-5 text-pink-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Readymade Exam</p>
+            <CardContent className="p-3 flex flex-col items-center text-center gap-1.5">
+              <FileText className="h-7 w-7 text-pink-500 flex-shrink-0" />
+              <p className="font-semibold text-base leading-tight">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
