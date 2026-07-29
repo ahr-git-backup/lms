@@ -162,7 +162,7 @@ const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: s
           <LineChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
             <XAxis dataKey="date" tick={{ fontSize: 10 }} tickMargin={6} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={30} />
+            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={30} domain={[0, (dataMax: number) => Math.max(200, dataMax)]} />
             <Tooltip
               content={({ active, payload, label }) => {
                 if (active && payload && payload.length) {
