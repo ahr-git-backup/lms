@@ -174,7 +174,13 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
 };
 
 const ExamResults = () => {
-  const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick">("all");
+  const [category, setCategoryState] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick">(
+    () => (sessionStorage.getItem("examHistoryCategory") as any) || "all"
+  );
+  const setCategory = (c: "all" | "live" | "practice" | "readymade" | "mock" | "quick") => {
+    setCategoryState(c);
+    sessionStorage.setItem("examHistoryCategory", c);
+  };
   const [readymadeSubCategory, setReadymadeSubCategory] = useState<string | null>(null);
   const [subjectSubCategory, setSubjectSubCategory] = useState<string | null>(null);
   const { user, profile } = useAuth();
@@ -244,7 +250,7 @@ const ExamResults = () => {
       const map: Record<number, string> = {};
       (data || []).forEach((row: any) => {
         const subj = Array.isArray(row.qp_subjects) ? row.qp_subjects[0] : row.qp_subjects;
-        map[row.id] = subj?.name || "সাধারণ";
+        map[row.id] = subj?.name || "সাধারণ জ্ঞান";
       });
       return map;
     },
@@ -252,8 +258,9 @@ const ExamResults = () => {
   });
 
   const qpAttempts = (qpAttemptsRaw || []).map((a: any) => {
+    const detailSubject = Array.isArray(a.details) && a.details.length > 0 ? a.details[0]?.subject_name : null;
     const firstChapterId = Array.isArray(a.chapter_ids) ? a.chapter_ids[0] : null;
-    const subject = (firstChapterId && qpChapterSubjectMap?.[firstChapterId]) || "সাধারণ";
+    const subject = detailSubject || (firstChapterId && qpChapterSubjectMap?.[firstChapterId]) || "সাধারণ জ্ঞান";
     return { ...a, subject };
   });
 
@@ -275,7 +282,7 @@ const ExamResults = () => {
       .map(a => a.exam.readymade_topic)
   ));
 
-  const mockSubjects = Array.from(new Set((mockAttempts || []).map((a: any) => a.subject || "সাধারণ")));
+  const mockSubjects = Array.from(new Set((mockAttempts || []).map((a: any) => a.subject || "সাধারণ (বিষয় নেই)")));
   const qpSubjects = Array.from(new Set(qpAttempts.map((a: any) => a.subject)));
 
   const filteredAttempts = (attempts || []).filter(a => {
@@ -291,7 +298,7 @@ const ExamResults = () => {
   });
 
   const filteredMockAttempts = category === "mock"
-    ? (mockAttempts || []).filter((a: any) => !subjectSubCategory || (a.subject || "সাধারণ") === subjectSubCategory)
+    ? (mockAttempts || []).filter((a: any) => !subjectSubCategory || (a.subject || "সাধারণ (বিষয় নেই)") === subjectSubCategory)
     : [];
 
   const filteredQpAttempts = category === "quick"
@@ -431,7 +438,7 @@ const ExamResults = () => {
                 if (snapshot.length === 0) return;
                 const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(snapshot));
-                sessionStorage.setItem("unlimitedMockTitle", a.title || `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""}`);
+                sessionStorage.setItem("unlimitedMockTitle", a.title || `${a.subject || "সাধারণ (বিষয় নেই)"}${a.chapter ? ` - ${a.chapter}` : ""}`);
                 sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(snapshot.length / 1.5)));
                 sessionStorage.setItem("unlimitedMockSessionId", newSessionId);
                 navigate("/mock-test/play");
@@ -444,7 +451,7 @@ const ExamResults = () => {
                 if (target.length === 0) return;
                 const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
                 sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(target));
-                sessionStorage.setItem("unlimitedMockTitle", `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""} — Mistake Practice`);
+                sessionStorage.setItem("unlimitedMockTitle", `${a.subject || "সাধারণ (বিষয় নেই)"}${a.chapter ? ` - ${a.chapter}` : ""} — Mistake Practice`);
                 sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(target.length / 1.5)));
                 sessionStorage.setItem("unlimitedMockSessionId", newSessionId);
                 navigate("/mock-test/play");
@@ -453,7 +460,7 @@ const ExamResults = () => {
               const handleMockPdf = () => {
                 if (!snapshot.length) return;
                 openSolvePdf({
-                  examName: `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""}`,
+                  examName: `${a.subject || "সাধারণ (বিষয় নেই)"}${a.chapter ? ` - ${a.chapter}` : ""}`,
                   questions: snapshot.map((q: any) => ({
                     question_text: q.question_text,
                     option_a: q.option_a,
@@ -473,7 +480,7 @@ const ExamResults = () => {
               return (
               <Card key={a.id} className="border rounded-2xl shadow-sm flex flex-col h-full">
                 <CardContent className="p-3 space-y-1.5 flex flex-col flex-1">
-                  <p className="text-sm font-semibold">{a.subject || "সাধারণ"} {a.chapter ? `- ${a.chapter}` : ""}</p>
+                  <p className="text-sm font-semibold">{a.subject || "সাধারণ (বিষয় নেই)"} {a.chapter ? `- ${a.chapter}` : ""}</p>
                   <p className="text-xs text-muted-foreground">
                     Score: <span className="font-bold text-foreground">{a.score ?? "-"}</span> / {a.total_marks ?? a.total_questions ?? "-"}
                   </p>
