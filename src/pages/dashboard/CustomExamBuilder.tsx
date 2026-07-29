@@ -51,7 +51,8 @@ const CustomExamBuilder = () => {
       const { data, error } = await supabase
         .from("exams")
         .select("subject")
-        .eq("is_readymade", true).eq("is_published", true);
+        .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null);
       if (error) throw error;
       const unique = new Set<string>();
       (data || []).forEach((row: any) => {
@@ -71,6 +72,7 @@ const CustomExamBuilder = () => {
         .from("exams")
         .select("chapter")
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .contains("subject", [selectedSubject]);
       if (error) throw error;
       const unique = new Set<string>();
@@ -89,6 +91,7 @@ const CustomExamBuilder = () => {
         .from("exams")
         .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
         .contains("subject", [selectedSubject])
         .eq("chapter", selectedChapter)
         .order("created_at", { ascending: false });
