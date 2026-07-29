@@ -198,7 +198,7 @@ const getPracticeStatus = (exam: AnalyticsExam) => {
     return "Absent"; // Per user request
 };
 
-const CourseTable = ({ courseName, exams }: { courseName: string, exams: AnalyticsExam[] }) => {
+const CourseTable = ({ courseName, exams }: { courseName?: string, exams: AnalyticsExam[] }) => {
   const currentExams = exams;
 
   // Summary Calculations
@@ -224,14 +224,16 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-foreground border-l-4 border-primary pl-3">
-          {courseName}
-        </h2>
-        <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
-            {exams.length} Exams
-        </span>
-      </div>
+      {courseName && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground border-l-4 border-primary pl-3">
+            {courseName}
+          </h2>
+          <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+              {exams.length} Exams
+          </span>
+        </div>
+      )}
 
       {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-card overflow-hidden shadow-sm">
@@ -441,24 +443,8 @@ const RoutinewiseReport = ({ analyticsData, isLoading }: { analyticsData: Analyt
 
   const averages = useMemo(() => computeAverages(scoredRows), [scoredRows]);
 
-  const groupedExams = useMemo(() => {
-    const groups: Record<string, AnalyticsExam[]> = {};
-    rangedData.forEach((exam) => {
-      let groupName = exam.course_name || "Public Exams";
-      if (exam.is_archive) groupName = `Archive - ${exam.course_name || "Public"}`;
-      if (!groups[groupName]) groups[groupName] = [];
-      groups[groupName].push(exam);
-    });
-    Object.keys(groups).forEach((key) => {
-      groups[key].sort((a, b) => new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime());
-    });
-    const sortedGroups: Record<string, AnalyticsExam[]> = {};
-    const enrolledKeys = Object.keys(groups).filter(k => !k.startsWith("Archive") && k !== "Public Exams").sort();
-    const archiveKeys = Object.keys(groups).filter(k => k.startsWith("Archive")).sort();
-    enrolledKeys.forEach(k => sortedGroups[k] = groups[k]);
-    archiveKeys.forEach(k => sortedGroups[k] = groups[k]);
-    if (groups["Public Exams"]) sortedGroups["Public Exams"] = groups["Public Exams"];
-    return sortedGroups;
+  const allExamsSorted = useMemo(() => {
+    return rangedData.slice().sort((a, b) => new Date(b.time_window_start || b.created_at).getTime() - new Date(a.time_window_start || a.created_at).getTime());
   }, [rangedData]);
 
   const totalExams = rangedData.length;
@@ -493,11 +479,7 @@ const RoutinewiseReport = ({ analyticsData, isLoading }: { analyticsData: Analyt
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-10">
-          {Object.entries(groupedExams).map(([courseName, exams]) => (
-            <CourseTable key={courseName} courseName={courseName} exams={exams} />
-          ))}
-        </div>
+        <CourseTable exams={allExamsSorted} />
       )}
     </div>
   );
