@@ -232,7 +232,7 @@ const Readymade = () => {
               variant="outline"
               size="sm"
               className="gap-1.5 text-xs sm:text-sm border-primary/40 text-primary hover:bg-primary/10"
-              onClick={() => navigate("/dashboard/readymade/custom-exam")}
+              onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
             >
               <Sparkles className="h-3.5 w-3.5" />
               এক্সাম বানাও
