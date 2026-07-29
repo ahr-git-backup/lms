@@ -14,7 +14,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ArrowLeft, ChevronRight, Sparkles, Loader2, ListChecks } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isExamUnlocked = (exam: any, enrolledIds: string[]): boolean => {
+const isExamUnlocked = (exam: any, enrolledIds: string[], isAdmin: boolean): boolean => {
+  if (isAdmin) return true;
   if (exam.is_visible_on_free) return true;
   if (enrolledIds.length === 0) return false;
   if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
@@ -35,7 +36,7 @@ type PickedExam = {
 const CustomExamBuilder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
@@ -308,7 +309,7 @@ const CustomExamBuilder = () => {
       {selectedSubject && selectedChapter && (
         <div className="space-y-2">
           {loadingExams ? <Loader2 className="h-5 w-5 animate-spin" /> : chapterExams?.map((exam: any) => {
-            const unlocked = isExamUnlocked(exam, enrolledIds);
+            const unlocked = isExamUnlocked(exam, enrolledIds, isAdmin);
             const totalMcq = exam.questions_count?.[0]?.count || 0;
             const isPicked = picked.has(exam.id);
             return (
