@@ -401,7 +401,7 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="animate-border-chase border sm:rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="animate-border-chase border border-primary/30 sm:rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
@@ -437,7 +437,7 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      <div className="animate-border-chase border sm:rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="animate-border-chase border border-primary/30 sm:rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-4 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
