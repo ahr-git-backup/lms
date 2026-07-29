@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCircle, AlertTriangle, ChevronDown, ChevronUp, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Bell, CheckCircle, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,7 +21,6 @@ const Announcements = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [expandedIds, setExpandedIds] = useState<string[]>([]);
-  const [readAnnouncements, setReadAnnouncements] = useState<string[]>([]);
 
   useEffect(() => {
     document.title = "Announcements – Atlas";
@@ -34,16 +33,6 @@ const Announcements = () => {
     if (audioEl) {
         audioEl.pause();
         audioEl.currentTime = 0;
-    }
-
-    // Load read announcements from local storage
-    const read = localStorage.getItem("read_announcements_ids");
-    if (read) {
-        try {
-            setReadAnnouncements(JSON.parse(read));
-        } catch {
-            localStorage.removeItem("read_announcements_ids");
-        }
     }
 
     // Note: individual notifications are marked read (and the badge count
@@ -88,6 +77,22 @@ const Announcements = () => {
 
   const enrolledCourseIds = enrollments?.map(e => e.course_id) || [];
 
+  // Server-truth for which announcements this user has actually read (DB, not localStorage)
+  const { data: readRows } = useQuery({
+      queryKey: ["announcement-reads", user?.id],
+      queryFn: async () => {
+          if (!user) return [];
+          const { data, error } = await supabase
+              .from("announcement_reads")
+              .select("announcement_id")
+              .eq("user_id", user.id);
+          if (error) throw error;
+          return data || [];
+      },
+      enabled: !!user
+  });
+  const readAnnouncements = (readRows || []).map((r: any) => r.announcement_id);
+
   const { data: announcementsData, isLoading } = useQuery({
     queryKey: ["announcements", selectedCourse, enrolledCourseIds, page],
     queryFn: async () => {
@@ -117,6 +122,12 @@ const Announcements = () => {
   const totalCount = announcementsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  // Combined stats across Personal Notifications + Course Announcements
+  const totalNoticeCount = totalCount + (userNotifications?.length || 0);
+  const seenAnnouncementsCount = (readRows || []).length;
+  const seenNotificationsCount = (userNotifications || []).filter((n: any) => n.is_read).length;
+  const totalSeenCount = seenAnnouncementsCount + seenNotificationsCount;
+
   let displayedAnnouncements = announcements;
   if (filterType === "unread") {
       displayedAnnouncements = announcements.filter(a => !readAnnouncements.includes(a.id));
@@ -128,17 +139,12 @@ const Announcements = () => {
       } else {
           setExpandedIds([...expandedIds, id]);
           // Mark as read if not already
-          if (!readAnnouncements.includes(id)) {
-              const newRead = [...readAnnouncements, id];
-              setReadAnnouncements(newRead);
-              localStorage.setItem("read_announcements_ids", JSON.stringify(newRead));
-              // Also update last viewed globally to prevent dot from reappearing immediately
-              localStorage.setItem("last_viewed_announcements", new Date().toISOString());
-              if (user) {
-                  supabase.from("announcement_reads")
-                      .upsert({ announcement_id: id, user_id: user.id }, { onConflict: "announcement_id,user_id" })
-                      .then(() => {});
-              }
+          if (!readAnnouncements.includes(id) && user) {
+              supabase.from("announcement_reads")
+                  .upsert({ announcement_id: id, user_id: user.id }, { onConflict: "announcement_id,user_id" })
+                  .then(() => {
+                      queryClient.invalidateQueries({ queryKey: ["announcement-reads", user.id] });
+                  });
 
               const stored = localStorage.getItem("unread_notification_count");
               const current = stored ? parseInt(stored, 10) || 0 : 0;
@@ -182,6 +188,21 @@ const Announcements = () => {
         <h1 className="text-2xl font-semibold tracking-tight">Announcements</h1>
         <p className="text-sm text-muted-foreground">Important updates and notices from your courses.</p>
       </header>
+
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-3 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">Total Notice</span>
+            <span className="text-lg font-bold text-blue-600 leading-tight">{totalNoticeCount}</span>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-3 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">দেখা হয়েছে</span>
+            <span className="text-lg font-bold text-emerald-600 leading-tight">{totalSeenCount}</span>
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
@@ -242,6 +263,7 @@ const Announcements = () => {
                             <CardHeader className="space-y-1 pb-2 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
+                                        {notif.is_read ? <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" /> : <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 animate-pulse" />}
                                         {notif.type === 'payment_approved' ? <CheckCircle className="h-5 w-5 text-green-600" /> :
                                          (notif.type === 'payment_rejected' || notif.type === 'course_request_declined') ? <AlertTriangle className="h-5 w-5 text-red-600" /> : notif.type === 'report_reply' ? <CheckCircle className="h-5 w-5 text-blue-600" /> : null}
                                         <CardTitle className="text-base">{notif.title}</CardTitle>
@@ -299,7 +321,7 @@ const Announcements = () => {
                         <CardHeader className="space-y-1 py-4">
                             <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                {!isRead && <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 animate-pulse" />}
+                                {!isRead ? <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0 animate-pulse" /> : <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
                                 <CardTitle className={`text-base ${!isRead ? 'font-bold' : 'font-medium text-foreground/80'}`}>
                                     {announcement.title}
                                 </CardTitle>

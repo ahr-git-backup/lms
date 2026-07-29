@@ -201,37 +201,31 @@ export const DashboardLayout = () => {
             }
         }
 
-        // Check Announcements (General)
-        let query = supabase
+        // Check Announcements (General) — count only those NOT yet read by this user (server-truth via announcement_reads)
+        let annQuery = supabase
             .from("announcements")
-            .select("*", { count: 'exact', head: true });
+            .select("id");
 
         if (enrolledCourseIds.length > 0) {
-             query = query.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
+             annQuery = annQuery.or(`course_id.in.(${enrolledCourseIds.join(',')}),course_id.is.null`);
         } else {
-             query = query.is("course_id", null);
+             annQuery = annQuery.is("course_id", null);
         }
 
-        const { count, error } = await query;
+        const { data: allAnnouncements } = await annQuery;
 
-        const lastViewed = localStorage.getItem("last_viewed_announcements");
-        let hasNewAnnouncements = false;
+        const { data: readAnnouncementRows } = await supabase
+            .from("announcement_reads")
+            .select("announcement_id")
+            .eq("user_id", profile.id);
 
-        if (lastViewed) {
-             const { data: newAnnouncements } = await supabase
-                .from("announcements")
-                .select("title")
-                .gt("created_at", lastViewed)
-                .in("course_id", enrolledCourseIds);
-
-             if (newAnnouncements && newAnnouncements.length > 0) hasNewAnnouncements = true;
-        } else {
-             hasNewAnnouncements = true;
-        }
+        const readIds = new Set((readAnnouncementRows || []).map((r: any) => r.announcement_id));
+        const unreadAnnouncementCount = (allAnnouncements || []).filter((a: any) => !readIds.has(a.id)).length;
+        const hasNewAnnouncements = unreadAnnouncementCount > 0;
 
         const hasUnread = (unreadUserNotifs && unreadUserNotifs.length > 0) || (unreadDirectNotes && unreadDirectNotes.length > 0);
 
-        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0) + (hasNewAnnouncements && count ? count : 0);
+        const totalUnreadCount = (unreadUserNotifs?.length || 0) + (unreadDirectNotes?.length || 0) + unreadAnnouncementCount;
         localStorage.setItem("unread_notification_count", String(totalUnreadCount));
         setUnreadNoticeCount(totalUnreadCount);
         window.dispatchEvent(new Event("unread-notifications-updated"));
