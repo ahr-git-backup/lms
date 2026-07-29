@@ -418,11 +418,12 @@ const ExamResults = () => {
             {filteredMockAttempts.map((a: any) => {
               const snapshot = (a.questions_snapshot as any[]) || [];
               const answers = (a.answers as Record<string, string>) || {};
-              let wrongCount = 0, skipCount = 0;
+              let wrongCount = 0, skipCount = 0, rightCount = 0;
               snapshot.forEach((q: any) => {
                 const ua = answers[q.id];
                 if (!ua) skipCount++;
                 else if (ua !== q.correct_option) wrongCount++;
+                else rightCount++;
               });
               const hasMistakes = wrongCount > 0 || skipCount > 0;
 
@@ -467,6 +468,11 @@ const ExamResults = () => {
                     Score: <span className="font-bold text-foreground">{a.score ?? "-"}</span> / {a.total_marks ?? a.total_questions ?? "-"}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{a.submitted_at && new Date(a.submitted_at).toLocaleDateString()}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Right: {rightCount}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Wrong: {wrongCount}</span>
+                    <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Skip: {skipCount}</span>
+                  </div>
                   <div className="grid grid-cols-3 gap-1.5 mt-auto pt-1.5">
                     <Button
                       size="sm"
