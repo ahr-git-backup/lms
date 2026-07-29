@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArrowLeft, ChevronRight, Sparkles, Loader2, ListChecks } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +44,9 @@ const CustomExamBuilder = () => {
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [picked, setPicked] = useState<Map<string, PickedExam>>(new Map());
   const [creating, setCreating] = useState(false);
+  const [targetMarks, setTargetMarks] = useState<number | null>(null);
+  const [showTargetDialog, setShowTargetDialog] = useState(true);
+  const [customTargetInput, setCustomTargetInput] = useState("");
 
   // --- Subjects ---
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
@@ -105,11 +109,12 @@ const CustomExamBuilder = () => {
 
   // Whenever the picked set changes, rebalance every exam's count to an equal
   // average, floor-rounded, with the remainder distributed to the first exams.
-  const rebalance = (map: Map<string, PickedExam>) => {
+  const rebalance = (map: Map<string, PickedExam>, target: number | null) => {
     const list = Array.from(map.values());
     if (list.length === 0) return map;
     const totalAvailable = list.reduce((sum, e) => sum + e.totalMcq, 0);
-    const base = Math.max(1, Math.floor(totalAvailable / list.length));
+    const goal = target && target > 0 ? Math.min(target, totalAvailable) : totalAvailable;
+    const base = Math.max(1, Math.floor(goal / list.length));
     let remainder = 0;
     const next = new Map<string, PickedExam>();
     list.forEach((e) => {
@@ -151,7 +156,7 @@ const CustomExamBuilder = () => {
           count: totalMcq,
         });
       }
-      return rebalance(next);
+      return rebalance(next, targetMarks);
     });
   };
 
@@ -197,6 +202,53 @@ const CustomExamBuilder = () => {
 
   return (
     <div className="space-y-4 pb-24">
+      <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
+        <DialogContent className="sm:max-w-sm" onInteractOutside={(e) => { if (!targetMarks) e.preventDefault(); }} onEscapeKeyDown={(e) => { if (!targetMarks) e.preventDefault(); }}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> কত মার্কের এক্সাম বানাতে চাও?</DialogTitle>
+            <DialogDescription>একটি টার্গেট বেছে নাও। পরে যতগুলো এক্সাম সিলেক্ট করবে, MCQ সংখ্যা এই টার্গেট অনুযায়ী auto-average হয়ে বসবে — চাইলে কমাতে/বাড়াতে পারবে।</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-3 gap-2 pt-1">
+            {[25, 50, 100, 150, 200].map((n) => (
+              <Button
+                key={n}
+                variant={targetMarks === n ? "default" : "outline"}
+                size="sm"
+                onClick={() => { setTargetMarks(n); setCustomTargetInput(""); }}
+              >
+                {n}
+              </Button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <Input
+              type="number"
+              min={1}
+              placeholder="নিজের মতো সংখ্যা লিখো"
+              value={customTargetInput}
+              onChange={(e) => {
+                setCustomTargetInput(e.target.value);
+                const v = parseInt(e.target.value, 10);
+                setTargetMarks(v > 0 ? v : null);
+              }}
+              className="flex-1"
+            />
+          </div>
+          <Button
+            className="w-full mt-2"
+            disabled={!targetMarks || targetMarks <= 0}
+            onClick={() => {
+              setPicked((prev) => rebalance(prev, targetMarks));
+              setShowTargetDialog(false);
+            }}
+          >
+            পরবর্তী ধাপ
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {!showTargetDialog && (
+      <>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
           <ArrowLeft className="h-4 w-4" />
@@ -204,6 +256,9 @@ const CustomExamBuilder = () => {
         <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" /> কাস্টম এক্সাম বানাও
         </h1>
+        <Badge variant="secondary" className="ml-auto cursor-pointer" onClick={() => setShowTargetDialog(true)}>
+          টার্গেট: {targetMarks} মার্ক
+        </Badge>
       </div>
 
       {/* Breadcrumb / navigation */}
@@ -302,6 +357,8 @@ const CustomExamBuilder = () => {
             এক্সাম শুরু করো
           </Button>
         </div>
+      )}
+      </>
       )}
     </div>
   );

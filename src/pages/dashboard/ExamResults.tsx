@@ -116,7 +116,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col flex-1 p-3 pt-0">
-            <div className="grid grid-cols-4 gap-1.5 mt-auto">
+            <div className={`grid gap-1.5 mt-auto ${attempt.exam.chapter === "Custom" ? "grid-cols-3" : "grid-cols-4"}`}>
                 <Button
                     size="sm"
                     className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
@@ -160,13 +160,15 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     </PopoverContent>
                 </Popover>
 
-                <Button
-                    size="sm"
-                    onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
-                    className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
-                >
-                    Leaderboard
-                </Button>
+                {attempt.exam.chapter !== "Custom" && (
+                    <Button
+                        size="sm"
+                        onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
+                        className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                    >
+                        Leaderboard
+                    </Button>
+                )}
             </div>
         </CardContent>
     </Card>
@@ -174,10 +176,10 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
 };
 
 const ExamResults = () => {
-  const [category, setCategoryState] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick">(
+  const [category, setCategoryState] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick" | "custom">(
     () => (sessionStorage.getItem("examHistoryCategory") as any) || "all"
   );
-  const setCategory = (c: "all" | "live" | "practice" | "readymade" | "mock" | "quick") => {
+  const setCategory = (c: "all" | "live" | "practice" | "readymade" | "mock" | "quick" | "custom") => {
     setCategoryState(c);
     sessionStorage.setItem("examHistoryCategory", c);
   };
@@ -268,6 +270,7 @@ const ExamResults = () => {
   const categorize = (attempt: any) => {
     const exam = attempt.exam;
     if (!exam) return "practice";
+    if (exam.chapter === "Custom" && exam.exam_type === "practice" && exam.is_readymade === false) return "custom";
     if (exam.is_readymade || exam.readymade_topic) return "readymade";
     // If the student actually attempted this live exam, it stays "Live" in
     // their history regardless of whether the window has since expired —
@@ -343,6 +346,7 @@ const ExamResults = () => {
         {([
           { key: "mock", label: "Mock Test" },
           { key: "quick", label: "Quick Practice" },
+          { key: "custom", label: "Custom Exam" },
         ] as const).map(c => (
           <Button
             key={c.key}
