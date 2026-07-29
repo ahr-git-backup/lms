@@ -416,7 +416,7 @@ const ExamReview = () => {
                     <Sparkles className="h-5 w-5 mr-1.5 text-violet-500 shrink-0" /> <span className="truncate">Quick Practice</span>
                  </Button>
                  )}
-                 {user && (
+                 {user && exam?.chapter !== "Custom" && (
                  <Button variant="outline" onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam_id}`)} className="h-10 px-3 py-2 w-full sm:w-auto">
                     <Trophy className="h-5 w-5 mr-1.5 text-yellow-500 shrink-0" /> <span className="truncate">Leaderboard</span>
                  </Button>
