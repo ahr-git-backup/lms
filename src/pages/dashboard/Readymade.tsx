@@ -118,6 +118,7 @@ const Readymade = () => {
   const [page, setPage] = useState(0);
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
+  const [activeTypePanel, setActiveTypePanel] = useState<"type-based" | "model-test" | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
 
@@ -265,13 +266,74 @@ const Readymade = () => {
       </div>
       </ErrorBoundary>
 
+      {!selectedSubject && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setActiveTypePanel(activeTypePanel === "type-based" ? null : "type-based")}
+            className={`rounded-xl border-2 p-3 text-center transition-all ${
+              activeTypePanel === "type-based"
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-primary/40"
+            }`}
+          >
+            <LayoutTemplate className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs font-semibold leading-tight">টাইপভিত্তিক এক্সাম</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTypePanel(activeTypePanel === "model-test" ? null : "model-test")}
+            className={`rounded-xl border-2 p-3 text-center transition-all ${
+              activeTypePanel === "model-test"
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-primary/40"
+            }`}
+          >
+            <FileDown className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs font-semibold leading-tight">মডেল টেস্ট বানাও</p>
+          </button>
+        </div>
+      )}
+
+      {!selectedSubject && activeTypePanel === "type-based" && (
+        <div className="rounded-xl border bg-muted/30 p-3 grid grid-cols-2 gap-2">
+          {["মেডিকেল স্ট্যান্ডার্ড প্রশ্ন", "সত্য-মিথ্যার প্রশ্ন", "ছকভিত্তিক প্রশ্ন", "ছোট প্রশ্ন-বড় অপশন"].map((label) => (
+            <Button
+              key={label}
+              variant={selectedBoards.includes(label) ? "default" : "outline"}
+              size="sm"
+              className="h-auto py-2 text-xs whitespace-normal leading-tight"
+              onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      )}
+
+      {!selectedSubject && activeTypePanel === "model-test" && (
+        <div className="rounded-xl border bg-muted/30 p-3 grid grid-cols-3 gap-2">
+          {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
+            <Button
+              key={label}
+              variant={selectedBoards.includes(label) ? "default" : "outline"}
+              size="sm"
+              className="h-auto py-2 text-xs whitespace-normal leading-tight"
+              onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); }}
+            >
+              {label}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
           <Button
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
             size="sm"
             className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
-            onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); }}
+            onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); setActiveTypePanel(null); }}
           >
             All
           </Button>
@@ -284,6 +346,7 @@ const Readymade = () => {
               onClick={() => {
                 setPage(0);
                 setSelectedBoards([]);
+                setActiveTypePanel(null);
                 setSelectedParentTopics(prev =>
                   prev.includes(topic.value) ? prev.filter(t => t !== topic.value) : [...prev, topic.value]
                 );
