@@ -423,45 +423,21 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   // Per-subject MCQ count badge — total questions across all exams in each
-  // subject, for the subject-selection cards.
-  const { data: subjectMcqCounts } = useQuery({
-    queryKey: ["readymade-exams-subject-mcq-counts", enrolledIds.join(','), selectedParentTopics, selectedBoards],
+  // subject, for the subject-selection cards. Backed by a single server-side
+  // aggregation RPC instead of paginating every exam_questions row client-side.
+  const { data: mcqCountsData } = useQuery({
+    queryKey: ["readymade-mcq-counts", selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      const examRows = await fetchAllRows<{ id: string; subject: any }>((from, to) => {
-        let query = supabase.from("exams").select("id, subject")
-          .eq("is_readymade", true).eq("is_published", true).range(from, to);
-        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        return query;
+      const { data, error } = await supabase.rpc("get_readymade_mcq_counts", {
+        p_readymade_topics: selectedParentTopics?.length > 0 ? selectedParentTopics : null,
+        p_readymade_categories: selectedBoards?.length > 0 ? selectedBoards : null,
       });
-      const examIds = examRows.map(r => r.id);
-      if (examIds.length === 0) return {};
-
-      const examToSubjects = new Map<string, string[]>();
-      examRows.forEach(r => {
-        const subs = Array.isArray(r.subject) ? r.subject : (typeof r.subject === "string" ? [r.subject] : []);
-        examToSubjects.set(r.id, subs);
-      });
-      const subjectCounts: Record<string, number> = {};
-      // Seed every subject with 0 so the badge renders even for subjects
-      // whose exams currently have no questions yet.
-      examToSubjects.forEach((subs) => { subs.forEach(s => { subjectCounts[s] = subjectCounts[s] || 0; }); });
-
-      const ID_BATCH = 150;
-      for (let i = 0; i < examIds.length; i += ID_BATCH) {
-        const batchIds = examIds.slice(i, i + ID_BATCH);
-        const qRows = await fetchAllRows<{ exam_id: string }>((from, to) =>
-          supabase.from("exam_questions").select("exam_id").in("exam_id", batchIds).range(from, to)
-        );
-        qRows.forEach((q) => {
-          const subs = examToSubjects.get(q.exam_id) || [];
-          subs.forEach(s => { subjectCounts[s] = (subjectCounts[s] || 0) + 1; });
-        });
-      }
-      return subjectCounts;
+      if (error) throw error;
+      return data as { subject_counts: Record<string, number>; chapter_counts: Record<string, number> };
     },
-    enabled: !selectedSubject && !searchQuery
   });
+  const subjectMcqCounts = mcqCountsData?.subject_counts;
+  const chapterMcqCounts = mcqCountsData?.chapter_counts;
 
   // --- LEVEL 2: CHAPTERS ---
   const { data: chapters, isLoading: loadingChapters } = useQuery({
@@ -501,46 +477,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
 
-  // Per-chapter MCQ count badge — total questions across all exams in each
-  // chapter, for the chapter-selection cards.
-  const { data: chapterMcqCounts } = useQuery({
-    queryKey: ["readymade-exams-chapter-mcq-counts", selectedSubject, selectedParentTopics, selectedBoards],
-    queryFn: async () => {
-      if (!selectedSubject) return {};
-      const examRows = await fetchAllRows<{ id: string; chapter: string | null }>((from, to) => {
-        let query = supabase.from("exams").select("id, chapter")
-          .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
-        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        return query;
-      });
-      const examIds = examRows.map(r => r.id);
-      if (examIds.length === 0) return {};
-
-      const examToChapter = new Map(examRows.map(r => [r.id, r.chapter]));
-      const chapterCounts: Record<string, number> = {};
-      // Seed every chapter with 0 so the badge renders even for chapters
-      // whose exams currently have no questions yet.
-      examRows.forEach(r => { if (r.chapter) chapterCounts[r.chapter] = chapterCounts[r.chapter] || 0; });
-
-      const ID_BATCH = 150;
-      for (let i = 0; i < examIds.length; i += ID_BATCH) {
-        const batchIds = examIds.slice(i, i + ID_BATCH);
-        // Paginate — a single .select() without .range() is capped at 1000 rows
-        // by PostgREST, which would silently under-count chapters with lots
-        // of questions.
-        const qRows = await fetchAllRows<{ exam_id: string }>((from, to) =>
-          supabase.from("exam_questions").select("exam_id").in("exam_id", batchIds).range(from, to)
-        );
-        qRows.forEach((q) => {
-          const chapter = examToChapter.get(q.exam_id);
-          if (chapter) chapterCounts[chapter] = (chapterCounts[chapter] || 0) + 1;
-        });
-      }
-      return chapterCounts;
-    },
-    enabled: !!selectedSubject && !selectedChapter && !searchQuery
-  });
+  // Per-chapter MCQ counts now come from the same get_readymade_mcq_counts
+  // RPC call above (chapterMcqCounts), no separate query needed.
 
   // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
   const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
