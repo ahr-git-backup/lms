@@ -525,12 +525,23 @@ const ExamResults = () => {
           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 px-0.5">
             {filteredQpAttempts.map((a: any) => (
               <Card key={a.id} className="border rounded-2xl shadow-sm">
-                <CardContent className="p-3 space-y-1.5">
-                  <p className="text-sm font-semibold">{a.subject}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Correct: <span className="font-bold text-foreground">{a.correct_count}</span> / {a.total_questions} · Points: {a.points_earned}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{a.created_at && new Date(a.created_at).toLocaleDateString()}</p>
+                <CardContent className="p-3 space-y-1.5 flex flex-col">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-semibold">{a.subject}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Correct: <span className="font-bold text-foreground">{a.correct_count}</span> / {a.total_questions} · Points: {a.points_earned}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">{a.created_at && new Date(a.created_at).toLocaleDateString()}</p>
+                    </div>
+                    <Button
+                      size="sm"
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-2 shrink-0"
+                      onClick={() => navigate("/quick-practice")}
+                    >
+                      Practice Again
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
