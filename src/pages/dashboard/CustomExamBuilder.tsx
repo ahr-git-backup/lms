@@ -242,7 +242,6 @@ const CustomExamBuilder = () => {
       });
       if (error) throw error;
       toast({ title: "কাস্টম এক্সাম তৈরি হয়েছে!" });
-      try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
       setExamSourceList(data, "/dashboard/readymade");
       navigate(`/dashboard/take-exam/${data}`);
     } catch (err: any) {
