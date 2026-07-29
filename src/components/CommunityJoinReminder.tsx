@@ -46,6 +46,7 @@ export const CommunityJoinReminder = () => {
   const [urlToIds, setUrlToIds] = useState<Record<string, string[]>>({});
   const [open, setOpen] = useState(false);
   const lastActivityRef = useRef(Date.now());
+  const snoozedUntilRef = useRef(0);
 
   useEffect(() => {
     const markActive = () => {
@@ -70,6 +71,7 @@ export const CommunityJoinReminder = () => {
       const isActive = document.visibilityState === "visible" && Date.now() - lastActivityRef.current < 15 * 60 * 1000;
       if (!isActive) return;
       if (isOnSuppressedPage(window.location.pathname)) return;
+      if (Date.now() < snoozedUntilRef.current) return;
 
       const { data: links, error: linksError } = await supabase.rpc("get_student_community_links");
       if (linksError || !links || links.length === 0) return;
@@ -106,9 +108,14 @@ export const CommunityJoinReminder = () => {
       }
     };
 
-    checkPending();
+    // Don't interrupt the user the instant a page loads — wait a bit first,
+    // then re-check every CHECK_INTERVAL_MS after that.
+    const initialTimeout = setTimeout(checkPending, 30 * 1000);
     const interval = setInterval(checkPending, CHECK_INTERVAL_MS);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialTimeout);
+      clearInterval(interval);
+    };
   }, [user]);
 
   const markJoined = async (link: CommunityLink) => {
@@ -132,7 +139,7 @@ export const CommunityJoinReminder = () => {
   if (!user || pendingLinks.length === 0) return null;
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={(next) => { if (!next) snoozedUntilRef.current = Date.now() + CHECK_INTERVAL_MS; setOpen(next); }}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
@@ -168,7 +175,7 @@ export const CommunityJoinReminder = () => {
         </div>
 
         <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => setOpen(false)}>পরে করব</AlertDialogCancel>
+          <AlertDialogCancel onClick={() => { snoozedUntilRef.current = Date.now() + CHECK_INTERVAL_MS; setOpen(false); }}>পরে করব</AlertDialogCancel>
           <AlertDialogAction onClick={() => navigate("/dashboard/community")}>
             সব গ্রুপ দেখুন
           </AlertDialogAction>
