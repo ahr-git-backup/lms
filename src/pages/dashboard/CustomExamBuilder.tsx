@@ -192,13 +192,31 @@ const CustomExamBuilder = () => {
     });
   };
 
-  const updateCount = (id: string, value: number) => {
+  const updateCount = (id: string, rawValue: string) => {
     setPicked((prev) => {
       const next = new Map(prev);
       const cur = next.get(id);
       if (!cur) return prev;
-      const clamped = Math.max(1, Math.min(value || 1, cur.totalMcq));
+      if (rawValue === "") {
+        next.set(id, { ...cur, count: 0 });
+        return next;
+      }
+      const parsed = parseInt(rawValue, 10);
+      if (isNaN(parsed)) return prev;
+      const clamped = Math.min(Math.max(parsed, 0), cur.totalMcq);
       next.set(id, { ...cur, count: clamped });
+      return next;
+    });
+  };
+
+  const finalizeCount = (id: string) => {
+    setPicked((prev) => {
+      const next = new Map(prev);
+      const cur = next.get(id);
+      if (!cur) return prev;
+      if (!cur.count || cur.count < 1) {
+        next.set(id, { ...cur, count: 1 });
+      }
       return next;
     });
   };
@@ -398,8 +416,9 @@ const CustomExamBuilder = () => {
                   type="number"
                   min={1}
                   max={e.totalMcq}
-                  value={e.count}
-                  onChange={(ev) => updateCount(e.id, parseInt(ev.target.value, 10))}
+                  value={e.count === 0 ? "" : e.count}
+                  onChange={(ev) => updateCount(e.id, ev.target.value)}
+                  onBlur={() => finalizeCount(e.id)}
                   className="w-14 h-7 text-xs text-center px-1 shrink-0"
                 />
                 <span className="text-muted-foreground shrink-0">/{e.totalMcq}</span>
