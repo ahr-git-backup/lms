@@ -326,11 +326,13 @@ const UnlimitedMockTest = () => {
         ? `${multiSelections.length} সাব-চ্যাপ্টার (Mixed Mock Test)`
         : `${subject} - ${chapter} (Mock Test)`;
 
+      const multiSubjectNames = Array.from(new Set(multiSelections.map((s: any) => s.subject))).join(", ");
+
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
       sessionStorage.setItem("unlimitedMockTitle", title);
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
-      sessionStorage.setItem("unlimitedMockSubject", multiMode ? "" : subject);
+      sessionStorage.setItem("unlimitedMockSubject", multiMode ? multiSubjectNames : subject);
       sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
       sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : (topic || ""));
 

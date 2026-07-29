@@ -135,7 +135,18 @@ const Announcements = () => {
   if (noticeCategory === "all") feed = [...notificationFeed, ...announcementFeed];
   else if (noticeCategory === "course") feed = announcementFeed;
   else feed = notificationFeed;
-  feed.sort((a, b) => b.time - a.time);
+  const isFeedItemUnread = (item: FeedItem) =>
+    item.kind === "notification" ? !item.data.is_read : !readAnnouncements.includes(item.data.id);
+
+  // Unread items float to the top (most recent unread first), then read
+  // items follow in recent-to-old order. Once an item is read, it naturally
+  // settles back into the "read" group instead of staying pinned.
+  feed.sort((a, b) => {
+    const aUnread = isFeedItemUnread(a);
+    const bUnread = isFeedItemUnread(b);
+    if (aUnread !== bUnread) return aUnread ? -1 : 1;
+    return b.time - a.time;
+  });
 
   const toggleExpand = (id: string) => {
       if (expandedIds.includes(id)) {
