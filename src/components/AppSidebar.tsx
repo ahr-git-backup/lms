@@ -1,5 +1,5 @@
 import { useLocation } from "react-router-dom";
-import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag, Zap, BarChart3 } from "lucide-react";
+import { BookOpen, CalendarClock, CalendarRange, FileText, GraduationCap, HelpCircle, LayoutDashboard, ListChecks, Megaphone, Settings2, User, Users, ClipboardList, CreditCard, Bookmark, Sparkles, StickyNote, PenTool, LayoutTemplate, Tag, AlertCircle, Archive, Database, Gift, Flag, Zap, BarChart3, Infinity } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -25,6 +25,9 @@ const studentItems = [
   { title: "Record Class", url: "/dashboard/recordings", icon: BookOpen, color: "text-orange-500" },
   { title: "Past Exams", url: "/dashboard/past-exam", icon: FileText, color: "text-yellow-500" },
   { title: "Readymade Exam", url: "/dashboard/readymade", icon: ListChecks, color: "text-blue-400" },
+  { title: "Quick Practice", url: "/quick-practice", icon: Zap, color: "text-violet-500" },
+  { title: "Unlimited Mock Test", url: "/mock-test", icon: Infinity, color: "text-fuchsia-600" },
+  { title: "Study Tracker", url: "/syllabus-tracker", icon: BarChart3, color: "text-sky-600" },
   { title: "Archive Class & Exam", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Exam History", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Progress & History", url: "/dashboard/my-progress", icon: BarChart3, color: "text-blue-600" },
