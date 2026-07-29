@@ -23,6 +23,9 @@ const DAY_RANGES = [
   { key: "15", label: "বিগত ১৫ দিন", days: 15 },
   { key: "30", label: "বিগত ৩০ দিন", days: 30 },
   { key: "45", label: "বিগত ৪৫ দিন", days: 45 },
+  { key: "60", label: "বিগত ৬০ দিন", days: 60 },
+  { key: "75", label: "বিগত ৭৫ দিন", days: 75 },
+  { key: "90", label: "বিগত ৯০ দিন", days: 90 },
 ] as const;
 
 type RangeKey = typeof DAY_RANGES[number]["key"];
