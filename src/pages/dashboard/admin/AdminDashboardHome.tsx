@@ -132,9 +132,14 @@ const AdminDashboardHome = () => {
                {quickLinks.map((item, index) => (
                    <Card
                         key={index}
-                        className="group hover:border-primary/50 transition-all cursor-pointer border-muted-foreground/20"
+                        className="group hover:border-primary/50 transition-all cursor-pointer border-muted-foreground/20 relative"
                         onClick={() => navigate(item.url)}
                     >
+                       {item.title === "Reports" && (stats?.pendingReports || 0) > 0 && (
+                           <span className="absolute -top-2 -right-2 z-10 flex h-6 min-w-6 px-1 items-center justify-center rounded-full bg-red-600 text-white text-xs font-bold shadow-lg animate-pulse">
+                               {stats.pendingReports}
+                           </span>
+                       )}
                        <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
                            <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300`}>
                                <item.icon className={`h-6 w-6 ${item.color}`} />
