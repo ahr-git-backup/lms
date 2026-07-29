@@ -203,6 +203,7 @@ const App = () => {
                 <Route path="program" element={<ErrorBoundary><Program /></ErrorBoundary>} />
                 <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
                 <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="readymade/category/:categoryName" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
                 <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />

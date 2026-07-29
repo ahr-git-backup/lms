@@ -18,7 +18,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { useNavigate, useNavigationType } from "react-router-dom";
+import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
@@ -113,6 +113,7 @@ const Readymade = () => {
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const navigationType = useNavigationType(); // "POP" = browser back/forward, "PUSH"/"REPLACE" = normal link click
+  const { categoryName } = useParams<{ categoryName?: string }>();
 
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,6 +125,13 @@ const Readymade = () => {
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (categoryName) {
+      setSelectedBoards([decodeURIComponent(categoryName)]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoryName]);
 
   const { data: boards } = useQuery({
     queryKey: ["readymade-boards", selectedParentTopics],
@@ -255,6 +263,15 @@ const Readymade = () => {
       </div>
       </ErrorBoundary>
 
+      {categoryName && (
+        <div className="flex items-center gap-2 -mt-1">
+          <Button variant="ghost" size="sm" className="h-7 px-2 -ml-2 gap-1" onClick={() => navigate("/dashboard/readymade")}>
+            <ArrowLeft className="h-4 w-4" /> সব ক্যাটাগরি
+          </Button>
+          <Badge variant="secondary" className="text-xs">{decodeURIComponent(categoryName)}</Badge>
+        </div>
+      )}
+
       {!selectedSubject && (
         <div className="grid grid-cols-3 gap-2">
           {(enrollments?.length || 0) > 0 && (
@@ -306,7 +323,7 @@ const Readymade = () => {
                   variant={selectedBoards.includes(label) ? "default" : "outline"}
                   size="sm"
                   className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
-                  onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+                  onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
                 >
                   {label}
                 </Button>
@@ -338,7 +355,7 @@ const Readymade = () => {
                   variant={selectedBoards.includes(label) ? "default" : "outline"}
                   size="sm"
                   className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
-                  onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+                  onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
                 >
                   {label}
                 </Button>
