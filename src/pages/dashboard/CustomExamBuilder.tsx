@@ -235,39 +235,52 @@ const CustomExamBuilder = () => {
   return (
     <div className="space-y-4 pb-24">
       <Dialog open={showTargetDialog} onOpenChange={(open) => { if (!open && targetMarks) setShowTargetDialog(false); }}>
-        <DialogContent className="sm:max-w-sm [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+        <DialogContent
+          className="w-[90vw] max-w-sm rounded-2xl [&>button]:hidden"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" /> কত মার্কের এক্সাম বানাতে চাও?</DialogTitle>
-            <DialogDescription>একটি টার্গেট বেছে নাও। পরে যতগুলো এক্সাম সিলেক্ট করবে, MCQ সংখ্যা এই টার্গেট অনুযায়ী auto-average হয়ে বসবে — চাইলে কমাতে/বাড়াতে পারবে।</DialogDescription>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4 text-primary" />
+              কত মার্কের এক্সাম বানাতে চাও?
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              একটি টার্গেট বেছে নাও। পরে যতগুলো এক্সাম সিলেক্ট করবে, MCQ সংখ্যা এই টার্গেট অনুযায়ী auto-average হয়ে বসবে — চাইলে কমাতে/বাড়াতে পারবে।
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-3 gap-2 pt-1">
+
+          <div className="grid grid-cols-3 gap-2">
             {[25, 50, 100, 150, 200].map((n) => (
               <Button
                 key={n}
+                type="button"
                 variant={targetMarks === n ? "default" : "outline"}
                 size="sm"
-                onClick={() => { setTargetMarks(n); setCustomTargetInput(""); }}
+                onClick={() => {
+                  setTargetMarks(n);
+                  setCustomTargetInput("");
+                }}
               >
                 {n}
               </Button>
             ))}
           </div>
-          <div className="flex items-center gap-2 pt-1">
-            <Input
-              type="number"
-              min={1}
-              placeholder="নিজের মতো সংখ্যা লিখো"
-              value={customTargetInput}
-              onChange={(e) => {
-                setCustomTargetInput(e.target.value);
-                const v = parseInt(e.target.value, 10);
-                setTargetMarks(v > 0 ? v : null);
-              }}
-              className="flex-1"
-            />
-          </div>
+
+          <Input
+            type="number"
+            min={1}
+            placeholder="নিজের মতো সংখ্যা লিখো"
+            value={customTargetInput}
+            onChange={(e) => {
+              setCustomTargetInput(e.target.value);
+              const v = parseInt(e.target.value, 10);
+              setTargetMarks(v > 0 ? v : null);
+            }}
+          />
+
           <Button
-            className="w-full mt-2"
+            className="w-full"
             disabled={!targetMarks || targetMarks <= 0}
             onClick={() => {
               setPicked((prev) => rebalance(prev, targetMarks));
