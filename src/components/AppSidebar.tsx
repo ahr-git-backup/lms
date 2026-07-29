@@ -17,6 +17,7 @@ import {
 const studentItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard, color: "text-blue-500" },
   { title: "My Courses", url: "/dashboard/my-courses", icon: GraduationCap, color: "text-indigo-500" },
+  { title: "Extra Courses", url: "/dashboard/extra-courses", icon: GraduationCap, color: "text-fuchsia-500" },
   { title: "Routine", url: "/dashboard/routine", icon: CalendarClock, color: "text-indigo-500" },
   { title: "Profile", url: "/dashboard/profile", icon: User, color: "text-green-500" },
   { title: "Live Class", url: "/dashboard/live-class", icon: CalendarClock, color: "text-red-500" },
@@ -26,7 +27,9 @@ const studentItems = [
   { title: "Readymade Exam", url: "/dashboard/readymade", icon: ListChecks, color: "text-blue-400" },
   { title: "Archive Class & Exam", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Exam History", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
+  { title: "My Progress & History", url: "/dashboard/my-progress", icon: BarChart3, color: "text-blue-600" },
   { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
+  { title: "Class Notes", url: "/dashboard/class-notes", icon: StickyNote, color: "text-pink-500" },
   { title: "Notice", url: "/dashboard/announcements", icon: Megaphone, hasDot: true, color: "text-rose-500" },
   { title: "Bookmarks", url: "/dashboard/bookmarks", icon: Bookmark, color: "text-emerald-500" },
   { title: "FB & Telegram Group", url: "/dashboard/community", icon: Users, color: "text-cyan-500" },
