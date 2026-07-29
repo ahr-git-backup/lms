@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { openSolvePdf } from "@/lib/solvePdf";
 import {
   Popover,
   PopoverContent,
@@ -360,17 +361,84 @@ const ExamResults = () => {
           </Card>
         ) : (
           <div className="grid gap-2 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 px-0.5">
-            {filteredMockAttempts.map((a: any) => (
-              <Card key={a.id} className="border rounded-2xl shadow-sm">
-                <CardContent className="p-3 space-y-1.5">
+            {filteredMockAttempts.map((a: any) => {
+              const snapshot = (a.questions_snapshot as any[]) || [];
+              const answers = (a.answers as Record<string, string>) || {};
+              let wrongCount = 0, skipCount = 0;
+              snapshot.forEach((q: any) => {
+                const ua = answers[q.id];
+                if (!ua) skipCount++;
+                else if (ua !== q.correct_option) wrongCount++;
+              });
+              const hasMistakes = wrongCount > 0 || skipCount > 0;
+
+              const openMockResult = () => {
+                if (!a.session_id || !a.questions_snapshot) return;
+                const prefix = `mock_attempt_${a.session_id}`;
+                sessionStorage.setItem("unlimitedMockSessionId", a.session_id);
+                sessionStorage.removeItem("unlimitedMockQuestions");
+                localStorage.setItem(`${prefix}_questions_snapshot`, JSON.stringify(a.questions_snapshot));
+                localStorage.setItem(`${prefix}_submitted`, "1");
+                localStorage.setItem(`${prefix}_final_answers`, JSON.stringify(a.answers || {}));
+                navigate("/mock-test/play");
+              };
+
+              const handleMockPdf = () => {
+                if (!snapshot.length) return;
+                openSolvePdf({
+                  examName: `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""}`,
+                  questions: snapshot.map((q: any) => ({
+                    question_text: q.question_text,
+                    option_a: q.option_a,
+                    option_b: q.option_b,
+                    option_c: q.option_c,
+                    option_d: q.option_d,
+                    option_e: q.option_e,
+                    correct_option: q.correct_option,
+                    user_answer: answers[q.id] || null,
+                    explanation: q.explanation,
+                  })),
+                  totalMarks: snapshot.length,
+                  style: "style1",
+                });
+              };
+
+              return (
+              <Card key={a.id} className="border rounded-2xl shadow-sm flex flex-col h-full">
+                <CardContent className="p-3 space-y-1.5 flex flex-col flex-1">
                   <p className="text-sm font-semibold">{a.subject || "সাধারণ"} {a.chapter ? `- ${a.chapter}` : ""}</p>
                   <p className="text-xs text-muted-foreground">
                     Score: <span className="font-bold text-foreground">{a.score ?? "-"}</span> / {a.total_marks ?? a.total_questions ?? "-"}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{a.submitted_at && new Date(a.submitted_at).toLocaleDateString()}</p>
+                  <div className="grid grid-cols-3 gap-1.5 mt-auto pt-1.5">
+                    <Button
+                      size="sm"
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                      onClick={() => navigate("/mock-test")}
+                    >
+                      Practice Again
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!hasMistakes}
+                      className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      onClick={openMockResult}
+                    >
+                      Mistake Practice
+                    </Button>
+                    <Button
+                      size="sm"
+                      disabled={!snapshot.length}
+                      className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      onClick={handleMockPdf}
+                    >
+                      Solve PDF
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
-            ))}
+            );})}
           </div>
         )
       ) : category === "quick" ? (
