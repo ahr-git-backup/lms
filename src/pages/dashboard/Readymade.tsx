@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
@@ -291,37 +292,47 @@ const Readymade = () => {
         </div>
       )}
 
-      {!selectedSubject && activeTypePanel === "type-based" && (
-        <div className="rounded-xl border bg-muted/30 p-3 grid grid-cols-2 gap-2">
-          {["মেডিকেল স্ট্যান্ডার্ড প্রশ্ন", "সত্য-মিথ্যার প্রশ্ন", "ছকভিত্তিক প্রশ্ন", "ছোট প্রশ্ন-বড় অপশন"].map((label) => (
-            <Button
-              key={label}
-              variant={selectedBoards.includes(label) ? "default" : "outline"}
-              size="sm"
-              className="h-auto py-2 text-xs whitespace-normal leading-tight"
-              onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); }}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )}
+      <Dialog open={activeTypePanel === "type-based"} onOpenChange={(o) => setActiveTypePanel(o ? "type-based" : null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>টাইপভিত্তিক এক্সাম</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {["মেডিকেল স্ট্যান্ডার্ড প্রশ্ন", "সত্য-মিথ্যার প্রশ্ন", "ছকভিত্তিক প্রশ্ন", "ছোট প্রশ্ন-বড় অপশন"].map((label) => (
+              <Button
+                key={label}
+                variant={selectedBoards.includes(label) ? "default" : "outline"}
+                size="sm"
+                className="h-auto py-2 text-xs whitespace-normal leading-tight"
+                onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {!selectedSubject && activeTypePanel === "model-test" && (
-        <div className="rounded-xl border bg-muted/30 p-3 grid grid-cols-3 gap-2">
-          {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
-            <Button
-              key={label}
-              variant={selectedBoards.includes(label) ? "default" : "outline"}
-              size="sm"
-              className="h-auto py-2 text-xs whitespace-normal leading-tight"
-              onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); }}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )}
+      <Dialog open={activeTypePanel === "model-test"} onOpenChange={(o) => setActiveTypePanel(o ? "model-test" : null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2">
+            {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
+              <Button
+                key={label}
+                variant={selectedBoards.includes(label) ? "default" : "outline"}
+                size="sm"
+                className="h-auto py-2 text-xs whitespace-normal leading-tight"
+                onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([label]); setActiveTypePanel(null); }}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {!selectedSubject && parentTopics && parentTopics.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
