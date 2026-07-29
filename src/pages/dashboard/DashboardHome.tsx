@@ -457,7 +457,7 @@ const DashboardHome = () => {
           >
             <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
               <Infinity className="h-5 w-5 text-fuchsia-500 flex-shrink-0" />
-              <p className="font-medium text-sm leading-tight">Unlimited Mock Test</p>
+              <p className="font-medium text-sm leading-tight">Unlimited Practice Exam</p>
             </CardContent>
           </Card>
           <Card
