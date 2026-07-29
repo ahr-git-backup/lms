@@ -35,6 +35,7 @@ import Leaderboard from "./pages/dashboard/Leaderboard";
 import Bookmarks from "./pages/dashboard/Bookmarks";
 import MyMistakes from "./pages/dashboard/MyMistakes";
 import MyProgress from "./pages/dashboard/MyProgress";
+import TopPerformer from "./pages/dashboard/TopPerformer";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
@@ -193,6 +194,7 @@ const App = () => {
                 <Route path="bookmarks" element={<ErrorBoundary><Bookmarks /></ErrorBoundary>} />
                 <Route path="my-mistakes" element={<ErrorBoundary><MyMistakes /></ErrorBoundary>} />
                 <Route path="my-progress" element={<ErrorBoundary><MyProgress /></ErrorBoundary>} />
+                <Route path="top-performer" element={<ErrorBoundary><TopPerformer /></ErrorBoundary>} />
                 <Route path="routine" element={<ErrorBoundary><Routine /></ErrorBoundary>} />
                 <Route path="class-notes" element={<ErrorBoundary><ClassNotes /></ErrorBoundary>} />
                 <Route path="class-notes/:noteId" element={<ErrorBoundary><NoteDetails /></ErrorBoundary>} />

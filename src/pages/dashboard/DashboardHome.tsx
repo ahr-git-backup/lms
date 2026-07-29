@@ -427,7 +427,7 @@ const DashboardHome = () => {
           <Card
             className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "Top Performer feature আসছে খুব শীঘ্রই।" })}
+            onClick={() => navigate("/dashboard/top-performer")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
               <Trophy className="h-6 w-6 text-yellow-500 flex-shrink-0" />
