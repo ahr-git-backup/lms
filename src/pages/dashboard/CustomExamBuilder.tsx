@@ -413,11 +413,14 @@ const CustomExamBuilder = () => {
               <div key={e.id} className="flex items-center gap-1.5 text-[11px] border rounded-lg px-2 py-1">
                 <p className="flex-1 min-w-0 truncate font-medium" title={e.title}>{e.title}</p>
                 <Input
-                  type="number"
-                  min={1}
-                  max={e.totalMcq}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={e.count === 0 ? "" : e.count}
-                  onChange={(ev) => updateCount(e.id, ev.target.value)}
+                  onChange={(ev) => {
+                    const v = ev.target.value.replace(/[^0-9]/g, "");
+                    updateCount(e.id, v);
+                  }}
                   onBlur={() => finalizeCount(e.id)}
                   className="w-14 h-7 text-xs text-center px-1 shrink-0"
                 />
