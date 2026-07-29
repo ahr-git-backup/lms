@@ -250,7 +250,15 @@ const CustomExamBuilder = () => {
       {!showTargetDialog && (
       <>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => {
+            if (selectedChapter) setSelectedChapter(null);
+            else if (selectedSubject) setSelectedSubject(null);
+            else navigate(-1);
+          }}
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
