@@ -242,7 +242,8 @@ const ExamResults = () => {
       if (error) throw error;
       const map: Record<number, string> = {};
       (data || []).forEach((row: any) => {
-        map[row.id] = row.qp_subjects?.name || "সাধারণ";
+        const subj = Array.isArray(row.qp_subjects) ? row.qp_subjects[0] : row.qp_subjects;
+        map[row.id] = subj?.name || "সাধারণ";
       });
       return map;
     },
