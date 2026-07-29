@@ -372,14 +372,16 @@ const ExamResults = () => {
               });
               const hasMistakes = wrongCount > 0 || skipCount > 0;
 
-              const openMockResult = () => {
-                if (!a.session_id || !a.questions_snapshot) return;
-                const prefix = `mock_attempt_${a.session_id}`;
-                sessionStorage.setItem("unlimitedMockSessionId", a.session_id);
-                sessionStorage.removeItem("unlimitedMockQuestions");
-                localStorage.setItem(`${prefix}_questions_snapshot`, JSON.stringify(a.questions_snapshot));
-                localStorage.setItem(`${prefix}_submitted`, "1");
-                localStorage.setItem(`${prefix}_final_answers`, JSON.stringify(a.answers || {}));
+              const startMockMistakePractice = () => {
+                const wrongQs = snapshot.filter((q: any) => answers[q.id] && answers[q.id] !== q.correct_option);
+                const skippedQs = snapshot.filter((q: any) => !answers[q.id]);
+                const target = [...wrongQs, ...skippedQs];
+                if (target.length === 0) return;
+                const newSessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(target));
+                sessionStorage.setItem("unlimitedMockTitle", `${a.subject || "সাধারণ"}${a.chapter ? ` - ${a.chapter}` : ""} — Mistake Practice`);
+                sessionStorage.setItem("unlimitedMockTime", String(Math.ceil(target.length / 1.5)));
+                sessionStorage.setItem("unlimitedMockSessionId", newSessionId);
                 navigate("/mock-test/play");
               };
 
@@ -423,7 +425,7 @@ const ExamResults = () => {
                       size="sm"
                       disabled={!hasMistakes}
                       className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
-                      onClick={openMockResult}
+                      onClick={startMockMistakePractice}
                     >
                       Mistake Practice
                     </Button>
