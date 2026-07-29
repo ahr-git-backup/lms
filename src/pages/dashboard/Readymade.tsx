@@ -42,15 +42,9 @@ async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): P
   return all;
 }
 
-// Helper: build the enrollment filter OR clause
-const buildEnrollmentFilter = (enrolledIds: string[]) => {
-  if (enrolledIds.length === 0) return "is_visible_on_free.eq.true";
-  return `course_id.in.(${enrolledIds.join(',')}),shared_course_ids.ov.{${enrolledIds.join(',')}},readymade_course_ids.ov.{${enrolledIds.join(',')}},is_visible_on_free.eq.true`;
-};
-
-// Determine whether a given exam is accessible to the current user (same rule as
-// buildEnrollmentFilter, evaluated client-side so we can render ALL exams and just
-// lock the ones the user doesn't have access to, instead of hiding them.
+// Determine whether a given exam is accessible to the current user, evaluated
+// client-side so we can render ALL exams and just lock the ones the user
+// doesn't have access to, instead of hiding them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isExamUnlocked = (exam: any, enrolledIds: string[]): boolean => {
   if (exam.is_visible_on_free) return true;
@@ -126,10 +120,8 @@ const Readymade = () => {
   const [lockedExam, setLockedExam] = useState<any | null>(null);
 
   const { data: boards } = useQuery({
-    queryKey: ["readymade-boards", enrollments?.map((e: any) => e.course_id).join(','), selectedParentTopics],
+    queryKey: ["readymade-boards", selectedParentTopics],
     queryFn: async () => {
-      const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
-      const filter = buildEnrollmentFilter(enrolledIds);
       const data = await fetchAllRows<{ readymade_category: string | null }>((from, to) => {
         let query = supabase
           .from("exams")
@@ -139,8 +131,6 @@ const Readymade = () => {
           .not("readymade_category", "is", null)
           .range(from, to);
         if (selectedParentTopics.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-        if (filter) query = query.or(filter);
-        else query = query.eq("is_visible_on_free", true);
         return query;
       });
       const unique = new Set<string>();
@@ -150,10 +140,8 @@ const Readymade = () => {
   });
 
   const { data: parentTopics } = useQuery({
-    queryKey: ["readymade-parent-topics", enrollments?.map((e: any) => e.course_id).join(',')],
+    queryKey: ["readymade-parent-topics"],
     queryFn: async () => {
-      const enrolledIds = enrollments?.map((e: any) => e.course_id) || [];
-      const filter = buildEnrollmentFilter(enrolledIds);
       const data = await fetchAllRows<{ readymade_topic: string | null }>((from, to) => {
         let query = supabase
           .from("exams")
@@ -162,8 +150,6 @@ const Readymade = () => {
           .eq("is_published", true)
           .not("readymade_topic", "is", null)
           .range(from, to);
-        if (filter) query = query.or(filter);
-        else query = query.eq("is_visible_on_free", true);
         return query;
       });
       const unique = new Set<string>();
@@ -373,23 +359,24 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- SEARCH ---
   const { data: searchResults, isLoading: searching } = useQuery({
-    queryKey: ["readymade-exams-search", enrolledIds.join(','), searchQuery, page, selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-search", enrolledIds.join(','), searchQuery, selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
       if (!safeQuery) return { data: [], count: 0 };
-      let query = supabase
-        .from("exams")
-        .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
-        .eq("is_readymade", true).eq("is_published", true)
-        .is("parent_exam_id", null)
-        .ilike("title", `%${safeQuery}%`)
-        .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-      if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
-      if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { data: data || [], count: count || 0 };
+      const data = await fetchAllRows<any>((from, to) => {
+        let query = supabase
+          .from("exams")
+          .select("*, course:courses(name), questions_count:exam_questions(count)")
+          .eq("is_readymade", true).eq("is_published", true)
+          .is("parent_exam_id", null)
+          .ilike("title", `%${safeQuery}%`)
+          .order("sort_order", { ascending: false }).order("created_at", { ascending: false })
+          .range(from, to);
+        if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
+        if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
+        return query;
+      });
+      return { data, count: data.length };
     },
     enabled: !!searchQuery
   });
@@ -582,9 +569,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     if (searching || loadingEnrollments) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
     const exams = searchResults?.data || [];
     const count = searchResults?.count || 0;
-    const totalPages = Math.ceil(count / PAGE_SIZE);
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /><PaginationControls page={page} setPage={setPage} totalPages={totalPages} /></div>;
+    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -1002,19 +988,5 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = 
   );
 };
 
-
-const PaginationControls = ({ page, setPage, totalPages }: { page: number, setPage: (p: number) => void, totalPages: number }) => (
-  <div className="flex items-center justify-between pt-4">
-    <div className="text-xs text-muted-foreground">Page {page + 1} of {totalPages || 1}</div>
-    <div className="flex gap-2">
-      <Button variant="outline" size="sm" onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}>
-        <ChevronLeft className="h-4 w-4" /> Previous
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => setPage(page + 1)} disabled={page >= totalPages - 1}>
-        Next <ChevronRight className="h-4 w-4" />
-      </Button>
-    </div>
-  </div>
-);
 
 export default Readymade;
