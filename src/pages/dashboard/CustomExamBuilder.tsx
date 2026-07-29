@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { useAuth } from "@/contexts/AuthContext";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -224,6 +225,7 @@ const CustomExamBuilder = () => {
       if (error) throw error;
       toast({ title: "কাস্টম এক্সাম তৈরি হয়েছে!" });
       try { sessionStorage.removeItem(SESSION_KEY); } catch { /* ignore */ }
+      setExamSourceList(data, "/dashboard/readymade");
       navigate(`/dashboard/take-exam/${data}`);
     } catch (err: any) {
       toast({ title: "এক্সাম তৈরি করা যায়নি", description: err.message, variant: "destructive" });
