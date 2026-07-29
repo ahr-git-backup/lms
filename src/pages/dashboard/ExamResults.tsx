@@ -536,8 +536,14 @@ const ExamResults = () => {
                     </div>
                     <Button
                       size="sm"
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-2 shrink-0"
-                      onClick={() => navigate("/quick-practice")}
+                      disabled={!a.question_ids?.length}
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-2 shrink-0 disabled:opacity-40"
+                      onClick={() => {
+                        if (!a.question_ids?.length) return;
+                        sessionStorage.removeItem("qp_practice_state");
+                        sessionStorage.setItem("qp_practice_mode", JSON.stringify({ type: "replay", mcqIds: a.question_ids }));
+                        navigate("/quick-practice/play");
+                      }}
                     >
                       Practice Again
                     </Button>

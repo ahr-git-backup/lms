@@ -161,11 +161,13 @@ const QuickPracticePlay = () => {
     }
     let mode:
       | { type: "random"; count?: number }
-      | { type: "selected"; chapterIds: number[]; count?: number };
+      | { type: "selected"; chapterIds: number[]; count?: number }
+      | { type: "replay"; mcqIds: number[] };
     try {
       mode = JSON.parse(modeRaw) as
         | { type: "random"; count?: number }
-        | { type: "selected"; chapterIds: number[]; count?: number };
+        | { type: "selected"; chapterIds: number[]; count?: number }
+        | { type: "replay"; mcqIds: number[] };
     } catch {
       sessionStorage.removeItem("qp_practice_mode");
       navigate("/quick-practice");
@@ -195,6 +197,8 @@ const QuickPracticePlay = () => {
 
     if (mode.type === "selected") {
       query = query.in("chapter_id", mode.chapterIds);
+    } else if (mode.type === "replay") {
+      query = query.in("id", mode.mcqIds);
     }
 
     const { data: rows, error } = await query;
@@ -221,8 +225,10 @@ const QuickPracticePlay = () => {
       (chapters || []).map((c: any) => [c.id, { name: c.name, subjectId: c.subject_id }])
     );
 
-    let shuffledRows = shuffle(rows as any[]);
-    if (mode.count && mode.count > 0) {
+    let shuffledRows = mode.type === "replay"
+      ? mode.mcqIds.map((id) => rows.find((r: any) => r.id === id)).filter(Boolean)
+      : shuffle(rows as any[]);
+    if (mode.type !== "replay" && mode.count && mode.count > 0) {
       shuffledRows = shuffledRows.slice(0, mode.count);
     }
     const enriched: Mcq[] = shuffledRows.map((r) => {
@@ -352,6 +358,7 @@ const QuickPracticePlay = () => {
           correct_count: sessionCorrect,
           points_earned: sessionCorrect,
           details,
+          question_ids: mcqs.map((m) => m.id),
         });
       } catch {
         /* points sync failed, user keeps local result view */
