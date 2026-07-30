@@ -406,19 +406,159 @@ const ClassWeaknessReport = ({ range }: { range: RangeKey }) => {
 // time, site activity/leaderboard position over recent days) into one
 // rule-based recommendation of what to do next to improve overall rank.
 // -----------------------------------------------------------------------
+type RankTrendPoint = { date: string; rank: number; total_participants: number; percentile: number };
+type OverallActivityData = {
+  rank_trend: RankTrendPoint[];
+  total_exams: number;
+  total_watch_seconds: number;
+  avg_percentile: number;
+};
+
 const OverallSuggestion = ({ range }: { range: RangeKey }) => {
+  const { user } = useAuth();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["overall-activity-report", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.rpc("get_my_overall_activity_report" as any);
+      if (error) throw error;
+      return data as unknown as OverallActivityData;
+    },
+    enabled: !!user,
+  });
+
+  const cutoff = rangeToCutoff(range);
+
+  const filteredTrend = useMemo(() => {
+    if (!data) return [];
+    if (!cutoff) return data.rank_trend;
+    return data.rank_trend.filter((p) => new Date(p.date) >= cutoff);
+  }, [data, cutoff]);
+
+  // Split the ranged trend into first-half vs second-half to see whether
+  // percentile is improving (rule-based trend direction, not AI).
+  const trendDirection = useMemo(() => {
+    if (filteredTrend.length < 2) return null;
+    const mid = Math.floor(filteredTrend.length / 2);
+    const firstHalf = filteredTrend.slice(0, mid);
+    const secondHalf = filteredTrend.slice(mid);
+    const avg = (arr: RankTrendPoint[]) => arr.reduce((s, p) => s + p.percentile, 0) / arr.length;
+    const diff = avg(secondHalf) - avg(firstHalf);
+    if (diff >= 3) return "up";
+    if (diff <= -3) return "down";
+    return "flat";
+  }, [filteredTrend]);
+
+  const rangedExamCount = filteredTrend.length;
+  const rangedAvgPercentile = useMemo(() => {
+    if (filteredTrend.length === 0) return 0;
+    return Math.round((filteredTrend.reduce((s, p) => s + p.percentile, 0) / filteredTrend.length) * 10) / 10;
+  }, [filteredTrend]);
+
+  const suggestions = useMemo(() => {
+    if (!data) return [];
+    const tips: string[] = [];
+
+    if (rangedExamCount === 0) {
+      tips.push("এই সময়সীমায় কোনো exam দেওয়া হয়নি — নিয়মিত exam দিলে rank ও weakness সম্পর্কে স্পষ্ট ধারণা পাওয়া যাবে।");
+    } else {
+      if (rangedExamCount < 3) {
+        tips.push("এই সময়ে খুব কম exam দেওয়া হয়েছে — আরও বেশি exam attempt করলে rank উন্নত করার সুযোগ বাড়বে।");
+      }
+      if (trendDirection === "down") {
+        tips.push("সাম্প্রতিক exam গুলোতে percentile (rank) কমছে — 'Exam Weakness Report' ট্যাব থেকে দুর্বল বিষয়/অধ্যায় দেখে সেগুলোতে বেশি সময় দাও।");
+      } else if (trendDirection === "up") {
+        tips.push("সাম্প্রতিক exam গুলোতে rank ভালো হচ্ছে — এই গতি ধরে রাখো!");
+      } else if (trendDirection === "flat") {
+        tips.push("rank মোটামুটি স্থির আছে — নতুন কিছু চ্যাপ্টারে জোর দিলে আরও এগোনো সম্ভব।");
+      }
+      if (rangedAvgPercentile < 50) {
+        tips.push("গড় percentile ৫০%-এর নিচে — Readymade Exam ও Quick Practice দিয়ে বেশি practice করলে দ্রুত উন্নতি হবে।");
+      }
+    }
+
+    if (data.total_watch_seconds < 3600) {
+      tips.push("ক্লাস দেখার সময় তুলনামূলক কম — নিয়মিত ক্লাস দেখলে concept আরও পরিষ্কার হবে যা exam score-এও প্রভাব ফেলবে।");
+    }
+
+    if (tips.length === 0) {
+      tips.push("তোমার overall activity ভালো আছে — এভাবেই ধারাবাহিকভাবে চালিয়ে যাও!");
+    }
+
+    return tips;
+  }, [data, rangedExamCount, trendDirection, rangedAvgPercentile]);
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading...</p>;
+  }
+
+  if (!data || (data.total_exams === 0 && data.total_watch_seconds === 0)) {
+    return (
+      <Card className="border border-dashed">
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          এখনো কোনো exam বা ক্লাস activity পাওয়া যায়নি — activity শুরু হলে এখানে বিস্তারিত পরামর্শ দেখা যাবে।
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="border-primary/30 bg-primary/5">
-      <CardHeader className="py-2.5 px-3">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <Lightbulb className="h-4 w-4 text-primary" /> সার্বিক পরামর্শ
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 pb-4 px-3 text-center text-sm text-muted-foreground">
-        এই ফিচারটি আসছে খুব শীঘ্রই — Exam ও Class activity, সাইটে সক্রিয় সময়, এবং সাম্প্রতিক
-        leaderboard position বিশ্লেষণ করে position উন্নত করার নির্দিষ্ট পরামর্শ দেখাবে।
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">Exam (এই রেঞ্জে)</span>
+            <span className="text-base font-bold text-blue-600 leading-tight">{rangedExamCount}</span>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">গড় Percentile</span>
+            <span className="text-base font-bold text-emerald-600 leading-tight">{rangedAvgPercentile}%</span>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className={cn(
+        "border",
+        trendDirection === "up" ? "border-green-500/30 bg-green-50/40 dark:bg-green-950/10" :
+        trendDirection === "down" ? "border-red-500/30 bg-red-50/40 dark:bg-red-950/10" :
+        "border-border bg-muted/20"
+      )}>
+        <CardHeader className="py-2.5 px-3">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            {trendDirection === "up" ? <TrendingUp className="h-4 w-4 text-green-600" /> :
+             trendDirection === "down" ? <TrendingDown className="h-4 w-4 text-red-600" /> :
+             <Lightbulb className="h-4 w-4 text-primary" />}
+            Rank Trend
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 pb-3 px-3 text-xs text-muted-foreground">
+          {trendDirection === "up" && "সাম্প্রতিক exam গুলোতে rank/percentile উন্নত হচ্ছে।"}
+          {trendDirection === "down" && "সাম্প্রতিক exam গুলোতে rank/percentile কমছে।"}
+          {trendDirection === "flat" && "rank/percentile মোটামুটি স্থির আছে।"}
+          {trendDirection === null && "trend দেখার জন্য আরও exam দরকার।"}
+        </CardContent>
+      </Card>
+
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader className="py-2.5 px-3">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <Lightbulb className="h-4 w-4 text-primary" /> সার্বিক পরামর্শ
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 pb-3 px-3">
+          <ul className="space-y-1.5">
+            {suggestions.map((tip, i) => (
+              <li key={i} className="text-xs bg-background/60 rounded px-2 py-1.5 leading-relaxed">
+                {tip}
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
