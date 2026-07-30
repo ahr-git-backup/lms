@@ -299,9 +299,9 @@ const DashboardHome = () => {
                         LIVE EXAM
                     </span>
                     <CardHeader className="space-y-2 pb-2 pt-4 pr-24">
-                      <p className="text-sm font-mono uppercase text-muted-foreground truncate">
+                      <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 truncate">
                           {exam?.course?.name || "Unknown Course"}
-                      </p>
+                      </span>
                       <CardTitle className="text-2xl font-extrabold break-words">{exam?.title || "Live Exam"}</CardTitle>
                       <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
