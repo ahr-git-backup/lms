@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 
 const DAY_RANGES = [
   { key: "total", label: "Total", days: null },
+  { key: "today", label: "আজকে", days: 0 },
   { key: "3", label: "বিগত ৩ দিন", days: 3 },
   { key: "7", label: "বিগত ৭ দিন", days: 7 },
   { key: "15", label: "বিগত ১৫ দিন", days: 15 },

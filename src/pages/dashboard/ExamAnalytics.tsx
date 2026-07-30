@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 
 const DAY_RANGES = [
   { key: "total", label: "Total", days: null },
+  { key: "today", label: "আজকে", days: 0 },
   { key: "3", label: "বিগত ৩ দিন", days: 3 },
   { key: "7", label: "বিগত ৭ দিন", days: 7 },
   { key: "15", label: "বিগত ১৫ দিন", days: 15 },
@@ -423,7 +424,11 @@ const filterByRange = <T,>(items: T[], getDate: (item: T) => Date, range: RangeK
   const rangeDef = DAY_RANGES.find(r => r.key === range);
   if (!rangeDef || rangeDef.days === null) return items;
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - rangeDef.days);
+  if (rangeDef.days === 0) {
+    cutoff.setHours(0, 0, 0, 0); // "আজকে" = since start of today
+  } else {
+    cutoff.setDate(cutoff.getDate() - rangeDef.days);
+  }
   return items.filter(item => getDate(item) >= cutoff);
 };
 
