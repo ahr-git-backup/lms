@@ -486,43 +486,11 @@ const UnlimitedMockTest = () => {
                 </div>
               </div>
 
-              {multiSubjects.map((subj) => {
-                const subjChapters: string[] = multiSubjectChapters[subj] || [];
-                const allSelected = subjChapters.length > 0 && subjChapters.every((c) =>
-                  multiChapters.some((x) => x.subject === subj && x.chapter === c)
-                );
-                const toggleAllChaptersInSubject = () => {
-                  if (allSelected) {
-                    subjChapters.forEach((c) => {
-                      if (multiChapters.some((x) => x.subject === subj && x.chapter === c)) {
-                        toggleMultiChapter(subj, c);
-                      }
-                    });
-                  } else {
-                    subjChapters.forEach((c) => {
-                      if (!multiChapters.some((x) => x.subject === subj && x.chapter === c)) {
-                        toggleMultiChapter(subj, c);
-                      }
-                    });
-                  }
-                };
-                return (
+              {multiSubjects.map((subj) => (
                 <div key={subj}>
-                  <div className="flex items-center gap-2 mb-2">
-                    {subjChapters.length > 0 && (
-                      <div
-                        onClick={toggleAllChaptersInSubject}
-                        className={`h-5 w-5 rounded-md border-2 flex items-center justify-center cursor-pointer flex-shrink-0 ${
-                          allSelected ? "bg-primary border-primary" : "border-border"
-                        }`}
-                      >
-                        {allSelected && <span className="text-primary-foreground text-[10px] leading-none">✓</span>}
-                      </div>
-                    )}
-                    <Label className="block">চ্যাপ্টার — {subj}</Label>
-                  </div>
+                  <Label className="mb-2 block">চ্যাপ্টার — {subj}</Label>
                   <div className="grid grid-cols-2 gap-2">
-                    {subjChapters.map((c: string) => {
+                    {(multiSubjectChapters[subj] || []).map((c: string) => {
                       const checked = multiChapters.some(
                         (x) => x.subject === subj && x.chapter === c
                       );
@@ -556,8 +524,7 @@ const UnlimitedMockTest = () => {
                     )}
                   </div>
                 </div>
-                );
-              })}
+              ))}
 
               {multiDrillChapter && (
                 <div>
