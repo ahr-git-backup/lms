@@ -311,7 +311,7 @@ const DashboardHome = () => {
                     </CardHeader>
                     <CardContent>
                        <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Take Exam
+                          Start Exam
                        </Button>
                     </CardContent>
                   </Card>
