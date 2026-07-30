@@ -1,14 +1,22 @@
 name: Archive Old Attempts
 
+# ⚠️ PAUSED: Weakness/Class Report + Overall Suggestion features read directly
+# from exam_attempts and qp_attempts on the MAIN db with no fallback to the
+# archive db. Running this LIVE would silently remove 90+ day old data from
+# those reports. Do not enable "live" runs until the weakness-report RPCs are
+# updated to also read from the archive db, or a different cutoff/strategy is
+# agreed. Dry-run (workflow_dispatch without "live") remains safe to run.
+
 on:
   workflow_dispatch:
     inputs:
       live:
-        description: "Run LIVE (actually move+delete). Leave unchecked for dry run."
+        description: "Run LIVE (actually move+delete). Leave unchecked for dry run. DO NOT ENABLE — see warning above."
         type: boolean
         default: false
-  schedule:
-    - cron: "0 3 * * 0" # weekly, Sunday 03:00 UTC — dry run stays off by default via workflow_dispatch only for live runs
+  # Scheduled run disabled until the conflict above is resolved.
+  # schedule:
+  #   - cron: "0 3 * * 0"
 
 jobs:
   archive:
