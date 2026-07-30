@@ -192,9 +192,9 @@ const LiveExam = () => {
 
             return (
               <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
-                <CardHeader className="space-y-2">
+                <CardHeader className="space-y-2 pt-4">
                   <div className="flex justify-between items-start gap-2">
-                      <p className="text-xs font-mono uppercase text-muted-foreground">
+                      <p className="text-xs font-mono uppercase text-muted-foreground truncate">
                           {exam.course?.name || "Public Exam"}
                       </p>
                       {isActive && (
@@ -203,7 +203,7 @@ const LiveExam = () => {
                         </span>
                       )}
                   </div>
-                  <CardTitle className="text-xl font-bold">{exam.title}</CardTitle>
+                  <CardTitle className="text-2xl font-extrabold">{exam.title}</CardTitle>
                   <CardDescription className="text-xs">
                     Duration: {exam.duration_minutes} min • {exam.exam_type === "live" ? "Live Exam" : "Practice Exam"}
                     {preferences && ((exam.exam_type === "live" && preferences.remind_for_live_exams) ||

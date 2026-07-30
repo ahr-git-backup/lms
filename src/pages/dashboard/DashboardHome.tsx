@@ -295,16 +295,16 @@ const DashboardHome = () => {
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
                   <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 flex flex-col h-full">
-                    <CardHeader className="space-y-2 pb-2">
+                    <CardHeader className="space-y-2 pb-2 pt-4">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-sm font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground truncate">
                               {exam?.course?.name || "Unknown Course"}
                           </p>
                           <span className="animate-pulse inline-flex items-center whitespace-nowrap shrink-0 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE EXAM
                           </span>
                       </div>
-                      <CardTitle className="text-xl font-bold break-words">{exam?.title || "Live Exam"}</CardTitle>
+                      <CardTitle className="text-2xl font-extrabold break-words">{exam?.title || "Live Exam"}</CardTitle>
                       <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
