@@ -56,7 +56,7 @@ export const studentItems: SidebarNavItem[] = [
   { title: "Unlimited Mock Test", url: "/mock-test", icon: Infinity, color: "text-fuchsia-600" },
   { title: "Study Tracker", url: "/syllabus-tracker", icon: BarChart3, color: "text-sky-600" },
   { title: "Archive Class & Exam", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
-  { title: "Exam History", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
+  { title: "Class & Exam History", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Progress & History", url: "/dashboard/my-progress", icon: BarChart3, color: "text-blue-600" },
   { title: "Top Performer", url: "/dashboard/top-performer", icon: Trophy, color: "text-yellow-500" },
   { title: "My Mistakes", url: "/dashboard/my-mistakes", icon: AlertCircle, color: "text-red-600" },
