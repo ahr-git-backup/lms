@@ -192,18 +192,18 @@ const LiveExam = () => {
 
             return (
               <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
-                <CardHeader className="space-y-1">
+                <CardHeader className="space-y-2">
                   <div className="flex justify-between items-start gap-2">
                       <p className="text-xs font-mono uppercase text-muted-foreground">
                           {exam.course?.name || "Public Exam"}
                       </p>
                       {isActive && (
-                        <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                        <span className="animate-pulse inline-flex items-center whitespace-nowrap shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                             LIVE NOW
                         </span>
                       )}
                   </div>
-                  <CardTitle className="text-base">{exam.title}</CardTitle>
+                  <CardTitle className="text-xl font-bold">{exam.title}</CardTitle>
                   <CardDescription className="text-xs">
                     Duration: {exam.duration_minutes} min • {exam.exam_type === "live" ? "Live Exam" : "Practice Exam"}
                     {preferences && ((exam.exam_type === "live" && preferences.remind_for_live_exams) ||
@@ -223,15 +223,15 @@ const LiveExam = () => {
                       })()}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col justify-end">
                   {isLive && attempted ? (
                     <div className="text-xs text-muted-foreground">Attempt Completed</div>
                   ) : (
                     <Button 
-                      size="sm" 
+                      size="lg" 
                       onClick={() => setSelectedExamForPopup(exam)}
                       disabled={isLive && attempted}
-                      className={isActive ? "w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white border-none" : "w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"}
+                      className={`h-12 text-base font-semibold ${isActive ? "w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white border-none" : "w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"}`}
                     >
                       {isActive ? "Start Live Exam" : "Start Exam"}
                     </Button>
