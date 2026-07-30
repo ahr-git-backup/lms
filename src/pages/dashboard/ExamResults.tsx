@@ -176,6 +176,20 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
 };
 
 const ExamResults = () => {
+  const [section, setSectionState] = useState<"exam" | "class">(
+    () => (sessionStorage.getItem("examHistorySection") as any) || "exam"
+  );
+  const setSection = (s: "exam" | "class") => {
+    setSectionState(s);
+    sessionStorage.setItem("examHistorySection", s);
+  };
+  const [classCategory, setClassCategoryState] = useState<"live" | "recorded" | "archive">(
+    () => (sessionStorage.getItem("classHistoryCategory") as any) || "recorded"
+  );
+  const setClassCategory = (c: "live" | "recorded" | "archive") => {
+    setClassCategoryState(c);
+    sessionStorage.setItem("classHistoryCategory", c);
+  };
   const [category, setCategoryState] = useState<"all" | "live" | "practice" | "readymade" | "mock" | "quick" | "custom">(
     () => (sessionStorage.getItem("examHistoryCategory") as any) || "all"
   );
@@ -187,6 +201,31 @@ const ExamResults = () => {
   const [subjectSubCategory, setSubjectSubCategory] = useState<string | null>(null);
   const { user, profile } = useAuth();
   const navigate = useNavigate();
+
+  // --- CLASS HISTORY ---
+  const { data: classHistoryData, isLoading: classHistoryLoading } = useQuery({
+    queryKey: ["class-history", classCategory],
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      let query = supabase.from("classes").select("*, course:courses(name)");
+
+      if (classCategory === "live") {
+        query = query.eq("class_type", "live").gt("end_at", now).not("is_archive", "is", true);
+      } else if (classCategory === "recorded") {
+        query = query
+          .or(`class_type.eq.recorded,and(class_type.eq.live,end_at.lt.${now})`)
+          .not("is_archive", "is", true);
+      } else {
+        query = query.eq("is_archive", true);
+      }
+
+      query = query.order("start_at", { ascending: classCategory === "live" }).limit(200);
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: section === "class",
+  });
 
   useEffect(() => {
     document.title = "Exam History – Atlas";
@@ -313,10 +352,97 @@ const ExamResults = () => {
   return (
     <div className="w-full px-0.5 py-3 space-y-3">
       <header className="space-y-0.5 px-1">
-        <h1 className="text-lg font-bold leading-tight">Exam History</h1>
-        <p className="text-xs text-muted-foreground">Review your scores and answer scripts.</p>
+        <h1 className="text-lg font-bold leading-tight">{section === "exam" ? "Exam History" : "Class History"}</h1>
+        <p className="text-xs text-muted-foreground">
+          {section === "exam" ? "Review your scores and answer scripts." : "Review your live, recorded, and archived classes."}
+        </p>
       </header>
 
+      {/* Top-level section toggle: Exam History / Class History */}
+      <div className="grid grid-cols-2 gap-1.5 px-1">
+        <Button
+          size="sm"
+          variant={section === "exam" ? "default" : "outline"}
+          className="h-8 text-xs"
+          onClick={() => setSection("exam")}
+        >
+          Exam History
+        </Button>
+        <Button
+          size="sm"
+          variant={section === "class" ? "default" : "outline"}
+          className="h-8 text-xs"
+          onClick={() => setSection("class")}
+        >
+          Class History
+        </Button>
+      </div>
+
+      {section === "class" ? (
+        <div className="space-y-3">
+          {/* Class category row */}
+          <div className="flex flex-nowrap gap-1.5 px-1 overflow-x-auto no-scrollbar">
+            {([
+              { key: "live", label: "Live" },
+              { key: "recorded", label: "Recorded" },
+              { key: "archive", label: "Archive" },
+            ] as const).map(c => (
+              <Button
+                key={c.key}
+                size="sm"
+                variant={classCategory === c.key ? "default" : "outline"}
+                className="h-7 px-2.5 text-xs shrink-0"
+                onClick={() => setClassCategory(c.key)}
+              >
+                {c.label}
+              </Button>
+            ))}
+          </div>
+
+          {classHistoryLoading ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">Loading...</div>
+          ) : !classHistoryData || classHistoryData.length === 0 ? (
+            <div className="text-center py-12 text-muted-foreground text-sm">No classes found in this category.</div>
+          ) : (
+            <div className="space-y-2 px-1">
+              {classHistoryData.map((cls: any) => {
+                const startDate = cls.start_at ? new Date(cls.start_at) : null;
+                const dateStr = startDate ? startDate.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }) : "";
+                const timeStr = startDate ? startDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
+                const durationMin = cls.start_at && cls.end_at
+                  ? Math.max(0, Math.round((new Date(cls.end_at).getTime() - new Date(cls.start_at).getTime()) / 60000))
+                  : null;
+                return (
+                  <Card key={cls.id}>
+                    <CardContent className="p-3 flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold leading-tight truncate">{cls.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          {cls.course?.name && <span>{cls.course.name} · </span>}
+                          {dateStr}{timeStr && ` · ${timeStr}`}{durationMin !== null && ` · ${durationMin} min`}
+                        </p>
+                      </div>
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        <Button size="sm" className="h-7 text-xs px-2.5" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
+                          Rewatch
+                        </Button>
+                        {cls.notes_url && (
+                          <a href={cls.notes_url} target="_blank" rel="noopener noreferrer">
+                            <Button size="sm" variant="outline" className="h-7 text-xs px-2.5 w-full">
+                              Class Note
+                            </Button>
+                          </a>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+      <>
       {/* Category Row */}
       <div className="flex flex-nowrap gap-1.5 px-1 overflow-x-auto no-scrollbar">
         {([
@@ -582,6 +708,8 @@ const ExamResults = () => {
             />
           ))}
         </div>
+      )}
+      </>
       )}
     </div>
   );
