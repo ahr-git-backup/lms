@@ -202,15 +202,6 @@ const LiveExam = () => {
                             LIVE NOW
                         </span>
                       )}
-                      {Array.isArray(exam.subject) && (
-                        <div className="flex flex-wrap gap-1 justify-end">
-                            {exam.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-emerald-200 bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-800">
-                                    {s}
-                                </span>
-                            ))}
-                        </div>
-                      )}
                   </div>
                   <CardTitle className="text-base">{exam.title}</CardTitle>
                   <CardDescription className="text-xs">
