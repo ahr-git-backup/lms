@@ -126,17 +126,17 @@ BEGIN
         SELECT
             s.profile_id,
             s.v_exam_count,
-            ROUND(s.v_avg_score_pct, 2) AS v_avg_score_pct,
+            ROUND(s.v_avg_score_pct::numeric, 2) AS v_avg_score_pct,
             ROUND(s.v_avg_seconds_per_question::numeric, 1) AS v_avg_seconds_per_question,
             s.v_class_watch_seconds,
             s.v_focus_seconds,
             s.v_active_days,
             ROUND(
-                (s.v_avg_score_pct * 0.40) +
+                ((s.v_avg_score_pct * 0.40) +
                 (COALESCE(s.exam_volume_norm, 0) * 0.20) +
                 (COALESCE(s.regularity_norm, 0) * 0.15) +
                 (COALESCE(s.focus_norm, 0) * 0.15) +
-                (COALESCE(s.class_norm, 0) * 0.10)
+                (COALESCE(s.class_norm, 0) * 0.10))::numeric
             , 2) AS v_composite_score
         FROM scored s
     )
