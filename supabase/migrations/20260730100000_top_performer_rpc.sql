@@ -127,7 +127,7 @@ BEGIN
             s.profile_id,
             s.exam_count,
             ROUND(s.avg_score_pct, 2) AS avg_score_pct,
-            ROUND(s.avg_seconds_per_question, 1) AS avg_seconds_per_question,
+            ROUND(s.avg_seconds_per_question::numeric, 1) AS avg_seconds_per_question,
             s.class_watch_seconds,
             s.focus_seconds,
             s.active_days,
