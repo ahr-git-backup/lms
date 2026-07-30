@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ClipboardX, Video, Lightbulb, TrendingDown, AlertTriangle, BookX } from "lucide-react";
+import { ClipboardX, Video, Lightbulb, TrendingDown, AlertTriangle, BookX, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DAY_RANGES = [
   { key: "total", label: "Total", days: null },
@@ -64,6 +67,15 @@ const CategorySelector = ({ value, onChange }: { value: WeaknessCategoryKey; onC
   </div>
 );
 
+const rangeToCutoff = (range: RangeKey): Date | null => {
+  const def = DAY_RANGES.find((r) => r.key === range);
+  if (!def || def.days === null) return null;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - def.days);
+  cutoff.setHours(0, 0, 0, 0);
+  return cutoff;
+};
+
 // -----------------------------------------------------------------------
 // Exam Weakness Report — will eventually combine data from: Exam Report
 // (routinewise + readymade), Exam History (every category result), My
@@ -73,28 +85,183 @@ const CategorySelector = ({ value, onChange }: { value: WeaknessCategoryKey; onC
 // fixed thresholds compare subject/chapter-wise average score against the
 // student's own overall average and flag the weakest ones.
 // -----------------------------------------------------------------------
+// (comments above kept, header)
+// Rule-based (not AI-generated):
+// fixed thresholds compare subject/chapter-wise average score against the
+// student's own overall average and flag the weakest ones.
+// -----------------------------------------------------------------------
+type SubjectStat = { subject: string; total: number; correct: number; accuracy: number };
+type ChapterStat = { subject: string; chapter: string; total: number; correct: number; accuracy: number };
+type QTypeStat = { question_type: string; total: number; correct: number; accuracy: number };
+type DailyStat = { date: string; total: number; correct: number; accuracy: number };
+type ExamWeaknessData = {
+  subjects: SubjectStat[];
+  chapters: ChapterStat[];
+  question_types: QTypeStat[];
+  daily: DailyStat[];
+  overall_accuracy: number;
+  total_answered: number;
+};
+
+// A subject/chapter counts as "weak" when its accuracy is at least 10
+// percentage points below the student's own overall accuracy (and it has
+// at least 3 answered questions, so a single lucky/unlucky question doesn't
+// flag a whole chapter). This threshold is a simple, transparent rule —
+// not an AI judgement — and is easy to tune later if needed.
+const WEAK_THRESHOLD_GAP = 10;
+const MIN_SAMPLE_SIZE = 3;
+
 const ExamWeaknessReport = ({ range }: { range: RangeKey }) => {
+  const { user } = useAuth();
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["exam-weakness-report", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.rpc("get_my_exam_weakness_report" as any);
+      if (error) throw error;
+      return data as unknown as ExamWeaknessData;
+    },
+    enabled: !!user,
+  });
+
+  const cutoff = rangeToCutoff(range);
+
+  const filteredDaily = useMemo(() => {
+    if (!data) return [];
+    if (!cutoff) return data.daily;
+    return data.daily.filter((d) => new Date(d.date) >= cutoff);
+  }, [data, cutoff]);
+
+  // Recompute overall accuracy for the selected range from the daily buckets
+  // (subject/chapter breakdowns stay lifetime-wide since the RPC doesn't
+  // bucket those by day, but the daily trend + overall % respect the range).
+  const rangedOverall = useMemo(() => {
+    const totals = filteredDaily.reduce(
+      (acc, d) => ({ total: acc.total + d.total, correct: acc.correct + d.correct }),
+      { total: 0, correct: 0 }
+    );
+    return {
+      total: totals.total,
+      accuracy: totals.total > 0 ? Math.round((totals.correct / totals.total) * 1000) / 10 : 0,
+    };
+  }, [filteredDaily]);
+
+  const weakSubjects = useMemo(() => {
+    if (!data) return [];
+    return data.subjects.filter(
+      (s) => s.total >= MIN_SAMPLE_SIZE && data.overall_accuracy - s.accuracy >= WEAK_THRESHOLD_GAP
+    );
+  }, [data]);
+
+  const weakChapters = useMemo(() => {
+    if (!data) return [];
+    return data.chapters
+      .filter((c) => c.total >= MIN_SAMPLE_SIZE && data.overall_accuracy - c.accuracy >= WEAK_THRESHOLD_GAP)
+      .slice(0, 10);
+  }, [data]);
+
+  const weakQuestionTypes = useMemo(() => {
+    if (!data) return [];
+    return data.question_types.filter(
+      (q) => q.total >= MIN_SAMPLE_SIZE && data.overall_accuracy - q.accuracy >= WEAK_THRESHOLD_GAP
+    );
+  }, [data]);
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading...</p>;
+  }
+
+  if (!data || data.total_answered === 0) {
+    return (
+      <Card className="border border-dashed">
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          এখনো কোনো exam attempt পাওয়া যায়নি — অন্তত একটি exam দিলে এখানে বিস্তারিত বিশ্লেষণ দেখা যাবে।
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">মোট উত্তর (এই রেঞ্জে)</span>
+            <span className="text-base font-bold text-blue-600 leading-tight">{rangedOverall.total}</span>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">Accuracy (এই রেঞ্জে)</span>
+            <span className="text-base font-bold text-emerald-600 leading-tight">{rangedOverall.accuracy}%</span>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="border-red-500/30 bg-red-50/40 dark:bg-red-950/10">
         <CardHeader className="py-2.5 px-3">
           <CardTitle className="text-sm flex items-center gap-1.5">
-            <TrendingDown className="h-4 w-4 text-red-500" /> দুর্বল বিষয়/অধ্যায়
+            <TrendingDown className="h-4 w-4 text-red-500" /> দুর্বল বিষয় (Weak Subjects)
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 pb-4 px-3 text-center text-sm text-muted-foreground">
-          এই ফিচারটি আসছে খুব শীঘ্রই — Exam Report, Exam History, My Mistakes, Readymade Exam,
-          Quick Practice ও Mock Test মিলিয়ে সাবজেক্ট/চ্যাপ্টার ভিত্তিক দুর্বলতা analysis দেখাবে।
+        <CardContent className="pt-0 pb-3 px-3">
+          {weakSubjects.length === 0 ? (
+            <p className="text-xs text-muted-foreground">কোনো বিষয়ে বড় দুর্বলতা পাওয়া যায়নি — চালিয়ে যাও!</p>
+          ) : (
+            <div className="space-y-1.5">
+              {weakSubjects.map((s) => (
+                <div key={s.subject} className="flex items-center justify-between text-xs bg-background/60 rounded px-2 py-1.5">
+                  <span className="font-medium">{s.subject}</span>
+                  <span className="text-red-600 font-semibold">{s.accuracy}% ({s.correct}/{s.total})</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
+
       <Card className="border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/10">
         <CardHeader className="py-2.5 px-3">
           <CardTitle className="text-sm flex items-center gap-1.5">
-            <BookX className="h-4 w-4 text-amber-500" /> কম ধরা প্রশ্নের ধরন
+            <AlertTriangle className="h-4 w-4 text-amber-500" /> দুর্বল অধ্যায় (Weak Chapters)
           </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 pb-4 px-3 text-center text-sm text-muted-foreground">
-          কোন ধরনের প্রশ্নে বেশি ভুল হচ্ছে তা এখানে দেখা যাবে।
+        <CardContent className="pt-0 pb-3 px-3">
+          {weakChapters.length === 0 ? (
+            <p className="text-xs text-muted-foreground">কোনো অধ্যায়ে বড় দুর্বলতা পাওয়া যায়নি।</p>
+          ) : (
+            <div className="space-y-1.5">
+              {weakChapters.map((c) => (
+                <div key={`${c.subject}-${c.chapter}`} className="flex items-center justify-between text-xs bg-background/60 rounded px-2 py-1.5">
+                  <span className="font-medium">{c.chapter} <span className="text-muted-foreground">({c.subject})</span></span>
+                  <span className="text-amber-600 font-semibold">{c.accuracy}% ({c.correct}/{c.total})</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-purple-500/30 bg-purple-50/40 dark:bg-purple-950/10">
+        <CardHeader className="py-2.5 px-3">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <BookX className="h-4 w-4 text-purple-500" /> কম ধরা প্রশ্নের ধরন
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 pb-3 px-3">
+          {weakQuestionTypes.length === 0 ? (
+            <p className="text-xs text-muted-foreground">প্রশ্নের ধরন অনুযায়ী কোনো বড় দুর্বলতা পাওয়া যায়নি।</p>
+          ) : (
+            <div className="space-y-1.5">
+              {weakQuestionTypes.map((q) => (
+                <div key={q.question_type} className="flex items-center justify-between text-xs bg-background/60 rounded px-2 py-1.5">
+                  <span className="font-medium">{q.question_type}</span>
+                  <span className="text-purple-600 font-semibold">{q.accuracy}% ({q.correct}/{q.total})</span>
+                </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -102,23 +269,135 @@ const ExamWeaknessReport = ({ range }: { range: RangeKey }) => {
 };
 
 // -----------------------------------------------------------------------
-// Class Weakness Report — will combine watch-history from Class Report
-// (Live/Record/Archive) to flag subjects/classes with low attendance or
-// low watch-completion percentage.
+// Class Weakness Report — uses get_my_class_report() (same RPC that powers
+// the Class Report tab) to aggregate watched time per subject, and flags
+// subjects with comparatively low watch time vs. the student's own average
+// subject watch time. Rule-based: no fixed "good" duration is assumed —
+// only relative comparison against the student's own subjects.
 // -----------------------------------------------------------------------
+type ClassReportRow = {
+  class_id: string;
+  class_title: string;
+  category: "live" | "record" | "archive";
+  course_name: string | null;
+  class_start_at: string | null;
+  total_watched_seconds: number;
+  last_watched_at: string;
+  rank: number;
+  total_participants: number;
+  subject: string[] | null;
+};
+
+const formatDuration = (totalSeconds: number) => {
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  if (h > 0) return `${h}ঘ ${m}মি`;
+  return `${m}মি`;
+};
+
 const ClassWeaknessReport = ({ range }: { range: RangeKey }) => {
+  const { user } = useAuth();
+
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["class-weakness-report", user?.id],
+    queryFn: async () => {
+      if (!user) return [];
+      const { data, error } = await supabase.rpc("get_my_class_report" as any);
+      if (error) throw error;
+      return (data as unknown as ClassReportRow[]) || [];
+    },
+    enabled: !!user,
+  });
+
+  const cutoff = rangeToCutoff(range);
+
+  const filteredRows = useMemo(() => {
+    if (!rows) return [];
+    if (!cutoff) return rows;
+    return rows.filter((r) => new Date(r.last_watched_at) >= cutoff);
+  }, [rows, cutoff]);
+
+  const subjectStats = useMemo(() => {
+    const map = new Map<string, { subject: string; totalSeconds: number; classCount: number }>();
+    filteredRows.forEach((row) => {
+      const subjects = row.subject && row.subject.length > 0 ? row.subject : ["Uncategorized"];
+      subjects.forEach((s) => {
+        const existing = map.get(s) || { subject: s, totalSeconds: 0, classCount: 0 };
+        existing.totalSeconds += row.total_watched_seconds || 0;
+        existing.classCount += 1;
+        map.set(s, existing);
+      });
+    });
+    return Array.from(map.values()).sort((a, b) => a.totalSeconds - b.totalSeconds);
+  }, [filteredRows]);
+
+  const avgSeconds = useMemo(() => {
+    if (subjectStats.length === 0) return 0;
+    return subjectStats.reduce((sum, s) => sum + s.totalSeconds, 0) / subjectStats.length;
+  }, [subjectStats]);
+
+  // A subject is "low watch time" when it's at least 40% below the
+  // student's own average watch time across their subjects.
+  const weakSubjects = useMemo(() => {
+    if (subjectStats.length < 2) return [];
+    return subjectStats.filter((s) => s.totalSeconds <= avgSeconds * 0.6);
+  }, [subjectStats, avgSeconds]);
+
+  const totalWatchedSeconds = filteredRows.reduce((sum, r) => sum + (r.total_watched_seconds || 0), 0);
+
+  if (isLoading) {
+    return <p className="text-sm text-muted-foreground">Loading...</p>;
+  }
+
+  if (!rows || rows.length === 0) {
+    return (
+      <Card className="border border-dashed">
+        <CardContent className="py-10 text-center text-sm text-muted-foreground">
+          এখনো কোনো ক্লাস দেখা হয়নি — একটি ক্লাস দেখলে এখানে বিস্তারিত বিশ্লেষণ দেখা যাবে।
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card className="border-orange-500/30 bg-orange-50/40 dark:bg-orange-950/10">
-      <CardHeader className="py-2.5 px-3">
-        <CardTitle className="text-sm flex items-center gap-1.5">
-          <AlertTriangle className="h-4 w-4 text-orange-500" /> কম দেখা ক্লাস/বিষয়
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-0 pb-4 px-3 text-center text-sm text-muted-foreground">
-        এই ফিচারটি আসছে খুব শীঘ্রই — Live Class, Record Class, Archive Class মিলিয়ে কোন বিষয়ে
-        কম সময় দেওয়া হচ্ছে তা দেখাবে।
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">মোট ক্লাস দেখা হয়েছে</span>
+            <span className="text-base font-bold text-blue-600 leading-tight">{filteredRows.length}</span>
+          </CardContent>
+        </Card>
+        <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+          <CardContent className="p-2.5 flex flex-col items-center text-center gap-0.5">
+            <span className="text-[10px] text-muted-foreground leading-tight">মোট সময় (এই রেঞ্জে)</span>
+            <span className="text-base font-bold text-emerald-600 leading-tight">{formatDuration(totalWatchedSeconds)}</span>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-orange-500/30 bg-orange-50/40 dark:bg-orange-950/10">
+        <CardHeader className="py-2.5 px-3">
+          <CardTitle className="text-sm flex items-center gap-1.5">
+            <AlertTriangle className="h-4 w-4 text-orange-500" /> কম দেখা বিষয়
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0 pb-3 px-3">
+          {weakSubjects.length === 0 ? (
+            <p className="text-xs text-muted-foreground">সব বিষয়ে মোটামুটি সমান সময় দেওয়া হচ্ছে — ভালো!</p>
+          ) : (
+            <div className="space-y-1.5">
+              {weakSubjects.map((s) => (
+                <div key={s.subject} className="flex items-center justify-between text-xs bg-background/60 rounded px-2 py-1.5">
+                  <span className="font-medium">{s.subject} <span className="text-muted-foreground">({s.classCount}টি ক্লাস)</span></span>
+                  <span className="text-orange-600 font-semibold">{formatDuration(s.totalSeconds)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
