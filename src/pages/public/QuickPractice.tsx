@@ -152,6 +152,20 @@ const QuickPractice = () => {
     });
   };
 
+  // Checkbox directly on the subject card — bulk-selects (or unselects)
+  // every chapter under that subject in one tap, fetching chapters first
+  // if they haven't been loaded yet (subject not expanded before).
+  const toggleWholeSubject = async (subjId: number) => {
+    let chapters = chaptersBySubject[subjId];
+    if (!chapters) {
+      setLoadingChapters(subjId);
+      chapters = await fetchChaptersWithCounts(subjId);
+      setChaptersBySubject((prev) => ({ ...prev, [subjId]: chapters! }));
+      setLoadingChapters(null);
+    }
+    toggleAllChaptersInSubject(subjId);
+  };
+
   const toggleAllSubjects = async () => {
     const turningOn = !allSubjectsMode;
     setAllSubjectsMode(turningOn);
@@ -249,20 +263,6 @@ const QuickPractice = () => {
           </button>
         </div>
 
-        <div className="flex justify-end">
-          <button
-            onClick={toggleAllSubjects}
-            className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-bold border transition-colors",
-              allSubjectsMode
-                ? "bg-primary text-primary-foreground border-primary"
-                : "bg-card border-primary/40 text-primary hover:bg-primary/5"
-            )}
-          >
-            All
-          </button>
-        </div>
-
         {/* Subjects list */}
         <div className="space-y-2.5">
           {subjectsLoading && (
@@ -276,9 +276,21 @@ const QuickPractice = () => {
             const chapters = chaptersBySubject[s.id];
             return (
               <div key={s.id} className="rounded-2xl border bg-card overflow-hidden">
+              <div
+                className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-muted/40 transition-colors"
+              >
+                <div
+                  onClick={(e) => { e.stopPropagation(); toggleWholeSubject(s.id); }}
+                  className={cn(
+                    "h-5 w-5 rounded-md border-2 flex items-center justify-center cursor-pointer flex-shrink-0",
+                    chapAllMode[s.id] ? "bg-primary border-primary" : "border-border"
+                  )}
+                >
+                  {chapAllMode[s.id] && <Check className="h-3 w-3 text-primary-foreground" />}
+                </div>
                 <button
                   onClick={() => toggleSubject(s.id)}
-                  className="w-full flex items-center gap-3 p-3.5 text-left hover:bg-muted/40 transition-colors"
+                  className="flex-1 flex items-center gap-3 text-left"
                 >
                   <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
                     <Sparkles className="h-4 w-4" />
@@ -291,6 +303,7 @@ const QuickPractice = () => {
                     )}
                   />
                 </button>
+              </div>
 
                 {isOpen && (
                   <div className="border-t bg-muted/20 px-3.5 py-3 space-y-2">
@@ -302,19 +315,6 @@ const QuickPractice = () => {
                     )}
                     {loadingChapters !== s.id && chapters && chapters.length > 0 && (
                       <>
-                        <div className="flex justify-end">
-                          <button
-                            onClick={() => toggleAllChaptersInSubject(s.id)}
-                            className={cn(
-                              "px-3 py-1 rounded-full text-[11px] font-bold border",
-                              chapAllMode[s.id]
-                                ? "bg-primary text-primary-foreground border-primary"
-                                : "bg-card border-border text-muted-foreground"
-                            )}
-                          >
-                            All Chapter
-                          </button>
-                        </div>
                         {chapters.map((ch) => {
                           const checked = selectedChapters.has(ch.id);
                           const empty = (ch.mcqCount || 0) === 0;

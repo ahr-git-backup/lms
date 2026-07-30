@@ -508,21 +508,18 @@ const UnlimitedMockTest = () => {
                 };
                 return (
                 <div key={subj}>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label className="block">চ্যাপ্টার — {subj}</Label>
+                  <div className="flex items-center gap-2 mb-2">
                     {subjChapters.length > 0 && (
-                      <button
-                        type="button"
+                      <div
                         onClick={toggleAllChaptersInSubject}
-                        className={`px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                          allSelected
-                            ? "bg-primary text-primary-foreground border-primary"
-                            : "bg-card border-border text-muted-foreground"
+                        className={`h-5 w-5 rounded-md border-2 flex items-center justify-center cursor-pointer flex-shrink-0 ${
+                          allSelected ? "bg-primary border-primary" : "border-border"
                         }`}
                       >
-                        সব চ্যাপ্টার
-                      </button>
+                        {allSelected && <span className="text-primary-foreground text-[10px] leading-none">✓</span>}
+                      </div>
                     )}
+                    <Label className="block">চ্যাপ্টার — {subj}</Label>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {subjChapters.map((c: string) => {
