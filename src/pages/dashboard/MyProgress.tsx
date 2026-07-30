@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
 import ExamAnalytics from "./ExamAnalytics";
 import ClassReport from "./ClassReport";
+import WeaknessAnalysis from "./WeaknessAnalysis";
 
 type TabKey = "exam" | "class" | "weak";
 
 const TABS: { key: TabKey; label: string; icon: typeof History }[] = [
   { key: "exam", label: "Exam Report", icon: History },
   { key: "class", label: "Class Report", icon: Video },
-  { key: "weak", label: "My Weak Topic", icon: Target },
+  { key: "weak", label: "My Weak Topic and Analysis", icon: Target },
 ];
 
 const isValidTab = (v: string | null): v is TabKey => v === "exam" || v === "class" || v === "weak";
@@ -63,11 +64,7 @@ const MyProgress = () => {
       ) : activeTab === "class" ? (
         <ClassReport />
       ) : (
-        <Card className="border border-dashed">
-          <CardContent className="py-12 text-center text-sm text-muted-foreground">
-            {TABS.find((t) => t.key === activeTab)?.label} ফিচারটি আসছে খুব শীঘ্রই।
-          </CardContent>
-        </Card>
+        <WeaknessAnalysis />
       )}
     </div>
   );
