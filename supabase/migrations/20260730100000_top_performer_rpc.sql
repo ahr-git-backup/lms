@@ -28,7 +28,7 @@ RETURNS TABLE (
     focus_seconds bigint,
     active_days bigint,
     composite_score numeric,
-    rank bigint
+    rank_position bigint
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -154,10 +154,10 @@ BEGIN
         RANK() OVER (
             ORDER BY f.composite_score DESC,
                      f.avg_seconds_per_question ASC NULLS LAST -- tie-break: faster-but-equally-accurate ranks higher
-        ) AS rank
+        ) AS rank_position
     FROM final f
     JOIN public.profiles p ON p.id = f.profile_id
-    ORDER BY rank ASC, p.full_name ASC;
+    ORDER BY rank_position ASC, p.full_name ASC;
 END;
 $$;
 

@@ -38,7 +38,7 @@ type Performer = {
   focus_seconds: number;
   active_days: number;
   composite_score: number;
-  rank: number;
+  rank_position: number;
 };
 
 const fmtDuration = (totalSeconds: number) => {
@@ -125,7 +125,7 @@ const CompareDialog = ({ open, onOpenChange, a, b }: { open: boolean; onOpenChan
               <AvatarFallback>{a.full_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <p className="text-xs font-semibold truncate">{a.full_name}</p>
-            <Badge variant="secondary" className="text-[10px]">Rank #{a.rank}</Badge>
+            <Badge variant="secondary" className="text-[10px]">Rank #{a.rank_position}</Badge>
           </div>
           <div>
             <Avatar className="h-10 w-10 mx-auto mb-1">
@@ -133,7 +133,7 @@ const CompareDialog = ({ open, onOpenChange, a, b }: { open: boolean; onOpenChan
               <AvatarFallback>{b.full_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
             <p className="text-xs font-semibold truncate">{b.full_name}</p>
-            <Badge variant="secondary" className="text-[10px]">Rank #{b.rank}</Badge>
+            <Badge variant="secondary" className="text-[10px]">Rank #{b.rank_position}</Badge>
           </div>
         </div>
         <div className="space-y-1 divide-y">
@@ -287,7 +287,7 @@ const TopPerformer = () => {
             {rest.map((p) => (
               <Card key={p.profile_id} className={p.profile_id === user?.id ? "border-primary/50 bg-primary/5" : ""}>
                 <CardContent className="p-3 flex items-center gap-3">
-                  <span className="text-sm font-bold text-muted-foreground w-6 text-center">#{p.rank}</span>
+                  <span className="text-sm font-bold text-muted-foreground w-6 text-center">#{p.rank_position}</span>
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={p.avatar_url || undefined} />
                     <AvatarFallback className="text-xs">{p.full_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
