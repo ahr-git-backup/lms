@@ -225,7 +225,7 @@ const DashboardHome = () => {
     <div className="space-y-4 animate-in fade-in duration-500">
       <Card className="w-full">
         <CardContent className="p-3 flex flex-col items-center gap-2">
-          <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
           {tutorialVideoUrl && (
             <Button
               size="sm"
