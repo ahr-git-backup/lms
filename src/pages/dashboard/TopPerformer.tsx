@@ -184,7 +184,9 @@ const DetailDialog = ({ open, onOpenChange }: { open: boolean; onOpenChange: (v:
                   <CardContent className="p-2.5 space-y-1">
                     <p className="text-[11px] font-bold text-primary">{s.days === 0 ? "আজকে" : `বিগত ${s.days} দিন`}</p>
                     <p className="text-[9px] text-muted-foreground">
-                      {new Date(s.period_start).toLocaleDateString("bn-BD", { day: "2-digit", month: "short" })} – {new Date(s.period_end).toLocaleDateString("bn-BD", { day: "2-digit", month: "short" })}
+                      {s.days === 0
+                        ? new Date(s.period_start).toLocaleDateString("bn-BD", { day: "2-digit", month: "long", year: "numeric" })
+                        : `${new Date(s.period_start).toLocaleDateString("bn-BD", { day: "2-digit", month: "long", year: "numeric" })} – ${new Date(s.period_end).toLocaleDateString("bn-BD", { day: "2-digit", month: "long", year: "numeric" })}`}
                     </p>
                     <div className="text-[10px] space-y-0.5 pt-1">
                       <p>এক্সাম: <b>{s.exam_count}</b></p>
@@ -243,7 +245,10 @@ const TopPerformer = () => {
   const rest = performers?.slice(3) || [];
 
   const periodStart = period <= 0 ? new Date() : new Date(Date.now() - period * 86400000);
-  const periodLabel = `${periodStart.toLocaleDateString("bn-BD", { day: "2-digit", month: "short" })} – ${new Date().toLocaleDateString("bn-BD", { day: "2-digit", month: "short" })}`;
+  const fmtFullDate = (d: Date) => d.toLocaleDateString("bn-BD", { day: "2-digit", month: "long", year: "numeric" });
+  const periodLabel = period <= 0
+    ? fmtFullDate(new Date())
+    : `${fmtFullDate(periodStart)} – ${fmtFullDate(new Date())}`;
 
   return (
     <div className="space-y-4 pb-10">
@@ -263,7 +268,7 @@ const TopPerformer = () => {
           ))}
         </TabsList>
       </Tabs>
-      <p className="text-[11px] text-center text-muted-foreground">{periodLabel} পর্যন্ত</p>
+      <p className="text-[11px] text-center text-muted-foreground">{period <= 0 ? periodLabel : `${periodLabel} পর্যন্ত`}</p>
 
       {isLoading ? (
         <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
