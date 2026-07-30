@@ -3,6 +3,7 @@ import { History, Video, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import ExamAnalytics from "./ExamAnalytics";
+import ClassReport from "./ClassReport";
 
 type TabKey = "exam" | "class" | "weak";
 
@@ -50,6 +51,8 @@ const MyProgress = () => {
 
       {activeTab === "exam" ? (
         <ExamAnalytics />
+      ) : activeTab === "class" ? (
+        <ClassReport />
       ) : (
         <Card className="border border-dashed">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
