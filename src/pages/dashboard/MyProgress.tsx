@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { History, Video, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import ExamAnalytics from "./ExamAnalytics";
 
 type TabKey = "exam" | "class" | "weak";
 
@@ -47,11 +48,15 @@ const MyProgress = () => {
         ))}
       </div>
 
-      <Card className="border border-dashed">
-        <CardContent className="py-12 text-center text-sm text-muted-foreground">
-          {TABS.find((t) => t.key === activeTab)?.label} ফিচারটি আসছে খুব শীঘ্রই।
-        </CardContent>
-      </Card>
+      {activeTab === "exam" ? (
+        <ExamAnalytics />
+      ) : (
+        <Card className="border border-dashed">
+          <CardContent className="py-12 text-center text-sm text-muted-foreground">
+            {TABS.find((t) => t.key === activeTab)?.label} ফিচারটি আসছে খুব শীঘ্রই।
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
