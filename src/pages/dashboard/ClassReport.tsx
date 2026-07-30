@@ -1,9 +1,12 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { Video, History, Archive, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DAY_RANGES = [
   { key: "total", label: "Total", days: null },
@@ -43,18 +46,17 @@ const CLASS_CATEGORIES: { key: ClassCategoryKey; label: string; icon: typeof Vid
   { key: "archive", label: "Archive Class", icon: Archive },
 ];
 
-// Placeholder watch-record shape — once watch-time tracking is wired up,
-// this will come from a real query (per category), mirroring how
-// ReadymadeAttempt/AnalyticsExam feed ExamAnalytics.tsx.
-type ClassWatchRecord = {
-  id: string;
-  class_name: string;
-  date: string;
-  time: string;
-  watched_minutes: number;
-  total_minutes: number | null;
-  rank: number | null;
-  total_participants: number | null;
+// Row shape returned by the get_my_class_report RPC.
+type ClassReportRow = {
+  class_id: string;
+  class_title: string;
+  category: ClassCategoryKey;
+  course_name: string | null;
+  class_start_at: string | null;
+  total_watched_seconds: number;
+  last_watched_at: string;
+  rank: number;
+  total_participants: number;
 };
 
 const CategorySelector = ({ value, onChange }: { value: ClassCategoryKey; onChange: (v: ClassCategoryKey) => void }) => (
@@ -166,56 +168,98 @@ const CompactTrendGraph = ({
   );
 };
 
-const ClassRecordCard = ({ item }: { item: ClassWatchRecord }) => (
-  <Card className="shadow-sm border">
-    <CardContent className="p-3 flex items-center justify-between gap-2">
-      <div className="min-w-0 flex-1">
-        <div className="font-medium text-sm leading-tight line-clamp-1">{item.class_name}</div>
-        <div className="text-[11px] text-muted-foreground mt-0.5">
-          {item.date} · {item.time}
+const ClassRecordCard = ({ item }: { item: ClassReportRow }) => {
+  const watchedMinutes = Math.round(item.total_watched_seconds / 60);
+  const lastWatched = new Date(item.last_watched_at);
+  return (
+    <Card className="shadow-sm border">
+      <CardContent className="p-3 flex items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="font-medium text-sm leading-tight line-clamp-1">{item.class_title}</div>
+          <div className="text-[11px] text-muted-foreground mt-0.5">
+            {lastWatched.toLocaleDateString([], { month: "short", day: "numeric", year: "numeric" })}
+            {" · "}
+            {lastWatched.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          </div>
         </div>
-      </div>
-      <div className="text-right whitespace-nowrap">
-        <div className="font-bold text-sm flex items-center gap-1 justify-end">
-          <Clock className="h-3 w-3 text-muted-foreground" />
-          {item.watched_minutes} <span className="text-[10px] text-muted-foreground font-normal">min</span>
-        </div>
-        {item.rank !== null && item.total_participants !== null && (
+        <div className="text-right whitespace-nowrap">
+          <div className="font-bold text-sm flex items-center gap-1 justify-end">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            {watchedMinutes} <span className="text-[10px] text-muted-foreground font-normal">min</span>
+          </div>
           <span className="inline-flex items-center justify-center h-5 px-2 mt-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
             #{item.rank} / {item.total_participants}
           </span>
-        )}
-      </div>
-    </CardContent>
-  </Card>
-);
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
-const CategoryReport = ({ category }: { category: ClassCategoryKey }) => {
+const filterByRange = (items: ClassReportRow[], range: RangeKey): ClassReportRow[] => {
+  const rangeDef = DAY_RANGES.find((r) => r.key === range);
+  if (!rangeDef || rangeDef.days === null) return items;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - rangeDef.days);
+  return items.filter((item) => new Date(item.last_watched_at) >= cutoff);
+};
+
+const CategoryReport = ({ category, allRows, isLoading }: { category: ClassCategoryKey; allRows: ClassReportRow[] | null | undefined; isLoading: boolean }) => {
   const [range, setRange] = useState<RangeKey>("total");
 
-  // Placeholder — no watch-time tracking exists yet. Once wired up, this will
-  // fetch real records per category (live / record / archive) filtered by
-  // `range`, following the same shape ExamAnalytics uses for exam data.
-  const records: ClassWatchRecord[] = [];
-  const graphData: { name: string; fullTitle: string; date: string; watched: number; total: number | null }[] = [];
+  const categoryRows = useMemo(() => (allRows ?? []).filter((r) => r.category === category), [allRows, category]);
+
+  const rangedRows = useMemo(() => filterByRange(categoryRows, range), [categoryRows, range]);
+
+  const sortedRows = useMemo(
+    () => rangedRows.slice().sort((a, b) => new Date(b.last_watched_at).getTime() - new Date(a.last_watched_at).getTime()),
+    [rangedRows]
+  );
+
+  const graphData = useMemo(() => {
+    return rangedRows
+      .slice()
+      .sort((a, b) => new Date(a.last_watched_at).getTime() - new Date(b.last_watched_at).getTime())
+      .map((r) => ({
+        name: r.class_title.length > 15 ? r.class_title.slice(0, 15) + "..." : r.class_title,
+        fullTitle: r.class_title,
+        date: new Date(r.last_watched_at).toLocaleDateString([], { month: "short", day: "numeric" }),
+        watched: Math.round(r.total_watched_seconds / 60),
+        total: null,
+      }));
+  }, [rangedRows]);
+
+  const avgWatchMinutes = useMemo(() => {
+    if (rangedRows.length === 0) return null;
+    const totalMin = rangedRows.reduce((sum, r) => sum + r.total_watched_seconds / 60, 0);
+    return totalMin / rangedRows.length;
+  }, [rangedRows]);
+
+  const avgRank = useMemo(() => {
+    if (rangedRows.length === 0) return null;
+    const totalRank = rangedRows.reduce((sum, r) => sum + r.rank, 0);
+    return totalRank / rangedRows.length;
+  }, [rangedRows]);
 
   const categoryLabel = CLASS_CATEGORIES.find((c) => c.key === category)?.label ?? "";
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Loading...</p>;
 
   return (
     <div className="space-y-4">
       <DayRangeSelector value={range} onChange={setRange} />
       <CompactTrendGraph data={graphData} title={`${categoryLabel} Watch Trend`} />
-      <StatBoxRow totalAttended={records.length} avgWatchMinutes={null} avgRank={null} />
-      {records.length === 0 ? (
+      <StatBoxRow totalAttended={rangedRows.length} avgWatchMinutes={avgWatchMinutes} avgRank={avgRank} />
+      {sortedRows.length === 0 ? (
         <Card className="border border-dashed">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            {categoryLabel} watch tracking ফিচারটি আসছে খুব শীঘ্রই।
+            এই পরিসরে কোনো {categoryLabel} watch activity নেই।
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-2">
-          {records.map((item) => (
-            <ClassRecordCard key={item.id} item={item} />
+          {sortedRows.map((item) => (
+            <ClassRecordCard key={`${item.class_id}-${item.category}`} item={item} />
           ))}
         </div>
       )}
@@ -224,12 +268,27 @@ const CategoryReport = ({ category }: { category: ClassCategoryKey }) => {
 };
 
 const ClassReport = () => {
+  const { user } = useAuth();
   const [category, setCategory] = useState<ClassCategoryKey>("live");
+
+  const { data: allRows, isLoading } = useQuery({
+    queryKey: ["my-class-report", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.rpc("get_my_class_report" as any);
+      if (error) {
+        console.error("Error fetching class report:", error);
+        throw error;
+      }
+      return (data as any) as ClassReportRow[];
+    },
+    enabled: !!user,
+  });
 
   return (
     <div className="space-y-4">
       <CategorySelector value={category} onChange={setCategory} />
-      <CategoryReport category={category} />
+      <CategoryReport category={category} allRows={allRows} isLoading={isLoading} />
     </div>
   );
 };
