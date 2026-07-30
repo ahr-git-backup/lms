@@ -404,13 +404,22 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                 prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
                                             );
                                         }}
-                                        className={`p-3 rounded-lg border cursor-pointer text-center text-sm font-medium transition-all ${
+                                        className={`p-3 rounded-lg border cursor-pointer text-center text-sm font-medium transition-all flex items-center gap-2 ${
                                             selectedSubjects.includes(subject)
                                             ? 'bg-primary/10 border-primary text-primary'
                                             : 'bg-card hover:border-primary/50 hover:bg-muted/50'
                                         }`}
                                     >
-                                        {subject}
+                                        <Checkbox
+                                            checked={selectedSubjects.includes(subject)}
+                                            onCheckedChange={() => {
+                                                setSelectedSubjects(prev =>
+                                                    prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
+                                                );
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                        <span className="flex-1">{subject}</span>
                                     </div>
                                 ))}
                             </div>
