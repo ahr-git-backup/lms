@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { History, Video, Target } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
 import ExamAnalytics from "./ExamAnalytics";
