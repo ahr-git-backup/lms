@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { History, Video, Target } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { useSearchParams } from "react-router-dom";
 import ExamAnalytics from "./ExamAnalytics";
 import ClassReport from "./ClassReport";
 
@@ -13,8 +14,16 @@ const TABS: { key: TabKey; label: string; icon: typeof History }[] = [
   { key: "weak", label: "My Weak Topic", icon: Target },
 ];
 
+const isValidTab = (v: string | null): v is TabKey => v === "exam" || v === "class" || v === "weak";
+
 const MyProgress = () => {
-  const [activeTab, setActiveTab] = useState<TabKey>("exam");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const activeTab: TabKey = isValidTab(tabParam) ? tabParam : "exam";
+
+  const setActiveTab = (key: TabKey) => {
+    setSearchParams({ tab: key }, { replace: true });
+  };
 
   useEffect(() => {
     document.title = "My Progress & History – Atlas";
