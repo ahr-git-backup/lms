@@ -411,6 +411,7 @@ type OverallActivityData = {
   rank_trend: RankTrendPoint[];
   total_exams: number;
   total_quick_practice_sessions: number;
+  total_mock_test_sessions: number;
   total_watch_seconds: number;
   avg_percentile: number;
 };
@@ -487,6 +488,10 @@ const OverallSuggestion = ({ range }: { range: RangeKey }) => {
       tips.push("এখনো কোনো Quick Practice সেশন দেওয়া হয়নি — দুর্বল অধ্যায়গুলো দ্রুত ঝালাই করতে Quick Practice ব্যবহার করতে পারো।");
     }
 
+    if (data.total_mock_test_sessions === 0) {
+      tips.push("এখনো কোনো Mock Test দেওয়া হয়নি — পুরো exam-এর মতো practice করতে Mock Test ব্যবহার করতে পারো।");
+    }
+
     if (tips.length === 0) {
       tips.push("তোমার overall activity ভালো আছে — এভাবেই ধারাবাহিকভাবে চালিয়ে যাও!");
     }
@@ -498,7 +503,7 @@ const OverallSuggestion = ({ range }: { range: RangeKey }) => {
     return <p className="text-sm text-muted-foreground">Loading...</p>;
   }
 
-  if (!data || (data.total_exams === 0 && data.total_watch_seconds === 0 && data.total_quick_practice_sessions === 0)) {
+  if (!data || (data.total_exams === 0 && data.total_watch_seconds === 0 && data.total_quick_practice_sessions === 0 && data.total_mock_test_sessions === 0)) {
     return (
       <Card className="border border-dashed">
         <CardContent className="py-10 text-center text-sm text-muted-foreground">
