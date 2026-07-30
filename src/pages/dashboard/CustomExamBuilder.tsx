@@ -217,54 +217,29 @@ const CustomExamBuilder = () => {
     });
   };
 
-  // Select (or unselect) every unlocked exam under the currently-open
-  // chapter in one tap, instead of checking each exam individually.
-  const chapterExamsUnlocked = (chapterExams || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin) && (exam.questions_count?.[0]?.count || 0) > 0);
-  const allChapterPicked = chapterExamsUnlocked.length > 0 && chapterExamsUnlocked.every((exam: any) => picked.has(exam.id));
+  // Track which subject/chapter cards have been bulk-selected, purely for
+  // checkbox display — actual selection truth lives in `picked`.
+  const [bulkPickedSubjects, setBulkPickedSubjects] = useState<Set<string>>(new Set());
+  const [bulkPickedChapters, setBulkPickedChapters] = useState<Set<string>>(new Set()); // key: "subject::chapter"
+  const [selectingWholeSubject, setSelectingWholeSubject] = useState<string | null>(null);
+  const [selectingWholeChapter, setSelectingWholeChapter] = useState<string | null>(null);
 
-  const toggleAllInChapter = () => {
-    setPicked((prev) => {
-      const next = new Map(prev);
-      if (allChapterPicked) {
-        chapterExamsUnlocked.forEach((exam: any) => next.delete(exam.id));
-      } else {
-        chapterExamsUnlocked.forEach((exam: any) => {
-          if (!next.has(exam.id)) {
-            const totalMcq = exam.questions_count?.[0]?.count || 0;
-            next.set(exam.id, {
-              id: exam.id,
-              title: exam.title,
-              subject: selectedSubject!,
-              chapter: selectedChapter,
-              totalMcq,
-              count: totalMcq,
-            });
-          }
-        });
-      }
-      return rebalance(next, targetMarks);
-    });
-  };
-
-  // Select (or unselect) every unlocked exam across ALL chapters of the
-  // currently-open subject — fetches the full list once on demand.
-  const [selectingWholeSubject, setSelectingWholeSubject] = useState(false);
-  const toggleAllInSubject = async () => {
-    if (!selectedSubject) return;
-    setSelectingWholeSubject(true);
+  // Toggle every unlocked exam under a given subject (checkbox on subject card)
+  const toggleAllInSubject = async (subjectName: string) => {
+    setSelectingWholeSubject(subjectName);
     try {
       const { data, error } = await supabase
         .from("exams")
         .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
-        .contains("subject", [selectedSubject]);
+        .contains("subject", [subjectName]);
       if (error) throw error;
       const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin) && (exam.questions_count?.[0]?.count || 0) > 0);
-      const allAlreadyPicked = eligible.length > 0 && eligible.every((exam: any) => picked.has(exam.id));
+      const wasBulkPicked = bulkPickedSubjects.has(subjectName);
       setPicked((prev) => {
         const next = new Map(prev);
-        if (allAlreadyPicked) {
+        if (wasBulkPicked) {
           eligible.forEach((exam: any) => next.delete(exam.id));
         } else {
           eligible.forEach((exam: any) => {
@@ -273,7 +248,7 @@ const CustomExamBuilder = () => {
               next.set(exam.id, {
                 id: exam.id,
                 title: exam.title,
-                subject: selectedSubject,
+                subject: subjectName,
                 chapter: exam.chapter,
                 totalMcq,
                 count: totalMcq,
@@ -283,13 +258,71 @@ const CustomExamBuilder = () => {
         }
         return rebalance(next, targetMarks);
       });
+      setBulkPickedSubjects((prev) => {
+        const next = new Set(prev);
+        if (wasBulkPicked) next.delete(subjectName); else next.add(subjectName);
+        return next;
+      });
       if (eligible.length === 0) {
         toast({ title: "এই বিষয়ে সিলেক্ট করার মতো কোনো এক্সাম নেই", variant: "destructive" });
       }
     } catch (err: any) {
       toast({ title: "সিলেক্ট করা যায়নি", description: err.message, variant: "destructive" });
     } finally {
-      setSelectingWholeSubject(false);
+      setSelectingWholeSubject(null);
+    }
+  };
+
+  // Toggle every unlocked exam under a given chapter name within the
+  // currently open subject (checkbox on chapter card)
+  const toggleAllInChapterByName = async (chapterName: string) => {
+    if (!selectedSubject) return;
+    setSelectingWholeChapter(chapterName);
+    const bulkKey = `${selectedSubject}::${chapterName}`;
+    try {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
+        .eq("is_readymade", true).eq("is_published", true)
+        .is("parent_exam_id", null)
+        .contains("subject", [selectedSubject])
+        .eq("chapter", chapterName);
+      if (error) throw error;
+      const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin) && (exam.questions_count?.[0]?.count || 0) > 0);
+      const wasBulkPicked = bulkPickedChapters.has(bulkKey);
+      setPicked((prev) => {
+        const next = new Map(prev);
+        if (wasBulkPicked) {
+          eligible.forEach((exam: any) => next.delete(exam.id));
+        } else {
+          eligible.forEach((exam: any) => {
+            if (!next.has(exam.id)) {
+              const totalMcq = exam.questions_count?.[0]?.count || 0;
+              next.set(exam.id, {
+                id: exam.id,
+                title: exam.title,
+                subject: selectedSubject,
+                chapter: chapterName,
+                totalMcq,
+                count: totalMcq,
+              });
+            }
+          });
+        }
+        return rebalance(next, targetMarks);
+      });
+      setBulkPickedChapters((prev) => {
+        const next = new Set(prev);
+        if (wasBulkPicked) next.delete(bulkKey); else next.add(bulkKey);
+        return next;
+      });
+      if (eligible.length === 0) {
+        toast({ title: "এই চ্যাপ্টারে সিলেক্ট করার মতো কোনো এক্সাম নেই", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "সিলেক্ট করা যায়নি", description: err.message, variant: "destructive" });
+    } finally {
+      setSelectingWholeChapter(null);
     }
   };
 
@@ -444,60 +477,57 @@ const CustomExamBuilder = () => {
         {selectedChapter && (<><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span></>)}
       </div>
 
-      {/* Subject grid */}
+      {/* Subject grid — each card has its own checkbox that bulk-selects every
+          exam under that subject, alongside tapping the card to drill in */}
       {!selectedSubject && (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {loadingSubjects ? <Loader2 className="h-5 w-5 animate-spin" /> : subjects?.map((s) => (
+          {loadingSubjects ? <Loader2 className="h-5 w-5 animate-spin" /> : subjects?.map((s) => {
+            const isBulkPicked = bulkPickedSubjects.has(s);
+            return (
             <Card key={s} className="cursor-pointer hover:border-primary/50" onClick={() => setSelectedSubject(s)}>
-              <CardContent className="p-3 flex items-center justify-between">
-                <span className="text-sm font-medium">{s}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <CardContent className="p-3 flex items-center gap-2">
+                <Checkbox
+                  checked={isBulkPicked}
+                  disabled={selectingWholeSubject === s}
+                  onCheckedChange={() => toggleAllInSubject(s)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="flex-1 text-sm font-medium">{s}</span>
+                {selectingWholeSubject === s ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      {/* Chapter grid */}
+      {/* Chapter grid — each card has its own checkbox that bulk-selects
+          every exam under that chapter, alongside tapping to drill in */}
       {selectedSubject && !selectedChapter && (
-        <>
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full gap-1.5"
-          disabled={selectingWholeSubject}
-          onClick={toggleAllInSubject}
-        >
-          {selectingWholeSubject ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ListChecks className="h-3.5 w-3.5" />}
-          পুরো "{selectedSubject}" বিষয়ের সব এক্সাম সিলেক্ট করো
-        </Button>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {loadingChapters ? <Loader2 className="h-5 w-5 animate-spin" /> : chapters?.map((c) => (
+          {loadingChapters ? <Loader2 className="h-5 w-5 animate-spin" /> : chapters?.map((c) => {
+            const isBulkPicked = bulkPickedChapters.has(`${selectedSubject}::${c}`);
+            return (
             <Card key={c} className="cursor-pointer hover:border-primary/50" onClick={() => setSelectedChapter(c)}>
-              <CardContent className="p-3 flex items-center justify-between">
-                <span className="text-sm font-medium">{c}</span>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              <CardContent className="p-3 flex items-center gap-2">
+                <Checkbox
+                  checked={isBulkPicked}
+                  disabled={selectingWholeChapter === c}
+                  onCheckedChange={() => toggleAllInChapterByName(c)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <span className="flex-1 text-sm font-medium">{c}</span>
+                {selectingWholeChapter === c ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
-        </>
       )}
 
       {/* Exam checklist */}
       {selectedSubject && selectedChapter && (
         <div className="space-y-2">
-          {!loadingExams && chapterExamsUnlocked.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full gap-1.5"
-              onClick={toggleAllInChapter}
-            >
-              <ListChecks className="h-3.5 w-3.5" />
-              {allChapterPicked ? "সব বাদ দাও" : `এই চ্যাপ্টারের সব এক্সাম (${chapterExamsUnlocked.length}টি) সিলেক্ট করো`}
-            </Button>
-          )}
           {loadingExams ? <Loader2 className="h-5 w-5 animate-spin" /> : chapterExams?.map((exam: any) => {
             const unlocked = isExamUnlocked(exam, enrolledIds, isAdmin);
             const totalMcq = exam.questions_count?.[0]?.count || 0;
