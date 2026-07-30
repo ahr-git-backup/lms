@@ -50,16 +50,16 @@ BEGIN
     exam_stats AS (
         SELECT
             a.profile_id,
-            COUNT(*) AS exam_count,
-            AVG(CASE WHEN a.total_marks > 0 THEN (a.score / a.total_marks) * 100 ELSE NULL END) AS avg_score_pct,
+            COUNT(*) AS v_exam_count,
+            AVG(CASE WHEN a.total_marks > 0 THEN (a.score / a.total_marks) * 100 ELSE NULL END) AS v_avg_score_pct,
             AVG(
                 CASE WHEN a.time_taken_seconds > 0 AND (
                     SELECT COUNT(*) FROM public.exam_questions eq WHERE eq.exam_id = a.exam_id
                 ) > 0
                 THEN a.time_taken_seconds::numeric / (SELECT COUNT(*) FROM public.exam_questions eq WHERE eq.exam_id = a.exam_id)
                 ELSE NULL END
-            ) AS avg_seconds_per_question,
-            COUNT(DISTINCT date_trunc('day', COALESCE(a.submitted_at, a.created_at))) AS exam_active_days
+            ) AS v_avg_seconds_per_question,
+            COUNT(DISTINCT date_trunc('day', COALESCE(a.submitted_at, a.created_at))) AS v_exam_active_days
         FROM public.exam_attempts a
         WHERE COALESCE(a.submitted_at, a.created_at) >= v_period_start
         GROUP BY a.profile_id
@@ -67,8 +67,8 @@ BEGIN
     class_stats AS (
         SELECT
             cws.profile_id,
-            SUM(cws.watched_seconds) AS class_watch_seconds,
-            COUNT(DISTINCT cws.watch_date) AS class_active_days
+            SUM(cws.watched_seconds) AS v_class_watch_seconds,
+            COUNT(DISTINCT cws.watch_date) AS v_class_active_days
         FROM public.class_watch_sessions cws
         WHERE cws.watch_date >= v_period_start::date
         GROUP BY cws.profile_id
@@ -76,8 +76,8 @@ BEGIN
     focus_stats AS (
         SELECT
             fs.user_id AS profile_id,
-            SUM(fs.duration_seconds) AS focus_seconds,
-            COUNT(DISTINCT date_trunc('day', fs.started_at)) AS focus_active_days
+            SUM(fs.duration_seconds) AS v_focus_seconds,
+            COUNT(DISTINCT date_trunc('day', fs.started_at)) AS v_focus_active_days
         FROM public.focus_sessions fs
         WHERE fs.started_at >= v_period_start
         GROUP BY fs.user_id
@@ -85,17 +85,17 @@ BEGIN
     combined AS (
         SELECT
             eu.profile_id,
-            COALESCE(es.exam_count, 0) AS exam_count,
-            COALESCE(es.avg_score_pct, 0) AS avg_score_pct,
-            es.avg_seconds_per_question,
-            COALESCE(cs.class_watch_seconds, 0) AS class_watch_seconds,
-            COALESCE(fst.focus_seconds, 0) AS focus_seconds,
+            COALESCE(es.v_exam_count, 0) AS v_exam_count,
+            COALESCE(es.v_avg_score_pct, 0) AS v_avg_score_pct,
+            es.v_avg_seconds_per_question,
+            COALESCE(cs.v_class_watch_seconds, 0) AS v_class_watch_seconds,
+            COALESCE(fst.v_focus_seconds, 0) AS v_focus_seconds,
             -- Regularity = distinct days with ANY tracked activity, across all
             -- three sources, capped at the period length itself.
             LEAST(
-                GREATEST(COALESCE(es.exam_active_days, 0), COALESCE(cs.class_active_days, 0), COALESCE(fst.focus_active_days, 0)),
+                GREATEST(COALESCE(es.v_exam_active_days, 0), COALESCE(cs.v_class_active_days, 0), COALESCE(fst.v_focus_active_days, 0)),
                 GREATEST(p_days, 1)
-            ) AS active_days
+            ) AS v_active_days
         FROM enrolled_users eu
         LEFT JOIN exam_stats es ON es.profile_id = eu.profile_id
         LEFT JOIN class_stats cs ON cs.profile_id = eu.profile_id
@@ -106,54 +106,54 @@ BEGIN
     -- without any one metric mechanically dominating.
     bounds AS (
         SELECT
-            GREATEST(MAX(exam_count), 1) AS max_exam_count,
-            GREATEST(MAX(class_watch_seconds), 1) AS max_class_seconds,
-            GREATEST(MAX(focus_seconds), 1) AS max_focus_seconds,
-            GREATEST(MAX(active_days), 1) AS max_active_days
+            GREATEST(MAX(v_exam_count), 1) AS max_exam_count,
+            GREATEST(MAX(v_class_watch_seconds), 1) AS max_class_seconds,
+            GREATEST(MAX(v_focus_seconds), 1) AS max_focus_seconds,
+            GREATEST(MAX(v_active_days), 1) AS max_active_days
         FROM combined
     ),
     scored AS (
         SELECT
             c.*,
             -- log-scaled exam volume so one binge day doesn't dwarf steady practice
-            (LN(c.exam_count + 1) / NULLIF(LN(b.max_exam_count + 1), 0)) * 100 AS exam_volume_norm,
-            (c.class_watch_seconds::numeric / b.max_class_seconds) * 100 AS class_norm,
-            (c.focus_seconds::numeric / b.max_focus_seconds) * 100 AS focus_norm,
-            (c.active_days::numeric / b.max_active_days) * 100 AS regularity_norm
+            (LN(c.v_exam_count + 1) / NULLIF(LN(b.max_exam_count + 1), 0)) * 100 AS exam_volume_norm,
+            (c.v_class_watch_seconds::numeric / b.max_class_seconds) * 100 AS class_norm,
+            (c.v_focus_seconds::numeric / b.max_focus_seconds) * 100 AS focus_norm,
+            (c.v_active_days::numeric / b.max_active_days) * 100 AS regularity_norm
         FROM combined c CROSS JOIN bounds b
     ),
     final AS (
         SELECT
             s.profile_id,
-            s.exam_count,
-            ROUND(s.avg_score_pct, 2) AS avg_score_pct,
-            ROUND(s.avg_seconds_per_question::numeric, 1) AS avg_seconds_per_question,
-            s.class_watch_seconds,
-            s.focus_seconds,
-            s.active_days,
+            s.v_exam_count,
+            ROUND(s.v_avg_score_pct, 2) AS v_avg_score_pct,
+            ROUND(s.v_avg_seconds_per_question::numeric, 1) AS v_avg_seconds_per_question,
+            s.v_class_watch_seconds,
+            s.v_focus_seconds,
+            s.v_active_days,
             ROUND(
-                (s.avg_score_pct * 0.40) +
+                (s.v_avg_score_pct * 0.40) +
                 (COALESCE(s.exam_volume_norm, 0) * 0.20) +
                 (COALESCE(s.regularity_norm, 0) * 0.15) +
                 (COALESCE(s.focus_norm, 0) * 0.15) +
                 (COALESCE(s.class_norm, 0) * 0.10)
-            , 2) AS composite_score
+            , 2) AS v_composite_score
         FROM scored s
     )
     SELECT
         f.profile_id,
         p.full_name,
         p.avatar_url,
-        f.exam_count,
-        f.avg_score_pct,
-        f.avg_seconds_per_question,
-        f.class_watch_seconds,
-        f.focus_seconds,
-        f.active_days,
-        f.composite_score,
+        f.v_exam_count,
+        f.v_avg_score_pct,
+        f.v_avg_seconds_per_question,
+        f.v_class_watch_seconds,
+        f.v_focus_seconds,
+        f.v_active_days,
+        f.v_composite_score,
         RANK() OVER (
-            ORDER BY f.composite_score DESC,
-                     f.avg_seconds_per_question ASC NULLS LAST -- tie-break: faster-but-equally-accurate ranks higher
+            ORDER BY f.v_composite_score DESC,
+                     f.v_avg_seconds_per_question ASC NULLS LAST -- tie-break: faster-but-equally-accurate ranks higher
         ) AS rank_position
     FROM final f
     JOIN public.profiles p ON p.id = f.profile_id
