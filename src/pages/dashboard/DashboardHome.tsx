@@ -431,7 +431,7 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
             onClick={() => navigate("/quick-practice")}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <Zap className="h-6 w-6 text-violet-500 flex-shrink-0" />
               <p className="font-semibold text-sm leading-snug">Quick Practice</p>
             </CardContent>
@@ -441,7 +441,7 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
             onClick={() => navigate("/mock-test")}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <Infinity className="h-6 w-6 text-fuchsia-500 flex-shrink-0" />
               <p className="font-semibold text-sm leading-snug">Unlimited Practice Exam</p>
             </CardContent>
@@ -451,7 +451,7 @@ const DashboardHome = () => {
             style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
             onClick={() => navigate("/dashboard/readymade")}
           >
-            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <FileText className="h-6 w-6 text-pink-500 flex-shrink-0" />
               <p className="font-semibold text-sm leading-snug">Readymade Exam</p>
             </CardContent>
