@@ -198,7 +198,7 @@ const LiveExam = () => {
                   </span>
                 )}
                 <CardHeader className={`space-y-2 pt-4 ${isActive ? 'pr-24' : ''}`}>
-                  <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 truncate">
+                  <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
                       {exam.course?.name || "Public Exam"}
                   </span>
                   <CardTitle className="text-2xl font-extrabold">{exam.title}</CardTitle>
