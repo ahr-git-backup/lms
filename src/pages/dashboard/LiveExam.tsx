@@ -191,18 +191,16 @@ const LiveExam = () => {
             const isActive = isLive && start && end && now >= start && now <= end;
 
             return (
-              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
-                <CardHeader className="space-y-2 pt-4">
-                  <div className="flex justify-between items-start gap-2">
-                      <p className="text-xs font-mono uppercase text-muted-foreground truncate">
-                          {exam.course?.name || "Public Exam"}
-                      </p>
-                      {isActive && (
-                        <span className="animate-pulse inline-flex items-center whitespace-nowrap shrink-0 px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                            LIVE NOW
-                        </span>
-                      )}
-                  </div>
+              <Card key={exam.id} className={`relative transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
+                {isActive && (
+                  <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                      LIVE NOW
+                  </span>
+                )}
+                <CardHeader className={`space-y-2 pt-4 ${isActive ? 'pr-24' : ''}`}>
+                  <p className="text-xs font-mono uppercase text-muted-foreground truncate">
+                      {exam.course?.name || "Public Exam"}
+                  </p>
                   <CardTitle className="text-2xl font-extrabold">{exam.title}</CardTitle>
                   <CardDescription className="text-xs">
                     Duration: {exam.duration_minutes} min • {exam.exam_type === "live" ? "Live Exam" : "Practice Exam"}
@@ -223,7 +221,7 @@ const LiveExam = () => {
                       })()}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-end">
+                <CardContent className="flex-1 flex flex-col justify-end pt-6">
                   {isLive && attempted ? (
                     <div className="text-xs text-muted-foreground">Attempt Completed</div>
                   ) : (
