@@ -20,9 +20,10 @@ AS $$
 DECLARE
     v_subject_counts jsonb;
     v_chapter_counts jsonb;
+    v_subchapter_counts jsonb;
 BEGIN
     WITH filtered_exams AS (
-        SELECT e.id, e.subject, e.chapter
+        SELECT e.id, e.subject, e.chapter, e.readymade_sub_chapter
         FROM public.exams e
         WHERE e.is_readymade = true
           AND e.is_published = true
@@ -30,10 +31,10 @@ BEGIN
           AND (p_readymade_categories IS NULL OR array_length(p_readymade_categories, 1) IS NULL OR e.readymade_category = ANY(p_readymade_categories))
     ),
     exam_qcounts AS (
-        SELECT fe.id AS exam_id, fe.subject, fe.chapter, COUNT(eq.id) AS qcount
+        SELECT fe.id AS exam_id, fe.subject, fe.chapter, fe.readymade_sub_chapter, COUNT(eq.id) AS qcount
         FROM filtered_exams fe
         LEFT JOIN public.exam_questions eq ON eq.exam_id = fe.id
-        GROUP BY fe.id, fe.subject, fe.chapter
+        GROUP BY fe.id, fe.subject, fe.chapter, fe.readymade_sub_chapter
     ),
     subject_totals AS (
         SELECT s AS subject_name, SUM(eq.qcount) AS total
@@ -45,12 +46,20 @@ BEGIN
         FROM exam_qcounts eq
         WHERE eq.chapter IS NOT NULL
         GROUP BY eq.chapter
+    ),
+    subchapter_totals AS (
+        SELECT eq.chapter || '||' || eq.readymade_sub_chapter AS key_name, SUM(eq.qcount) AS total
+        FROM exam_qcounts eq
+        WHERE eq.readymade_sub_chapter IS NOT NULL
+        GROUP BY eq.chapter, eq.readymade_sub_chapter
     )
     SELECT COALESCE(jsonb_object_agg(subject_name, total), '{}'::jsonb) INTO v_subject_counts FROM subject_totals;
 
     SELECT COALESCE(jsonb_object_agg(chapter_name, total), '{}'::jsonb) INTO v_chapter_counts FROM chapter_totals;
 
-    RETURN jsonb_build_object('subject_counts', v_subject_counts, 'chapter_counts', v_chapter_counts);
+    SELECT COALESCE(jsonb_object_agg(key_name, total), '{}'::jsonb) INTO v_subchapter_counts FROM subchapter_totals;
+
+    RETURN jsonb_build_object('subject_counts', v_subject_counts, 'chapter_counts', v_chapter_counts, 'subchapter_counts', v_subchapter_counts);
 END;
 $$;
 

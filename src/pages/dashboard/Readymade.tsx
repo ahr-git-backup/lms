@@ -569,11 +569,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         p_readymade_categories: selectedBoards?.length > 0 ? selectedBoards : null,
       });
       if (error) throw error;
-      return data as { subject_counts: Record<string, number>; chapter_counts: Record<string, number> };
+      return data as { subject_counts: Record<string, number>; chapter_counts: Record<string, number>; subchapter_counts: Record<string, number> };
     },
   });
   const subjectMcqCounts = mcqCountsData?.subject_counts;
   const chapterMcqCounts = mcqCountsData?.chapter_counts;
+  const subChapterMcqCounts = mcqCountsData?.subchapter_counts;
 
   // --- LEVEL 2: CHAPTERS ---
   const { data: chapters, isLoading: loadingChapters } = useQuery({
@@ -891,14 +892,24 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         <h2 className="text-base font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-            {subChapters.map(sc => (
+            {subChapters.map(sc => {
+              const scCount = subChapterMcqCounts?.[`${selectedChapter}||${sc}`];
+              return (
               <Card key={sc} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubChapter(sc)}>
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
+                    {typeof scCount === "number" && (
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        {scCount} MCQ
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
