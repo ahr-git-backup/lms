@@ -803,14 +803,15 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
-                <Trophy className="h-3.5 w-3.5 text-primary" />
+                {typeof subjectMcqCounts?.[subject] === "number" ? (
+                  <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {subjectMcqCounts[subject]} MCQ
+                  </span>
+                ) : (
+                  <Trophy className="h-3.5 w-3.5 text-primary" />
+                )}
               </div>
               <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
-              {typeof subjectMcqCounts?.[subject] === "number" && (
-                <span className="inline-block mt-1.5 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                  {subjectMcqCounts[subject]} MCQ
-                </span>
-              )}
             </CardContent>
           </Card>
         ))}
