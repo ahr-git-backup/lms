@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { useRenameGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -164,7 +163,6 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const renameGlobalMetadata = useRenameGlobalMetadata();
 
   const settingsKey = "subject_order_global";
 
@@ -230,11 +228,29 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         );
       }
 
+      // Update the saved position order BEFORE any refetch happens, so the
+      // subjects list query — which reads this order — never sees a stale
+      // mapping (old name gone, new name unmapped => falls to the bottom).
+      const newItems = items.map((s) => (s === oldName ? newName : s));
+      const { error: orderErr } = await supabase
+        .from("app_settings")
+        .upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
+      if (orderErr) throw orderErr;
+
+      // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
+      const { error: metaErr } = await supabase
+        .from("global_metadata")
+        .update({ value: newName })
+        .eq("type", "subject")
+        .eq("value", oldName);
+      if (metaErr) throw metaErr;
+
       return newName;
     },
     onSuccess: (newName, { oldName }) => {
       setItems((prev) => prev.map((s) => (s === oldName ? newName : s)));
       toast({ title: "Subject renamed successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
@@ -245,16 +261,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
   });
 
   const handleRename = (oldName: string, newName: string) => {
-    renameMutation.mutate({ oldName, newName }, {
-      onSuccess: () => {
-        // Also keep the saved order list in sync with the new name so
-        // position is preserved after rename.
-        const newItems = items.map((s) => (s === oldName ? newName : s));
-        supabase.from("app_settings").upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
-        // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
-        renameGlobalMetadata.mutate({ type: "subject", oldValue: oldName, newValue: newName });
-      },
-    });
+    renameMutation.mutate({ oldName, newName });
   };
 
   const saveOrderMutation = useMutation({
