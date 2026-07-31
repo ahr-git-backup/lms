@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useRenameGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -163,6 +164,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const renameGlobalMetadata = useRenameGlobalMetadata();
 
   const settingsKey = "subject_order_global";
 
@@ -249,6 +251,8 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         // position is preserved after rename.
         const newItems = items.map((s) => (s === oldName ? newName : s));
         supabase.from("app_settings").upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
+        // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
+        renameGlobalMetadata.mutate({ type: "subject", oldValue: oldName, newValue: newName });
       },
     });
   };
