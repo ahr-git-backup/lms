@@ -238,12 +238,31 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
       if (orderErr) throw orderErr;
 
       // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
-      const { error: metaErr } = await supabase
+      // Note: a subject may exist on exams.subject without ever having a
+      // global_metadata row (e.g. created before this table existed, or
+      // added some other way) — update() then matches 0 rows silently.
+      // Check first and insert the new name if nothing was there to rename.
+      const { data: metaRow, error: metaSelErr } = await supabase
         .from("global_metadata")
-        .update({ value: newName })
+        .select("id")
         .eq("type", "subject")
-        .eq("value", oldName);
-      if (metaErr) throw metaErr;
+        .eq("value", oldName)
+        .maybeSingle();
+      if (metaSelErr) throw metaSelErr;
+
+      if (metaRow) {
+        const { error: metaErr } = await supabase
+          .from("global_metadata")
+          .update({ value: newName })
+          .eq("id", metaRow.id);
+        if (metaErr) throw metaErr;
+      } else {
+        const { error: metaInsErr } = await supabase
+          .from("global_metadata")
+          .insert({ type: "subject", value: newName });
+        // Ignore duplicate (23505) — newName might already exist there.
+        if (metaInsErr && (metaInsErr as any).code !== "23505") throw metaInsErr;
+      }
 
       return newName;
     },
