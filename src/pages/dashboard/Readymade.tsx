@@ -561,7 +561,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // Per-subject MCQ count badge — total questions across all exams in each
   // subject, for the subject-selection cards. Backed by a single server-side
   // aggregation RPC instead of paginating every exam_questions row client-side.
-  const { data: mcqCountsData } = useQuery({
+  const { data: mcqCountsData, isLoading: loadingMcqCounts } = useQuery({
     queryKey: ["readymade-mcq-counts", selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_readymade_mcq_counts", {
@@ -803,7 +803,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
-                {typeof subjectMcqCounts?.[subject] === "number" ? (
+                {loadingMcqCounts ? (
+                  <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                ) : typeof subjectMcqCounts?.[subject] === "number" ? (
                   <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
                     {subjectMcqCounts[subject]} MCQ
                   </span>
@@ -835,7 +837,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="text-sm sm:text-base font-semibold leading-tight">{chapter}</div>
-                      {typeof chapterMcqCounts?.[chapter] === "number" && (
+                      {loadingMcqCounts ? (
+                        <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                      ) : typeof chapterMcqCounts?.[chapter] === "number" && (
                         <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
                           {chapterMcqCounts[chapter]} MCQ
                         </span>
@@ -900,7 +904,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
-                    {typeof scCount === "number" && (
+                    {loadingMcqCounts ? (
+                      <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                    ) : typeof scCount === "number" && (
                       <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
                         {scCount} MCQ
                       </span>
