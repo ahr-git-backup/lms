@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
+import { LiveCountdown } from "@/components/shared/LiveCountdown";
 
 const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
@@ -310,9 +311,15 @@ const DashboardHome = () => {
                       >
                         {exam?.title || "Live Exam"}
                       </CardTitle>
-                      <p className="text-xs text-muted-foreground text-center">
-                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <span>Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
+                        {exam?.time_window_end && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <LiveCountdown endTime={exam.time_window_end} />
+                          </>
+                        )}
+                      </div>
                     </CardHeader>
                     <CardContent className="px-4 pb-2 pt-1">
                        <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.4rem" }}>
