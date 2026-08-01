@@ -216,6 +216,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                 option2: q.option_b || "",
                 option3: q.option_c || "",
                 option4: q.option_d || "",
+                option5: q.option_e || "",
                 answer: answerNum,
                 explanation: q.explanation || "",
                 type: "1",
@@ -224,7 +225,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         });
 
         const csv = Papa.unparse(rows, {
-            columns: ["questions", "option1", "option2", "option3", "option4", "answer", "explanation", "type", "section"],
+            columns: ["questions", "option1", "option2", "option3", "option4", "option5", "answer", "explanation", "type", "section"],
         });
 
         const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
