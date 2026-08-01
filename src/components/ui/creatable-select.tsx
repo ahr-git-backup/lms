@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 
 export type Option = {
   label: string;
@@ -77,30 +78,36 @@ export function CreatableSelect({
           aria-expanded={open}
           className={cn("w-full justify-between px-3 py-2 h-auto min-h-10", className)}
         >
-          <span className="flex-1 text-left truncate">
-            {value
-              ? options.find((option) => option.value === value)?.label || value
-              : <span className="text-muted-foreground font-normal">{placeholder}</span>}
-          </span>
-          {value ? (
-            <span
-              className="ml-2 h-4 w-4 shrink-0 opacity-50 hover:opacity-100 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 inline-flex items-center justify-center"
-              onMouseDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange("");
-                setOpen(true);
-              }}
-            >
-              <X className="h-4 w-4" />
-            </span>
-          ) : (
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          )}
+          <div className="flex-1 flex flex-wrap gap-1">
+            {!value && <span className="text-muted-foreground font-normal">{placeholder}</span>}
+            {value && (
+              <Badge variant="secondary" className="mr-1 mb-1">
+                {options.find((option) => option.value === value)?.label || value}
+                <button
+                  type="button"
+                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      onChange("");
+                    }
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange("");
+                    setOpen(true);
+                  }}
+                >
+                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </button>
+              </Badge>
+            )}
+          </div>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
