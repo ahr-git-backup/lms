@@ -298,16 +298,16 @@ const DashboardHome = () => {
                     <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                         LIVE EXAM
                     </span>
-                    <CardHeader className="space-y-2 pb-2 pt-4 pr-24">
+                    <CardHeader className="space-y-1.5 pb-2 pt-4 pr-24">
                       <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
                           {exam?.course?.name || "Unknown Course"}
                       </span>
-                      <CardTitle className="text-2xl font-extrabold break-words">{exam?.title || "Live Exam"}</CardTitle>
+                      <CardTitle className="text-lg font-extrabold whitespace-nowrap overflow-hidden text-ellipsis">{exam?.title || "Live Exam"}</CardTitle>
                       <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col justify-end pt-6">
+                    <CardContent className="pt-2 pb-4">
                        <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none text-base font-semibold h-12">
                           Start Exam
                        </Button>
