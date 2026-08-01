@@ -312,11 +312,11 @@ const DashboardHome = () => {
                         {exam?.title || "Live Exam"}
                       </CardTitle>
                       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                        <span>Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span>এক্সাম শেষ: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
                         {exam?.time_window_end && (
                           <>
                             <span className="text-muted-foreground/50">•</span>
-                            <LiveCountdown endTime={exam.time_window_end} />
+                            <span>সময় বাকি: <LiveCountdown endTime={exam.time_window_end} /></span>
                           </>
                         )}
                       </div>
