@@ -91,24 +91,24 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   });
 
   const { data: readymadeCategories } = useQuery({
-    queryKey: ["admin-exams-readymade-categories"],
+    queryKey: ["admin-exams-readymade-topics"],
     queryFn: async () => {
       const set = new Set<string>();
       const BATCH = 1000;
       let from = 0;
       // Paginate through ALL readymade exams — a plain select() is capped at
       // 1000 rows by Supabase/PostgREST, which was silently dropping
-      // categories that only appeared later in the table.
+      // topics that only appeared later in the table.
       while (true) {
         const { data, error } = await supabase
           .from("exams")
-          .select("readymade_category")
+          .select("readymade_topic")
           .eq("is_readymade", true)
           .is("split_start", null)
-          .not("readymade_category", "is", null)
+          .not("readymade_topic", "is", null)
           .range(from, from + BATCH - 1);
         if (error) throw error;
-        (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+        (data || []).forEach((r: any) => { if (r.readymade_topic) set.add(r.readymade_topic); });
         if (!data || data.length < BATCH) break;
         from += BATCH;
       }
@@ -145,7 +145,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       if (mainCategory === "readymade") {
           query = query.eq("is_readymade", true);
           if (readymadeSubCategory !== "all") {
-              query = query.eq("readymade_category", readymadeSubCategory);
+              query = query.eq("readymade_topic", readymadeSubCategory);
           }
       } else if (mainCategory === "live") {
           query = query.eq("is_readymade", false).eq("exam_type", "live");
