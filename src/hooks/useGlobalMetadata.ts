@@ -179,24 +179,35 @@ export const useDeleteGlobalMetadata = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
+    // Metadata types that map directly to a column on `exams`. Deleting one of
+    // these options must also clear that column off existing exams, otherwise
+    // the corresponding step in the Readymade Exam drill-down never disappears
+    // even though the option is gone from the admin pick-list.
+    const EXAM_COLUMN_BY_TYPE: Partial<Record<MetadataType, string>> = {
+        chapter: "chapter",
+        readymade_topic: "readymade_topic",
+        readymade_category: "readymade_category",
+        readymade_sub_chapter: "readymade_sub_chapter",
+    };
+
     return useMutation({
         mutationFn: async ({ type, value }: { type: MetadataType; value: string }) => {
             const { error } = await supabase.from("global_metadata").delete().eq("type", type).eq("value", value);
             if (error) throw error;
-            // For readymade_category, also clear the value off existing exams so the
-            // Board/Category step is fully skipped (not just removed from future pick-lists)
-            // when no exams carry a category value anymore.
-            if (type === "readymade_category") {
-                const { error: clearErr } = await supabase.from("exams").update({ readymade_category: null }).eq("readymade_category", value);
+            const column = EXAM_COLUMN_BY_TYPE[type];
+            if (column) {
+                const { error: clearErr } = await supabase.from("exams").update({ [column]: null }).eq(column, value);
                 if (clearErr) throw clearErr;
             }
         },
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
-            if (variables.type === "readymade_category") {
+            if (EXAM_COLUMN_BY_TYPE[variables.type]) {
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapters"] });
                 queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapter-boards"] });
                 queryClient.invalidateQueries({ queryKey: ["readymade-exams-subchapters"] });
                 queryClient.invalidateQueries({ queryKey: ["readymade-exams"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-topics"] });
             }
             toast({ title: "Deleted" });
         },
