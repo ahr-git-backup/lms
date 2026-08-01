@@ -294,7 +294,7 @@ const DashboardHome = () => {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
-                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 flex flex-col h-full">
+                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                         LIVE EXAM
                     </span>
@@ -314,8 +314,8 @@ const DashboardHome = () => {
                         {exam?.title || "Live Exam"}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-2 pb-4">
-                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none text-base font-semibold h-12">
+                    <CardContent className="pt-2 pb-3">
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none text-lg font-bold h-12">
                           Start Exam
                        </Button>
                     </CardContent>
