@@ -14,7 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search, Download } from "lucide-react";
+import Papa from "papaparse";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -186,6 +187,62 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       });
     },
   });
+
+  const handleDownloadCSV = async (examId: string, examTitle: string) => {
+    try {
+        const { data: questions, error } = await supabase
+            .from("exam_questions")
+            .select("*")
+            .eq("exam_id", examId)
+            .order("question_index", { ascending: true });
+
+        if (error) throw error;
+        if (!questions || questions.length === 0) {
+            toast({ title: "No questions found", variant: "destructive" });
+            return;
+        }
+
+        const rows = questions.map((q: any) => {
+            const answerLetter = String(q.correct_option || "").toUpperCase();
+            const answerNum =
+                answerLetter === "A" ? "1" :
+                answerLetter === "B" ? "2" :
+                answerLetter === "C" ? "3" :
+                answerLetter === "D" ? "4" :
+                answerLetter === "E" ? "5" : "";
+            return {
+                questions: q.question_text || "",
+                option1: q.option_a || "",
+                option2: q.option_b || "",
+                option3: q.option_c || "",
+                option4: q.option_d || "",
+                answer: answerNum,
+                explanation: q.explanation || "",
+                type: "1",
+                section: "1",
+            };
+        });
+
+        const csv = Papa.unparse(rows, {
+            columns: ["questions", "option1", "option2", "option3", "option4", "answer", "explanation", "type", "section"],
+        });
+
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", (examTitle || "quiz") + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        toast({ title: "CSV Downloaded", description: `Exported ${questions.length} questions.` });
+    } catch (error) {
+        console.error("CSV download failed", error);
+        toast({ title: "CSV Download Failed", variant: "destructive" });
+    }
+  };
 
   const handleGenerateSolvesheet = async (examId: string, examTitle: string) => {
     try {
@@ -748,6 +805,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleGenerateSolvesheet(exam.id, exam.title)}>
                                                     <FileText className="mr-2 h-4 w-4 text-emerald-600" /> Print Solution
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDownloadCSV(exam.id, exam.title)}>
+                                                    <Download className="mr-2 h-4 w-4 text-blue-600" /> Download CSV
                                                 </DropdownMenuItem>
                                                 {isAdmin && (
                                                     <DropdownMenuItem onClick={() => handleRecalculateResults(exam.id)}>
