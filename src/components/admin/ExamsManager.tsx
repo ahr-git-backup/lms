@@ -14,7 +14,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search, Download } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search, Download } from "lucide-react";
 import Papa from "papaparse";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
@@ -124,7 +124,6 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         .from("exams")
         .select("*, course:courses(id, name)", { count: "exact" })
         .is("split_start", null)
-        .not("category", "cs", '{"Custom Exam"}')
         .order("created_at", { ascending: false });
 
       if (isFreeMode) {
@@ -155,7 +154,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
           query = query.is("course_id", null).eq("is_readymade", false);
       }
 
-      const { data, error, count } = await query.range(0, 9999);
+      const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
       if (error) throw error;
       return { data: data || [], count: count || 0 };
     },
@@ -835,6 +834,33 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+
+                {/* Pagination Controls */}
+                <div className="flex items-center justify-between border-t pt-4">
+                     <div className="text-xs text-muted-foreground">
+                         Page {page + 1} of {totalPages || 1}
+                     </div>
+                     <div className="flex gap-2">
+                         <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => Math.max(0, p - 1))}
+                            disabled={page === 0}
+                         >
+                             <ChevronLeft className="h-4 w-4" />
+                             Previous
+                         </Button>
+                         <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setPage(p => p + 1)}
+                            disabled={page >= totalPages - 1}
+                         >
+                             Next
+                             <ChevronRight className="h-4 w-4" />
+                         </Button>
+                     </div>
                 </div>
                 </>
             )}
