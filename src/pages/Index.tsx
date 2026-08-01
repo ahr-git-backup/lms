@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { LiveCountdown } from "@/components/shared/LiveCountdown";
-import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import useEmblaCarousel from "embla-carousel-react";
@@ -178,12 +177,7 @@ const Index = () => {
                     <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                     <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
                 </div>
-                <div className={cn(
-                    "grid gap-4",
-                    landingExams.length === 1 ? "grid-cols-1 max-w-xl mx-auto w-full" :
-                    landingExams.length === 2 ? "md:grid-cols-2" :
-                    "md:grid-cols-2 lg:grid-cols-3"
-                )}>
+                <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {(landingExams as any[]).map((exam: any) => (
                         <Card key={exam.id} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 overflow-hidden">
