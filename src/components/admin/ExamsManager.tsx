@@ -152,7 +152,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       } else if (mainCategory === "practice") {
           query = query.eq("is_readymade", false).eq("exam_type", "practice");
       } else if (mainCategory === "free") {
-          query = query.is("course_id", null).eq("is_readymade", false);
+          query = query.eq("is_visible_on_free", true).eq("is_readymade", false);
       }
 
       const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
