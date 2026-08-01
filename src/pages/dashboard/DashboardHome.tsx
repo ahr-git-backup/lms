@@ -267,7 +267,7 @@ const DashboardHome = () => {
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
            </div>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+           <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveClasses.map((classItem: any) => (
                   <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
