@@ -315,7 +315,7 @@ const DashboardHome = () => {
                       </p>
                     </CardHeader>
                     <CardContent className="px-4 pb-2 pt-1">
-                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.15rem" }}>
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-14" style={{ fontSize: "1.4rem" }}>
                           Start Exam
                        </Button>
                     </CardContent>
