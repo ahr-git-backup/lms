@@ -162,6 +162,28 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   });
 
   const exams = examsData?.data || [];
+
+  // When browsing "Readymade" → "All", group exams by their Parent Topic
+  // (readymade_topic) so each topic appears as its own section with a
+  // header, instead of one flat undifferentiated list.
+  const isReadymadeGroupedView = mainCategory === "readymade" && readymadeSubCategory === "all";
+  const displayExams = isReadymadeGroupedView
+      ? [...exams].sort((a: any, b: any) => {
+          const ta = a.readymade_topic || "";
+          const tb = b.readymade_topic || "";
+          if (ta === tb) return 0;
+          if (!ta) return 1; // untagged exams go last
+          if (!tb) return -1;
+          return ta.localeCompare(tb);
+        })
+      : exams;
+  const getGroupHeaderTopic = (index: number): string | null => {
+      if (!isReadymadeGroupedView) return null;
+      const exam = displayExams[index];
+      const topic = exam?.readymade_topic || "অন্যান্য (Uncategorized)";
+      const prevTopic = index === 0 ? null : (displayExams[index - 1]?.readymade_topic || "অন্যান্য (Uncategorized)");
+      return topic !== prevTopic ? topic : null;
+  };
   const totalCount = examsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -589,8 +611,18 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {exams.map((exam: any) => (
-                            <TableRow key={exam.id} className="hover:bg-muted/50 transition-colors">
+                        {displayExams.map((exam: any, idx: number) => {
+                            const groupHeader = getGroupHeaderTopic(idx);
+                            return (
+                            <React.Fragment key={exam.id}>
+                            {groupHeader && (
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={isFreeMode ? 8 : 9} className="bg-muted/40 font-bold text-sm py-2">
+                                        {groupHeader}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            <TableRow className="hover:bg-muted/50 transition-colors">
                             {!isFreeMode && (
                                 <TableCell className="whitespace-nowrap font-medium">
                                     {exam.course?.name || <Badge variant="secondary">Public</Badge>}
@@ -707,15 +739,25 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 </div>
                             </TableCell>
                             </TableRow>
-                        ))}
+                            </React.Fragment>
+                            );
+                        })}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Mobile Card View */}
                 <div className="md:hidden grid sm:grid-cols-2 gap-4">
-                    {exams.map((exam: any) => (
-                        <Card key={exam.id} className="hover:border-primary/50 transition-colors w-full overflow-hidden">
+                    {displayExams.map((exam: any, idx: number) => {
+                        const groupHeader = getGroupHeaderTopic(idx);
+                        return (
+                        <React.Fragment key={exam.id}>
+                        {groupHeader && (
+                            <div className="col-span-full bg-muted/40 rounded-lg font-bold text-sm py-2 px-3">
+                                {groupHeader}
+                            </div>
+                        )}
+                        <Card className="hover:border-primary/50 transition-colors w-full overflow-hidden">
                             <CardContent className="p-4 space-y-3">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="space-y-1 min-w-0">
@@ -834,7 +876,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                        </React.Fragment>
+                        );
+                    })}
                 </div>
 
                 {/* Pagination Controls */}
