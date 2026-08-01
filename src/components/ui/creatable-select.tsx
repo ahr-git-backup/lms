@@ -77,10 +77,22 @@ export function CreatableSelect({
           aria-expanded={open}
           className={cn("w-full justify-between px-3 py-2 h-auto min-h-10", className)}
         >
-          {value
-            ? options.find((option) => option.value === value)?.label || value
-            : <span className="text-muted-foreground font-normal">{placeholder}</span>}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <span className="flex-1 text-left truncate">
+            {value
+              ? options.find((option) => option.value === value)?.label || value
+              : <span className="text-muted-foreground font-normal">{placeholder}</span>}
+          </span>
+          {value ? (
+            <X
+              className="ml-2 h-4 w-4 shrink-0 opacity-50 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange("");
+              }}
+            />
+          ) : (
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-full p-0">
