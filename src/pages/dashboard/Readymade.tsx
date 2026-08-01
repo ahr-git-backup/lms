@@ -670,6 +670,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // --- LEVEL 2.5: BOARD/CATEGORY (readymade_category) — optional drill-down step
   // within the selected chapter. Skipped automatically if the chapter has no
   // exams carrying a readymade_category value.
+  const DIRECT_BOARD_KEY = "__direct__"; // synthetic option representing sub-chapters with no readymade_category
   const { data: chapterBoards, isLoading: loadingChapterBoards } = useQuery({
     queryKey: ["readymade-exams-chapter-boards", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
@@ -687,7 +688,19 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const unique = new Set<string>();
       data.forEach((row: any) => { if (row.readymade_category) unique.add(row.readymade_category); });
-      return Array.from(unique).sort();
+
+      // Check if any exams in this chapter have NULL readymade_category (direct sub-chapters).
+      // If so, and there's also at least one named board, expose a synthetic "Others" board
+      // so those direct sub-chapters remain reachable instead of being hidden by the board step.
+      if (unique.size > 0) {
+        const { count } = await supabase.from("exams")
+          .select("id", { count: "exact", head: true })
+          .eq("is_readymade", true).eq("is_published", true)
+          .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+          .is("readymade_category", null);
+        if (count && count > 0) unique.add(DIRECT_BOARD_KEY);
+      }
+      return Array.from(unique).sort((a, b) => (a === DIRECT_BOARD_KEY ? 1 : b === DIRECT_BOARD_KEY ? -1 : a.localeCompare(b)));
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedBoardStep && !searchQuery
   });
@@ -706,7 +719,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
-        if (selectedBoardStep) query = query.eq("readymade_category", selectedBoardStep);
+        if (selectedBoardStep === DIRECT_BOARD_KEY) query = query.is("readymade_category", null);
+        else if (selectedBoardStep) query = query.eq("readymade_category", selectedBoardStep);
         return query;
       });
       const unique = new Set<string>();
@@ -869,7 +883,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             {chapterBoards.map(board => (
               <Card key={board} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedBoardStep(board)}>
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="text-sm sm:text-base font-semibold leading-tight">{board}</div>
+                  <div className="text-sm sm:text-base font-semibold leading-tight">{board === DIRECT_BOARD_KEY ? "অন্যান্য" : board}</div>
                   <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View <ChevronRight className="h-3 w-3 ml-1" /></div>
                 </CardContent>
               </Card>
@@ -892,7 +906,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         </Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
-          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
+          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep === DIRECT_BOARD_KEY ? "অন্যান্য" : selectedBoardStep}</span></>}
         </div>
         <h2 className="text-base font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
@@ -941,7 +955,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           <span>{selectedSubject}</span>
           <ChevronRight className="h-3 w-3" />
           <span>{selectedChapter}</span>
-          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
+          {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep === DIRECT_BOARD_KEY ? "অন্যান্য" : selectedBoardStep}</span></>}
           {selectedSubChapter && <><ChevronRight className="h-3 w-3" /><span>{selectedSubChapter}</span></>}
         </div>
         <h2 className="text-base font-bold mt-0.5">Available Readymade Exams</h2>
