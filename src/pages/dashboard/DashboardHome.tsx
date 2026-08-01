@@ -294,27 +294,27 @@ const DashboardHome = () => {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
-                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                        LIVE EXAM
-                    </span>
-                    <CardHeader className="space-y-1 p-0 pt-0.5 pl-0.5 pb-2 pr-24">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center max-w-[60%] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
+                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 overflow-hidden">
+                    <CardHeader className="space-y-2 px-4 pt-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 break-words">
                             {exam?.course?.name || "Unknown Course"}
                         </span>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">
-                          Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
+                        <span className="animate-pulse shrink-0 inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                            LIVE EXAM
                         </span>
                       </div>
                       <CardTitle
-                        className="font-extrabold whitespace-nowrap overflow-hidden leading-tight"
-                        style={{ fontSize: `${Math.max(0.75, Math.min(1.75, 15.5 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
+                        className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
+                        style={{ fontSize: `${Math.max(0.9, Math.min(1.75, 15.5 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
                       >
                         {exam?.title || "Live Exam"}
                       </CardTitle>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </CardHeader>
-                    <CardContent className="p-0 px-0.5 pb-0.5">
+                    <CardContent className="px-4 pb-4 pt-1">
                        <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.15rem" }}>
                           Start Exam
                        </Button>
