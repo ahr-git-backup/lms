@@ -183,11 +183,21 @@ export const useDeleteGlobalMetadata = () => {
         mutationFn: async ({ type, value }: { type: MetadataType; value: string }) => {
             const { error } = await supabase.from("global_metadata").delete().eq("type", type).eq("value", value);
             if (error) throw error;
-            // Note: intentionally does NOT clear the value off existing exams — deleting an
-            // option just removes it from future pick-lists, old exams keep their data intact.
+            // For readymade_category, also clear the value off existing exams so the
+            // Board/Category step is fully skipped (not just removed from future pick-lists)
+            // when no exams carry a category value anymore.
+            if (type === "readymade_category") {
+                const { error: clearErr } = await supabase.from("exams").update({ readymade_category: null }).eq("readymade_category", value);
+                if (clearErr) throw clearErr;
+            }
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
+            if (variables.type === "readymade_category") {
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapter-boards"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-subchapters"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams"] });
+            }
             toast({ title: "Deleted" });
         },
         onError: (err: any) => {
