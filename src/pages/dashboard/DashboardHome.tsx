@@ -298,7 +298,7 @@ const DashboardHome = () => {
                     <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                         LIVE EXAM
                     </span>
-                    <CardHeader className="space-y-1 pb-2 pt-4 pr-24">
+                    <CardHeader className="space-y-1 p-0 pt-0.5 pl-0.5 pb-2 pr-24">
                       <div className="flex items-center justify-between gap-2">
                         <span className="inline-flex items-center max-w-[60%] px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
                             {exam?.course?.name || "Unknown Course"}
