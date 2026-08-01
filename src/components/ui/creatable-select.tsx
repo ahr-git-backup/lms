@@ -88,6 +88,7 @@ export function CreatableSelect({
               onClick={(e) => {
                 e.stopPropagation();
                 onChange("");
+                setOpen(true);
               }}
             />
           ) : (
