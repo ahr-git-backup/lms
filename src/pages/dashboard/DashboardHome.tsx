@@ -308,14 +308,14 @@ const DashboardHome = () => {
                         </span>
                       </div>
                       <CardTitle
-                        className="font-extrabold whitespace-nowrap overflow-hidden"
-                        style={{ fontSize: `${Math.max(0.85, Math.min(1.5, 15 / Math.max((exam?.title || "Live Exam").length, 8)))}rem` }}
+                        className="font-extrabold whitespace-nowrap overflow-hidden leading-tight"
+                        style={{ fontSize: `${Math.max(0.75, Math.min(1.75, 15.5 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
                       >
                         {exam?.title || "Live Exam"}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="pt-2 pb-3">
-                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none text-lg font-bold h-12">
+                    <CardContent className="p-0 px-0.5 pb-0.5">
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.15rem" }}>
                           Start Exam
                        </Button>
                     </CardContent>
