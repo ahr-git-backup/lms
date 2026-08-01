@@ -83,14 +83,21 @@ export function CreatableSelect({
               : <span className="text-muted-foreground font-normal">{placeholder}</span>}
           </span>
           {value ? (
-            <X
-              className="ml-2 h-4 w-4 shrink-0 opacity-50 hover:opacity-100"
+            <span
+              className="ml-2 h-4 w-4 shrink-0 opacity-50 hover:opacity-100 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 inline-flex items-center justify-center"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
               onClick={(e) => {
+                e.preventDefault();
                 e.stopPropagation();
                 onChange("");
                 setOpen(true);
               }}
-            />
+            >
+              <X className="h-4 w-4" />
+            </span>
           ) : (
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           )}
