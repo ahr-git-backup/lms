@@ -204,7 +204,7 @@ const Index = () => {
                             <CardContent className="px-4 pb-2 pt-1">
                                 <Button
                                     size="lg"
-                                    onClick={() => navigate(`/login?redirect=/dashboard/take-exam/${exam.id}`)}
+                                    onClick={() => navigate(`/take-exam/${exam.id}`)}
                                     className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12"
                                     style={{ fontSize: "1.4rem" }}
                                 >
