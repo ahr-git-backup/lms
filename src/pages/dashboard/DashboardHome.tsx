@@ -302,7 +302,12 @@ const DashboardHome = () => {
                       <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
                           {exam?.course?.name || "Unknown Course"}
                       </span>
-                      <CardTitle className="text-lg font-extrabold whitespace-nowrap overflow-hidden text-ellipsis">{exam?.title || "Live Exam"}</CardTitle>
+                      <CardTitle
+                        className="font-extrabold whitespace-nowrap overflow-hidden"
+                        style={{ fontSize: `${Math.max(0.85, Math.min(1.5, 15 / Math.max((exam?.title || "Live Exam").length, 8)))}rem` }}
+                      >
+                        {exam?.title || "Live Exam"}
+                      </CardTitle>
                       <CardDescription className="text-sm">
                         Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
