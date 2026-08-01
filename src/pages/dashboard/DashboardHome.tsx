@@ -306,7 +306,7 @@ const DashboardHome = () => {
                       </div>
                       <CardTitle
                         className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
-                        style={{ fontSize: `${Math.max(1.1, Math.min(2.1, 19 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
+                        style={{ fontSize: `${Math.max(1.3, Math.min(2.5, 22 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
                       >
                         {exam?.title || "Live Exam"}
                       </CardTitle>
@@ -315,7 +315,7 @@ const DashboardHome = () => {
                       </p>
                     </CardHeader>
                     <CardContent className="px-4 pb-2 pt-1">
-                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-14" style={{ fontSize: "1.4rem" }}>
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.4rem" }}>
                           Start Exam
                        </Button>
                     </CardContent>
