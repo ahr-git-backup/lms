@@ -104,6 +104,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
           .from("exams")
           .select("readymade_category")
           .eq("is_readymade", true)
+          .is("split_start", null)
           .not("readymade_category", "is", null)
           .range(from, from + BATCH - 1);
         if (error) throw error;
@@ -122,6 +123,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       let query = supabase
         .from("exams")
         .select("*, course:courses(id, name)", { count: "exact" })
+        .is("split_start", null)
         .order("created_at", { ascending: false });
 
       if (isFreeMode) {
