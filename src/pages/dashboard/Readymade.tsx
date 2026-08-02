@@ -531,7 +531,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   // --- LEVEL 1: SUBJECTS ---
-  const { data: subjects, isLoading: loadingSubjects } = useQuery({
+  const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
     queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null }>((from, to) => {
@@ -542,21 +542,38 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         return query;
       });
       const unique = new Set<string>();
+      const subjectCourseIds: Record<string, Set<string>> = {};
       data.forEach((row: any) => {
-        if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-        else if (typeof row.subject === 'string') unique.add(row.subject);
+        const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === 'string' ? [row.subject] : []);
+        subs.forEach((s: string) => {
+          unique.add(s);
+          if (!subjectCourseIds[s]) subjectCourseIds[s] = new Set();
+          if (row.course_id) subjectCourseIds[s].add(row.course_id);
+          if (Array.isArray(row.shared_course_ids)) row.shared_course_ids.forEach((id: string) => subjectCourseIds[s].add(id));
+        });
       });
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
-      return Array.from(unique).sort((a, b) => {
+      const sortedSubjects = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
+      const courseIdsBySubject: Record<string, string[]> = {};
+      Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
+      return { subjects: sortedSubjects, courseIdsBySubject };
     },
     enabled: !selectedSubject && !searchQuery
   });
+
+  const subjects = subjectsResult?.subjects;
+  const isSubjectUnlocked = (subject: string): boolean => {
+    if (isAdmin) return true;
+    const courseIds = subjectsResult?.courseIdsBySubject?.[subject] || [];
+    if (courseIds.length === 0) return true; // no course restriction on any exam under this subject
+    return courseIds.some((id) => enrolledIds.includes(id));
+  };
 
   // Per-subject MCQ count badge — total questions across all exams in each
   // subject, for the subject-selection cards. Backed by a single server-side
@@ -764,6 +781,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
     return (
       <div className="space-y-3">
+        <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} />
         {overallStats ? (
           <div className="grid grid-cols-3 gap-2">
             <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
@@ -798,8 +816,19 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           </div>
         ) : null}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-        {subjects.map(subject => (
-          <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
+        {subjects.map(subject => {
+          const unlocked = isSubjectUnlocked(subject);
+          return (
+          <Card
+            key={subject}
+            className={`relative transition-all ${unlocked ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "cursor-pointer opacity-80"}`}
+            onClick={() => { if (unlocked) setSelectedSubject(subject); else setLockedExam({ title: subject, __subjectLock: true }); }}
+          >
+            {!unlocked && (
+              <div className="absolute top-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1">
+                <Lock className="h-3 w-3" />
+              </div>
+            )}
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
@@ -813,10 +842,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <Trophy className="h-3.5 w-3.5 text-primary" />
                 )}
               </div>
-              <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
+              <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
         </div>
       </div>
     );
