@@ -223,8 +223,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         .from("exams")
         .insert({
           ...rest,
-          title: `${exam.title} (Copy)`,
+          title: exam.title,
           duration_minutes: 0,
+          total_marks: 0,
           is_published: false,
         })
         .select()
