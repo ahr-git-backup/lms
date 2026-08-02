@@ -563,8 +563,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
     queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null }>((from, to) => {
-        let query = supabase.from("exams").select("subject, course_id, shared_course_ids")
+      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; chapter: string | null; readymade_sub_chapter: string | null; is_visible_on_free: boolean | null }>((from, to) => {
+        let query = supabase.from("exams").select("subject, course_id, shared_course_ids, readymade_course_ids, chapter, readymade_sub_chapter, is_visible_on_free")
           .eq("is_readymade", true).eq("is_published", true).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
@@ -572,6 +572,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const unique = new Set<string>();
       const subjectCourseIds: Record<string, Set<string>> = {};
+      const unlockMap: Record<string, boolean> = {};
       data.forEach((row: any) => {
         const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === 'string' ? [row.subject] : []);
         subs.forEach((s: string) => {
@@ -579,6 +580,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           if (!subjectCourseIds[s]) subjectCourseIds[s] = new Set();
           if (row.course_id) subjectCourseIds[s].add(row.course_id);
           if (Array.isArray(row.shared_course_ids)) row.shared_course_ids.forEach((id: string) => subjectCourseIds[s].add(id));
+          if (!unlockMap[s]) {
+            const rowUnlocked = isExamUnlocked(
+              { course_id: row.course_id, shared_course_ids: row.shared_course_ids, readymade_course_ids: row.readymade_course_ids, subject: [s], chapter: row.chapter, readymade_sub_chapter: row.readymade_sub_chapter, is_visible_on_free: row.is_visible_on_free },
+              enrolledIds, fullAccessCourseIds, subChapterGrants
+            );
+            if (rowUnlocked) unlockMap[s] = true;
+          }
         });
       });
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
@@ -591,7 +599,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const courseIdsBySubject: Record<string, string[]> = {};
       Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
-      return { subjects: sortedSubjects, courseIdsBySubject };
+      return { subjects: sortedSubjects, courseIdsBySubject, unlockMap };
     },
     enabled: !selectedSubject && !searchQuery
   });
@@ -599,17 +607,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const subjects = subjectsResult?.subjects;
   const isSubjectUnlocked = (subject: string): boolean => {
     if (isAdmin) return true;
-    if (fullAccessCourseIds.length > 0) return true;
-    if (subChapterGrants && subChapterGrants.size > 0) {
-      for (const courseId of enrolledIds) {
-        for (const key of subChapterGrants) {
-          if (key.startsWith(`${courseId}|||${subject}|||`)) return true;
-        }
-      }
-    }
-    const courseIds = subjectsResult?.courseIdsBySubject?.[subject] || [];
-    if (courseIds.length === 0) return true; // no course restriction on any exam under this subject
-    return courseIds.some((id) => enrolledIds.includes(id));
+    return !!subjectsResult?.unlockMap?.[subject];
   };
 
   // Per-subject MCQ count badge — total questions across all exams in each
