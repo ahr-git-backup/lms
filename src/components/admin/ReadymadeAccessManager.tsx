@@ -36,6 +36,18 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
 
   const table = mode === "archive-class" ? "classes" : "exams";
   const courseIdsField = mode === "archive-class" ? "archive_course_ids" : "readymade_course_ids";
+  const fullAccessField = "readymade_full_access"; // course-level flag, only meaningful for mode==="readymade"
+
+  const { data: courseFullAccess, isLoading: loadingFullAccess } = useQuery({
+    queryKey: ["course-readymade-full-access", courseId],
+    queryFn: async () => {
+      if (mode !== "readymade") return false;
+      const { data, error } = await supabase.from("courses").select(fullAccessField).eq("id", courseId).maybeSingle();
+      if (error) throw error;
+      return !!(data as any)?.[fullAccessField];
+    },
+    enabled: mode === "readymade",
+  });
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["readymade-access-rows", mode],
@@ -118,18 +130,20 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
     });
   };
 
+  const [pendingFullAccess, setPendingFullAccess] = useState<boolean | null>(null);
+  const fullAccessSelected = pendingFullAccess ?? courseFullAccess ?? false;
+
   const toggleAll = () => {
     if (!tree) return;
-    setSelection((prev) => {
-      const allKeys: string[] = [];
-      Object.entries(tree).forEach(([subject, chapters]) => {
-        Object.entries(chapters).forEach(([chapter, subChapters]) => {
-          Object.keys(subChapters).forEach((subChapter) => allKeys.push(`${subject}|||${chapter}|||${subChapter}`));
-        });
+    const allKeys: string[] = [];
+    Object.entries(tree).forEach(([subject, chapters]) => {
+      Object.entries(chapters).forEach(([chapter, subChapters]) => {
+        Object.keys(subChapters).forEach((subChapter) => allKeys.push(`${subject}|||${chapter}|||${subChapter}`));
       });
-      const allSelected = allKeys.every((k) => prev.has(k));
-      return allSelected ? new Set() : new Set(allKeys);
     });
+    const currentlyAllSelected = allKeys.every((k) => selection.has(k)) && (mode !== "readymade" || fullAccessSelected);
+    setSelection(() => (currentlyAllSelected ? new Set() : new Set(allKeys)));
+    if (mode === "readymade") setPendingFullAccess(!currentlyAllSelected);
   };
 
   const saveMutation = useMutation({
@@ -173,18 +187,25 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
 
       await runBatched(toGrant, (id) => ({ [courseIdsField]: Array.from(new Set([...(rowMap.get(id) || []), courseId])) }));
       await runBatched(toRevoke, (id) => ({ [courseIdsField]: (rowMap.get(id) || []).filter((cid: string) => cid !== courseId) }));
+
+      if (mode === "readymade" && pendingFullAccess !== null) {
+        const { error: courseErr } = await supabase.from("courses").update({ [fullAccessField]: pendingFullAccess }).eq("id", courseId);
+        if (courseErr) throw courseErr;
+      }
     },
     onSuccess: () => {
       toast({ title: "Access updated" });
       queryClient.invalidateQueries({ queryKey: ["readymade-access-rows", mode] });
+      queryClient.invalidateQueries({ queryKey: ["course-readymade-full-access", courseId] });
       setPendingSelection(null);
+      setPendingFullAccess(null);
     },
     onError: (err: any) => {
       toast({ title: "Failed to update access", description: err.message, variant: "destructive" });
     },
   });
 
-  if (isLoading || !tree) {
+  if (isLoading || loadingFullAccess || !tree) {
     return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading {mode === "archive-class" ? "archive class" : "readymade exam"} structure...</div>;
   }
 
@@ -200,10 +221,13 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Checkbox checked={allSelected} onCheckedChange={toggleAll} id={`access-all-${mode}`} />
+          <Checkbox checked={allSelected && (mode !== "readymade" || fullAccessSelected)} onCheckedChange={toggleAll} id={`access-all-${mode}`} />
           <label htmlFor={`access-all-${mode}`} className="text-sm font-semibold cursor-pointer">{mode === "archive-class" ? "All Archive Classes" : "All Readymade Exams"}</label>
+          {mode === "readymade" && fullAccessSelected && (
+            <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">Auto-includes future exams</span>
+          )}
         </div>
-        <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !pendingSelection}>
+        <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || (!pendingSelection && pendingFullAccess === null)}>
           {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
           Save Access
         </Button>

@@ -49,9 +49,10 @@ async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): P
 // client-side so we can render ALL exams and just lock the ones the user
 // doesn't have access to, instead of hiding them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isExamUnlocked = (exam: any, enrolledIds: string[]): boolean => {
+const isExamUnlocked = (exam: any, enrolledIds: string[], fullAccessCourseIds: string[] = []): boolean => {
   if (exam.is_visible_on_free) return true;
   if (enrolledIds.length === 0) return false;
+  if (fullAccessCourseIds.length > 0 && fullAccessCourseIds.some((id) => enrolledIds.includes(id))) return true;
   if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
   if (Array.isArray(exam.shared_course_ids) && exam.shared_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
   if (Array.isArray(exam.readymade_course_ids) && exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
@@ -505,6 +506,7 @@ const Readymade = () => {
 const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
+  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
 
   // --- SEARCH ---
   const { data: searchResults, isLoading: searching } = useQuery({
@@ -570,6 +572,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const subjects = subjectsResult?.subjects;
   const isSubjectUnlocked = (subject: string): boolean => {
     if (isAdmin) return true;
+    if (fullAccessCourseIds.length > 0) return true; // full-access course enrolled unlocks every subject
     const courseIds = subjectsResult?.courseIdsBySubject?.[subject] || [];
     if (courseIds.length === 0) return true; // no course restriction on any exam under this subject
     return courseIds.some((id) => enrolledIds.includes(id));
@@ -767,7 +770,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     const exams = searchResults?.data || [];
     const count = searchResults?.count || 0;
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /></div>;
+    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} fullAccessCourseIds={fullAccessCourseIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -982,7 +985,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
       ) : (
-        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} />
+        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} fullAccessCourseIds={fullAccessCourseIds} onLockedClick={setLockedExam} isAdmin={isAdmin} />
       )}
     </div>
   );
@@ -1136,7 +1139,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1180,7 +1183,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = 
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {exams.map((exam) => {
-      const unlocked = isExamUnlocked(exam, enrolledIds);
+      const unlocked = isExamUnlocked(exam, enrolledIds, fullAccessCourseIds);
       return (
         <Card key={exam.id} className={`cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
