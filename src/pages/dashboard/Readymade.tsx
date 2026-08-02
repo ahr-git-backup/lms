@@ -119,8 +119,12 @@ const Readymade = () => {
   const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
+  const [manageBoards, setManageBoards] = useState(false);
+  const [manageSubChapters, setManageSubChapters] = useState(false);
   const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const [currentSubjectsList, setCurrentSubjectsList] = useState<string[]>([]);
+  const [currentBoardsList, setCurrentBoardsList] = useState<string[]>([]);
+  const [currentSubChaptersList, setCurrentSubChaptersList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
   const { data: enrollments, isLoading: loadingEnrollments } = useEnrollments();
   const { isAdmin, user } = useAuth();
@@ -459,6 +463,20 @@ const Readymade = () => {
         </div>
       )}
 
+      {isAdmin && selectedChapter && !selectedBoardStep && currentBoardsList.length > 0 && (
+        <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
+          <div className="text-xs font-medium mr-auto self-center">Admin:</div>
+          <Button variant="outline" size="sm" onClick={() => setManageBoards(true)}>Manage Board/Category Order</Button>
+        </div>
+      )}
+
+      {isAdmin && selectedChapter && !selectedSubChapter && currentSubChaptersList.length > 0 && (
+        <div className="flex gap-2 bg-muted/30 p-2 rounded-lg border">
+          <div className="text-xs font-medium mr-auto self-center">Admin:</div>
+          <Button variant="outline" size="sm" onClick={() => setManageSubChapters(true)}>Manage Session/Sub-chapter Order</Button>
+        </div>
+      )}
+
       {manageType ? (
         <CourseItemsManagerDialog
           courseId={enrollments?.[0]?.course_id}
@@ -476,6 +494,28 @@ const Readymade = () => {
           chapters={currentChaptersList}
           contextName="Readymade Exams"
           onClose={() => setManageChapters(false)}
+        />
+      ) : manageBoards && selectedSubject && selectedChapter ? (
+        <ChapterSortDialog
+          courseId={enrollments?.[0]?.course_id || null}
+          subject={selectedSubject}
+          chapters={currentBoardsList}
+          contextName="Boards/Categories"
+          title={`Organize Boards - ${selectedSubject} / ${selectedChapter}`}
+          settingsKey={`board_order_global_${selectedSubject}_${selectedChapter}`}
+          extraInvalidateKeys={["readymade-exams-chapter-boards"]}
+          onClose={() => setManageBoards(false)}
+        />
+      ) : manageSubChapters && selectedSubject && selectedChapter ? (
+        <ChapterSortDialog
+          courseId={enrollments?.[0]?.course_id || null}
+          subject={selectedSubject}
+          chapters={currentSubChaptersList}
+          contextName="Sessions/Sub-chapters"
+          title={`Organize Sessions - ${selectedSubject} / ${selectedChapter}${selectedBoardStep ? ` / ${selectedBoardStep}` : ""}`}
+          settingsKey={`subchapter_order_global_${selectedSubject}_${selectedChapter}_${selectedBoardStep || ""}`}
+          extraInvalidateKeys={["readymade-exams-subchapters"]}
+          onClose={() => setManageSubChapters(false)}
         />
       ) : manageSubjects ? (
         <SubjectSortDialog
@@ -502,6 +542,8 @@ const Readymade = () => {
           selectedBoards={selectedBoards}
           setCurrentChaptersList={setCurrentChaptersList}
           setCurrentSubjectsList={setCurrentSubjectsList}
+          setCurrentBoardsList={setCurrentBoardsList}
+          setCurrentSubChaptersList={setCurrentSubChaptersList}
           userId={user?.id}
           lockedExam={lockedExam}
           setLockedExam={setLockedExam}
@@ -515,7 +557,7 @@ const Readymade = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
+const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, setCurrentBoardsList, setCurrentSubChaptersList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
   const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
@@ -757,7 +799,15 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const unique = new Set<string>();
       data.forEach((row: any) => { if (row.readymade_category) unique.add(row.readymade_category); });
-      return Array.from(unique).sort();
+      const settingsKey = `board_order_global_${selectedSubject}_${selectedChapter}`;
+      const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+      const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
+      return Array.from(unique).sort((a, b) => {
+        const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1; if (iB !== -1) return 1;
+        return a.localeCompare(b);
+      });
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedBoardStep && !searchQuery
   });
@@ -793,12 +843,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           }
         }
       });
-      return { subChapters: Array.from(unique).sort(), unlockMap };
+      const settingsKey = `subchapter_order_global_${selectedSubject}_${selectedChapter}_${selectedBoardStep || ""}`;
+      const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
+      const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
+      const subChapters = Array.from(unique).sort((a, b) => {
+        const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1; if (iB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+      return { subChapters, unlockMap };
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedSubChapter && !searchQuery
       && (!!selectedBoardStep || chapterBoards?.length === 0)
   });
   const subChapters = subChaptersResult?.subChapters;
+  useEffect(() => { if (chapterBoards) setCurrentBoardsList(chapterBoards); }, [chapterBoards, setCurrentBoardsList]);
+  useEffect(() => { if (subChapters) setCurrentSubChaptersList(subChapters); }, [subChapters, setCurrentSubChaptersList]);
   const subChapterUnlockMap = subChaptersResult?.unlockMap || {};
 
   // --- LEVEL 4: EXAMS (filtered by sub-chapter if present, else no sub-chapter filter) ---
