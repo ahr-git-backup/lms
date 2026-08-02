@@ -31,10 +31,12 @@ DECLARE
   msg text;
   exam_link text;
   duration_txt text;
+  request_id bigint;
+  short_link text;
 BEGIN
   SELECT value #>> '{}' INTO bot_token FROM public.app_settings WHERE key = 'telegram_bot_token';
   SELECT value #>> '{}' INTO channel_id FROM public.app_settings WHERE key = 'telegram_channel_id';
-  SELECT COALESCE(value #>> '{}', 'https://beshijoss.com') INTO site_url FROM public.app_settings WHERE key = 'site_url';
+  SELECT COALESCE(value #>> '{}', 'https://atlascourses.com') INTO site_url FROM public.app_settings WHERE key = 'site_url';
 
   IF bot_token IS NULL OR channel_id IS NULL THEN
     RETURN;
@@ -51,7 +53,26 @@ BEGIN
       AND time_window_start <= now()
       AND (time_window_end IS NULL OR time_window_end > now())
   LOOP
-    exam_link := site_url || '/dashboard/take-exam/' || r.id;
+    exam_link := site_url || '/open-exam/' || r.id;
+
+    BEGIN
+      SELECT (extensions.net_http_get(
+        url := 'https://tinyurl.com/api-create.php?url=' || exam_link
+      )).* INTO request_id;
+
+      -- wait briefly for pg_net async response
+      PERFORM pg_sleep(1.5);
+
+      SELECT content INTO short_link
+      FROM net._http_response
+      WHERE id = request_id;
+
+      IF short_link IS NOT NULL AND short_link LIKE 'http%' THEN
+        exam_link := short_link;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      NULL; -- keep long link on any failure
+    END;
     duration_txt := COALESCE(r.duration_minutes::text || ' মিনিট', 'N/A');
 
     msg := '📌 <b>Exam Name:</b> ' || r.title || E'\n\n'
