@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, Users, Video, FileText, BarChart3, TrendingUp, Presentation, ArrowLeft, Plus, Edit } from "lucide-react";
 import { ClassForm } from "@/components/admin/ClassForm";
 import { ExamForm } from "@/components/admin/ExamForm";
+import { ReadymadeAccessManager } from "@/components/admin/ReadymadeAccessManager";
 
 export default function CourseDashboard() {
   const { courseId } = useParams();
@@ -257,6 +258,7 @@ export default function CourseDashboard() {
         <TabsList className="flex flex-wrap h-auto bg-muted/50 p-1 w-full justify-start border-b rounded-none rounded-t-lg">
           <TabsTrigger value="classes" className="data-[state=active]:bg-background">Classes</TabsTrigger>
           <TabsTrigger value="exams" className="data-[state=active]:bg-background">Exams</TabsTrigger>
+          <TabsTrigger value="readymade-access" className="data-[state=active]:bg-background">Readymade Access</TabsTrigger>
           <TabsTrigger value="students" className="data-[state=active]:bg-background">Enrolled Students</TabsTrigger>
         </TabsList>
 
@@ -353,6 +355,14 @@ export default function CourseDashboard() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="readymade-access" className="mt-0 space-y-4">
+            <div className="mb-4">
+              <h3 className="font-semibold text-lg">Readymade Exam Access</h3>
+              <p className="text-sm text-muted-foreground mt-1">Select which subjects/chapters/sub-chapters of Readymade Exams students in this course can access. Unselected ones remain locked.</p>
+            </div>
+            {courseId && <ReadymadeAccessManager courseId={courseId} />}
           </TabsContent>
 
           <TabsContent value="students" className="mt-0 space-y-4">
