@@ -478,6 +478,69 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               .update(payload)
               .eq("id", parsed.id);
             if (error) throw error;
+
+            // Same question-import handling as the create-new-exam branch below,
+            // for CSV / Question Bank / JSON questions added while editing an
+            // exam that was already saved without questions.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const editQuestionRows: any[] = [];
+
+            if (parsed.questions_json) {
+              try {
+                const jsonData = JSON.parse(parsed.questions_json);
+                if (!Array.isArray(jsonData)) {
+                  throw new Error("Questions JSON must be an array.");
+                }
+                editQuestionRows.push(...normaliseQuestions(jsonData));
+              } catch (err) {
+                if (err instanceof Error) {
+                    throw new Error(`Invalid questions JSON: ${err.message}`);
+                }
+                 throw new Error(`Invalid questions JSON: ${String(err)}`);
+              }
+            }
+
+            if (parsed.questions_csv) {
+              editQuestionRows.push(...parseCsvQuestions(parsed.questions_csv));
+            }
+
+            if (qbQuestions.length) {
+              qbQuestions.forEach((q: any) => {
+                editQuestionRows.push({
+                  question_text: q.question_text ?? q.question,
+                  option_a: q.option_a ?? q.options?.A ?? "",
+                  option_b: q.option_b ?? q.options?.B ?? "",
+                  option_c: q.option_c ?? q.options?.C ?? "",
+                  option_d: q.option_d ?? q.options?.D ?? "",
+                  correct_option: q.correct_option ?? q.correct_answer ?? "A",
+                  marks: q.marks ?? 1,
+                  explanation: q.explanation || null,
+                });
+              });
+            }
+
+            if (editQuestionRows.length) {
+              // Find current max question_index for this exam so newly imported
+              // questions are appended after existing ones instead of colliding.
+              const { data: existingQs } = await supabase
+                .from("exam_questions")
+                .select("question_index")
+                .eq("exam_id", parsed.id)
+                .order("question_index", { ascending: false })
+                .limit(1);
+              const startIndex = (existingQs?.[0]?.question_index || 0) + 1;
+
+              const rowsWithExam = editQuestionRows.map((q, index) => ({
+                exam_id: parsed.id,
+                question_index: startIndex + index,
+                ...q,
+              }));
+
+              const { error: qError } = await supabase
+                .from("exam_questions")
+                .insert(rowsWithExam);
+              if (qError) throw qError;
+            }
           } else {
             const { data, error } = await supabase
               .from("exams")
@@ -574,6 +637,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               });
           }
           if (!exam) sessionStorage.removeItem(DRAFT_KEY);
+          if (exam) setForm((prev) => ({ ...prev, questions_json: "", questions_csv: "" }));
+          setQbQuestions([]);
           onSuccess();
         },
         onError: (error: Error) => {
