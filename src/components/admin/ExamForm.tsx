@@ -719,6 +719,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                         <SelectValue placeholder="Select course (or leave empty for Public)" />
                       </SelectTrigger>
                       <SelectContent>
+                        {form.course_id && !courses?.some((c: Pick<Course, "id" | "name">) => c.id === form.course_id) && (
+                          <SelectItem value={form.course_id}>
+                            (Unknown/Deleted course)
+                          </SelectItem>
+                        )}
                         {courses?.map((course: Pick<Course, "id" | "name">) => (
                           <SelectItem key={course.id} value={course.id}>
                             {course.name}
