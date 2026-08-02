@@ -227,6 +227,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
     const { data: courses } = useQuery({
         queryKey: ["admin-courses-form"],
+        staleTime: 5 * 60 * 1000,
         queryFn: async () => {
             const { data, error } = await supabase.from("courses").select("id, name");
             if (error) throw error;
@@ -711,6 +712,9 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                             </Button>
                         )}
                     </div>
+                    {courses === undefined ? (
+                      <div className="h-9 rounded-md border bg-muted animate-pulse" />
+                    ) : (
                     <Select
                       value={form.course_id || ""}
                       onValueChange={(value) => setForm((prev) => ({ ...prev, course_id: value }))}
@@ -731,6 +735,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                         ))}
                       </SelectContent>
                     </Select>
+                    )}
                     {!form.course_id && <p className="text-[10px] text-muted-foreground">This exam will be public (no course restriction).</p>}
                   </div>
               )}
