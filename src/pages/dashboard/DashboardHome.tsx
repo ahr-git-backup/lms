@@ -223,6 +223,28 @@ const DashboardHome = () => {
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Fixed floating WhatsApp + Telegram support buttons, bottom-left corner */}
+      <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2">
+        <a
+          href="https://wa.me/8801999681290"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="WhatsApp Support"
+          className="h-12 w-12 rounded-full bg-[#25D366] shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        >
+          <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white"><path d="M17.6 6.32A7.85 7.85 0 0 0 12.05 4a7.94 7.94 0 0 0-6.87 11.87L4 20l4.24-1.11a7.9 7.9 0 0 0 3.8.97h.01A7.94 7.94 0 0 0 20 12a7.85 7.85 0 0 0-2.4-5.68Zm-5.55 12.2a6.6 6.6 0 0 1-3.36-.92l-.24-.14-2.5.66.67-2.44-.16-.25a6.58 6.58 0 0 1 5.6-10.11 6.53 6.53 0 0 1 4.63 1.92 6.53 6.53 0 0 1 1.92 4.63 6.6 6.6 0 0 1-6.56 6.55Zm3.6-4.9c-.2-.1-1.16-.57-1.34-.64-.18-.07-.31-.1-.44.1-.13.2-.5.63-.62.76-.11.13-.23.14-.42.05a5.4 5.4 0 0 1-1.6-.98 5.98 5.98 0 0 1-1.1-1.37c-.12-.2 0-.3.09-.4.1-.1.2-.24.3-.36.1-.12.13-.2.2-.34.07-.13.03-.25-.02-.35-.05-.1-.44-1.06-.6-1.45-.16-.38-.32-.33-.44-.34h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.66s.72 1.92.82 2.06c.1.13 1.4 2.15 3.4 3.01.48.2.85.33 1.14.42.48.15.91.13 1.26.08.38-.06 1.16-.47 1.33-.93.16-.46.16-.85.11-.93-.05-.08-.18-.13-.38-.23Z"/></svg>
+        </a>
+        <a
+          href="https://t.me/AtlasWeb_Robot"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Telegram Support"
+          className="h-12 w-12 rounded-full bg-[#26A5E4] shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        >
+          <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white"><path d="M21.05 3.92 2.87 11.02c-1.24.5-1.23 1.19-.23 1.5l4.66 1.45 1.8 5.5c.22.6.11.84.75.84.5 0 .72-.23 1-.5l2.4-2.32 4.7 3.47c.87.48 1.5.23 1.72-.8l3.1-14.6c.32-1.26-.48-1.83-1.72-1.64Zm-4.6 3.53-7.6 6.87-.3 3.24-1.5-4.7 9.68-6.1c.46-.28.88-.13.53.18Z"/></svg>
+        </a>
+      </div>
+
       <Card className="w-full">
         <CardContent className="p-3 flex flex-col items-center gap-2">
           <h1 className="text-2xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
