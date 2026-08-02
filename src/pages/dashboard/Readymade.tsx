@@ -675,6 +675,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
   const subjectMcqCounts = mcqCountsData?.subject_counts;
   const chapterMcqCounts = mcqCountsData?.chapter_counts;
+  const boardMcqCounts = mcqCountsData?.board_counts;
   const subChapterMcqCounts = mcqCountsData?.subchapter_counts;
 
   // --- LEVEL 2: CHAPTERS ---
@@ -1043,7 +1044,16 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             {chapterBoards.map(board => (
               <Card key={board} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedBoardStep(board)}>
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="text-sm sm:text-base font-semibold leading-tight">{board}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm sm:text-base font-semibold leading-tight">{board}</div>
+                    {loadingMcqCounts ? (
+                      <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                    ) : typeof boardMcqCounts?.[`${selectedChapter}||${board}`] === "number" && (
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        {boardMcqCounts[`${selectedChapter}||${board}`]} MCQ
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View <ChevronRight className="h-3 w-3 ml-1" /></div>
                 </CardContent>
               </Card>
