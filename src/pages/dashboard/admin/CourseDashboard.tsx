@@ -259,6 +259,7 @@ export default function CourseDashboard() {
           <TabsTrigger value="classes" className="data-[state=active]:bg-background">Classes</TabsTrigger>
           <TabsTrigger value="exams" className="data-[state=active]:bg-background">Exams</TabsTrigger>
           <TabsTrigger value="readymade-access" className="data-[state=active]:bg-background">Readymade Access</TabsTrigger>
+          <TabsTrigger value="archive-access" className="data-[state=active]:bg-background">Archive Access</TabsTrigger>
           <TabsTrigger value="students" className="data-[state=active]:bg-background">Enrolled Students</TabsTrigger>
         </TabsList>
 
@@ -362,7 +363,15 @@ export default function CourseDashboard() {
               <h3 className="font-semibold text-lg">Readymade Exam Access</h3>
               <p className="text-sm text-muted-foreground mt-1">Select which subjects/chapters/sub-chapters of Readymade Exams students in this course can access. Unselected ones remain locked.</p>
             </div>
-            {courseId && <ReadymadeAccessManager courseId={courseId} />}
+            {courseId && <ReadymadeAccessManager courseId={courseId} mode="readymade" />}
+          </TabsContent>
+
+          <TabsContent value="archive-access" className="mt-0 space-y-4">
+            <div className="mb-4">
+              <h3 className="font-semibold text-lg">Archive Class Access</h3>
+              <p className="text-sm text-muted-foreground mt-1">Select which subjects/chapters of Archive Classes students in this course can access. Unselected ones remain locked.</p>
+            </div>
+            {courseId && <ReadymadeAccessManager courseId={courseId} mode="archive-class" />}
           </TabsContent>
 
           <TabsContent value="students" className="mt-0 space-y-4">

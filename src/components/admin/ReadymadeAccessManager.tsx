@@ -9,57 +9,66 @@ import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 
 interface ReadymadeAccessManagerProps {
   courseId: string;
+  mode?: "readymade" | "archive-class";
 }
 
 // Tree node key format: `${subject}|||${chapter}|||${subChapter ?? ''}`
 // Groups are Subject -> Chapter -> Sub-chapter (sub-chapter may be null,
 // treated as a single "General" leaf under that chapter in that case).
+// For archive-class mode there is no sub-chapter level, so "সাধারণ" is
+// used as a single synthetic leaf per chapter.
 
-type ExamRow = {
+type Row = {
   id: string;
-  subject: string[] | null;
+  subject: string[] | string | null;
   chapter: string | null;
-  readymade_sub_chapter: string | null;
-  readymade_course_ids: string[] | null;
+  readymade_sub_chapter?: string | null;
+  readymade_course_ids?: string[] | null;
+  archive_course_ids?: string[] | null;
 };
 
-export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps) {
+export function ReadymadeAccessManager({ courseId, mode = "readymade" }: ReadymadeAccessManagerProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [pendingSelection, setPendingSelection] = useState<Set<string> | null>(null);
 
-  const { data: examRows, isLoading } = useQuery({
-    queryKey: ["readymade-access-exams"],
+  const table = mode === "archive-class" ? "classes" : "exams";
+  const courseIdsField = mode === "archive-class" ? "archive_course_ids" : "readymade_course_ids";
+
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["readymade-access-rows", mode],
     queryFn: async () => {
-      const rows: ExamRow[] = [];
+      const rowsAcc: Row[] = [];
       const BATCH = 1000;
       let from = 0;
       while (true) {
-        const { data, error } = await supabase
-          .from("exams")
-          .select("id, subject, chapter, readymade_sub_chapter, readymade_course_ids")
-          .eq("is_readymade", true)
+        let query = supabase
+          .from(table)
+          .select(mode === "archive-class" ? `id, subject, chapter, ${courseIdsField}` : `id, subject, chapter, readymade_sub_chapter, ${courseIdsField}`)
           .range(from, from + BATCH - 1);
+        if (mode === "archive-class") query = query.eq("is_archive", true);
+        else query = query.eq("is_readymade", true);
+        const { data, error } = await query;
         if (error) throw error;
-        rows.push(...((data || []) as any));
+        rowsAcc.push(...((data || []) as any));
         if (!data || data.length < BATCH) break;
         from += BATCH;
       }
-      return rows;
+      return rowsAcc;
     },
   });
 
-  // Build Subject -> Chapter -> SubChapter tree with exam-id lists per leaf,
+  // Build Subject -> Chapter -> SubChapter tree with row-id lists per leaf,
   // and figure out which leaves are currently fully accessible to this course.
   const tree = useMemo(() => {
-    if (!examRows) return null;
+    if (!rows) return null;
     const subjects: Record<string, Record<string, Record<string, string[]>>> = {};
-    examRows.forEach((row) => {
-      const subs = Array.isArray(row.subject) ? row.subject : [];
+    rows.forEach((row) => {
+      const subs = Array.isArray(row.subject) ? row.subject : (typeof row.subject === "string" && row.subject ? [row.subject] : []);
       const chapter = row.chapter || "সাধারণ";
-      const subChapter = row.readymade_sub_chapter || "সাধারণ";
+      const subChapter = mode === "archive-class" ? "সাধারণ" : (row.readymade_sub_chapter || "সাধারণ");
       subs.forEach((subject) => {
         if (!subjects[subject]) subjects[subject] = {};
         if (!subjects[subject][chapter]) subjects[subject][chapter] = {};
@@ -68,24 +77,24 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
       });
     });
     return subjects;
-  }, [examRows]);
+  }, [rows, mode]);
 
-  // Currently-granted leaf keys: a leaf counts as "selected" if every exam
-  // under it already has this course in readymade_course_ids.
+  // Currently-granted leaf keys: a leaf counts as "selected" if every row
+  // under it already has this course in the relevant course-ids field.
   const currentSelection = useMemo(() => {
-    if (!tree || !examRows) return new Set<string>();
-    const examCourseIds = new Map(examRows.map((r) => [r.id, r.readymade_course_ids || []]));
+    if (!tree || !rows) return new Set<string>();
+    const rowCourseIds = new Map(rows.map((r: any) => [r.id, r[courseIdsField] || []]));
     const selected = new Set<string>();
     Object.entries(tree).forEach(([subject, chapters]) => {
       Object.entries(chapters).forEach(([chapter, subChapters]) => {
-        Object.entries(subChapters).forEach(([subChapter, examIds]) => {
-          const allGranted = examIds.length > 0 && examIds.every((id) => (examCourseIds.get(id) || []).includes(courseId));
+        Object.entries(subChapters).forEach(([subChapter, ids]) => {
+          const allGranted = ids.length > 0 && ids.every((id) => (rowCourseIds.get(id) || []).includes(courseId));
           if (allGranted) selected.add(`${subject}|||${chapter}|||${subChapter}`);
         });
       });
     });
     return selected;
-  }, [tree, examRows, courseId]);
+  }, [tree, rows, courseId, courseIdsField]);
 
   const selection = pendingSelection ?? currentSelection;
   const setSelection = (updater: (prev: Set<string>) => Set<string>) => {
@@ -125,45 +134,45 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!tree || !examRows) return;
+      if (!tree || !rows) return;
       const finalSelection = selection;
-      const examIdToLeafKey = new Map<string, string>();
+      const idToLeafKey = new Map<string, string>();
       Object.entries(tree).forEach(([subject, chapters]) => {
         Object.entries(chapters).forEach(([chapter, subChapters]) => {
-          Object.entries(subChapters).forEach(([subChapter, examIds]) => {
+          Object.entries(subChapters).forEach(([subChapter, ids]) => {
             const key = `${subject}|||${chapter}|||${subChapter}`;
-            examIds.forEach((id) => examIdToLeafKey.set(id, key));
+            ids.forEach((id) => idToLeafKey.set(id, key));
           });
         });
       });
 
       const toGrant: string[] = [];
       const toRevoke: string[] = [];
-      examRows.forEach((row) => {
-        const leafKey = examIdToLeafKey.get(row.id);
+      rows.forEach((row: any) => {
+        const leafKey = idToLeafKey.get(row.id);
         if (!leafKey) return;
         const shouldHaveAccess = finalSelection.has(leafKey);
-        const currentlyHasAccess = (row.readymade_course_ids || []).includes(courseId);
+        const currentlyHasAccess = (row[courseIdsField] || []).includes(courseId);
         if (shouldHaveAccess && !currentlyHasAccess) toGrant.push(row.id);
         else if (!shouldHaveAccess && currentlyHasAccess) toRevoke.push(row.id);
       });
 
-      const examMap = new Map(examRows.map((r) => [r.id, r.readymade_course_ids || []]));
+      const rowMap = new Map(rows.map((r: any) => [r.id, r[courseIdsField] || []]));
 
       for (const id of toGrant) {
-        const updated = Array.from(new Set([...(examMap.get(id) || []), courseId]));
-        const { error } = await supabase.from("exams").update({ readymade_course_ids: updated }).eq("id", id);
+        const updated = Array.from(new Set([...(rowMap.get(id) || []), courseId]));
+        const { error } = await supabase.from(table).update({ [courseIdsField]: updated }).eq("id", id);
         if (error) throw error;
       }
       for (const id of toRevoke) {
-        const updated = (examMap.get(id) || []).filter((cid) => cid !== courseId);
-        const { error } = await supabase.from("exams").update({ readymade_course_ids: updated }).eq("id", id);
+        const updated = (rowMap.get(id) || []).filter((cid: string) => cid !== courseId);
+        const { error } = await supabase.from(table).update({ [courseIdsField]: updated }).eq("id", id);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast({ title: "Readymade access updated" });
-      queryClient.invalidateQueries({ queryKey: ["readymade-access-exams"] });
+      toast({ title: "Access updated" });
+      queryClient.invalidateQueries({ queryKey: ["readymade-access-rows", mode] });
       setPendingSelection(null);
     },
     onError: (err: any) => {
@@ -172,7 +181,7 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
   });
 
   if (isLoading || !tree) {
-    return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading readymade exam structure...</div>;
+    return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading {mode === "archive-class" ? "archive class" : "readymade exam"} structure...</div>;
   }
 
   const subjectEntries = Object.entries(tree);
@@ -187,8 +196,8 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Checkbox checked={allSelected} onCheckedChange={toggleAll} id="rm-access-all" />
-          <label htmlFor="rm-access-all" className="text-sm font-semibold cursor-pointer">All Readymade Exams</label>
+          <Checkbox checked={allSelected} onCheckedChange={toggleAll} id={`access-all-${mode}`} />
+          <label htmlFor={`access-all-${mode}`} className="text-sm font-semibold cursor-pointer">{mode === "archive-class" ? "All Archive Classes" : "All Readymade Exams"}</label>
         </div>
         <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !pendingSelection}>
           {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
@@ -225,28 +234,30 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
                       const leafKeys = Object.keys(subChapters).map((sc) => `${subject}|||${chapter}|||${sc}`);
                       const chapterAllSelected = leafKeys.every((k) => selection.has(k));
                       const chapterSomeSelected = !chapterAllSelected && leafKeys.some((k) => selection.has(k));
+                      const isSingleGeneralLeaf = Object.keys(subChapters).length === 1 && Object.keys(subChapters)[0] === "সাধারণ";
 
                       return (
                         <div key={chapter}>
-                          <div className="flex items-center gap-2 px-3 py-2 pl-8 cursor-pointer hover:bg-muted/30" onClick={() => setExpandedChapters((prev) => { const n = new Set(prev); n.has(chapterKey) ? n.delete(chapterKey) : n.add(chapterKey); return n; })}>
-                            {chapterExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />}
+                          <div className="flex items-center gap-2 px-3 py-2 pl-8 cursor-pointer hover:bg-muted/30" onClick={() => { if (isSingleGeneralLeaf) toggleLeaf(leafKeys[0]); else setExpandedChapters((prev) => { const n = new Set(prev); n.has(chapterKey) ? n.delete(chapterKey) : n.add(chapterKey); return n; }); }}>
+                            {!isSingleGeneralLeaf && (chapterExpanded ? <ChevronDown className="h-3.5 w-3.5 shrink-0" /> : <ChevronRight className="h-3.5 w-3.5 shrink-0" />)}
                             <Checkbox
                               checked={chapterAllSelected ? true : (chapterSomeSelected ? "indeterminate" : false)}
                               onCheckedChange={() => toggleChapter(subject, chapter, leafKeys)}
                               onClick={(e) => e.stopPropagation()}
                             />
                             <span className="text-sm">{chapter}</span>
+                            {isSingleGeneralLeaf && <span className="text-xs text-muted-foreground ml-auto">{subChapters["সাধারণ"].length} item{subChapters["সাধারণ"].length !== 1 ? "s" : ""}</span>}
                           </div>
 
-                          {chapterExpanded && (
+                          {!isSingleGeneralLeaf && chapterExpanded && (
                             <div className="pl-14 pb-1">
-                              {Object.entries(subChapters).map(([subChapter, examIds]) => {
+                              {Object.entries(subChapters).map(([subChapter, ids]) => {
                                 const key = `${subject}|||${chapter}|||${subChapter}`;
                                 return (
                                   <div key={subChapter} className="flex items-center gap-2 py-1.5">
                                     <Checkbox checked={selection.has(key)} onCheckedChange={() => toggleLeaf(key)} id={key} />
                                     <label htmlFor={key} className="text-sm cursor-pointer flex-1">{subChapter}</label>
-                                    <span className="text-xs text-muted-foreground">{examIds.length} exam{examIds.length !== 1 ? "s" : ""}</span>
+                                    <span className="text-xs text-muted-foreground">{ids.length} item{ids.length !== 1 ? "s" : ""}</span>
                                   </div>
                                 );
                               })}
@@ -265,3 +276,4 @@ export function ReadymadeAccessManager({ courseId }: ReadymadeAccessManagerProps
     </div>
   );
 }
+
