@@ -91,22 +91,26 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
     return subjects;
   }, [rows, mode]);
 
-  // Currently-granted leaf keys: a leaf counts as "selected" if every row
-  // under it already has this course in the relevant course-ids field.
+  // Currently-granted leaf keys: read directly from course_readymade_access,
+  // the single source of truth for grants. This guarantees the checkbox state
+  // always matches exactly what was saved, with no separate per-exam field to
+  // drift out of sync.
+  const { data: grantedKeys } = useQuery({
+    queryKey: ["course-readymade-access-grants", courseId, mode],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("course_readymade_access")
+        .select("subject, chapter, sub_chapter")
+        .eq("course_id", courseId)
+        .eq("mode", mode);
+      if (error) throw error;
+      return new Set((data || []).map((g: any) => `${g.subject}|||${g.chapter}|||${g.sub_chapter}`));
+    },
+  });
+
   const currentSelection = useMemo(() => {
-    if (!tree || !rows) return new Set<string>();
-    const rowCourseIds = new Map(rows.map((r: any) => [r.id, r[courseIdsField] || []]));
-    const selected = new Set<string>();
-    Object.entries(tree).forEach(([subject, chapters]) => {
-      Object.entries(chapters).forEach(([chapter, subChapters]) => {
-        Object.entries(subChapters).forEach(([subChapter, ids]) => {
-          const allGranted = ids.length > 0 && ids.every((id) => (rowCourseIds.get(id) || []).includes(courseId));
-          if (allGranted) selected.add(`${subject}|||${chapter}|||${subChapter}`);
-        });
-      });
-    });
-    return selected;
-  }, [tree, rows, courseId, courseIdsField]);
+    return grantedKeys ?? new Set<string>();
+  }, [grantedKeys]);
 
   const selection = pendingSelection ?? currentSelection;
   const setSelection = (updater: (prev: Set<string>) => Set<string>) => {
@@ -148,70 +152,25 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!tree || !rows) return;
       const finalSelection = selection;
-      const idToLeafKey = new Map<string, string>();
-      Object.entries(tree).forEach(([subject, chapters]) => {
-        Object.entries(chapters).forEach(([chapter, subChapters]) => {
-          Object.entries(subChapters).forEach(([subChapter, ids]) => {
-            const key = `${subject}|||${chapter}|||${subChapter}`;
-            ids.forEach((id) => idToLeafKey.set(id, key));
-          });
-        });
-      });
-
-      const toGrant: string[] = [];
-      const toRevoke: string[] = [];
-      rows.forEach((row: any) => {
-        const leafKey = idToLeafKey.get(row.id);
-        if (!leafKey) return;
-        const shouldHaveAccess = finalSelection.has(leafKey);
-        const currentlyHasAccess = (row[courseIdsField] || []).includes(courseId);
-        if (shouldHaveAccess && !currentlyHasAccess) toGrant.push(row.id);
-        else if (!shouldHaveAccess && currentlyHasAccess) toRevoke.push(row.id);
-      });
-
-      const rowMap = new Map(rows.map((r: any) => [r.id, r[courseIdsField] || []]));
-
-      const runBatched = async (ids: string[], updateFn: (id: string) => Record<string, unknown>) => {
-        const CONCURRENCY = 25;
-        for (let i = 0; i < ids.length; i += CONCURRENCY) {
-          const batch = ids.slice(i, i + CONCURRENCY);
-          const results = await Promise.all(
-            batch.map((id) => supabase.from(table).update(updateFn(id)).eq("id", id))
-          );
-          const firstError = results.find((r) => r.error)?.error;
-          if (firstError) throw firstError;
-        }
-      };
-
-      await runBatched(toGrant, (id) => ({ [courseIdsField]: Array.from(new Set([...(rowMap.get(id) || []), courseId])) }));
-      await runBatched(toRevoke, (id) => ({ [courseIdsField]: (rowMap.get(id) || []).filter((cid: string) => cid !== courseId) }));
 
       if (mode === "readymade" && pendingFullAccess !== null) {
         const { error: courseErr } = await supabase.from("courses").update({ [fullAccessField]: pendingFullAccess }).eq("id", courseId);
         if (courseErr) throw courseErr;
       }
 
-      // Sync selected leaves into course_readymade_access so future exams/classes
-      // added under an already-granted subject/chapter/sub-chapter are auto-unlocked
-      // without needing to re-save access here.
-      const { data: existingGrants } = await supabase
-        .from("course_readymade_access")
-        .select("id, subject, chapter, sub_chapter")
-        .eq("course_id", courseId)
-        .eq("mode", mode);
-      const existingKeySet = new Map((existingGrants || []).map((g: any) => [`${g.subject}|||${g.chapter}|||${g.sub_chapter}`, g.id]));
-
+      // course_readymade_access is the single source of truth for grants.
+      // Diffing against currentSelection (itself read fresh from this table)
+      // keeps this atomic and avoids any separate per-exam field going stale.
       const toInsert: { subject: string; chapter: string; sub_chapter: string }[] = [];
       finalSelection.forEach((key) => {
-        if (!existingKeySet.has(key)) {
+        if (!currentSelection.has(key)) {
           const [subject, chapter, subChapter] = key.split("|||");
           toInsert.push({ subject, chapter, sub_chapter: subChapter });
         }
       });
-      const toDeleteIds: string[] = [];
-      existingKeySet.forEach((id, key) => { if (!finalSelection.has(key)) toDeleteIds.push(id); });
+      const toDeleteKeys: string[] = [];
+      currentSelection.forEach((key) => { if (!finalSelection.has(key)) toDeleteKeys.push(key); });
 
       if (toInsert.length) {
         const { error: insErr } = await supabase.from("course_readymade_access").insert(
@@ -219,14 +178,24 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
         );
         if (insErr) throw insErr;
       }
-      if (toDeleteIds.length) {
-        const { error: delErr } = await supabase.from("course_readymade_access").delete().in("id", toDeleteIds);
-        if (delErr) throw delErr;
+      if (toDeleteKeys.length) {
+        for (const key of toDeleteKeys) {
+          const [subject, chapter, subChapter] = key.split("|||");
+          const { error: delErr } = await supabase
+            .from("course_readymade_access")
+            .delete()
+            .eq("course_id", courseId)
+            .eq("mode", mode)
+            .eq("subject", subject)
+            .eq("chapter", chapter)
+            .eq("sub_chapter", subChapter);
+          if (delErr) throw delErr;
+        }
       }
     },
     onSuccess: () => {
       toast({ title: "Access updated" });
-      queryClient.invalidateQueries({ queryKey: ["readymade-access-rows", mode] });
+      queryClient.invalidateQueries({ queryKey: ["course-readymade-access-grants", courseId, mode] });
       queryClient.invalidateQueries({ queryKey: ["course-readymade-full-access", courseId] });
       setPendingSelection(null);
       setPendingFullAccess(null);
