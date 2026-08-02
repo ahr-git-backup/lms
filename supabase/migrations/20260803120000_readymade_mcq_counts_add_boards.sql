@@ -72,3 +72,5 @@ END;
 $$;
 
 GRANT EXECUTE ON FUNCTION public.get_readymade_mcq_counts(text[], text[]) TO authenticated, anon;
+
+NOTIFY pgrst, 'reload schema';
