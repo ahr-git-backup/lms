@@ -54,13 +54,12 @@ BEGIN
         WHERE eq.readymade_sub_chapter IS NOT NULL
         GROUP BY eq.chapter, eq.readymade_sub_chapter
     )
-    SELECT COALESCE(jsonb_object_agg(subject_name, total), '{}'::jsonb) INTO v_subject_counts FROM subject_totals;
-
-    SELECT COALESCE(jsonb_object_agg(chapter_name, total), '{}'::jsonb) INTO v_chapter_counts FROM chapter_totals;
-
-    SELECT COALESCE(jsonb_object_agg(key_name, total), '{}'::jsonb) INTO v_board_counts FROM board_totals;
-
-    SELECT COALESCE(jsonb_object_agg(key_name, total), '{}'::jsonb) INTO v_subchapter_counts FROM subchapter_totals;
+    SELECT
+        (SELECT COALESCE(jsonb_object_agg(subject_name, total), '{}'::jsonb) FROM subject_totals),
+        (SELECT COALESCE(jsonb_object_agg(chapter_name, total), '{}'::jsonb) FROM chapter_totals),
+        (SELECT COALESCE(jsonb_object_agg(key_name, total), '{}'::jsonb) FROM board_totals),
+        (SELECT COALESCE(jsonb_object_agg(key_name, total), '{}'::jsonb) FROM subchapter_totals)
+    INTO v_subject_counts, v_chapter_counts, v_board_counts, v_subchapter_counts;
 
     RETURN jsonb_build_object(
         'subject_counts', v_subject_counts,
