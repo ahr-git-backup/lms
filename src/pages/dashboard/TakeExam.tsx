@@ -225,6 +225,11 @@ const TakeExam = () => {
     },
   });
 
+  // Exams with "Allow Dashboard" (show_on_landing) on always use the plain
+  // Live-Exam-style pre-exam screen — no Quick Practice toggle, no MCQ Count
+  // selector — regardless of whether is_readymade is true or false.
+  const showsReadymadeUI = !!(exam?.is_readymade && !exam?.external_exam_link && !exam?.show_on_landing);
+
   // Direct Quick Practice deep-link: if ?qp=1 is present (from post-exam header button),
   // skip the pre-exam mode-select screen entirely and jump straight into the same
   // quiz-style Quick Practice experience as the toggle-and-Start flow.
@@ -372,7 +377,7 @@ const TakeExam = () => {
       if (error) throw error;
       return data;
     },
-    enabled: isQuickPracticeMode && !!exam?.is_readymade && !exam?.external_exam_link && !!user?.id,
+    enabled: isQuickPracticeMode && showsReadymadeUI && !!user?.id,
     retry: 1,
   });
 
@@ -528,7 +533,7 @@ const TakeExam = () => {
       const savedCount = localStorage.getItem(savedCountKey);
       const savedQpMode = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`);
 
-      const isReadymadeCountExam = exam.is_readymade && !exam.external_exam_link;
+      const isReadymadeCountExam = showsReadymadeUI;
 
       // If the in-progress session was Quick Practice, restore that mode and STOP —
       // Quick Practice never uses the normal timer/answers session below.
@@ -591,7 +596,7 @@ const TakeExam = () => {
     const now = Date.now();
     // For readymade exams where the student picked a specific MCQ count,
     // exam duration = count × 30 seconds per MCQ, overriding the exam's fixed duration.
-    const isReadymadeCountMode = exam.is_readymade && !exam.external_exam_link && !!selectedQuestionCount;
+    const isReadymadeCountMode = showsReadymadeUI && !!selectedQuestionCount;
     const durationSeconds = isReadymadeCountMode
         ? selectedQuestionCount * 30
         : exam.duration_minutes * 60;
@@ -921,7 +926,7 @@ const TakeExam = () => {
                       <div className="grid grid-cols-3 gap-1.5">
                           <div className="flex flex-col items-center justify-center p-1.5 bg-secondary/30 rounded-lg">
                               <span className="text-base font-bold text-primary">
-                                  {exam.is_readymade && !exam.external_exam_link && selectedQuestionCount
+                                  {showsReadymadeUI && selectedQuestionCount
                                       ? Math.ceil((selectedQuestionCount * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
@@ -940,7 +945,7 @@ const TakeExam = () => {
               </Card>
 
               {/* Card: Quick Practice Mode toggle */}
-              {exam.is_readymade && !exam.external_exam_link && (
+              {showsReadymadeUI && (
                   <Card className="w-full rounded-xl shadow-sm border overflow-hidden shrink-0">
                       <div className="px-2.5 py-1.5 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 min-w-0">
@@ -973,7 +978,7 @@ const TakeExam = () => {
               )}
 
               {/* Card: Readymade MCQ Count Selector */}
-              {exam.is_readymade && !exam.external_exam_link && (
+              {showsReadymadeUI && (
                   <Card className="w-full rounded-xl shadow-sm border overflow-hidden">
                       {hasImageOrPatternQuestions && (
                           <div className="px-3 pt-2 pb-1 border-b space-y-1">
@@ -1150,7 +1155,7 @@ const TakeExam = () => {
                           <Button
                               className="flex-[2] h-10 text-sm rounded-xl font-semibold shadow-md"
                               onClick={() => {
-                                  if (hasImageOrPatternQuestions && exam.is_readymade && !exam.external_exam_link && !isQuickPracticeMode && !contentMode) {
+                                  if (hasImageOrPatternQuestions && showsReadymadeUI && !isQuickPracticeMode && !contentMode) {
                                       toast({
                                           title: "মোড সিলেক্ট করুন",
                                           description: "পরীক্ষা শুরু করার আগে উপরে থেকে চিত্র/উদ্দীপকসহ অথবা চিত্র/উদ্দীপকছাড়া মোড বেছে নিন।",

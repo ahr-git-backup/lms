@@ -98,6 +98,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                error = retry.error;
             } else {
               console.error("Failed to create profile lazy:", insertError);
+              toast({
+                title: "প্রোফাইল লোড করা যায়নি",
+                description: "একটি সমস্যা হয়েছে। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।",
+                variant: "destructive",
+              });
             }
           }
         }
@@ -131,6 +136,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("fetchProfile failed:", err);
+      toast({
+        title: "প্রোফাইল লোড করা যায়নি",
+        description: "নেটওয়ার্ক সমস্যা হতে পারে। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।",
+        variant: "destructive",
+      });
     }
   };
 
@@ -244,7 +254,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 .update({ current_session_id: newSessionId })
                 .eq("id", data.user.id);
 
-            if (updateError) console.error("Failed to update session ID", updateError);
+            if (updateError) {
+              console.error("Failed to update session ID", updateError);
+              toast({
+                title: "সেশন সিঙ্ক সমস্যা",
+                description: "লগইন হয়েছে, তবে একটি সমস্যার কারণে অন্য ডিভাইসে সমস্যা হতে পারে। কোনো সমস্যা মনে হলে পুনরায় লগইন করুন।",
+                variant: "destructive",
+              });
+            }
           }
           // Privileged users: don't touch current_session_id at all, so no
           // other admin/teacher session anywhere gets invalidated by this login.

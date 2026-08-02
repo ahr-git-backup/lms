@@ -14,7 +14,8 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search } from "lucide-react";
+import { FileUp, Trash2, Trophy, FileQuestion, Clock, CheckCircle, ChevronLeft, ChevronRight, Lock, Copy, MoreHorizontal, Edit, ExternalLink, Plus, LayoutGrid, List, FileText, RotateCw, Archive, Search, Download } from "lucide-react";
+import Papa from "papaparse";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -90,23 +91,24 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   });
 
   const { data: readymadeCategories } = useQuery({
-    queryKey: ["admin-exams-readymade-categories"],
+    queryKey: ["admin-exams-readymade-topics"],
     queryFn: async () => {
       const set = new Set<string>();
       const BATCH = 1000;
       let from = 0;
       // Paginate through ALL readymade exams — a plain select() is capped at
       // 1000 rows by Supabase/PostgREST, which was silently dropping
-      // categories that only appeared later in the table.
+      // topics that only appeared later in the table.
       while (true) {
         const { data, error } = await supabase
           .from("exams")
-          .select("readymade_category")
+          .select("readymade_topic")
           .eq("is_readymade", true)
-          .not("readymade_category", "is", null)
+          .is("split_start", null)
+          .not("readymade_topic", "is", null)
           .range(from, from + BATCH - 1);
         if (error) throw error;
-        (data || []).forEach((r: any) => { if (r.readymade_category) set.add(r.readymade_category); });
+        (data || []).forEach((r: any) => { if (r.readymade_topic) set.add(r.readymade_topic); });
         if (!data || data.length < BATCH) break;
         from += BATCH;
       }
@@ -121,6 +123,8 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       let query = supabase
         .from("exams")
         .select("*, course:courses(id, name)", { count: "exact" })
+        .is("split_start", null)
+        .not("category", "cs", '{"Custom Exam"}')
         .order("created_at", { ascending: false });
 
       if (isFreeMode) {
@@ -141,14 +145,14 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       if (mainCategory === "readymade") {
           query = query.eq("is_readymade", true);
           if (readymadeSubCategory !== "all") {
-              query = query.eq("readymade_category", readymadeSubCategory);
+              query = query.eq("readymade_topic", readymadeSubCategory);
           }
       } else if (mainCategory === "live") {
           query = query.eq("is_readymade", false).eq("exam_type", "live");
       } else if (mainCategory === "practice") {
           query = query.eq("is_readymade", false).eq("exam_type", "practice");
       } else if (mainCategory === "free") {
-          query = query.is("course_id", null).eq("is_readymade", false);
+          query = query.eq("is_visible_on_free", true).eq("is_readymade", false);
       }
 
       const { data, error, count } = await query.range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
@@ -158,6 +162,28 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   });
 
   const exams = examsData?.data || [];
+
+  // When browsing "Readymade" → "All", group exams by their Parent Topic
+  // (readymade_topic) so each topic appears as its own section with a
+  // header, instead of one flat undifferentiated list.
+  const isReadymadeGroupedView = mainCategory === "readymade" && readymadeSubCategory === "all";
+  const displayExams = isReadymadeGroupedView
+      ? [...exams].sort((a: any, b: any) => {
+          const ta = a.readymade_topic || "";
+          const tb = b.readymade_topic || "";
+          if (ta === tb) return 0;
+          if (!ta) return 1; // untagged exams go last
+          if (!tb) return -1;
+          return ta.localeCompare(tb);
+        })
+      : exams;
+  const getGroupHeaderTopic = (index: number): string | null => {
+      if (!isReadymadeGroupedView) return null;
+      const exam = displayExams[index];
+      const topic = exam?.readymade_topic || "অন্যান্য (Uncategorized)";
+      const prevTopic = index === 0 ? null : (displayExams[index - 1]?.readymade_topic || "অন্যান্য (Uncategorized)");
+      return topic !== prevTopic ? topic : null;
+  };
   const totalCount = examsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
@@ -186,6 +212,63 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
       });
     },
   });
+
+  const handleDownloadCSV = async (examId: string, examTitle: string) => {
+    try {
+        const { data: questions, error } = await supabase
+            .from("exam_questions")
+            .select("*")
+            .eq("exam_id", examId)
+            .order("question_index", { ascending: true });
+
+        if (error) throw error;
+        if (!questions || questions.length === 0) {
+            toast({ title: "No questions found", variant: "destructive" });
+            return;
+        }
+
+        const rows = questions.map((q: any) => {
+            const answerLetter = String(q.correct_option || "").toUpperCase();
+            const answerNum =
+                answerLetter === "A" ? "1" :
+                answerLetter === "B" ? "2" :
+                answerLetter === "C" ? "3" :
+                answerLetter === "D" ? "4" :
+                answerLetter === "E" ? "5" : "";
+            return {
+                questions: q.question_text || "",
+                option1: q.option_a || "",
+                option2: q.option_b || "",
+                option3: q.option_c || "",
+                option4: q.option_d || "",
+                option5: q.option_e || "",
+                answer: answerNum,
+                explanation: q.explanation || "",
+                type: "1",
+                section: "1",
+            };
+        });
+
+        const csv = Papa.unparse(rows, {
+            columns: ["questions", "option1", "option2", "option3", "option4", "option5", "answer", "explanation", "type", "section"],
+        });
+
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", (examTitle || "quiz") + ".csv");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+
+        toast({ title: "CSV Downloaded", description: `Exported ${questions.length} questions.` });
+    } catch (error) {
+        console.error("CSV download failed", error);
+        toast({ title: "CSV Download Failed", variant: "destructive" });
+    }
+  };
 
   const handleGenerateSolvesheet = async (examId: string, examTitle: string) => {
     try {
@@ -528,8 +611,18 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {exams.map((exam: any) => (
-                            <TableRow key={exam.id} className="hover:bg-muted/50 transition-colors">
+                        {displayExams.map((exam: any, idx: number) => {
+                            const groupHeader = getGroupHeaderTopic(idx);
+                            return (
+                            <React.Fragment key={exam.id}>
+                            {groupHeader && (
+                                <TableRow className="hover:bg-transparent">
+                                    <TableCell colSpan={isFreeMode ? 8 : 9} className="bg-muted/40 font-bold text-sm py-2">
+                                        {groupHeader}
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            <TableRow className="hover:bg-muted/50 transition-colors">
                             {!isFreeMode && (
                                 <TableCell className="whitespace-nowrap font-medium">
                                     {exam.course?.name || <Badge variant="secondary">Public</Badge>}
@@ -646,15 +739,25 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 </div>
                             </TableCell>
                             </TableRow>
-                        ))}
+                            </React.Fragment>
+                            );
+                        })}
                         </TableBody>
                     </Table>
                 </div>
 
                 {/* Mobile Card View */}
                 <div className="md:hidden grid sm:grid-cols-2 gap-4">
-                    {exams.map((exam: any) => (
-                        <Card key={exam.id} className="hover:border-primary/50 transition-colors w-full overflow-hidden">
+                    {displayExams.map((exam: any, idx: number) => {
+                        const groupHeader = getGroupHeaderTopic(idx);
+                        return (
+                        <React.Fragment key={exam.id}>
+                        {groupHeader && (
+                            <div className="col-span-full bg-muted/40 rounded-lg font-bold text-sm py-2 px-3">
+                                {groupHeader}
+                            </div>
+                        )}
+                        <Card className="hover:border-primary/50 transition-colors w-full overflow-hidden">
                             <CardContent className="p-4 space-y-3">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="space-y-1 min-w-0">
@@ -749,6 +852,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                                 <DropdownMenuItem onClick={() => handleGenerateSolvesheet(exam.id, exam.title)}>
                                                     <FileText className="mr-2 h-4 w-4 text-emerald-600" /> Print Solution
                                                 </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => handleDownloadCSV(exam.id, exam.title)}>
+                                                    <Download className="mr-2 h-4 w-4 text-blue-600" /> Download CSV
+                                                </DropdownMenuItem>
                                                 {isAdmin && (
                                                     <DropdownMenuItem onClick={() => handleRecalculateResults(exam.id)}>
                                                         <RotateCw className="mr-2 h-4 w-4 text-orange-600" /> Recalculate
@@ -770,7 +876,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                 </div>
                             </CardContent>
                         </Card>
-                    ))}
+                        </React.Fragment>
+                        );
+                    })}
                 </div>
 
                 {/* Pagination Controls */}

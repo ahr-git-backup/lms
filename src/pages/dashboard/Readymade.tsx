@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -49,12 +50,24 @@ async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): P
 // client-side so we can render ALL exams and just lock the ones the user
 // doesn't have access to, instead of hiding them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isExamUnlocked = (exam: any, enrolledIds: string[]): boolean => {
+const isExamUnlocked = (exam: any, enrolledIds: string[], fullAccessCourseIds: string[] = [], subChapterGrants: Set<string> = new Set()): boolean => {
   if (exam.is_visible_on_free) return true;
   if (enrolledIds.length === 0) return false;
+  if (fullAccessCourseIds.length > 0 && fullAccessCourseIds.some((id) => enrolledIds.includes(id))) return true;
   if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
   if (Array.isArray(exam.shared_course_ids) && exam.shared_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
   if (Array.isArray(exam.readymade_course_ids) && exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+  // Sub-chapter-level grant: matches if ANY enrolled course has granted access
+  // to this exam's subject/chapter/sub-chapter combo (future-proof, covers
+  // exams added after the grant was made).
+  const subs: string[] = Array.isArray(exam.subject) ? exam.subject : (typeof exam.subject === "string" ? [exam.subject] : []);
+  const chapter = exam.chapter || "সাধারণ";
+  const subChapter = exam.readymade_sub_chapter || "সাধারণ";
+  for (const subject of subs) {
+    for (const courseId of enrolledIds) {
+      if (subChapterGrants.has(`${courseId}|||${subject}|||${chapter}|||${subChapter}`)) return true;
+    }
+  }
   return false;
 };
 
@@ -505,6 +518,29 @@ const Readymade = () => {
 const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
+  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
+
+  const { data: subChapterGrants } = useQuery({
+    queryKey: ["course-readymade-subchapter-grants", enrolledIds.join(',')],
+    queryFn: async () => {
+      if (enrolledIds.length === 0) return new Set<string>();
+      const { data, error } = await supabase
+        .from("course_readymade_access")
+        .select("course_id, subject, chapter, sub_chapter")
+        .eq("mode", "readymade")
+        .in("course_id", enrolledIds);
+      if (error) throw error;
+      return new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}|||${g.sub_chapter}`));
+    },
+    enabled: enrolledIds.length > 0,
+    // Access can be granted by admin at any time while a student already has
+    // this page open — keep grants fresh so newly-granted content unlocks
+    // without requiring a manual page reload.
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
 
   // --- SEARCH ---
   const { data: searchResults, isLoading: searching } = useQuery({
@@ -531,37 +567,60 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   // --- LEVEL 1: SUBJECTS ---
-  const { data: subjects, isLoading: loadingSubjects } = useQuery({
+  const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
     queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null }>((from, to) => {
-        let query = supabase.from("exams").select("subject, course_id, shared_course_ids")
+      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; chapter: string | null; readymade_sub_chapter: string | null; is_visible_on_free: boolean | null }>((from, to) => {
+        let query = supabase.from("exams").select("subject, course_id, shared_course_ids, readymade_course_ids, chapter, readymade_sub_chapter, is_visible_on_free")
           .eq("is_readymade", true).eq("is_published", true).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
         return query;
       });
       const unique = new Set<string>();
+      const subjectCourseIds: Record<string, Set<string>> = {};
+      const unlockMap: Record<string, boolean> = {};
       data.forEach((row: any) => {
-        if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-        else if (typeof row.subject === 'string') unique.add(row.subject);
+        const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === 'string' ? [row.subject] : []);
+        subs.forEach((s: string) => {
+          unique.add(s);
+          if (!subjectCourseIds[s]) subjectCourseIds[s] = new Set();
+          if (row.course_id) subjectCourseIds[s].add(row.course_id);
+          if (Array.isArray(row.shared_course_ids)) row.shared_course_ids.forEach((id: string) => subjectCourseIds[s].add(id));
+          if (!unlockMap[s]) {
+            const rowUnlocked = isExamUnlocked(
+              { course_id: row.course_id, shared_course_ids: row.shared_course_ids, readymade_course_ids: row.readymade_course_ids, subject: [s], chapter: row.chapter, readymade_sub_chapter: row.readymade_sub_chapter, is_visible_on_free: row.is_visible_on_free },
+              enrolledIds, fullAccessCourseIds, subChapterGrants
+            );
+            if (rowUnlocked) unlockMap[s] = true;
+          }
+        });
       });
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
-      return Array.from(unique).sort((a, b) => {
+      const sortedSubjects = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
+      const courseIdsBySubject: Record<string, string[]> = {};
+      Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
+      return { subjects: sortedSubjects, courseIdsBySubject, unlockMap };
     },
     enabled: !selectedSubject && !searchQuery
   });
 
+  const subjects = subjectsResult?.subjects;
+  const isSubjectUnlocked = (subject: string): boolean => {
+    if (isAdmin) return true;
+    return !!subjectsResult?.unlockMap?.[subject];
+  };
+
   // Per-subject MCQ count badge — total questions across all exams in each
   // subject, for the subject-selection cards. Backed by a single server-side
   // aggregation RPC instead of paginating every exam_questions row client-side.
-  const { data: mcqCountsData } = useQuery({
+  const { data: mcqCountsData, isLoading: loadingMcqCounts } = useQuery({
     queryKey: ["readymade-mcq-counts", selectedParentTopics, selectedBoards],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_readymade_mcq_counts", {
@@ -569,25 +628,27 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         p_readymade_categories: selectedBoards?.length > 0 ? selectedBoards : null,
       });
       if (error) throw error;
-      return data as { subject_counts: Record<string, number>; chapter_counts: Record<string, number> };
+      return data as { subject_counts: Record<string, number>; chapter_counts: Record<string, number>; subchapter_counts: Record<string, number> };
     },
   });
   const subjectMcqCounts = mcqCountsData?.subject_counts;
   const chapterMcqCounts = mcqCountsData?.chapter_counts;
+  const subChapterMcqCounts = mcqCountsData?.subchapter_counts;
 
   // --- LEVEL 2: CHAPTERS ---
-  const { data: chapters, isLoading: loadingChapters } = useQuery({
+  const { data: chaptersResult, isLoading: loadingChapters } = useQuery({
     queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      if (!selectedSubject) return [];
-      const data = await fetchAllRows<{ chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; sort_order: number | null }>((from, to) => {
-        let query = supabase.from("exams").select("chapter, course_id, shared_course_ids, sort_order")
+      if (!selectedSubject) return { chapters: [], unlockMap: {} as Record<string, boolean> };
+      const data = await fetchAllRows<{ chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; readymade_sub_chapter: string | null; sort_order: number | null }>((from, to) => {
+        let query = supabase.from("exams").select("chapter, course_id, shared_course_ids, readymade_course_ids, readymade_sub_chapter, sort_order")
           .eq("is_readymade", true).eq("is_published", true).contains("subject", [selectedSubject]).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
         return query;
       });
       const unique = new Set<string>(); const orderMap = new Map<string, number>();
+      const unlockMap: Record<string, boolean> = {};
       const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
@@ -596,9 +657,16 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           unique.add(row.chapter);
           const cur = orderMap.get(row.chapter) || 0;
           if ((row.sort_order || 0) > cur) orderMap.set(row.chapter, row.sort_order || 0);
+          if (!unlockMap[row.chapter]) {
+            const rowUnlocked = isExamUnlocked(
+              { course_id: row.course_id, shared_course_ids: row.shared_course_ids, readymade_course_ids: row.readymade_course_ids, subject: [selectedSubject], chapter: row.chapter, readymade_sub_chapter: row.readymade_sub_chapter, is_visible_on_free: false },
+              enrolledIds, fullAccessCourseIds, subChapterGrants
+            );
+            if (rowUnlocked) unlockMap[row.chapter] = true;
+          }
         }
       });
-      return Array.from(unique).sort((a, b) => {
+      const chapters = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
@@ -606,9 +674,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         if (oA !== oB) return oB - oA;
         return a.localeCompare(b);
       });
+      return { chapters, unlockMap };
     },
     enabled: !!selectedSubject && !selectedChapter && !searchQuery
   });
+  const chapters = chaptersResult?.chapters;
+  const chapterUnlockMap = chaptersResult?.unlockMap || {};
 
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
@@ -692,13 +763,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   });
 
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
-  const { data: subChapters, isLoading: loadingSubChapters } = useQuery({
+  const { data: subChaptersResult, isLoading: loadingSubChapters } = useQuery({
     queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, selectedBoardStep, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      if (!selectedSubject || !selectedChapter) return [];
-      const data = await fetchAllRows<{ readymade_sub_chapter: string | null }>((from, to) => {
+      if (!selectedSubject || !selectedChapter) return { subChapters: [], unlockMap: {} as Record<string, boolean> };
+      const data = await fetchAllRows<{ readymade_sub_chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null }>((from, to) => {
         let query = supabase.from("exams")
-          .select("readymade_sub_chapter")
+          .select("readymade_sub_chapter, course_id, shared_course_ids, readymade_course_ids")
           .eq("is_readymade", true).eq("is_published", true)
           .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
           .not("readymade_sub_chapter", "is", null)
@@ -709,12 +780,26 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         return query;
       });
       const unique = new Set<string>();
-      data.forEach((row: any) => { if (row.readymade_sub_chapter) unique.add(row.readymade_sub_chapter); });
-      return Array.from(unique).sort();
+      const unlockMap: Record<string, boolean> = {};
+      data.forEach((row: any) => {
+        if (row.readymade_sub_chapter) {
+          unique.add(row.readymade_sub_chapter);
+          if (!unlockMap[row.readymade_sub_chapter]) {
+            const rowUnlocked = isExamUnlocked(
+              { course_id: row.course_id, shared_course_ids: row.shared_course_ids, readymade_course_ids: row.readymade_course_ids, subject: [selectedSubject], chapter: selectedChapter, readymade_sub_chapter: row.readymade_sub_chapter, is_visible_on_free: false },
+              enrolledIds, fullAccessCourseIds, subChapterGrants
+            );
+            if (rowUnlocked) unlockMap[row.readymade_sub_chapter] = true;
+          }
+        }
+      });
+      return { subChapters: Array.from(unique).sort(), unlockMap };
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedSubChapter && !searchQuery
       && (!!selectedBoardStep || chapterBoards?.length === 0)
   });
+  const subChapters = subChaptersResult?.subChapters;
+  const subChapterUnlockMap = subChaptersResult?.unlockMap || {};
 
   // --- LEVEL 4: EXAMS (filtered by sub-chapter if present, else no sub-chapter filter) ---
   // No .range() here on purpose — user wants every exam in the chapter/session
@@ -749,7 +834,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     const exams = searchResults?.data || [];
     const count = searchResults?.count || 0;
     if (exams.length === 0) return <div className="text-center py-12 text-muted-foreground">No readymade exams found matching "{searchQuery}".</div>;
-    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} /></div>;
+    return <div className="space-y-3"><PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} /><ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} fullAccessCourseIds={fullAccessCourseIds} subChapterGrants={subChapterGrants} onLockedClick={setLockedExam} isAdmin={isAdmin} /></div>;
   }
 
   // LEVEL 1: Subject selection
@@ -763,6 +848,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
     return (
       <div className="space-y-3">
+        <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} />
         {overallStats ? (
           <div className="grid grid-cols-3 gap-2">
             <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
@@ -797,22 +883,41 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           </div>
         ) : null}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-        {subjects.map(subject => (
-          <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
+        {subjects.map(subject => {
+          const unlocked = isSubjectUnlocked(subject);
+          return (
+          <Card
+            key={subject}
+            className={`relative transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""}`}
+            onClick={() => setSelectedSubject(subject)}
+          >
+            {!unlocked && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${subject}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+                className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+              >
+                <Lock className="h-3 w-3" />
+              </button>
+            )}
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
-                <Trophy className="h-3.5 w-3.5 text-primary" />
+                {loadingMcqCounts ? (
+                  <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                ) : typeof subjectMcqCounts?.[subject] === "number" ? (
+                  <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {subjectMcqCounts[subject]} MCQ
+                  </span>
+                ) : (
+                  <Trophy className="h-3.5 w-3.5 text-primary" />
+                )}
               </div>
-              <div className="text-base sm:text-xl font-bold text-primary leading-tight whitespace-pre-line">{subject}</div>
-              {typeof subjectMcqCounts?.[subject] === "number" && (
-                <span className="inline-block mt-1.5 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">
-                  {subjectMcqCounts[subject]} MCQ
-                </span>
-              )}
+              <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
         </div>
       </div>
     );
@@ -828,12 +933,25 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-              {chapters.map(chapter => (
-                <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
+              {chapters.map(chapter => {
+                const chapterUnlocked = chapterUnlockMap[chapter];
+                return (
+                <Card key={chapter} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!chapterUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedChapter(chapter)}>
+                  {!chapterUnlocked && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${chapter}" চ্যাপ্টারে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+                      className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+                    >
+                      <Lock className="h-3 w-3" />
+                    </button>
+                  )}
                   <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
                     <div className="flex items-start justify-between gap-2">
                       <div className="text-sm sm:text-base font-semibold leading-tight">{chapter}</div>
-                      {typeof chapterMcqCounts?.[chapter] === "number" && (
+                      {loadingMcqCounts ? (
+                        <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                      ) : typeof chapterMcqCounts?.[chapter] === "number" && (
                         <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
                           {chapterMcqCounts[chapter]} MCQ
                         </span>
@@ -842,7 +960,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                   </CardContent>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
       </div>
@@ -891,14 +1010,36 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         <h2 className="text-base font-bold">Select Session / Year</h2>
         {loadingSubChapters ? <div className="text-muted-foreground">Loading sessions...</div> : (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
-            {subChapters.map(sc => (
-              <Card key={sc} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubChapter(sc)}>
+            {subChapters.map(sc => {
+              const scCount = subChapterMcqCounts?.[`${selectedChapter}||${sc}`];
+              const scUnlocked = subChapterUnlockMap[sc];
+              return (
+              <Card key={sc} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!scUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedSubChapter(sc)}>
+                {!scUnlocked && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${sc}" সেশনে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+                    className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+                  >
+                    <Lock className="h-3 w-3" />
+                  </button>
+                )}
                 <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-                  <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="text-sm sm:text-base font-semibold leading-tight">{sc}</div>
+                    {loadingMcqCounts ? (
+                      <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                    ) : typeof scCount === "number" && (
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        {scCount} MCQ
+                      </span>
+                    )}
+                  </div>
                   <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
                 </CardContent>
               </Card>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -934,7 +1075,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       ) : !exams || exams.length === 0 ? (
         <div className="text-muted-foreground">No exams found.</div>
       ) : (
-        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} onLockedClick={setLockedExam} isAdmin={isAdmin} />
+        <ExamGrid exams={exams} navigate={navigate} enrolledIds={enrolledIds} fullAccessCourseIds={fullAccessCourseIds} subChapterGrants={subChapterGrants} onLockedClick={setLockedExam} isAdmin={isAdmin} />
       )}
     </div>
   );
@@ -1088,7 +1229,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1132,14 +1273,23 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], onLockedClick, isAdmin = 
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {exams.map((exam) => {
-      const unlocked = isExamUnlocked(exam, enrolledIds);
+      const unlocked = isExamUnlocked(exam, enrolledIds, fullAccessCourseIds, subChapterGrants);
       return (
-        <Card key={exam.id} className={`cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
+        <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
             if (!unlocked) { onLockedClick?.(exam); return; }
             setExamSourceList(exam.id, "/dashboard/readymade");
             navigate(`/dashboard/take-exam/${exam.id}`);
           }}>
+          {!unlocked && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${exam.title}" পরীক্ষায় আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+              className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+            >
+              <Lock className="h-3 w-3" />
+            </button>
+          )}
           <CardContent className="px-4 py-2.5">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">

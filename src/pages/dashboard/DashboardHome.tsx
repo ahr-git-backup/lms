@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
+import { LiveCountdown } from "@/components/shared/LiveCountdown";
 
 const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
@@ -288,7 +289,7 @@ const DashboardHome = () => {
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
            </div>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+           <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveClasses.map((classItem: any) => (
                   <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
@@ -316,24 +317,35 @@ const DashboardHome = () => {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
-                  <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <CardHeader className="space-y-1 pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                          <p className="text-sm font-mono uppercase text-muted-foreground">
-                              {exam?.course?.name || "Unknown Course"}
-                          </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                              LIVE EXAM
-                          </span>
+                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 overflow-hidden">
+                    <CardHeader className="space-y-2 px-4 pt-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 break-words">
+                            {exam?.course?.name || "Unknown Course"}
+                        </span>
+                        <span className="animate-pulse shrink-0 inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                            LIVE EXAM
+                        </span>
                       </div>
-                      <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
-                      <CardDescription className="text-sm">
-                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
-                      </CardDescription>
+                      <CardTitle
+                        className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
+                        style={{ fontSize: `${Math.max(1.3, Math.min(2.5, 22 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
+                      >
+                        {exam?.title || "Live Exam"}
+                      </CardTitle>
+                      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <span>এক্সাম শেষ: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
+                        {exam?.time_window_end && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span>সময় বাকি: <LiveCountdown endTime={exam.time_window_end} /></span>
+                          </>
+                        )}
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Take Exam
+                    <CardContent className="px-4 pb-2 pt-1">
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.4rem" }}>
+                          Start Exam
                        </Button>
                     </CardContent>
                   </Card>

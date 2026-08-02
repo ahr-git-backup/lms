@@ -228,11 +228,48 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         );
       }
 
+      // Update the saved position order BEFORE any refetch happens, so the
+      // subjects list query — which reads this order — never sees a stale
+      // mapping (old name gone, new name unmapped => falls to the bottom).
+      const newItems = items.map((s) => (s === oldName ? newName : s));
+      const { error: orderErr } = await supabase
+        .from("app_settings")
+        .upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
+      if (orderErr) throw orderErr;
+
+      // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
+      // Note: a subject may exist on exams.subject without ever having a
+      // global_metadata row (e.g. created before this table existed, or
+      // added some other way) — update() then matches 0 rows silently.
+      // Check first and insert the new name if nothing was there to rename.
+      const { data: metaRow, error: metaSelErr } = await supabase
+        .from("global_metadata")
+        .select("id")
+        .eq("type", "subject")
+        .eq("value", oldName)
+        .maybeSingle();
+      if (metaSelErr) throw metaSelErr;
+
+      if (metaRow) {
+        const { error: metaErr } = await supabase
+          .from("global_metadata")
+          .update({ value: newName })
+          .eq("id", metaRow.id);
+        if (metaErr) throw metaErr;
+      } else {
+        const { error: metaInsErr } = await supabase
+          .from("global_metadata")
+          .insert({ type: "subject", value: newName });
+        // Ignore duplicate (23505) — newName might already exist there.
+        if (metaInsErr && (metaInsErr as any).code !== "23505") throw metaInsErr;
+      }
+
       return newName;
     },
     onSuccess: (newName, { oldName }) => {
       setItems((prev) => prev.map((s) => (s === oldName ? newName : s)));
       toast({ title: "Subject renamed successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
@@ -243,14 +280,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
   });
 
   const handleRename = (oldName: string, newName: string) => {
-    renameMutation.mutate({ oldName, newName }, {
-      onSuccess: () => {
-        // Also keep the saved order list in sync with the new name so
-        // position is preserved after rename.
-        const newItems = items.map((s) => (s === oldName ? newName : s));
-        supabase.from("app_settings").upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
-      },
-    });
+    renameMutation.mutate({ oldName, newName });
   };
 
   const saveOrderMutation = useMutation({

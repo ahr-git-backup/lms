@@ -53,6 +53,7 @@ const examSchema = z.object({
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
+  show_on_landing: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
@@ -133,6 +134,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         time_window_end: "",
         is_published: false,
         is_visible_on_free: false,
+        show_on_landing: false,
         free_exam_category: "HSC",
         restrict_solution: false,
         questions_json: "",
@@ -194,6 +196,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? false,
+                show_on_landing: exam.show_on_landing ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
@@ -342,6 +345,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
+            show_on_landing: parsed.show_on_landing ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
@@ -474,6 +478,69 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               .update(payload)
               .eq("id", parsed.id);
             if (error) throw error;
+
+            // Same question-import handling as the create-new-exam branch below,
+            // for CSV / Question Bank / JSON questions added while editing an
+            // exam that was already saved without questions.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const editQuestionRows: any[] = [];
+
+            if (parsed.questions_json) {
+              try {
+                const jsonData = JSON.parse(parsed.questions_json);
+                if (!Array.isArray(jsonData)) {
+                  throw new Error("Questions JSON must be an array.");
+                }
+                editQuestionRows.push(...normaliseQuestions(jsonData));
+              } catch (err) {
+                if (err instanceof Error) {
+                    throw new Error(`Invalid questions JSON: ${err.message}`);
+                }
+                 throw new Error(`Invalid questions JSON: ${String(err)}`);
+              }
+            }
+
+            if (parsed.questions_csv) {
+              editQuestionRows.push(...parseCsvQuestions(parsed.questions_csv));
+            }
+
+            if (qbQuestions.length) {
+              qbQuestions.forEach((q: any) => {
+                editQuestionRows.push({
+                  question_text: q.question_text ?? q.question,
+                  option_a: q.option_a ?? q.options?.A ?? "",
+                  option_b: q.option_b ?? q.options?.B ?? "",
+                  option_c: q.option_c ?? q.options?.C ?? "",
+                  option_d: q.option_d ?? q.options?.D ?? "",
+                  correct_option: q.correct_option ?? q.correct_answer ?? "A",
+                  marks: q.marks ?? 1,
+                  explanation: q.explanation || null,
+                });
+              });
+            }
+
+            if (editQuestionRows.length) {
+              // Find current max question_index for this exam so newly imported
+              // questions are appended after existing ones instead of colliding.
+              const { data: existingQs } = await supabase
+                .from("exam_questions")
+                .select("question_index")
+                .eq("exam_id", parsed.id)
+                .order("question_index", { ascending: false })
+                .limit(1);
+              const startIndex = (existingQs?.[0]?.question_index || 0) + 1;
+
+              const rowsWithExam = editQuestionRows.map((q, index) => ({
+                exam_id: parsed.id,
+                question_index: startIndex + index,
+                ...q,
+              }));
+
+              const { error: qError } = await supabase
+                .from("exam_questions")
+                .insert(rowsWithExam);
+              if (qError) throw qError;
+            }
           } else {
             const { data, error } = await supabase
               .from("exams")
@@ -557,6 +624,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: "",
                 is_published: false,
                 is_visible_on_free: false,
+                show_on_landing: false,
                 free_exam_category: "HSC",
                 restrict_solution: false,
                 questions_json: "",
@@ -569,6 +637,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               });
           }
           if (!exam) sessionStorage.removeItem(DRAFT_KEY);
+          if (exam) setForm((prev) => ({ ...prev, questions_json: "", questions_csv: "" }));
+          setQbQuestions([]);
           onSuccess();
         },
         onError: (error: Error) => {
@@ -831,6 +901,19 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                           }
                       />
                       <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
+                  </div>
+              )}
+
+              {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                      <Switch
+                          id="show_on_landing"
+                          checked={form.show_on_landing}
+                          onCheckedChange={(checked) =>
+                              setForm((prev) => ({ ...prev, show_on_landing: checked }))
+                          }
+                      />
+                      <Label htmlFor="show_on_landing">Allow Dashboard (Show on Landing Page)</Label>
                   </div>
               )}
 
