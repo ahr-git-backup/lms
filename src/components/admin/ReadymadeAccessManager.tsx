@@ -193,12 +193,14 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
         }
       }
     },
-    onSuccess: () => {
-      toast({ title: "Access updated" });
-      queryClient.invalidateQueries({ queryKey: ["course-readymade-access-grants", courseId, mode] });
-      queryClient.invalidateQueries({ queryKey: ["course-readymade-full-access", courseId] });
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["course-readymade-access-grants", courseId, mode] }),
+        queryClient.invalidateQueries({ queryKey: ["course-readymade-full-access", courseId] }),
+      ]);
       setPendingSelection(null);
       setPendingFullAccess(null);
+      toast({ title: "Access updated" });
     },
     onError: (err: any) => {
       toast({ title: "Failed to update access", description: err.message, variant: "destructive" });
