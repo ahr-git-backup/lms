@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -857,13 +858,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           return (
           <Card
             key={subject}
-            className={`relative transition-all ${unlocked ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "cursor-pointer opacity-80"}`}
-            onClick={() => { if (unlocked) setSelectedSubject(subject); else setLockedExam({ title: subject, __subjectLock: true }); }}
+            className={`relative transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""}`}
+            onClick={() => setSelectedSubject(subject)}
           >
             {!unlocked && (
-              <div className="absolute top-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1">
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${subject}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+                className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+              >
                 <Lock className="h-3 w-3" />
-              </div>
+              </button>
             )}
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
@@ -1218,12 +1223,21 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     {exams.map((exam) => {
       const unlocked = isExamUnlocked(exam, enrolledIds, fullAccessCourseIds, subChapterGrants);
       return (
-        <Card key={exam.id} className={`cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
+        <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
             if (!unlocked) { onLockedClick?.(exam); return; }
             setExamSourceList(exam.id, "/dashboard/readymade");
             navigate(`/dashboard/take-exam/${exam.id}`);
           }}>
+          {!unlocked && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${exam.title}" পরীক্ষায় আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+              className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+            >
+              <Lock className="h-3 w-3" />
+            </button>
+          )}
           <CardContent className="px-4 py-2.5">
             <div className="flex items-center gap-3">
               <div className="flex-1 min-w-0">
