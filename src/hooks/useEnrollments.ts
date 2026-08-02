@@ -86,6 +86,13 @@ export const useEnrollments = () => {
       return activeEnrollments || [];
     },
     enabled: !!user,
+    // Keep enrollment/course data (including readymade_full_access) fresh so
+    // access granted by an admin while a student's tab is already open
+    // reflects without requiring a manual reload.
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 };
 

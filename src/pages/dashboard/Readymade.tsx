@@ -533,6 +533,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       return new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}|||${g.sub_chapter}`));
     },
     enabled: enrolledIds.length > 0,
+    // Access can be granted by admin at any time while a student already has
+    // this page open — keep grants fresh so newly-granted content unlocks
+    // without requiring a manual page reload.
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000,
+    staleTime: 30000,
   });
 
   // --- SEARCH ---
