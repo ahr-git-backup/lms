@@ -192,6 +192,37 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
         const { error: courseErr } = await supabase.from("courses").update({ [fullAccessField]: pendingFullAccess }).eq("id", courseId);
         if (courseErr) throw courseErr;
       }
+
+      // Sync selected leaves into course_readymade_access so future exams/classes
+      // added under an already-granted subject/chapter/sub-chapter are auto-unlocked
+      // without needing to re-save access here.
+      const { data: existingGrants } = await supabase
+        .from("course_readymade_access")
+        .select("id, subject, chapter, sub_chapter")
+        .eq("course_id", courseId)
+        .eq("mode", mode);
+      const existingKeySet = new Map((existingGrants || []).map((g: any) => [`${g.subject}|||${g.chapter}|||${g.sub_chapter}`, g.id]));
+
+      const toInsert: { subject: string; chapter: string; sub_chapter: string }[] = [];
+      finalSelection.forEach((key) => {
+        if (!existingKeySet.has(key)) {
+          const [subject, chapter, subChapter] = key.split("|||");
+          toInsert.push({ subject, chapter, sub_chapter: subChapter });
+        }
+      });
+      const toDeleteIds: string[] = [];
+      existingKeySet.forEach((id, key) => { if (!finalSelection.has(key)) toDeleteIds.push(id); });
+
+      if (toInsert.length) {
+        const { error: insErr } = await supabase.from("course_readymade_access").insert(
+          toInsert.map((r) => ({ course_id: courseId, mode, ...r }))
+        );
+        if (insErr) throw insErr;
+      }
+      if (toDeleteIds.length) {
+        const { error: delErr } = await supabase.from("course_readymade_access").delete().in("id", toDeleteIds);
+        if (delErr) throw delErr;
+      }
     },
     onSuccess: () => {
       toast({ title: "Access updated" });
