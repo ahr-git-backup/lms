@@ -50,6 +50,8 @@ const examSchema = z.object({
     .refine((val) => !val || !isNaN(Number(val)), { message: "Negative mark must be a number" }),
   instructions: z.string().trim().max(4000).optional().or(z.literal("")),
   time_window_start: z.string().optional(),
+  telegram_notify_enabled: z.boolean().optional(),
+  telegram_message: z.string().optional(),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
@@ -132,6 +134,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         instructions: "",
         time_window_start: "",
         time_window_end: "",
+        telegram_notify_enabled: false,
+        telegram_message: "",
         is_published: false,
         is_visible_on_free: false,
         show_on_landing: false,
@@ -193,6 +197,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     : "0",
                 instructions: exam.instructions ?? "",
                 time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
+                telegram_notify_enabled: (exam as any).telegram_notify_enabled ?? false,
+                telegram_message: (exam as any).telegram_message ?? "",
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? false,
@@ -342,6 +348,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               : 0,
             instructions: parsed.instructions || null,
             time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
+            telegram_notify_enabled: parsed.telegram_notify_enabled ?? false,
+            telegram_message: parsed.telegram_message || null,
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
@@ -622,6 +630,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 instructions: "",
                 time_window_start: "",
                 time_window_end: "",
+                telegram_notify_enabled: false,
+                telegram_message: "",
                 is_published: false,
                 is_visible_on_free: false,
                 show_on_landing: false,
@@ -770,6 +780,34 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </SelectContent>
                 </Select>
               </div>
+
+              {form.exam_type === "live" && (
+                <div className="space-y-2 border rounded-md p-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="telegram_notify_enabled">Telegram Notify (on exam start)</Label>
+                    <Switch
+                      id="telegram_notify_enabled"
+                      checked={!!form.telegram_notify_enabled}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, telegram_notify_enabled: checked }))
+                      }
+                    />
+                  </div>
+                  {form.telegram_notify_enabled && (
+                    <div className="space-y-1">
+                      <Label htmlFor="telegram_message">Telegram Message</Label>
+                      <Textarea
+                        id="telegram_message"
+                        placeholder="Exam live message likhun..."
+                        value={form.telegram_message}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, telegram_message: e.target.value }))
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
