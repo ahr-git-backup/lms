@@ -52,6 +52,7 @@ const examSchema = z.object({
   time_window_start: z.string().optional(),
   telegram_notify_enabled: z.boolean().optional(),
   telegram_message: z.string().optional(),
+  telegram_channel_ids: z.array(z.string()).default([]),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
@@ -136,6 +137,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         time_window_end: "",
         telegram_notify_enabled: false,
         telegram_message: "",
+        telegram_channel_ids: [],
         is_published: false,
         is_visible_on_free: false,
         show_on_landing: false,
@@ -199,6 +201,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
                 telegram_notify_enabled: (exam as any).telegram_notify_enabled ?? false,
                 telegram_message: (exam as any).telegram_message ?? "",
+                telegram_channel_ids: (exam as any).telegram_channel_ids ?? [],
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? false,
@@ -226,6 +229,18 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         queryKey: ["admin-courses-form"],
         queryFn: async () => {
             const { data, error } = await supabase.from("courses").select("id, name");
+            if (error) throw error;
+            return data || [];
+        },
+    });
+
+    const { data: telegramChannels } = useQuery({
+        queryKey: ["telegram-channels-form"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("telegram_channels")
+                .select("id, name, is_active")
+                .eq("is_active", true);
             if (error) throw error;
             return data || [];
         },
@@ -350,6 +365,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
             telegram_notify_enabled: parsed.telegram_notify_enabled ?? false,
             telegram_message: parsed.telegram_message || null,
+            telegram_channel_ids: parsed.telegram_channel_ids || [],
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
@@ -632,6 +648,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: "",
                 telegram_notify_enabled: false,
                 telegram_message: "",
+                telegram_channel_ids: [],
                 is_published: false,
                 is_visible_on_free: false,
                 show_on_landing: false,
@@ -803,6 +820,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                         onChange={(e) =>
                           setForm((prev) => ({ ...prev, telegram_message: e.target.value }))
                         }
+                      />
+                      <Label>Send to Channel(s)</Label>
+                      <MultiSelect
+                        options={telegramChannels?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                        selected={form.telegram_channel_ids}
+                        onChange={(vals) => setForm((prev) => ({ ...prev, telegram_channel_ids: vals }))}
+                        placeholder="Select channel(s)..."
                       />
                     </div>
                   )}
