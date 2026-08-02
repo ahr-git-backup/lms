@@ -159,16 +159,20 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
 
       const rowMap = new Map(rows.map((r: any) => [r.id, r[courseIdsField] || []]));
 
-      for (const id of toGrant) {
-        const updated = Array.from(new Set([...(rowMap.get(id) || []), courseId]));
-        const { error } = await supabase.from(table).update({ [courseIdsField]: updated }).eq("id", id);
-        if (error) throw error;
-      }
-      for (const id of toRevoke) {
-        const updated = (rowMap.get(id) || []).filter((cid: string) => cid !== courseId);
-        const { error } = await supabase.from(table).update({ [courseIdsField]: updated }).eq("id", id);
-        if (error) throw error;
-      }
+      const runBatched = async (ids: string[], updateFn: (id: string) => Record<string, unknown>) => {
+        const CONCURRENCY = 25;
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const batch = ids.slice(i, i + CONCURRENCY);
+          const results = await Promise.all(
+            batch.map((id) => supabase.from(table).update(updateFn(id)).eq("id", id))
+          );
+          const firstError = results.find((r) => r.error)?.error;
+          if (firstError) throw firstError;
+        }
+      };
+
+      await runBatched(toGrant, (id) => ({ [courseIdsField]: Array.from(new Set([...(rowMap.get(id) || []), courseId])) }));
+      await runBatched(toRevoke, (id) => ({ [courseIdsField]: (rowMap.get(id) || []).filter((cid: string) => cid !== courseId) }));
     },
     onSuccess: () => {
       toast({ title: "Access updated" });
