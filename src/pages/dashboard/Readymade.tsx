@@ -950,12 +950,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           return (
           <Card
             key={subject}
-            className={`relative transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""}`}
+            className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""}`}
             onClick={() => setSelectedSubject(subject)}
           >
             {!unlocked && (
               <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
-                <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                <span className="text-lg sm:text-xl font-black text-foreground/15 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
               </div>
             )}
             {!unlocked && (
@@ -1006,7 +1006,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <Card key={chapter} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!chapterUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedChapter(chapter)}>
                   {!chapterUnlocked && (
                     <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
-                      <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                      <span className="text-lg sm:text-xl font-black text-foreground/15 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
                     </div>
                   )}
                   {!chapterUnlocked && (
@@ -1098,7 +1098,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               <Card key={sc} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!scUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedSubChapter(sc)}>
                 {!scUnlocked && (
                   <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
-                    <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                    <span className="text-lg sm:text-xl font-black text-foreground/15 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
                   </div>
                 )}
                 {!scUnlocked && (
