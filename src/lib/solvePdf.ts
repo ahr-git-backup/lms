@@ -95,29 +95,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{@page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}body{-webkit-print-color-adjust:exact;color-adjust:exact;width:210mm;max-width:210mm}.question{break-inside:avoid;page-break-inside:avoid}.explanation{break-inside:avoid;page-break-inside:avoid}.content-columns{column-rule:1px solid #ddd}}
 .print-btn{display:block;text-align:center;margin:20px auto;padding:14px 36px;background:linear-gradient(135deg,#5A5FE0,#7c3aed);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(90,95,224,0.4)}
 @media print{.print-btn{display:none}}
-body{opacity:0;transition:opacity 0.25s ease}
-body.fonts-ready{opacity:1}
-@media print{body{opacity:1!important}}
-</style>
-<script>
-// The preview opens as a plain HTML tab with fonts loaded from Google Fonts
-// over the network, which briefly renders in fallback/system fonts before
-// the real ones arrive (a "flash of unstyled text"). That's what looked
-// "faded"/wrong compared to the downloaded PDF, which is generated after a
-// full render pass. This waits for document.fonts.ready before revealing
-// the page, so what's shown is already using the correct fonts.
-document.addEventListener('DOMContentLoaded', function() {
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(function() {
-      document.body.classList.add('fonts-ready');
-    });
-    // Safety net in case fonts.ready never resolves for some reason
-    setTimeout(function() { document.body.classList.add('fonts-ready'); }, 1500);
-  } else {
-    document.body.classList.add('fonts-ready');
-  }
-});
-</script>`;
+</style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2" }: SolvePdfParams): string {
   const heading = escapeHtml(examName) || "Exam";
