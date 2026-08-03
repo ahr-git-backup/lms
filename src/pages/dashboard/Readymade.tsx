@@ -954,6 +954,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             onClick={() => setSelectedSubject(subject)}
           >
             {!unlocked && (
+              <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
+                <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+              </div>
+            )}
+            {!unlocked && (
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${subject}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
@@ -999,6 +1004,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 const chapterUnlocked = chapterUnlockMap[chapter];
                 return (
                 <Card key={chapter} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!chapterUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedChapter(chapter)}>
+                  {!chapterUnlocked && (
+                    <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
+                      <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                    </div>
+                  )}
                   {!chapterUnlocked && (
                     <button
                       type="button"
@@ -1086,6 +1096,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               const scUnlocked = subChapterUnlockMap[sc];
               return (
               <Card key={sc} className={`relative cursor-pointer hover:border-primary/50 transition-all hover:shadow-md ${!scUnlocked ? "opacity-80" : ""}`} onClick={() => setSelectedSubChapter(sc)}>
+                {!scUnlocked && (
+                  <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
+                    <span className="text-lg sm:text-xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                  </div>
+                )}
                 {!scUnlocked && (
                   <button
                     type="button"
