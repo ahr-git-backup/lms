@@ -28,12 +28,14 @@ interface SolvePdfParams {
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
 
+// NOTE: question_text/options/explanation contain trusted HTML (e.g. <img> tags
+// for question images) coming from our own DB, same as on the Result page where
+// it's rendered via dangerouslySetInnerHTML. So we must NOT escape < > here,
+// otherwise <img> tags get turned into literal text and images don't render in
+// the PDF.
 function escapeHtml(str: string | undefined | null): string {
   if (!str) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return String(str);
 }
 
 // Ported from QuizBot _check_short_option: options count as "short" only if
