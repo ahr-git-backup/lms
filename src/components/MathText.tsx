@@ -31,12 +31,15 @@ function escapeHtml(segment: string): string {
 // combining-mark rendering, this renders the arrow as a manually positioned
 // span sitting above the character that precedes it — works identically
 // everywhere since it's just two stacked, independently-drawn glyphs.
-const VECTOR_ARROW_REGEX = /([^<>\s])\u20D7/g;
+const VECTOR_ARROW_REGEX = /([^<>\s])\s?\u20D7/g;
 function replaceVectorArrows(html: string): string {
   // Uses a standard right-arrow (U+2192, universally supported by every
   // font) sized down and positioned above the preceding character, rather
   // than trying to render U+20D7 itself — some fonts only define U+20D7 as
   // an actual combining glyph and fail to draw it standalone too.
+  // Note: stored text sometimes has a space between the base character and
+  // the arrow (e.g. "V ⃗" rather than "V⃗") — the optional \s? consumes and
+  // discards that space so the arrow still renders directly above the V.
   return html.replace(
     VECTOR_ARROW_REGEX,
     '<span style="position:relative;display:inline-block;padding-top:0.55em;">$1<span style="position:absolute;top:-0.05em;left:50%;transform:translateX(-50%) scaleX(1.3);font-size:0.6em;line-height:1;">&#8594;</span></span>'
