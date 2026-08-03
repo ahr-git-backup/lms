@@ -70,7 +70,9 @@ const FreeExam = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !debouncedSearch
+    enabled: !debouncedSearch,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   // Fetch Search Results
