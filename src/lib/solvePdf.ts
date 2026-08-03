@@ -50,7 +50,7 @@ function checkShortOption(opts: string[]): boolean {
   return true;
 }
 
-const GOOGLE_FONTS_LINK = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols&family=Noto+Sans+Symbols+2&display=swap">`;
+const GOOGLE_FONTS_LINK = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols:text=%E2%83%97%E2%8B%85&family=Noto+Sans+Symbols+2:text=%E2%83%97%E2%8B%85&display=swap">`;
 
 // Ported 1:1 from QuizBot's _PRINT_CSS.
 const PRINT_CSS = `<style>
