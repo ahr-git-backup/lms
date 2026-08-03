@@ -687,6 +687,7 @@ const ExamCreator = () => {
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            encoding: "UTF-8",
             complete: (results) => {
                 if (results.data && results.data.length > 0) {
                      processImportedData(results.data, 'csv');

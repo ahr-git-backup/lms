@@ -297,7 +297,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               });
           }
         };
-        reader.readAsText(file);
+        reader.readAsText(file, "UTF-8");
     };
 
     const [isDraggingJSON, setIsDraggingJSON] = useState(false);
