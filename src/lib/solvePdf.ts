@@ -33,9 +33,21 @@ const OPTION_KEYS = ["A", "B", "C", "D"] as const;
 // it's rendered via dangerouslySetInnerHTML. So we must NOT escape < > here,
 // otherwise <img> tags get turned into literal text and images don't render in
 // the PDF.
+//
+// Vector notation fix: stored text sometimes contains a base character
+// followed by U+20D7 (combining right arrow above), e.g. "V ⃗" for vector V,
+// with or without a space in between. Native combining-mark rendering for
+// this glyph is unreliable in headless Chromium (used for PDF export) the
+// same way it was in the app, so it's replaced with a manually positioned
+// small arrow above the base character instead of relying on the browser
+// to stack the combining mark itself.
+const VECTOR_ARROW_REGEX = /([^<>\s])\s?\u20D7/g;
 function escapeHtml(str: string | undefined | null): string {
   if (!str) return "";
-  return String(str);
+  return String(str).replace(
+    VECTOR_ARROW_REGEX,
+    '<span style="position:relative;display:inline-block;padding-top:0.55em;">$1<span style="position:absolute;top:-0.05em;left:50%;transform:translateX(-50%) scaleX(1.3);font-size:0.6em;line-height:1;">&#8594;</span></span>'
+  );
 }
 
 // Ported from QuizBot _check_short_option: options count as "short" only if
