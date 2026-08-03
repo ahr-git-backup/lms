@@ -81,6 +81,15 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
     setVolume(event.target.getVolume());
     updateQualityLevels();
 
+    // Force best available quality (YouTube lists qualities highest-first)
+    if (typeof event.target.getAvailableQualityLevels === 'function' && typeof event.target.setPlaybackQuality === 'function') {
+      const levels = event.target.getAvailableQualityLevels();
+      if (levels && levels.length > 0) {
+        event.target.setPlaybackQuality(levels[0]);
+        setCurrentQuality(levels[0]);
+      }
+    }
+
     if (isLive && startTime) {
         const start = new Date(startTime).getTime();
         const now = Date.now();
@@ -654,14 +663,12 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
           </div>
         </div>
 
-        {/* Centered Play Button (Initial or Paused) */}
+        {/* Centered Play Icon (Initial or Paused) — no background circle so it doesn't hide content behind it */}
         {!isPlaying && (
             <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]"
             >
-                <div className="p-4 sm:p-5 rounded-full border border-white/10 animate-in zoom-in-50 duration-300">
-                    <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1 drop-shadow-lg" />
-                </div>
+                <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1 drop-shadow-lg animate-in zoom-in-50 duration-300" />
             </div>
         )}
       </div>
