@@ -306,9 +306,9 @@ const FreeExam = () => {
                         onClick={() => setSelectedCategory(cat)}
                     >
                         <CardContent className="px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center text-center gap-2">
-                            <Trophy className="h-8 w-8 sm:h-10 sm:w-10 text-primary group-hover:scale-110 transition-transform" />
-                            <div className="text-lg sm:text-2xl font-bold text-primary leading-tight">{categoryLabel(cat)}</div>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
+                            <Trophy className="h-10 w-10 sm:h-14 sm:w-14 text-primary group-hover:scale-110 transition-transform" />
+                            <div className="text-xl sm:text-3xl font-bold text-primary leading-tight">{categoryLabel(cat)}</div>
+                            <p className="text-sm sm:text-base text-muted-foreground">
                                 {exams?.filter(e => (e.free_exam_category || "HSC") === cat).length || 0} exams
                             </p>
                         </CardContent>
