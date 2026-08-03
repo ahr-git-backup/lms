@@ -1368,6 +1368,11 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
             navigate(`/dashboard/take-exam/${exam.id}`);
           }}>
           {!unlocked && (
+            <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
+              <span className="text-xl sm:text-2xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+            </div>
+          )}
+          {!unlocked && (
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${exam.title}" পরীক্ষায় আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
