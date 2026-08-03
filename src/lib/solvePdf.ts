@@ -149,7 +149,21 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
 
 export function openSolvePdf(params: SolvePdfParams) {
   const html = generateSolvePdfHtml(params);
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
+  const win = window.open("", "_blank");
+  if (!win) {
+    // Popup blocked — fallback to downloadable file
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "practice-sheet.html";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return;
+  }
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
 }

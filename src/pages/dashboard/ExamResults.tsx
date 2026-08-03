@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { openSolvePdf } from "@/lib/solvePdf";
+import { openSolvePdf, generateSolvePdfHtml } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
 import {
   Popover,
@@ -52,6 +52,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
     const [pdfLoading, setPdfLoading] = useState(false);
 
     const handleSheetPdf = async () => {
+        const pdfWindow = window.open("", "_blank");
         setPdfLoading(true);
         try {
             const { data, error } = await supabase
@@ -62,10 +63,11 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             if (error) throw error;
             if (!data || data.length === 0) {
                 toast({ title: "কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+                pdfWindow?.close();
                 return;
             }
             const userAnswers = (attempt.answers as any[]) || [];
-            openSolvePdf({
+            const html = generateSolvePdfHtml({
                 examName: attempt.exam.title,
                 questions: data.map((q: any, idx: number) => ({
                     question_text: q.question_text,
@@ -81,7 +83,30 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                 totalMarks: data.length,
                 style: "style1",
             });
+            if (pdfWindow) {
+                pdfWindow.document.open();
+                pdfWindow.document.write(html);
+                pdfWindow.document.close();
+            } else {
+                openSolvePdf({
+                    examName: attempt.exam.title,
+                    questions: data.map((q: any, idx: number) => ({
+                        question_text: q.question_text,
+                        option_a: q.option_a,
+                        option_b: q.option_b,
+                        option_c: q.option_c,
+                        option_d: q.option_d,
+                        option_e: q.option_e,
+                        correct_option: q.correct_option,
+                        user_answer: userAnswers[idx]?.selected_option || null,
+                        explanation: q.explanation,
+                    })),
+                    totalMarks: data.length,
+                    style: "style1",
+                });
+            }
         } catch (e: any) {
+            pdfWindow?.close();
             toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
         } finally {
             setPdfLoading(false);
