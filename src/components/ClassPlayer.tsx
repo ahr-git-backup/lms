@@ -486,6 +486,16 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
 
         <div id="youtube-player" className="w-full h-full pointer-events-none" />
 
+        {/* Full-area tap-to-toggle play/pause — placed above the video so it
+            works reliably even in rotated (forceRotate) fullscreen mode where
+            some browsers mis-map touch coordinates on nested/transformed
+            elements. Sits below the controls overlay (z-10 vs z-20) so it
+            doesn't block button/slider interactions. */}
+        <div
+          className="absolute inset-0 z-10 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
+        />
+
         {/* Overlay/Controls */}
         <div
           className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex flex-col justify-end px-3 sm:px-4 pb-2 z-20 ${showControls ? 'opacity-100' : 'opacity-0 cursor-none pointer-events-none'}`}
