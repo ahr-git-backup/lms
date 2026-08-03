@@ -50,6 +50,8 @@ function checkShortOption(opts: string[]): boolean {
   return true;
 }
 
+const GOOGLE_FONTS_LINK = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&display=swap">`;
+
 // Ported 1:1 from QuizBot's _PRINT_CSS.
 const PRINT_CSS = `<style>
 @page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}
@@ -113,7 +115,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
 
     body += "</div>";
     body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button>`;
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
@@ -146,7 +148,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
   body += "</tbody></table></div>";
   body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button>`;
 
-  return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
+  return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
 }
 
 export function openSolvePdf(params: SolvePdfParams) {
