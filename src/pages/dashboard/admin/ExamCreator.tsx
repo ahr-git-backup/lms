@@ -687,6 +687,7 @@ const ExamCreator = () => {
         Papa.parse(file, {
             header: true,
             skipEmptyLines: true,
+            encoding: "UTF-8",
             complete: (results) => {
                 if (results.data && results.data.length > 0) {
                      processImportedData(results.data, 'csv');
@@ -1162,7 +1163,7 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] p-5 sm:p-7 bg-card shadow-sm w-full mx-auto">
+                <div key={i} className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] px-3 py-5 sm:px-4 sm:py-7 bg-card shadow-sm w-full mx-auto">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -1183,7 +1184,7 @@ const ExamCreator = () => {
                     <div className="relative flex flex-col gap-3">
                         {/* Main Content */}
                         <div className="flex-1 flex flex-col">
-                            <div className="absolute right-0 top-0 md:-right-2 md:-top-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity flex gap-2 z-10">
+                            <div className="flex justify-end gap-2 mb-2">
                                 <Button size="icon" variant="outline" className="h-8 w-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')} title="Edit">
                                     <Edit2 className="h-4 w-4" />
                                 </Button>
@@ -1205,7 +1206,7 @@ const ExamCreator = () => {
                                     return (
                                         <div
                                             key={key}
-                                            className={`relative px-3 py-1.5 rounded-xl transition-all duration-200 flex gap-3 items-center border-transparent ${
+                                            className={`relative px-1.5 py-1.5 rounded-xl transition-all duration-200 flex gap-2 items-center border-transparent ${
                                                 isCorrect
                                                 ? 'bg-[#f0fdf4] dark:bg-green-900/10 text-[#2BA25C]'
                                                 : 'hover:bg-secondary/30'

@@ -12,16 +12,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ArrowLeft, ChevronRight, Sparkles, Loader2, ListChecks } from "lucide-react";
+import { ArrowLeft, ChevronRight, Sparkles, Loader2, ListChecks, Lock } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const isExamUnlocked = (exam: any, enrolledIds: string[], isAdmin: boolean): boolean => {
+const isExamUnlocked = (exam: any, enrolledIds: string[], isAdmin: boolean, fullAccessCourseIds: string[] = [], subChapterGrants: Set<string> = new Set()): boolean => {
   if (isAdmin) return true;
   if (exam.is_visible_on_free) return true;
   if (enrolledIds.length === 0) return false;
+  if (fullAccessCourseIds.length > 0 && fullAccessCourseIds.some((id) => enrolledIds.includes(id))) return true;
   if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
   if (Array.isArray(exam.shared_course_ids) && exam.shared_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
   if (Array.isArray(exam.readymade_course_ids) && exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+  const subs: string[] = Array.isArray(exam.subject) ? exam.subject : (typeof exam.subject === "string" ? [exam.subject] : []);
+  const chapter = exam.chapter || "সাধারণ";
+  const subChapter = exam.readymade_sub_chapter || "সাধারণ";
+  for (const subject of subs) {
+    for (const courseId of enrolledIds) {
+      if (subChapterGrants.has(`${courseId}|||${subject}|||${chapter}|||${subChapter}`)) return true;
+    }
+  }
   return false;
 };
 
@@ -58,6 +67,28 @@ const CustomExamBuilder = () => {
   const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
+
+  const { data: subChapterGrants } = useQuery({
+    queryKey: ["course-readymade-subchapter-grants", enrolledIds.join(',')],
+    queryFn: async () => {
+      if (enrolledIds.length === 0) return new Set<string>();
+      const { data, error } = await supabase
+        .from("course_readymade_access")
+        .select("course_id, subject, chapter, sub_chapter")
+        .eq("mode", "readymade")
+        .in("course_id", enrolledIds);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}|||${g.sub_chapter}`));
+    },
+    enabled: enrolledIds.length > 0,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    refetchInterval: 60000,
+    staleTime: 30000,
+  });
 
   const initialStored = loadStoredState();
 
@@ -81,45 +112,56 @@ const CustomExamBuilder = () => {
   }, [picked, targetMarks]);
 
   // --- Subjects ---
-  const { data: subjects, isLoading: loadingSubjects } = useQuery({
-    queryKey: ["custom-exam-subjects"],
+  const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
+    queryKey: ["custom-exam-subjects", enrolledIds.join(','), fullAccessCourseIds.join(','), isAdmin],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("subject")
+        .select("subject, chapter, course_id, shared_course_ids, readymade_course_ids, readymade_sub_chapter, is_visible_on_free")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null);
       if (error) throw error;
       const unique = new Set<string>();
+      const unlockMap: Record<string, boolean> = {};
       (data || []).forEach((row: any) => {
-        if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-        else if (typeof row.subject === "string") unique.add(row.subject);
+        const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === "string" ? [row.subject] : []);
+        subs.forEach((s: string) => {
+          unique.add(s);
+          if (!unlockMap[s]) {
+            const rowUnlocked = isExamUnlocked({ ...row, subject: [s] }, enrolledIds, isAdmin, fullAccessCourseIds, subChapterGrants);
+            if (rowUnlocked) unlockMap[s] = true;
+          }
+        });
       });
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
-      return Array.from(unique).sort((a, b) => {
+      const sortedSubjects = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
+      return { subjects: sortedSubjects, unlockMap };
     },
   });
+  const subjects = subjectsResult?.subjects;
+  const subjectUnlockMap = subjectsResult?.unlockMap || {};
 
   // --- Chapters for selected subject ---
-  const { data: chapters, isLoading: loadingChapters } = useQuery({
-    queryKey: ["custom-exam-chapters", selectedSubject],
+  const { data: chaptersResult, isLoading: loadingChapters } = useQuery({
+    queryKey: ["custom-exam-chapters", selectedSubject, enrolledIds.join(','), fullAccessCourseIds.join(','), isAdmin],
     queryFn: async () => {
-      if (!selectedSubject) return [];
+      if (!selectedSubject) return { chapters: [], unlockMap: {} as Record<string, boolean> };
       const { data, error } = await supabase
         .from("exams")
-        .select("chapter, sort_order")
+        .select("chapter, sort_order, course_id, shared_course_ids, readymade_course_ids, readymade_sub_chapter, is_visible_on_free")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
         .contains("subject", [selectedSubject]);
       if (error) throw error;
       const unique = new Set<string>();
       const orderMap = new Map<string, number>();
+      const unlockMap: Record<string, boolean> = {};
       const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
@@ -128,9 +170,13 @@ const CustomExamBuilder = () => {
           unique.add(row.chapter);
           const cur = orderMap.get(row.chapter) || 0;
           if ((row.sort_order || 0) > cur) orderMap.set(row.chapter, row.sort_order || 0);
+          if (!unlockMap[row.chapter]) {
+            const rowUnlocked = isExamUnlocked({ ...row, subject: [selectedSubject] }, enrolledIds, isAdmin, fullAccessCourseIds, subChapterGrants);
+            if (rowUnlocked) unlockMap[row.chapter] = true;
+          }
         }
       });
-      return Array.from(unique).sort((a, b) => {
+      const sortedChapters = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
@@ -138,9 +184,12 @@ const CustomExamBuilder = () => {
         if (oA !== oB) return oB - oA;
         return a.localeCompare(b);
       });
+      return { chapters: sortedChapters, unlockMap };
     },
     enabled: !!selectedSubject,
   });
+  const chapters = chaptersResult?.chapters;
+  const chapterUnlockMap = chaptersResult?.unlockMap || {};
 
   // --- Exams for selected subject+chapter ---
   const { data: chapterExams, isLoading: loadingExams } = useQuery({
@@ -149,7 +198,7 @@ const CustomExamBuilder = () => {
       if (!selectedSubject || !selectedChapter) return [];
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, readymade_sub_chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
         .contains("subject", [selectedSubject])
@@ -230,12 +279,12 @@ const CustomExamBuilder = () => {
     try {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, readymade_sub_chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
         .contains("subject", [subjectName]);
       if (error) throw error;
-      const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin) && (exam.questions_count?.[0]?.count || 0) > 0);
+      const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin, fullAccessCourseIds, subChapterGrants) && (exam.questions_count?.[0]?.count || 0) > 0);
       const wasBulkPicked = bulkPickedSubjects.has(subjectName);
       setPicked((prev) => {
         const next = new Map(prev);
@@ -282,13 +331,13 @@ const CustomExamBuilder = () => {
     try {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, readymade_sub_chapter, course_id, shared_course_ids, readymade_course_ids, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
         .contains("subject", [selectedSubject])
         .eq("chapter", chapterName);
       if (error) throw error;
-      const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin) && (exam.questions_count?.[0]?.count || 0) > 0);
+      const eligible = (data || []).filter((exam: any) => isExamUnlocked(exam, enrolledIds, isAdmin, fullAccessCourseIds, subChapterGrants) && (exam.questions_count?.[0]?.count || 0) > 0);
       const wasBulkPicked = bulkPickedChapters.has(bulkKey);
       setPicked((prev) => {
         const next = new Map(prev);
@@ -483,17 +532,28 @@ const CustomExamBuilder = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {loadingSubjects ? <Loader2 className="h-5 w-5 animate-spin" /> : subjects?.map((s) => {
             const isBulkPicked = bulkPickedSubjects.has(s);
+            const subjectUnlocked = !!subjectUnlockMap[s];
             return (
-            <Card key={s} className="cursor-pointer hover:border-primary/50" onClick={() => setSelectedSubject(s)}>
+            <Card
+              key={s}
+              className={`relative ${subjectUnlocked ? "cursor-pointer hover:border-primary/50" : "cursor-not-allowed opacity-60 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
+              onClick={() => {
+                if (!subjectUnlocked) {
+                  toast({ title: "Locked", description: `"${s}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` });
+                  return;
+                }
+                setSelectedSubject(s);
+              }}
+            >
               <CardContent className="p-3 flex items-center gap-2">
                 <Checkbox
                   checked={isBulkPicked}
-                  disabled={selectingWholeSubject === s}
+                  disabled={selectingWholeSubject === s || !subjectUnlocked}
                   onCheckedChange={() => toggleAllInSubject(s)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <span className="flex-1 text-sm font-medium">{s}</span>
-                {selectingWholeSubject === s ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                {selectingWholeSubject === s ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : !subjectUnlocked ? <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </CardContent>
             </Card>
             );
@@ -507,17 +567,28 @@ const CustomExamBuilder = () => {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {loadingChapters ? <Loader2 className="h-5 w-5 animate-spin" /> : chapters?.map((c) => {
             const isBulkPicked = bulkPickedChapters.has(`${selectedSubject}::${c}`);
+            const chapterUnlocked = !!chapterUnlockMap[c];
             return (
-            <Card key={c} className="cursor-pointer hover:border-primary/50" onClick={() => setSelectedChapter(c)}>
+            <Card
+              key={c}
+              className={`relative ${chapterUnlocked ? "cursor-pointer hover:border-primary/50" : "cursor-not-allowed opacity-60 border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
+              onClick={() => {
+                if (!chapterUnlocked) {
+                  toast({ title: "Locked", description: `"${c}" চ্যাপ্টারে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` });
+                  return;
+                }
+                setSelectedChapter(c);
+              }}
+            >
               <CardContent className="p-3 flex items-center gap-2">
                 <Checkbox
                   checked={isBulkPicked}
-                  disabled={selectingWholeChapter === c}
+                  disabled={selectingWholeChapter === c || !chapterUnlocked}
                   onCheckedChange={() => toggleAllInChapterByName(c)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <span className="flex-1 text-sm font-medium">{c}</span>
-                {selectingWholeChapter === c ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+                {selectingWholeChapter === c ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : !chapterUnlocked ? <Lock className="h-4 w-4 text-amber-600 dark:text-amber-400" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />}
               </CardContent>
             </Card>
             );
@@ -529,7 +600,7 @@ const CustomExamBuilder = () => {
       {selectedSubject && selectedChapter && (
         <div className="space-y-2">
           {loadingExams ? <Loader2 className="h-5 w-5 animate-spin" /> : chapterExams?.map((exam: any) => {
-            const unlocked = isExamUnlocked(exam, enrolledIds, isAdmin);
+            const unlocked = isExamUnlocked(exam, enrolledIds, isAdmin, fullAccessCourseIds, subChapterGrants);
             const totalMcq = exam.questions_count?.[0]?.count || 0;
             const isPicked = picked.has(exam.id);
             return (

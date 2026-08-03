@@ -653,8 +653,8 @@ const ExamAnalytics = () => {
 
       <Tabs defaultValue="routinewise" className="space-y-4">
         <TabsList className="w-full grid grid-cols-2 h-auto">
-          <TabsTrigger value="routinewise" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-normal leading-tight">Routinewise Exam Report</TabsTrigger>
-          <TabsTrigger value="readymade" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-normal leading-tight">ReadyMade Exam Report</TabsTrigger>
+          <TabsTrigger value="routinewise" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-pre-line leading-tight">Routinewise Exam Report</TabsTrigger>
+          <TabsTrigger value="readymade" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-pre-line leading-tight">ReadyMade Exam Report</TabsTrigger>
         </TabsList>
         <TabsContent value="routinewise">
           <RoutinewiseReport analyticsData={analyticsData} isLoading={isLoading} />

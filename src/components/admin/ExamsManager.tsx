@@ -213,6 +213,39 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     },
   });
 
+  const duplicateExamMutation = useMutation({
+    mutationFn: async (exam: any) => {
+      const {
+        id, created_at, updated_at, course: _course,
+        ...rest
+      } = exam;
+      const { data, error } = await supabase
+        .from("exams")
+        .insert({
+          ...rest,
+          title: exam.title,
+          duration_minutes: 0,
+          total_marks: 0,
+          is_published: false,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast({ title: "Exam duplicated", description: "Upload a new CSV to add questions." });
+      queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error duplicating exam",
+        description: error.message ?? "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleDownloadCSV = async (examId: string, examTitle: string) => {
     try {
         const { data: questions, error } = await supabase
@@ -854,6 +887,9 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem onClick={() => handleDownloadCSV(exam.id, exam.title)}>
                                                     <Download className="mr-2 h-4 w-4 text-blue-600" /> Download CSV
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => duplicateExamMutation.mutate(exam)}>
+                                                    <Copy className="mr-2 h-4 w-4 text-purple-600" /> Duplicate
                                                 </DropdownMenuItem>
                                                 {isAdmin && (
                                                     <DropdownMenuItem onClick={() => handleRecalculateResults(exam.id)}>

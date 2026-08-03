@@ -144,14 +144,14 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             <div className={`grid gap-1.5 mt-auto ${attempt.exam.chapter === "Custom" ? "grid-cols-3" : "grid-cols-4"}`}>
                 <Button
                     size="sm"
-                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line"
                     onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}
                 >
                     Your Result
                 </Button>
                 <Button
                     size="sm"
-                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                    className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line"
                     onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}`)}
                 >
                     Practice Again
@@ -162,7 +162,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                         <Button
                             size="sm"
                             disabled={!hasMistakes}
-                            className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                            className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line disabled:opacity-40"
                         >
                             Mistake Practice
                         </Button>
@@ -189,7 +189,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     <Button
                         size="sm"
                         onClick={() => navigate(`/dashboard/leaderboard/${attempt.exam.id}`)}
-                        className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal"
+                        className="rounded-lg bg-purple-600 hover:bg-purple-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line"
                     >
                         Leaderboard
                     </Button>
@@ -649,7 +649,7 @@ const ExamResults = () => {
                     <Button
                       size="sm"
                       disabled={!snapshot.length}
-                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line disabled:opacity-40"
                       onClick={startMockPracticeAgain}
                     >
                       Practice Again
@@ -657,7 +657,7 @@ const ExamResults = () => {
                     <Button
                       size="sm"
                       disabled={!hasMistakes}
-                      className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line disabled:opacity-40"
                       onClick={startMockMistakePractice}
                     >
                       Mistake Practice
@@ -665,7 +665,7 @@ const ExamResults = () => {
                     <Button
                       size="sm"
                       disabled={!snapshot.length}
-                      className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-normal disabled:opacity-40"
+                      className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line disabled:opacity-40"
                       onClick={handleMockPdf}
                     >
                       Solve PDF

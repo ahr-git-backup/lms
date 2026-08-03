@@ -31,6 +31,12 @@ interface ChapterSortDialogProps {
   chapters: string[];
   contextName: string;
   onClose: () => void;
+  /** Settings key to persist order under. Defaults to chapter_order_global_{subject} for backward compat. */
+  settingsKey?: string;
+  /** Title override, e.g. "Organize Boards - Physics / Chapter 1" */
+  title?: string;
+  /** Extra query keys to invalidate on save, beyond the chapter defaults. */
+  extraInvalidateKeys?: string[];
 }
 
 function SortableChapterItem({
@@ -97,13 +103,13 @@ function SortableChapterItem({
   );
 }
 
-export function ChapterSortDialog({ subject, chapters, contextName, onClose }: ChapterSortDialogProps) {
+export function ChapterSortDialog({ subject, chapters, contextName, onClose, settingsKey: settingsKeyProp, title, extraInvalidateKeys }: ChapterSortDialogProps) {
   const [items, setItems] = useState<string[]>([]);
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const settingsKey = `chapter_order_global_${subject}`;
+  const settingsKey = settingsKeyProp || `chapter_order_global_${subject}`;
 
   useEffect(() => {
     setItems([...chapters]);
@@ -145,11 +151,12 @@ export function ChapterSortDialog({ subject, chapters, contextName, onClose }: C
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: `Chapter order saved successfully!` });
+      toast({ title: `${contextName} order saved successfully!` });
       queryClient.invalidateQueries({ queryKey: ["course-chapters"] });
       queryClient.invalidateQueries({ queryKey: ["archive-classes-chapters"] });
       queryClient.invalidateQueries({ queryKey: ["archive-exams-chapters"] });
       queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapters"] });
+      (extraInvalidateKeys || []).forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
       setIsModified(false);
       onClose();
     },
@@ -162,13 +169,13 @@ export function ChapterSortDialog({ subject, chapters, contextName, onClose }: C
     <Card className="animate-in fade-in slide-in-from-bottom-4 duration-300">
       <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
         <div>
-          <CardTitle>Organize Chapters - {subject}</CardTitle>
+          <CardTitle>{title || `Organize Chapters - ${subject}`}</CardTitle>
           <CardDescription>
-            Drag the grip handle, or tap the up/down arrows, to reorder chapters for {contextName}.
+            Drag the grip handle, or tap the up/down arrows, to reorder for {contextName}.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
-          <ChevronLeft className="h-4 w-4 mr-2" /> Back to Chapters
+          <ChevronLeft className="h-4 w-4 mr-2" /> Back
         </Button>
       </CardHeader>
 

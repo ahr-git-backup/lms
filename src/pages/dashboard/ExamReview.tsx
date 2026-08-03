@@ -755,8 +755,8 @@ const ExamReview = () => {
                                     {/* Question text */}
                                     <div className="flex items-start gap-4">
                                         <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                                            <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0 break-words">
-                                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                            <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
+                                                <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                             </div>
                                         </div>
                                     </div>
@@ -796,11 +796,11 @@ const ExamReview = () => {
                                                         {icon}
                                                     </div>
                                                     <div className={cn(
-                                                        "flex-1 min-w-0 text-base whitespace-normal pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain",
+                                                        "flex-1 min-w-0 text-base whitespace-pre-line pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain",
                                                         isCorrectOption ? "text-green-700 dark:text-green-400 font-medium bg-green-500/5 border-green-500/40" :
                                                         isSelected ? "text-red-600 dark:text-red-400 bg-red-500/5 border-red-500/40" : "text-foreground border-border/60"
                                                     )}>
-                                                        <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                                        <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                                     </div>
                                                 </div>
                                             )
@@ -811,8 +811,8 @@ const ExamReview = () => {
                                     {q.explanation && (
                                         <div className="mt-4 pt-4 border-t border-dashed">
                                             <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                            <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
-                                                <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                            <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
+                                                <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                             </div>
                                         </div>
                                     )}
