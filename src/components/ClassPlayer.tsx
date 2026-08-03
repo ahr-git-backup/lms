@@ -649,8 +649,8 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
             <div
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
             >
-                <div className="bg-black/40 p-4 sm:p-5 rounded-full backdrop-blur-[2px] border border-white/10 shadow-2xl animate-in zoom-in-50 duration-300">
-                    <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1" />
+                <div className="p-4 sm:p-5 rounded-full border border-white/10 animate-in zoom-in-50 duration-300">
+                    <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1 drop-shadow-lg" />
                 </div>
             </div>
         )}
