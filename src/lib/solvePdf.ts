@@ -72,9 +72,7 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 @media print{body{width:210mm;max-width:210mm}}
 .exam-header{text-align:center;border:2px solid #4169E1;background-color:#F0F8FF;border-radius:6px;padding:10px;margin-bottom:15px}
 .exam-header h1{color:#191970;margin:0;font-size:15pt;font-weight:bold}
-.content-columns{column-gap:15px;column-fill:balance}
-@media screen{.content-columns{column-count:1}}
-@media print{.content-columns{column-count:2;column-rule:1px solid #ddd}}
+.content-columns{column-count:2;column-gap:15px;column-fill:balance;column-rule:1px solid #ddd}
 .question{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid}
 .question-header{margin-bottom:4px;display:flex;align-items:flex-start}
 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#1E64B7;font-size:12pt;margin-right:5px;white-space:nowrap;flex-shrink:0}
@@ -98,6 +96,9 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{@page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}body{-webkit-print-color-adjust:exact;color-adjust:exact;width:210mm;max-width:210mm}.question{break-inside:avoid;page-break-inside:avoid}.explanation{break-inside:avoid;page-break-inside:avoid}}
 .print-btn{display:block;text-align:center;margin:20px auto;padding:14px 36px;background:linear-gradient(135deg,#5A5FE0,#7c3aed);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(90,95,224,0.4)}
 @media print{.print-btn{display:none}}
+.fab-download{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#5A5FE0,#7c3aed);color:#fff;border:none;box-shadow:0 4px 16px rgba(90,95,224,0.5);cursor:pointer}
+.fab-download svg{width:26px;height:26px}
+@media print{.fab-download{display:none}}
 </style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2" }: SolvePdfParams): string {
@@ -129,7 +130,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
     });
 
     body += "</div>";
-    body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button>`;
+    body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
     return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
   }
 
@@ -161,7 +162,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
   });
 
   body += "</tbody></table></div>";
-  body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button>`;
+  body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
 
   return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
 }
