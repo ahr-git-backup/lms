@@ -284,11 +284,11 @@ const FreeExam = () => {
         {renderHeader()}
 
         {isLoadingMetadata ? (
-             <div className="grid grid-cols-4 gap-2 sm:gap-4">
-                {[1, 2, 3, 4].map(i => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
+             <div className="grid grid-cols-2 gap-3 sm:gap-6">
+                {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-muted animate-pulse rounded-lg" />)}
              </div>
         ) : (
-            <div className="grid grid-cols-4 gap-2 sm:gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:gap-6">
                 {(() => {
                     const PREFERRED_ORDER = ["HSC", "Medical", "Varsity", "Onushilon"];
                     const present = Array.from(new Set((exams || []).map(e => e.free_exam_category || "HSC")));
@@ -303,10 +303,10 @@ const FreeExam = () => {
                         className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
                         onClick={() => setSelectedCategory(cat)}
                     >
-                        <CardContent className="px-2 py-3 sm:px-4 sm:py-4 flex flex-col items-center text-center gap-1">
-                            <Trophy className="h-4 w-4 text-primary group-hover:scale-110 transition-transform" />
-                            <div className="text-xs sm:text-lg font-bold text-primary leading-tight">{categoryLabel(cat)}</div>
-                            <p className="text-[10px] sm:text-xs text-muted-foreground">
+                        <CardContent className="px-4 py-6 sm:px-6 sm:py-8 flex flex-col items-center text-center gap-2">
+                            <Trophy className="h-8 w-8 sm:h-10 sm:w-10 text-primary group-hover:scale-110 transition-transform" />
+                            <div className="text-lg sm:text-2xl font-bold text-primary leading-tight">{categoryLabel(cat)}</div>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
                                 {exams?.filter(e => (e.free_exam_category || "HSC") === cat).length || 0} exams
                             </p>
                         </CardContent>
