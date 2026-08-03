@@ -13,10 +13,7 @@ declare global {
   }
 }
 
-// Escapes a plain-text segment for safe HTML embedding. This is what
-// actually preserves Unicode combining characters (e.g. the vector arrow
-// U+20D7 in "V⃗") — running such text through the HTML parser unescaped can
-// misparse the combining sequence, which is what caused the box glyphs.
+// Escapes a plain-text segment for safe HTML embedding.
 function escapeHtml(segment: string): string {
   return segment
     .replace(/&/g, '&amp;')
@@ -24,6 +21,26 @@ function escapeHtml(segment: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+// U+20D7 (combining right arrow above) relies on the browser/OS text-shaping
+// engine to draw it stacked over the preceding character. On several mobile
+// browsers this fails outright (renders as a missing-glyph box) even when
+// the font file has the glyph, because the shaping step itself doesn't
+// support this rarely-used combining mark. Instead of depending on native
+// combining-mark rendering, this renders the arrow as a manually positioned
+// span sitting above the character that precedes it — works identically
+// everywhere since it's just two stacked, independently-drawn glyphs.
+const VECTOR_ARROW_REGEX = /([^<>\s])\u20D7/g;
+function replaceVectorArrows(html: string): string {
+  // Uses a standard right-arrow (U+2192, universally supported by every
+  // font) sized down and positioned above the preceding character, rather
+  // than trying to render U+20D7 itself — some fonts only define U+20D7 as
+  // an actual combining glyph and fail to draw it standalone too.
+  return html.replace(
+    VECTOR_ARROW_REGEX,
+    '<span style="position:relative;display:inline-block;padding-top:0.55em;">$1<span style="position:absolute;top:-0.05em;left:50%;transform:translateX(-50%) scaleX(1.3);font-size:0.6em;line-height:1;">&#8594;</span></span>'
+  );
 }
 
 // Some stored questions embed a literal <img class="qimg" src="..."> tag to
@@ -39,11 +56,11 @@ function toSafeHtml(text: string): string {
   let match: RegExpExecArray | null;
   while ((match = imgTagPattern.exec(text)) !== null) {
     const before = text.slice(lastIndex, match.index);
-    result += escapeHtml(before).replace(/\n/g, '<br>');
+    result += replaceVectorArrows(escapeHtml(before).replace(/\n/g, '<br>'));
     result += match[0];
     lastIndex = match.index + match[0].length;
   }
-  result += escapeHtml(text.slice(lastIndex)).replace(/\n/g, '<br>');
+  result += replaceVectorArrows(escapeHtml(text.slice(lastIndex)).replace(/\n/g, '<br>'));
   return result;
 }
 
