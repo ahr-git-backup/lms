@@ -67,11 +67,14 @@ const GOOGLE_FONTS_LINK = `<link rel="stylesheet" href="https://fonts.googleapis
 // Ported 1:1 from QuizBot's _PRINT_CSS.
 const PRINT_CSS = `<style>
 @page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}
-body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbols','Noto Sans Symbols 2',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0 auto;padding:10px;width:210mm;max-width:210mm}
-@media screen{html{background:#e5e5e5}body{margin:10px auto;box-shadow:0 0 8px rgba(0,0,0,0.15)}}
+body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbols','Noto Sans Symbols 2',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0 auto;padding:10px}
+@media screen{html{background:#fff}body{width:100%;max-width:210mm}}
+@media print{body{width:210mm;max-width:210mm}}
 .exam-header{text-align:center;border:2px solid #4169E1;background-color:#F0F8FF;border-radius:6px;padding:10px;margin-bottom:15px}
 .exam-header h1{color:#191970;margin:0;font-size:15pt;font-weight:bold}
-.content-columns{column-count:2;column-gap:15px;column-fill:balance;column-rule:1px solid #ddd}
+.content-columns{column-gap:15px;column-fill:balance}
+@media screen{.content-columns{column-count:1}}
+@media print{.content-columns{column-count:2;column-rule:1px solid #ddd}}
 .question{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid}
 .question-header{margin-bottom:4px;display:flex;align-items:flex-start}
 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#1E64B7;font-size:12pt;margin-right:5px;white-space:nowrap;flex-shrink:0}
@@ -92,7 +95,7 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .answer-table th{background-color:#f5f5f5;font-weight:bold;text-align:center;font-size:13pt}
 .qno-col{width:8%;text-align:center}.ans-col{width:8%;text-align:center;font-weight:bold;font-size:14pt}.exp-col{width:84%;font-size:12pt;white-space:pre-line}
 img{max-width:35%!important;height:auto!important;vertical-align:middle}
-@media print{@page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}body{-webkit-print-color-adjust:exact;color-adjust:exact;width:210mm;max-width:210mm}.question{break-inside:avoid;page-break-inside:avoid}.explanation{break-inside:avoid;page-break-inside:avoid}.content-columns{column-rule:1px solid #ddd}}
+@media print{@page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}body{-webkit-print-color-adjust:exact;color-adjust:exact;width:210mm;max-width:210mm}.question{break-inside:avoid;page-break-inside:avoid}.explanation{break-inside:avoid;page-break-inside:avoid}}
 .print-btn{display:block;text-align:center;margin:20px auto;padding:14px 36px;background:linear-gradient(135deg,#5A5FE0,#7c3aed);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(90,95,224,0.4)}
 @media print{.print-btn{display:none}}
 </style>`;
