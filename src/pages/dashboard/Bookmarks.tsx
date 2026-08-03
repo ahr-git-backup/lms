@@ -180,8 +180,8 @@ const Bookmarks = () => {
                              {/* Question Header */}
                              <div className="flex items-start gap-4 pr-2">
                                 <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                    <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                        <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                    <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0">
+                                        <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                     </div>
                                 </div>
                              </div>
@@ -201,10 +201,10 @@ const Bookmarks = () => {
                                                 {isCorrectOption ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">{optionKey}</span>}
                                             </div>
                                             <div className={cn(
-                                                "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                                "flex-1 text-base whitespace-pre-line min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
                                                 isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" : "text-foreground"
                                             )}>
-                                                 <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                 <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                             </div>
                                         </div>
                                     )
@@ -215,8 +215,8 @@ const Bookmarks = () => {
                              {q.explanation && (
                                  <div className="mt-4 pt-4 border-t border-dashed">
                                      <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                     <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
-                                         <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                     <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth">
+                                         <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                      </div>
                                  </div>
                              )}

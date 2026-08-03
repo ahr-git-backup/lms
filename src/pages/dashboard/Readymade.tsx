@@ -339,7 +339,7 @@ const Readymade = () => {
                 <Button
                   variant={selectedBoards.includes(label) ? "default" : "outline"}
                   size="sm"
-                  className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
+                  className="h-auto py-2 text-xs whitespace-pre-line leading-tight w-full"
                   onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
                 >
                   {label}
@@ -371,7 +371,7 @@ const Readymade = () => {
                 <Button
                   variant={selectedBoards.includes(label) ? "default" : "outline"}
                   size="sm"
-                  className="h-auto py-2 text-xs whitespace-normal leading-tight w-full"
+                  className="h-auto py-2 text-xs whitespace-pre-line leading-tight w-full"
                   onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
                 >
                   {label}
@@ -412,7 +412,7 @@ const Readymade = () => {
           <Button
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
             size="sm"
-            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal text-center leading-tight"
+            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-pre-line text-center leading-tight"
             onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); setActiveTypePanel(null); }}
           >
             All
@@ -422,7 +422,7 @@ const Readymade = () => {
               key={topic.value}
               variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-normal text-center"
+              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-pre-line text-center"
               onClick={() => {
                 setPage(0);
                 setSelectedBoards([]);

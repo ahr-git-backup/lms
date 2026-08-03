@@ -435,8 +435,8 @@ const TakeMistakeExam = () => {
                                                 {idx + 1}
                                             </div>
                                             <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                                <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                                    <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0">
+                                                    <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                                 </div>
                                                 <Badge variant="outline" className="mt-2 text-[10px]">{q.exam_title}</Badge>
                                             </div>
@@ -475,11 +475,11 @@ const TakeMistakeExam = () => {
                                                             {icon}
                                                         </div>
                                                         <div className={cn(
-                                                            "flex-1 min-w-0 text-base whitespace-normal p-3 rounded-lg border transition-all overflow-x-auto no-scrollbar scroll-smooth",
+                                                            "flex-1 min-w-0 text-base whitespace-pre-line p-3 rounded-lg border transition-all overflow-x-auto no-scrollbar scroll-smooth",
                                                             isCorrectOption ? "text-green-700 dark:text-green-400 font-medium bg-green-500/10 border-green-500/40" :
                                                             isSelected ? "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/40" : "text-foreground border-border/60"
                                                         )}>
-                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                                         </div>
                                                     </div>
                                                 );
@@ -490,8 +490,8 @@ const TakeMistakeExam = () => {
                                         {q.explanation && (
                                             <div className="mt-4 pt-4 border-t border-dashed">
                                                 <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                                <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
-                                                    <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth">
+                                                    <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                                 </div>
                                             </div>
                                         )}
@@ -629,7 +629,7 @@ const TakeMistakeExam = () => {
                                             {idx + 1}
                                         </div>
                                         <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                         </div>
                                     </div>
 
@@ -667,11 +667,11 @@ const TakeMistakeExam = () => {
                                                         {optionKey}
                                                     </div>
                                                     <div className={cn(
-                                                        "flex-1 min-w-0 text-base whitespace-normal flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
+                                                        "flex-1 min-w-0 text-base whitespace-pre-line flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
                                                         isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
                                                     )}>
                                                         <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0 break-words" />
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                                         </div>
                                                         {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
                                                     </div>
