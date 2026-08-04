@@ -138,6 +138,7 @@ const Readymade = () => {
   const [page, setPage] = useState(0);
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
+  const [activeTypePanel, setActiveTypePanel] = useState<"type-based" | "model-test" | null>(null);
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
@@ -302,22 +303,94 @@ const Readymade = () => {
           )}
           <button
             type="button"
-            onClick={() => navigate("/dashboard/readymade/type-based")}
-            className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
+            onClick={() => setActiveTypePanel(activeTypePanel === "type-based" ? null : "type-based")}
+            className={`rounded-xl border-2 p-3 text-center transition-all ${
+              activeTypePanel === "type-based"
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-primary/40"
+            }`}
           >
             <LayoutTemplate className="h-5 w-5 mx-auto mb-1 text-primary" />
             <p className="text-xs font-semibold leading-tight">টাইপভিত্তিক এক্সাম</p>
           </button>
           <button
             type="button"
-            onClick={() => navigate("/dashboard/readymade/model-test")}
-            className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
+            onClick={() => setActiveTypePanel(activeTypePanel === "model-test" ? null : "model-test")}
+            className={`rounded-xl border-2 p-3 text-center transition-all ${
+              activeTypePanel === "model-test"
+                ? "border-primary bg-primary/10"
+                : "border-border hover:border-primary/40"
+            }`}
           >
             <FileDown className="h-5 w-5 mx-auto mb-1 text-primary" />
             <p className="text-xs font-semibold leading-tight">মডেল টেস্ট বানাও</p>
           </button>
         </div>
       )}
+
+      <Dialog open={activeTypePanel === "type-based"} onOpenChange={(o) => setActiveTypePanel(o ? "type-based" : null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>টাইপভিত্তিক এক্সাম</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2">
+            {["মেডিকেল স্ট্যান্ডার্ড প্রশ্ন", "সত্য-মিথ্যার প্রশ্ন", "ছকভিত্তিক প্রশ্ন", "ছোট প্রশ্ন-বড় অপশন"].map((label) => (
+              <div key={label} className="relative">
+                <Button
+                  variant={selectedBoards.includes(label) ? "default" : "outline"}
+                  size="sm"
+                  className="h-auto py-2 text-xs whitespace-pre-line leading-tight w-full"
+                  onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
+                >
+                  {label}
+                </Button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    aria-label={`Add question to ${label}`}
+                    onClick={(e) => { e.stopPropagation(); setAddQuestionCategory(label); }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={activeTypePanel === "model-test"} onOpenChange={(o) => setActiveTypePanel(o ? "model-test" : null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2">
+            {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
+              <div key={label} className="relative">
+                <Button
+                  variant={selectedBoards.includes(label) ? "default" : "outline"}
+                  size="sm"
+                  className="h-auto py-2 text-xs whitespace-pre-line leading-tight w-full"
+                  onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
+                >
+                  {label}
+                </Button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    aria-label={`Add question to ${label}`}
+                    onClick={(e) => { e.stopPropagation(); setAddQuestionCategory(label); }}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!addQuestionCategory} onOpenChange={(o) => { if (!o) setAddQuestionCategory(null); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
