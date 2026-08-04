@@ -65,13 +65,37 @@ function replaceVectorArrows(html: string): string {
   );
 }
 
+// Some CSV-imported question text has a stray newline landing INSIDE a
+// MathJax inline-math span (e.g. "$^{γ}$" broken across two source lines as
+// "$^{γ}$" preceded/followed by a lone "γ" or "=k" on its own line — visible
+// as a source artifact where the exponent notation and its line get split).
+// MathJax's "$...$" delimiter requires one unbroken string with no HTML tag
+// in between; converting an embedded "\n" to "<br>" while it sits inside a
+// "$...$" span breaks the expression into disconnected fragments that
+// MathJax can no longer recognize as a single formula, so it falls back to
+// printing the raw "$...$" text and the orphaned fragment on separate lines
+// instead of a rendered exponent/subscript. Fix: collapse any "\n" (with
+// optional surrounding whitespace) that falls between a "$" and its
+// matching closing "$" back into a single space BEFORE the newline->br
+// conversion runs, so the whole "$...$" expression stays one contiguous
+// unit for MathJax. Only touches newlines strictly inside a dollar-pair;
+// newlines outside math spans (the real "i./ii./iii." line breaks) are
+// left untouched for the <br> conversion below.
+function collapseNewlinesInsideMath(text: string): string {
+  return text.replace(/\$([^$]*)\$/g, (whole, inner: string) => {
+    if (!/\n/.test(inner)) return whole;
+    return '$' + inner.replace(/\s*\n\s*/g, ' ').trim() + '$';
+  });
+}
+
 // Some stored questions embed a literal <img class="qimg" src="..."> tag to
 // show a diagram inline. Everything else in the text is plain text that must
 // be escaped, not parsed as HTML. This splits on <img ...> tags, escapes the
 // text segments in between, converts literal newlines to <br> so multi-line
 // "i./ii./iii." style questions render as separate lines, and re-assembles
 // safe HTML with the original <img> tags intact.
-function toSafeHtml(text: string): string {
+function toSafeHtml(rawText: string): string {
+  const text = collapseNewlinesInsideMath(rawText);
   const imgTagPattern = /<img\b[^>]*>/gi;
   let lastIndex = 0;
   let result = '';
