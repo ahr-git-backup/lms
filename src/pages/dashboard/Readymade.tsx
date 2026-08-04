@@ -289,7 +289,7 @@ const Readymade = () => {
         </div>
       )}
 
-      {!selectedSubject && (
+      {!selectedSubject && !categoryName && (
         <div className="grid grid-cols-3 gap-2">
           {(enrollments?.length || 0) > 0 && (
             <button
