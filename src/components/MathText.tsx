@@ -1,5 +1,24 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+// ⚠️ DO NOT MODIFY THIS FILE'S CORE LOGIC WITHOUT EXPLICIT PERMISSION ⚠️
+// This implementation (escapeHtml + replaceVectorArrows + toSafeHtml) is the
+// verified, working fix for:
+//   1. Vector arrow (U+20D7 combining mark, e.g. "F⃗") rendering as a boxed
+//      "missing glyph" instead of a real arrow above the letter — fixed by
+//      manually drawing a small U+2192 arrow via absolute-positioned CSS
+//      instead of relying on the browser/font to shape the combining mark.
+//   2. Multi-line question/option text from CSV import collapsing onto one
+//      line — fixed by escaping the text as plain text (not raw HTML) and
+//      converting literal "\n" into "<br>".
+// A prior change replaced this with DOMPurify.sanitize() for security and
+// broke BOTH of the above (DOMPurify does not know about the vector-arrow
+// span trick and the CSS ended up stripped/altered). That change was
+// reverted. If you need to sanitize HTML here, do it INSIDE toSafeHtml()
+// by extending escapeHtml — do not swap out this file's rendering pipeline
+// for a generic sanitizer library, and do not remove replaceVectorArrows()
+// or the "\n" -> "<br>" conversion. Test both vector-arrow rendering and
+// multi-line CSV-imported questions before touching this file again.
+
 interface MathTextProps {
   text: string;
   className?: string;
