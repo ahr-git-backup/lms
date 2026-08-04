@@ -4,7 +4,6 @@ interface MathTextProps {
   text: string;
   className?: string;
   as?: React.ElementType;
-  inline?: boolean;
 }
 
 declare global {
@@ -68,35 +67,23 @@ function toSafeHtml(text: string): string {
   return result;
 }
 
-const MATHJAX_LOAD_TIMEOUT_MS = 8000;
-
-const MathText: React.FC<MathTextProps> = ({ text, className, as, inline }) => {
-  const Component = as || (inline ? 'span' : 'div');
+const MathText: React.FC<MathTextProps> = ({ text, className, as: Component = 'div' }) => {
   const containerRef = useRef<HTMLElement>(null);
   const [isMathJaxReady, setIsMathJaxReady] = useState(false);
-  const [loadFailed, setLoadFailed] = useState(false);
 
-  // Poll for MathJax readiness, with a timeout fallback
+  // Poll for MathJax readiness
   useEffect(() => {
     if (window.MathJax && window.MathJax.typesetPromise) {
-      setIsMathJaxReady(true);
-      return;
-    }
-    const interval = setInterval(() => {
-      if (window.MathJax && window.MathJax.typesetPromise) {
         setIsMathJaxReady(true);
-        clearInterval(interval);
-        clearTimeout(timeout);
-      }
-    }, 100);
-    const timeout = setTimeout(() => {
-      clearInterval(interval);
-      if (!(window.MathJax && window.MathJax.typesetPromise)) setLoadFailed(true);
-    }, MATHJAX_LOAD_TIMEOUT_MS);
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
+    } else {
+        const interval = setInterval(() => {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                setIsMathJaxReady(true);
+                clearInterval(interval);
+            }
+        }, 100);
+        return () => clearInterval(interval);
+    }
   }, []);
 
   useEffect(() => {
@@ -113,14 +100,7 @@ const MathText: React.FC<MathTextProps> = ({ text, className, as, inline }) => {
   }, [text, isMathJaxReady]);
 
   return (
-    <>
-      <Component ref={containerRef} className={className} />
-      {loadFailed && (
-        <span className="text-[10px] text-amber-600 dark:text-amber-400 block mt-0.5">
-          গাণিতিক সূত্র লোড হতে সমস্যা হচ্ছে — পেজ রিফ্রেশ করুন।
-        </span>
-      )}
-    </>
+    <Component ref={containerRef} className={className} />
   );
 };
 
