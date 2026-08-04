@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import DOMPurify from 'dompurify';
+import { cn } from '@/lib/utils';
 
 interface MathTextProps {
   text: string;
@@ -62,7 +63,7 @@ const MathText: React.FC<MathTextProps> = ({ text, className, as, inline }) => {
 
   return (
     <>
-      <Component ref={containerRef} className={className} />
+      <Component ref={containerRef} className={cn('whitespace-pre-line', className)} />
       {loadFailed && (
         <span className="text-[10px] text-amber-600 dark:text-amber-400 block mt-0.5">
           গাণিতিক সূত্র লোড হতে সমস্যা হচ্ছে — পেজ রিফ্রেশ করুন।

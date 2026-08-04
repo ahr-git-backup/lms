@@ -20,7 +20,7 @@ interface CsvRow {
 
 
 function parseCsv(text: string): string[][] {
-  // simple CSV parser handling quoted commas
+  // simple CSV parser handling quoted commas and multiline quoted fields
   const rows: string[][] = [];
   let cur: string[] = [];
   let field = "";
@@ -41,7 +41,9 @@ function parseCsv(text: string): string[][] {
     } else if (c === ",") {
       cur.push(field);
       field = "";
-    } else if (c === "\n" || c === "\r") {
+    } else if (c === "\r") {
+      // skip; \n (below) handles the row break
+    } else if (c === "\n") {
       if (field.length || cur.length) {
         cur.push(field);
         rows.push(cur);
