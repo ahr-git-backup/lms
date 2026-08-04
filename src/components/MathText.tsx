@@ -88,6 +88,24 @@ function collapseNewlinesInsideMath(text: string): string {
   });
 }
 
+// Some CSV-imported question text stores exponents/subscripts as their OWN
+// math span with no base character, e.g. "PV$^{γ}$=k" — the "$^{γ}$" span
+// is bare TeX "^{γ}" with nothing before the "^". That is invalid TeX (a
+// superscript needs a preceding atom to attach to); MathJax throws on it
+// and falls back to printing the raw "$...$" text, which is why the
+// question shows "PV", "γ", "=k" as disconnected fragments instead of a
+// rendered "PVᵞ=k". Fix: before typesetting, find any "$^{...}$" or
+// "$_{...}$" span (optionally combined, e.g. "$^{γ}_{2}$") that is
+// immediately preceded by a non-space, non-$ token, and pull that token
+// INSIDE the span as the base, e.g. "PV$^{γ}$" -> "$PV^{γ}$". This makes
+// the TeX valid without needing to re-export the source CSVs.
+function fixBaselessExponents(text: string): string {
+  return text.replace(
+    /([^\s$]+)\$((?:\^\{[^}]*\}|_\{[^}]*\})+)\$/g,
+    (whole, base: string, script: string) => `$${base}${script}$`
+  );
+}
+
 // Some stored questions embed a literal <img class="qimg" src="..."> tag to
 // show a diagram inline. Everything else in the text is plain text that must
 // be escaped, not parsed as HTML. This splits on <img ...> tags, escapes the
@@ -95,7 +113,7 @@ function collapseNewlinesInsideMath(text: string): string {
 // "i./ii./iii." style questions render as separate lines, and re-assembles
 // safe HTML with the original <img> tags intact.
 function toSafeHtml(rawText: string): string {
-  const text = collapseNewlinesInsideMath(rawText);
+  const text = fixBaselessExponents(collapseNewlinesInsideMath(rawText));
   const imgTagPattern = /<img\b[^>]*>/gi;
   let lastIndex = 0;
   let result = '';
