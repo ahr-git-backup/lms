@@ -45,6 +45,7 @@ import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
+import ReadymadeTypeCategory from "./pages/dashboard/ReadymadeTypeCategory";
 import CustomExamBuilder from "./pages/dashboard/CustomExamBuilder";
 import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
@@ -207,6 +208,7 @@ const App = () => {
                 <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
                 <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
                 <Route path="readymade/category/:categoryName" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="readymade/:panelType" element={<ErrorBoundary><ReadymadeTypeCategory /></ErrorBoundary>} />
                 <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
