@@ -102,7 +102,19 @@ function collapseNewlinesInsideMath(text: string): string {
 function fixBaselessExponents(text: string): string {
   return text.replace(
     /([^\s$]+)\$((?:\^\{[^}]*\}|_\{[^}]*\})+)\$/g,
-    (whole, base: string, script: string) => `$${base}${script}$`
+    (whole, base: string, script: string) => {
+      // Strip a leading list marker like "1." / "2." / "iii." so it stays
+      // plain text outside the math span instead of leaking into MathJax's
+      // "$...$" delimiters (which would render the digit+dot as math and
+      // misalign/break the rendering).
+      const marker = base.match(/^([0-9]+\.|[ivx]+\.)/i);
+      if (marker) {
+        const prefix = marker[0];
+        const realBase = base.slice(prefix.length);
+        return realBase ? `${prefix}$${realBase}${script}$` : `${prefix}$${script}$`;
+      }
+      return `$${base}${script}$`;
+    }
   );
 }
 
