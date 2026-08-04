@@ -107,11 +107,18 @@ function fixBaselessExponents(text: string): string {
       // plain text outside the math span instead of leaking into MathJax's
       // "$...$" delimiters (which would render the digit+dot as math and
       // misalign/break the rendering).
+      // Non-breaking space (U+00A0) between the list marker and the math
+      // span: MathJax renders "$...$" as an inline-block SVG widget, and on
+      // narrow (mobile) widths a regular space there lets the browser wrap
+      // the line right after "i."/"1." — leaving the marker on its own line
+      // and the formula on the next, which looks like the marker and its
+      // equation "broke apart" even though no real line-break was ever in
+      // the source. The \u00A0 glues them so they wrap together.
       const marker = base.match(/^([0-9]+\.|[ivx]+\.)/i);
       if (marker) {
         const prefix = marker[0];
         const realBase = base.slice(prefix.length);
-        return realBase ? `${prefix}$${realBase}${script}$` : `${prefix}$${script}$`;
+        return realBase ? `${prefix}\u00A0$${realBase}${script}$` : `${prefix}\u00A0$${script}$`;
       }
       return `$${base}${script}$`;
     }
