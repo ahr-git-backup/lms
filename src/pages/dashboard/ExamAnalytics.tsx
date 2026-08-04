@@ -2,7 +2,6 @@ import { useEffect, useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -13,17 +12,54 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
 
-const PAGE_SIZE = 10;
+const DAY_RANGES = [
+  { key: "total", label: "Total", days: null },
+  { key: "today", label: "আজকে", days: 0 },
+  { key: "3", label: "বিগত ৩ দিন", days: 3 },
+  { key: "7", label: "বিগত ৭ দিন", days: 7 },
+  { key: "15", label: "বিগত ১৫ দিন", days: 15 },
+  { key: "30", label: "বিগত ৩০ দিন", days: 30 },
+  { key: "45", label: "বিগত ৪৫ দিন", days: 45 },
+  { key: "60", label: "বিগত ৬০ দিন", days: 60 },
+  { key: "75", label: "বিগত ৭৫ দিন", days: 75 },
+  { key: "90", label: "বিগত ৯০ দিন", days: 90 },
+] as const;
+
+type RangeKey = typeof DAY_RANGES[number]["key"];
+
+const DayRangeSelector = ({ value, onChange }: { value: RangeKey, onChange: (v: RangeKey) => void }) => (
+  <div className="flex flex-wrap gap-1.5">
+    {DAY_RANGES.map(r => (
+      <Button
+        key={r.key}
+        size="sm"
+        variant={value === r.key ? "default" : "outline"}
+        className="h-7 px-2.5 text-xs"
+        onClick={() => onChange(r.key)}
+      >
+        {r.label}
+      </Button>
+    ))}
+  </div>
+);
+
+type ReadymadeAttempt = {
+  attempt_id: string;
+  exam_id: string;
+  title: string;
+  subject: string[] | null;
+  chapter: string | null;
+  total_marks: number | null;
+  score: number;
+  rank: number;
+  total_participants: number;
+  attempt_date: string;
+};
+
 
 type AnalyticsExam = {
   id: string;
@@ -48,7 +84,134 @@ type AnalyticsExam = {
   highest_practice_score: number | null;
 };
 
-// Helper to determine status
+type ScoredItem = { score: number; total_marks: number | null; rank?: number | null };
+
+// Splits items into 50-mark and 100-mark buckets and averages score/rank within each.
+// Per Rafi's rule: for repeat/2nd-timer attempts on the same exam, the LOWER score
+// (i.e. the one with marks cut) is what counts toward the average — callers should
+// pre-reduce to one row per exam using the min-score attempt before calling this.
+const computeAverages = (items: ScoredItem[]) => {
+  const buckets: Record<50 | 100, { scoreSum: number; rankSum: number; rankCount: number; count: number }> = {
+    50: { scoreSum: 0, rankSum: 0, rankCount: 0, count: 0 },
+    100: { scoreSum: 0, rankSum: 0, rankCount: 0, count: 0 },
+  };
+  items.forEach(item => {
+    const bucketKey: 50 | 100 = item.total_marks === 50 ? 50 : 100;
+    buckets[bucketKey].count += 1;
+    buckets[bucketKey].scoreSum += item.score;
+    if (item.rank !== null && item.rank !== undefined) {
+      buckets[bucketKey].rankSum += item.rank;
+      buckets[bucketKey].rankCount += 1;
+    }
+  });
+  return {
+    avgScore50: buckets[50].count > 0 ? (buckets[50].scoreSum / buckets[50].count) : null,
+    avgScore100: buckets[100].count > 0 ? (buckets[100].scoreSum / buckets[100].count) : null,
+    avgRank50: buckets[50].rankCount > 0 ? (buckets[50].rankSum / buckets[50].rankCount) : null,
+    avgRank100: buckets[100].rankCount > 0 ? (buckets[100].rankSum / buckets[100].rankCount) : null,
+  };
+};
+
+const StatBoxRow = ({ totalAttended, avgScore50, avgScore100, avgRank50, avgRank100 }: {
+  totalAttended: number;
+  avgScore50: number | null; avgScore100: number | null;
+  avgRank50: number | null; avgRank100: number | null;
+}) => (
+  <div className="grid grid-cols-3 gap-2">
+    <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+      <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+        <span className="text-[10px] text-muted-foreground leading-tight">Total Exam Attended</span>
+        <span className="text-base font-bold text-blue-600 leading-tight">{totalAttended}</span>
+      </CardContent>
+    </Card>
+    <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+      <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+        <span className="text-[10px] text-muted-foreground leading-tight">Your Average Score</span>
+        <span className="text-xs font-bold text-emerald-600 leading-tight">
+          {avgScore50 !== null ? `${avgScore50.toFixed(1)}/50` : "-"} · {avgScore100 !== null ? `${avgScore100.toFixed(1)}/100` : "-"}
+        </span>
+      </CardContent>
+    </Card>
+    <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+      <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+        <span className="text-[10px] text-muted-foreground leading-tight">Your Average Rank</span>
+        <span className="text-xs font-bold text-amber-600 leading-tight">
+          {avgRank50 !== null ? `#${avgRank50.toFixed(1)}` : "-"} (50) · {avgRank100 !== null ? `#${avgRank100.toFixed(1)}` : "-"} (100)
+        </span>
+      </CardContent>
+    </Card>
+  </div>
+);
+
+const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: string; date: string; score: number; total: number | null }[]; title: string }) => {
+  if (data.length === 0) {
+    return (
+      <Card className="shadow-sm border">
+        <CardContent className="py-6 text-center text-xs text-muted-foreground">
+          No attempts in this range.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Find the point with the highest percentage (score/total) to highlight on the graph
+  let bestIndex = -1;
+  let bestPct = -1;
+  data.forEach((d, i) => {
+    if (d.total && d.total > 0) {
+      const pct = d.score / d.total;
+      if (pct > bestPct) { bestPct = pct; bestIndex = i; }
+    }
+  });
+
+  const HighlightDot = (props: any) => {
+    const { cx, cy, index } = props;
+    if (index === bestIndex) {
+      return (
+        <g>
+          <circle cx={cx} cy={cy} r={7} fill="#f59e0b" stroke="#fff" strokeWidth={2} />
+          <circle cx={cx} cy={cy} r={2.5} fill="#fff" />
+        </g>
+      );
+    }
+    return <circle cx={cx} cy={cy} r={3} strokeWidth={1} fill="#fff" stroke="#2563eb" />;
+  };
+
+  return (
+    <Card className="shadow-sm border">
+      <CardHeader className="py-2 px-3">
+        <CardTitle className="text-sm">{title}</CardTitle>
+      </CardHeader>
+      <CardContent className="h-[180px] px-2 pb-2">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <XAxis dataKey="date" tick={{ fontSize: 10 }} tickMargin={6} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} width={35} domain={[0, (dataMax: number) => Math.max(200, dataMax)]} />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (active && payload && payload.length) {
+                  const d = payload[0].payload;
+                  const isBest = d === data[bestIndex];
+                  return (
+                    <div className="bg-background border rounded-lg shadow-lg p-2 text-xs">
+                      <p className="font-bold mb-0.5">{d.fullTitle} {isBest && <span className="text-amber-500">🏆 Best</span>}</p>
+                      <p className="text-muted-foreground mb-1">{label}</p>
+                      <p className="font-semibold text-primary">Score: {d.score} / {d.total}</p>
+                    </div>
+                  );
+                }
+                return null;
+              }}
+            />
+            <Line type="monotone" dataKey="score" stroke="#2563eb" strokeWidth={2} dot={<HighlightDot />} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+};
+
 const getLiveStatus = (exam: AnalyticsExam) => {
     if (exam.live_attempt) return exam.live_attempt.score;
     const now = new Date();
@@ -64,12 +227,8 @@ const getPracticeStatus = (exam: AnalyticsExam) => {
     return "Absent"; // Per user request
 };
 
-const CourseTable = ({ courseName, exams }: { courseName: string, exams: AnalyticsExam[] }) => {
-  const [page, setPage] = useState(1);
-
-  const totalPages = Math.ceil(exams.length / PAGE_SIZE);
-  const startIndex = (page - 1) * PAGE_SIZE;
-  const currentExams = exams.slice(startIndex, startIndex + PAGE_SIZE);
+const CourseTable = ({ courseName, exams }: { courseName?: string, exams: AnalyticsExam[] }) => {
+  const currentExams = exams;
 
   // Summary Calculations
   const liveStats = exams.reduce((acc, exam) => {
@@ -94,14 +253,16 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-foreground border-l-4 border-primary pl-3">
-          {courseName}
-        </h2>
-        <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
-            {exams.length} Exams
-        </span>
-      </div>
+      {courseName && (
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-foreground border-l-4 border-primary pl-3">
+            {courseName}
+          </h2>
+          <span className="text-sm text-muted-foreground bg-muted px-2 py-1 rounded">
+              {exams.length} Exams
+          </span>
+        </div>
+      )}
 
       {/* Desktop View */}
       <div className="hidden md:block rounded-md border bg-card overflow-hidden shadow-sm">
@@ -255,43 +416,205 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
              );
         })}
       </div>
+    </div>
+  );
+};
 
-      {totalPages > 1 && (
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious
-                href="#"
-                onClick={(e) => { e.preventDefault(); setPage(p => Math.max(1, p - 1)); }}
-                className={page === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
+const filterByRange = <T,>(items: T[], getDate: (item: T) => Date, range: RangeKey): T[] => {
+  const rangeDef = DAY_RANGES.find(r => r.key === range);
+  if (!rangeDef || rangeDef.days === null) return items;
+  const cutoff = new Date();
+  if (rangeDef.days === 0) {
+    cutoff.setHours(0, 0, 0, 0); // "আজকে" = since start of today
+  } else {
+    cutoff.setDate(cutoff.getDate() - rangeDef.days);
+  }
+  return items.filter(item => getDate(item) >= cutoff);
+};
 
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                (totalPages <= 7 || p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) ? (
-                     <PaginationItem key={p}>
-                        <PaginationLink
-                            href="#"
-                            isActive={page === p}
-                            onClick={(e) => { e.preventDefault(); setPage(p); }}
-                        >
-                        {p}
-                        </PaginationLink>
-                    </PaginationItem>
-                ) : (
-                    (p === 2 || p === totalPages - 1) && <PaginationItem key={`ellipsis-${p}`}><span className="flex h-9 w-9 items-center justify-center">...</span></PaginationItem>
-                )
-            ))}
+const RoutinewiseReport = ({ analyticsData, isLoading }: { analyticsData: AnalyticsExam[] | null | undefined; isLoading: boolean }) => {
+  const [range, setRange] = useState<RangeKey>("total");
 
-            <PaginationItem>
-              <PaginationNext
-                href="#"
-                onClick={(e) => { e.preventDefault(); setPage(p => Math.min(totalPages, p + 1)); }}
-                className={page === totalPages ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
+  const rangedData = useMemo(() => {
+    if (!analyticsData) return [];
+    return filterByRange(analyticsData, e => new Date(e.time_window_start || e.created_at), range);
+  }, [analyticsData, range]);
+
+  const graphData = useMemo(() => {
+    return rangedData
+      .slice()
+      .sort((a, b) => new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime())
+      .map(exam => {
+        let score = null;
+        if (exam.live_attempt) score = Number(exam.live_attempt.score);
+        else if (exam.practice_attempt) score = Number(exam.practice_attempt.score);
+        if (score === null) return null;
+        return {
+          name: exam.title.length > 15 ? exam.title.slice(0, 15) + "..." : exam.title,
+          fullTitle: exam.title,
+          date: new Date(exam.time_window_start || exam.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+          score,
+          total: exam.total_marks,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [rangedData]);
+
+  // For averages: one row per exam, preferring live score, else practice.
+  // If a user has both a normal + 2nd-timer style repeat resulting in multiple
+  // attempts feeding into live_attempt (the RPC already picks the stored score),
+  // we just use whatever the RPC surfaced (it reflects the recorded/kept score).
+  const scoredRows = useMemo(() => {
+    return rangedData
+      .map(exam => {
+        const attempt = exam.live_attempt || exam.practice_attempt;
+        if (!attempt) return null;
+        return { score: Number(attempt.score), total_marks: exam.total_marks, rank: attempt.rank ?? null };
+      })
+      .filter((r): r is ScoredItem => r !== null);
+  }, [rangedData]);
+
+  const averages = useMemo(() => computeAverages(scoredRows), [scoredRows]);
+
+  const allExamsSorted = useMemo(() => {
+    return rangedData.slice().sort((a, b) => new Date(b.time_window_start || b.created_at).getTime() - new Date(a.time_window_start || a.created_at).getTime());
+  }, [rangedData]);
+
+  const totalExams = rangedData.length;
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Loading analysis...</p>;
+
+  if (!analyticsData || analyticsData.length === 0) {
+    return (
+      <Card className="border border-foreground/60">
+        <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+          No exams found available for you.
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <DayRangeSelector value={range} onChange={setRange} />
+      <CompactTrendGraph data={graphData} title="Performance Trend" />
+      <StatBoxRow
+        totalAttended={scoredRows.length}
+        avgScore50={averages.avgScore50}
+        avgScore100={averages.avgScore100}
+        avgRank50={averages.avgRank50}
+        avgRank100={averages.avgRank100}
+      />
+      {totalExams === 0 ? (
+        <Card className="border border-foreground/60">
+          <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+            No exams in this range.
+          </CardContent>
+        </Card>
+      ) : (
+        <CourseTable exams={allExamsSorted} />
+      )}
+    </div>
+  );
+};
+
+const ReadymadeReport = ({ user }: { user: any }) => {
+  const [range, setRange] = useState<RangeKey>("total");
+
+  const { data: readymadeData, isLoading } = useQuery({
+    queryKey: ["readymade-exam-analytics-rpc-v1", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase.rpc('get_student_readymade_exam_analytics' as any);
+      if (error) {
+        console.error("Error fetching readymade analytics:", error);
+        throw error;
+      }
+      return (data as any) as ReadymadeAttempt[];
+    },
+    enabled: !!user,
+  });
+
+  const rangedData = useMemo(() => {
+    if (!readymadeData) return [];
+    return filterByRange(readymadeData, r => new Date(r.attempt_date), range);
+  }, [readymadeData, range]);
+
+  const sortedRangedData = useMemo(() => {
+    return rangedData.slice().sort((a, b) => new Date(b.attempt_date).getTime() - new Date(a.attempt_date).getTime());
+  }, [rangedData]);
+
+  const graphData = useMemo(() => {
+    return rangedData
+      .slice()
+      .sort((a, b) => new Date(a.attempt_date).getTime() - new Date(b.attempt_date).getTime())
+      .map(r => ({
+        name: r.title.length > 15 ? r.title.slice(0, 15) + "..." : r.title,
+        fullTitle: r.title,
+        date: new Date(r.attempt_date).toLocaleDateString([], { month: 'short', day: 'numeric' }),
+        score: Number(r.score),
+        total: r.total_marks,
+      }));
+  }, [rangedData]);
+
+  const scoredRows = useMemo(() => {
+    return rangedData.map(r => ({ score: Number(r.score), total_marks: r.total_marks, rank: r.rank }));
+  }, [rangedData]);
+
+  const averages = useMemo(() => computeAverages(scoredRows), [scoredRows]);
+
+  if (isLoading) return <p className="text-sm text-muted-foreground">Loading analysis...</p>;
+
+  if (!readymadeData || readymadeData.length === 0) {
+    return (
+      <Card className="border border-foreground/60">
+        <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+          এখনো কোনো Readymade Exam attempt করা হয়নি।
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <DayRangeSelector value={range} onChange={setRange} />
+      <CompactTrendGraph data={graphData} title="Readymade Performance Trend" />
+      <StatBoxRow
+        totalAttended={scoredRows.length}
+        avgScore50={averages.avgScore50}
+        avgScore100={averages.avgScore100}
+        avgRank50={averages.avgRank50}
+        avgRank100={averages.avgRank100}
+      />
+      {sortedRangedData.length === 0 ? (
+        <Card className="border border-foreground/60">
+          <CardContent className="pt-6 text-center text-sm text-muted-foreground">
+            No attempts in this range.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-2">
+          {sortedRangedData.map(item => (
+            <Card key={item.attempt_id} className="shadow-sm border">
+              <CardContent className="p-3 flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm leading-tight line-clamp-1">{item.title}</div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5">
+                    {new Date(item.attempt_date).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {" · "}
+                    {new Date(item.attempt_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                </div>
+                <div className="text-right whitespace-nowrap">
+                  <div className="font-bold text-sm">{item.score} <span className="text-[10px] text-muted-foreground font-normal">/ {item.total_marks}</span></div>
+                  <span className="inline-flex items-center justify-center h-5 px-2 mt-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+                    #{item.rank} / {item.total_participants}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -299,7 +622,6 @@ const CourseTable = ({ courseName, exams }: { courseName: string, exams: Analyti
 
 const ExamAnalytics = () => {
   const { user } = useAuth();
-  const { data: enrollments } = useEnrollments();
 
   useEffect(() => {
     document.title = "Exam Analytics – Atlas";
@@ -309,111 +631,19 @@ const ExamAnalytics = () => {
     queryKey: ["exam-analytics-rpc-v1", user?.id],
     queryFn: async () => {
       if (!user) return null;
-
       const { data, error } = await supabase.rpc('get_student_exam_analytics');
       if (error) {
         console.error("Error fetching analytics:", error);
         throw error;
       }
-
-      // Cast the result to our type
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (data as any) as AnalyticsExam[];
     },
     enabled: !!user,
   });
 
-  // Calculate Graph Data (Last 30 Days)
-  const graphData = useMemo(() => {
-      if (!analyticsData) return [];
-
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-      // Filter exams taken/ended in last 30 days
-      const recentExams = analyticsData.filter(exam => {
-          const date = new Date(exam.time_window_start || exam.created_at);
-          return date >= thirtyDaysAgo;
-      });
-
-      // Sort by date ascending
-      recentExams.sort((a, b) => new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime());
-
-      // Map to graph format
-      return recentExams.map(exam => {
-          // Prefer live score if exists, else practice, else 0 (if attended)
-          // Actually, if neither attempt exists, user was Absent, so maybe exclude?
-          // But user wants "1 month marks... improvement or not". Showing 0 for absent might be misleading or motivating.
-          // Let's show score only if attempt exists.
-
-          let score = null;
-          if (exam.live_attempt) score = Number(exam.live_attempt.score);
-          else if (exam.practice_attempt) score = Number(exam.practice_attempt.score);
-
-          if (score === null) return null; // Skip absent exams from graph to avoid cluttering with 0s
-
-          return {
-              name: exam.title.length > 15 ? exam.title.slice(0, 15) + "..." : exam.title,
-              fullTitle: exam.title,
-              date: new Date(exam.time_window_start || exam.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' }),
-              score: score,
-              total: exam.total_marks
-          };
-      }).filter(item => item !== null);
-
-  }, [analyticsData]);
-
-  const groupedExams = useMemo(() => {
-    if (!analyticsData) return {};
-
-    const groups: Record<string, AnalyticsExam[]> = {};
-
-    analyticsData.forEach((exam) => {
-      // Determine group name
-      let groupName = exam.course_name || "Public Exams";
-
-      if (exam.is_archive) {
-          groupName = `Archive - ${exam.course_name || "Public"}`;
-      }
-
-      if (!groups[groupName]) {
-        groups[groupName] = [];
-      }
-      groups[groupName].push(exam);
-    });
-
-    // Sort chronologically (Oldest first)
-    Object.keys(groups).forEach((key) => {
-      groups[key].sort((a, b) =>
-        new Date(a.time_window_start || a.created_at).getTime() - new Date(b.time_window_start || b.created_at).getTime()
-      );
-    });
-
-    // Ordering: Enrolled -> Archive -> Public
-    const sortedGroups: Record<string, AnalyticsExam[]> = {};
-
-    const enrolledKeys = Object.keys(groups).filter(k => !k.startsWith("Archive") && k !== "Public Exams").sort();
-    const archiveKeys = Object.keys(groups).filter(k => k.startsWith("Archive")).sort();
-
-    enrolledKeys.forEach(k => sortedGroups[k] = groups[k]);
-    archiveKeys.forEach(k => sortedGroups[k] = groups[k]);
-
-    if (groups["Public Exams"]) {
-        sortedGroups["Public Exams"] = groups["Public Exams"];
-    }
-
-    return sortedGroups;
-  }, [analyticsData]);
-
-  const totalExams = analyticsData?.length ?? 0;
-
-  // Calculate Global Stats
-  // Live: Obtained / Total (where exam ended)
-  const globalLiveObtained = analyticsData?.reduce((sum, e) => sum + (Number(e.live_attempt?.score) || 0), 0) || 0;
-  const globalLiveTotal = analyticsData?.reduce((sum, e) => sum + (e.total_marks || 0), 0) || 0;
-
   return (
-    <section className="space-y-8 pb-10">
+    <section className="space-y-6 pb-10 overflow-x-hidden max-w-full">
       <header className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">Exam Analysis Report</h1>
         <p className="text-sm text-muted-foreground">
@@ -421,106 +651,18 @@ const ExamAnalytics = () => {
         </p>
       </header>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading analysis...</p>
-      ) : totalExams === 0 ? (
-        <Card className="border border-foreground/60">
-          <CardContent className="pt-6 text-center text-sm text-muted-foreground">
-            No exams found available for you.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-8">
-
-           {/* Performance Graph */}
-           {graphData.length > 0 && (
-               <Card className="shadow-sm border">
-                   <CardHeader>
-                       <CardTitle>Performance Trend (Last 30 Days)</CardTitle>
-                   </CardHeader>
-                   <CardContent className="h-[300px]">
-                       <ResponsiveContainer width="100%" height="100%">
-                           <LineChart data={graphData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
-                               <XAxis
-                                   dataKey="date"
-                                   tick={{ fontSize: 12 }}
-                                   tickMargin={10}
-                                   axisLine={false}
-                                   tickLine={false}
-                               />
-                               <YAxis
-                                   tick={{ fontSize: 12 }}
-                                   axisLine={false}
-                                   tickLine={false}
-                               />
-                               <Tooltip
-                                   content={({ active, payload, label }) => {
-                                       if (active && payload && payload.length) {
-                                           const data = payload[0].payload;
-                                           return (
-                                               <div className="bg-background border rounded-lg shadow-lg p-3 text-sm">
-                                                   <p className="font-bold mb-1">{data.fullTitle}</p>
-                                                   <p className="text-muted-foreground mb-2">{label}</p>
-                                                   <p className="font-semibold text-primary">
-                                                       Score: {data.score} / {data.total}
-                                                   </p>
-                                               </div>
-                                           );
-                                       }
-                                       return null;
-                                   }}
-                               />
-                               <Line
-                                   type="monotone"
-                                   dataKey="score"
-                                   stroke="#2563eb"
-                                   strokeWidth={3}
-                                   dot={{ r: 4, strokeWidth: 2, fill: "#fff" }}
-                                   activeDot={{ r: 6 }}
-                               />
-                           </LineChart>
-                       </ResponsiveContainer>
-                   </CardContent>
-               </Card>
-           )}
-
-           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="border border-foreground/20 shadow-sm bg-muted/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Exams Available</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{totalExams}</div>
-              </CardContent>
-            </Card>
-            <Card className="border border-foreground/20 shadow-sm bg-muted/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Total Live Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                    {globalLiveObtained} <span className="text-sm text-muted-foreground font-normal">/ {globalLiveTotal}</span>
-                </div>
-              </CardContent>
-            </Card>
-            <Card className="border border-foreground/20 shadow-sm bg-muted/20">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Courses</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{Object.keys(groupedExams).length}</div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-10">
-            {Object.entries(groupedExams).map(([courseName, exams]) => (
-                <CourseTable key={courseName} courseName={courseName} exams={exams} />
-            ))}
-          </div>
-        </div>
-      )}
+      <Tabs defaultValue="routinewise" className="space-y-4">
+        <TabsList className="w-full grid grid-cols-2 h-auto">
+          <TabsTrigger value="routinewise" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-pre-line leading-tight">Routinewise Exam Report</TabsTrigger>
+          <TabsTrigger value="readymade" className="text-[11px] xs:text-xs sm:text-sm px-1 py-2 whitespace-pre-line leading-tight">ReadyMade Exam Report</TabsTrigger>
+        </TabsList>
+        <TabsContent value="routinewise">
+          <RoutinewiseReport analyticsData={analyticsData} isLoading={isLoading} />
+        </TabsContent>
+        <TabsContent value="readymade">
+          <ReadymadeReport user={user} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 };

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -18,6 +19,7 @@ const COUNTS = [25, 35, 50, 75, 100];
 
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [subject, setSubject] = useState("");
@@ -324,11 +326,13 @@ const UnlimitedMockTest = () => {
         ? `${multiSelections.length} সাব-চ্যাপ্টার (Mixed Mock Test)`
         : `${subject} - ${chapter} (Mock Test)`;
 
+      const multiSubjectNames = Array.from(new Set(multiSelections.map((s: any) => s.subject))).join(", ");
+
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
       sessionStorage.setItem("unlimitedMockTitle", title);
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
-      sessionStorage.setItem("unlimitedMockSubject", multiMode ? "" : subject);
+      sessionStorage.setItem("unlimitedMockSubject", multiMode ? multiSubjectNames : subject);
       sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
       sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : (topic || ""));
 
@@ -351,13 +355,13 @@ const UnlimitedMockTest = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-lg mx-auto">
+    <div className="space-y-2.5 max-w-lg mx-auto">
       <Card>
         <CardContent className="py-3">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
-              onClick={() => navigate("/")}
+              onClick={() => navigate(user ? "/dashboard" : "/")}
               className="h-9 w-9 rounded-full border-2 border-border flex items-center justify-center shrink-0 hover:border-primary/40 transition-colors"
               aria-label="Back"
             >
@@ -390,7 +394,7 @@ const UnlimitedMockTest = () => {
       </Card>
 
       <Card>
-        <CardContent className="pt-4">
+        <CardContent className="py-3">
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="min-w-0">
               <p className="text-[10px] text-muted-foreground mb-0.5">সাবজেক্ট</p>
@@ -422,9 +426,9 @@ const UnlimitedMockTest = () => {
                 setMultiDrillSubject("");
                 setMultiDrillChapter(null);
               }}
-              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground"
+              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground border rounded-full px-3 py-1.5"
             >
-              কাস্টম মুড
+              Multi Mood
               <span
                 className={`h-5 w-9 rounded-full relative transition-colors shrink-0 ${
                   multiMode ? "bg-primary" : "bg-muted-foreground/30"
@@ -464,8 +468,8 @@ const UnlimitedMockTest = () => {
                           }}
                           className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                             checked
-                              ? "border-primary bg-primary/10 text-primary"
-                              : "border-border text-muted-foreground hover:border-primary/40"
+                              ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                              : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                           }`}
                         >
                           {s}
@@ -500,8 +504,8 @@ const UnlimitedMockTest = () => {
                             }}
                             className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border text-muted-foreground hover:border-primary/40"
+                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                             }`}
                           >
                             {c}
@@ -542,8 +546,8 @@ const UnlimitedMockTest = () => {
                             }
                             className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
                               checked
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border text-muted-foreground hover:border-primary/40"
+                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
+                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                             }`}
                           >
                             {t}
@@ -586,7 +590,7 @@ const UnlimitedMockTest = () => {
                   className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                     subject === s
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                   style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                 >
@@ -616,7 +620,7 @@ const UnlimitedMockTest = () => {
                     className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
                       chapter === c
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                     }`}
                     style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
                   >
@@ -639,7 +643,7 @@ const UnlimitedMockTest = () => {
                     className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
                       topic === t
                         ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground hover:border-primary/40"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                     }`}
                   >
                     {t}
@@ -660,7 +664,7 @@ const UnlimitedMockTest = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
                     standard === s.value
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                 >
                   {s.label}
@@ -688,7 +692,7 @@ const UnlimitedMockTest = () => {
                   className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
                     count === c
                       ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground hover:border-primary/40"
+                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
                   }`}
                 >
                   {c}
@@ -701,15 +705,20 @@ const UnlimitedMockTest = () => {
             <CardContent className="pt-4 space-y-2">
               <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
               <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={5}
-                  max={200}
-                  placeholder="প্রশ্ন সংখ্যা"
-                  value={customCount}
-                  onChange={(e) => setCustomCount(e.target.value)}
-                  className="flex-1"
-                />
+                <div className="relative flex-1">
+                  {!customCount && (
+                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-primary/60 pointer-events-none select-none animate-pulse">|</span>
+                  )}
+                  <Input
+                    type="number"
+                    min={5}
+                    max={200}
+                    placeholder=""
+                    value={customCount}
+                    onChange={(e) => setCustomCount(e.target.value)}
+                    className="flex-1 dark:text-white"
+                  />
+                </div>
                 <Button onClick={handleCustomStart} disabled={starting}>
                   Start
                 </Button>

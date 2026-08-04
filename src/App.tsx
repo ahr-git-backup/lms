@@ -34,6 +34,8 @@ import ExamReview from "./pages/dashboard/ExamReview";
 import Leaderboard from "./pages/dashboard/Leaderboard";
 import Bookmarks from "./pages/dashboard/Bookmarks";
 import MyMistakes from "./pages/dashboard/MyMistakes";
+import MyProgress from "./pages/dashboard/MyProgress";
+import TopPerformer from "./pages/dashboard/TopPerformer";
 import Routine from "./pages/dashboard/Routine";
 import ClassNotes from "./pages/dashboard/ClassNotes";
 import NoteDetails from "./pages/dashboard/NoteDetails";
@@ -43,6 +45,7 @@ import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
+import CustomExamBuilder from "./pages/dashboard/CustomExamBuilder";
 import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
 import ExtraCourses from "./pages/dashboard/ExtraCourses";
@@ -68,6 +71,7 @@ import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
+import AdminTelegramChannels from "./pages/dashboard/admin/AdminTelegramChannels";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
 import QuestionBank from "./pages/dashboard/admin/QuestionBank";
 import ClassPlayerPage from "./pages/dashboard/ClassPlayerPage";
@@ -190,6 +194,8 @@ const App = () => {
                 <Route path="leaderboard/:examId" element={<ErrorBoundary><Leaderboard /></ErrorBoundary>} />
                 <Route path="bookmarks" element={<ErrorBoundary><Bookmarks /></ErrorBoundary>} />
                 <Route path="my-mistakes" element={<ErrorBoundary><MyMistakes /></ErrorBoundary>} />
+                <Route path="my-progress" element={<ErrorBoundary><MyProgress /></ErrorBoundary>} />
+                <Route path="top-performer" element={<ErrorBoundary><TopPerformer /></ErrorBoundary>} />
                 <Route path="routine" element={<ErrorBoundary><Routine /></ErrorBoundary>} />
                 <Route path="class-notes" element={<ErrorBoundary><ClassNotes /></ErrorBoundary>} />
                 <Route path="class-notes/:noteId" element={<ErrorBoundary><NoteDetails /></ErrorBoundary>} />
@@ -200,6 +206,8 @@ const App = () => {
                 <Route path="program" element={<ErrorBoundary><Program /></ErrorBoundary>} />
                 <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
                 <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="readymade/category/:categoryName" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
                 <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />
@@ -233,6 +241,7 @@ const App = () => {
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
                 <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockPool /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
+                <Route path="telegram-channels" element={<ProtectedRoute requireAdmin><AdminTelegramChannels /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
                 <Route path="course-dashboard/:courseId" element={<ProtectedRoute requireAdmin><CourseDashboard /></ProtectedRoute>} />
                 <Route path="student/:studentId" element={<ProtectedRoute requireAdmin><StudentProfileView /></ProtectedRoute>} />

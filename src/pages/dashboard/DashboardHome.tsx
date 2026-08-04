@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { quickAccessItems } from "@/config/dashboardCardItems";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -11,6 +12,8 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getEmbedUrl } from "@/lib/videoUtils";
+import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
+import { LiveCountdown } from "@/components/shared/LiveCountdown";
 
 const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
@@ -48,6 +51,8 @@ const DashboardHome = () => {
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
   const [showTutorialVideo, setShowTutorialVideo] = useState(false);
+  const [showQuickAccessSort, setShowQuickAccessSort] = useState(false);
+  const [showAdminQuickActions, setShowAdminQuickActions] = useState(false);
 
   const { data: tutorialVideoUrl } = useQuery({
     queryKey: ["dashboard-tutorial-video"],
@@ -160,6 +165,15 @@ const DashboardHome = () => {
     enabled: !!isAdmin,
   });
 
+  const { data: quickAccessOrder } = useQuery({
+    queryKey: ["quick-access-order"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("app_settings").select("value").eq("key", QUICK_ACCESS_ORDER_KEY).maybeSingle();
+      if (error) return [];
+      return Array.isArray(data?.value) ? (data.value as string[]) : [];
+    },
+  });
+
   const { data: qpPoints } = useQuery({
     queryKey: ["qp-user-points", user?.id],
     enabled: !!user,
@@ -198,29 +212,43 @@ const DashboardHome = () => {
   const hasLiveActivity = activeLiveClasses.length > 0 || activeLiveExams.length > 0;
   const hasUpcomingActivity = !!nextClass || !!nextExam;
 
-  const navigationItems = [
-      { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
-      { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
-      { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
-      { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
-      { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
-      { title: "Past Exams", icon: BookOpen, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
-      { title: "Readymade Exam", icon: FileText, color: "text-pink-500", bg: "bg-pink-50 dark:bg-pink-950", url: "/dashboard/readymade" },
-      { title: "Archive", icon: History, color: "text-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-      { title: "Results", icon: Trophy, color: "text-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
-      { title: "My Mistakes", icon: AlertCircle, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/my-mistakes" },
-      { title: "FB & Telegram Group", icon: Files, color: "text-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/community" },
-      { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },
-      { title: "Study Tools", icon: Sparkles, color: "text-amber-500", bg: "bg-amber-50 dark:bg-amber-950", url: "/dashboard/program" },
-      { title: "Exam Routine", icon: CalendarClock, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/calendar" },
-      { title: "Profile", icon: User, color: "text-slate-500", bg: "bg-slate-50 dark:bg-slate-950", url: "/dashboard/profile" },
-  ];
+  const navigationItems = quickAccessItems;
+
+  const orderedNavigationItems = (() => {
+    if (!quickAccessOrder || quickAccessOrder.length === 0) return navigationItems;
+    const byTitle = new Map(navigationItems.map((item) => [item.title, item]));
+    const ordered = quickAccessOrder.map((t) => byTitle.get(t)).filter(Boolean) as typeof navigationItems;
+    const remaining = navigationItems.filter((item) => !quickAccessOrder.includes(item.title));
+    return [...ordered, ...remaining];
+  })();
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500">
+      {/* Fixed floating WhatsApp + Telegram support buttons, bottom-left corner */}
+      <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2">
+        <a
+          href="https://wa.me/8801999681290"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="WhatsApp Support"
+          className="h-12 w-12 rounded-full bg-[#25D366] shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        >
+          <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white"><path d="M17.6 6.32A7.85 7.85 0 0 0 12.05 4a7.94 7.94 0 0 0-6.87 11.87L4 20l4.24-1.11a7.9 7.9 0 0 0 3.8.97h.01A7.94 7.94 0 0 0 20 12a7.85 7.85 0 0 0-2.4-5.68Zm-5.55 12.2a6.6 6.6 0 0 1-3.36-.92l-.24-.14-2.5.66.67-2.44-.16-.25a6.58 6.58 0 0 1 5.6-10.11 6.53 6.53 0 0 1 4.63 1.92 6.53 6.53 0 0 1 1.92 4.63 6.6 6.6 0 0 1-6.56 6.55Zm3.6-4.9c-.2-.1-1.16-.57-1.34-.64-.18-.07-.31-.1-.44.1-.13.2-.5.63-.62.76-.11.13-.23.14-.42.05a5.4 5.4 0 0 1-1.6-.98 5.98 5.98 0 0 1-1.1-1.37c-.12-.2 0-.3.09-.4.1-.1.2-.24.3-.36.1-.12.13-.2.2-.34.07-.13.03-.25-.02-.35-.05-.1-.44-1.06-.6-1.45-.16-.38-.32-.33-.44-.34h-.38c-.13 0-.35.05-.53.25-.18.2-.7.68-.7 1.66s.72 1.92.82 2.06c.1.13 1.4 2.15 3.4 3.01.48.2.85.33 1.14.42.48.15.91.13 1.26.08.38-.06 1.16-.47 1.33-.93.16-.46.16-.85.11-.93-.05-.08-.18-.13-.38-.23Z"/></svg>
+        </a>
+        <a
+          href="https://t.me/AtlasWeb_Robot"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Telegram Support"
+          className="h-12 w-12 rounded-full bg-[#26A5E4] shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        >
+          <svg viewBox="0 0 24 24" className="h-6 w-6 fill-white"><path d="M21.05 3.92 2.87 11.02c-1.24.5-1.23 1.19-.23 1.5l4.66 1.45 1.8 5.5c.22.6.11.84.75.84.5 0 .72-.23 1-.5l2.4-2.32 4.7 3.47c.87.48 1.5.23 1.72-.8l3.1-14.6c.32-1.26-.48-1.83-1.72-1.64Zm-4.6 3.53-7.6 6.87-.3 3.24-1.5-4.7 9.68-6.1c.46-.28.88-.13.53.18Z"/></svg>
+        </a>
+      </div>
+
       <Card className="w-full">
         <CardContent className="p-3 flex flex-col items-center gap-2">
-          <h1 className="text-xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
           {tutorialVideoUrl && (
             <Button
               size="sm"
@@ -261,21 +289,21 @@ const DashboardHome = () => {
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
            </div>
-           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+           <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveClasses.map((classItem: any) => (
                   <Card key={classItem?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
                     <CardHeader className="space-y-1 pb-2">
                       <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
+                          <p className="text-sm font-mono uppercase text-muted-foreground">
                               {classItem?.course?.name || "Unknown Course"}
                           </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
                               LIVE CLASS
                           </span>
                       </div>
                       <CardTitle className="text-base break-words">{classItem?.title || "Live Class"}</CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-sm">
                         Started: {formatDate(classItem?.start_at, { hour: '2-digit', minute: '2-digit' })}
                       </CardDescription>
                     </CardHeader>
@@ -289,24 +317,35 @@ const DashboardHome = () => {
 
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {activeLiveExams.map((exam: any) => (
-                  <Card key={exam?.id || Math.random()} className="border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20">
-                    <CardHeader className="space-y-1 pb-2">
-                      <div className="flex justify-between items-start gap-2">
-                          <p className="text-xs font-mono uppercase text-muted-foreground">
-                              {exam?.course?.name || "Unknown Course"}
-                          </p>
-                          <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                              LIVE EXAM
-                          </span>
+                  <Card key={exam?.id || Math.random()} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 overflow-hidden">
+                    <CardHeader className="space-y-2 px-4 pt-4 pb-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 break-words">
+                            {exam?.course?.name || "Unknown Course"}
+                        </span>
+                        <span className="animate-pulse shrink-0 inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                            LIVE EXAM
+                        </span>
                       </div>
-                      <CardTitle className="text-base break-words">{exam?.title || "Live Exam"}</CardTitle>
-                      <CardDescription className="text-xs">
-                        Ends: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}
-                      </CardDescription>
+                      <CardTitle
+                        className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
+                        style={{ fontSize: `${Math.max(1.3, Math.min(2.5, 22 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
+                      >
+                        {exam?.title || "Live Exam"}
+                      </CardTitle>
+                      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                        <span>এক্সাম শেষ: {formatDate(exam?.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
+                        {exam?.time_window_end && (
+                          <>
+                            <span className="text-muted-foreground/50">•</span>
+                            <span>সময় বাকি: <LiveCountdown endTime={exam.time_window_end} /></span>
+                          </>
+                        )}
+                      </div>
                     </CardHeader>
-                    <CardContent>
-                       <Button size="sm" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none">
-                          Take Exam
+                    <CardContent className="px-4 pb-2 pt-1">
+                       <Button size="lg" onClick={() => { if (exam?.id) setExamSourceList(exam.id, "/dashboard/live-exam"); navigate(`/dashboard/take-exam/${exam?.id}`); }} className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12" style={{ fontSize: "1.4rem" }}>
+                          Start Exam
                        </Button>
                     </CardContent>
                   </Card>
@@ -332,11 +371,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextClass.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextClass.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextClass.start_at, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -362,11 +401,11 @@ const DashboardHome = () => {
                     <CardContent className="flex-1 flex flex-col justify-between">
                         <div className="mb-4 space-y-1">
                             <p className="text-lg font-bold line-clamp-2 leading-tight">{nextExam.title}</p>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-sm text-muted-foreground">
                                 {nextExam.course?.name || "Unknown Course"}
                             </p>
                             <div className="flex items-center gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary">
+                                <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary">
                                     {formatDate(nextExam.time_window_start, { weekday: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </span>
                             </div>
@@ -382,122 +421,162 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="animate-border-chase rounded-lg border p-3 space-y-2" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="animate-border-chase border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Card
             className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "My Progress feature আসছে খুব শীঘ্রই।" })}
+            onClick={() => navigate("/dashboard/my-progress")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <TrendingUp className="h-5 w-5 text-blue-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">My Progress</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <TrendingUp className="h-6 w-6 text-blue-500 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">My Progress & History</p>
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "Weak Topics & Analysis feature আসছে খুব শীঘ্রই।" })}
+            className="animate-border-chase cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+            onClick={() => navigate("/syllabus-tracker")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Target className="h-5 w-5 text-red-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Weak Topics & Analysis</p>
-            </CardContent>
-          </Card>
-          <Card
-            className="animate-border-chase cursor-pointer border-purple-500/30 hover:border-purple-500 transition-all bg-purple-50/50 dark:bg-purple-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "History feature আসছে খুব শীঘ্রই।" })}
-          >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <History className="h-5 w-5 text-purple-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">History</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">Study Tracker</p>
             </CardContent>
           </Card>
           <Card
             className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
-            onClick={() => toast({ title: "Coming Soon", description: "Top Performer feature আসছে খুব শীঘ্রই।" })}
+            onClick={() => navigate("/dashboard/top-performer")}
           >
-            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-              <Trophy className="h-5 w-5 text-yellow-500 flex-shrink-0" />
-              <p className="font-medium text-xs leading-tight">Top Performer</p>
+            <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
+              <Trophy className="h-6 w-6 text-yellow-500 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">Top Performer</p>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      {/* Admin-only quick actions */}
-      {isAdmin && (
-        <div className="grid grid-cols-2 gap-4">
+      <div className="animate-border-chase border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+        <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
+        <div className="grid grid-cols-3 gap-2">
           <Card
-            className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
-            onClick={() => navigate("/admin/reports")}
+            className="animate-border-chase cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
+            onClick={() => navigate("/quick-practice")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Reports</p>
-                <p className="text-xs text-muted-foreground">
-                  {pendingReportsCount ?? "..."} pending
-                </p>
-              </div>
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
+              <Zap className="h-6 w-6 text-violet-500 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">Quick Practice</p>
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/admin/announcements")}
+            className="animate-border-chase cursor-pointer border-fuchsia-500/30 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
+            onClick={() => navigate("/mock-test")}
           >
-            <CardContent className="p-4 flex items-center gap-3">
-              <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-sm">Notice</p>
-                <p className="text-xs text-muted-foreground">Send to all users</p>
-              </div>
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
+              <Infinity className="h-6 w-6 text-fuchsia-500 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">Unlimited Practice Exam</p>
+            </CardContent>
+          </Card>
+          <Card
+            className="animate-border-chase cursor-pointer border-pink-500/30 hover:border-pink-500 transition-all bg-pink-50/50 dark:bg-pink-950/20"
+            style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
+            onClick={() => navigate("/dashboard/readymade")}
+          >
+            <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
+              <FileText className="h-6 w-6 text-pink-500 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
-      )}
+      </div>
 
+      {/* Admin-only quick actions — collapsed by default behind a floating
+          toggle so the 5 admin cards don't push down content other users
+          see; nothing about the cards themselves changes, only visibility. */}
       {isAdmin && (
-        <div className="grid grid-cols-3 gap-2 sm:gap-4">
-          <Card
-            className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/admin/syllabus-tracker")}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setShowAdminQuickActions(v => !v)}
+            aria-label={showAdminQuickActions ? "Hide admin quick actions" : "Show admin quick actions"}
+            className="absolute -top-2 right-0 z-10 h-9 w-9 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center animate-pulse hover:animate-none transition-all"
           >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Study Tracker</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+            {showAdminQuickActions ? <ChevronUp className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          </button>
+          {showAdminQuickActions && (
+            <div className="space-y-4 pt-9 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="grid grid-cols-2 gap-4">
+                <Card
+                  className="cursor-pointer border-amber-500/40 hover:border-amber-500 transition-all bg-amber-50/50 dark:bg-amber-950/20"
+                  onClick={() => navigate("/admin/reports")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Flag className="h-6 w-6 text-amber-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Reports</p>
+                      <p className="text-sm text-muted-foreground">
+                        {pendingReportsCount ?? "..."} pending
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-yellow-500/40 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
+                  onClick={() => navigate("/admin/announcements")}
+                >
+                  <CardContent className="p-4 flex items-center gap-3">
+                    <Megaphone className="h-6 w-6 text-yellow-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm">Notice</p>
+                      <p className="text-sm text-muted-foreground">Send to all users</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            onClick={() => navigate("/admin/quick-practice")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Quick Practice</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <Card
+                  className="cursor-pointer border-sky-500/40 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
+                  onClick={() => navigate("/admin/syllabus-tracker")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 text-sky-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Study Tracker</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-violet-500/40 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
+                  onClick={() => navigate("/admin/quick-practice")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Quick Practice</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
+                  onClick={() => navigate("/admin/mock-test")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Mock Test</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            </CardContent>
-          </Card>
-          <Card
-            className="cursor-pointer border-fuchsia-500/40 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
-            onClick={() => navigate("/admin/mock-test")}
-          >
-            <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
-              <ClipboardCheck className="h-5 w-5 sm:h-6 sm:w-6 text-fuchsia-600 flex-shrink-0 animate-icon-float" />
-              <div>
-                <p className="font-semibold text-xs sm:text-sm leading-tight">Mock Test</p>
-                <p className="hidden sm:block text-xs text-muted-foreground">Manage content</p>
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          )}
         </div>
       )}
 
@@ -519,7 +598,7 @@ const DashboardHome = () => {
                                 {isSuccess ? <CheckCircle className="h-5 w-5 text-green-600 shrink-0" /> : <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />}
                                 <div>
                                     <CardTitle className="text-sm font-semibold">{notif.title}</CardTitle>
-                                    <p className="text-xs text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
+                                    <p className="text-sm text-muted-foreground">{new Date(notif.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
@@ -614,9 +693,28 @@ const DashboardHome = () => {
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
            <div className="rounded-lg border p-4">
-             <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+             <div className="flex items-center justify-center relative">
+               <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+               {isAdmin && !showQuickAccessSort && (
+                 <Button
+                   size="sm"
+                   variant="ghost"
+                   className="absolute right-0 text-xs text-muted-foreground hover:text-primary"
+                   onClick={() => setShowQuickAccessSort(true)}
+                 >
+                   Reorder
+                 </Button>
+               )}
+             </div>
              <hr className="mt-3 border-border" />
            </div>
+           {isAdmin && showQuickAccessSort ? (
+             <QuickAccessSortDialog
+               titles={orderedNavigationItems.map((item) => item.title)}
+               onClose={() => setShowQuickAccessSort(false)}
+             />
+           ) : (
+           <>
            <Link
              to="/dashboard/routine"
              className="flex items-center justify-center gap-2 w-full rounded-lg border bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
@@ -624,7 +722,7 @@ const DashboardHome = () => {
              <Calendar className="h-4 w-4" /> Routine
            </Link>
            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {navigationItems.map((item, index) => (
+               {orderedNavigationItems.map((item, index) => (
                    <Card
                         key={index}
                         className={`group hover:shadow-md transition-all cursor-pointer ${
@@ -652,11 +750,13 @@ const DashboardHome = () => {
                                )}
                                <item.icon className={`h-6 w-6 ${item.color} ${item.isExternal ? 'animate-pulse' : 'animate-icon-float'}`} />
                            </div>
-                           <p className="font-medium text-sm">{item.title}</p>
+                           <p className="font-semibold text-lg">{item.title}</p>
                        </CardContent>
                    </Card>
                ))}
            </div>
+           </>
+           )}
       </div>
 
     </div>

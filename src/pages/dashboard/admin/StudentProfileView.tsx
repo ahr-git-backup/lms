@@ -562,8 +562,8 @@ export default function StudentProfileView() {
                 <div className="flex items-center gap-3">
                   <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
                   <div>
-                    <div className="text-xs text-muted-foreground">Signed Up</div>
-                    <div className="font-medium">{profile.created_at ? format(new Date(profile.created_at), 'PPP') : 'N/A'}</div>
+                    <div className="text-xs text-muted-foreground">Joining Date & Time</div>
+                    <div className="font-medium">{profile.created_at ? format(new Date(profile.created_at), 'PPPp') : 'N/A'}</div>
                   </div>
                 </div>
                 {(profile as any).father_name && (

@@ -372,3 +372,22 @@ mjx-container[display="true"] {
   .step-content h4 { @apply text-lg font-semibold m-0; }
   .step-content p { @apply text-muted-foreground mt-1; }
 }
+
+/* Forced landscape rotation for the class video player, used as a fallback
+   on mobile browsers (mainly Chrome Android) where the Screen Orientation
+   Lock API is unsupported or rejected outside a PWA context. When fullscreen
+   is active and this class is applied, the player is rotated 90deg and
+   resized to fill the viewport so it behaves like true landscape fullscreen
+   even though the OS/browser chrome itself stays in portrait. */
+.force-rotate-landscape:fullscreen,
+.force-rotate-landscape:-webkit-full-screen {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 100vh;
+  height: 100vw;
+  transform: translate(-50%, -50%) rotate(90deg);
+  transform-origin: center center;
+  max-width: none;
+  max-height: none;
+}

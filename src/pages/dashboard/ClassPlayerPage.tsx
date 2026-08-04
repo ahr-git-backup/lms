@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ClassPlayer from "@/components/ClassPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, ArrowLeft, Calendar } from "lucide-react";
+import { FileText, ArrowLeft, Calendar, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 const ClassPlayerPage = () => {
@@ -26,10 +26,10 @@ const ClassPlayerPage = () => {
     },
   });
 
-  const { data: hasAccess, isLoading: accessLoading } = useQuery({
+  const { data: accessInfo, isLoading: accessLoading } = useQuery({
     queryKey: ["check-class-access", classItem?.id, profile?.id],
-    queryFn: async () => {
-      if (!classItem || !profile?.id) return false;
+    queryFn: async (): Promise<{ hasAccess: boolean; viaArchive: boolean }> => {
+      if (!classItem || !profile?.id) return { hasAccess: false, viaArchive: false };
 
       // Fetch all enrollments for the user
       const { data: enrollments } = await supabase
@@ -37,28 +37,44 @@ const ClassPlayerPage = () => {
         .select("course_id")
         .eq("profile_id", profile.id);
 
-      if (!enrollments || enrollments.length === 0) return false;
+      if (!enrollments || enrollments.length === 0) return { hasAccess: false, viaArchive: false };
 
       const enrolledCourseIds = enrollments.map(e => e.course_id);
 
       // 1. Check Primary Course
-      if (classItem.course_id && enrolledCourseIds.includes(classItem.course_id)) return true;
+      if (classItem.course_id && enrolledCourseIds.includes(classItem.course_id)) {
+        return { hasAccess: true, viaArchive: false };
+      }
 
       // 2. Check Shared Courses
       if (classItem.shared_course_ids && Array.isArray(classItem.shared_course_ids)) {
           const hasSharedAccess = classItem.shared_course_ids.some((id: string) => enrolledCourseIds.includes(id));
-          if (hasSharedAccess) return true;
+          if (hasSharedAccess) return { hasAccess: true, viaArchive: false };
       }
 
       // 3. Check Archive Courses
       if (classItem.archive_course_ids && Array.isArray(classItem.archive_course_ids)) {
           const hasArchiveAccess = classItem.archive_course_ids.some((id: string) => enrolledCourseIds.includes(id));
-          if (hasArchiveAccess) return true;
+          if (hasArchiveAccess) return { hasAccess: true, viaArchive: true };
       }
 
-      return false;
+      return { hasAccess: false, viaArchive: false };
     },
     enabled: !!classItem && !!profile?.id
+  });
+  const hasAccess = accessInfo?.hasAccess ?? false;
+
+  const { data: viewCount } = useQuery({
+    queryKey: ["class-view-count", classId],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("class_views")
+        .select("id", { count: "exact", head: true })
+        .eq("class_id", classId);
+      if (error) return 0;
+      return count || 0;
+    },
+    enabled: !!classId,
   });
 
   useEffect(() => {
@@ -66,6 +82,14 @@ const ClassPlayerPage = () => {
       document.title = `${classItem.title} – Atlas`;
     }
   }, [classItem]);
+
+  // Record this student's view once access is confirmed (distinct-viewer count).
+  useEffect(() => {
+    if (!classId || !profile?.id || !hasAccess) return;
+    supabase.rpc("record_class_view", { p_class_id: classId }).then(({ error }) => {
+      if (error) console.error("Error recording class view", error);
+    });
+  }, [classId, profile?.id, hasAccess]);
 
   if (isLoading || accessLoading) {
     return <div className="p-8 text-center text-muted-foreground">Loading class...</div>;
@@ -125,9 +149,15 @@ const ClassPlayerPage = () => {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate(-1)}>
-        <ArrowLeft className="mr-2 h-4 w-4" /> Back to Classes
-      </Button>
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" className="pl-0 hover:bg-transparent" onClick={() => navigate(-1)}>
+          <ArrowLeft className="mr-2 h-4 w-4" /> Back to Classes
+        </Button>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full">
+          <Eye className="h-3.5 w-3.5" />
+          <span>{viewCount ?? 0} জন দেখেছে</span>
+        </div>
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
@@ -138,6 +168,8 @@ const ClassPlayerPage = () => {
                 title={classItem.title}
                 isLive={isActuallyLive}
                 startTime={classItem.start_at}
+                classId={classItem.id}
+                watchCategory={isActuallyLive ? "live" : accessInfo?.viaArchive ? "archive" : "record"}
               />
             ) : (
               <div className="flex h-full items-center justify-center text-muted-foreground">

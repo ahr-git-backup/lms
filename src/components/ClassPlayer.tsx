@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,6 +36,8 @@ interface ClassPlayerProps {
   onEnded?: () => void;
   isLive?: boolean;
   startTime?: string | null;
+  classId?: string;
+  watchCategory?: "live" | "record" | "archive";
 }
 
 declare global {
@@ -47,7 +50,7 @@ declare global {
 
 
 
-const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayerProps) => {
+const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watchCategory }: ClassPlayerProps) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -61,6 +64,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
   const [isMuted, setIsMuted] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [forceRotate, setForceRotate] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [lastTapTime, setLastTapTime] = useState(0);
   const [availableQualities, setAvailableQualities] = useState<string[]>([]);
@@ -76,6 +80,15 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
     setDuration(event.target.getDuration());
     setVolume(event.target.getVolume());
     updateQualityLevels();
+
+    // Force best available quality (YouTube lists qualities highest-first)
+    if (typeof event.target.getAvailableQualityLevels === 'function' && typeof event.target.setPlaybackQuality === 'function') {
+      const levels = event.target.getAvailableQualityLevels();
+      if (levels && levels.length > 0) {
+        event.target.setPlaybackQuality(levels[0]);
+        setCurrentQuality(levels[0]);
+      }
+    }
 
     if (isLive && startTime) {
         const start = new Date(startTime).getTime();
@@ -143,6 +156,48 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
       if (interval) clearInterval(interval);
     };
   }, [isPlaying, updateStreak, toast, updateStats]);
+
+  // Sync watch time to the backend for the Class Report feature (My Progress
+  // & History). Accumulates seconds locally, flushes every 30s and on
+  // unmount/pause, so we don't spam the DB every second.
+  const unsyncedSecondsRef = useRef(0);
+  const lastSyncedWatchTimeRef = useRef(0);
+
+  useEffect(() => {
+    if (!classId || !watchCategory) return;
+
+    const flush = () => {
+      const pending = unsyncedSecondsRef.current;
+      if (pending <= 0) return;
+      unsyncedSecondsRef.current = 0;
+      supabase.rpc("log_class_watch_time" as any, {
+        p_class_id: classId,
+        p_category: watchCategory,
+        p_seconds: pending,
+      }).then(({ error }) => {
+        if (error) {
+          // Re-queue on failure so we don't silently lose watch time
+          unsyncedSecondsRef.current += pending;
+        }
+      });
+    };
+
+    const syncInterval = setInterval(flush, 30000);
+    return () => {
+      clearInterval(syncInterval);
+      flush();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, watchCategory]);
+
+  useEffect(() => {
+    if (!classId || !watchCategory) return;
+    const delta = watchTime - lastSyncedWatchTimeRef.current;
+    if (delta > 0) {
+      unsyncedSecondsRef.current += delta;
+      lastSyncedWatchTimeRef.current = watchTime;
+    }
+  }, [watchTime, classId, watchCategory]);
 
   const updateQualityLevels = () => {
     if (playerRef.current && playerRef.current.getAvailableQualityLevels) {
@@ -289,10 +344,24 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
           await (containerRef.current as any).webkitRequestFullscreen();
         }
-        
-        // Attempt orientation lock on mobile
-        if (window.innerWidth < 768 && screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
+
+        // Attempt native orientation lock on mobile (works in some browsers).
+        // If it's unsupported or rejected (common on Chrome Android outside
+        // a PWA), fall back to a CSS rotation so landscape fullscreen still
+        // works everywhere.
+        if (window.innerWidth < 768) {
+          let lockedNatively = false;
+          if (screen.orientation && (screen.orientation as any).lock) {
+            try {
+              await (screen.orientation as any).lock('landscape');
+              lockedNatively = true;
+            } catch {
+              lockedNatively = false;
+            }
+          }
+          if (!lockedNatively) {
+            setForceRotate(true);
+          }
         }
       } else {
         if (document.exitFullscreen) {
@@ -348,6 +417,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
         if (screen.orientation && screen.orientation.unlock) {
           screen.orientation.unlock().catch(() => {});
         }
+        setForceRotate(false);
       }
     };
 
@@ -415,7 +485,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
     <TooltipProvider>
       <div
           ref={containerRef}
-          className="relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none"
+          className={`relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none ${forceRotate ? 'force-rotate-landscape' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isPlaying && setShowControls(false)}
           onDoubleClick={toggleFullscreen}
@@ -424,6 +494,16 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
 
 
         <div id="youtube-player" className="w-full h-full pointer-events-none" />
+
+        {/* Full-area tap-to-toggle play/pause — placed above the video so it
+            works reliably even in rotated (forceRotate) fullscreen mode where
+            some browsers mis-map touch coordinates on nested/transformed
+            elements. Sits below the controls overlay (z-10 vs z-20) so it
+            doesn't block button/slider interactions. */}
+        <div
+          className="absolute inset-0 z-10 cursor-pointer"
+          onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
+        />
 
         {/* Overlay/Controls */}
         <div
@@ -583,14 +663,12 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime }: ClassPlayer
           </div>
         </div>
 
-        {/* Centered Play Button (Initial or Paused) */}
+        {/* Centered Play Icon (Initial or Paused) — no background circle so it doesn't hide content behind it */}
         {!isPlaying && (
             <div
-              className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              className="absolute inset-0 flex items-center justify-center pointer-events-none z-[5]"
             >
-                <div className="bg-black/40 p-4 sm:p-5 rounded-full backdrop-blur-[2px] border border-white/10 shadow-2xl animate-in zoom-in-50 duration-300">
-                    <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1" />
-                </div>
+                <Play className="h-8 w-8 sm:h-10 sm:w-10 text-white fill-white ml-1 drop-shadow-lg animate-in zoom-in-50 duration-300" />
             </div>
         )}
       </div>

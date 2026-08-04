@@ -9,6 +9,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SUBJECTS } from "@/lib/constants";
 import { useNavigate } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const Recordings = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
@@ -84,10 +85,10 @@ const Recordings = () => {
     : filteredClasses;
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Record Class</h1>
-        <p className="text-sm text-muted-foreground">Watch recordings of previous sessions.</p>
+    <div className="space-y-3">
+      <header className="space-y-0.5">
+        <h1 className="text-xl font-semibold tracking-tight">Record Class</h1>
+        <p className="text-xs text-muted-foreground">Watch recordings of previous sessions.</p>
       </header>
 
       <div className="relative">
@@ -96,58 +97,53 @@ const Recordings = () => {
           placeholder="Search classes by name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9"
+          className="pl-9 h-10"
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Course</div>
-          <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Courses</SelectItem>
-              {enrollments?.map((enrollment) => (
-                <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
-                  {enrollment.course.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-2 gap-2">
+        <Select value={selectedCourse} onValueChange={setSelectedCourse}>
+          <SelectTrigger className="h-10">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Courses</SelectItem>
+            {enrollments?.map((enrollment) => (
+              <SelectItem key={enrollment.course_id} value={enrollment.course_id}>
+                {enrollment.course.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Sort</div>
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-[160px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Default Order</SelectItem>
-              <SelectItem value="recent">Recent to Old</SelectItem>
-              <SelectItem value="old">Old to Recent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Select value={sortOrder} onValueChange={setSortOrder}>
+          <SelectTrigger className="h-10">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="default">Default Order</SelectItem>
+            <SelectItem value="recent">Recent to Old</SelectItem>
+            <SelectItem value="old">Old to Recent</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <div className="text-xs uppercase tracking-[0.25em] text-muted-foreground hidden sm:block">Subject</div>
-          <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="All Subjects" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Subjects</SelectItem>
-              {SUBJECTS.map((subject) => (
-                <SelectItem key={subject} value={subject}>
-                  {subject}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      {/* Subject category quick-filter: 2 per row, "All Subjects" first */}
+      <div className="grid grid-cols-2 gap-2">
+        {["all", ...SUBJECTS].map((s) => (
+          <button
+            key={s}
+            onClick={() => setSelectedSubject(s)}
+            className={cn(
+              "h-10 rounded-lg border-2 px-2 text-xs font-semibold truncate transition-colors",
+              selectedSubject === s
+                ? "border-primary bg-primary/10 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/40"
+            )}
+          >
+            {s === "all" ? "All Subjects" : s}
+          </button>
+        ))}
       </div>
 
       {isLoading ? (

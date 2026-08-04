@@ -1,4 +1,6 @@
 import { useEffect } from "react";
+import { LiveCountdown } from "@/components/shared/LiveCountdown";
+import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
@@ -46,6 +48,7 @@ const STATS = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
   useEffect(() => {
     document.title = "Atlas - Best Coaching & Exam Platform";
   }, []);
@@ -91,6 +94,34 @@ const Index = () => {
       return data || [];
     },
   });
+
+  const { data: landingExams } = useQuery({
+    queryKey: ["public-landing-exams"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, free_exam_category, time_window_end")
+        .eq("is_published", true)
+        .eq("is_visible_on_free", true)
+        // @ts-ignore
+        .eq("show_on_landing", true)
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (error.code === '42P01' || error.code === '42703') return [];
+        throw error;
+      }
+      return data || [];
+    },
+  });
+
+  const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions) => {
+    if (!dateStr) return "";
+    try {
+      return new Date(dateStr).toLocaleString("en-US", { timeZone: "Asia/Dhaka", ...options });
+    } catch {
+      return "";
+    }
+  };
 
   const { data: reviews } = useQuery({
     queryKey: ["public-reviews"],
@@ -138,6 +169,56 @@ const Index = () => {
       </div>
 
       <main className="mx-auto flex max-w-6xl flex-col gap-6 px-2 sm:px-4 pb-10 pt-6 sm:pt-8 flex-1">
+
+        {/* Landing Exams (Free Exam category exams with "Allow Dashboard" toggle on) */}
+        {landingExams && landingExams.length > 0 && (
+            <section className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                    <h2 className="text-lg font-semibold tracking-tight">Live Now</h2>
+                </div>
+                <div className="flex flex-col gap-4 max-w-xl mx-auto w-full">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {(landingExams as any[]).map((exam: any) => (
+                        <Card key={exam.id} className="relative border transition-all border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] dark:shadow-[0_0_20px_rgba(5,150,105,0.3)] bg-emerald-50/50 dark:bg-emerald-900/20 overflow-hidden">
+                            <CardHeader className="space-y-2 px-4 pt-4 pb-2">
+                                <div className="flex items-start justify-between gap-2">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[10px] font-mono uppercase text-emerald-800 dark:text-emerald-200 break-words">
+                                        {exam?.free_exam_category || "Free Exam"}
+                                    </span>
+                                    <span className="animate-pulse shrink-0 inline-flex items-center whitespace-nowrap px-2.5 py-1 rounded text-xs font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                                        LIVE EXAM
+                                    </span>
+                                </div>
+                                <CardTitle
+                                    className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
+                                    style={{ fontSize: `${Math.max(1.3, Math.min(2.5, 22 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
+                                >
+                                    {exam?.title || "Live Exam"}
+                                </CardTitle>
+                                {exam?.time_window_end && (
+                                    <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                                        <span>এক্সাম শেষ: {formatDate(exam.time_window_end, { hour: '2-digit', minute: '2-digit' })}</span>
+                                        <span className="text-muted-foreground/50">•</span>
+                                        <span>সময় বাকি: <LiveCountdown endTime={exam.time_window_end} /></span>
+                                    </div>
+                                )}
+                            </CardHeader>
+                            <CardContent className="px-4 pb-2 pt-1">
+                                <Button
+                                    size="lg"
+                                    onClick={() => navigate(`/take-exam/${exam.id}`)}
+                                    className="w-full bg-emerald-700 hover:bg-emerald-800 text-white border-none font-bold h-12"
+                                    style={{ fontSize: "1.4rem" }}
+                                >
+                                    Start Exam
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </section>
+        )}
 
         {/* Special Exams Section */}
         {specialExams && specialExams.length > 0 && (

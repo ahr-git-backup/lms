@@ -126,6 +126,7 @@ export default {
 				sans: [
 					"DM Sans",
                     "Kalpurush",
+					"Noto Sans Bengali",
 					"ui-sans-serif",
 					"system-ui",
 					"-apple-system",
@@ -135,6 +136,8 @@ export default {
 					"Helvetica Neue",
 					"Arial",
 					"Noto Sans",
+					"Noto Sans Symbols",
+					"Noto Sans Symbols 2",
 					"sans-serif",
 				],
 				serif: [

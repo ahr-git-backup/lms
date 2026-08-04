@@ -56,17 +56,7 @@ const Login = () => {
     const identifier = formData.get("identifier") as string; // Changed from registrationId to identifier
     const password = formData.get("password") as string;
 
-    let email = identifier;
-
-    // Legacy Support: Check if input looks like a phone number (digits only, length check)
-    // If it's a phone number, convert to synthetic email
-    const isPhone = /^\d+$/.test(identifier) || (identifier.startsWith('+') && /^\+?\d+$/.test(identifier));
-
-    if (isPhone && !identifier.includes('@')) {
-      email = `${identifier}@beshijoss.com`;
-    }
-
-    const { error } = await signIn(email, password, captchaToken);
+    const { error } = await signIn(identifier, password, captchaToken);
 
     if (error) {
       setLoginError({ message: error.message || "Invalid credentials", identifier });
@@ -123,8 +113,8 @@ const Login = () => {
             <CardContent>
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-2">
-                  <Label htmlFor="identifier">Email</Label>
-                  <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="user@example.com" />
+                  <Label htmlFor="identifier">ইমেইল / ফোন নম্বর</Label>
+                  <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="Email অথবা Phone Number" />
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -180,9 +170,33 @@ const Login = () => {
               <div className="mt-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                  <div className="text-sm text-yellow-800 dark:text-yellow-400">
+                  <div className="text-sm text-yellow-800 dark:text-yellow-400 w-full">
                     <p className="font-bold mb-1">সতর্কবার্তা!</p>
                     <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
+                    <p className="mt-2">লগইন সংক্রান্ত সমস্যা হলে নিচে মেসেজ করুন:</p>
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      <Button
+                        asChild
+                        size="sm"
+                        className="w-full gap-1.5 bg-[#229ED9] hover:bg-[#1b87bd] text-white"
+                      >
+                        <a href={TELEGRAM_SUPPORT_BOT} target="_blank" rel="noopener noreferrer">
+                          <Send className="h-3.5 w-3.5" />
+                          Telegram
+                        </a>
+                      </Button>
+                      <Button
+                        asChild
+                        size="sm"
+                        variant="outline"
+                        className="w-full gap-1.5 border-[#25D366] text-[#25D366] hover:bg-[#25D366]/10 hover:text-[#25D366]"
+                      >
+                        <a href={WHATSAPP_HELPLINE} target="_blank" rel="noopener noreferrer">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>

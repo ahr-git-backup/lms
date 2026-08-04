@@ -277,7 +277,7 @@ const SyllabusTracker = () => {
   const goBack = () => {
     if (openSubject) { setOpenSubjectId(null); return; }
     if (panel !== "none") { setPanel("none"); return; }
-    navigate("/");
+    navigate(user ? "/dashboard" : "/");
   };
 
   const panelTitle =

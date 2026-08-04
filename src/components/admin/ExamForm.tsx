@@ -50,9 +50,13 @@ const examSchema = z.object({
     .refine((val) => !val || !isNaN(Number(val)), { message: "Negative mark must be a number" }),
   instructions: z.string().trim().max(4000).optional().or(z.literal("")),
   time_window_start: z.string().optional(),
+  telegram_notify_enabled: z.boolean().optional(),
+  telegram_message: z.string().optional(),
+  telegram_channel_ids: z.array(z.string()).default([]),
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
+  show_on_landing: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
@@ -131,8 +135,12 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         instructions: "",
         time_window_start: "",
         time_window_end: "",
+        telegram_notify_enabled: false,
+        telegram_message: "",
+        telegram_channel_ids: [],
         is_published: false,
         is_visible_on_free: false,
+        show_on_landing: false,
         free_exam_category: "HSC",
         restrict_solution: false,
         questions_json: "",
@@ -191,9 +199,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     : "0",
                 instructions: exam.instructions ?? "",
                 time_window_start: exam.time_window_start ? toDhakaTimeISO(exam.time_window_start) : "",
+                telegram_notify_enabled: (exam as any).telegram_notify_enabled ?? false,
+                telegram_message: (exam as any).telegram_message ?? "",
+                telegram_channel_ids: (exam as any).telegram_channel_ids ?? [],
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? false,
+                show_on_landing: exam.show_on_landing ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
                 questions_json: "",
@@ -215,8 +227,21 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
     const { data: courses } = useQuery({
         queryKey: ["admin-courses-form"],
+        staleTime: 5 * 60 * 1000,
         queryFn: async () => {
             const { data, error } = await supabase.from("courses").select("id, name");
+            if (error) throw error;
+            return data || [];
+        },
+    });
+
+    const { data: telegramChannels } = useQuery({
+        queryKey: ["telegram-channels-form"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("telegram_channels")
+                .select("id, name, is_active")
+                .eq("is_active", true);
             if (error) throw error;
             return data || [];
         },
@@ -272,7 +297,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               });
           }
         };
-        reader.readAsText(file);
+        reader.readAsText(file, "UTF-8");
     };
 
     const [isDraggingJSON, setIsDraggingJSON] = useState(false);
@@ -339,9 +364,13 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               : 0,
             instructions: parsed.instructions || null,
             time_window_start: parsed.time_window_start ? fromDhakaTimeToUTC(parsed.time_window_start) : null,
+            telegram_notify_enabled: parsed.telegram_notify_enabled ?? false,
+            telegram_message: parsed.telegram_message || null,
+            telegram_channel_ids: parsed.telegram_channel_ids || [],
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
+            show_on_landing: parsed.show_on_landing ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
             is_archive: parsed.is_archive,
@@ -474,6 +503,69 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               .update(payload)
               .eq("id", parsed.id);
             if (error) throw error;
+
+            // Same question-import handling as the create-new-exam branch below,
+            // for CSV / Question Bank / JSON questions added while editing an
+            // exam that was already saved without questions.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const editQuestionRows: any[] = [];
+
+            if (parsed.questions_json) {
+              try {
+                const jsonData = JSON.parse(parsed.questions_json);
+                if (!Array.isArray(jsonData)) {
+                  throw new Error("Questions JSON must be an array.");
+                }
+                editQuestionRows.push(...normaliseQuestions(jsonData));
+              } catch (err) {
+                if (err instanceof Error) {
+                    throw new Error(`Invalid questions JSON: ${err.message}`);
+                }
+                 throw new Error(`Invalid questions JSON: ${String(err)}`);
+              }
+            }
+
+            if (parsed.questions_csv) {
+              editQuestionRows.push(...parseCsvQuestions(parsed.questions_csv));
+            }
+
+            if (qbQuestions.length) {
+              qbQuestions.forEach((q: any) => {
+                editQuestionRows.push({
+                  question_text: q.question_text ?? q.question,
+                  option_a: q.option_a ?? q.options?.A ?? "",
+                  option_b: q.option_b ?? q.options?.B ?? "",
+                  option_c: q.option_c ?? q.options?.C ?? "",
+                  option_d: q.option_d ?? q.options?.D ?? "",
+                  correct_option: q.correct_option ?? q.correct_answer ?? "A",
+                  marks: q.marks ?? 1,
+                  explanation: q.explanation || null,
+                });
+              });
+            }
+
+            if (editQuestionRows.length) {
+              // Find current max question_index for this exam so newly imported
+              // questions are appended after existing ones instead of colliding.
+              const { data: existingQs } = await supabase
+                .from("exam_questions")
+                .select("question_index")
+                .eq("exam_id", parsed.id)
+                .order("question_index", { ascending: false })
+                .limit(1);
+              const startIndex = (existingQs?.[0]?.question_index || 0) + 1;
+
+              const rowsWithExam = editQuestionRows.map((q, index) => ({
+                exam_id: parsed.id,
+                question_index: startIndex + index,
+                ...q,
+              }));
+
+              const { error: qError } = await supabase
+                .from("exam_questions")
+                .insert(rowsWithExam);
+              if (qError) throw qError;
+            }
           } else {
             const { data, error } = await supabase
               .from("exams")
@@ -555,8 +647,12 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 instructions: "",
                 time_window_start: "",
                 time_window_end: "",
+                telegram_notify_enabled: false,
+                telegram_message: "",
+                telegram_channel_ids: [],
                 is_published: false,
                 is_visible_on_free: false,
+                show_on_landing: false,
                 free_exam_category: "HSC",
                 restrict_solution: false,
                 questions_json: "",
@@ -569,6 +665,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               });
           }
           if (!exam) sessionStorage.removeItem(DRAFT_KEY);
+          if (exam) setForm((prev) => ({ ...prev, questions_json: "", questions_csv: "" }));
+          setQbQuestions([]);
           onSuccess();
         },
         onError: (error: Error) => {
@@ -614,6 +712,9 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                             </Button>
                         )}
                     </div>
+                    {courses === undefined ? (
+                      <div className="h-9 rounded-md border bg-muted animate-pulse" />
+                    ) : (
                     <Select
                       value={form.course_id || ""}
                       onValueChange={(value) => setForm((prev) => ({ ...prev, course_id: value }))}
@@ -622,6 +723,11 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                         <SelectValue placeholder="Select course (or leave empty for Public)" />
                       </SelectTrigger>
                       <SelectContent>
+                        {form.course_id && !courses?.some((c: Pick<Course, "id" | "name">) => c.id === form.course_id) && (
+                          <SelectItem value={form.course_id}>
+                            (Unknown/Deleted course)
+                          </SelectItem>
+                        )}
                         {courses?.map((course: Pick<Course, "id" | "name">) => (
                           <SelectItem key={course.id} value={course.id}>
                             {course.name}
@@ -629,6 +735,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                         ))}
                       </SelectContent>
                     </Select>
+                    )}
                     {!form.course_id && <p className="text-[10px] text-muted-foreground">This exam will be public (no course restriction).</p>}
                   </div>
               )}
@@ -700,6 +807,41 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </SelectContent>
                 </Select>
               </div>
+
+              {form.exam_type === "live" && (
+                <div className="space-y-2 border rounded-md p-3">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="telegram_notify_enabled">Telegram Notify (on exam start)</Label>
+                    <Switch
+                      id="telegram_notify_enabled"
+                      checked={!!form.telegram_notify_enabled}
+                      onCheckedChange={(checked) =>
+                        setForm((prev) => ({ ...prev, telegram_notify_enabled: checked }))
+                      }
+                    />
+                  </div>
+                  {form.telegram_notify_enabled && (
+                    <div className="space-y-1">
+                      <Label htmlFor="telegram_message">Telegram Message</Label>
+                      <Textarea
+                        id="telegram_message"
+                        placeholder="Exam live message likhun..."
+                        value={form.telegram_message}
+                        onChange={(e) =>
+                          setForm((prev) => ({ ...prev, telegram_message: e.target.value }))
+                        }
+                      />
+                      <Label>Send to Channel(s)</Label>
+                      <MultiSelect
+                        options={telegramChannels?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                        selected={form.telegram_channel_ids}
+                        onChange={(vals) => setForm((prev) => ({ ...prev, telegram_channel_ids: vals }))}
+                        placeholder="Select channel(s)..."
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
@@ -831,6 +973,19 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                           }
                       />
                       <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
+                  </div>
+              )}
+
+              {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                      <Switch
+                          id="show_on_landing"
+                          checked={form.show_on_landing}
+                          onCheckedChange={(checked) =>
+                              setForm((prev) => ({ ...prev, show_on_landing: checked }))
+                          }
+                      />
+                      <Label htmlFor="show_on_landing">Allow Dashboard (Show on Landing Page)</Label>
                   </div>
               )}
 

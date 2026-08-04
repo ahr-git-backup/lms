@@ -191,28 +191,17 @@ const LiveExam = () => {
             const isActive = isLive && start && end && now >= start && now <= end;
 
             return (
-              <Card key={exam.id} className={`transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
-                <CardHeader className="space-y-1">
-                  <div className="flex justify-between items-start gap-2">
-                      <p className="text-xs font-mono uppercase text-muted-foreground">
-                          {exam.course?.name || "Public Exam"}
-                      </p>
-                      {isActive && (
-                        <span className="animate-pulse inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
-                            LIVE NOW
-                        </span>
-                      )}
-                      {Array.isArray(exam.subject) && (
-                        <div className="flex flex-wrap gap-1 justify-end">
-                            {exam.subject.map((s: string) => (
-                                <span key={s} className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-colors border-emerald-200 bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100 dark:bg-emerald-900/40 dark:text-emerald-100 dark:border-emerald-800">
-                                    {s}
-                                </span>
-                            ))}
-                        </div>
-                      )}
-                  </div>
-                  <CardTitle className="text-base">{exam.title}</CardTitle>
+              <Card key={exam.id} className={`relative transition-all rounded-2xl shadow-md hover:shadow-lg flex flex-col h-full ${isActive ? 'border border-emerald-600 shadow-[0_0_15px_rgba(5,150,105,0.5)] bg-emerald-50 dark:bg-emerald-900/40' : 'border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900'}`}>
+                {isActive && (
+                  <span className="animate-pulse absolute top-2 right-2 inline-flex items-center whitespace-nowrap shrink-0 px-3 py-1 rounded text-sm font-bold bg-red-100 text-red-700 border border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800">
+                      LIVE NOW
+                  </span>
+                )}
+                <CardHeader className={`space-y-2 pt-4 ${isActive ? 'pr-24' : ''}`}>
+                  <span className="inline-flex items-center self-start max-w-full px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-[9px] font-mono uppercase text-emerald-800 dark:text-emerald-200 whitespace-nowrap overflow-hidden text-ellipsis">
+                      {exam.course?.name || "Public Exam"}
+                  </span>
+                  <CardTitle className="text-2xl font-extrabold">{exam.title}</CardTitle>
                   <CardDescription className="text-xs">
                     Duration: {exam.duration_minutes} min • {exam.exam_type === "live" ? "Live Exam" : "Practice Exam"}
                     {preferences && ((exam.exam_type === "live" && preferences.remind_for_live_exams) ||
@@ -232,15 +221,15 @@ const LiveExam = () => {
                       })()}
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="flex-1 flex flex-col justify-end pt-6">
                   {isLive && attempted ? (
                     <div className="text-xs text-muted-foreground">Attempt Completed</div>
                   ) : (
                     <Button 
-                      size="sm" 
+                      size="lg" 
                       onClick={() => setSelectedExamForPopup(exam)}
                       disabled={isLive && attempted}
-                      className={isActive ? "w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white border-none" : "w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"}
+                      className={`h-12 text-base font-semibold ${isActive ? "w-full rounded-full bg-emerald-700 hover:bg-emerald-800 text-white border-none" : "w-full rounded-full bg-emerald-600 hover:bg-emerald-700 text-white border-none"}`}
                     >
                       {isActive ? "Start Live Exam" : "Start Exam"}
                     </Button>

@@ -12,6 +12,7 @@ import { useTheme } from "next-themes";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminReportAlert } from "@/components/AdminReportAlert";
 
 export const AdminLayout = () => {
   const { profile, signOut, isAdmin, isTeacher } = useAuth();
@@ -58,7 +59,7 @@ export const AdminLayout = () => {
                 <div className="bg-white rounded p-1 hidden xs:block">
                   <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
                 </div>
-                <h1 className="text-sm font-semibold">Admin Panel</h1>
+                <Link to="/dashboard" className="text-sm font-semibold hover:underline">Dashboard</Link>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -173,6 +174,7 @@ export const AdminLayout = () => {
           </main>
         </div>
       </div>
+      {(isAdmin || isTeacher) && <AdminReportAlert />}
     </SidebarProvider>
   );
 };

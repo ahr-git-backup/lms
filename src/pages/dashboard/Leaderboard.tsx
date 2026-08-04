@@ -975,6 +975,14 @@ const Leaderboard = () => {
   // So even for expired live exams, we should probably show the historical "Live Rank" vs "Practice Rank".
   const showTabs = exam?.exam_type === 'live';
 
+  if (exam?.chapter === "Custom") {
+     return (
+        <div className="p-8 text-center text-muted-foreground">
+            Custom exam-এ কোনো leaderboard নেই।
+        </div>
+     );
+  }
+
   if (hasAccess === false) {
      return (
         <div className="p-8 text-center text-muted-foreground">

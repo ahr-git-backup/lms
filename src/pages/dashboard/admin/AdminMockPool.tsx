@@ -83,6 +83,7 @@ const AdminMockPool = () => {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      encoding: "UTF-8",
       complete: (result) => {
         const rows = (result.data as any[]).filter((r) => r["questions"] || r["question_text"]);
         setCsvData(rows);

@@ -90,7 +90,16 @@ const Community = () => {
                             className={`w-full h-8 text-xs font-semibold text-white shadow-sm ${getBtnColor(link.url) || "bg-primary hover:bg-primary/90"}`}
                             asChild
                         >
-                            <a href={link.url} target="_blank" rel="noopener noreferrer">
+                            <a
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                onClick={() => {
+                                    supabase.rpc("record_community_link_click", { p_resource_id: link.id }).then(({ error }) => {
+                                        if (error) console.error("Error recording link click", error);
+                                    });
+                                }}
+                            >
                                 <ExternalLink className="h-3 w-3 mr-2" />
                                 Join Now
                             </a>
@@ -110,9 +119,23 @@ const Community = () => {
       return true;
   });
 
+  // Deduplicate by URL globally: if a student is enrolled in multiple courses
+  // that share the exact same FB/TG group link, only show it once (first occurrence).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dedupedLinks = (() => {
+      const seenUrls = new Set<string>();
+      const result: any[] = [];
+      for (const link of platformFilteredLinks) {
+          if (seenUrls.has(link.url)) continue;
+          seenUrls.add(link.url);
+          result.push(link);
+      }
+      return result;
+  })();
+
   // Group links by course name
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedLinks = platformFilteredLinks.reduce((acc: Record<string, any[]>, link: any) => {
+  const groupedLinks = dedupedLinks.reduce((acc: Record<string, any[]>, link: any) => {
       const courseName = link.course_name || "Public Community";
       if (!acc[courseName]) acc[courseName] = [];
       acc[courseName].push(link);

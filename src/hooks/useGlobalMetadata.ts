@@ -4,6 +4,30 @@ import { useToast } from "@/hooks/use-toast";
 
 export type MetadataType = 'subject' | 'chapter' | 'topic' | 'exam_code' | 'year' | 'tag' | 'readymade_topic' | 'readymade_category' | 'readymade_sub_chapter' | 'free_exam_category' | 'mock_subject' | 'mock_chapter' | 'mock_topic' | 'mock_standard';
 
+// Backfills global_metadata "subject" rows from exams.subject values that exist on
+// exams but were never (or no longer) present in global_metadata — e.g. subjects
+// renamed before rename-sync existed, so the old name has no metadata row and the
+// new name was never inserted either. Runs once per query, silently, self-healing.
+const backfillSubjectMetadata = async (existingSubjects: Set<string>) => {
+    const BATCH = 1000;
+    let from = 0;
+    const found = new Set<string>();
+    while (true) {
+        const { data: rows, error } = await supabase.from("exams").select("subject").range(from, from + BATCH - 1);
+        if (error || !rows) break;
+        for (const row of rows as any[]) {
+            (row.subject as string[] | null)?.forEach((s) => s && found.add(s));
+        }
+        if (rows.length < BATCH) break;
+        from += BATCH;
+    }
+    const missing = [...found].filter((s) => !existingSubjects.has(s));
+    if (missing.length === 0) return false;
+    const { error: insErr } = await supabase.from("global_metadata").insert(missing.map((value) => ({ type: "subject", value })));
+    if (insErr && insErr.code !== "23505") console.error("subject metadata backfill failed:", insErr);
+    return true;
+};
+
 export const useGlobalMetadata = (type?: MetadataType) => {
     return useQuery({
         queryKey: ["global-metadata", type],
@@ -21,6 +45,15 @@ export const useGlobalMetadata = (type?: MetadataType) => {
                 data = data.concat(batchData || []);
                 if (!batchData || batchData.length < BATCH) break;
                 from += BATCH;
+            }
+
+            if (!type || type === "subject") {
+                const existingSubjects = new Set(data.filter((d) => d.type === "subject").map((d) => d.value));
+                const backfilled = await backfillSubjectMetadata(existingSubjects);
+                if (backfilled) {
+                    const { data: subjRows } = await supabase.from("global_metadata").select("type, value").eq("type", "subject");
+                    data = data.filter((d) => d.type !== "subject").concat(subjRows || []);
+                }
             }
 
             // Group by type if not filtered
@@ -146,15 +179,36 @@ export const useDeleteGlobalMetadata = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
+    // Metadata types that map directly to a column on `exams`. Deleting one of
+    // these options must also clear that column off existing exams, otherwise
+    // the corresponding step in the Readymade Exam drill-down never disappears
+    // even though the option is gone from the admin pick-list.
+    const EXAM_COLUMN_BY_TYPE: Partial<Record<MetadataType, string>> = {
+        chapter: "chapter",
+        readymade_topic: "readymade_topic",
+        readymade_category: "readymade_category",
+        readymade_sub_chapter: "readymade_sub_chapter",
+    };
+
     return useMutation({
         mutationFn: async ({ type, value }: { type: MetadataType; value: string }) => {
             const { error } = await supabase.from("global_metadata").delete().eq("type", type).eq("value", value);
             if (error) throw error;
-            // Note: intentionally does NOT clear the value off existing exams — deleting an
-            // option just removes it from future pick-lists, old exams keep their data intact.
+            const column = EXAM_COLUMN_BY_TYPE[type];
+            if (column) {
+                const { error: clearErr } = await supabase.from("exams").update({ [column]: null }).eq(column, value);
+                if (clearErr) throw clearErr;
+            }
         },
-        onSuccess: () => {
+        onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
+            if (EXAM_COLUMN_BY_TYPE[variables.type]) {
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapters"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-chapter-boards"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-subchapters"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams"] });
+                queryClient.invalidateQueries({ queryKey: ["readymade-exams-topics"] });
+            }
             toast({ title: "Deleted" });
         },
         onError: (err: any) => {

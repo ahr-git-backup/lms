@@ -98,6 +98,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                error = retry.error;
             } else {
               console.error("Failed to create profile lazy:", insertError);
+              toast({
+                title: "প্রোফাইল লোড করা যায়নি",
+                description: "একটি সমস্যা হয়েছে। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।",
+                variant: "destructive",
+              });
             }
           }
         }
@@ -131,6 +136,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (err) {
       console.error("fetchProfile failed:", err);
+      toast({
+        title: "প্রোফাইল লোড করা যায়নি",
+        description: "নেটওয়ার্ক সমস্যা হতে পারে। পেজ রিফ্রেশ করে আবার চেষ্টা করুন।",
+        variant: "destructive",
+      });
     }
   };
 
@@ -173,11 +183,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signIn = useCallback(async (identifier: string, password: string, captchaToken?: string) => {
     try {
       let email = identifier;
-      // If it looks like a registration ID (no @ symbol), format it as an internal email
+
+      // If input has no @, it's a phone number or legacy registration ID.
+      // We must resolve it to the actual auth email before attempting login,
+      // since registration now uses the student's real email (not a synthetic one).
       if (!identifier.includes("@")) {
-        email = `${identifier}@beshijoss.com`;
+        // @ts-expect-error rpc not in generated types
+        const { data: resolvedEmail } = await supabase.rpc('resolve_login_email', { p_identifier: identifier });
+        if (resolvedEmail) {
+          email = resolvedEmail;
+        } else {
+          // Fallback to legacy synthetic email pattern for old accounts
+          email = `${identifier}@beshijoss.com`;
+        }
       }
- 
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -193,7 +213,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const code = (error as { message?: string; status?: number }).message || "";
         const isCredentialError = /invalid login credentials|invalid.*credentials/i.test(code);
         if (isCredentialError) {
-          return { error: { message: "Invalid registration ID or password" } };
+          // @ts-expect-error rpc not in generated types
+          const { data: exists } = await supabase.rpc('check_identifier_exists', { p_identifier: identifier });
+          if (!exists) {
+            return { error: { message: "এই ফোন নম্বর/ইমেইল দিয়ে কোনো অ্যাকাউন্ট পাওয়া যায়নি। ফোন নম্বর বা ইমেইল ঠিক আছে কিনা চেক করুন।" } };
+          }
+          return { error: { message: "পাসওয়ার্ড ভুল হয়েছে। আবার চেষ্টা করুন অথবা পাসওয়ার্ড রিসেট করুন।" } };
         }
         return { error: { message: `লগইন করা যায়নি: ${code || "অজানা সমস্যা"}। কিছুক্ষণ পর আবার চেষ্টা করুন।` } };
       }
@@ -229,7 +254,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 .update({ current_session_id: newSessionId })
                 .eq("id", data.user.id);
 
-            if (updateError) console.error("Failed to update session ID", updateError);
+            if (updateError) {
+              console.error("Failed to update session ID", updateError);
+              toast({
+                title: "সেশন সিঙ্ক সমস্যা",
+                description: "লগইন হয়েছে, তবে একটি সমস্যার কারণে অন্য ডিভাইসে সমস্যা হতে পারে। কোনো সমস্যা মনে হলে পুনরায় লগইন করুন।",
+                variant: "destructive",
+              });
+            }
           }
           // Privileged users: don't touch current_session_id at all, so no
           // other admin/teacher session anywhere gets invalidated by this login.

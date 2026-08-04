@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/hooks/use-toast";
 import { Checkbox } from "@/components/ui/checkbox";
 import { X, ChevronLeft, ChevronRight, Ban, Trash2, Users, GraduationCap, Shield, Key, Mail, AlertTriangle, Eye, CheckCircle2 } from "lucide-react";
+import { format } from "date-fns";
 
 const PAGE_SIZE = 10;
 
@@ -118,7 +119,7 @@ const AdminStudents = () => {
     },
   });
 
-  const { data: studentsData, isLoading } = useQuery({
+  const { data: studentsData, isLoading, error: studentsError } = useQuery({
     queryKey: ["admin-students", selectedCourseFilter, page, debouncedSearch, listFilter],
     queryFn: async () => {
       if (!listFilter && !debouncedSearch && selectedCourseFilter === 'all') return { data: [], count: 0 };
@@ -149,7 +150,16 @@ const AdminStudents = () => {
 
       // Apply Search Filter (ALWAYS applied on top of list filter)
       if (debouncedSearch) {
-        query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`);
+        // @ts-expect-error rpc not in generated types
+        const { data: emailMatches } = await supabase.rpc('admin_search_users_by_email', { p_search: debouncedSearch });
+        const emailIds: string[] = (emailMatches || []).map((r: any) => r.id);
+        const orParts = [
+          `full_name.ilike.%${debouncedSearch}%`,
+          `registration_id.ilike.%${debouncedSearch}%`,
+          `phone.ilike.%${debouncedSearch}%`,
+        ];
+        if (emailIds.length > 0) orParts.push(`id.in.(${emailIds.join(',')})`);
+        query = query.or(orParts.join(','));
       }
 
       // Apply Course Filter (Overrides base query if specific)
@@ -159,7 +169,16 @@ const AdminStudents = () => {
             .eq("course_id", selectedCourseFilter);
 
            if (debouncedSearch) {
-              query = query.or(`full_name.ilike.%${debouncedSearch}%,registration_id.ilike.%${debouncedSearch}%`, { foreignTable: "profiles" });
+              // @ts-expect-error rpc not in generated types
+              const { data: emailMatches2 } = await supabase.rpc('admin_search_users_by_email', { p_search: debouncedSearch });
+              const emailIds2: string[] = (emailMatches2 || []).map((r: any) => r.id);
+              const orParts2 = [
+                `full_name.ilike.%${debouncedSearch}%`,
+                `registration_id.ilike.%${debouncedSearch}%`,
+                `phone.ilike.%${debouncedSearch}%`,
+              ];
+              if (emailIds2.length > 0) orParts2.push(`id.in.(${emailIds2.join(',')})`);
+              query = query.or(orParts2.join(','), { foreignTable: "profiles" });
            }
       }
 
@@ -174,7 +193,7 @@ const AdminStudents = () => {
 
       if (selectedCourseFilter !== 'all') {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          resultData = data.map((e: any) => ({
+          resultData = resultData.map((e: any) => ({
               ...(e.profile as Profile),
               enrollments: [{ id: e.id, course_id: e.course_id, courses: e.course, created_at: e.created_at }]
           }));
@@ -305,7 +324,7 @@ const AdminStudents = () => {
       </header>
 
       {/* Stats Cards - Clickable */}
-      <div className="grid gap-6 md:grid-cols-4">
+      <div className="grid gap-6 grid-cols-2">
           <Card
             className={`cursor-pointer transition-all hover:border-primary/50 ${listFilter === 'paid' ? 'border-primary bg-primary/5' : ''}`}
             onClick={() => setListFilter(listFilter === 'paid' ? null : 'paid')}
@@ -347,6 +366,7 @@ const AdminStudents = () => {
               </CardHeader>
               <CardContent>
                   <div className="text-xl font-bold">{stats?.teachers ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
 
@@ -361,6 +381,7 @@ const AdminStudents = () => {
               </CardHeader>
               <CardContent>
                   <div className="text-xl font-bold">{stats?.admins ?? "-"}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Click to view list</p>
               </CardContent>
           </Card>
       </div>
@@ -402,34 +423,38 @@ const AdminStudents = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {listFilter === 'paid' && courses && courses.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedCourseFilter === 'all' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSearchParams(prev => {
+                    prev.set("course", "all");
+                    prev.set("page", "0");
+                    return prev;
+                })}
+              >
+                All Courses
+              </Button>
+              {courses.map((course: Pick<Course, "id" | "name">) => (
+                <Button
+                  key={course.id}
+                  variant={selectedCourseFilter === course.id ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setSearchParams(prev => {
+                      prev.set("course", course.id);
+                      prev.set("page", "0");
+                      return prev;
+                  })}
+                >
+                  {course.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center w-full">
-                <div className="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
-                    <Select
-                    value={selectedCourseFilter}
-                    onValueChange={(v) => {
-                        setSearchParams(prev => {
-                            prev.set("course", v);
-                            prev.set("page", "0");
-                            return prev;
-                        });
-                        setListFilter('paid'); // Auto switch to showing list when course selected
-                    }}
-                    >
-                    <SelectTrigger className="w-full sm:w-56">
-                        <SelectValue placeholder="Filter by Course" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Courses</SelectItem>
-                        {courses?.map((course: Pick<Course, "id" | "name">) => (
-                        <SelectItem key={course.id} value={course.id}>
-                            {course.name}
-                        </SelectItem>
-                        ))}
-                    </SelectContent>
-                    </Select>
-                </div>
-
                 <div className="flex-1 w-full sm:max-w-xs">
                      <Input
                         placeholder="Search Name or ID..."
@@ -444,6 +469,10 @@ const AdminStudents = () => {
               <div className="text-center py-12 text-muted-foreground">
                   <p>Click a stats card or use search to view students.</p>
               </div>
+          ) : studentsError ? (
+            <div className="text-sm text-destructive py-8 text-center">
+              Failed to load students: {(studentsError as Error).message}
+            </div>
           ) : isLoading ? (
             <div className="text-sm text-muted-foreground">Loading students...</div>
           ) : students.length === 0 ? (
@@ -463,7 +492,7 @@ const AdminStudents = () => {
                     <TableHead>Registration ID</TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Courses (Access)</TableHead>
-                    {selectedCourseFilter !== 'all' && <TableHead>Enrolled On</TableHead>}
+                    {(selectedCourseFilter !== 'all' || listFilter === 'paid' || listFilter === 'free') && <TableHead>Enrolled On</TableHead>}
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -500,9 +529,13 @@ const AdminStudents = () => {
                             {(!student.enrollments || student.enrollments.length === 0) && <span className="text-muted-foreground">-</span>}
                         </div>
                       </TableCell>
-                      {selectedCourseFilter !== 'all' && (
+                      {(selectedCourseFilter !== 'all' || listFilter === 'paid' || listFilter === 'free') && (
                         <TableCell className="text-xs whitespace-nowrap">
-                          {student.enrollments?.[0]?.created_at ? format(new Date(student.enrollments[0].created_at), "dd MMM yyyy") : "-"}
+                          {student.enrollments?.[0]?.created_at
+                            ? format(new Date(student.enrollments[0].created_at), "dd MMM yyyy")
+                            : listFilter === 'free' ? "-" : (student as any).created_at
+                              ? format(new Date((student as any).created_at), "dd MMM yyyy")
+                              : "-"}
                         </TableCell>
                       )}
                       <TableCell className="text-xs whitespace-nowrap">

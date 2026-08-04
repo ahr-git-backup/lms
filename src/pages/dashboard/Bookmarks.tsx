@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,10 +9,16 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
+import { getExamCategory } from "@/lib/examCategory";
+
+type CategoryFilter = "all" | "live" | "practice" | "readymade";
+
 const Bookmarks = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [filter, setFilter] = useState<CategoryFilter>("all");
+  const [readymadeSubCat, setReadymadeSubCat] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Bookmarks – Atlas";
@@ -30,7 +36,7 @@ const Bookmarks = () => {
             created_at,
             question:exam_questions (
                 *,
-                exam:exams(title)
+                exam:exams(title, exam_type, is_readymade, readymade_category, time_window_end)
             )
         `)
         .eq("profile_id", user.id)
@@ -41,6 +47,35 @@ const Bookmarks = () => {
     },
     enabled: !!user,
   });
+
+  const getCategory = (b: any): Exclude<CategoryFilter, "all"> => getExamCategory(b.question?.exam);
+
+  const categoryCounts = useMemo(() => {
+    const counts = { all: bookmarks?.length || 0, live: 0, practice: 0, readymade: 0 };
+    (bookmarks || []).forEach((b: any) => {
+      counts[getCategory(b)]++;
+    });
+    return counts;
+  }, [bookmarks]);
+
+  const readymadeSubCats = useMemo(() => {
+    const set = new Set<string>();
+    (bookmarks || []).forEach((b: any) => {
+      if (getCategory(b) === "readymade") {
+        const cat = b.question?.exam?.readymade_category;
+        if (cat) set.add(cat);
+      }
+    });
+    return Array.from(set);
+  }, [bookmarks]);
+
+  const filteredBookmarks = useMemo(() => {
+    let list = filter === "all" ? (bookmarks || []) : (bookmarks || []).filter((b: any) => getCategory(b) === filter);
+    if (filter === "readymade" && readymadeSubCat) {
+      list = list.filter((b: any) => b.question?.exam?.readymade_category === readymadeSubCat);
+    }
+    return list;
+  }, [bookmarks, filter, readymadeSubCat]);
 
   const removeBookmarkMutation = useMutation({
       mutationFn: async (bookmarkId: string) => {
@@ -66,10 +101,62 @@ const Bookmarks = () => {
         </p>
       </header>
 
-      {bookmarks && bookmarks.length > 0 ? (
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        {([
+          { key: "all", label: "All" },
+          { key: "live", label: "Live" },
+          { key: "practice", label: "Practice" },
+          { key: "readymade", label: "Readymade" },
+        ] as const).map((f) => (
+          <button
+            key={f.key}
+            onClick={() => { setFilter(f.key); setReadymadeSubCat(null); }}
+            className={cn(
+              "px-3.5 py-1.5 rounded-full text-xs font-semibold border shrink-0 transition-colors",
+              filter === f.key
+                ? "bg-primary text-primary-foreground border-primary"
+                : "bg-background text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            {f.label} ({categoryCounts[f.key]})
+          </button>
+        ))}
+      </div>
+
+      {filter === "readymade" && readymadeSubCats.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          <button
+            onClick={() => setReadymadeSubCat(null)}
+            className={cn(
+              "px-3 py-1 rounded-full text-[11px] font-semibold border shrink-0 transition-colors",
+              !readymadeSubCat
+                ? "bg-primary/15 text-primary border-primary/40"
+                : "bg-background text-muted-foreground border-border hover:bg-muted"
+            )}
+          >
+            সব
+          </button>
+          {readymadeSubCats.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setReadymadeSubCat(cat)}
+              className={cn(
+                "px-3 py-1 rounded-full text-[11px] font-semibold border shrink-0 transition-colors",
+                readymadeSubCat === cat
+                  ? "bg-primary/15 text-primary border-primary/40"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {filteredBookmarks && filteredBookmarks.length > 0 ? (
         <div className="space-y-6">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {bookmarks.map((b: any) => {
+            {filteredBookmarks.map((b: any) => {
                 const q = b.question;
                 if (!q) return null; // Should not happen
 
@@ -93,8 +180,8 @@ const Bookmarks = () => {
                              {/* Question Header */}
                              <div className="flex items-start gap-4 pr-2">
                                 <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                    <div className="text-lg font-medium leading-relaxed whitespace-normal min-w-0">
-                                        <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                    <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0">
+                                        <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                     </div>
                                 </div>
                              </div>
@@ -114,10 +201,10 @@ const Bookmarks = () => {
                                                 {isCorrectOption ? <Check className="h-4 w-4" /> : <span className="text-sm font-bold">{optionKey}</span>}
                                             </div>
                                             <div className={cn(
-                                                "flex-1 text-base whitespace-normal min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
+                                                "flex-1 text-base whitespace-pre-line min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth",
                                                 isCorrectOption ? "text-green-700 dark:text-green-400 font-medium" : "text-foreground"
                                             )}>
-                                                 <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                                 <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                             </div>
                                         </div>
                                     )
@@ -128,8 +215,8 @@ const Bookmarks = () => {
                              {q.explanation && (
                                  <div className="mt-4 pt-4 border-t border-dashed">
                                      <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                     <div className="text-sm text-foreground/80 whitespace-normal overflow-x-auto no-scrollbar scroll-smooth">
-                                         <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-normal min-w-0" />
+                                     <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth">
+                                         <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
                                      </div>
                                  </div>
                              )}
