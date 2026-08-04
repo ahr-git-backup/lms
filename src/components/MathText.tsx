@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
+import DOMPurify from 'dompurify';
 
 interface MathTextProps {
   text: string;
   className?: string;
   as?: React.ElementType;
+  inline?: boolean;
 }
 
 declare global {
@@ -13,29 +15,41 @@ declare global {
   }
 }
 
-const MathText: React.FC<MathTextProps> = ({ text, className, as: Component = 'div' }) => {
+const MATHJAX_LOAD_TIMEOUT_MS = 8000;
+
+const MathText: React.FC<MathTextProps> = ({ text, className, as, inline }) => {
+  const Component = as || (inline ? 'span' : 'div');
   const containerRef = useRef<HTMLElement>(null);
   const [isMathJaxReady, setIsMathJaxReady] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
 
-  // Poll for MathJax readiness
+  // Poll for MathJax readiness, with a timeout fallback
   useEffect(() => {
     if (window.MathJax && window.MathJax.typesetPromise) {
-        setIsMathJaxReady(true);
-    } else {
-        const interval = setInterval(() => {
-            if (window.MathJax && window.MathJax.typesetPromise) {
-                setIsMathJaxReady(true);
-                clearInterval(interval);
-            }
-        }, 100);
-        return () => clearInterval(interval);
+      setIsMathJaxReady(true);
+      return;
     }
+    const interval = setInterval(() => {
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        setIsMathJaxReady(true);
+        clearInterval(interval);
+        clearTimeout(timeout);
+      }
+    }, 100);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      if (!(window.MathJax && window.MathJax.typesetPromise)) setLoadFailed(true);
+    }, MATHJAX_LOAD_TIMEOUT_MS);
+    return () => {
+      clearInterval(interval);
+      clearTimeout(timeout);
+    };
   }, []);
 
   useEffect(() => {
     if (containerRef.current) {
-      // Direct assignment to remove any restrictions
-      containerRef.current.innerHTML = text || '';
+      // Sanitize before injecting — strips scripts/unsafe tags while keeping LaTeX ($...$, \(...\)) intact.
+      containerRef.current.innerHTML = DOMPurify.sanitize(text || '');
 
       if (isMathJaxReady && window.MathJax && window.MathJax.typesetPromise) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -47,7 +61,14 @@ const MathText: React.FC<MathTextProps> = ({ text, className, as: Component = 'd
   }, [text, isMathJaxReady]);
 
   return (
-    <Component ref={containerRef} className={className} />
+    <>
+      <Component ref={containerRef} className={className} />
+      {loadFailed && (
+        <span className="text-[10px] text-amber-600 dark:text-amber-400 block mt-0.5">
+          গাণিতিক সূত্র লোড হতে সমস্যা হচ্ছে — পেজ রিফ্রেশ করুন।
+        </span>
+      )}
+    </>
   );
 };
 
