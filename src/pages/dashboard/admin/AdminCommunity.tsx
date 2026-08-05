@@ -439,7 +439,6 @@ const TelegramSupportCardForm = ({ initialData, onSuccess, onCancel }: { initial
             url,
             description,
             resource_type: "TelegramSupport",
-            subject: "TelegramSupport",
         };
 
         try {
