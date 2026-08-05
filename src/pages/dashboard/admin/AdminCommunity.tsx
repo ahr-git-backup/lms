@@ -168,7 +168,7 @@ const AdminCommunity = () => {
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <CardTitle>Telegram Support Cards</CardTitle>
+                            <CardTitle>Telegram Support</CardTitle>
                             <CardDescription>Shown on the student dashboard, 2 per row. Each card has a topic name and an embedded link.</CardDescription>
                         </div>
                         {!showTgForm && (
