@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
+import FloatingAtlasAiButton from "@/components/dashboard/FloatingAtlasAiButton";
 import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
 import { ReportFeedbackAlert } from "@/components/ReportFeedbackAlert";
 import { CommunityJoinReminder } from "@/components/CommunityJoinReminder";
@@ -544,6 +545,7 @@ export const DashboardLayout = () => {
             <Outlet />
           </main>
         </div>
+        <FloatingAtlasAiButton />
         <FloatingStudyTools />
         <ProfileCompletionReminder />
         <ReportFeedbackAlert />

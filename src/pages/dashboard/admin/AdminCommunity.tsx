@@ -50,6 +50,35 @@ const AdminCommunity = () => {
         }
     });
 
+    // Fetch Telegram Support Cards (shown on Student Dashboard)
+    const { data: telegramSupportCards, isLoading: loadingTelegramCards } = useQuery({
+        queryKey: ["admin-telegram-support-cards"],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from("resources")
+                .select("*")
+                .eq("resource_type", "TelegramSupport")
+                .order("created_at", { ascending: false });
+            if (error) throw error;
+            return data || [];
+        }
+    });
+
+    const [editingTgCard, setEditingTgCard] = useState<any>(null);
+    const [showTgForm, setShowTgForm] = useState(false);
+
+    const deleteTelegramCard = useMutation({
+        mutationFn: async (id: string) => {
+            const { error } = await supabase.from("resources").delete().eq("id", id);
+            if (error) throw error;
+        },
+        onSuccess: () => {
+            toast({ title: "Telegram Support card deleted" });
+            queryClient.invalidateQueries({ queryKey: ["admin-telegram-support-cards"] });
+        },
+        onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" })
+    });
+
     const deleteResource = useMutation({
         mutationFn: async (id: string) => {
             const { error } = await supabase.from("resources").delete().eq("id", id);
@@ -133,6 +162,76 @@ const AdminCommunity = () => {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Telegram Support Cards Manager */}
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <CardTitle>Telegram Support Cards</CardTitle>
+                            <CardDescription>Shown on the student dashboard, 2 per row. Each card has a topic name and an embedded link.</CardDescription>
+                        </div>
+                        {!showTgForm && (
+                            <Button onClick={() => { setEditingTgCard(null); setShowTgForm(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                <Plus className="mr-2 h-4 w-4" /> Add Card
+                            </Button>
+                        )}
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {showTgForm && (
+                        <Card className="border-primary/30 border-2">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <CardTitle className="text-base">{editingTgCard ? "Edit Card" : "Add Card"}</CardTitle>
+                                    <Button variant="ghost" size="icon" onClick={() => { setShowTgForm(false); setEditingTgCard(null); }}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <TelegramSupportCardForm
+                                    initialData={editingTgCard}
+                                    onSuccess={() => {
+                                        setShowTgForm(false);
+                                        setEditingTgCard(null);
+                                        queryClient.invalidateQueries({ queryKey: ["admin-telegram-support-cards"] });
+                                    }}
+                                    onCancel={() => { setShowTgForm(false); setEditingTgCard(null); }}
+                                />
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {loadingTelegramCards ? (
+                        <div className="text-center py-4 text-sm text-muted-foreground">Loading...</div>
+                    ) : !telegramSupportCards || telegramSupportCards.length === 0 ? (
+                        <div className="text-center py-6 text-sm text-muted-foreground">No Telegram Support cards added yet.</div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {telegramSupportCards.map((card) => (
+                                <div key={card.id} className="rounded-lg border p-3 flex items-start justify-between gap-2">
+                                    <div className="min-w-0">
+                                        <p className="font-medium text-sm truncate">{card.title}</p>
+                                        {card.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{card.description}</p>}
+                                        <a href={card.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block mt-1 truncate">
+                                            {card.url}
+                                        </a>
+                                    </div>
+                                    <div className="flex gap-1 shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingTgCard(card); setShowTgForm(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                            <Edit2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { if (confirm("Delete this card?")) deleteTelegramCard.mutate(card.id); }}>
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <Card>
                 <CardHeader>
@@ -314,6 +413,69 @@ const ResourceForm = ({ initialData, courses, onSuccess, onCancel }: { initialDa
                     <label className="text-sm font-medium">Description (Optional)</label>
                     <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description..." />
                 </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>
+                <Button type="submit" disabled={loading}>{loading ? "Saving..." : "Save"}</Button>
+            </div>
+        </form>
+    );
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TelegramSupportCardForm = ({ initialData, onSuccess, onCancel }: { initialData: any, onSuccess: () => void, onCancel: () => void }) => {
+    const { toast } = useToast();
+    const [loading, setLoading] = useState(false);
+    const [title, setTitle] = useState(initialData?.title || "");
+    const [url, setUrl] = useState(initialData?.url || "");
+    const [description, setDescription] = useState(initialData?.description || "");
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+
+        const payload = {
+            title,
+            url,
+            description,
+            resource_type: "TelegramSupport",
+            subject: "TelegramSupport",
+        };
+
+        try {
+            if (initialData?.id) {
+                const { error } = await supabase.from("resources").update(payload).eq("id", initialData.id);
+                if (error) throw error;
+                toast({ title: "Updated successfully" });
+            } else {
+                const { error } = await supabase.from("resources").insert(payload);
+                if (error) throw error;
+                toast({ title: "Created successfully" });
+            }
+            onSuccess();
+        } catch (err) {
+            console.error(err);
+            toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Topic Name</label>
+                    <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. HSC 27 Support Group" required />
+                </div>
+                <div className="space-y-2">
+                    <label className="text-sm font-medium">Embedded Link</label>
+                    <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
+                </div>
+            </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Content / Description (Optional)</label>
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description shown on the card..." />
             </div>
             <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>

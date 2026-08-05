@@ -6,7 +6,6 @@ import {
   FileQuestion,
   Zap,
   Timer,
-  Sparkles,
   Clock,
   BarChart3,
   Star,
@@ -62,8 +61,8 @@ export const QuickActionsSection = () => {
         </button>
       </div>
 
-      {/* Row 3: Quick Practice / Focus Timer / ATLAS AI */}
-      <div className="grid grid-cols-3 gap-2">
+      {/* Row 3: Quick Practice / Focus Timer */}
+      <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/quick-practice")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
@@ -83,16 +82,6 @@ export const QuickActionsSection = () => {
             <Timer className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.9s" }} />
           </div>
           <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Focus Timer</span>
-        </button>
-        <button
-          onClick={() => navigate("/atlas-ai")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 hover:border-amber-500/50 hover:shadow-md transition-all"
-          style={{ ["--border-chase-color" as any]: "hsl(24 95% 53%)" }}
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-sm">
-            <Sparkles className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.5s" }} />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">ATLAS AI</span>
         </button>
       </div>
 

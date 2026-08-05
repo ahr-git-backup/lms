@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck, Send } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { quickAccessItems } from "@/config/dashboardCardItems";
@@ -163,6 +163,19 @@ const DashboardHome = () => {
       return count || 0;
     },
     enabled: !!isAdmin,
+  });
+
+  const { data: telegramSupportCards } = useQuery({
+    queryKey: ["telegram-support-cards"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("resources")
+        .select("*")
+        .eq("resource_type", "TelegramSupport")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
   });
 
   const { data: quickAccessOrder } = useQuery({
@@ -688,6 +701,35 @@ const DashboardHome = () => {
             </Card>
           )}
         </>
+      )}
+
+      {/* Telegram Support Section */}
+      {telegramSupportCards && telegramSupportCards.length > 0 && (
+        <div className="space-y-3">
+          <div className="rounded-lg border p-4">
+            <h2 className="text-lg font-semibold tracking-tight text-center">Telegram Support</h2>
+            <hr className="mt-3 border-border" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {telegramSupportCards.map((card) => (
+              <a
+                key={card.id}
+                href={card.url}
+                target="_blank"
+                rel="noreferrer"
+                className="group flex flex-col gap-2 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-blue-600/10 hover:border-sky-500/50 hover:shadow-md transition-all p-4"
+              >
+                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
+                  <Send className="h-4 w-4 text-white" />
+                </div>
+                <p className="font-semibold text-sm leading-tight">{card.title}</p>
+                {card.description && (
+                  <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{card.description}</p>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* 3. Navigation Cards Section */}
