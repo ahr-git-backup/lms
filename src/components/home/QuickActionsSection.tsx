@@ -10,6 +10,7 @@ import {
   BarChart3,
   Star,
   ClipboardCheck,
+  Send,
 } from "lucide-react";
 
 const scrollToId = (id: string) => {
@@ -61,8 +62,8 @@ export const QuickActionsSection = () => {
         </button>
       </div>
 
-      {/* Row 3: Quick Practice / Focus Timer */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Row 3: Quick Practice / Focus Timer / Telegram Support */}
+      <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => navigate("/quick-practice")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
@@ -83,6 +84,18 @@ export const QuickActionsSection = () => {
           </div>
           <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Focus Timer</span>
         </button>
+        <a
+          href="https://t.me/AtlasWeb_Robot"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+        >
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-sm">
+            <Send className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.05s" }} />
+          </div>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Telegram Support</span>
+        </a>
       </div>
 
       {/* Row 4: Pomodoro Timer / Study Tracker / Unlimited Mock Test */}
