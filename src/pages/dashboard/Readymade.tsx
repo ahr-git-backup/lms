@@ -407,7 +407,7 @@ const Readymade = () => {
         </DialogContent>
       </Dialog>
 
-      {!selectedSubject && parentTopics && parentTopics.length > 0 && (
+      {!selectedSubject && !categoryName && parentTopics && parentTopics.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
           <Button
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
