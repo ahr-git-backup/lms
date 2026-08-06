@@ -545,7 +545,7 @@ export const DashboardLayout = () => {
             <Outlet />
           </main>
         </div>
-        <FloatingAtlasAiButton />
+        {location.pathname === "/dashboard" && <FloatingAtlasAiButton />}
         <FloatingStudyTools />
         <ProfileCompletionReminder />
         <ReportFeedbackAlert />
