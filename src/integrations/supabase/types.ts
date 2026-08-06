@@ -687,6 +687,65 @@ export type Database = {
           },
         ]
       }
+      telegram_support_cards: {
+        Row: {
+          id: string
+          title: string
+          description: string | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: []
+      }
+      telegram_support_topics: {
+        Row: {
+          id: string
+          card_id: string
+          title: string
+          url: string
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          card_id: string
+          title: string
+          url: string
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          card_id?: string
+          title?: string
+          url?: string
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_support_topics_card_id_fkey"
+            columns: ["card_id"]
+            isOneToOne: false
+            referencedRelation: "telegram_support_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resources: {
         Row: {
           course_id: string | null

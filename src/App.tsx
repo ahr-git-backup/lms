@@ -86,6 +86,7 @@ import FocusTimer from "./pages/public/FocusTimer";
 import StudyHistory from "./pages/public/StudyHistory";
 import StudyHistory from "./pages/public/StudyHistory";
 import AtlasAI from "./pages/public/AtlasAI";
+import TelegramSupportPage from "./pages/public/TelegramSupport";
 import Pomodoro from "./pages/public/Pomodoro";
 import SyllabusTracker from "./pages/public/SyllabusTracker";
 import UnlimitedMockTest from "./pages/dashboard/UnlimitedMockTest";
@@ -173,6 +174,7 @@ const App = () => {
               <Route path="/focus-timer" element={<ErrorBoundary><FocusTimer /></ErrorBoundary>} />
               <Route path="/focus-timer/history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/atlas-ai" element={<ErrorBoundary><AtlasAI /></ErrorBoundary>} />
+              <Route path="/telegram-support" element={<ErrorBoundary><TelegramSupportPage /></ErrorBoundary>} />
               <Route path="/pomodoro" element={<ErrorBoundary><Pomodoro /></ErrorBoundary>} />
               <Route path="/study-history" element={<ErrorBoundary><StudyHistory /></ErrorBoundary>} />
               <Route path="/syllabus-tracker" element={<ErrorBoundary><SyllabusTracker /></ErrorBoundary>} />

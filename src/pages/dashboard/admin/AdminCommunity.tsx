@@ -50,17 +50,20 @@ const AdminCommunity = () => {
         }
     });
 
-    // Fetch Telegram Support Cards (shown on Student Dashboard)
+    // Fetch Telegram Support Cards (shown on Student Dashboard + Landing page), each with nested topics
     const { data: telegramSupportCards, isLoading: loadingTelegramCards } = useQuery({
         queryKey: ["admin-telegram-support-cards"],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from("resources")
-                .select("*")
-                .eq("resource_type", "TelegramSupport")
-                .order("created_at", { ascending: false });
+                .from("telegram_support_cards")
+                .select("*, topics:telegram_support_topics(*)")
+                .order("sort_order", { ascending: true });
             if (error) throw error;
-            return data || [];
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (data || []).map((c: any) => ({
+                ...c,
+                topics: (c.topics || []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+            }));
         }
     });
 
@@ -69,7 +72,7 @@ const AdminCommunity = () => {
 
     const deleteTelegramCard = useMutation({
         mutationFn: async (id: string) => {
-            const { error } = await supabase.from("resources").delete().eq("id", id);
+            const { error } = await supabase.from("telegram_support_cards").delete().eq("id", id);
             if (error) throw error;
         },
         onSuccess: () => {
@@ -211,18 +214,24 @@ const AdminCommunity = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {telegramSupportCards.map((card) => (
                                 <div key={card.id} className="rounded-lg border p-3 flex items-start justify-between gap-2">
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <p className="font-medium text-sm truncate">{card.title}</p>
                                         {card.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{card.description}</p>}
-                                        <a href={card.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block mt-1 truncate">
-                                            {card.url}
-                                        </a>
+                                        {card.topics && card.topics.length > 0 && (
+                                            <div className="mt-2 space-y-1">
+                                                {card.topics.map((topic: any) => (
+                                                    <a key={topic.id} href={topic.url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline block truncate">
+                                                        • {topic.title}
+                                                    </a>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="flex gap-1 shrink-0">
                                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingTgCard(card); setShowTgForm(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                                             <Edit2 className="h-3.5 w-3.5" />
                                         </Button>
-                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { if (confirm("Delete this card?")) deleteTelegramCard.mutate(card.id); }}>
+                                        <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-600 hover:bg-red-50" onClick={() => { if (confirm("Delete this card and all its topics?")) deleteTelegramCard.mutate(card.id); }}>
                                             <Trash2 className="h-3.5 w-3.5" />
                                         </Button>
                                     </div>
@@ -427,34 +436,53 @@ const TelegramSupportCardForm = ({ initialData, onSuccess, onCancel }: { initial
     const { toast } = useToast();
     const [loading, setLoading] = useState(false);
     const [title, setTitle] = useState(initialData?.title || "");
-    const [url, setUrl] = useState(initialData?.url || "");
     const [description, setDescription] = useState(initialData?.description || "");
+    const [topics, setTopics] = useState<{ id?: string; title: string; url: string }[]>(
+        initialData?.topics && initialData.topics.length > 0
+            ? initialData.topics.map((t: any) => ({ id: t.id, title: t.title, url: t.url }))
+            : [{ title: "", url: "" }]
+    );
+
+    const updateTopic = (index: number, field: "title" | "url", value: string) => {
+        setTopics((prev) => prev.map((t, i) => (i === index ? { ...t, [field]: value } : t)));
+    };
+
+    const addTopic = () => setTopics((prev) => [...prev, { title: "", url: "" }]);
+    const removeTopic = (index: number) => setTopics((prev) => prev.filter((_, i) => i !== index));
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        const validTopics = topics.filter((t) => t.title.trim() && t.url.trim());
+        if (validTopics.length === 0) {
+            toast({ title: "Error", description: "Add at least one topic with a link.", variant: "destructive" });
+            return;
+        }
         setLoading(true);
 
-        const payload = {
-            title,
-            url,
-            description,
-            resource_type: "TelegramSupport",
-        };
-
         try {
-            if (initialData?.id) {
-                const { error } = await supabase.from("resources").update(payload).eq("id", initialData.id);
+            let cardId = initialData?.id;
+            if (cardId) {
+                const { error } = await supabase.from("telegram_support_cards").update({ title, description }).eq("id", cardId);
                 if (error) throw error;
-                toast({ title: "Updated successfully" });
+                // Replace all topics for this card
+                const { error: delErr } = await supabase.from("telegram_support_topics").delete().eq("card_id", cardId);
+                if (delErr) throw delErr;
             } else {
-                const { error } = await supabase.from("resources").insert(payload);
+                const { data, error } = await supabase.from("telegram_support_cards").insert({ title, description }).select().single();
                 if (error) throw error;
-                toast({ title: "Created successfully" });
+                cardId = data.id;
             }
+
+            const { error: topicsErr } = await supabase.from("telegram_support_topics").insert(
+                validTopics.map((t, i) => ({ card_id: cardId, title: t.title, url: t.url, sort_order: i }))
+            );
+            if (topicsErr) throw topicsErr;
+
+            toast({ title: initialData?.id ? "Updated successfully" : "Created successfully" });
             onSuccess();
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            toast({ title: "Error", description: "Failed to save.", variant: "destructive" });
+            toast({ title: "Error", description: err?.message || "Failed to save.", variant: "destructive" });
         } finally {
             setLoading(false);
         }
@@ -462,19 +490,32 @@ const TelegramSupportCardForm = ({ initialData, onSuccess, onCancel }: { initial
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">Topic Name</label>
-                    <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. HSC 27 Support Group" required />
-                </div>
-                <div className="space-y-2">
-                    <label className="text-sm font-medium">Embedded Link</label>
-                    <Input value={url} onChange={e => setUrl(e.target.value)} placeholder="https://t.me/..." required />
-                </div>
+            <div className="space-y-2">
+                <label className="text-sm font-medium">Card Title</label>
+                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. HSC 27 Support" required />
             </div>
             <div className="space-y-2">
-                <label className="text-sm font-medium">Content / Description (Optional)</label>
+                <label className="text-sm font-medium">Description (Optional)</label>
                 <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Short description shown on the card..." />
+            </div>
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <label className="text-sm font-medium">Topics / Subtopics</label>
+                    <Button type="button" variant="outline" size="sm" onClick={addTopic}>
+                        <Plus className="h-3.5 w-3.5 mr-1" /> Add Topic
+                    </Button>
+                </div>
+                <div className="space-y-2">
+                    {topics.map((topic, i) => (
+                        <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                            <Input value={topic.title} onChange={e => updateTopic(i, "title", e.target.value)} placeholder="Topic name" />
+                            <Input value={topic.url} onChange={e => updateTopic(i, "url", e.target.value)} placeholder="https://t.me/..." />
+                            <Button type="button" variant="ghost" size="icon" className="h-9 w-9 text-red-500" onClick={() => removeTopic(i)} disabled={topics.length === 1}>
+                                <X className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
                 <Button type="button" variant="ghost" onClick={onCancel}>Cancel</Button>

@@ -84,10 +84,8 @@ export const QuickActionsSection = () => {
           </div>
           <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Focus Timer</span>
         </button>
-        <a
-          href="https://t.me/AtlasWeb_Robot"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          onClick={() => navigate("/telegram-support")}
           className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
@@ -95,7 +93,7 @@ export const QuickActionsSection = () => {
             <Send className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "1.05s" }} />
           </div>
           <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Telegram Support</span>
-        </a>
+        </button>
       </div>
 
       {/* Row 4: Pomodoro Timer / Study Tracker / Unlimited Mock Test */}

@@ -169,12 +169,15 @@ const DashboardHome = () => {
     queryKey: ["telegram-support-cards"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("resources")
-        .select("*")
-        .eq("resource_type", "TelegramSupport")
-        .order("created_at", { ascending: false });
+        .from("telegram_support_cards")
+        .select("*, topics:telegram_support_topics(*)")
+        .order("sort_order", { ascending: true });
       if (error) throw error;
-      return data || [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || []).map((c: any) => ({
+        ...c,
+        topics: (c.topics || []).sort((a: any, b: any) => a.sort_order - b.sort_order),
+      }));
     },
   });
 
@@ -710,23 +713,37 @@ const DashboardHome = () => {
             <h2 className="text-lg font-semibold tracking-tight text-center">Telegram Support</h2>
             <hr className="mt-3 border-border" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            {telegramSupportCards.map((card) => (
-              <a
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {telegramSupportCards.map((card: any) => (
+              <div
                 key={card.id}
-                href={card.url}
-                target="_blank"
-                rel="noreferrer"
-                className="group flex flex-col gap-2 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-blue-600/10 hover:border-sky-500/50 hover:shadow-md transition-all p-4"
+                className="flex flex-col gap-2 rounded-xl border border-sky-500/20 bg-gradient-to-br from-sky-500/10 to-blue-600/10 p-4"
               >
-                <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
-                  <Send className="h-4 w-4 text-white" />
+                <div className="flex items-center gap-2">
+                  <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm shrink-0">
+                    <Send className="h-4 w-4 text-white" />
+                  </div>
+                  <p className="font-semibold text-sm leading-tight">{card.title}</p>
                 </div>
-                <p className="font-semibold text-sm leading-tight">{card.title}</p>
                 {card.description && (
-                  <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{card.description}</p>
+                  <p className="text-xs text-muted-foreground leading-snug">{card.description}</p>
                 )}
-              </a>
+                {card.topics && card.topics.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mt-1">
+                    {card.topics.map((topic: any) => (
+                      <a
+                        key={topic.id}
+                        href={topic.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs font-medium text-sky-600 dark:text-sky-400 hover:underline bg-background/60 rounded-md px-2 py-1.5 border border-sky-500/10"
+                      >
+                        {topic.title}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </div>
         </div>
