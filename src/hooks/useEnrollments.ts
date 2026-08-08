@@ -29,11 +29,14 @@ export const useEnrollments = () => {
         return e.expires_at > now;      // Only active if not expired
       });
 
-      // Handle Linked/Extra Courses (bonus courses from linked_course_ids)
+      // Handle Linked/Extra Courses (bonus courses from linked_course_ids).
+      // Resolved PER direct enrollment (not globally flattened) so "My Courses"
+      // can show, under each main course, exactly which bonus courses it unlocked.
       const directIds = new Set(activeEnrollments.map((e: any) => e.course_id));
       const allLinkedIds = new Set<string>();
+      const bonusIdsByRoot = new Map<string, Set<string>>(); // root course_id -> set of bonus course ids it unlocked
 
-      const resolveLinked = async (idsToResolve: string[]) => {
+      const resolveLinkedForRoot = async (rootId: string, idsToResolve: string[], seen: Set<string>) => {
           if (idsToResolve.length === 0) return;
 
           const { data: courses } = await supabase
@@ -47,8 +50,11 @@ export const useEnrollments = () => {
           courses.forEach((c: any) => {
               if (c.linked_course_ids && Array.isArray(c.linked_course_ids)) {
                   c.linked_course_ids.forEach((id: string) => {
-                      if (!directIds.has(id) && !allLinkedIds.has(id)) {
+                      if (!directIds.has(id) && !seen.has(id)) {
+                          seen.add(id);
                           allLinkedIds.add(id);
+                          if (!bonusIdsByRoot.has(rootId)) bonusIdsByRoot.set(rootId, new Set());
+                          bonusIdsByRoot.get(rootId)!.add(id);
                           nextIds.push(id);
                       }
                   });
@@ -56,11 +62,13 @@ export const useEnrollments = () => {
           });
 
           if (nextIds.length > 0) {
-              await resolveLinked(nextIds);
+              await resolveLinkedForRoot(rootId, nextIds, seen);
           }
       };
 
-      await resolveLinked(Array.from(directIds));
+      await Promise.all(
+          Array.from(directIds).map((rootId) => resolveLinkedForRoot(rootId as string, [rootId as string], new Set([rootId as string])))
+      );
 
       if (allLinkedIds.size > 0) {
           const { data: extraCourses } = await supabase
@@ -69,6 +77,18 @@ export const useEnrollments = () => {
               .in("id", Array.from(allLinkedIds));
 
           if (extraCourses) {
+              const extraCourseById = new Map(extraCourses.map((c: any) => [c.id, c]));
+
+              // Attach each direct enrollment's own bonus course list (id + name only).
+              const enrichedDirect = activeEnrollments.map((e: any) => {
+                  const bonusIds = bonusIdsByRoot.get(e.course_id) || new Set<string>();
+                  const bonusCourses = Array.from(bonusIds)
+                      .map((id) => extraCourseById.get(id))
+                      .filter(Boolean)
+                      .map((c: any) => ({ id: c.id, name: c.name }));
+                  return { ...e, bonus_courses: bonusCourses };
+              });
+
               const extraEnrollments = extraCourses.map(c => ({
                   id: `virtual-${c.id}`, // Virtual ID
                   course_id: c.id,
@@ -79,7 +99,7 @@ export const useEnrollments = () => {
                   is_extra: true,       // Mark as bonus/extra course
                   is_bonus: true,       // Explicit bonus flag
               }));
-              return [...activeEnrollments, ...extraEnrollments] as any[];
+              return [...enrichedDirect, ...extraEnrollments] as any[];
           }
       }
 

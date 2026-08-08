@@ -19,7 +19,7 @@ const MyCourses = () => {
     return <div className="p-8 text-center text-muted-foreground">Loading courses...</div>;
   }
 
-  if (!enrollments || enrollments.length === 0) {
+  if (!enrollments || enrollments.filter((e: any) => !e.is_extra).length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
         <GraduationCap className="h-16 w-16 text-muted-foreground" />
@@ -30,7 +30,9 @@ const MyCourses = () => {
     );
   }
 
-  const filteredEnrollments = enrollments.filter((enrollment: any) =>
+  const directEnrollments = (enrollments || []).filter((e: any) => !e.is_extra);
+
+  const filteredEnrollments = directEnrollments.filter((enrollment: any) =>
       enrollment.course?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       enrollment.course?.short_description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -73,15 +75,9 @@ const MyCourses = () => {
                 )}
                 {/* Status Badge */}
                 <div className="absolute top-2 right-2 flex gap-2">
-                    {enrollment.is_extra ? (
-                        <span className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 backdrop-blur text-xs font-bold px-2 py-1 rounded-full shadow-sm">
-                            Bonus
-                        </span>
-                    ) : (
-                        <span className="bg-background/80 backdrop-blur text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
-                            Enrolled
-                        </span>
-                    )}
+                    <span className="bg-background/80 backdrop-blur text-xs font-semibold px-2 py-1 rounded-full shadow-sm">
+                        Enrolled
+                    </span>
                 </div>
             </div>
 
@@ -90,10 +86,24 @@ const MyCourses = () => {
                 {enrollment.course?.name || "Unknown Course"}
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex-1 pb-4">
+            <CardContent className="flex-1 pb-4 space-y-3">
                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
                    {enrollment.course?.short_description || "No description available."}
                </p>
+               {enrollment.bonus_courses?.length > 0 && (
+                 <div className="space-y-1.5">
+                   <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 dark:text-purple-300">
+                     <Gift className="h-3.5 w-3.5" /> এই কোর্সে বোনাস হিসেবে যা পাচ্ছেন
+                   </div>
+                   <div className="flex flex-wrap gap-1.5">
+                     {enrollment.bonus_courses.map((b: any) => (
+                       <span key={b.id} className="bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300 text-[11px] font-medium px-2 py-0.5 rounded-full">
+                         {b.name}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               )}
             </CardContent>
             <CardFooter className="pt-0 mt-auto pb-6 px-6">
               <Button className="w-full gap-2 rounded-full shadow-lg shadow-primary/10 group-hover:shadow-primary/20 transition-all" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>

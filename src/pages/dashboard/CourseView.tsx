@@ -252,35 +252,94 @@ const CourseView = () => {
 };
 
 const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
+    // Only show tabs for categories that actually have content in this
+    // subject/chapter — a category with zero items should not appear at all,
+    // rather than showing an empty "No X found." tab.
+    const { data: availability, isLoading } = useQuery({
+        queryKey: ["course-content-availability", courseId, subject, chapter],
+        queryFn: async () => {
+            const [classesRes, examsRes, readymadeRes, archiveClassRes, archiveExamRes] = await Promise.all([
+                supabase.from("classes").select("id", { count: "exact", head: true })
+                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+                    .not("is_archive", "is", true)
+                    .contains("subject", [subject])
+                    .eq("chapter", chapter),
+                supabase.from("exams").select("id", { count: "exact", head: true })
+                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+                    .not("is_archive", "is", true)
+                    .contains("subject", [subject])
+                    .eq("chapter", chapter)
+                    .eq("is_published", true)
+                    .not("is_readymade", "is", true),
+                supabase.from("exams").select("id", { count: "exact", head: true })
+                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
+                    .contains("subject", [subject])
+                    .eq("chapter", chapter)
+                    .eq("is_published", true)
+                    .eq("is_readymade", true),
+                supabase.from("classes").select("id", { count: "exact", head: true })
+                    .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
+                    .contains("subject", [subject])
+                    .eq("chapter", chapter),
+                supabase.from("exams").select("id", { count: "exact", head: true })
+                    .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
+                    .contains("subject", [subject])
+                    .eq("chapter", chapter)
+                    .eq("is_published", true),
+            ]);
+            return {
+                recordings: (classesRes.count || 0) > 0,
+                exams: (examsRes.count || 0) > 0,
+                readymade: (readymadeRes.count || 0) > 0,
+                archiveClass: (archiveClassRes.count || 0) > 0,
+                archiveExam: (archiveExamRes.count || 0) > 0,
+            };
+        },
+        enabled: !!courseId && !!subject && !!chapter,
+    });
+
+    if (isLoading) return <div className="text-muted-foreground">Loading...</div>;
+
+    const tabs: { key: string; label: string; icon: JSX.Element; content: JSX.Element }[] = [];
+    if (availability?.recordings) {
+        tabs.push({ key: "recordings", label: "Recordings", icon: <Video className="h-4 w-4" />, content: <ClassList courseId={courseId} subject={subject} chapter={chapter} /> });
+    }
+    if (availability?.exams) {
+        tabs.push({ key: "exams", label: "Exams", icon: <Trophy className="h-4 w-4" />, content: <ExamList courseId={courseId} subject={subject} chapter={chapter} /> });
+    }
+    if (availability?.readymade) {
+        tabs.push({ key: "readymade", label: "Readymade Exam", icon: <LayoutTemplate className="h-4 w-4" />, content: <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} /> });
+    }
+    if (availability?.archiveClass) {
+        tabs.push({ key: "archive-class", label: "Arch. Class", icon: <Archive className="h-4 w-4" />, content: <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} /> });
+    }
+    if (availability?.archiveExam) {
+        tabs.push({ key: "archive-exam", label: "Arch. Exams", icon: <FileText className="h-4 w-4" />, content: <ArchiveExamList courseId={courseId} subject={subject} chapter={chapter} /> });
+    }
+
+    if (tabs.length === 0) {
+        return <p className="text-muted-foreground">No content found.</p>;
+    }
+
+    const gridColsClass = tabs.length >= 5 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
+        : tabs.length === 4 ? "grid-cols-2 sm:grid-cols-4"
+        : tabs.length === 3 ? "grid-cols-3"
+        : tabs.length === 2 ? "grid-cols-2"
+        : "grid-cols-1";
+
     return (
-        <Tabs defaultValue="recordings" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
-                <TabsTrigger value="recordings" className="gap-2"><Video className="h-4 w-4" /> Recordings</TabsTrigger>
-                <TabsTrigger value="exams" className="gap-2"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
-                <TabsTrigger value="readymade" className="gap-2"><LayoutTemplate className="h-4 w-4" /> Readymade Exam</TabsTrigger>
-                <TabsTrigger value="archive-class" className="gap-2"><Archive className="h-4 w-4" /> Arch. Class</TabsTrigger>
-                <TabsTrigger value="archive-exam" className="gap-2 col-span-2 sm:col-span-1"><FileText className="h-4 w-4" /> Arch. Exams</TabsTrigger>
+        <Tabs defaultValue={tabs[0].key} className="w-full">
+            <TabsList className={`grid w-full ${gridColsClass} h-auto`}>
+                {tabs.map(t => (
+                    <TabsTrigger key={t.key} value={t.key} className="gap-2">{t.icon} {t.label}</TabsTrigger>
+                ))}
             </TabsList>
 
-            <TabsContent value="recordings" className="mt-6">
-                <ClassList courseId={courseId} subject={subject} chapter={chapter} />
-            </TabsContent>
-
-            <TabsContent value="exams" className="mt-6">
-                <ExamList courseId={courseId} subject={subject} chapter={chapter} />
-            </TabsContent>
-
-            <TabsContent value="readymade" className="mt-6">
-                <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} />
-            </TabsContent>
-
-            <TabsContent value="archive-class" className="mt-6">
-                <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} />
-            </TabsContent>
-
-            <TabsContent value="archive-exam" className="mt-6">
-                <ArchiveExamList courseId={courseId} subject={subject} chapter={chapter} />
-            </TabsContent>
+            {tabs.map(t => (
+                <TabsContent key={t.key} value={t.key} className="mt-6">
+                    {t.content}
+                </TabsContent>
+            ))}
         </Tabs>
     );
 }
