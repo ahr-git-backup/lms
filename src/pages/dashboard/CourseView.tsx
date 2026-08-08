@@ -17,7 +17,7 @@ import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 const SECTION_LABELS: Record<string, string> = {
     record: "Record Class",
     "archive-class": "Archive Class",
-    practice: "Practice Exam",
+    practice: "Past Exams",
     readymade: "Readymade Exam",
 };
 
@@ -221,7 +221,7 @@ const CourseView = () => {
                   </>
               ) : (
                   <>
-                      <SelectItem value="practice">Practice Exam</SelectItem>
+                      <SelectItem value="practice">Past Exams</SelectItem>
                       <SelectItem value="readymade">Readymade Exam</SelectItem>
                   </>
               )}
