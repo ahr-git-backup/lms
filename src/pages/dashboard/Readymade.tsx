@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -640,8 +640,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
       const { data: hiddenData } = await supabase.from("app_settings").select("value").eq("key", "subject_hidden_global").maybeSingle();
-      const hiddenSet = new Set<string>(hiddenData?.value ? (hiddenData.value as string[]) : []);
-      const visible = Array.from(unique).filter((s) => !hiddenSet.has(s));
+      const hiddenList: string[] = hiddenData?.value ? (hiddenData.value as string[]) : [];
+      const hiddenSet = new Set<string>(hiddenList);
+      // Students never see hidden subjects. Admins see everything (hidden ones
+      // dimmed, with a toggle) so they can find and unhide a subject again.
+      const allSubjects = Array.from(unique);
+      const visible = isAdmin ? allSubjects : allSubjects.filter((s) => !hiddenSet.has(s));
       const sortedSubjects = visible.sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
@@ -650,16 +654,36 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const courseIdsBySubject: Record<string, string[]> = {};
       Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
-      return { subjects: sortedSubjects, courseIdsBySubject, unlockMap };
+      return { subjects: sortedSubjects, courseIdsBySubject, unlockMap, hiddenSet };
     },
     enabled: !selectedSubject && !searchQuery
   });
 
   const subjects = subjectsResult?.subjects;
+  const hiddenSubjects = subjectsResult?.hiddenSet || new Set<string>();
   const isSubjectUnlocked = (subject: string): boolean => {
     if (isAdmin) return true;
     return !!subjectsResult?.unlockMap?.[subject];
   };
+
+  const queryClient = useQueryClient();
+  const toggleSubjectHiddenMutation = useMutation({
+    mutationFn: async (subject: string) => {
+      const next = new Set(hiddenSubjects);
+      if (next.has(subject)) next.delete(subject);
+      else next.add(subject);
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key: "subject_hidden_global", value: Array.from(next) }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to update visibility", description: err.message, variant: "destructive" });
+    },
+  });
 
   // Per-subject MCQ count badge — total questions across all exams in each
   // subject, for the subject-selection cards. Backed by a single server-side
@@ -949,10 +973,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
         {subjects.map(subject => {
           const unlocked = isSubjectUnlocked(subject);
+          const isHidden = hiddenSubjects.has(subject);
           return (
           <Card
             key={subject}
-            className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""}`}
+            className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
             onClick={() => setSelectedSubject(subject)}
           >
             {!unlocked && (
@@ -969,6 +994,17 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <Lock className="h-3 w-3" />
               </button>
             )}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); toggleSubjectHiddenMutation.mutate(subject); }}
+                disabled={toggleSubjectHiddenMutation.isPending}
+                className={`absolute top-1.5 right-1.5 z-10 rounded-full p-1 disabled:opacity-50 ${isHidden ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}
+                aria-label={isHidden ? "Show subject to students" : "Hide subject from students"}
+              >
+                {isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+              </button>
+            )}
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
@@ -983,6 +1019,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 )}
               </div>
               <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
+              {isAdmin && isHidden && (
+                <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
+              )}
             </CardContent>
           </Card>
           );
