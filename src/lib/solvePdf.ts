@@ -70,12 +70,12 @@ const PRINT_CSS = `<style>
 body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbols','Noto Sans Symbols 2',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0 auto;padding:10px}
 @media screen{html{background:#fff}body{width:100%;max-width:210mm}}
 @media print{body{width:210mm;max-width:210mm}}
-.exam-header{text-align:center;border:2px solid #4169E1;background-color:#F0F8FF;border-radius:6px;padding:10px;margin-bottom:15px}
-.exam-header h1{color:#191970;margin:0;font-size:15pt;font-weight:bold}
+.exam-header{text-align:center;border:2px solid #16a34a;background-color:#F0FDF4;border-radius:6px;padding:10px;margin-bottom:15px}
+.exam-header h1{color:#166534;margin:0;font-size:15pt;font-weight:bold}
 .content-columns{column-count:2;column-gap:15px;column-fill:balance;column-rule:1px solid #ddd}
 .question{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid}
 .question-header{margin-bottom:4px;display:flex;align-items:flex-start}
-.question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#1E64B7;font-size:12pt;margin-right:5px;white-space:nowrap;flex-shrink:0}
+.question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:12pt;margin-right:5px;white-space:nowrap;flex-shrink:0}
 .question-text{flex:1;line-height:1.4;font-size:13pt;color:#000;word-wrap:break-word;white-space:pre-line}
 .options-table-short{width:100%;border-collapse:collapse;margin:4px 0 4px 8px;table-layout:fixed}
 .options-table-short td{border:none;padding:2px 8px 2px 0;vertical-align:top;font-size:13pt;color:#000;width:40%}
@@ -84,8 +84,8 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .options-list{margin:4px 0 4px 8px;padding:0;list-style:none}
 .options-list li{margin:1px 0;font-size:13pt;color:#000;word-wrap:break-word;white-space:pre-line}
 .option-with-answer{display:flex;justify-content:space-between;align-items:flex-start}
-.explanation{margin:4px 0 2px 8px;padding:4px;color:#000;background-color:rgba(66,153,225,0.1);border-left:3px solid #4299e1;font-size:12pt;font-style:italic;break-inside:avoid;white-space:pre-line}
-.explanation-label{font-weight:bold;color:#2c5282}
+.explanation{margin:4px 0 2px 8px;padding:4px;color:#000;background-color:rgba(22,163,74,0.1);border-left:3px solid #16a34a;font-size:12pt;font-style:italic;break-inside:avoid;white-space:pre-line}
+.explanation-label{font-weight:bold;color:#166534}
 .page-break{page-break-before:always;break-before:page}
 .answers-section{column-count:1;margin-top:0}
 .answer-table{width:100%;border-collapse:collapse;margin-top:0;border:1px solid #333}
