@@ -13,12 +13,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
+const SECTION_LABELS: Record<string, string> = {
+    record: "Record Class",
+    "archive-class": "Archive Class",
+    practice: "Practice Exam",
+    readymade: "Readymade Exam",
+};
+
 const CourseView = () => {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
 
+  const [selectedCategory, setSelectedCategory] = useState<"class" | "exam" | null>(null);
+  const [selectedSection, setSelectedSection] = useState<string | null>(null); // record/archive-class | practice/readymade
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
@@ -32,112 +41,116 @@ const CourseView = () => {
     }
   }, [enrollment]);
 
-  // 1. Subjects
+  // Build the base query for a given section (which table/filter to pull subjects/chapters from)
+  const sectionTable = (section: string | null) => {
+      if (section === "record") return { table: "classes" as const, archive: false };
+      if (section === "archive-class") return { table: "classes" as const, archive: true };
+      if (section === "practice") return { table: "exams" as const, archive: false, readymade: false };
+      if (section === "readymade") return { table: "exams" as const, archive: false, readymade: true };
+      return null;
+  };
+
+  // 1. Subjects (scoped to selected category+section)
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
-    queryKey: ["course-subjects", courseId],
+    queryKey: ["course-subjects", courseId, selectedSection],
     queryFn: async () => {
-      if (!courseId) return [];
+      if (!courseId || !selectedSection) return [];
+      const cfg = sectionTable(selectedSection);
+      if (!cfg) return [];
 
-      // Fetch subjects from classes
-      const { data: classData } = await supabase
-        .from("classes")
-        .select("subject")
-        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`);
+      let query;
+      if (cfg.table === "classes") {
+          query = supabase.from("classes").select("subject")
+              .or(cfg.archive
+                  ? `archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`
+                  : `course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`);
+          if (!cfg.archive) query = query.not("is_archive", "is", true);
+      } else {
+          query = supabase.from("exams").select("subject")
+              .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
+              .eq("is_published", true)
+              .eq("is_readymade", cfg.readymade);
+          if (!cfg.readymade) query = query.not("is_archive", "is", true);
+      }
 
-      // Fetch subjects from exams
-      const { data: examData } = await supabase
-        .from("exams")
-        .select("subject")
-        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
-        .eq("is_published", true);
-
+      const { data } = await query;
       const unique = new Set<string>();
-
-      const processSubjects = (data: any[]) => {
-          data?.forEach(row => {
-             if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
-             else if (typeof row.subject === 'string') unique.add(row.subject);
-          });
-      };
-
-      processSubjects(classData || []);
-      processSubjects(examData || []);
+      data?.forEach((row: any) => {
+          if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
+          else if (typeof row.subject === 'string') unique.add(row.subject);
+      });
 
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
-            const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
+      const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 
-            return Array.from(unique).sort((a, b) => {
-                const idxA = savedOrder.indexOf(a);
-                const idxB = savedOrder.indexOf(b);
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return a.localeCompare(b);
-            });
+      return Array.from(unique).sort((a, b) => {
+          const idxA = savedOrder.indexOf(a);
+          const idxB = savedOrder.indexOf(b);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return a.localeCompare(b);
+      });
     },
-    enabled: !!courseId
+    enabled: !!courseId && !!selectedSection
   });
 
-  // 2. Chapters
+  // 2. Chapters (scoped to selected category+section+subject)
   const { data: chapters, isLoading: loadingChapters } = useQuery({
-    queryKey: ["course-chapters", courseId, selectedSubject],
+    queryKey: ["course-chapters", courseId, selectedSection, selectedSubject],
     queryFn: async () => {
-      if (!courseId || !selectedSubject) return [];
+      if (!courseId || !selectedSection || !selectedSubject) return [];
+      const cfg = sectionTable(selectedSection);
+      if (!cfg) return [];
 
-      // Fetch chapters from classes
-      const { data: classData } = await supabase
-        .from("classes")
-        .select("chapter, sort_order")
-        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
-        .contains("subject", [selectedSubject]);
+      let query;
+      if (cfg.table === "classes") {
+          query = supabase.from("classes").select("chapter, sort_order")
+              .or(cfg.archive
+                  ? `archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`
+                  : `course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+              .contains("subject", [selectedSubject]);
+          if (!cfg.archive) query = query.not("is_archive", "is", true);
+      } else {
+          query = supabase.from("exams").select("chapter, sort_order")
+              .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
+              .contains("subject", [selectedSubject])
+              .eq("is_published", true)
+              .eq("is_readymade", cfg.readymade);
+          if (!cfg.readymade) query = query.not("is_archive", "is", true);
+      }
 
-      // Fetch chapters from exams
-      const { data: examData } = await supabase
-        .from("exams")
-        .select("chapter, sort_order")
-        .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
-        .contains("subject", [selectedSubject])
-        .eq("is_published", true);
+      const { data } = await query;
 
       const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
 
       const unique = new Set<string>();
       const orderMap = new Map<string, number>();
-
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
 
-      const processChapters = (data: any[]) => {
-          data?.forEach(row => {
-              if (row.chapter) {
-                  unique.add(row.chapter);
-                  const currentMax = orderMap.get(row.chapter) || 0;
-                  const itemOrder = row.sort_order || 0;
-                  if (itemOrder > currentMax) {
-                      orderMap.set(row.chapter, itemOrder);
-                  }
-              }
-          });
-      };
-
-      processChapters(classData || []);
-      processChapters(examData || []);
+      data?.forEach((row: any) => {
+          if (row.chapter) {
+              unique.add(row.chapter);
+              const currentMax = orderMap.get(row.chapter) || 0;
+              const itemOrder = row.sort_order || 0;
+              if (itemOrder > currentMax) orderMap.set(row.chapter, itemOrder);
+          }
+      });
 
       return Array.from(unique).sort((a, b) => {
-          // First respect the saved order
           const idxA = savedOrder.indexOf(a);
           const idxB = savedOrder.indexOf(b);
           if (idxA !== -1 && idxB !== -1) return idxA - idxB;
           if (idxA !== -1) return -1;
           if (idxB !== -1) return 1;
-          // Fallback to item priority
           const orderA = orderMap.get(a) || 0;
           const orderB = orderMap.get(b) || 0;
-          if (orderA !== orderB) return orderB - orderA; // higher first
-          return a.localeCompare(b); // fallback to alphabetical
+          if (orderA !== orderB) return orderB - orderA;
+          return a.localeCompare(b);
       });
     },
-    enabled: !!courseId && !!selectedSubject
+    enabled: !!courseId && !!selectedSection && !!selectedSubject
   });
 
   if (!enrollment && enrollments) {
@@ -156,17 +169,22 @@ const CourseView = () => {
           <Button variant="ghost" size="icon" onClick={() => {
               if (selectedChapter) setSelectedChapter(null);
               else if (selectedSubject) setSelectedSubject(null);
+              else if (selectedSection) setSelectedSection(null);
+              else if (selectedCategory) setSelectedCategory(null);
               else navigate("/dashboard/my-courses");
           }}>
               <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight">
-                {selectedChapter || selectedSubject || enrollment?.course?.name || "Course View"}
+                {selectedChapter || selectedSubject || SECTION_LABELS[selectedSection || ""] || (selectedCategory === "class" ? "Class" : selectedCategory === "exam" ? "Exam" : enrollment?.course?.name) || "Course View"}
             </h1>
-            {selectedSubject && (
+            {(selectedSection || selectedSubject) && (
                 <p className="text-xs text-muted-foreground">
-                    {enrollment?.course?.name} {selectedChapter ? `> ${selectedSubject}` : ""}
+                    {enrollment?.course?.name}
+                    {selectedCategory ? ` > ${selectedCategory === "class" ? "Class" : "Exam"}` : ""}
+                    {selectedSection ? ` > ${SECTION_LABELS[selectedSection]}` : ""}
+                    {selectedSubject ? ` > ${selectedSubject}` : ""}
                 </p>
             )}
           </div>
@@ -206,7 +224,62 @@ const CourseView = () => {
         />
       ) : (
           <>
-          {!selectedSubject ? (
+          {!selectedCategory ? (
+              <div className="space-y-4">
+                  <h2 className="text-lg font-semibold">Browse</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedCategory("class")}>
+                          <CardHeader className="flex flex-row items-center gap-4">
+                              <div className="p-3 bg-primary/10 rounded-full text-primary"><Video className="h-6 w-6" /></div>
+                              <CardTitle className="text-base">Class</CardTitle>
+                          </CardHeader>
+                      </Card>
+                      <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedCategory("exam")}>
+                          <CardHeader className="flex flex-row items-center gap-4">
+                              <div className="p-3 bg-primary/10 rounded-full text-primary"><Trophy className="h-6 w-6" /></div>
+                              <CardTitle className="text-base">Exam</CardTitle>
+                          </CardHeader>
+                      </Card>
+                  </div>
+              </div>
+          ) : !selectedSection ? (
+              <div className="space-y-4">
+                  <h2 className="text-lg font-semibold">{selectedCategory === "class" ? "Class" : "Exam"}</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {selectedCategory === "class" ? (
+                          <>
+                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("record")}>
+                                  <CardHeader className="flex flex-row items-center gap-4">
+                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Video className="h-6 w-6" /></div>
+                                      <CardTitle className="text-base">Record Class</CardTitle>
+                                  </CardHeader>
+                              </Card>
+                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("archive-class")}>
+                                  <CardHeader className="flex flex-row items-center gap-4">
+                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Archive className="h-6 w-6" /></div>
+                                      <CardTitle className="text-base">Archive Class</CardTitle>
+                                  </CardHeader>
+                              </Card>
+                          </>
+                      ) : (
+                          <>
+                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("practice")}>
+                                  <CardHeader className="flex flex-row items-center gap-4">
+                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Trophy className="h-6 w-6" /></div>
+                                      <CardTitle className="text-base">Practice Exam</CardTitle>
+                                  </CardHeader>
+                              </Card>
+                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("readymade")}>
+                                  <CardHeader className="flex flex-row items-center gap-4">
+                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><LayoutTemplate className="h-6 w-6" /></div>
+                                      <CardTitle className="text-base">Readymade Exam</CardTitle>
+                                  </CardHeader>
+                              </Card>
+                          </>
+                      )}
+                  </div>
+              </div>
+          ) : !selectedSubject ? (
               <div className="space-y-4">
                   <h2 className="text-lg font-semibold">Subjects</h2>
                   {loadingSubjects ? <div className="text-muted-foreground">Loading...</div> : (
@@ -243,7 +316,7 @@ const CourseView = () => {
                   )}
               </div>
           ) : (
-              <CourseContentTabs courseId={courseId!} subject={selectedSubject} chapter={selectedChapter} />
+              <CourseSectionContent courseId={courseId!} section={selectedSection} subject={selectedSubject} chapter={selectedChapter} />
           )}
           </>
       )}
@@ -251,97 +324,12 @@ const CourseView = () => {
   );
 };
 
-const CourseContentTabs = ({ courseId, subject, chapter }: { courseId: string, subject: string, chapter: string }) => {
-    // Only show tabs for categories that actually have content in this
-    // subject/chapter — a category with zero items should not appear at all,
-    // rather than showing an empty "No X found." tab.
-    const { data: availability, isLoading } = useQuery({
-        queryKey: ["course-content-availability", courseId, subject, chapter],
-        queryFn: async () => {
-            const [classesRes, examsRes, readymadeRes, archiveClassRes, archiveExamRes] = await Promise.all([
-                supabase.from("classes").select("id", { count: "exact", head: true })
-                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
-                    .not("is_archive", "is", true)
-                    .contains("subject", [subject])
-                    .eq("chapter", chapter),
-                supabase.from("exams").select("id", { count: "exact", head: true })
-                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
-                    .not("is_archive", "is", true)
-                    .contains("subject", [subject])
-                    .eq("chapter", chapter)
-                    .eq("is_published", true)
-                    .not("is_readymade", "is", true),
-                supabase.from("exams").select("id", { count: "exact", head: true })
-                    .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
-                    .contains("subject", [subject])
-                    .eq("chapter", chapter)
-                    .eq("is_published", true)
-                    .eq("is_readymade", true),
-                supabase.from("classes").select("id", { count: "exact", head: true })
-                    .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
-                    .contains("subject", [subject])
-                    .eq("chapter", chapter),
-                supabase.from("exams").select("id", { count: "exact", head: true })
-                    .or(`archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`)
-                    .contains("subject", [subject])
-                    .eq("chapter", chapter)
-                    .eq("is_published", true),
-            ]);
-            return {
-                recordings: (classesRes.count || 0) > 0,
-                exams: (examsRes.count || 0) > 0,
-                readymade: (readymadeRes.count || 0) > 0,
-                archiveClass: (archiveClassRes.count || 0) > 0,
-                archiveExam: (archiveExamRes.count || 0) > 0,
-            };
-        },
-        enabled: !!courseId && !!subject && !!chapter,
-    });
-
-    if (isLoading) return <div className="text-muted-foreground">Loading...</div>;
-
-    const tabs: { key: string; label: string; icon: JSX.Element; content: JSX.Element }[] = [];
-    if (availability?.recordings) {
-        tabs.push({ key: "recordings", label: "Recordings", icon: <Video className="h-4 w-4" />, content: <ClassList courseId={courseId} subject={subject} chapter={chapter} /> });
-    }
-    if (availability?.exams) {
-        tabs.push({ key: "exams", label: "Exams", icon: <Trophy className="h-4 w-4" />, content: <ExamList courseId={courseId} subject={subject} chapter={chapter} /> });
-    }
-    if (availability?.readymade) {
-        tabs.push({ key: "readymade", label: "Readymade Exam", icon: <LayoutTemplate className="h-4 w-4" />, content: <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} /> });
-    }
-    if (availability?.archiveClass) {
-        tabs.push({ key: "archive-class", label: "Arch. Class", icon: <Archive className="h-4 w-4" />, content: <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} /> });
-    }
-    if (availability?.archiveExam) {
-        tabs.push({ key: "archive-exam", label: "Arch. Exams", icon: <FileText className="h-4 w-4" />, content: <ArchiveExamList courseId={courseId} subject={subject} chapter={chapter} /> });
-    }
-
-    if (tabs.length === 0) {
-        return <p className="text-muted-foreground">No content found.</p>;
-    }
-
-    const gridColsClass = tabs.length >= 5 ? "grid-cols-2 sm:grid-cols-3 lg:grid-cols-5"
-        : tabs.length === 4 ? "grid-cols-2 sm:grid-cols-4"
-        : tabs.length === 3 ? "grid-cols-3"
-        : tabs.length === 2 ? "grid-cols-2"
-        : "grid-cols-1";
-
-    return (
-        <Tabs defaultValue={tabs[0].key} className="w-full">
-            <TabsList className={`grid w-full ${gridColsClass} h-auto`}>
-                {tabs.map(t => (
-                    <TabsTrigger key={t.key} value={t.key} className="gap-2">{t.icon} {t.label}</TabsTrigger>
-                ))}
-            </TabsList>
-
-            {tabs.map(t => (
-                <TabsContent key={t.key} value={t.key} className="mt-6">
-                    {t.content}
-                </TabsContent>
-            ))}
-        </Tabs>
-    );
+const CourseSectionContent = ({ courseId, section, subject, chapter }: { courseId: string, section: string, subject: string, chapter: string }) => {
+    if (section === "record") return <ClassList courseId={courseId} subject={subject} chapter={chapter} />;
+    if (section === "archive-class") return <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} />;
+    if (section === "practice") return <ExamList courseId={courseId} subject={subject} chapter={chapter} />;
+    if (section === "readymade") return <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} />;
+    return null;
 }
 
 const ClassList = ({ courseId, subject, chapter }: any) => {
