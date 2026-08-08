@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon } from "lucide-react";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon, Eye, EyeOff } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   DndContext,
@@ -27,7 +27,6 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 
 interface SubjectSortDialogProps {
-  subjects: string[];
   onClose: () => void;
 }
 
@@ -35,18 +34,24 @@ function SortableSubjectItem({
   subject,
   index,
   total,
+  isHidden,
   onMoveUp,
   onMoveDown,
   onRename,
+  onToggleHidden,
   isRenaming,
+  isTogglingHidden,
 }: {
   subject: string;
   index: number;
   total: number;
+  isHidden: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRename: (oldName: string, newName: string) => void;
+  onToggleHidden: (subject: string) => void;
   isRenaming: boolean;
+  isTogglingHidden: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject });
   const [editing, setEditing] = useState(false);
@@ -80,7 +85,8 @@ function SortableSubjectItem({
       style={style}
       className={cn(
         "flex items-center gap-2 p-3 bg-card border rounded-lg mb-2",
-        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30"
+        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30",
+        isHidden ? "opacity-50" : ""
       )}
     >
       <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 -m-1 bg-muted/50 rounded flex-shrink-0 touch-none">
@@ -115,18 +121,35 @@ function SortableSubjectItem({
             </div>
           </div>
         ) : (
-          <h4 className="font-medium text-sm leading-snug break-words whitespace-pre-line">{subject}</h4>
+          <h4 className="font-medium text-sm leading-snug break-words whitespace-pre-line">
+            {subject}
+            {isHidden && <span className="ml-2 text-[10px] font-normal text-muted-foreground">(Hidden)</span>}
+          </h4>
         )}
       </div>
       {!editing && (
-        <button
-          type="button"
-          onClick={startEdit}
-          className="h-6 w-6 rounded flex items-center justify-center border bg-background hover:bg-muted flex-shrink-0"
-          aria-label="Edit subject name"
-        >
-          <Pencil className="h-3.5 w-3.5" />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => onToggleHidden(subject)}
+            disabled={isTogglingHidden}
+            className={cn(
+              "h-6 w-6 rounded flex items-center justify-center border bg-background hover:bg-muted flex-shrink-0 disabled:opacity-50",
+              isHidden ? "text-primary" : "text-muted-foreground"
+            )}
+            aria-label={isHidden ? "Show subject" : "Hide subject"}
+          >
+            {isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
+          <button
+            type="button"
+            onClick={startEdit}
+            className="h-6 w-6 rounded flex items-center justify-center border bg-background hover:bg-muted flex-shrink-0"
+            aria-label="Edit subject name"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        </>
       )}
       <div className="flex flex-col gap-0.5 flex-shrink-0">
         <button
@@ -152,24 +175,69 @@ function SortableSubjectItem({
   );
 }
 
+const ORDER_KEY = "subject_order_global";
+const HIDDEN_KEY = "subject_hidden_global";
+
 // Simple vertical reorder list — full subject names are always visible (no truncation,
 // no side-to-side empty space from a grid). Two ways to reorder, whichever feels easier:
 // 1) Drag the grip handle up/down
 // 2) Tap the up/down arrow buttons — foolproof on touch, no drag gesture needed at all
 // Position in this list == display order on the actual page (grid fills left-to-right,
 // top-to-bottom), so #1 becomes the top-left card, #2 next to it, etc.
-export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps) {
+// Fetches ALL subjects that exist on any readymade exam (not just the ones currently
+// visible to students), so a hidden subject can still be found here and unhidden.
+export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
   const [items, setItems] = useState<string[]>([]);
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const settingsKey = "subject_order_global";
+  const { data: allData, isLoading } = useQuery({
+    queryKey: ["subject-sort-dialog-all-subjects"],
+    queryFn: async () => {
+      const BATCH = 1000;
+      let from = 0;
+      const unique = new Set<string>();
+      while (true) {
+        const { data: rows, error } = await supabase
+          .from("exams")
+          .select("subject")
+          .eq("is_readymade", true)
+          .range(from, from + BATCH - 1);
+        if (error) throw error;
+        (rows || []).forEach((row: any) => {
+          const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === "string" ? [row.subject] : []);
+          subs.forEach((s) => s && unique.add(s));
+        });
+        if (!rows || rows.length < BATCH) break;
+        from += BATCH;
+      }
+
+      const [{ data: orderRow }, { data: hiddenRow }] = await Promise.all([
+        supabase.from("app_settings").select("value").eq("key", ORDER_KEY).maybeSingle(),
+        supabase.from("app_settings").select("value").eq("key", HIDDEN_KEY).maybeSingle(),
+      ]);
+      const savedOrder: string[] = orderRow?.value ? (orderRow.value as string[]) : [];
+      const hiddenList: string[] = hiddenRow?.value ? (hiddenRow.value as string[]) : [];
+
+      const sorted = Array.from(unique).sort((a, b) => {
+        const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1; if (iB !== -1) return 1;
+        return a.localeCompare(b);
+      });
+      return { sorted, hiddenList };
+    },
+  });
 
   useEffect(() => {
-    setItems([...subjects]);
-    setIsModified(false);
-  }, [subjects]);
+    if (allData) {
+      setItems(allData.sorted);
+      setHidden(new Set(allData.hiddenList));
+      setIsModified(false);
+    }
+  }, [allData]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -234,8 +302,17 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
       const newItems = items.map((s) => (s === oldName ? newName : s));
       const { error: orderErr } = await supabase
         .from("app_settings")
-        .upsert({ key: settingsKey, value: newItems }, { onConflict: "key" });
+        .upsert({ key: ORDER_KEY, value: newItems }, { onConflict: "key" });
       if (orderErr) throw orderErr;
+
+      // Carry the hidden flag over to the new name too, if it was hidden.
+      if (hidden.has(oldName)) {
+        const newHiddenList = Array.from(hidden).map((s) => (s === oldName ? newName : s));
+        const { error: hiddenErr } = await supabase
+          .from("app_settings")
+          .upsert({ key: HIDDEN_KEY, value: newHiddenList }, { onConflict: "key" });
+        if (hiddenErr) throw hiddenErr;
+      }
 
       // Keep global_metadata (source of Main Exam Form's subject picklist) in sync too.
       // Note: a subject may exist on exams.subject without ever having a
@@ -268,8 +345,16 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
     },
     onSuccess: (newName, { oldName }) => {
       setItems((prev) => prev.map((s) => (s === oldName ? newName : s)));
+      setHidden((prev) => {
+        if (!prev.has(oldName)) return prev;
+        const next = new Set(prev);
+        next.delete(oldName);
+        next.add(newName);
+        return next;
+      });
       toast({ title: "Subject renamed successfully!" });
       queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
+      queryClient.invalidateQueries({ queryKey: ["subject-sort-dialog-all-subjects"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
@@ -283,11 +368,32 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
     renameMutation.mutate({ oldName, newName });
   };
 
+  const toggleHiddenMutation = useMutation({
+    mutationFn: async (subject: string) => {
+      const next = new Set(hidden);
+      if (next.has(subject)) next.delete(subject);
+      else next.add(subject);
+      const nextList = Array.from(next);
+      const { error } = await supabase
+        .from("app_settings")
+        .upsert({ key: HIDDEN_KEY, value: nextList }, { onConflict: "key" });
+      if (error) throw error;
+      return next;
+    },
+    onSuccess: (next) => {
+      setHidden(next);
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to update visibility", description: err.message, variant: "destructive" });
+    },
+  });
+
   const saveOrderMutation = useMutation({
     mutationFn: async (orderedItems: string[]) => {
       const { error } = await supabase
         .from("app_settings")
-        .upsert({ key: settingsKey, value: orderedItems }, { onConflict: "key" });
+        .upsert({ key: ORDER_KEY, value: orderedItems }, { onConflict: "key" });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -307,7 +413,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         <div>
           <CardTitle>Organize Subjects</CardTitle>
           <CardDescription>
-            Drag the grip handle, or tap the up/down arrows — position here becomes each subject's position in the grid students see.
+            Drag the grip handle, or tap the up/down arrows — position here becomes each subject's position in the grid students see. Tap the eye icon to hide a subject from students.
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
@@ -320,7 +426,7 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
           <div className="flex gap-2">
             {isModified && (
               <>
-                <Button variant="ghost" size="sm" onClick={() => setItems([...subjects])}>
+                <Button variant="ghost" size="sm" onClick={() => { if (allData) setItems(allData.sorted); }}>
                   Reset
                 </Button>
                 <Button
@@ -337,7 +443,11 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
         </div>
 
         <div className="flex-1 overflow-y-auto pr-1 min-h-0 bg-muted/10 rounded-md border p-2">
-          {items.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center p-8 text-muted-foreground flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+            </div>
+          ) : items.length === 0 ? (
             <div className="text-center p-8 text-muted-foreground">No subjects available.</div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -348,10 +458,13 @@ export function SubjectSortDialog({ subjects, onClose }: SubjectSortDialogProps)
                     subject={subject}
                     index={index}
                     total={items.length}
+                    isHidden={hidden.has(subject)}
                     onMoveUp={() => moveItem(index, -1)}
                     onMoveDown={() => moveItem(index, 1)}
                     onRename={handleRename}
+                    onToggleHidden={(s) => toggleHiddenMutation.mutate(s)}
                     isRenaming={renameMutation.isPending}
+                    isTogglingHidden={toggleHiddenMutation.isPending}
                   />
                 ))}
               </SortableContext>

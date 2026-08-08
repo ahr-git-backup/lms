@@ -519,7 +519,6 @@ const Readymade = () => {
         />
       ) : manageSubjects ? (
         <SubjectSortDialog
-          subjects={currentSubjectsList}
           onClose={() => setManageSubjects(false)}
         />
       ) : (
@@ -640,7 +639,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
-      const sortedSubjects = Array.from(unique).sort((a, b) => {
+      const { data: hiddenData } = await supabase.from("app_settings").select("value").eq("key", "subject_hidden_global").maybeSingle();
+      const hiddenSet = new Set<string>(hiddenData?.value ? (hiddenData.value as string[]) : []);
+      const visible = Array.from(unique).filter((s) => !hiddenSet.has(s));
+      const sortedSubjects = visible.sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
