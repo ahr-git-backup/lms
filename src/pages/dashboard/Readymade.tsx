@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -666,25 +666,6 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return !!subjectsResult?.unlockMap?.[subject];
   };
 
-  const queryClient = useQueryClient();
-  const toggleSubjectHiddenMutation = useMutation({
-    mutationFn: async (subject: string) => {
-      const next = new Set(hiddenSubjects);
-      if (next.has(subject)) next.delete(subject);
-      else next.add(subject);
-      const { error } = await supabase
-        .from("app_settings")
-        .upsert({ key: "subject_hidden_global", value: Array.from(next) }, { onConflict: "key" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
-    },
-    onError: (err: any) => {
-      toast({ title: "Failed to update visibility", description: err.message, variant: "destructive" });
-    },
-  });
-
   // Per-subject MCQ count badge — total questions across all exams in each
   // subject, for the subject-selection cards. Backed by a single server-side
   // aggregation RPC instead of paginating every exam_questions row client-side.
@@ -992,17 +973,6 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
               >
                 <Lock className="h-3 w-3" />
-              </button>
-            )}
-            {isAdmin && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); toggleSubjectHiddenMutation.mutate(subject); }}
-                disabled={toggleSubjectHiddenMutation.isPending}
-                className={`absolute top-1.5 right-1.5 z-10 rounded-full p-1 disabled:opacity-50 ${isHidden ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"}`}
-                aria-label={isHidden ? "Show subject to students" : "Hide subject from students"}
-              >
-                {isHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
               </button>
             )}
             <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
