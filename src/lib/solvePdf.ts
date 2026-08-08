@@ -88,9 +88,9 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .explanation-label{font-weight:bold;color:#166534}
 .page-break{page-break-before:always;break-before:page}
 .answers-section{column-count:1;margin-top:0}
-.answer-table{width:100%;border-collapse:collapse;margin-top:0;border:1px solid #333}
-.answer-table th,.answer-table td{border:1px solid #333;padding:6px;text-align:left;vertical-align:top;word-wrap:break-word}
-.answer-table th{background-color:#f5f5f5;font-weight:bold;text-align:center;font-size:13pt}
+.answer-table{width:100%;border-collapse:collapse;margin-top:0;border:1px solid #16a34a}
+.answer-table th,.answer-table td{border:1px solid #86efac;padding:6px;text-align:left;vertical-align:top;word-wrap:break-word}
+.answer-table th{background-color:#F0FDF4;font-weight:bold;text-align:center;font-size:13pt;color:#166534}
 .qno-col{width:8%;text-align:center}.ans-col{width:8%;text-align:center;font-weight:bold;font-size:14pt}.exp-col{width:84%;font-size:12pt;white-space:pre-line}
 img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{@page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}body{-webkit-print-color-adjust:exact;color-adjust:exact;width:210mm;max-width:210mm}.question{break-inside:avoid;page-break-inside:avoid}.explanation{break-inside:avoid;page-break-inside:avoid}}
