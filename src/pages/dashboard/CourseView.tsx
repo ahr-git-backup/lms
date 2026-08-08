@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
@@ -26,12 +27,25 @@ const CourseView = () => {
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
 
-  const [selectedCategory, setSelectedCategory] = useState<"class" | "exam" | null>(null);
-  const [selectedSection, setSelectedSection] = useState<string | null>(null); // record/archive-class | practice/readymade
+  const [selectedCategory, setSelectedCategory] = useState<"class" | "exam">("class");
+  const [selectedSection, setSelectedSection] = useState<string>("record"); // record/archive-class | practice/readymade
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
+
+  const handleCategoryChange = (cat: "class" | "exam") => {
+      setSelectedCategory(cat);
+      setSelectedSection(cat === "class" ? "record" : "practice");
+      setSelectedSubject(null);
+      setSelectedChapter(null);
+  };
+
+  const handleSectionChange = (section: string) => {
+      setSelectedSection(section);
+      setSelectedSubject(null);
+      setSelectedChapter(null);
+  };
 
   const enrollment = enrollments?.find((e: any) => e.course_id === courseId);
 
@@ -169,26 +183,50 @@ const CourseView = () => {
           <Button variant="ghost" size="icon" onClick={() => {
               if (selectedChapter) setSelectedChapter(null);
               else if (selectedSubject) setSelectedSubject(null);
-              else if (selectedSection) setSelectedSection(null);
-              else if (selectedCategory) setSelectedCategory(null);
               else navigate("/dashboard/my-courses");
           }}>
               <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
             <h1 className="text-xl font-bold tracking-tight">
-                {selectedChapter || selectedSubject || SECTION_LABELS[selectedSection || ""] || (selectedCategory === "class" ? "Class" : selectedCategory === "exam" ? "Exam" : enrollment?.course?.name) || "Course View"}
+                {selectedChapter || selectedSubject || enrollment?.course?.name || "Course View"}
             </h1>
-            {(selectedSection || selectedSubject) && (
+            {selectedSubject && (
                 <p className="text-xs text-muted-foreground">
-                    {enrollment?.course?.name}
-                    {selectedCategory ? ` > ${selectedCategory === "class" ? "Class" : "Exam"}` : ""}
-                    {selectedSection ? ` > ${SECTION_LABELS[selectedSection]}` : ""}
-                    {selectedSubject ? ` > ${selectedSubject}` : ""}
+                    {enrollment?.course?.name} &gt; {selectedCategory === "class" ? "Class" : "Exam"} &gt; {SECTION_LABELS[selectedSection]}
+                    {selectedChapter ? ` > ${selectedSubject}` : ""}
                 </p>
             )}
           </div>
       </div>
+
+      {/* Category row: Class / Exam */}
+      <Tabs value={selectedCategory} onValueChange={(v) => handleCategoryChange(v as "class" | "exam")} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="class" className="gap-2"><Video className="h-4 w-4" /> Class</TabsTrigger>
+              <TabsTrigger value="exam" className="gap-2"><Trophy className="h-4 w-4" /> Exam</TabsTrigger>
+          </TabsList>
+      </Tabs>
+
+      {/* Sub-section dropdown */}
+      <Select value={selectedSection} onValueChange={handleSectionChange}>
+          <SelectTrigger className="w-full sm:w-64">
+              <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+              {selectedCategory === "class" ? (
+                  <>
+                      <SelectItem value="record">Record Class</SelectItem>
+                      <SelectItem value="archive-class">Archive Class</SelectItem>
+                  </>
+              ) : (
+                  <>
+                      <SelectItem value="practice">Practice Exam</SelectItem>
+                      <SelectItem value="readymade">Readymade Exam</SelectItem>
+                  </>
+              )}
+          </SelectContent>
+      </Select>
 
       {isAdmin && selectedChapter && (
           <div className="flex gap-2 mb-4 bg-muted/30 p-3 rounded-lg border">
@@ -224,62 +262,7 @@ const CourseView = () => {
         />
       ) : (
           <>
-          {!selectedCategory ? (
-              <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">Browse</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedCategory("class")}>
-                          <CardHeader className="flex flex-row items-center gap-4">
-                              <div className="p-3 bg-primary/10 rounded-full text-primary"><Video className="h-6 w-6" /></div>
-                              <CardTitle className="text-base">Class</CardTitle>
-                          </CardHeader>
-                      </Card>
-                      <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedCategory("exam")}>
-                          <CardHeader className="flex flex-row items-center gap-4">
-                              <div className="p-3 bg-primary/10 rounded-full text-primary"><Trophy className="h-6 w-6" /></div>
-                              <CardTitle className="text-base">Exam</CardTitle>
-                          </CardHeader>
-                      </Card>
-                  </div>
-              </div>
-          ) : !selectedSection ? (
-              <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">{selectedCategory === "class" ? "Class" : "Exam"}</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {selectedCategory === "class" ? (
-                          <>
-                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("record")}>
-                                  <CardHeader className="flex flex-row items-center gap-4">
-                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Video className="h-6 w-6" /></div>
-                                      <CardTitle className="text-base">Record Class</CardTitle>
-                                  </CardHeader>
-                              </Card>
-                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("archive-class")}>
-                                  <CardHeader className="flex flex-row items-center gap-4">
-                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Archive className="h-6 w-6" /></div>
-                                      <CardTitle className="text-base">Archive Class</CardTitle>
-                                  </CardHeader>
-                              </Card>
-                          </>
-                      ) : (
-                          <>
-                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("practice")}>
-                                  <CardHeader className="flex flex-row items-center gap-4">
-                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><Trophy className="h-6 w-6" /></div>
-                                      <CardTitle className="text-base">Practice Exam</CardTitle>
-                                  </CardHeader>
-                              </Card>
-                              <Card className="cursor-pointer hover:border-primary/50 transition-all" onClick={() => setSelectedSection("readymade")}>
-                                  <CardHeader className="flex flex-row items-center gap-4">
-                                      <div className="p-3 bg-primary/10 rounded-full text-primary"><LayoutTemplate className="h-6 w-6" /></div>
-                                      <CardTitle className="text-base">Readymade Exam</CardTitle>
-                                  </CardHeader>
-                              </Card>
-                          </>
-                      )}
-                  </div>
-              </div>
-          ) : !selectedSubject ? (
+          {!selectedSubject ? (
               <div className="space-y-4">
                   <h2 className="text-lg font-semibold">Subjects</h2>
                   {loadingSubjects ? <div className="text-muted-foreground">Loading...</div> : (
