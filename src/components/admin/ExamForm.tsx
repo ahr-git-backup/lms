@@ -862,6 +862,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                          handleCreateMeta('subject', val);
                          setForm(prev => ({ ...prev, subject: [...prev.subject, val] }));
                     }}
+                    onRename={(oldVal, newVal) => handleRenameMeta('subject', oldVal, newVal)}
+                    onDelete={(val) => handleDeleteMeta('subject', val)}
                     placeholder="Select or Create subjects..."
                 />
               </div>

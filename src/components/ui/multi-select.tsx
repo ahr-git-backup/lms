@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, ChevronsUpDown, X, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, X, Plus, Pencil, Trash2, CheckCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 
 export type Option = {
@@ -27,6 +37,8 @@ interface MultiSelectProps {
   selected: string[];
   onChange: (selected: string[]) => void;
   onCreate?: (value: string) => void;
+  onRename?: (oldValue: string, newValue: string) => void;
+  onDelete?: (value: string) => void;
   placeholder?: string;
   className?: string;
 }
@@ -36,14 +48,33 @@ export function MultiSelect({
   selected,
   onChange,
   onCreate,
+  onRename,
+  onDelete,
   placeholder = "Select items...",
   className,
 }: MultiSelectProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
+  const [editingValue, setEditingValue] = React.useState<string | null>(null);
+  const [editText, setEditText] = React.useState("");
+  const [deletingValue, setDeletingValue] = React.useState<string | null>(null);
+  const canManage = !!(onRename || onDelete);
 
   const handleUnselect = (item: string) => {
     onChange(selected.filter((i) => i !== item));
+  };
+
+  const commitRename = (oldValue: string) => {
+    const trimmed = editText.trim();
+    if (trimmed && trimmed !== oldValue) {
+      onRename?.(oldValue, trimmed);
+      // Keep this item selected under its new name instead of leaving the
+      // stale old value selected (or losing the selection entirely).
+      if (selected.includes(oldValue)) {
+        onChange(selected.map((v) => (v === oldValue ? trimmed : v)));
+      }
+    }
+    setEditingValue(null);
   };
 
   return (
@@ -109,31 +140,126 @@ export function MultiSelect({
                 )}
               </CommandEmpty>
               <CommandGroup className="max-h-64 overflow-auto">
-                {options.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    onSelect={() => {
-                      onChange(
-                        selected.includes(option.value)
-                          ? selected.filter((item) => item !== option.value)
-                          : [...selected, option.value]
-                      );
-                      // setOpen(true); // Keep open for multiple selection
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-4 w-4",
-                        selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                {options.map((option) =>
+                  editingValue === option.value ? (
+                    <div key={option.value} className="flex items-center gap-1 px-2 py-1.5">
+                      <input
+                        autoFocus
+                        value={editText}
+                        onChange={(e) => setEditText(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitRename(option.value);
+                          if (e.key === "Escape") setEditingValue(null);
+                        }}
+                        className="flex-1 h-7 px-2 text-sm border rounded-md bg-background"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0 text-emerald-600"
+                        onMouseDown={(e) => { e.preventDefault(); commitRename(option.value); }}
+                      >
+                        <CheckCheck className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0"
+                        onMouseDown={(e) => { e.preventDefault(); setEditingValue(null); }}
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <CommandItem
+                      key={option.value}
+                      value={option.value}
+                      onSelect={() => {
+                        onChange(
+                          selected.includes(option.value)
+                            ? selected.filter((item) => item !== option.value)
+                            : [...selected, option.value]
+                        );
+                      }}
+                      className="group"
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4 shrink-0",
+                          selected.includes(option.value) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <span className="flex-1 truncate">{option.label}</span>
+                      {canManage && (
+                        <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 shrink-0">
+                          {onRename && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setEditingValue(option.value);
+                                setEditText(option.value);
+                              }}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          )}
+                          {onDelete && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 text-destructive"
+                              onMouseDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setDeletingValue(option.value);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          )}
+                        </span>
                       )}
-                    />
-                    {option.label}
-                  </CommandItem>
-                ))}
+                    </CommandItem>
+                  )
+                )}
               </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
+
+      <AlertDialog open={!!deletingValue} onOpenChange={(o) => !o && setDeletingValue(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete "{deletingValue}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              এই অপশনটি লিস্ট থেকে বাদ যাবে। আগে থেকে এই ভ্যালু দেওয়া exam গুলোর ডেটা অপরিবর্তিত থাকবে।
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeletingValue(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletingValue) {
+                  onDelete?.(deletingValue);
+                  if (selected.includes(deletingValue)) handleUnselect(deletingValue);
+                }
+                setDeletingValue(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Popover>
   );
 }
