@@ -166,6 +166,8 @@ export const useRenameGlobalMetadata = () => {
             queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
             queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
             queryClient.invalidateQueries({ queryKey: ["admin-exams-readymade-categories"] });
+            queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
+            queryClient.invalidateQueries({ queryKey: ["readymade-mcq-counts"] });
             toast({ title: "Updated" });
         },
         onError: (err: any) => {

@@ -355,6 +355,7 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
       toast({ title: "Subject renamed successfully!" });
       queryClient.invalidateQueries({ queryKey: ["global-metadata"] });
       queryClient.invalidateQueries({ queryKey: ["subject-sort-dialog-all-subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-mcq-counts"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-subjects"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
       queryClient.refetchQueries({ queryKey: ["readymade-exams-chapters"] });
