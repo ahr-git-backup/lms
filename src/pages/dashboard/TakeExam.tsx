@@ -153,6 +153,7 @@ const TakeExam = () => {
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
+  const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
   const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
@@ -329,7 +330,7 @@ const TakeExam = () => {
                console.warn("RPC returned no questions. Attempting direct fallback...");
                const { data: directData, error: directError } = await supabase
                    .from("exam_questions")
-                   .select("id, question_text, option_a, option_b, option_c, option_d, option_e, question_index")
+                   .select("id, question_text, option_a, option_b, option_c, option_d, option_e, question_index, subject, is_segment_mandatory")
                    .eq("exam_id", examId)
                    .order("question_index", { ascending: true });
 
@@ -416,13 +417,28 @@ const TakeExam = () => {
   const hasImageOrPatternQuestions = !!(questions && questions.some(isImageOrPatternQuestion));
 
   // Effective pool after applying the content-mode filter (only applies when relevant questions exist)
+  const isSpecialExam = exam?.exam_type === 'special';
+
+  // Special Exam: distinct mandatory/optional subject segments, derived from the loaded question pool.
+  const mandatorySubjects = isSpecialExam
+      ? Array.from(new Set((questions || []).filter((q: any) => q.subject && (q.is_segment_mandatory ?? true)).map((q: any) => q.subject)))
+      : [];
+  const optionalSubjects = isSpecialExam
+      ? Array.from(new Set((questions || []).filter((q: any) => q.subject && q.is_segment_mandatory === false).map((q: any) => q.subject)))
+      : [];
+
   const effectiveQuestions = (() => {
       if (!questions) return questions;
-      if (!hasImageOrPatternQuestions) return questions;
-      if (contentMode === 'without') {
-          return questions.filter((q: any) => !isImageOrPatternQuestion(q));
+      let pool = questions;
+      if (hasImageOrPatternQuestions && contentMode === 'without') {
+          pool = pool.filter((q: any) => !isImageOrPatternQuestion(q));
       }
-      return questions; // 'with' or not yet chosen -> full pool
+      if (isSpecialExam && optionalSubjects.length > 0) {
+          pool = pool.filter((q: any) =>
+              !q.subject || (q.is_segment_mandatory ?? true) || selectedOptionalSubjects.includes(q.subject)
+          );
+      }
+      return pool;
   })();
 
   // Reset the chosen MCQ count whenever the content-mode (with/without image & pattern questions) changes,
@@ -1001,6 +1017,45 @@ const TakeExam = () => {
                   </Card>
               )}
 
+              {/* Card: Special Exam Subject Selection */}
+              {isSpecialExam && (mandatorySubjects.length > 0 || optionalSubjects.length > 0) && (
+                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden p-3 space-y-2">
+                      {mandatorySubjects.length > 0 && (
+                          <div>
+                              <p className="text-[10px] font-bold text-muted-foreground mb-1">Mandatory Subjects</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                  {mandatorySubjects.map((s: string) => (
+                                      <span key={s} className="text-xs font-semibold rounded-full px-2.5 py-1 bg-primary/10 text-primary border border-primary/30">{s}</span>
+                                  ))}
+                              </div>
+                          </div>
+                      )}
+                      {optionalSubjects.length > 0 && (
+                          <div>
+                              <p className="text-[10px] font-bold text-muted-foreground mb-1">যেসব বিষয় থেকে MCQ চান বেছে নিন</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                  {optionalSubjects.map((s: string) => {
+                                      const selected = selectedOptionalSubjects.includes(s);
+                                      return (
+                                          <button
+                                              key={s}
+                                              type="button"
+                                              onClick={() => setSelectedOptionalSubjects(prev => selected ? prev.filter(x => x !== s) : [...prev, s])}
+                                              className={cn(
+                                                  "text-xs font-semibold rounded-full px-2.5 py-1 border transition-colors",
+                                                  selected ? "bg-violet-500/10 border-violet-500 text-violet-700 dark:text-violet-300" : "border-border text-muted-foreground"
+                                              )}
+                                          >
+                                              {s}
+                                          </button>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      )}
+                  </Card>
+              )}
+
               {/* Card: Readymade MCQ Count Selector */}
               {showsReadymadeUI && (
                   <Card className="w-full rounded-xl shadow-sm border overflow-hidden">
@@ -1183,6 +1238,14 @@ const TakeExam = () => {
                                       toast({
                                           title: "মোড সিলেক্ট করুন",
                                           description: "পরীক্ষা শুরু করার আগে উপরে থেকে চিত্র/উদ্দীপকসহ অথবা চিত্র/উদ্দীপকছাড়া মোড বেছে নিন।",
+                                          variant: "destructive",
+                                      });
+                                      return;
+                                  }
+                                  if (isSpecialExam && optionalSubjects.length > 0 && selectedOptionalSubjects.length === 0) {
+                                      toast({
+                                          title: "বিষয় সিলেক্ট করুন",
+                                          description: "পরীক্ষা শুরু করার আগে অন্তত একটি ঐচ্ছিক বিষয় বেছে নিন।",
                                           variant: "destructive",
                                       });
                                       return;
