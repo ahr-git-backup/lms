@@ -44,8 +44,7 @@ const ExamCreator = () => {
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
   const [bankTargetSubject, setBankTargetSubject] = useState<string | null>(null);
-  const [showAddSegment, setShowAddSegment] = useState(false);
-  const [newSegmentName, setNewSegmentName] = useState("");
+  const [bankTargetMandatory, setBankTargetMandatory] = useState(true);
   const [isOmr, setIsOmr] = useState(false);
   const [showSaveToWeb, setShowSaveToWeb] = useState(false);
   const [saveWebForm, setSaveWebForm] = useState({
@@ -742,22 +741,16 @@ const ExamCreator = () => {
       const cleanQuestions = selectedQuestions.map(q => ({
           ...q,
           id: undefined,
-          ...(bankTargetSubject ? { subject: bankTargetSubject, is_segment_mandatory: q.is_segment_mandatory ?? true } : {})
+          ...(bankTargetSubject ? { subject: bankTargetSubject, is_segment_mandatory: bankTargetMandatory } : {})
       }));
       setQuestions(prev => [...prev, ...cleanQuestions]);
       toast({ title: "Imported", description: `Added ${cleanQuestions.length} questions${bankTargetSubject ? ` to ${bankTargetSubject}` : ""}.` });
-      setBankTargetSubject(null);
   };
 
   // Special exam: unique subject segments derived from questions
   const segmentSubjects = saveWebForm.exam_type === 'special'
       ? Array.from(new Set(questions.map(q => q.subject).filter(Boolean) as string[]))
       : [];
-
-  const openBankForSubject = (subject: string) => {
-      setBankTargetSubject(subject);
-      setShowBankSelector(true);
-  };
 
   const handleOmrImport = (scannedQuestions: QuestionData[]) => {
       setQuestions(prev => [...prev, ...scannedQuestions]);
@@ -1148,10 +1141,27 @@ const ExamCreator = () => {
                             <p className="text-[13px] text-muted-foreground mt-0.5">Import from existing database</p>
                         </div>
                      </div>
-                     <Button variant="ghost" size="icon" onClick={() => setShowBankSelector(false)} className="rounded-full h-8 w-8 hover:bg-secondary">
+                     <Button variant="ghost" size="icon" onClick={() => { setShowBankSelector(false); setBankTargetSubject(null); }} className="rounded-full h-8 w-8 hover:bg-secondary">
                         <Trash2 className="h-4 w-4" />
                      </Button>
                 </div>
+                {saveWebForm.exam_type === 'special' && (
+                    <div className="flex items-center gap-2 mb-3 shrink-0">
+                        <Input
+                            value={bankTargetSubject ?? ""}
+                            onChange={e => setBankTargetSubject(e.target.value)}
+                            placeholder="Custom Sub Name"
+                            className="h-9 text-sm rounded-full px-3 flex-1"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setBankTargetMandatory(prev => !prev)}
+                            className={`text-[11px] font-semibold rounded-full px-3 py-1.5 border shrink-0 ${bankTargetMandatory ? 'bg-primary/10 text-primary border-primary/30' : 'bg-muted text-muted-foreground border-border'}`}
+                        >
+                            {bankTargetMandatory ? "Mandatory" : "Optional"}
+                        </button>
+                    </div>
+                )}
                 <div className="flex-1 overflow-hidden flex flex-col rounded-xl border border-border/50">
                     <QuestionBankSelector onSelect={handleBankImport} />
                 </div>
@@ -1202,66 +1212,33 @@ const ExamCreator = () => {
                     <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                         {segmentSubjects.map(sub => {
                             const count = questions.filter(q => q.subject === sub).length;
+                            const mandatory = questions.find(q => q.subject === sub)?.is_segment_mandatory ?? true;
                             return (
                                 <div
                                     key={sub}
                                     className="border border-border/60 rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center text-center gap-1"
                                     onClick={() => {
-                                        const el = document.getElementById(`segment-${sub}`);
-                                        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        setBankTargetSubject(sub);
+                                        setBankTargetMandatory(mandatory);
+                                        setShowBankSelector(true);
                                     }}
                                 >
                                     <span className="text-sm font-semibold truncate w-full">{sub}</span>
-                                    <span className="text-[10px] text-muted-foreground">{count} MCQ</span>
-                                    <Button
-                                        size="icon"
-                                        variant="outline"
-                                        className="h-6 w-6 rounded-full mt-1"
-                                        onClick={(e) => { e.stopPropagation(); openBankForSubject(sub); }}
-                                        title="Add MCQ from Question Bank"
-                                    >
-                                        <Plus className="h-3.5 w-3.5" />
-                                    </Button>
+                                    <span className="text-[10px] text-muted-foreground">{count} MCQ · {mandatory ? "Mandatory" : "Optional"}</span>
                                 </div>
                             );
                         })}
-                        {showAddSegment ? (
-                            <div className="border border-primary/40 rounded-2xl p-3 bg-card flex flex-col items-center gap-1.5">
-                                <Input
-                                    value={newSegmentName}
-                                    onChange={e => setNewSegmentName(e.target.value)}
-                                    placeholder="Subject name"
-                                    className="h-7 text-xs rounded-full px-2"
-                                    autoFocus
-                                />
-                                <div className="flex gap-1">
-                                    <Button
-                                        size="sm"
-                                        className="h-6 text-[10px] px-2 rounded-full"
-                                        onClick={() => {
-                                            const name = newSegmentName.trim();
-                                            if (name) openBankForSubject(name);
-                                            setNewSegmentName("");
-                                            setShowAddSegment(false);
-                                        }}
-                                    >Add</Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 text-[10px] px-2 rounded-full"
-                                        onClick={() => { setShowAddSegment(false); setNewSegmentName(""); }}
-                                    >Cancel</Button>
-                                </div>
-                            </div>
-                        ) : (
-                            <div
-                                className="border border-dashed border-border/60 rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 min-h-[76px]"
-                                onClick={() => setShowAddSegment(true)}
-                            >
-                                <Plus className="h-5 w-5 text-muted-foreground" />
-                                <span className="text-[10px] text-muted-foreground">Add Subject</span>
-                            </div>
-                        )}
+                        <div
+                            className="border border-dashed border-border/60 rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 min-h-[64px]"
+                            onClick={() => {
+                                setBankTargetSubject("");
+                                setBankTargetMandatory(true);
+                                setShowBankSelector(true);
+                            }}
+                        >
+                            <Plus className="h-5 w-5 text-muted-foreground" />
+                            <span className="text-[10px] text-muted-foreground">Add Segment</span>
+                        </div>
                     </div>
                 </div>
             )}
