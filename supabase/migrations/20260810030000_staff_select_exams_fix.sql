@@ -6,7 +6,9 @@
 --    constraint exam_questions_exam_id_fkey"
 -- because exam_id was undefined/null.
 
-CREATE POLICY IF NOT EXISTS "Staff can view all exams" ON public.exams
+DROP POLICY IF EXISTS "Staff can view all exams" ON public.exams;
+
+CREATE POLICY "Staff can view all exams" ON public.exams
     FOR SELECT USING (public.is_staff());
 
 NOTIFY pgrst, 'reload schema';
