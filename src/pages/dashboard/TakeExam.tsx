@@ -1702,8 +1702,8 @@ const TakeExam = () => {
 
                     {/* Question Row - full width */}
                     <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
-                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
+                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white" />
                         </div>
                     </div>
 
@@ -1741,10 +1741,10 @@ const TakeExam = () => {
                                     </div>
                                     <div className={cn(
                                         "flex-1 min-w-0 text-base whitespace-pre-line pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain flex items-start justify-between gap-2",
-                                        isSelected ? "text-primary font-medium bg-primary/5 border-primary/40" : "text-foreground border-border/60"
+                                        isSelected ? "text-primary font-medium bg-primary/5 border-primary/40" : "text-black dark:text-white border-border/60"
                                     )}>
                                         <div className="flex-1 min-w-0">
-                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white" />
                                         </div>
                                         {isSelected && <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                                     </div>
