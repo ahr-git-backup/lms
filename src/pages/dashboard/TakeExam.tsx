@@ -1729,8 +1729,8 @@ const TakeExam = () => {
             className="scroll-mt-28"
           >
             {isSpecialExam && q.subject && q.subject !== displayQuestions[idx - 1]?.subject && (
-                <div className="sticky top-16 z-10 mb-2 -mx-1">
-                    <div className="rounded-full bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 shadow-md inline-block">
+                <div className="sticky top-16 z-10 mb-2 flex justify-center">
+                    <div className="rounded-full bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 shadow-md">
                         {q.subject}
                     </div>
                 </div>
