@@ -183,6 +183,19 @@ const TakeExam = () => {
 
     document.title = retakeFromAttemptId ? "Retake Mistakes – Atlas" : "Take Exam – Atlas";
 
+    // Anti-Cheat: Tab Switch Detection
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'hidden') {
+            setViolationCount(prev => prev + 1);
+            toast({
+                title: "⚠️ Warning: Tab Switch Detected",
+                description: "Leaving the exam tab is recorded. Multiple violations may disqualify you.",
+                variant: "destructive",
+                duration: 5000,
+            });
+        }
+    };
+
     // Warning on refresh
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         e.preventDefault();
@@ -190,9 +203,11 @@ const TakeExam = () => {
         return e.returnValue;
     };
 
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
         window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [toast, retakeFromAttemptId, hasStarted]);
