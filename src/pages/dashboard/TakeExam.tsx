@@ -541,6 +541,38 @@ const TakeExam = () => {
             return;
         }
 
+        // Special Exam: keep questions grouped by subject/segment (do not mix subjects).
+        // Shuffle within each subject group, but preserve the subject block order
+        // (mandatory subjects first in their original order, then selected optional subjects).
+        if (isSpecialExam) {
+            const orderedSubjects = [...mandatorySubjects, ...optionalSubjects.filter((s: string) => selectedOptionalSubjects.includes(s))];
+            const bySubject = new Map<string, any[]>();
+            const noSubject: any[] = [];
+            effectiveQuestions.forEach((q: any) => {
+                if (q.subject && orderedSubjects.includes(q.subject)) {
+                    if (!bySubject.has(q.subject)) bySubject.set(q.subject, []);
+                    bySubject.get(q.subject)!.push(q);
+                } else {
+                    noSubject.push(q);
+                }
+            });
+            const shuffleGroup = (arr: any[]) => {
+                const a = [...arr];
+                for (let i = a.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [a[i], a[j]] = [a[j], a[i]];
+                }
+                return a;
+            };
+            const grouped: any[] = [];
+            orderedSubjects.forEach((s: string) => {
+                if (bySubject.has(s)) grouped.push(...shuffleGroup(bySubject.get(s)!));
+            });
+            grouped.push(...shuffleGroup(noSubject));
+            setShuffledQuestions(grouped);
+            return;
+        }
+
         // Simple Fisher-Yates shuffle
         const shuffled = [...effectiveQuestions];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -555,7 +587,7 @@ const TakeExam = () => {
             setShuffledQuestions(shuffled);
         }
     }
-  }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted, isQuickPracticeMode]);
+  }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted, isQuickPracticeMode, isSpecialExam, mandatorySubjects, optionalSubjects, selectedOptionalSubjects]);
 
   // Load persistence logic - ONLY ON MOUNT
   useEffect(() => {
@@ -1024,15 +1056,19 @@ const TakeExam = () => {
                           <div>
                               <p className="text-[10px] font-bold text-muted-foreground mb-1.5">Mandatory Subjects</p>
                               <div className="grid grid-cols-3 gap-2">
-                                  {mandatorySubjects.map((s: string) => (
-                                      <div
-                                          key={s}
-                                          className="rounded-xl border border-primary/30 bg-primary/10 px-2 py-2.5 flex flex-col items-center text-center gap-0.5"
-                                      >
-                                          <span className="text-xs font-semibold text-primary truncate w-full">{s}</span>
-                                          <span className="text-[9px] text-primary/70">Mandatory</span>
-                                      </div>
-                                  ))}
+                                  {mandatorySubjects.map((s: string) => {
+                                      const cnt = (questions || []).filter((q: any) => q.subject === s).length;
+                                      return (
+                                          <div
+                                              key={s}
+                                              className="relative rounded-xl border border-primary/30 bg-primary/10 px-2 py-2.5 flex flex-col items-center text-center gap-0.5"
+                                          >
+                                              <span className="absolute -top-1.5 -right-1.5 text-[9px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center bg-primary text-primary-foreground shadow-sm">{cnt}</span>
+                                              <span className="text-xs font-semibold text-primary truncate w-full">{s}</span>
+                                              <span className="text-[9px] text-primary/70">Mandatory</span>
+                                          </div>
+                                      );
+                                  })}
                               </div>
                           </div>
                       )}
@@ -1042,16 +1078,21 @@ const TakeExam = () => {
                               <div className="grid grid-cols-3 gap-2">
                                   {optionalSubjects.map((s: string) => {
                                       const selected = selectedOptionalSubjects.includes(s);
+                                      const cnt = (questions || []).filter((q: any) => q.subject === s).length;
                                       return (
                                           <button
                                               key={s}
                                               type="button"
                                               onClick={() => setSelectedOptionalSubjects(prev => selected ? prev.filter(x => x !== s) : [...prev, s])}
                                               className={cn(
-                                                  "rounded-xl border-2 px-2 py-2.5 flex flex-col items-center text-center gap-0.5 transition-colors",
+                                                  "relative rounded-xl border-2 px-2 py-2.5 flex flex-col items-center text-center gap-0.5 transition-colors",
                                                   selected ? "bg-violet-500/10 border-violet-500 text-violet-700 dark:text-violet-300" : "border-border text-muted-foreground hover:border-violet-300"
                                               )}
                                           >
+                                              <span className={cn(
+                                                  "absolute -top-1.5 -right-1.5 text-[9px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center shadow-sm",
+                                                  selected ? "bg-violet-500 text-white" : "bg-muted text-muted-foreground border border-border"
+                                              )}>{cnt}</span>
                                               <span className="text-xs font-semibold truncate w-full">{s}</span>
                                               <span className="text-[9px]">{selected ? "Selected" : "Optional"}</span>
                                           </button>
@@ -1687,6 +1728,13 @@ const TakeExam = () => {
             ref={(el) => { questionRefs.current[q.id] = el; }}
             className="scroll-mt-28"
           >
+            {isSpecialExam && q.subject && q.subject !== displayQuestions[idx - 1]?.subject && (
+                <div className="sticky top-16 z-10 mb-2 -mx-1">
+                    <div className="rounded-full bg-primary text-primary-foreground text-xs font-bold px-4 py-1.5 shadow-md inline-block">
+                        {q.subject}
+                    </div>
+                </div>
+            )}
             <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
                 <CardContent className="p-4 md:p-5 space-y-2 max-w-full overflow-x-hidden">
                     {/* Top Row: N/total badge + icons */}
@@ -1808,26 +1856,70 @@ const TakeExam = () => {
             <DialogHeader>
                 <DialogTitle>Question Navigator</DialogTitle>
             </DialogHeader>
-            <div className="grid grid-cols-5 gap-3 p-2">
-                {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {displayQuestions.map((q: any, idx: number) => {
-                    const isAnswered = !!answers[q.id];
-                    return (
-                        <button
-                            key={q.id}
-                            onClick={() => scrollToQuestion(idx)}
-                            className={`
-                                h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all
-                                ${isAnswered
-                                    ? 'bg-primary text-primary-foreground shadow-sm'
-                                    : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'}
-                            `}
-                        >
-                            {idx + 1}
-                        </button>
-                    );
-                })}
-            </div>
+            {isSpecialExam ? (
+                <div className="space-y-4 p-2">
+                    {(() => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const groups: { subject: string; items: { q: any; idx: number }[] }[] = [];
+                        displayQuestions.forEach((q: any, idx: number) => {
+                            const key = q.subject || "";
+                            const last = groups[groups.length - 1];
+                            if (last && last.subject === key) {
+                                last.items.push({ q, idx });
+                            } else {
+                                groups.push({ subject: key, items: [{ q, idx }] });
+                            }
+                        });
+                        return groups.map((g, gi) => (
+                            <div key={gi}>
+                                {g.subject && (
+                                    <p className="text-xs font-bold text-primary mb-2">{g.subject}</p>
+                                )}
+                                <div className="grid grid-cols-5 gap-3">
+                                    {g.items.map(({ q, idx }) => {
+                                        const isAnswered = !!answers[q.id];
+                                        return (
+                                            <button
+                                                key={q.id}
+                                                onClick={() => scrollToQuestion(idx)}
+                                                className={`
+                                                    h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all
+                                                    ${isAnswered
+                                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'}
+                                                `}
+                                            >
+                                                {idx + 1}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ));
+                    })()}
+                </div>
+            ) : (
+                <div className="grid grid-cols-5 gap-3 p-2">
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                    {displayQuestions.map((q: any, idx: number) => {
+                        const isAnswered = !!answers[q.id];
+                        return (
+                            <button
+                                key={q.id}
+                                onClick={() => scrollToQuestion(idx)}
+                                className={`
+                                    h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all
+                                    ${isAnswered
+                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                        : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'}
+                                `}
+                            >
+                                {idx + 1}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
         </DialogContent>
       </Dialog>
     </div>
