@@ -1019,21 +1019,27 @@ const TakeExam = () => {
 
               {/* Card: Special Exam Subject Selection */}
               {isSpecialExam && (mandatorySubjects.length > 0 || optionalSubjects.length > 0) && (
-                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden p-3 space-y-2">
+                  <Card className="w-full rounded-xl shadow-sm border overflow-hidden p-3 space-y-3">
                       {mandatorySubjects.length > 0 && (
                           <div>
-                              <p className="text-[10px] font-bold text-muted-foreground mb-1">Mandatory Subjects</p>
-                              <div className="flex flex-wrap gap-1.5">
+                              <p className="text-[10px] font-bold text-muted-foreground mb-1.5">Mandatory Subjects</p>
+                              <div className="grid grid-cols-3 gap-2">
                                   {mandatorySubjects.map((s: string) => (
-                                      <span key={s} className="text-xs font-semibold rounded-full px-2.5 py-1 bg-primary/10 text-primary border border-primary/30">{s}</span>
+                                      <div
+                                          key={s}
+                                          className="rounded-xl border border-primary/30 bg-primary/10 px-2 py-2.5 flex flex-col items-center text-center gap-0.5"
+                                      >
+                                          <span className="text-xs font-semibold text-primary truncate w-full">{s}</span>
+                                          <span className="text-[9px] text-primary/70">Mandatory</span>
+                                      </div>
                                   ))}
                               </div>
                           </div>
                       )}
                       {optionalSubjects.length > 0 && (
                           <div>
-                              <p className="text-[10px] font-bold text-muted-foreground mb-1">যেসব বিষয় থেকে MCQ চান বেছে নিন</p>
-                              <div className="flex flex-wrap gap-1.5">
+                              <p className="text-[10px] font-bold text-muted-foreground mb-1.5">যেসব বিষয় থেকে MCQ চান বেছে নিন</p>
+                              <div className="grid grid-cols-3 gap-2">
                                   {optionalSubjects.map((s: string) => {
                                       const selected = selectedOptionalSubjects.includes(s);
                                       return (
@@ -1042,11 +1048,12 @@ const TakeExam = () => {
                                               type="button"
                                               onClick={() => setSelectedOptionalSubjects(prev => selected ? prev.filter(x => x !== s) : [...prev, s])}
                                               className={cn(
-                                                  "text-xs font-semibold rounded-full px-2.5 py-1 border transition-colors",
-                                                  selected ? "bg-violet-500/10 border-violet-500 text-violet-700 dark:text-violet-300" : "border-border text-muted-foreground"
+                                                  "rounded-xl border-2 px-2 py-2.5 flex flex-col items-center text-center gap-0.5 transition-colors",
+                                                  selected ? "bg-violet-500/10 border-violet-500 text-violet-700 dark:text-violet-300" : "border-border text-muted-foreground hover:border-violet-300"
                                               )}
                                           >
-                                              {s}
+                                              <span className="text-xs font-semibold truncate w-full">{s}</span>
+                                              <span className="text-[9px]">{selected ? "Selected" : "Optional"}</span>
                                           </button>
                                       );
                                   })}
