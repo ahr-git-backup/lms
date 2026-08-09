@@ -1163,7 +1163,40 @@ const ExamCreator = () => {
             )}
 
             {questions.map((q, i) => (
-                <div key={i} className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] px-3 py-5 sm:px-4 sm:py-7 bg-card shadow-sm w-full mx-auto">
+                <div key={i}>
+                    {(!activeForm || activeForm.index !== i || activeForm.type !== 'above') && (
+                        <div className="group/addabove flex items-center justify-center h-3 -mb-1 relative">
+                            <button
+                                type="button"
+                                onClick={() => handleShowForm(i, 'above')}
+                                className="opacity-0 group-hover/addabove:opacity-100 focus:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5"
+                                title="Add question above"
+                            >
+                                <Plus className="h-3 w-3" /> Add
+                            </button>
+                        </div>
+                    )}
+
+                    {activeForm && activeForm.index === i && activeForm.type === 'above' && (
+                        <div className="border-2 border-primary/30 shadow-md overflow-hidden rounded-[30px] my-3 bg-card w-full mx-auto">
+                            <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+                                <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                    <Plus className="h-5 w-5" /> New Question (above Q{i + 1})
+                                </h2>
+                                <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => setActiveForm(null)}>Cancel</Button>
+                            </div>
+                            <div className="p-5 sm:p-7 bg-card">
+                                <QuestionEditor
+                                    data={activeForm.data}
+                                    onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                                    onSave={handleSaveQuestion}
+                                    onCancel={() => setActiveForm(null)}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                <div className="group relative border border-border/60 hover:border-border/80 transition-all rounded-[30px] px-3 py-5 sm:px-4 sm:py-7 bg-card shadow-sm w-full mx-auto">
                     {/* Inline Form Edit Mode */}
                     {activeForm && activeForm.index === i && activeForm.type === 'edit' ? (
                          <div className="space-y-4">
@@ -1261,9 +1294,43 @@ const ExamCreator = () => {
                     </div>
                     )}
                 </div>
+
+                {/* Compact Add-Below control */}
+                {(!activeForm || activeForm.index !== i || activeForm.type !== 'below') && (
+                    <div className="group/addbelow flex items-center justify-center h-3 -mt-1 mb-2 relative">
+                        <button
+                            type="button"
+                            onClick={() => handleShowForm(i, 'below')}
+                            className="opacity-0 group-hover/addbelow:opacity-100 focus:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5"
+                            title="Add question below"
+                        >
+                            <Plus className="h-3 w-3" /> Add
+                        </button>
+                    </div>
+                )}
+
+                {activeForm && activeForm.index === i && activeForm.type === 'below' && (
+                    <div className="border-2 border-primary/30 shadow-md overflow-hidden rounded-[30px] my-3 bg-card w-full mx-auto">
+                        <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
+                            <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
+                                <Plus className="h-5 w-5" /> New Question (below Q{i + 1})
+                            </h2>
+                            <Button variant="ghost" size="sm" className="h-8 rounded-full" onClick={() => setActiveForm(null)}>Cancel</Button>
+                        </div>
+                        <div className="p-5 sm:p-7 bg-card">
+                            <QuestionEditor
+                                data={activeForm.data}
+                                onChange={(newData) => setActiveForm(prev => prev ? { ...prev, data: newData } : null)}
+                                onSave={handleSaveQuestion}
+                                onCancel={() => setActiveForm(null)}
+                            />
+                        </div>
+                    </div>
+                )}
+                </div>
             ))}
 
-            {activeForm && (activeForm.type === 'initial' || activeForm.type === 'below' || activeForm.type === 'above') && (
+            {activeForm && activeForm.type === 'initial' && (
                  <div className="border-2 border-primary/30 shadow-md overflow-hidden rounded-[30px] my-5 bg-card w-full mx-auto">
                     <div className="px-5 sm:px-6 py-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
                         <h2 className="text-lg font-bold flex items-center gap-2 text-primary">
