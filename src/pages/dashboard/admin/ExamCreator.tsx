@@ -43,6 +43,9 @@ const ExamCreator = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
+  const [bankTargetSubject, setBankTargetSubject] = useState<string | null>(null);
+  const [showAddSegment, setShowAddSegment] = useState(false);
+  const [newSegmentName, setNewSegmentName] = useState("");
   const [isOmr, setIsOmr] = useState(false);
   const [showSaveToWeb, setShowSaveToWeb] = useState(false);
   const [saveWebForm, setSaveWebForm] = useState({
@@ -738,10 +741,22 @@ const ExamCreator = () => {
   const handleBankImport = (selectedQuestions: QuestionData[]) => {
       const cleanQuestions = selectedQuestions.map(q => ({
           ...q,
-          id: undefined
+          id: undefined,
+          ...(bankTargetSubject ? { subject: bankTargetSubject, is_segment_mandatory: q.is_segment_mandatory ?? true } : {})
       }));
       setQuestions(prev => [...prev, ...cleanQuestions]);
-      toast({ title: "Imported", description: `Added ${cleanQuestions.length} questions from Question Bank.` });
+      toast({ title: "Imported", description: `Added ${cleanQuestions.length} questions${bankTargetSubject ? ` to ${bankTargetSubject}` : ""}.` });
+      setBankTargetSubject(null);
+  };
+
+  // Special exam: unique subject segments derived from questions
+  const segmentSubjects = saveWebForm.exam_type === 'special'
+      ? Array.from(new Set(questions.map(q => q.subject).filter(Boolean) as string[]))
+      : [];
+
+  const openBankForSubject = (subject: string) => {
+      setBankTargetSubject(subject);
+      setShowBankSelector(true);
   };
 
   const handleOmrImport = (scannedQuestions: QuestionData[]) => {
@@ -1181,8 +1196,78 @@ const ExamCreator = () => {
                 </div>
             )}
 
+            {saveWebForm.exam_type === 'special' && (
+                <div className="mb-2">
+                    <p className="text-sm font-semibold text-muted-foreground mb-2">Subject Segments</p>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {segmentSubjects.map(sub => {
+                            const count = questions.filter(q => q.subject === sub).length;
+                            return (
+                                <div
+                                    key={sub}
+                                    className="border border-border/60 rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center text-center gap-1"
+                                    onClick={() => {
+                                        const el = document.getElementById(`segment-${sub}`);
+                                        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                    }}
+                                >
+                                    <span className="text-sm font-semibold truncate w-full">{sub}</span>
+                                    <span className="text-[10px] text-muted-foreground">{count} MCQ</span>
+                                    <Button
+                                        size="icon"
+                                        variant="outline"
+                                        className="h-6 w-6 rounded-full mt-1"
+                                        onClick={(e) => { e.stopPropagation(); openBankForSubject(sub); }}
+                                        title="Add MCQ from Question Bank"
+                                    >
+                                        <Plus className="h-3.5 w-3.5" />
+                                    </Button>
+                                </div>
+                            );
+                        })}
+                        {showAddSegment ? (
+                            <div className="border border-primary/40 rounded-2xl p-3 bg-card flex flex-col items-center gap-1.5">
+                                <Input
+                                    value={newSegmentName}
+                                    onChange={e => setNewSegmentName(e.target.value)}
+                                    placeholder="Subject name"
+                                    className="h-7 text-xs rounded-full px-2"
+                                    autoFocus
+                                />
+                                <div className="flex gap-1">
+                                    <Button
+                                        size="sm"
+                                        className="h-6 text-[10px] px-2 rounded-full"
+                                        onClick={() => {
+                                            const name = newSegmentName.trim();
+                                            if (name) openBankForSubject(name);
+                                            setNewSegmentName("");
+                                            setShowAddSegment(false);
+                                        }}
+                                    >Add</Button>
+                                    <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 text-[10px] px-2 rounded-full"
+                                        onClick={() => { setShowAddSegment(false); setNewSegmentName(""); }}
+                                    >Cancel</Button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div
+                                className="border border-dashed border-border/60 rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 min-h-[76px]"
+                                onClick={() => setShowAddSegment(true)}
+                            >
+                                <Plus className="h-5 w-5 text-muted-foreground" />
+                                <span className="text-[10px] text-muted-foreground">Add Subject</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {questions.map((q, i) => (
-                <div key={i}>
+                <div key={i} id={q.subject && saveWebForm.exam_type === 'special' && questions.findIndex(qq => qq.subject === q.subject) === i ? `segment-${q.subject}` : undefined}>
                     {(!activeForm || activeForm.index !== i || activeForm.type !== 'above') && (
                         <div className="flex items-center justify-center h-5 my-0.5 relative">
                             <button
