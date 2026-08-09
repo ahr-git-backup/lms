@@ -794,6 +794,10 @@ const TakeExam = () => {
   const hasAccess = (() => {
       if (!exam) return false;
 
+      // Explicit per-exam guest-access toggle overrides everything else.
+      // @ts-ignore
+      if (exam.allow_guest === true) return true;
+
       // If course_id is null, it's potentially public, BUT we must check if hidden from free view
       if (!exam.course_id) {
           // @ts-ignore
@@ -805,7 +809,7 @@ const TakeExam = () => {
           }
       }
 
-      if (!user) return false; // guests only ever get access via is_visible_on_free above
+      if (!user) return false; // guests only ever get access via is_visible_on_free/allow_guest above
       if (!enrollments) return false;
 
       const enrolledIds = enrollments.map((e: any) => e.course_id);
@@ -1183,8 +1187,9 @@ const TakeExam = () => {
                                       });
                                       return;
                                   }
-                                  // Guest (not logged in) on a Free Exam — collect name/batch/college/phone first.
-                                  if (!user && exam?.is_visible_on_free && !guestInfo) {
+                                  // Guest (not logged in) on a Free/guest-allowed Exam — collect name/batch/college/phone first.
+                                  // @ts-ignore
+                                  if (!user && (exam?.is_visible_on_free || exam?.allow_guest) && !guestInfo) {
                                       setShowGuestDialog(true);
                                       return;
                                   }
