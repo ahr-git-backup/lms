@@ -30,7 +30,7 @@ const examSchema = z.object({
   title: z.string().trim().min(1, "Title is required"),
   subject: z.array(z.string()).default([]),
   chapter: z.string().trim().optional().or(z.literal("")),
-  exam_type: z.enum(["live", "practice"]),
+  exam_type: z.enum(["live", "practice", "special"]),
   duration_minutes: z
     .string()
     .trim()
@@ -56,6 +56,7 @@ const examSchema = z.object({
   time_window_end: z.string().optional(),
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
+  allow_guest: z.boolean().optional().default(false),
   show_on_landing: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
@@ -140,6 +141,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         telegram_channel_ids: [],
         is_published: false,
         is_visible_on_free: false,
+        allow_guest: false,
         show_on_landing: false,
         free_exam_category: "HSC",
         restrict_solution: false,
@@ -190,7 +192,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 title: exam.title ?? "",
                 subject: subjects,
                 chapter: exam.chapter || "",
-                exam_type: exam.exam_type === "practice" ? "practice" : "live",
+                exam_type: exam.exam_type === "practice" ? "practice" : exam.exam_type === "special" ? "special" : "live",
                 duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "",
                 total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
                 negative_mark_per_question:
@@ -205,6 +207,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 time_window_end: exam.time_window_end ? toDhakaTimeISO(exam.time_window_end) : "",
                 is_published: exam.is_published ?? false,
                 is_visible_on_free: exam.is_visible_on_free ?? false,
+                // @ts-ignore
+                allow_guest: exam.allow_guest ?? false,
                 show_on_landing: exam.show_on_landing ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
@@ -370,6 +374,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             time_window_end: parsed.time_window_end ? fromDhakaTimeToUTC(parsed.time_window_end) : null,
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
+            allow_guest: parsed.allow_guest ?? false,
             show_on_landing: parsed.show_on_landing ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
@@ -795,7 +800,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 <Select
                   value={form.exam_type}
                   onValueChange={(value) =>
-                    setForm((prev) => ({ ...prev, exam_type: value as "live" | "practice" }))
+                    setForm((prev) => ({ ...prev, exam_type: value as "live" | "practice" | "special" }))
                   }
                 >
                   <SelectTrigger id="exam_type">
@@ -804,6 +809,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   <SelectContent>
                     <SelectItem value="live">Live exam</SelectItem>
                     <SelectItem value="practice">Practice exam</SelectItem>
+                    <SelectItem value="special">Special exam (subject-wise segments)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -977,6 +983,20 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
                   </div>
               )}
+
+              <div className="flex items-center gap-2 md:col-span-2">
+                  <Switch
+                      id="allow_guest"
+                      checked={form.allow_guest}
+                      onCheckedChange={(checked) =>
+                          setForm((prev) => ({ ...prev, allow_guest: checked }))
+                      }
+                  />
+                  <Label htmlFor="allow_guest" className="flex flex-col">
+                      <span>Allow Without Login</span>
+                      <span className="text-xs text-muted-foreground font-normal">Guests can take this exam without an account, without listing it on the Free Exams page.</span>
+                  </Label>
+              </div>
 
               {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
                   <div className="flex items-center gap-2 md:col-span-2">

@@ -61,6 +61,7 @@ const ExamCreator = () => {
     time_window_end: "",
     is_published: false,
     is_visible_on_free: true,
+    allow_guest: false,
     restrict_solution: false,
     is_readymade: false,
     readymade_topic: "",
@@ -515,6 +516,7 @@ const ExamCreator = () => {
         time_window_end: f.time_window_end ? fromDhakaTimeToUTC(f.time_window_end) : null,
         is_published: f.is_published,
         is_visible_on_free: f.is_visible_on_free,
+        allow_guest: f.allow_guest,
         restrict_solution: f.restrict_solution,
         is_readymade: f.is_readymade,
         readymade_topic: f.readymade_topic || null,
@@ -913,6 +915,7 @@ const ExamCreator = () => {
                             <SelectContent>
                                 <SelectItem value="live">Live Exam</SelectItem>
                                 <SelectItem value="practice">Practice Exam</SelectItem>
+                                <SelectItem value="special">Special Exam (Subject-wise Segments)</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
@@ -996,6 +999,15 @@ const ExamCreator = () => {
                             <Label>Show on "Free Exams" Page (Public)</Label>
                         </div>
                     )}
+
+                    {/* Toggle: Allow Without Login */}
+                    <div className="flex items-center gap-2 md:col-span-2">
+                        <Switch checked={saveWebForm.allow_guest} onCheckedChange={checked => setSaveWebForm(prev => ({ ...prev, allow_guest: checked }))} />
+                        <Label className="flex flex-col">
+                            <span>Allow Without Login</span>
+                            <span className="text-xs text-muted-foreground font-normal">Guests can take this exam without an account (like a Free Exam), without listing it on the Free Exams page.</span>
+                        </Label>
+                    </div>
 
                     {/* Toggle: Restrict Solution */}
                     <div className="flex items-center gap-2 md:col-span-2 border p-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200">
