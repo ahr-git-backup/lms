@@ -165,14 +165,14 @@ const ExamCreator = () => {
         data = JSON.parse(JSON.stringify(questions[index])); // Deep copy
     }
     setActiveForm({ index, type, data });
-    if (type !== 'edit') {
-        // 'initial'/'above'/'below' forms render at the top of the page.
+    if (type === 'initial') {
+        // 'initial' form renders at the top of the page.
         setTimeout(() => {
             window.scrollTo({ top: 0, behavior: "smooth" });
         }, 50);
     }
-    // 'edit' form renders inline at the question's own position — don't
-    // scroll away from it.
+    // 'edit'/'above'/'below' forms render inline at the question's own
+    // position — don't scroll away from it.
   };
 
   const handleSaveQuestion = () => {
