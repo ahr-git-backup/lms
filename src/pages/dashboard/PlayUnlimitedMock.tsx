@@ -737,10 +737,10 @@ const PlayUnlimitedMock = () => {
 
                     <div className="flex items-start gap-4">
                       <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
+                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
                           <MathText
                             text={q.question_text}
-                            className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words"
+                            className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
                           />
                         </div>
                       </div>
@@ -781,12 +781,12 @@ const PlayUnlimitedMock = () => {
                                   ? "text-green-700 dark:text-green-400 font-medium"
                                   : isSelected
                                   ? "text-red-600 dark:text-red-400"
-                                  : "text-foreground"
+                                  : "text-black dark:text-white"
                               )}
                             >
                               <MathText
                                 text={optionText}
-                                className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words"
+                                className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
                               />
                             </div>
                           </div>
@@ -865,10 +865,10 @@ const PlayUnlimitedMock = () => {
                     {idx + 1}
                   </div>
                   <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                    <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
+                    <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
                       <MathText
                         text={q.question_text}
-                        className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words"
+                        className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
                       />
                     </div>
                   </div>
@@ -927,13 +927,13 @@ const PlayUnlimitedMock = () => {
                             "flex-1 min-w-0 text-base whitespace-pre-line flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
                             isSelected
                               ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm"
-                              : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
+                              : "text-black dark:text-white border-border/60 hover:bg-muted/30 hover:border-primary/30"
                           )}
                         >
                           <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
                             <MathText
                               text={text}
-                              className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words"
+                              className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
                             />
                           </div>
                           {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
