@@ -110,6 +110,7 @@ const ExamCreator = () => {
                 .single();
             if (exam) setExamTitle((exam as any).title);
             if (exam) setIsOmr((exam as any).is_omr ?? false);
+            if (exam) setSaveWebForm(prev => ({ ...prev, exam_type: (exam as any).exam_type || prev.exam_type, allow_guest: (exam as any).allow_guest ?? prev.allow_guest }));
 
             // Fetch Questions
             const { data: qData } = await supabase
@@ -138,7 +139,8 @@ const ExamCreator = () => {
                     exam_code: q.exam_code || "",
                     year: q.year || "",
                     difficulty: q.difficulty || "",
-                    tags: q.tags || []
+                    tags: q.tags || [],
+                    is_segment_mandatory: q.is_segment_mandatory ?? true
                 }));
                 setQuestions(loadedQuestions);
             }
@@ -323,7 +325,8 @@ const ExamCreator = () => {
               exam_code: q.exam_code || null,
               year: q.year || null,
               difficulty: q.difficulty || null,
-              tags: q.tags || []
+              tags: q.tags || [],
+              is_segment_mandatory: saveWebForm.exam_type === 'special' ? (q.is_segment_mandatory ?? true) : true
           }));
 
           // 3. Delete Removed Questions
@@ -382,7 +385,8 @@ const ExamCreator = () => {
                 exam_code: q.exam_code || "",
                 year: q.year || "",
                 difficulty: q.difficulty || "",
-                tags: q.tags || []
+                tags: q.tags || [],
+                is_segment_mandatory: q.is_segment_mandatory ?? true
              }));
              setQuestions(loaded);
           }
@@ -441,7 +445,8 @@ const ExamCreator = () => {
               exam_code: q.exam_code || null,
               year: q.year || null,
               difficulty: q.difficulty || null,
-              tags: q.tags || []
+              tags: q.tags || [],
+              is_segment_mandatory: saveWebForm.exam_type === 'special' ? (q.is_segment_mandatory ?? true) : true
           }));
 
           if (insertData.length > 0) {
@@ -474,7 +479,8 @@ const ExamCreator = () => {
                 exam_code: q.exam_code || "",
                 year: q.year || "",
                 difficulty: q.difficulty || "",
-                tags: q.tags || []
+                tags: q.tags || [],
+                is_segment_mandatory: q.is_segment_mandatory ?? true
              }));
              setQuestions(loaded);
           }
@@ -553,7 +559,8 @@ const ExamCreator = () => {
         exam_code: q.exam_code || null,
         year: q.year || null,
         difficulty: q.difficulty || null,
-        tags: q.tags || []
+        tags: q.tags || [],
+              is_segment_mandatory: saveWebForm.exam_type === 'special' ? (q.is_segment_mandatory ?? true) : true
       }));
 
       const { error: insertError } = await supabase.from("exam_questions").insert(insertData);
@@ -1229,13 +1236,41 @@ const ExamCreator = () => {
                     <div className="relative flex flex-col gap-3">
                         {/* Main Content */}
                         <div className="flex-1 flex flex-col">
-                            <div className="flex justify-end gap-2 mb-2">
-                                <Button size="icon" variant="outline" className="h-8 w-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')} title="Edit">
-                                    <Edit2 className="h-4 w-4" />
-                                </Button>
-                                <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)} title="Delete">
-                                    <Trash2 className="h-4 w-4" />
-                                </Button>
+                            <div className="flex justify-between items-center gap-2 mb-2 flex-wrap">
+                                {saveWebForm.exam_type === 'special' ? (
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <Input
+                                            value={q.subject || ""}
+                                            onChange={e => {
+                                                const updated = [...questions];
+                                                updated[i] = { ...updated[i], subject: e.target.value };
+                                                setQuestions(updated);
+                                            }}
+                                            placeholder="Subject/Segment name"
+                                            className="h-8 text-xs w-40 rounded-full px-3"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const updated = [...questions];
+                                                updated[i] = { ...updated[i], is_segment_mandatory: !(updated[i].is_segment_mandatory ?? true) };
+                                                setQuestions(updated);
+                                            }}
+                                            className={`text-[10px] font-semibold rounded-full px-2 py-1 border ${ (q.is_segment_mandatory ?? true) ? 'bg-primary/10 text-primary border-primary/30' : 'bg-muted text-muted-foreground border-border' }`}
+                                            title="Toggle mandatory/optional"
+                                        >
+                                            {(q.is_segment_mandatory ?? true) ? "Mandatory" : "Optional"}
+                                        </button>
+                                    </div>
+                                ) : <div />}
+                                <div className="flex gap-2">
+                                    <Button size="icon" variant="outline" className="h-8 w-8 shadow-sm bg-background rounded-full" onClick={() => handleShowForm(i, 'edit')} title="Edit">
+                                        <Edit2 className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="icon" variant="destructive" className="h-8 w-8 shadow-sm rounded-full" onClick={() => handleDeleteQuestion(i)} title="Delete">
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
 
                             <div className="flex gap-2 sm:gap-3 items-start mb-2">

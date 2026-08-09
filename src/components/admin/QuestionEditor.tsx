@@ -24,6 +24,7 @@ export interface QuestionData {
     year?: string;
     difficulty?: string;
     tags?: string[];
+    is_segment_mandatory?: boolean;
 }
 
 interface QuestionEditorProps {
