@@ -149,7 +149,6 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
-  const [isBlurred, setIsBlurred] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
@@ -184,34 +183,26 @@ const TakeExam = () => {
 
     document.title = retakeFromAttemptId ? "Retake Mistakes – Atlas" : "Take Exam – Atlas";
 
-    // Anti-Cheat: Tab Switch Detection + screenshot-attempt blur
+    // Anti-Cheat: Tab Switch Detection
     const handleVisibilityChange = () => {
         if (document.visibilityState === 'hidden') {
             setViolationCount(prev => prev + 1);
-            setIsBlurred(true);
             toast({
                 title: "⚠️ Warning: Tab Switch Detected",
                 description: "Leaving the exam tab is recorded. Multiple violations may disqualify you.",
                 variant: "destructive",
                 duration: 5000,
             });
-        } else {
-            setIsBlurred(false);
         }
     };
 
-    const handleWindowBlur = () => setIsBlurred(true);
-    const handleWindowFocus = () => setIsBlurred(false);
-
-    // Block common screenshot/devtools/copy shortcuts (best-effort; OS-level capture cannot be fully prevented)
+    // Block PrintScreen / OS screenshot shortcuts (best-effort; cannot fully prevent OS-level capture)
     const handleKeyDown = (e: KeyboardEvent) => {
         const key = e.key;
-        const blockedKey =
+        const isScreenshotKey =
             key === "PrintScreen" ||
-            (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(key)) || // macOS screenshot
-            (e.ctrlKey && e.shiftKey && ["s", "S", "i", "I", "j", "J"].includes(key)) || // snip/devtools
-            key === "F12";
-        if (blockedKey) {
+            (e.metaKey && e.shiftKey && ["3", "4", "5"].includes(key)); // macOS screenshot
+        if (isScreenshotKey) {
             e.preventDefault();
             setViolationCount(prev => prev + 1);
             toast({
@@ -223,8 +214,6 @@ const TakeExam = () => {
         }
     };
 
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-
     // Warning on refresh
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
         e.preventDefault();
@@ -233,18 +222,12 @@ const TakeExam = () => {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("focus", handleWindowFocus);
     window.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("contextmenu", handleContextMenu);
     window.addEventListener("beforeunload", handleBeforeUnload);
 
     return () => {
         document.removeEventListener("visibilitychange", handleVisibilityChange);
-        window.removeEventListener("blur", handleWindowBlur);
-        window.removeEventListener("focus", handleWindowFocus);
         window.removeEventListener("keydown", handleKeyDown);
-        document.removeEventListener("contextmenu", handleContextMenu);
         window.removeEventListener("beforeunload", handleBeforeUnload);
     };
   }, [toast, retakeFromAttemptId, hasStarted]);
@@ -1564,13 +1547,7 @@ const TakeExam = () => {
   const isLowTime = timeLeft !== null && timeLeft < 300; // < 5 mins
 
   return (
-    <div
-      className={cn(
-        "min-h-screen bg-background pb-20 relative font-sans select-none",
-        isBlurred && "blur-2xl pointer-events-none"
-      )}
-      style={{ WebkitUserSelect: "none", userSelect: "none" }}
-    >
+    <div className="min-h-screen bg-background pb-20 relative font-sans">
 
       <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0.5 py-4 md:px-3 md:py-8 space-y-3 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
