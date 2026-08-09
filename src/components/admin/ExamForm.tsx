@@ -570,6 +570,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   correct_option: q.correct_option ?? q.correct_answer ?? "A",
                   marks: q.marks ?? 1,
                   explanation: q.explanation || null,
+                  subject: parsed.exam_type === 'special' ? (q.subject || null) : null,
+                  is_segment_mandatory: parsed.exam_type === 'special' ? (q.is_segment_mandatory ?? true) : true,
                 });
               });
             }
@@ -637,6 +639,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   correct_option: q.correct_option ?? q.correct_answer ?? "A",
                   marks: q.marks ?? 1,
                   explanation: q.explanation || null,
+                  subject: parsed.exam_type === 'special' ? (q.subject || null) : null,
+                  is_segment_mandatory: parsed.exam_type === 'special' ? (q.is_segment_mandatory ?? true) : true,
                 });
               });
             }
