@@ -1165,11 +1165,11 @@ const ExamCreator = () => {
             {questions.map((q, i) => (
                 <div key={i}>
                     {(!activeForm || activeForm.index !== i || activeForm.type !== 'above') && (
-                        <div className="group/addabove flex items-center justify-center h-3 -mb-1 relative">
+                        <div className="flex items-center justify-center h-5 my-0.5 relative">
                             <button
                                 type="button"
                                 onClick={() => handleShowForm(i, 'above')}
-                                className="opacity-0 group-hover/addabove:opacity-100 focus:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5"
+                                className="flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5 active:scale-95 transition-transform"
                                 title="Add question above"
                             >
                                 <Plus className="h-3 w-3" /> Add
@@ -1297,11 +1297,11 @@ const ExamCreator = () => {
 
                 {/* Compact Add-Below control */}
                 {(!activeForm || activeForm.index !== i || activeForm.type !== 'below') && (
-                    <div className="group/addbelow flex items-center justify-center h-3 -mt-1 mb-2 relative">
+                    <div className="flex items-center justify-center h-5 my-0.5 relative">
                         <button
                             type="button"
                             onClick={() => handleShowForm(i, 'below')}
-                            className="opacity-0 group-hover/addbelow:opacity-100 focus:opacity-100 transition-opacity flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5"
+                            className="flex items-center gap-1 text-[10px] font-medium text-primary bg-background border border-primary/30 rounded-full px-2 py-0.5 shadow-sm hover:bg-primary/5 active:scale-95 transition-transform"
                             title="Add question below"
                         >
                             <Plus className="h-3 w-3" /> Add
