@@ -605,6 +605,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               .select("id")
               .single();
             if (error) throw error;
+            if (!data?.id) throw new Error("Exam saved but couldn't be read back (permission issue). Contact admin.");
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const allQuestionRows: any[] = [];
