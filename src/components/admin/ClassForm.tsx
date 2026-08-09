@@ -312,13 +312,26 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     ) : (
                         <>
                             <div className="space-y-2 min-w-0">
-                                <Label htmlFor="course">Primary Course</Label>
+                                <div className="flex justify-between items-center">
+                                    <Label htmlFor="course">Primary Course (Optional)</Label>
+                                    {form.course_id && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 px-2 text-xs"
+                                            onClick={() => setForm(prev => ({ ...prev, course_id: "" }))}
+                                        >
+                                            Clear
+                                        </Button>
+                                    )}
+                                </div>
                                 <Select
                                     value={form.course_id || ""}
                                     onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
                                 >
                                     <SelectTrigger id="course" className="w-full">
-                                        <SelectValue placeholder="Select Course" />
+                                        <SelectValue placeholder="Select course (or leave empty for Public)" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {courses?.map((c: Pick<Course, "id" | "name">) => (
@@ -328,6 +341,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                                         ))}
                                     </SelectContent>
                                 </Select>
+                                {!form.course_id && <p className="text-[10px] text-muted-foreground">This class will be public (no course restriction).</p>}
                             </div>
                         </>
                     )}
