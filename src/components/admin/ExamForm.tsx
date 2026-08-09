@@ -308,6 +308,9 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const [isDraggingCSV, setIsDraggingCSV] = useState(false);
     const [qbQuestions, setQbQuestions] = useState<QuestionData[]>([]);
     const [isQbOpen, setIsQbOpen] = useState(false);
+    const [segmentBankOpen, setSegmentBankOpen] = useState(false);
+    const [segmentSubjectName, setSegmentSubjectName] = useState("");
+    const [segmentMandatory, setSegmentMandatory] = useState(true);
 
     const handleQbSelect = (questions: QuestionData[]) => {
       setQbQuestions((prev) => {
@@ -321,6 +324,28 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
       });
       setIsQbOpen(false);
     };
+
+    const handleSegmentQbSelect = (questions: QuestionData[]) => {
+      const tagged = questions.map(q => ({
+        ...q,
+        subject: segmentSubjectName || q.subject,
+        is_segment_mandatory: segmentMandatory,
+      }));
+      setQbQuestions((prev) => {
+        const updated = [...prev, ...tagged];
+        setForm((f: any) => ({
+          ...f,
+          total_marks: String(updated.length),
+          duration_minutes: String(Math.ceil((updated.length * 30) / 60)),
+        }));
+        return updated;
+      });
+      setSegmentBankOpen(false);
+      setSegmentSubjectName("");
+      setSegmentMandatory(true);
+    };
+
+    const segmentSubjects = Array.from(new Set(qbQuestions.map(q => (q as any).subject).filter(Boolean)));
 
     const handleDragOver = (e: React.DragEvent<HTMLDivElement>, type: 'json' | 'csv') => {
         e.preventDefault();
@@ -813,6 +838,69 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </SelectContent>
                 </Select>
               </div>
+
+              {form.exam_type === "special" && (
+                <div className="space-y-2">
+                  <Label>Subject Segments</Label>
+                  <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                    {segmentSubjects.map((sub: string) => {
+                      const count = qbQuestions.filter((q: any) => q.subject === sub).length;
+                      const mandatory = (qbQuestions.find((q: any) => q.subject === sub) as any)?.is_segment_mandatory ?? true;
+                      return (
+                        <div
+                          key={sub}
+                          className="border rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center text-center gap-1"
+                          onClick={() => {
+                            setSegmentSubjectName(sub);
+                            setSegmentMandatory(mandatory);
+                            setSegmentBankOpen(true);
+                          }}
+                        >
+                          <span className="text-sm font-semibold truncate w-full">{sub}</span>
+                          <span className="text-[10px] text-muted-foreground">{count} MCQ · {mandatory ? "Mandatory" : "Optional"}</span>
+                        </div>
+                      );
+                    })}
+                    <div
+                      className="border border-dashed rounded-2xl p-3 bg-card hover:border-primary/50 cursor-pointer transition-all flex flex-col items-center justify-center gap-1 min-h-[64px]"
+                      onClick={() => {
+                        setSegmentSubjectName("");
+                        setSegmentMandatory(true);
+                        setSegmentBankOpen(true);
+                      }}
+                    >
+                      <span className="text-lg leading-none text-muted-foreground">+</span>
+                      <span className="text-[10px] text-muted-foreground">Add Segment</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <Dialog open={segmentBankOpen} onOpenChange={setSegmentBankOpen}>
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Add MCQ to Segment</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Input
+                      value={segmentSubjectName}
+                      onChange={(e) => setSegmentSubjectName(e.target.value)}
+                      placeholder="Custom Sub Name"
+                      className="flex-1"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSegmentMandatory((prev) => !prev)}
+                      className={`text-[11px] font-semibold rounded-full px-3 py-1.5 border shrink-0 ${segmentMandatory ? 'bg-primary/10 text-primary border-primary/30' : 'bg-muted text-muted-foreground border-border'}`}
+                    >
+                      {segmentMandatory ? "Mandatory" : "Optional"}
+                    </button>
+                  </div>
+                  <div className="flex-1 overflow-hidden flex flex-col">
+                    <QuestionBankSelector onSelect={handleSegmentQbSelect} />
+                  </div>
+                </DialogContent>
+              </Dialog>
 
               {form.exam_type === "live" && (
                 <div className="space-y-2 border rounded-md p-3">
