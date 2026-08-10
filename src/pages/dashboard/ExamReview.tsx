@@ -608,6 +608,7 @@ const ExamReview = () => {
                                             );
                                         }}
                                         minAngle={18}
+                                        labelLine={false}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
