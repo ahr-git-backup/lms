@@ -409,8 +409,8 @@ const ExamReview = () => {
   const withGpaScore = finalScore + gpaScore;
   const withGpaTotalMarks = displayTotalMarks + 100; // GPA max = (5.00×8)+(5.00×12) = 100
   // Unified score shown everywhere (Marks Obtained / Main Exam Score / Main Score):
-  // Correct − Negative − 2nd Timer Deduction − GPA Deduction (never below 0)
-  const mainExamScoreDisplay = gpaScore > 0 ? Math.max(0, finalScore - gpaDeduction) : finalScore;
+  // Correct − Negative − 2nd Timer Deduction − GPA Deduction (can go negative, shown as-is)
+  const mainExamScoreDisplay = gpaScore > 0 ? finalScore - gpaDeduction : finalScore;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
