@@ -158,7 +158,7 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
       <div
         ref={scrollRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[240px] max-h-[480px]"
+        className="flex-1 overflow-y-auto px-3 py-2 space-y-2 min-h-[300px]"
       >
         {isLoading ? (
           <div className="flex justify-center py-6">

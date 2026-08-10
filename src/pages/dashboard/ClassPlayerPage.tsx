@@ -194,7 +194,7 @@ const ClassPlayerPage = () => {
 
         <div className="space-y-6">
             {isActuallyLive && (
-                <div className="lg:sticky lg:top-4">
+                <div className="lg:sticky lg:top-4 lg:h-[calc(100vh-8rem)]">
                     <ClassComments classId={classItem.id} isLive />
                 </div>
             )}
