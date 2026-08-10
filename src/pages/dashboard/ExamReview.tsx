@@ -633,7 +633,7 @@ const ExamReview = () => {
 
                     {deduction > 0.01 ? (
                         <div className="p-2 bg-orange-500/5 rounded-lg border border-orange-500/20 text-center">
-                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Deduct</div>
+                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Deduct(2nd Timer)</div>
                             <div className="text-base font-bold text-orange-500 font-mono">-{deduction.toFixed(1)}</div>
                         </div>
                     ) : (
@@ -672,7 +672,7 @@ const ExamReview = () => {
                         <>
                             <div className="text-muted-foreground font-bold text-xl">-</div>
                             <div className="flex-1 p-3 bg-orange-500/5 rounded-xl border border-orange-500/20 text-left">
-                                <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Deduction</div>
+                                <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Deduct(2nd Timer)</div>
                                 <div className="text-xl font-bold text-orange-500 font-mono">-{deduction.toFixed(2)}</div>
                             </div>
                         </>
