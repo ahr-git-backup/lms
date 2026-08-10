@@ -7,14 +7,50 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft } from "lucide-react";
+import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft, Lock, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const PAGE_SIZE = 15;
+
+// Same access model as Readymade Exams: a class is unlocked if it belongs to
+// (or is shared/archive-mapped to) an enrolled course, OR that course has
+// archive_full_access = true, OR the course has been granted this specific
+// subject/chapter via course_readymade_access (mode = 'archive-class').
+const isClassUnlocked = (classItem: any, enrolledIds: string[], fullAccessCourseIds: string[] = [], chapterGrants: Set<string> = new Set()): boolean => {
+  if (enrolledIds.length === 0) return false;
+  if (fullAccessCourseIds.length > 0 && fullAccessCourseIds.some((id) => enrolledIds.includes(id))) return true;
+  if (classItem.course_id && enrolledIds.includes(classItem.course_id)) return true;
+  if (Array.isArray(classItem.archive_course_ids) && classItem.archive_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+  const subs: string[] = Array.isArray(classItem.subject) ? classItem.subject : (typeof classItem.subject === "string" ? [classItem.subject] : []);
+  const chapter = classItem.chapter || "সাধারণ";
+  for (const subject of subs) {
+    for (const courseId of enrolledIds) {
+      if (chapterGrants.has(`${courseId}|||${subject}|||${chapter}`)) return true;
+    }
+  }
+  return false;
+};
+
+const ArchiveLockDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+  <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <DialogContent className="max-w-sm">
+      <DialogHeader>
+        <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
+          <Sparkles className="h-6 w-6 text-white" />
+        </div>
+        <DialogTitle className="text-center">লক করা আছে</DialogTitle>
+        <DialogDescription className="text-center">
+          এই ক্লাসটি দেখতে হলে আপনার কোর্সে এই বিষয়/অধ্যায়ের অ্যাক্সেস থাকা প্রয়োজন।
+        </DialogDescription>
+      </DialogHeader>
+    </DialogContent>
+  </Dialog>
+);
 
 const Archive = () => {
   const [activeTab, setActiveTab] = useState("classes");
@@ -115,6 +151,7 @@ const Archive = () => {
             page={page}
             setPage={setPage}
             setCurrentChaptersList={setCurrentChaptersList}
+            isAdmin={isAdmin}
         />
       ) : (
         <ArchiveExamView
@@ -135,7 +172,30 @@ const Archive = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList }: any) => {
+const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin }: any) => {
+
+    const [lockedClassOpen, setLockedClassOpen] = useState(false);
+    const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
+    const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.archive_full_access).map((e: any) => e.course_id) || [];
+
+    const { data: chapterGrants } = useQuery({
+        queryKey: ["course-archive-chapter-grants", enrolledIds.join(',')],
+        queryFn: async () => {
+            if (enrolledIds.length === 0) return new Set<string>();
+            const { data, error } = await supabase
+                .from("course_readymade_access")
+                .select("course_id, subject, chapter")
+                .eq("mode", "archive-class")
+                .in("course_id", enrolledIds);
+            if (error) throw error;
+            return new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}`));
+        },
+        enabled: enrolledIds.length > 0,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        refetchInterval: 60000,
+        staleTime: 30000,
+    });
 
     // Move all hooks to top level
     const { data: searchResults, isLoading: searching } = useQuery({
@@ -270,9 +330,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             return { data: data || [], count: count || 0 };
         },
         enabled: !!selectedSubject && !!selectedChapter && !searchQuery
-    });
-
-    // Render Logic
+    });    // Render Logic
     if (searchQuery) {
         if (searching) return <div className="space-y-4">{[1,2,3].map(i => <div key={i} className="h-24 bg-muted animate-pulse rounded-lg" />)}</div>;
         const classes = searchResults?.data || [];
@@ -285,13 +343,16 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
             <div className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {classes.map((classItem: any) => (
-                         <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
+                    {classes.map((classItem: any) => {
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants);
+                        return (
+                         <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
                             <div className="flex justify-between items-start gap-2">
                                 <p className="text-xs font-mono uppercase text-muted-foreground">
                                     {classItem.course?.name}
                                 </p>
+                                {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-base">{classItem.title}</CardTitle>
                             <CardDescription className="text-xs">
@@ -304,23 +365,37 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                             )}
                             <div className="flex gap-2 flex-wrap mt-auto">
                                 {classItem.video_url && (
+                                unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
                                     Class
                                 </Button>
+                                ) : (
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                    <Lock className="h-3 w-3 mr-1" /> Class
+                                </Button>
+                                )
                                 )}
                                 {classItem.notes_url && (
+                                unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" asChild>
                                     <a href={classItem.notes_url} target="_blank" rel="noopener noreferrer">
                                     Note
                                     </a>
                                 </Button>
+                                ) : (
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                    <Lock className="h-3 w-3 mr-1" /> Note
+                                </Button>
+                                )
                                 )}
                             </div>
                           </CardContent>
                         </Card>
-                    ))}
+                        );
+                    })}
                 </div>
                 <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+                <ArchiveLockDialog open={lockedClassOpen} onClose={() => setLockedClassOpen(false)} />
             </div>
         );
     }
@@ -394,13 +469,16 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    {classes.map((classItem: any) => (
-                         <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
+                    {classes.map((classItem: any) => {
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants);
+                        return (
+                         <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
                             <div className="flex justify-between items-start gap-2">
                                 <p className="text-xs font-mono uppercase text-muted-foreground">
                                     {classItem.course?.name}
                                 </p>
+                                {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-base">{classItem.title}</CardTitle>
                             <CardDescription className="text-xs">
@@ -413,23 +491,37 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                             )}
                             <div className="flex gap-2 flex-wrap mt-auto">
                                 {classItem.video_url && (
+                                unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
                                     Class
                                 </Button>
+                                ) : (
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                    <Lock className="h-3 w-3 mr-1" /> Class
+                                </Button>
+                                )
                                 )}
                                 {classItem.notes_url && (
+                                unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" asChild>
                                     <a href={classItem.notes_url} target="_blank" rel="noopener noreferrer">
                                     Note
                                     </a>
                                 </Button>
+                                ) : (
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                    <Lock className="h-3 w-3 mr-1" /> Note
+                                </Button>
+                                )
                                 )}
                             </div>
                           </CardContent>
                         </Card>
-                    ))}
+                        );
+                    })}
                 </div>
                 <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+                <ArchiveLockDialog open={lockedClassOpen} onClose={() => setLockedClassOpen(false)} />
                 </>
             )}
         </div>

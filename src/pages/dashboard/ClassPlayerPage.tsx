@@ -35,7 +35,7 @@ const ClassPlayerPage = () => {
       // Fetch all enrollments for the user
       const { data: enrollments } = await supabase
         .from("enrollments")
-        .select("course_id")
+        .select("course_id, course:courses(archive_full_access)")
         .eq("profile_id", profile.id);
 
       if (!enrollments || enrollments.length === 0) return { hasAccess: false, viaArchive: false };
@@ -53,10 +53,30 @@ const ClassPlayerPage = () => {
           if (hasSharedAccess) return { hasAccess: true, viaArchive: false };
       }
 
-      // 3. Check Archive Courses
-      if (classItem.archive_course_ids && Array.isArray(classItem.archive_course_ids)) {
-          const hasArchiveAccess = classItem.archive_course_ids.some((id: string) => enrolledCourseIds.includes(id));
-          if (hasArchiveAccess) return { hasAccess: true, viaArchive: true };
+      if (classItem.is_archive) {
+          // 3a. Course-level "Archive Full Access" toggle
+          const hasFullArchiveAccess = enrollments.some((e: any) => e.course?.archive_full_access);
+          if (hasFullArchiveAccess) return { hasAccess: true, viaArchive: true };
+
+          // 3b. Check Archive Courses (explicit per-class mapping)
+          if (classItem.archive_course_ids && Array.isArray(classItem.archive_course_ids)) {
+              const hasArchiveAccess = classItem.archive_course_ids.some((id: string) => enrolledCourseIds.includes(id));
+              if (hasArchiveAccess) return { hasAccess: true, viaArchive: true };
+          }
+
+          // 3c. Granular subject/chapter grant (course_readymade_access, mode='archive-class')
+          const subs: string[] = Array.isArray(classItem.subject) ? classItem.subject : (typeof classItem.subject === "string" && classItem.subject ? [classItem.subject] : []);
+          const chapter = classItem.chapter || "সাধারণ";
+          if (subs.length > 0) {
+              const { data: grants } = await supabase
+                  .from("course_readymade_access")
+                  .select("course_id")
+                  .eq("mode", "archive-class")
+                  .in("course_id", enrolledCourseIds)
+                  .eq("chapter", chapter)
+                  .in("subject", subs);
+              if (grants && grants.length > 0) return { hasAccess: true, viaArchive: true };
+          }
       }
 
       return { hasAccess: false, viaArchive: false };
