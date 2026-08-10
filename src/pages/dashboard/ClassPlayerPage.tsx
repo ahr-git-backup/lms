@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { FileText, ArrowLeft, Calendar, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import ClassComments from "@/components/ClassComments";
 
 const ClassPlayerPage = () => {
   const { classId } = useParams();
@@ -221,6 +222,8 @@ const ClassPlayerPage = () => {
                     </CardContent>
                 </Card>
             )}
+
+            <ClassComments classId={classItem.id} />
         </div>
       </div>
     </div>
