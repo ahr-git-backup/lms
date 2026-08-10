@@ -387,6 +387,68 @@ const AdminReports = () => {
         visibleReports = bySubject[activeSubject] || [];
     }
 
+    const ViewFullDialog = ({ report }: { report: any }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        return (
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    <Button variant="secondary" size="sm" className="flex-1 min-w-0 sm:flex-none sm:w-auto">
+                        <span className="truncate">View Full</span>
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto text-sm">
+                    <DialogHeader>
+                        <DialogTitle className="text-sm flex items-center justify-between gap-2 pr-6">
+                            <span>Q{report.question?.question_index}</span>
+                            <span className="text-xs font-medium bg-green-100 text-green-700 px-1.5 py-0.5 rounded">
+                                Correct: <strong>{report.question?.correct_option}</strong>
+                            </span>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                        <div className="bg-orange-50 dark:bg-orange-950/20 p-2 rounded-lg border border-orange-100 dark:border-orange-900">
+                            <h3 className="text-xs font-bold text-orange-800 dark:text-orange-200 mb-1 flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" />
+                                User Report
+                            </h3>
+                            <p className="text-xs italic">"{report.report_text}"</p>
+                            {report.suggested_correct_option && (
+                                <div className="mt-1 text-xs">
+                                    <span className="text-red-600 bg-red-100 px-1.5 py-0.5 rounded font-bold">
+                                        Suggested: {report.suggested_correct_option}
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                        <div className="text-sm">
+                            <MathText text={report.question?.question_text || ""} />
+                        </div>
+                        <div className="grid grid-cols-1 gap-1.5">
+                            {(["A", "B", "C", "D"] as const).map((opt) => {
+                                const optText = report.question?.[`option_${opt.toLowerCase()}`];
+                                const isCorrect = report.question?.correct_option === opt;
+                                return (
+                                    <div
+                                        key={opt}
+                                        className={`text-xs px-2 py-1.5 rounded border ${isCorrect ? "bg-green-100 dark:bg-green-950/30 border-green-300 font-semibold" : "bg-muted/40 border-transparent"}`}
+                                    >
+                                        <span className="font-bold">{opt}.</span> <MathText text={optText || ""} />
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        {report.question?.explanation && (
+                            <div className="text-xs border-t pt-2">
+                                <span className="font-bold">Explanation: </span>
+                                <MathText text={report.question.explanation} />
+                            </div>
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+        );
+    };
+
     const renderCard = (report: any) => (
         <Card key={report.id} className="border shadow-sm overflow-hidden text-sm">
             <CardHeader className="bg-muted/30 py-2 px-3">
@@ -399,8 +461,9 @@ const AdminReports = () => {
                             {report.question?.exam?.title}
                         </CardDescription>
                     </div>
-                    <div className="text-[10px] text-muted-foreground shrink-0">
-                        {new Date(report.created_at).toLocaleDateString()}
+                    <div className="text-[10px] text-muted-foreground shrink-0 text-right leading-tight">
+                        <div>{new Date(report.created_at).toLocaleDateString()}</div>
+                        <div>{new Date(report.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</div>
                     </div>
                 </div>
             </CardHeader>
@@ -445,6 +508,7 @@ const AdminReports = () => {
             <CardFooter className="flex flex-row justify-end gap-2 bg-muted/20 py-3 px-3 flex-wrap">
                 {report.status === "pending" ? (
                     <>
+                        <ViewFullDialog report={report} />
                         <DeclineDialog report={report} />
                         <EditQuestionDialog report={report} onClose={() => {}} />
                     </>
@@ -492,7 +556,7 @@ const AdminReports = () => {
                 </div>
             </div>
 
-            <div className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2 pb-1">
                 {availableCategories.map((cat) => (
                     <button
                         key={cat}
@@ -509,7 +573,7 @@ const AdminReports = () => {
             </div>
 
             {(currentCategory === "Live Exam" || currentCategory === "Practice Exam" || currentCategory === "Readymade Exam") && subjectTabs.length > 0 && (
-                <div className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 pl-1">
+                <div className="flex flex-wrap gap-1.5 sm:gap-2 pb-1">
                     {subjectTabs.map((subj) => (
                         <button
                             key={subj}
