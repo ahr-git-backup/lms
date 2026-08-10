@@ -579,9 +579,9 @@ const ExamReview = () => {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="shrink-0" style={{ height: 112, width: 112 }}>
+                        <div className="shrink-0" style={{ height: 140, width: 140 }}>
                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
+                                <PieChart margin={{ top: 12, right: 20, bottom: 12, left: 20 }}>
                                     <Pie
                                         data={pieData}
                                         cx="50%"
