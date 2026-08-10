@@ -700,7 +700,7 @@ const ExamReview = () => {
                             <div className="text-lg md:text-2xl font-bold text-primary font-mono">{finalScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
                         </div>
                         {gpaScore > 0 && (
-                            <div className="text-center border-l border-border/60">
+                            <div className="text-center border-l-2 border-border">
                                 <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">With GPA Score</div>
                                 <div className="text-lg md:text-2xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{withGpaTotalMarks}</span></div>
                             </div>
