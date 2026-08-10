@@ -568,7 +568,7 @@ const ExamReview = () => {
                         <p className="text-xs text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                    <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4 overflow-x-auto">
                         {/* Marks */}
                         <div className="text-center flex-shrink-0 pr-4 border-r-2 border-border">
                              <div className="text-4xl font-extrabold text-primary">
@@ -579,15 +579,15 @@ const ExamReview = () => {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="shrink-0" style={{ height: 140, width: 140 }}>
+                        <div className="shrink-0" style={{ height: 130, width: 170, minWidth: 170 }}>
                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 12, right: 20, bottom: 12, left: 20 }}>
+                                <PieChart margin={{ top: 10, right: 34, bottom: 10, left: 6 }}>
                                     <Pie
                                         data={pieData}
-                                        cx="50%"
+                                        cx="38%"
                                         cy="50%"
-                                        innerRadius={26}
-                                        outerRadius={42}
+                                        innerRadius={24}
+                                        outerRadius={38}
                                         paddingAngle={2}
                                         dataKey="value"
                                         isAnimationActive={false}
