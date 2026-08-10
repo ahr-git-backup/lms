@@ -136,7 +136,7 @@ const ExamReview = () => {
           if (!user) return null;
           const { data, error } = await supabase
               .from("profiles")
-              .select("is_second_timer")
+              .select("is_second_timer, ssc_gpa, hsc_gpa")
               .eq("id", user.id)
               .single();
           if (error) throw error;
@@ -381,6 +381,12 @@ const ExamReview = () => {
   const finalScore = attempt.score !== undefined ? Number(attempt.score) : rawScore;
   // Deduction (if any, e.g. 2nd timer)
   const deduction = Math.max(0, rawScore - finalScore);
+
+  // GPA Calculation (Without GPA / With GPA) — same formula as AtlasApp
+  const sscGpa = Number(profile?.ssc_gpa) || 0;
+  const hscGpa = Number(profile?.hsc_gpa) || 0;
+  const gpaScore = (sscGpa * 8) + (hscGpa * 12);
+  const withGpaScore = finalScore + gpaScore;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
@@ -663,6 +669,21 @@ const ExamReview = () => {
                         <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
                     </div>
                 </div>
+
+                {/* With GPA / Without GPA Row */}
+                {gpaScore > 0 && (
+                    <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/20 text-center">
+                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">Without GPA</div>
+                            <div className="text-lg md:text-xl font-bold text-blue-600 font-mono">{finalScore.toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/20 text-center">
+                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">With GPA</div>
+                            <div className="text-lg md:text-xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">+{gpaScore.toFixed(2)}</div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Second Timer Warning in Breakdown */}
                 {profile?.is_second_timer && (
