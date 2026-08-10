@@ -235,7 +235,7 @@ const ExamResults = () => {
       let query = supabase.from("classes").select("*, course:courses(name)");
 
       if (classCategory === "live") {
-        query = query.eq("class_type", "live").gt("end_at", now).not("is_archive", "is", true);
+        query = query.eq("class_type", "live").or(`end_at.gt.${now},end_at.is.null`).not("is_archive", "is", true);
       } else if (classCategory === "recorded") {
         query = query
           .or(`class_type.eq.recorded,and(class_type.eq.live,end_at.lt.${now})`)

@@ -24,8 +24,8 @@ const classSchema = z.object({
   chapter: z.string().trim().optional().or(z.literal("")),
   topic: z.string().trim().optional().or(z.literal("")),
   subject: z.array(z.string()).default([]),
-  start_at: z.string().min(1, "Start time is required"),
-  end_at: z.string().min(1, "End time is required"),
+  start_at: z.string().optional().or(z.literal("")),
+  end_at: z.string().optional().or(z.literal("")),
   video_url: z.string().trim().optional().or(z.literal("")),
   notes_url: z.string().trim().optional().or(z.literal("")),
   class_type: z.enum(["live", "recorded"]).default("live"),
@@ -450,7 +450,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     </div>
 
                     <div className="space-y-2 min-w-0">
-                        <Label htmlFor="start_at">Start Time</Label>
+                        <Label htmlFor="start_at">Start Time (Optional)</Label>
                         <Input
                             id="start_at"
                             type="datetime-local"
@@ -461,7 +461,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     </div>
 
                     <div className="space-y-2 min-w-0">
-                        <Label htmlFor="end_at">End Time</Label>
+                        <Label htmlFor="end_at">End Time (Optional)</Label>
                         <Input
                             id="end_at"
                             type="datetime-local"
@@ -469,6 +469,9 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             onChange={(e) => setForm((prev) => ({ ...prev, end_at: e.target.value }))}
                             className="w-full"
                         />
+                        {!form.end_at && form.class_type === 'live' && (
+                            <p className="text-[10px] text-muted-foreground">No end time = class stays live until you set an end time or archive it.</p>
+                        )}
                     </div>
 
                     <div className="space-y-2 min-w-0">

@@ -27,7 +27,7 @@ const LiveClass = () => {
         .from("classes")
         .select("*, course:courses(*)")
         .eq("class_type", "live")
-        .gt("end_at", now) // Only show classes that haven't ended
+        .or(`end_at.gt.${now},end_at.is.null`) // Show classes that haven't ended, or have no end time (still live)
         .not("is_archive", "is", true)
         .order("sort_order", { ascending: false })
         .order("start_at", { ascending: true });
