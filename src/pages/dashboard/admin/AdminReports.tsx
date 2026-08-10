@@ -16,6 +16,7 @@ const AdminReports = () => {
     const queryClient = useQueryClient();
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
     const [activeReadymadeSubject, setActiveReadymadeSubject] = useState<string | null>(null);
+    const [showHistory, setShowHistory] = useState(false);
 
     useEffect(() => {
         document.title = "Reports – Atlas Admin";
@@ -72,9 +73,9 @@ const AdminReports = () => {
     };
 
     const { data: reports, isLoading } = useQuery({
-        queryKey: ["admin-reports"],
+        queryKey: ["admin-reports", showHistory],
         queryFn: async () => {
-            const { data, error } = await supabase
+            let query = supabase
                 .from("question_reports")
                 .select(`
                     *,
@@ -86,6 +87,11 @@ const AdminReports = () => {
                 `)
                 .order("created_at", { ascending: false });
 
+            query = showHistory
+                ? query.in("status", ["resolved", "declined"])
+                : query.eq("status", "pending");
+
+            const { data, error } = await query;
             if (error) throw error;
             return data;
         }
@@ -95,7 +101,7 @@ const AdminReports = () => {
         mutationFn: async ({ report, feedback }: { report: any, feedback: string }) => {
             const { error } = await supabase
                 .from("question_reports")
-                .delete()
+                .update({ status: "declined", admin_feedback: feedback, resolved_at: new Date().toISOString() })
                 .eq("id", report.id);
             if (error) throw error;
 
@@ -196,10 +202,10 @@ const AdminReports = () => {
                 });
                 if (recalcError) throw recalcError;
 
-                // 2. Delete the report
+                // 2. Mark the report resolved (keep it for history, don't delete)
                 const { error: deleteError } = await supabase
                     .from("question_reports")
-                    .delete()
+                    .update({ status: "resolved", admin_feedback: feedback || null, resolved_at: new Date().toISOString() })
                     .eq("id", report.id);
 
                 if (deleteError) throw deleteError;
@@ -427,8 +433,21 @@ const AdminReports = () => {
                 </div>
             </CardContent>
             <CardFooter className="flex flex-row justify-end gap-2 bg-muted/20 py-3 px-3 flex-wrap">
-                <DeclineDialog report={report} />
-                <EditQuestionDialog report={report} onClose={() => {}} />
+                {report.status === "pending" ? (
+                    <>
+                        <DeclineDialog report={report} />
+                        <EditQuestionDialog report={report} onClose={() => {}} />
+                    </>
+                ) : (
+                    <div className="w-full space-y-1.5">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-full inline-block ${report.status === "resolved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                            {report.status === "resolved" ? "Resolved ✅" : "Declined ❌"}
+                        </span>
+                        {report.admin_feedback && (
+                            <p className="text-xs text-muted-foreground whitespace-pre-wrap">{report.admin_feedback}</p>
+                        )}
+                    </div>
+                )}
             </CardFooter>
         </Card>
     );
@@ -438,10 +457,28 @@ const AdminReports = () => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-xl font-bold tracking-tight">Question Reports</h1>
-                    <p className="text-sm text-muted-foreground">Manage user reported mistakes.</p>
+                    <p className="text-sm text-muted-foreground">{showHistory ? "Resolved & declined report history." : "Manage user reported mistakes."}</p>
                 </div>
-                <div className="text-sm font-medium bg-secondary px-3 py-1 rounded-full self-start sm:self-auto">
-                    {reports.length} Pending
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                    <div className="flex rounded-full border overflow-hidden text-xs font-semibold">
+                        <button
+                            type="button"
+                            onClick={() => setShowHistory(false)}
+                            className={`px-3 py-1.5 transition-colors ${!showHistory ? "bg-primary text-primary-foreground" : "bg-secondary/60 hover:bg-secondary"}`}
+                        >
+                            Pending
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowHistory(true)}
+                            className={`px-3 py-1.5 transition-colors ${showHistory ? "bg-primary text-primary-foreground" : "bg-secondary/60 hover:bg-secondary"}`}
+                        >
+                            History
+                        </button>
+                    </div>
+                    <div className="text-sm font-medium bg-secondary px-3 py-1 rounded-full">
+                        {reports.length} {showHistory ? "Total" : "Pending"}
+                    </div>
                 </div>
             </div>
 
