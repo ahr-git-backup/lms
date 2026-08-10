@@ -239,7 +239,7 @@ const DashboardHome = () => {
   })();
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500">
+    <div className="space-y-4 animate-in fade-in duration-500 dashboard-home-page">
       {/* Fixed floating WhatsApp + Telegram support buttons, bottom-left corner */}
       <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2">
         <a
