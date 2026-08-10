@@ -572,7 +572,7 @@ const ExamReview = () => {
                         {/* Marks */}
                         <div className="text-center flex-shrink-0 pr-4 border-r-2 border-border">
                              <div className="text-4xl font-extrabold text-primary">
-                                {Number(score).toFixed(2)}
+                                {mainExamScoreDisplay.toFixed(2)}
                                 <span className="text-4xl text-muted-foreground font-extrabold"> / {displayTotalMarks}</span>
                              </div>
                              <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
@@ -697,7 +697,7 @@ const ExamReview = () => {
                     <div className={cn("grid gap-2", gpaScore > 0 ? "grid-cols-2" : "grid-cols-1")}>
                         <div className="text-center">
                             <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">Main Score</div>
-                            <div className="text-lg md:text-2xl font-bold text-primary font-mono">{finalScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
+                            <div className="text-lg md:text-2xl font-bold text-primary font-mono">{mainExamScoreDisplay.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
                         </div>
                         {gpaScore > 0 && (
                             <div className="text-center border-l-2 border-border">
