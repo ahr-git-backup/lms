@@ -603,6 +603,22 @@ const ExamReview = () => {
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
                     <Calculator className="h-5 w-5" /> Score Breakdown
                 </h3>
+
+                {/* With GPA / Without GPA Row */}
+                {gpaScore > 0 && (
+                    <div className="mb-4 grid grid-cols-2 gap-2">
+                        <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/20 text-center">
+                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">Without GPA</div>
+                            <div className="text-lg md:text-xl font-bold text-blue-600 font-mono">{finalScore.toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/20 text-center">
+                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">With GPA</div>
+                            <div className="text-lg md:text-xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">+{gpaScore.toFixed(2)}</div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Mobile: Grid Layout (Side by Side) */}
                 <div className="grid grid-cols-3 gap-2 md:hidden text-xs">
                     <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
@@ -669,21 +685,6 @@ const ExamReview = () => {
                         <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
                     </div>
                 </div>
-
-                {/* With GPA / Without GPA Row */}
-                {gpaScore > 0 && (
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                        <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/20 text-center">
-                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">Without GPA</div>
-                            <div className="text-lg md:text-xl font-bold text-blue-600 font-mono">{finalScore.toFixed(2)}</div>
-                        </div>
-                        <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/20 text-center">
-                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">With GPA</div>
-                            <div className="text-lg md:text-xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}</div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">+{gpaScore.toFixed(2)}</div>
-                        </div>
-                    </div>
-                )}
 
                 {/* Second Timer Warning in Breakdown */}
                 {profile?.is_second_timer && (
