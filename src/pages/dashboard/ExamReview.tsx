@@ -401,11 +401,12 @@ const ExamReview = () => {
   });
 
   // Data for Pie Chart
+  const pieTotal = correctCount + wrongCount + skippedCount;
   const pieData = [
     { name: 'Correct', value: correctCount, color: '#16a34a' }, // green-600
     { name: 'Wrong', value: wrongCount, color: '#ef4444' }, // red-500
     { name: 'Skipped', value: skippedCount, color: '#94a3b8' }, // slate-400
-  ].filter(d => d.value > 0);
+  ].filter(d => d.value > 0).map(d => ({ ...d, percent: pieTotal > 0 ? (d.value / pieTotal) * 100 : 0 }));
 
   return (
     <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
@@ -537,7 +538,7 @@ const ExamReview = () => {
 
         {/* Score Card */}
         <Card className="bg-primary/5 border-primary/20">
-            <CardContent className="p-3 md:p-4">
+            <CardContent className="px-2 py-3 md:p-4">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-6">
                     <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
                         <h1 className="text-2xl font-extrabold mb-0.5">{attempt.exam.title}</h1>
@@ -567,12 +568,14 @@ const ExamReview = () => {
                                         paddingAngle={2}
                                         dataKey="value"
                                         isAnimationActive={false}
+                                        label={({ percent }) => `${Math.round((percent ?? 0) * 100)}%`}
+                                        labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
                                         ))}
                                     </Pie>
-                                    <Tooltip />
+                                    <Tooltip formatter={(value: number, name: string) => [`${value} (${pieTotal > 0 ? Math.round((value / pieTotal) * 100) : 0}%)`, name]} />
                                 </PieChart>
                             </ResponsiveContainer>
                         </div>
@@ -599,90 +602,56 @@ const ExamReview = () => {
 
         {/* Formula Card */}
         <Card className="bg-card border-border shadow-sm">
-            <CardContent className="p-4 md:p-6">
+            <CardContent className="px-2 py-4 md:p-6">
                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
                     <Calculator className="h-5 w-5" /> Score Breakdown
                 </h3>
 
-                {/* With GPA / Without GPA Row */}
-                {gpaScore > 0 && (
-                    <div className="mb-4 grid grid-cols-2 gap-2">
-                        <div className="p-3 bg-blue-500/5 rounded-xl border border-blue-500/20 text-center">
-                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">Without GPA</div>
-                            <div className="text-lg md:text-xl font-bold text-blue-600 font-mono">{finalScore.toFixed(2)}</div>
-                        </div>
-                        <div className="p-3 bg-indigo-500/5 rounded-xl border border-indigo-500/20 text-center">
-                            <div className="text-muted-foreground text-[10px] md:text-xs uppercase font-bold tracking-wider mb-1">With GPA</div>
-                            <div className="text-lg md:text-xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}</div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5">+{gpaScore.toFixed(2)}</div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Mobile: Grid Layout (Side by Side) */}
-                <div className="grid grid-cols-3 gap-2 md:hidden text-xs">
-                    <div className="p-2 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
-                        <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Correct</div>
-                        <div className="text-base font-bold text-green-600 font-mono">+{correctMarks.toFixed(1)}</div>
+                {/* Breakdown Row: Correct, Negative, 2nd Timer Deduction, GPA Deduction */}
+                <div className={cn(
+                    "grid gap-2 text-xs md:text-sm",
+                    gpaScore > 0 && deduction > 0.01 ? "grid-cols-2 sm:grid-cols-4" :
+                    (gpaScore > 0 || deduction > 0.01) ? "grid-cols-3" : "grid-cols-2"
+                )}>
+                    <div className="p-2 md:p-3 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
+                        <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Correct</div>
+                        <div className="text-base md:text-xl font-bold text-green-600 font-mono">+{correctMarks.toFixed(2)}</div>
                     </div>
 
-                    <div className="p-2 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
-                        <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Negative</div>
-                        <div className="text-base font-bold text-red-500 font-mono">-{negativeMarks.toFixed(1)}</div>
+                    <div className="p-2 md:p-3 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
+                        <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Negative</div>
+                        <div className="text-base md:text-xl font-bold text-red-500 font-mono">-{negativeMarks.toFixed(2)}</div>
                     </div>
 
-                    {deduction > 0.01 ? (
-                        <div className="p-2 bg-orange-500/5 rounded-lg border border-orange-500/20 text-center">
-                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Deduct(2nd Timer)</div>
-                            <div className="text-base font-bold text-orange-500 font-mono">-{deduction.toFixed(1)}</div>
+                    {deduction > 0.01 && (
+                        <div className="p-2 md:p-3 bg-orange-500/5 rounded-lg border border-orange-500/20 text-center">
+                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">2nd Timer Deduction</div>
+                            <div className="text-base md:text-xl font-bold text-orange-500 font-mono">-{deduction.toFixed(2)}</div>
                         </div>
-                    ) : (
-                        <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 text-center">
-                            <div className="text-[10px] text-muted-foreground font-bold uppercase mb-1">Total</div>
-                            <div className="text-base font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
+                    )}
+
+                    {gpaScore > 0 && (
+                        <div className="p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-center">
+                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Deduction</div>
+                            <div className="text-base md:text-xl font-bold text-indigo-600 font-mono">+{gpaScore.toFixed(2)}</div>
                         </div>
                     )}
                 </div>
 
-                {/* Mobile: Final Score Row if Deduction exists (since grid is 3 cols) */}
-                {deduction > 0.01 && (
-                    <div className="mt-2 md:hidden">
-                         <div className="p-2 bg-primary/5 rounded-lg border border-primary/20 flex justify-between items-center px-4">
-                            <span className="text-xs font-bold uppercase text-muted-foreground">Final Score</span>
-                            <span className="text-lg font-bold text-primary font-mono">{finalScore.toFixed(2)}</span>
+                {/* Final Score */}
+                <div className="mt-3 p-3 md:p-4 bg-primary/5 rounded-xl border border-primary/20">
+                    <div className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground mb-2 text-center">Final Score</div>
+                    <div className={cn("grid gap-2", gpaScore > 0 ? "grid-cols-2" : "grid-cols-1")}>
+                        <div className="text-center">
+                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">Main Score</div>
+                            <div className="text-lg md:text-2xl font-bold text-primary font-mono">{finalScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
                         </div>
-                    </div>
-                )}
-
-                {/* Desktop: Flex Row */}
-                <div className="hidden md:flex flex-row gap-4 items-center text-sm">
-                    <div className="flex-1 p-3 bg-green-500/5 rounded-xl border border-green-500/20 text-left">
-                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Correct Marks</div>
-                        <div className="text-xl font-bold text-green-600 font-mono">+{correctMarks.toFixed(2)}</div>
-                    </div>
-
-                    <div className="text-muted-foreground font-bold text-xl">-</div>
-
-                    <div className="flex-1 p-3 bg-red-500/5 rounded-xl border border-red-500/20 text-left">
-                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Negative ({wrongCount})</div>
-                        <div className="text-xl font-bold text-red-500 font-mono">-{negativeMarks.toFixed(2)}</div>
-                    </div>
-
-                    {deduction > 0.01 && (
-                        <>
-                            <div className="text-muted-foreground font-bold text-xl">-</div>
-                            <div className="flex-1 p-3 bg-orange-500/5 rounded-xl border border-orange-500/20 text-left">
-                                <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Deduct(2nd Timer)</div>
-                                <div className="text-xl font-bold text-orange-500 font-mono">-{deduction.toFixed(2)}</div>
+                        {gpaScore > 0 && (
+                            <div className="text-center border-l border-border/60">
+                                <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">With GPA Score</div>
+                                <div className="text-lg md:text-2xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
                             </div>
-                        </>
-                    )}
-
-                    <div className="text-muted-foreground font-bold text-xl">=</div>
-
-                    <div className="flex-1 p-3 bg-primary/5 rounded-xl border border-primary/20 text-left">
-                        <div className="text-muted-foreground text-xs uppercase font-bold tracking-wider mb-1">Final Score</div>
-                        <div className="text-xl font-bold text-primary font-mono">{finalScore.toFixed(2)}</div>
+                        )}
                     </div>
                 </div>
 
@@ -745,7 +714,7 @@ const ExamReview = () => {
 
                         return (
                             <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border max-w-full break-inside-avoid page-break-inside-avoid print:break-inside-avoid">
-                                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
+                                <CardContent className="px-2 py-5 space-y-2 max-w-full overflow-x-hidden">
                                     {/* Header row: serial number + AI Chat/Report/Bookmark, AtlasApp-style */}
                                     <div className="flex items-center justify-between gap-2 print:hidden">
                                         <span className={cn(
