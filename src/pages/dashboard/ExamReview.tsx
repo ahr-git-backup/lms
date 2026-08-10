@@ -592,9 +592,22 @@ const ExamReview = () => {
                                         paddingAngle={2}
                                         dataKey="value"
                                         isAnimationActive={false}
-                                        label={({ index }) => `${Math.round(pieData[index as number]?.percent ?? 0)}%`}
-                                        labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
-                                        minAngle={12}
+                                        label={({ cx, cy, midAngle, outerRadius: r, index }) => {
+                                            const RAD = Math.PI / 180;
+                                            const sx = cx + r * Math.cos(-midAngle * RAD);
+                                            const sy = cy + r * Math.sin(-midAngle * RAD);
+                                            const labelY = cy + (index - (pieData.length - 1) / 2) * 20;
+                                            const ex = cx + r + 26;
+                                            return (
+                                                <g>
+                                                    <path d={`M${sx},${sy}L${ex - 10},${labelY}L${ex},${labelY}`} stroke="#94a3b8" fill="none" />
+                                                    <text x={ex + 2} y={labelY} textAnchor="start" dominantBaseline="central" fontSize={12} fill={pieData[index as number]?.color}>
+                                                        {`${Math.round(pieData[index as number]?.percent ?? 0)}%`}
+                                                    </text>
+                                                </g>
+                                            );
+                                        }}
+                                        minAngle={18}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
