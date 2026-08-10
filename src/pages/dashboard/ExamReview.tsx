@@ -569,23 +569,23 @@ const ExamReview = () => {
                         <p className="text-xs text-muted-foreground">Submitted on {new Date(attempt.submitted_at).toLocaleString()}</p>
                     </div>
 
-                    <div className="flex-1 flex flex-row items-center justify-center gap-4 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4 overflow-x-auto">
+                    <div className="flex-1 flex flex-row items-center justify-center gap-2 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4 overflow-x-hidden">
                         {/* Marks */}
-                        <div className="text-center flex-shrink-0 pr-4 border-r-2 border-border">
-                             <div className="text-4xl font-extrabold text-primary">
+                        <div className="text-center flex-shrink min-w-0 pr-2 md:pr-4 border-r-2 border-border">
+                             <div className="text-3xl md:text-4xl font-extrabold text-primary whitespace-nowrap">
                                 {mainExamScoreDisplay.toFixed(2)}
-                                <span className="text-4xl text-muted-foreground font-extrabold"> / {displayTotalMarks}</span>
+                                <span className="text-3xl md:text-4xl text-muted-foreground font-extrabold"> / {displayTotalMarks}</span>
                              </div>
                              <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="shrink-0" style={{ height: 130, width: 200, minWidth: 200 }}>
+                        <div className="shrink-0" style={{ height: 130, width: 155, minWidth: 155 }}>
                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 10, right: 46, bottom: 10, left: 0 }}>
+                                <PieChart margin={{ top: 10, right: 8, bottom: 10, left: 0 }}>
                                     <Pie
                                         data={pieData}
-                                        cx="34%"
+                                        cx="30%"
                                         cy="50%"
                                         innerRadius={24}
                                         outerRadius={38}
