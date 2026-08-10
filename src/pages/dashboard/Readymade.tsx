@@ -980,7 +980,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 {loadingMcqCounts ? (
                   <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
                 ) : typeof subjectMcqCounts?.[subject] === "number" ? (
-                  <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                  <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                     {subjectMcqCounts[subject]} MCQ
                   </span>
                 ) : (
@@ -1034,7 +1034,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       {loadingMcqCounts ? (
                         <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
                       ) : typeof chapterMcqCounts?.[chapter] === "number" && (
-                        <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                           {chapterMcqCounts[chapter]} MCQ
                         </span>
                       )}
@@ -1069,7 +1069,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     {loadingMcqCounts ? (
                       <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
                     ) : typeof boardMcqCounts?.[`${selectedChapter}||${board}`] === "number" && (
-                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                         {boardMcqCounts[`${selectedChapter}||${board}`]} MCQ
                       </span>
                     )}
@@ -1126,7 +1126,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     {loadingMcqCounts ? (
                       <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
                     ) : typeof scCount === "number" && (
-                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                         {scCount} MCQ
                       </span>
                     )}
