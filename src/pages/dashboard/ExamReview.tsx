@@ -409,8 +409,8 @@ const ExamReview = () => {
   const withGpaScore = finalScore + gpaScore;
   const withGpaTotalMarks = displayTotalMarks + 100; // GPA max = (5.00×8)+(5.00×12) = 100
   // Unified score shown everywhere (Marks Obtained / Main Exam Score / Main Score):
-  // Correct − Negative − 2nd Timer Deduction − GPA Deduction
-  const mainExamScoreDisplay = gpaScore > 0 ? finalScore - gpaDeduction : finalScore;
+  // Correct − Negative − 2nd Timer Deduction − GPA Deduction (never below 0)
+  const mainExamScoreDisplay = gpaScore > 0 ? Math.max(0, finalScore - gpaDeduction) : finalScore;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
@@ -597,11 +597,11 @@ const ExamReview = () => {
                                             const sx = cx + r * Math.cos(-midAngle * RAD);
                                             const sy = cy + r * Math.sin(-midAngle * RAD);
                                             const labelY = cy + (index - (pieData.length - 1) / 2) * 20;
-                                            const ex = cx + r + 26;
+                                            const ex = cx + r + 20;
                                             return (
                                                 <g>
-                                                    <path d={`M${sx},${sy}L${ex - 10},${labelY}L${ex},${labelY}`} stroke="#94a3b8" fill="none" />
-                                                    <text x={ex + 2} y={labelY} textAnchor="start" dominantBaseline="central" fontSize={12} fill={pieData[index as number]?.color}>
+                                                    <polyline points={`${sx},${sy} ${ex},${labelY}`} stroke="#94a3b8" fill="none" />
+                                                    <text x={ex + 4} y={labelY} textAnchor="start" dominantBaseline="central" fontSize={12} fill={pieData[index as number]?.color}>
                                                         {`${Math.round(pieData[index as number]?.percent ?? 0)}%`}
                                                     </text>
                                                 </g>
