@@ -387,6 +387,7 @@ const ExamReview = () => {
   const hscGpa = Number(profile?.hsc_gpa) || 0;
   const gpaScore = (sscGpa * 8) + (hscGpa * 12);
   const withGpaScore = finalScore + gpaScore;
+  const withGpaTotalMarks = displayTotalMarks + 100; // GPA max = (5.00×8)+(5.00×12) = 100
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
@@ -659,7 +660,7 @@ const ExamReview = () => {
                         </div>
                         <div className="flex justify-between border-t border-indigo-500/30 pt-1">
                             <span className="font-bold text-indigo-700 dark:text-indigo-300">With GPA Total ({finalScore.toFixed(2)} + {gpaScore.toFixed(2)})</span>
-                            <span className="font-mono font-bold text-indigo-600">{withGpaScore.toFixed(2)} / {displayTotalMarks}</span>
+                            <span className="font-mono font-bold text-indigo-600">{withGpaScore.toFixed(2)} / {withGpaTotalMarks}</span>
                         </div>
                     </div>
                 )}
@@ -675,7 +676,7 @@ const ExamReview = () => {
                         {gpaScore > 0 && (
                             <div className="text-center border-l border-border/60">
                                 <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">With GPA Score</div>
-                                <div className="text-lg md:text-2xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{displayTotalMarks}</span></div>
+                                <div className="text-lg md:text-2xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{withGpaTotalMarks}</span></div>
                             </div>
                         )}
                     </div>
