@@ -250,7 +250,7 @@ const Readymade = () => {
   const resetToChapter = () => { setSelectedBoardStep(null); setSelectedSubChapter(null); };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 readymade-page">
       <ErrorBoundary label="Readymade header">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>

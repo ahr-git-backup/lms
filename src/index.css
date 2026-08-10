@@ -139,6 +139,14 @@
     --tracking-normal: -0.025em;
     --spacing: 0.27rem;
   }
+
+  /* Readymade Exam page: force full-black cards and full-white text in dark mode */
+  .dark .readymade-page {
+    --card: 0 0% 0%;
+    --card-foreground: 0 0% 100%;
+    --muted-foreground: 0 0% 100%;
+    --border: 0 0% 20%;
+  }
 }
 
 @layer base {
