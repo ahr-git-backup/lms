@@ -21,6 +21,56 @@ const AdminReports = () => {
         document.title = "Reports – Atlas Admin";
     }, []);
 
+    // Builds a rich, categorized notification body: exam type/category, full question,
+    // all options (correct one marked), explanation, and the admin's feedback —
+    // so the student sees everything in one place without needing to reopen the exam.
+    const formatReportNotificationBody = (report: any, feedback: string, status: "resolved" | "declined") => {
+        const q = report.question;
+        const exam = q?.exam;
+        const examTypeLabel = exam?.is_readymade
+            ? "Readymade Exam"
+            : exam?.exam_type === "special"
+            ? "Special Exam"
+            : exam?.exam_type === "practice"
+            ? "Practice Exam"
+            : exam?.exam_type === "live"
+            ? "Live Exam"
+            : "Exam";
+        const category = q?.subject || exam?.subject || null;
+
+        const lines: string[] = [];
+        lines.push(`Category: ${examTypeLabel}${category ? ` • ${category}` : ""}`);
+        if (exam?.title) lines.push(`Exam: ${exam.title}`);
+        lines.push("");
+        if (q?.question_text) {
+            lines.push(`Question:\n${q.question_text}`);
+            lines.push("");
+        }
+        const options: { key: string; text?: string }[] = [
+            { key: "A", text: q?.option_a },
+            { key: "B", text: q?.option_b },
+            { key: "C", text: q?.option_c },
+            { key: "D", text: q?.option_d },
+        ];
+        const optionLines = options
+            .filter((o) => o.text)
+            .map((o) => `${o.key}) ${o.text}${q?.correct_option === o.key ? "  ✅ Correct" : ""}`);
+        if (optionLines.length) {
+            lines.push("Options:");
+            lines.push(...optionLines);
+            lines.push("");
+        }
+        if (q?.explanation) {
+            lines.push(`Explanation: ${q.explanation}`);
+            lines.push("");
+        }
+        lines.push(`Your report: ${report.report_text}`);
+        lines.push("");
+        lines.push(`Status: ${status === "resolved" ? "Resolved ✅" : "Declined ❌"}`);
+        lines.push(`Admin Feedback: ${feedback || "—"}`);
+        return lines.join("\n");
+    };
+
     const { data: reports, isLoading } = useQuery({
         queryKey: ["admin-reports"],
         queryFn: async () => {
@@ -42,24 +92,20 @@ const AdminReports = () => {
     });
 
     const deleteReportMutation = useMutation({
-        mutationFn: async ({ reportId, userId, feedback, reportText }: { reportId: string, userId: string, feedback: string, reportText: string }) => {
+        mutationFn: async ({ report, feedback }: { report: any, feedback: string }) => {
             const { error } = await supabase
                 .from("question_reports")
                 .delete()
-                .eq("id", reportId);
+                .eq("id", report.id);
             if (error) throw error;
 
-
-                const notificationBody = `Your report for question \"${reportText}\" was declined.
-
-Feedback: ${feedback}`;
-                await supabase.from("user_notifications").insert({
-                    user_id: userId,
-                    title: "Question Report Declined",
-                    body: notificationBody,
-                    type: "report_reply"
-                });
-
+            const notificationBody = formatReportNotificationBody(report, feedback, "declined");
+            await supabase.from("user_notifications").insert({
+                user_id: report.user_id,
+                title: "Question Report Declined",
+                body: notificationBody,
+                type: "report_reply"
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["admin-reports"] });
@@ -102,7 +148,7 @@ Feedback: ${feedback}`;
                         <Button
                             variant="destructive"
                             onClick={() => {
-                                deleteReportMutation.mutate({ reportId: report.id, userId: report.user_id, feedback, reportText: report.report_text });
+                                deleteReportMutation.mutate({ report, feedback });
                                 setIsOpen(false);
                             }}
                             disabled={deleteReportMutation.isPending}
@@ -158,12 +204,23 @@ Feedback: ${feedback}`;
 
                 if (deleteError) throw deleteError;
 
-                // 3. Send notification
-
-                if (report.user_id && feedback) {
-                    const notificationBody = `Your report for question \"${report.report_text}\" was resolved.
-
-Admin Feedback: ${feedback}`;
+                // 3. Send notification (always, with full corrected MCQ context)
+                if (report.user_id) {
+                    const updatedQuestion = {
+                        ...report.question,
+                        question_text: qText,
+                        option_a: optA,
+                        option_b: optB,
+                        option_c: optC,
+                        option_d: optD,
+                        correct_option: correct,
+                        explanation: explanation,
+                    };
+                    const notificationBody = formatReportNotificationBody(
+                        { ...report, question: updatedQuestion },
+                        feedback || "প্রশ্নটি সংশোধন করা হয়েছে।",
+                        "resolved"
+                    );
                     await supabase.from("user_notifications").insert({
                         user_id: report.user_id,
                         title: "Question Report Resolved",

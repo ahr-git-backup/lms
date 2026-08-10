@@ -295,7 +295,7 @@ const Announcements = () => {
                             {isExpanded && (
                                 <CardContent className="pt-0 pb-4 animate-in slide-in-from-top-2 duration-200">
                                     <div className="h-px w-full bg-border/50 mb-3" />
-                                    <p className="text-sm">{notif.body}</p>
+                                    <p className="text-sm whitespace-pre-wrap break-words">{notif.body}</p>
                                 </CardContent>
                             )}
                         </Card>
