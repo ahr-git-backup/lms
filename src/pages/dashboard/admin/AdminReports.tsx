@@ -15,6 +15,8 @@ const AdminReports = () => {
     const { toast } = useToast();
     const queryClient = useQueryClient();
     const [activeCategory, setActiveCategory] = useState<string | null>(null);
+    const [activeLiveSubject, setActiveLiveSubject] = useState<string | null>(null);
+    const [activePracticeSubject, setActivePracticeSubject] = useState<string | null>(null);
     const [activeReadymadeSubject, setActiveReadymadeSubject] = useState<string | null>(null);
     const [showHistory, setShowHistory] = useState(false);
 
@@ -364,8 +366,16 @@ const AdminReports = () => {
     let visibleReports = groupedReports[currentCategory] || [];
     let subjectTabs: string[] = [];
     let activeSubject: string | null = null;
+    const activeSubjectState = currentCategory === "Live Exam" ? activeLiveSubject
+        : currentCategory === "Practice Exam" ? activePracticeSubject
+        : currentCategory === "Readymade Exam" ? activeReadymadeSubject
+        : null;
+    const setActiveSubjectState = currentCategory === "Live Exam" ? setActiveLiveSubject
+        : currentCategory === "Practice Exam" ? setActivePracticeSubject
+        : currentCategory === "Readymade Exam" ? setActiveReadymadeSubject
+        : null;
 
-    if (currentCategory === "Readymade Exam") {
+    if (currentCategory === "Live Exam" || currentCategory === "Practice Exam" || currentCategory === "Readymade Exam") {
         const bySubject: Record<string, typeof reports> = {};
         for (const r of visibleReports) {
             const subj = getSubject(r.question?.exam);
@@ -373,7 +383,7 @@ const AdminReports = () => {
             bySubject[subj].push(r);
         }
         subjectTabs = Object.keys(bySubject).sort();
-        activeSubject = activeReadymadeSubject && bySubject[activeReadymadeSubject]?.length ? activeReadymadeSubject : subjectTabs[0];
+        activeSubject = activeSubjectState && bySubject[activeSubjectState]?.length ? activeSubjectState : subjectTabs[0];
         visibleReports = bySubject[activeSubject] || [];
     }
 
@@ -498,13 +508,13 @@ const AdminReports = () => {
                 ))}
             </div>
 
-            {currentCategory === "Readymade Exam" && subjectTabs.length > 0 && (
+            {(currentCategory === "Live Exam" || currentCategory === "Practice Exam" || currentCategory === "Readymade Exam") && subjectTabs.length > 0 && (
                 <div className="flex flex-nowrap gap-1.5 sm:gap-2 overflow-x-auto pb-1 -mx-2 px-2 sm:mx-0 sm:px-0 pl-1">
                     {subjectTabs.map((subj) => (
                         <button
                             key={subj}
                             type="button"
-                            onClick={() => setActiveReadymadeSubject(subj)}
+                            onClick={() => setActiveSubjectState?.(subj)}
                             className={`px-2.5 py-1.5 rounded-full border text-xs font-medium transition-colors whitespace-nowrap shrink-0 ${subj === activeSubject ? "bg-foreground text-background border-foreground" : "bg-muted hover:bg-muted/70"}`}
                         >
                             {subj}
