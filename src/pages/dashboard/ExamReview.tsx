@@ -19,7 +19,8 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recha
 import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
 
 // Report Dialog Component
-const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const ReportQuestionDialog = ({ questionId, question, onClose }: { questionId: string, question: any, onClose: () => void }) => {
     const { toast } = useToast();
     const [reportText, setReportText] = useState("");
     const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
@@ -72,9 +73,27 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
                         Found an error in this question? Let us know.
                     </DialogDescription>
                 </DialogHeader>
-                <div className="space-y-4 py-4">
-                    <div className="text-sm text-muted-foreground line-clamp-2 italic bg-muted p-2 rounded">
-                        <MathText text={questionText} />
+                <div className="space-y-4 py-4 max-h-[70vh] overflow-y-auto">
+                    <div className="text-sm text-muted-foreground italic bg-muted p-2 rounded space-y-2">
+                        <MathText text={question?.question_text} />
+                        <div className="space-y-1 not-italic">
+                            {[
+                                { key: "A", text: question?.option_a },
+                                { key: "B", text: question?.option_b },
+                                { key: "C", text: question?.option_c },
+                                { key: "D", text: question?.option_d },
+                            ].filter((o) => o.text).map((o) => (
+                                <div
+                                    key={o.key}
+                                    className={cn(
+                                        "text-xs px-2 py-1 rounded",
+                                        question?.correct_option === o.key ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 font-semibold" : "text-foreground"
+                                    )}
+                                >
+                                    {o.key}) <MathText text={o.text} />
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <div className="space-y-2">
                         <Label>Describe the issue</Label>
@@ -756,7 +775,7 @@ const ExamReview = () => {
                                             <AiChatButton q={q} questionId={q.id} />
                                             <ReportQuestionDialog
                                                 questionId={q.id}
-                                                questionText={q.question_text}
+                                                question={q}
                                                 onClose={() => {}}
                                             />
                                             <Button
