@@ -358,8 +358,8 @@ const AdminReports = () => {
         groupedReports[cat].push(report);
     }
 
-    const availableCategories = CATEGORY_ORDER.filter(cat => groupedReports[cat]?.length);
-    const currentCategory = activeCategory && groupedReports[activeCategory]?.length ? activeCategory : availableCategories[0];
+    const availableCategories = CATEGORY_ORDER.filter(cat => cat !== "Other" || groupedReports[cat]?.length);
+    const currentCategory = activeCategory && availableCategories.includes(activeCategory) ? activeCategory : availableCategories[0];
 
     let visibleReports = groupedReports[currentCategory] || [];
     let subjectTabs: string[] = [];
@@ -492,7 +492,7 @@ const AdminReports = () => {
                     >
                         {cat}
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cat === currentCategory ? "bg-primary-foreground/20" : "bg-background"}`}>
-                            {groupedReports[cat].length}
+                            {groupedReports[cat]?.length || 0}
                         </span>
                     </button>
                 ))}
