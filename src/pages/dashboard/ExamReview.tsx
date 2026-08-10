@@ -408,7 +408,8 @@ const ExamReview = () => {
   const gpaDeduction = 100 - gpaScore; // how much lost from max GPA marks (100)
   const withGpaScore = finalScore + gpaScore;
   const withGpaTotalMarks = displayTotalMarks + 100; // GPA max = (5.00×8)+(5.00×12) = 100
-  // Display-only: Main Exam Score after also subtracting GPA deduction (Correct − Negative − 2nd Timer − GPA Deduction)
+  // Unified score shown everywhere (Marks Obtained / Main Exam Score / Main Score):
+  // Correct − Negative − 2nd Timer Deduction − GPA Deduction
   const mainExamScoreDisplay = gpaScore > 0 ? finalScore - gpaDeduction : finalScore;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -579,19 +580,19 @@ const ExamReview = () => {
                         </div>
 
                         {/* Pie Chart */}
-                        <div className="shrink-0" style={{ height: 130, width: 170, minWidth: 170 }}>
+                        <div className="shrink-0" style={{ height: 130, width: 200, minWidth: 200 }}>
                              <ResponsiveContainer width="100%" height="100%">
-                                <PieChart margin={{ top: 10, right: 34, bottom: 10, left: 6 }}>
+                                <PieChart margin={{ top: 10, right: 46, bottom: 10, left: 0 }}>
                                     <Pie
                                         data={pieData}
-                                        cx="38%"
+                                        cx="34%"
                                         cy="50%"
                                         innerRadius={24}
                                         outerRadius={38}
                                         paddingAngle={2}
                                         dataKey="value"
                                         isAnimationActive={false}
-                                        label={({ percent }) => `${Math.round((percent ?? 0) * 100)}%`}
+                                        label={({ index }) => `${Math.round(pieData[index as number]?.percent ?? 0)}%`}
                                         labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
                                         minAngle={12}
                                     >
