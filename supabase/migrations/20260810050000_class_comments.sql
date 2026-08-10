@@ -44,3 +44,6 @@ create policy "Staff can delete any comment"
   using (public.is_staff());
 
 NOTIFY pgrst, 'reload schema';
+
+-- Enable Realtime so live-chat style comments push instantly to all viewers
+alter publication supabase_realtime add table public.class_comments;

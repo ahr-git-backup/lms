@@ -193,6 +193,12 @@ const ClassPlayerPage = () => {
         </div>
 
         <div className="space-y-6">
+            {isActuallyLive && (
+                <div className="lg:sticky lg:top-4">
+                    <ClassComments classId={classItem.id} isLive />
+                </div>
+            )}
+
             {classItem.topic && (
                 <Card>
                     <CardHeader>
@@ -223,7 +229,7 @@ const ClassPlayerPage = () => {
                 </Card>
             )}
 
-            <ClassComments classId={classItem.id} />
+            {!isActuallyLive && <ClassComments classId={classItem.id} />}
         </div>
       </div>
     </div>
