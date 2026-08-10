@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -1332,9 +1331,25 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [splittingExam, setSplittingExam] = useState<any | null>(null);
 
-  const handleDownloadPdf = async (e: React.MouseEvent, exam: any) => {
+  const [sheetExam, setSheetExam] = useState<any | null>(null);
+
+  const isImageOrPatternQ = (q: any) => {
+    const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
+    const combined = fields.filter(Boolean).join(" ");
+    if (/<img/i.test(combined)) return true;
+    if (/\(?\b(i|ii|iii|iv|v|vi)\)?[.)]/i.test(combined)) return true;
+    return false;
+  };
+
+  const openPracticeSheetPicker = (e: React.MouseEvent, exam: any) => {
     e.stopPropagation();
-    if (downloadingId) return;
+    setSheetExam(exam);
+  };
+
+  const handleDownloadPdf = async (style: "style1" | "style2", withPattern: boolean) => {
+    const exam = sheetExam;
+    if (!exam || downloadingId) return;
+    setSheetExam(null);
     setDownloadingId(exam.id);
     try {
       const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
@@ -1343,10 +1358,16 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
         return;
       }
+      const filtered = withPattern ? data : data.filter((q: any) => !isImageOrPatternQ(q));
+      if (filtered.length === 0) {
+        toast({ title: "No questions found", description: "উদ্দীপক/চিত্র ছাড়া কোনো প্রশ্ন নেই।", variant: "destructive" });
+        return;
+      }
       openSolvePdf({
         examName: exam.title,
+        style,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        questions: data.map((q: any) => ({
+        questions: filtered.map((q: any) => ({
           question_text: q.question_text,
           option_a: q.option_a,
           option_b: q.option_b,
@@ -1357,7 +1378,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           user_answer: null,
           explanation: q.explanation,
         })),
-        totalMarks: data.length,
+        totalMarks: filtered.length,
       });
     } catch (err: any) {
       toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
@@ -1369,6 +1390,37 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
+    <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Practice Sheet স্টাইল বেছে নিন</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <p className="text-sm font-semibold mb-2">Revision Style <span className="text-xs font-normal text-muted-foreground">[প্রশ্ন,উত্তর,ব্যাখ্যা একই সাথে]</span></p>
+            <div className="grid grid-cols-1 gap-2">
+              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true)}>
+                উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+              </Button>
+              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", false)}>
+                উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+              </Button>
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold mb-2">Practice Style <span className="text-xs font-normal text-muted-foreground">[প্রশ্নের শেষে উত্তর+ব্যাখ্যা]</span></p>
+            <div className="grid grid-cols-1 gap-2">
+              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", true)}>
+                উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+              </Button>
+              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", false)}>
+                উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     {exams.map((exam) => {
       const unlocked = isExamUnlocked(exam, enrolledIds, fullAccessCourseIds, subChapterGrants);
       return (
@@ -1422,7 +1474,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     variant="ghost"
                     className="h-7 px-2 text-[11px] bg-blue-500 hover:bg-blue-600 text-white hover:text-white"
                     disabled={downloadingId === exam.id}
-                    onClick={(e) => handleDownloadPdf(e, exam)}
+                    onClick={(e) => openPracticeSheetPicker(e, exam)}
                   >
                     {downloadingId === exam.id ? "..." : "Practice Sheet"}
                   </Button>
