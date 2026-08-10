@@ -405,8 +405,11 @@ const ExamReview = () => {
   const sscGpa = Number(profile?.ssc_gpa) || 0;
   const hscGpa = Number(profile?.hsc_gpa) || 0;
   const gpaScore = (sscGpa * 8) + (hscGpa * 12);
+  const gpaDeduction = 100 - gpaScore; // how much lost from max GPA marks (100)
   const withGpaScore = finalScore + gpaScore;
   const withGpaTotalMarks = displayTotalMarks + 100; // GPA max = (5.00×8)+(5.00×12) = 100
+  // Display-only: Main Exam Score after also subtracting GPA deduction (Correct − Negative − 2nd Timer − GPA Deduction)
+  const mainExamScoreDisplay = gpaScore > 0 ? finalScore - gpaDeduction : finalScore;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const questionPositionMap = new Map((questions || []).map((q: any, i: number) => [q.id, i + 1]));
@@ -653,8 +656,8 @@ const ExamReview = () => {
 
                     {gpaScore > 0 && (
                         <div className="p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-center">
-                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Score</div>
-                            <div className="text-base md:text-xl font-bold text-indigo-600 font-mono">+{gpaScore.toFixed(2)}</div>
+                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Deduction</div>
+                            <div className="text-base md:text-xl font-bold text-indigo-600 font-mono">-{gpaDeduction.toFixed(2)}</div>
                         </div>
                     )}
                 </div>
@@ -671,11 +674,15 @@ const ExamReview = () => {
                         </div>
                         <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
                             <span className="font-semibold">GPA Score (Total)</span>
-                            <span className="font-mono font-semibold text-indigo-600">{gpaScore.toFixed(2)}</span>
+                            <span className="font-mono font-semibold text-indigo-600">{gpaScore.toFixed(2)} / 100</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="font-semibold">GPA Deduction (100 − {gpaScore.toFixed(2)})</span>
+                            <span className="font-mono font-semibold text-red-500">-{gpaDeduction.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
-                            <span>Main Exam Score (Correct − Negative − 2nd Timer)</span>
-                            <span className="font-mono font-semibold text-foreground">{finalScore.toFixed(2)}</span>
+                            <span>Main Exam Score (Correct − Negative − 2nd Timer − GPA Deduction)</span>
+                            <span className="font-mono font-semibold text-foreground">{mainExamScoreDisplay.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between border-t border-indigo-500/30 pt-1">
                             <span className="font-bold text-indigo-700 dark:text-indigo-300">With GPA Total ({finalScore.toFixed(2)} + {gpaScore.toFixed(2)})</span>
