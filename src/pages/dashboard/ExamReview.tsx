@@ -570,6 +570,7 @@ const ExamReview = () => {
                                         isAnimationActive={false}
                                         label={({ percent }) => `${Math.round((percent ?? 0) * 100)}%`}
                                         labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}
+                                        minAngle={12}
                                     >
                                         {pieData.map((entry, index) => (
                                             <Cell key={`cell-${index}`} fill={entry.color} />
@@ -632,11 +633,36 @@ const ExamReview = () => {
 
                     {gpaScore > 0 && (
                         <div className="p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-center">
-                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Deduction</div>
+                            <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Score</div>
                             <div className="text-base md:text-xl font-bold text-indigo-600 font-mono">+{gpaScore.toFixed(2)}</div>
                         </div>
                     )}
                 </div>
+
+                {gpaScore > 0 && (
+                    <div className="mt-2 p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-[10px] md:text-xs text-muted-foreground space-y-1">
+                        <div className="flex justify-between">
+                            <span>SSC GPA ({sscGpa.toFixed(2)}) × 8</span>
+                            <span className="font-mono font-semibold text-foreground">{(sscGpa * 8).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>HSC GPA ({hscGpa.toFixed(2)}) × 12</span>
+                            <span className="font-mono font-semibold text-foreground">{(hscGpa * 12).toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
+                            <span className="font-semibold">GPA Score (Total)</span>
+                            <span className="font-mono font-semibold text-indigo-600">{gpaScore.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
+                            <span>Main Exam Score (Correct − Negative − 2nd Timer)</span>
+                            <span className="font-mono font-semibold text-foreground">{finalScore.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between border-t border-indigo-500/30 pt-1">
+                            <span className="font-bold text-indigo-700 dark:text-indigo-300">With GPA Total ({finalScore.toFixed(2)} + {gpaScore.toFixed(2)})</span>
+                            <span className="font-mono font-bold text-indigo-600">{withGpaScore.toFixed(2)} / {displayTotalMarks}</span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Final Score */}
                 <div className="mt-3 p-3 md:p-4 bg-primary/5 rounded-xl border border-primary/20">
