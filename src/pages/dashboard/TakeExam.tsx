@@ -29,15 +29,47 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
     const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
     const [isOpen, setIsOpen] = useState(false);
     const { user } = useAuth();
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast({ title: "File too large", description: "Please select an image under 5MB.", variant: "destructive" });
+            return;
+        }
+        setImageFile(file);
+        setImagePreview(URL.createObjectURL(file));
+    };
 
     const reportMutation = useMutation({
         mutationFn: async () => {
             if (!user) throw new Error("Must be logged in");
+            let image_url: string | null = null;
+            if (imageFile) {
+                setIsUploadingImage(true);
+                const ext = imageFile.name.split(".").pop() || "jpg";
+                const filePath = `${user.id}/${Date.now()}.${ext}`;
+                const { error: uploadError } = await supabase.storage
+                    .from("report-images")
+                    .upload(filePath, imageFile, { upsert: true, cacheControl: "3600" });
+                setIsUploadingImage(false);
+                if (uploadError) throw uploadError;
+                const { data: publicUrlData } = supabase.storage.from("report-images").getPublicUrl(filePath);
+                image_url = publicUrlData.publicUrl;
+            }
             const { error } = await supabase.from("question_reports").insert({
                 question_id: questionId,
                 user_id: user.id,
                 report_text: reportText,
-                suggested_correct_option: suggestedOption
+                suggested_correct_option: suggestedOption,
+                image_url
             });
             if (error) throw error;
         },
@@ -45,6 +77,8 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
             toast({ title: "Report submitted successfully", description: "Thank you for your feedback." });
             setReportText("");
             setSuggestedOption(undefined);
+            setImageFile(null);
+            setImagePreview(null);
             setIsOpen(false);
             onClose();
         },
@@ -85,10 +119,27 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
                             </SelectContent>
                         </Select>
                     </div>
+                    <div className="space-y-2">
+                        <Label>Attach Image (Optional)</Label>
+                        {imagePreview ? (
+                            <div className="relative w-fit">
+                                <img src={imagePreview} alt="Preview" className="max-h-40 rounded-lg border" />
+                                <button
+                                    type="button"
+                                    onClick={() => { setImageFile(null); setImagePreview(null); }}
+                                    className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        ) : (
+                            <Input type="file" accept="image/*" onChange={handleImageSelect} />
+                        )}
+                    </div>
                 </div>
                 <DialogFooter>
-                    <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending}>
-                        {reportMutation.isPending ? "Submitting..." : "Submit Report"}
+                    <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending || isUploadingImage}>
+                        {isUploadingImage ? "Uploading image..." : reportMutation.isPending ? "Submitting..." : "Submit Report"}
                     </Button>
                 </DialogFooter>
             </DialogContent>
@@ -534,7 +585,7 @@ const TakeExam = () => {
         return;
     }
 
-    if (exam && effectiveQuestions && effectiveQuestions.length > 0 && shuffledQuestions.length === 0) {
+    if (hasStarted && exam && effectiveQuestions && effectiveQuestions.length > 0 && shuffledQuestions.length === 0) {
         // If the exam is an OMR exam, DO NOT SHUFFLE so the question numbers align with the OMR sheet
         if (exam.is_omr_enabled || exam.is_omr) {
             setShuffledQuestions([...effectiveQuestions]);

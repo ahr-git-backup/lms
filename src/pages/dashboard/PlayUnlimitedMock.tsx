@@ -65,15 +65,47 @@ const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
   const [reportText, setReportText] = useState("");
   const [suggestedOption, setSuggestedOption] = useState<string | undefined>(undefined);
   const [isOpen, setIsOpen] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "File too large", description: "Please select an image under 5MB.", variant: "destructive" });
+      return;
+    }
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
 
   const reportMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Must be logged in");
+      let image_url: string | null = null;
+      if (imageFile) {
+        setIsUploadingImage(true);
+        const ext = imageFile.name.split(".").pop() || "jpg";
+        const filePath = `${user.id}/${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from("report-images")
+          .upload(filePath, imageFile, { upsert: true, cacheControl: "3600" });
+        setIsUploadingImage(false);
+        if (uploadError) throw uploadError;
+        const { data: publicUrlData } = supabase.storage.from("report-images").getPublicUrl(filePath);
+        image_url = publicUrlData.publicUrl;
+      }
       const { error } = await supabase.from("question_reports").insert({
         question_id: null,
         user_id: user.id,
         report_text: `[Unlimited Mock Test] ${questionText.slice(0, 120)} — ${reportText}`,
         suggested_correct_option: suggestedOption,
+        image_url,
       });
       if (error) throw error;
     },
@@ -81,6 +113,8 @@ const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
       toast({ title: "রিপোর্ট জমা হয়েছে", description: "ধন্যবাদ আপনার ফিডব্যাকের জন্য।" });
       setReportText("");
       setSuggestedOption(undefined);
+      setImageFile(null);
+      setImagePreview(null);
       setIsOpen(false);
     },
     onError: (e: any) => toast({ title: "রিপোর্ট ব্যর্থ", description: e.message, variant: "destructive" }),
@@ -120,13 +154,30 @@ const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-2">
+            <Label>ছবি সংযুক্ত করুন (ঐচ্ছিক)</Label>
+            {imagePreview ? (
+              <div className="relative w-fit">
+                <img src={imagePreview} alt="Preview" className="max-h-40 rounded-lg border" />
+                <button
+                  type="button"
+                  onClick={() => { setImageFile(null); setImagePreview(null); }}
+                  className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <Input type="file" accept="image/*" onChange={handleImageSelect} />
+            )}
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setIsOpen(false)}>
             বাতিল
           </Button>
-          <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending}>
-            {reportMutation.isPending ? "জমা হচ্ছে..." : "জমা দিন"}
+          <Button onClick={() => reportMutation.mutate()} disabled={!reportText.trim() || reportMutation.isPending || isUploadingImage}>
+            {isUploadingImage ? "ছবি আপলোড হচ্ছে..." : reportMutation.isPending ? "জমা হচ্ছে..." : "জমা দিন"}
           </Button>
         </DialogFooter>
       </DialogContent>
