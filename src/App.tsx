@@ -70,6 +70,7 @@ import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
+import AdminAdmissionTest from "./pages/dashboard/admin/AdminAdmissionTest";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
 import AdminTelegramChannels from "./pages/dashboard/admin/AdminTelegramChannels";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
@@ -242,6 +243,7 @@ const App = () => {
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
                 <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockPool /></ProtectedRoute>} />
+                <Route path="admission-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAdmissionTest /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
                 <Route path="telegram-channels" element={<ProtectedRoute requireAdmin><AdminTelegramChannels /></ProtectedRoute>} />
                 <Route path="content-creator" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><UnifiedContentCreator /></ProtectedRoute>} />
