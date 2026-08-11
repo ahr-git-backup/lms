@@ -396,7 +396,7 @@ const Readymade = () => {
                           onClick={(e) => {
                             e.stopPropagation();
                             setActiveTypePanel(null);
-                            navigate(`/dashboard/admin/admission-test?category=${c.key}&mode=${m.key}`);
+                            navigate(`/admin/admission-test?category=${c.key}&mode=${m.key}`);
                           }}
                           className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
                         >
