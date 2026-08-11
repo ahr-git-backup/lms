@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, BookOpen, FileText, LayoutGrid, ChevronRight, Loader2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,11 +96,11 @@ function FullModelCard({ testId, test }: { testId: string; test: any }) {
   );
 }
 
-function TestBlock({ test }: { test: any }) {
+function TestBlock({ test, defaultMode }: { test: any; defaultMode?: Mode }) {
   return (
     <div className="space-y-3">
       <h2 className="font-semibold text-base flex items-center gap-2"><BookOpen className="h-4 w-4" />{test.title}</h2>
-      <Tabs defaultValue="subject_final">
+      <Tabs defaultValue={defaultMode || "subject_final"}>
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="subject_final" className="text-xs">Subject Final</TabsTrigger>
           <TabsTrigger value="paper_final" className="text-xs">Paper Final</TabsTrigger>
@@ -116,7 +116,9 @@ function TestBlock({ test }: { test: any }) {
 
 export default function AdmissionTest() {
   const navigate = useNavigate();
-  const [category, setCategory] = useState<Category>("medical");
+  const [params] = useSearchParams();
+  const initialCategory = (params.get("category") as Category) || "medical";
+  const [category, setCategory] = useState<Category>(initialCategory);
 
   const { data: tests, isLoading } = useQuery({
     queryKey: ["admission-tests-public", category],
@@ -147,7 +149,7 @@ export default function AdmissionTest() {
         <p className="text-sm text-muted-foreground text-center py-10">এখনো কোনো টেস্ট যোগ করা হয়নি</p>
       ) : (
         <div className="space-y-6">
-          {tests.map((t: any) => <TestBlock key={t.id} test={t} />)}
+          {tests.map((t: any) => <TestBlock key={t.id} test={t} defaultMode={(params.get("mode") as Mode) || undefined} />)}
         </div>
       )}
     </div>

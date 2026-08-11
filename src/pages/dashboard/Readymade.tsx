@@ -125,6 +125,7 @@ const Readymade = () => {
   const [currentBoardsList, setCurrentBoardsList] = useState<string[]>([]);
   const [currentSubChaptersList, setCurrentSubChaptersList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
+  const [modelTestCategory, setModelTestCategory] = useState<"medical" | "varsity" | null>(null);
   const { data: enrollments, isLoading: loadingEnrollments } = useEnrollments();
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
@@ -252,16 +253,6 @@ const Readymade = () => {
   return (
     <div className="space-y-2 readymade-page">
       <ErrorBoundary label="Readymade header">
-      <button
-        onClick={() => navigate("/dashboard/admission-test")}
-        className="w-full flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-transparent p-3 hover:border-primary transition-colors"
-      >
-        <div className="text-left">
-          <p className="font-semibold text-sm">🎯 Admission Test (Medical / Varsity)</p>
-          <p className="text-xs text-muted-foreground">Subject Final, Paper Final ও Full Model Test</p>
-        </div>
-        <span className="text-primary text-sm font-medium shrink-0">দেখুন →</span>
-      </button>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="relative">
@@ -374,30 +365,50 @@ const Readymade = () => {
           <DialogHeader>
             <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-1 gap-2">
-            {["Subject Final", "Paper Final", "Full Model Test"].map((label) => (
-              <div key={label} className="relative">
+          {!modelTestCategory ? (
+            <div className="grid grid-cols-1 gap-2">
+              {([
+                { key: "medical", label: "মেডিকেল এডমিশন টেস্ট" },
+                { key: "varsity", label: "ভার্সিটি এডমিশন টেস্ট" },
+              ] as const).map((c) => (
                 <Button
-                  variant={selectedBoards.includes(label) ? "default" : "outline"}
+                  key={c.key}
+                  variant="outline"
                   size="sm"
-                  className="h-auto py-2 text-xs whitespace-pre-line leading-tight w-full"
-                  onClick={() => { setActiveTypePanel(null); navigate(`/dashboard/readymade/category/${encodeURIComponent(label)}`); }}
+                  className="h-auto py-3 text-sm w-full"
+                  onClick={() => setModelTestCategory(c.key)}
                 >
-                  {label}
+                  {c.label}
                 </Button>
-                {isAdmin && (
-                  <button
-                    type="button"
-                    aria-label={`Add question to ${label}`}
-                    onClick={(e) => { e.stopPropagation(); setAddQuestionCategory(label); }}
-                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Button variant="ghost" size="sm" className="text-xs -ml-2" onClick={() => setModelTestCategory(null)}>← পিছনে</Button>
+              <div className="grid grid-cols-1 gap-2">
+                {([
+                  { key: "subject_final", label: "Subject Final" },
+                  { key: "paper_final", label: "Paper Final" },
+                  { key: "full_model", label: "Full Model Test" },
+                ] as const).map((m) => (
+                  <Button
+                    key={m.key}
+                    variant="outline"
+                    size="sm"
+                    className="h-auto py-2 text-xs w-full"
+                    onClick={() => {
+                      setActiveTypePanel(null);
+                      const cat = modelTestCategory;
+                      setModelTestCategory(null);
+                      navigate(`/dashboard/admission-test?category=${cat}&mode=${m.key}`);
+                    }}
                   >
-                    <Plus className="h-3 w-3" />
-                  </button>
-                )}
+                    {m.label}
+                  </Button>
+                ))}
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
