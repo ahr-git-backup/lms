@@ -1,13 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Clock, CheckCircle2, XCircle, ArrowLeft, LayoutGrid, Lock } from "lucide-react";
+import { Loader2, Clock, Check, X, ArrowLeft, LayoutGrid, Lock, Calculator } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import MathText from "@/components/MathText";
 
@@ -39,6 +40,7 @@ export default function AdmissionTestPlay() {
   const [submitted, setSubmitted] = useState(false);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [filter, setFilter] = useState<"all" | "correct" | "incorrect" | "skipped">("all");
   const questionRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const autoSubmitTriggered = useRef(false);
 
@@ -178,42 +180,231 @@ export default function AdmissionTestPlay() {
   }
 
   if (submitted && results) {
+    const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 1), 0);
+    const pieTotal = results.correct + results.wrong + results.skipped;
+    const pieData = [
+      { name: "Correct", value: results.correct, color: "#16a34a" },
+      { name: "Wrong", value: results.wrong, color: "#ef4444" },
+      { name: "Skipped", value: results.skipped, color: "#94a3b8" },
+    ].filter((d) => d.value > 0).map((d) => ({ ...d, percent: pieTotal > 0 ? (d.value / pieTotal) * 100 : 0 }));
+
+    const filteredQuestions = questions.filter((q) => {
+      const sel = answers[q.id];
+      const isCorrect = sel && sel.toUpperCase() === String(q.correct_option).toUpperCase();
+      if (filter === "all") return true;
+      if (filter === "correct") return isCorrect;
+      if (filter === "incorrect") return sel && !isCorrect;
+      if (filter === "skipped") return !sel;
+      return true;
+    });
+
     return (
-      <div className="space-y-4 max-w-3xl mx-auto">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard/admission-test")}><ArrowLeft className="h-5 w-5" /></Button>
-          <h1 className="text-lg font-semibold">Result</h1>
-        </div>
-        <Card className="rounded-[24px]">
-          <CardContent className="p-4 space-y-3">
-            <div className="text-center">
-              <p className="text-3xl font-extrabold text-primary">{results.score.toFixed(2)} / {questions.reduce((s, q) => s + (Number(q.marks) || 1), 0)}</p>
-              <p className="text-xs text-muted-foreground uppercase font-bold mt-1">Marks Obtained</p>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center">
-              <div className="bg-emerald-500/10 rounded-lg p-2"><p className="text-emerald-600 font-bold">{results.correct}</p><p className="text-[10px] text-muted-foreground">Correct</p></div>
-              <div className="bg-red-500/10 rounded-lg p-2"><p className="text-red-500 font-bold">{results.wrong}</p><p className="text-[10px] text-muted-foreground">Wrong</p></div>
-              <div className="bg-muted rounded-lg p-2"><p className="font-bold">{results.skipped}</p><p className="text-[10px] text-muted-foreground">Skipped</p></div>
-            </div>
-          </CardContent>
-        </Card>
-        <div className="space-y-3">
-          {questions.map((q, i) => {
-            const sel = answers[q.id];
-            const isCorrect = sel && sel.toUpperCase() === String(q.correct_option).toUpperCase();
-            return (
-              <Card key={q.id} className="rounded-[24px]">
-                <CardContent className="p-3 space-y-2">
-                  {q._sliceLabel && <Badge variant="outline">{q._sliceLabel}</Badge>}
-                  <p className="text-sm font-medium flex gap-2"><span className="text-muted-foreground">{i + 1}.</span><MathText text={q.question_text} /></p>
-                  <div className="flex items-center gap-2 text-xs">
-                    {sel ? (isCorrect ? <CheckCircle2 className="h-4 w-4 text-emerald-500" /> : <XCircle className="h-4 w-4 text-red-500" />) : <Badge variant="secondary">Skipped</Badge>}
-                    <span>আপনার উত্তর: {sel || "—"} | সঠিক: {q.correct_option}</span>
+      <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
+        <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
+          <div className="flex flex-col gap-1">
+            <Button variant="ghost" onClick={() => navigate("/dashboard/admission-test")} className="pl-0 h-7 self-start">
+              <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
+            </Button>
+          </div>
+
+          {/* Score Card */}
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="px-2 py-3 md:p-4">
+              <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-6">
+                <div className="text-center md:text-left w-full md:w-auto pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4">
+                  <h1 className="text-2xl font-extrabold mb-0.5">{test?.title || "Admission Test"}</h1>
+                  <p className="text-xs text-muted-foreground">Submitted just now</p>
+                </div>
+
+                <div className="flex-1 flex flex-row items-center justify-center gap-2 md:gap-6 w-full pb-2 md:pb-0 border-b md:border-b-0 md:border-r border-border/60 md:pr-4 overflow-x-hidden">
+                  <div className="text-center flex-shrink min-w-0 pr-2 md:pr-4 border-r-2 border-border">
+                    <div className="text-3xl md:text-4xl font-extrabold text-primary whitespace-nowrap">
+                      {results.score.toFixed(2)}
+                      <span className="text-3xl md:text-4xl text-muted-foreground font-extrabold"> / {totalMarks}</span>
+                    </div>
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground mt-0.5">Marks Obtained</div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+
+                  <div className="shrink-0" style={{ height: 130, width: 155, minWidth: 155 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ top: 10, right: 8, bottom: 10, left: 0 }}>
+                        <Pie
+                          data={pieData}
+                          cx="30%"
+                          cy="50%"
+                          innerRadius={24}
+                          outerRadius={38}
+                          paddingAngle={2}
+                          dataKey="value"
+                          isAnimationActive={false}
+                          label={({ cx, cy, midAngle, outerRadius: r, index }) => {
+                            const RAD = Math.PI / 180;
+                            const sx = cx + r * Math.cos(-midAngle * RAD);
+                            const sy = cy + r * Math.sin(-midAngle * RAD);
+                            const labelY = cy + (index - (pieData.length - 1) / 2) * 20;
+                            const ex = cx + r + 20;
+                            return (
+                              <g>
+                                <polyline points={`${sx},${sy} ${ex},${labelY}`} stroke="#94a3b8" fill="none" />
+                                <text x={ex + 4} y={labelY} textAnchor="start" dominantBaseline="central" fontSize={12} fill={pieData[index as number]?.color}>
+                                  {`${Math.round(pieData[index as number]?.percent ?? 0)}%`}
+                                </text>
+                              </g>
+                            );
+                          }}
+                          minAngle={18}
+                          labelLine={false}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value: number, name: string) => [`${value} (${pieTotal > 0 ? Math.round((value / pieTotal) * 100) : 0}%)`, name]} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 justify-between w-full md:w-auto md:flex-col md:gap-1.5 text-center">
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Correct</div>
+                    <div className="text-lg font-bold text-green-600 order-2 md:order-1">{results.correct}</div>
+                  </div>
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Wrong</div>
+                    <div className="text-lg font-bold text-red-500 order-2 md:order-1">{results.wrong}</div>
+                  </div>
+                  <div className="flex-1 border rounded-lg p-1.5 flex flex-row md:flex-col items-center justify-center gap-2 bg-background/50 md:bg-transparent md:border-0 md:p-0">
+                    <div className="text-[10px] uppercase font-bold text-muted-foreground order-1 md:order-2">Skipped</div>
+                    <div className="text-lg font-bold text-slate-400 order-2 md:order-1">{results.skipped}</div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Formula Card */}
+          <Card className="bg-card border-border shadow-sm">
+            <CardContent className="px-2 py-4 md:p-6">
+              <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
+                <Calculator className="h-5 w-5" /> Score Breakdown
+              </h3>
+              <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+                <div className="p-2 md:p-3 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
+                  <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Correct</div>
+                  <div className="text-base md:text-xl font-bold text-green-600 font-mono">+{(results.correct * 1).toFixed(2)}</div>
+                </div>
+                <div className="p-2 md:p-3 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
+                  <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Negative</div>
+                  <div className="text-base md:text-xl font-bold text-red-500 font-mono">-{(results.wrong * Number(test?.negative_mark_per_question || 0)).toFixed(2)}</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Filters */}
+          <div className="flex flex-wrap gap-2 pb-2 pt-2">
+            {[
+              { label: "All", value: "all", count: questions.length },
+              { label: "Correct", value: "correct", count: results.correct },
+              { label: "Incorrect", value: "incorrect", count: results.wrong },
+              { label: "Skipped", value: "skipped", count: results.skipped },
+            ].map((f) => (
+              <button
+                key={f.value}
+                onClick={() => setFilter(f.value as any)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs sm:text-sm font-medium border transition-colors",
+                  filter === f.value
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-border hover:bg-muted"
+                )}
+              >
+                {f.label} ({f.count})
+              </button>
+            ))}
+          </div>
+
+          {/* Questions List */}
+          <div className="space-y-6">
+            {filteredQuestions.map((q) => {
+              const idx = questions.findIndex((qq) => qq.id === q.id);
+              const sel = answers[q.id];
+              const isCorrect = sel && sel.toUpperCase() === String(q.correct_option).toUpperCase();
+              const isSkipped = !sel;
+              const isWrong = !isCorrect && !isSkipped;
+
+              return (
+                <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border max-w-full">
+                  <CardContent className="px-2 py-5 space-y-2 max-w-full overflow-x-hidden">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={cn(
+                        "text-xs font-bold px-2.5 py-1 rounded-full",
+                        isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
+                        isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                        "bg-muted text-muted-foreground"
+                      )}>
+                        {idx + 1}/{questions.length}
+                      </span>
+                      {q._sliceLabel && <Badge variant="outline">{q._sliceLabel}</Badge>}
+                    </div>
+
+                    <div className="flex items-start gap-4">
+                      <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
+                          <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-2">
+                      {(["A", "B", "C", "D", "E"] as const).map((optionKey) => {
+                        const optionText = (q as any)[`option_${optionKey.toLowerCase()}`];
+                        if (!optionText) return null;
+                        const isSelected = sel === optionKey;
+                        const isCorrectOption = String(q.correct_option).toUpperCase() === optionKey;
+
+                        let circleClass = "border-muted-foreground/30 text-muted-foreground";
+                        let icon: JSX.Element = <span className="text-sm font-bold">{optionKey}</span>;
+
+                        if (isCorrectOption) {
+                          circleClass = "bg-green-500 border-green-500 text-white";
+                          icon = <Check className="h-4 w-4" />;
+                        } else if (isSelected) {
+                          circleClass = "bg-red-500 border-red-500 text-white";
+                          icon = <X className="h-4 w-4" />;
+                        }
+
+                        return (
+                          <div key={optionKey} className="flex items-start gap-4 max-w-full">
+                            <div className={cn("flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all mt-0.5", circleClass)}>
+                              {icon}
+                            </div>
+                            <div className={cn(
+                              "flex-1 min-w-0 text-base whitespace-pre-line pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain",
+                              isCorrectOption ? "text-green-700 dark:text-green-400 font-medium bg-green-500/5 border-green-500/40" :
+                              isSelected ? "text-red-600 dark:text-red-400 bg-red-500/5 border-red-500/40" : "text-foreground border-border/60"
+                            )}>
+                              <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && (
+                      <div className="mt-4 pt-4 border-t border-dashed">
+                        <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
+                        <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
+                          <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
         </div>
       </div>
     );
