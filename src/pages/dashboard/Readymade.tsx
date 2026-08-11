@@ -377,18 +377,33 @@ const Readymade = () => {
                     { key: "paper_final", label: "Paper Final" },
                     { key: "full_model", label: "Full Model Test" },
                   ] as const).map((m) => (
-                    <Button
-                      key={m.key}
-                      variant="outline"
-                      size="sm"
-                      className="h-auto py-2 text-xs w-full justify-start"
-                      onClick={() => {
-                        setActiveTypePanel(null);
-                        navigate(`/dashboard/admission-test?category=${c.key}&mode=${m.key}`);
-                      }}
-                    >
-                      {m.label}
-                    </Button>
+                    <div key={m.key} className="relative">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-auto py-2 text-xs w-full justify-start"
+                        onClick={() => {
+                          setActiveTypePanel(null);
+                          navigate(`/dashboard/admission-test?category=${c.key}&mode=${m.key}`);
+                        }}
+                      >
+                        {m.label}
+                      </Button>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          aria-label={`Add ${m.label} config for ${c.label}`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveTypePanel(null);
+                            navigate(`/dashboard/admin/admission-test?category=${c.key}&mode=${m.key}`);
+                          }}
+                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>

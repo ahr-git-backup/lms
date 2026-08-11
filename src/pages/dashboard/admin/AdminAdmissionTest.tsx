@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Plus, Trash2, Pencil, X, Save, ChevronDown, ChevronUp, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -218,7 +219,7 @@ function ModeTab({ testId, mode }: { testId: string; mode: Mode }) {
   );
 }
 
-function TestCard({ test, onChanged }: { test: any; onChanged: () => void }) {
+function TestCard({ test, onChanged, defaultMode }: { test: any; onChanged: () => void; defaultMode?: Mode }) {
   const { toast } = useToast();
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(test.title);
@@ -257,7 +258,7 @@ function TestCard({ test, onChanged }: { test: any; onChanged: () => void }) {
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="subject_final">
+        <Tabs defaultValue={defaultMode || "subject_final"}>
           <TabsList className="grid grid-cols-3 w-full">
             <TabsTrigger value="subject_final">Subject Final</TabsTrigger>
             <TabsTrigger value="paper_final">Paper Final</TabsTrigger>
@@ -274,7 +275,8 @@ function TestCard({ test, onChanged }: { test: any; onChanged: () => void }) {
 
 export default function AdminAdmissionTest() {
   const { toast } = useToast();
-  const [category, setCategory] = useState<Category>("medical");
+  const [params] = useSearchParams();
+  const [category, setCategory] = useState<Category>((params.get("category") as Category) || "medical");
   const [newTitle, setNewTitle] = useState("");
 
   const { data: tests, refetch } = useQuery({
@@ -310,7 +312,7 @@ export default function AdminAdmissionTest() {
       </div>
 
       <div className="space-y-4">
-        {(tests || []).map((t: any) => <TestCard key={t.id} test={t} onChanged={refetch} />)}
+        {(tests || []).map((t: any) => <TestCard key={t.id} test={t} onChanged={refetch} defaultMode={(params.get("mode") as Mode) || undefined} />)}
         {(tests || []).length === 0 && <p className="text-sm text-muted-foreground text-center py-8">এখনো কোনো টেস্ট নেই</p>}
       </div>
     </div>
