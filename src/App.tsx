@@ -71,6 +71,8 @@ import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
 import AdminAdmissionTest from "./pages/dashboard/admin/AdminAdmissionTest";
+import AdmissionTest from "./pages/dashboard/AdmissionTest";
+import AdmissionTestPlay from "./pages/dashboard/AdmissionTestPlay";
 import AdminSyllabusTracker from "./pages/dashboard/admin/AdminSyllabusTracker";
 import AdminTelegramChannels from "./pages/dashboard/admin/AdminTelegramChannels";
 import ExamCreator from "./pages/dashboard/admin/ExamCreator";
@@ -209,6 +211,8 @@ const App = () => {
                 <Route path="program" element={<ErrorBoundary><Program /></ErrorBoundary>} />
                 <Route path="calendar" element={<ErrorBoundary><ExamCalendar /></ErrorBoundary>} />
                 <Route path="readymade" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
+                <Route path="admission-test" element={<ErrorBoundary><AdmissionTest /></ErrorBoundary>} />
+                <Route path="admission-test/play" element={<ErrorBoundary><AdmissionTestPlay /></ErrorBoundary>} />
                 <Route path="readymade/category/:categoryName" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
                 <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />

@@ -252,6 +252,16 @@ const Readymade = () => {
   return (
     <div className="space-y-2 readymade-page">
       <ErrorBoundary label="Readymade header">
+      <button
+        onClick={() => navigate("/dashboard/admission-test")}
+        className="w-full flex items-center justify-between gap-3 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-transparent p-3 hover:border-primary transition-colors"
+      >
+        <div className="text-left">
+          <p className="font-semibold text-sm">🎯 Admission Test (Medical / Varsity)</p>
+          <p className="text-xs text-muted-foreground">Subject Final, Paper Final ও Full Model Test</p>
+        </div>
+        <span className="text-primary text-sm font-medium shrink-0">দেখুন →</span>
+      </button>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
         <div className="relative">
