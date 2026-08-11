@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, Clock, Check, X, ArrowLeft, LayoutGrid, Lock, Calculator } from "lucide-react";
+import { Loader2, Clock, Check, X, ArrowLeft, LayoutGrid, Lock, Calculator, AlertTriangle, Repeat, FileDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { cn } from "@/lib/utils";
 import MathText from "@/components/MathText";
+import { openSolvePdf } from "@/lib/solvePdf";
 
 type Mode = "subject_final" | "paper_final" | "full_model";
 
@@ -45,6 +46,21 @@ export default function AdmissionTestPlay() {
   const autoSubmitTriggered = useRef(false);
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("is_second_timer, ssc_gpa, hsc_gpa")
+        .eq("id", user.id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: test } = useQuery({
     queryKey: ["admission-test-single", testId],
@@ -187,6 +203,19 @@ export default function AdmissionTestPlay() {
       return isCorrect ? sum + (Number(q.marks) || 1) : sum;
     }, 0);
     const negativeMarks = results.wrong * Number(test?.negative_mark_per_question || 0);
+    const rawScore = correctMarks - negativeMarks;
+    const finalScore = results.score;
+    const deduction = Math.max(0, rawScore - finalScore);
+
+    // GPA Calculation (Without GPA / With GPA) — same formula as ExamReview
+    const sscGpa = Number(profile?.ssc_gpa) || 0;
+    const hscGpa = Number(profile?.hsc_gpa) || 0;
+    const gpaScore = (sscGpa * 8) + (hscGpa * 12);
+    const gpaDeduction = 100 - gpaScore;
+    const withGpaScore = finalScore + gpaScore;
+    const withGpaTotalMarks = totalMarks + 100;
+    const mainExamScoreDisplay = gpaScore > 0 ? finalScore - gpaDeduction : finalScore;
+
     const pieTotal = results.correct + results.wrong + results.skipped;
     const pieData = [
       { name: "Correct", value: results.correct, color: "#16a34a" },
@@ -204,6 +233,31 @@ export default function AdmissionTestPlay() {
       return true;
     });
 
+    const handlePracticeAgain = () => {
+      navigate(`/dashboard/admission-test/play?mode=${mode}&refId=${refId || ""}&testId=${testId}`);
+      window.location.reload();
+    };
+
+    const handleSolvePdf = () => {
+      openSolvePdf({
+        examName: test?.title || "Admission Test",
+        questions: questions.map((q) => ({
+          question_text: q.question_text,
+          option_a: q.option_a,
+          option_b: q.option_b,
+          option_c: q.option_c,
+          option_d: q.option_d,
+          option_e: q.option_e || undefined,
+          correct_option: q.correct_option,
+          user_answer: answers[q.id] || null,
+          explanation: q.explanation || undefined,
+        })),
+        totalMarks,
+        score: finalScore,
+        style: "style1",
+      });
+    };
+
     return (
       <div className="min-h-screen bg-background font-sans pb-20 -mt-4">
         <div className="container max-w-4xl mx-auto px-[5px] pt-0 pb-2 md:pt-0 md:pb-6 md:px-6 space-y-2 overflow-x-hidden">
@@ -211,6 +265,14 @@ export default function AdmissionTestPlay() {
             <Button variant="ghost" onClick={() => navigate("/dashboard/admission-test")} className="pl-0 h-7 self-start">
               <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
             </Button>
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+              <Button variant="outline" onClick={handlePracticeAgain} className="h-10 px-3 py-2 w-full sm:w-auto">
+                <Repeat className="h-5 w-5 mr-1.5 text-primary shrink-0" /> <span className="truncate">Practice Again</span>
+              </Button>
+              <Button variant="outline" onClick={handleSolvePdf} className="h-10 px-3 py-2 w-full sm:w-auto">
+                <FileDown className="h-5 w-5 mr-1.5 text-blue-500 shrink-0" /> <span className="truncate">Solve PDF</span>
+              </Button>
+            </div>
           </div>
 
           {/* Score Card */}
@@ -295,7 +357,11 @@ export default function AdmissionTestPlay() {
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-muted-foreground">
                 <Calculator className="h-5 w-5" /> Score Breakdown
               </h3>
-              <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
+              <div className={cn(
+                "grid gap-2 text-xs md:text-sm",
+                gpaScore > 0 && deduction > 0.01 ? "grid-cols-2 sm:grid-cols-4" :
+                (gpaScore > 0 || deduction > 0.01) ? "grid-cols-3" : "grid-cols-2"
+              )}>
                 <div className="p-2 md:p-3 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
                   <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Correct</div>
                   <div className="text-base md:text-xl font-bold text-green-600 font-mono">+{correctMarks.toFixed(2)}</div>
@@ -304,18 +370,78 @@ export default function AdmissionTestPlay() {
                   <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Negative</div>
                   <div className="text-base md:text-xl font-bold text-red-500 font-mono">-{negativeMarks.toFixed(2)}</div>
                 </div>
+
+                {deduction > 0.01 && (
+                  <div className="p-2 md:p-3 bg-orange-500/5 rounded-lg border border-orange-500/20 text-center">
+                    <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">2nd Timer Deduction</div>
+                    <div className="text-base md:text-xl font-bold text-orange-500 font-mono">-{deduction.toFixed(2)}</div>
+                  </div>
+                )}
+
+                {gpaScore > 0 && (
+                  <div className="p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-center">
+                    <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">GPA Deduction</div>
+                    <div className="text-base md:text-xl font-bold text-indigo-600 font-mono">-{gpaDeduction.toFixed(2)}</div>
+                  </div>
+                )}
               </div>
+
+              {gpaScore > 0 && (
+                <div className="mt-2 p-2 md:p-3 bg-indigo-500/5 rounded-lg border border-indigo-500/20 text-[10px] md:text-xs text-muted-foreground space-y-1">
+                  <div className="flex justify-between">
+                    <span>SSC GPA ({sscGpa.toFixed(2)}) × 8</span>
+                    <span className="font-mono font-semibold text-foreground">{(sscGpa * 8).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>HSC GPA ({hscGpa.toFixed(2)}) × 12</span>
+                    <span className="font-mono font-semibold text-foreground">{(hscGpa * 12).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
+                    <span className="font-semibold">GPA Score (Total)</span>
+                    <span className="font-mono font-semibold text-indigo-600">{gpaScore.toFixed(2)} / 100</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="font-semibold">GPA Deduction (100 − {gpaScore.toFixed(2)})</span>
+                    <span className="font-mono font-semibold text-red-500">-{gpaDeduction.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-dashed border-indigo-500/30 pt-1">
+                    <span>Main Exam Score (Correct − Negative − 2nd Timer − GPA Deduction)</span>
+                    <span className="font-mono font-semibold text-foreground">{mainExamScoreDisplay.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-t border-indigo-500/30 pt-1">
+                    <span className="font-bold text-indigo-700 dark:text-indigo-300">With GPA Total ({finalScore.toFixed(2)} + {gpaScore.toFixed(2)})</span>
+                    <span className="font-mono font-bold text-indigo-600">{withGpaScore.toFixed(2)} / {withGpaTotalMarks}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Final Score */}
               <div className="mt-3 p-3 md:p-4 bg-primary/5 rounded-xl border border-primary/20">
                 <div className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground mb-2 text-center">Final Score</div>
-                <div className="text-center">
-                  <div className="text-lg md:text-2xl font-bold text-primary font-mono">
-                    {results.score.toFixed(2)}
-                    <span className="text-sm md:text-base text-muted-foreground font-bold"> /{totalMarks}</span>
+                <div className={cn("grid gap-2", gpaScore > 0 ? "grid-cols-2" : "grid-cols-1")}>
+                  <div className="text-center">
+                    <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">Main Score</div>
+                    <div className="text-lg md:text-2xl font-bold text-primary font-mono">{mainExamScoreDisplay.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{totalMarks}</span></div>
                   </div>
+                  {gpaScore > 0 && (
+                    <div className="text-center border-l-2 border-border">
+                      <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-0.5">With GPA Score</div>
+                      <div className="text-lg md:text-2xl font-bold text-indigo-600 font-mono">{withGpaScore.toFixed(2)}<span className="text-sm md:text-base text-muted-foreground font-bold"> /{withGpaTotalMarks}</span></div>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Second Timer Warning */}
+              {profile?.is_second_timer && (
+                <div className="mt-4 pt-4 border-t border-dashed flex items-start gap-2 text-xs text-muted-foreground">
+                  <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                  <p>
+                    সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
+                  </p>
+                </div>
+              )}
+
             </CardContent>
           </Card>
 
