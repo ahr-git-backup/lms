@@ -1,5 +1,6 @@
 -- Change 2nd Timer deduction from tiered fixed marks (1 / 1.5 / 3 based on
--- question count) to a flat 3% cut of the raw score, for every exam.
+-- question count) to a flat 3% cut of the exam's TOTAL MCQ marks (not raw
+-- score), for every exam.
 -- Applies to: submit_exam_attempt (guest-aware version), recalculate_exam_results,
 -- recalculate_exam_attempts_for_exam.
 
@@ -96,8 +97,8 @@ BEGIN
         WHERE id = v_user_id;
 
         IF v_is_second_timer AND NOT v_disable_second_timer_deduction THEN
-            -- Flat 3% deduction of the raw score (only applied when it helps, i.e. positive score)
-            v_deduction := GREATEST(v_raw_score, 0) * 0.03;
+            -- Flat 3% deduction of the exam's total marks
+            v_deduction := v_exam_total_marks * 0.03;
         END IF;
     END IF;
 
@@ -150,10 +151,11 @@ DECLARE
     v_question_marks NUMERIC;
     v_correct_option TEXT;
     v_deduction NUMERIC := 0;
+    v_exam_total_marks NUMERIC;
     v_disable_second_timer_deduction BOOLEAN := false;
 BEGIN
-    SELECT COALESCE(negative_mark_per_question, 0), COALESCE(disable_second_timer_deduction, false)
-    INTO v_negative_mark, v_disable_second_timer_deduction
+    SELECT COALESCE(negative_mark_per_question, 0), COALESCE(disable_second_timer_deduction, false), COALESCE(total_marks, 0)
+    INTO v_negative_mark, v_disable_second_timer_deduction, v_exam_total_marks
     FROM public.exams
     WHERE id = p_exam_id;
 
@@ -182,7 +184,7 @@ BEGIN
         WHERE id = v_attempt.profile_id;
 
         IF v_is_second_timer AND NOT v_disable_second_timer_deduction THEN
-            v_deduction := GREATEST(v_raw_score, 0) * 0.03;
+            v_deduction := v_exam_total_marks * 0.03;
         END IF;
 
         UPDATE public.exam_attempts
@@ -211,9 +213,10 @@ DECLARE
     v_raw_score NUMERIC;
     v_deduction NUMERIC;
     v_is_second_timer BOOLEAN;
+    v_exam_total_marks NUMERIC;
     v_updated_count INTEGER := 0;
 BEGIN
-    SELECT COALESCE(negative_mark_per_question, 0) INTO v_negative_mark
+    SELECT COALESCE(negative_mark_per_question, 0), COALESCE(total_marks, 0) INTO v_negative_mark, v_exam_total_marks
     FROM public.exams
     WHERE id = p_exam_id;
 
@@ -246,7 +249,7 @@ BEGIN
         WHERE id = v_attempt.profile_id;
 
         IF v_is_second_timer THEN
-            v_deduction := GREATEST(v_raw_score, 0) * 0.03;
+            v_deduction := v_exam_total_marks * 0.03;
         END IF;
 
         UPDATE public.exam_attempts

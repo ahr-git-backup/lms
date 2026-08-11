@@ -108,8 +108,12 @@ export default function AdmissionTestPlay() {
       if (sel.toUpperCase() === String(q.correct_option).toUpperCase()) { correct++; score += perQMark; }
       else { wrong++; score -= negPerQ; }
     }
-    return { correct, wrong, skipped, score, total: questions.length };
-  }, [questions, answers, test]);
+    // 2nd Timer: flat 3% deduction of the test's total MCQ marks (not raw score)
+    const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 1), 0);
+    const secondTimerDeduction = profile?.is_second_timer ? totalMarks * 0.03 : 0;
+    score -= secondTimerDeduction;
+    return { correct, wrong, skipped, score, total: questions.length, secondTimerDeduction };
+  }, [questions, answers, test, profile]);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
