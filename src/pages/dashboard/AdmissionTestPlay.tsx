@@ -181,6 +181,12 @@ export default function AdmissionTestPlay() {
 
   if (submitted && results) {
     const totalMarks = questions.reduce((s, q) => s + (Number(q.marks) || 1), 0);
+    const correctMarks = questions.reduce((sum, q) => {
+      const sel = answers[q.id];
+      const isCorrect = sel && sel.toUpperCase() === String(q.correct_option).toUpperCase();
+      return isCorrect ? sum + (Number(q.marks) || 1) : sum;
+    }, 0);
+    const negativeMarks = results.wrong * Number(test?.negative_mark_per_question || 0);
     const pieTotal = results.correct + results.wrong + results.skipped;
     const pieData = [
       { name: "Correct", value: results.correct, color: "#16a34a" },
@@ -292,11 +298,22 @@ export default function AdmissionTestPlay() {
               <div className="grid grid-cols-2 gap-2 text-xs md:text-sm">
                 <div className="p-2 md:p-3 bg-green-500/5 rounded-lg border border-green-500/20 text-center">
                   <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Correct</div>
-                  <div className="text-base md:text-xl font-bold text-green-600 font-mono">+{(results.correct * 1).toFixed(2)}</div>
+                  <div className="text-base md:text-xl font-bold text-green-600 font-mono">+{correctMarks.toFixed(2)}</div>
                 </div>
                 <div className="p-2 md:p-3 bg-red-500/5 rounded-lg border border-red-500/20 text-center">
                   <div className="text-[10px] md:text-xs text-muted-foreground font-bold uppercase mb-1">Negative</div>
-                  <div className="text-base md:text-xl font-bold text-red-500 font-mono">-{(results.wrong * Number(test?.negative_mark_per_question || 0)).toFixed(2)}</div>
+                  <div className="text-base md:text-xl font-bold text-red-500 font-mono">-{negativeMarks.toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Final Score */}
+              <div className="mt-3 p-3 md:p-4 bg-primary/5 rounded-xl border border-primary/20">
+                <div className="text-[10px] md:text-xs font-bold uppercase text-muted-foreground mb-2 text-center">Final Score</div>
+                <div className="text-center">
+                  <div className="text-lg md:text-2xl font-bold text-primary font-mono">
+                    {results.score.toFixed(2)}
+                    <span className="text-sm md:text-base text-muted-foreground font-bold"> /{totalMarks}</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
