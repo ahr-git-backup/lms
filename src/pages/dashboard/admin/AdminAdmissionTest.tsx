@@ -20,23 +20,68 @@ const CATEGORY_LABEL: Record<Category, string> = {
   varsity: "ভার্সিটি এডমিশন টেস্ট",
 };
 
-// ---------- Source picker: pick an exam (with subject/chapter shown) as a random-pull source ----------
-function SourcePicker({ sources, onAdd, onRemove }: { sources: any[]; onAdd: (examId: string, examTitle: string, subject: string | null, chapter: string | null) => void; onRemove: (id: string) => void; }) {
-  const [search, setSearch] = useState("");
-  const { data: exams } = useQuery({
-    queryKey: ["admission-source-exams", search],
+// ---------- Source picker: Question Bank drill-down (Category -> Subjects -> Chapters -> Exams) ----------
+function SourcePickerDialog({ sources, onAdd, onRemove }: { sources: any[]; onAdd: (examId: string, examTitle: string) => void; onRemove: (id: string) => void; }) {
+  const [open, setOpen] = useState(false);
+  const [view, setView] = useState<"category" | "subjects" | "chapters" | "exams">("category");
+  const [category, setCategory] = useState<"exams" | "readymade" | "archive" | null>(null);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [chapters, setChapters] = useState<string[]>([]);
+
+  const resetFlow = () => { setView("category"); setCategory(null); setSubjects([]); setChapters([]); };
+
+  const applyCategoryFilter = (q: any) => {
+    if (category === "readymade") return q.eq("is_readymade", true);
+    if (category === "archive") return q.eq("is_archive", true);
+    return q.eq("is_readymade", false).eq("is_archive", false);
+  };
+
+  const { data: subjectsData, isLoading: loadingSubjects } = useQuery({
+    queryKey: ["adm-qb-subjects", category],
+    enabled: view === "subjects" && !!category,
     queryFn: async () => {
-      let q = supabase.from("exams").select("id, title, subject, chapter").order("created_at", { ascending: false }).limit(30);
-      if (search) q = q.ilike("title", `%${search}%`);
+      let q = supabase.from("exams").select("subject");
+      q = applyCategoryFilter(q);
       const { data, error } = await q;
+      if (error) throw error;
+      const set = new Set<string>();
+      (data || []).forEach((e: any) => { if (Array.isArray(e.subject)) e.subject.forEach((s: string) => set.add(s)); });
+      return Array.from(set).sort();
+    },
+  });
+
+  const { data: chaptersData, isLoading: loadingChapters } = useQuery({
+    queryKey: ["adm-qb-chapters", category, subjects],
+    enabled: view === "chapters" && subjects.length > 0,
+    queryFn: async () => {
+      let q = supabase.from("exams").select("chapter, subject");
+      q = applyCategoryFilter(q).overlaps("subject", subjects);
+      const { data, error } = await q;
+      if (error) throw error;
+      const set = new Set<string>();
+      (data || []).forEach((e: any) => { if (e.chapter) set.add(e.chapter); });
+      return Array.from(set).sort();
+    },
+  });
+
+  const { data: examsData, isLoading: loadingExams } = useQuery({
+    queryKey: ["adm-qb-exams", category, subjects, chapters],
+    enabled: view === "exams" && subjects.length > 0,
+    queryFn: async () => {
+      let q = supabase.from("exams").select("id, title, subject, chapter");
+      q = applyCategoryFilter(q).overlaps("subject", subjects);
+      if (chapters.length > 0) q = q.in("chapter", chapters);
+      const { data, error } = await q.order("created_at", { ascending: false });
       if (error) throw error;
       return data || [];
     },
   });
 
+  const alreadyAdded = new Set(sources.map((s) => s.source_exam_id));
+
   return (
     <div className="space-y-2 border rounded-lg p-3 bg-muted/30">
-      <Label className="text-xs">Sources (Question Bank থেকে exam সিলেক্ট করুন — randomly MCQ আসবে)</Label>
+      <Label className="text-xs">Sources (Question Bank থেকে সিলেক্ট — randomly MCQ আসবে)</Label>
       <div className="flex flex-wrap gap-1.5">
         {sources.map((s) => (
           <Badge key={s.id} variant="secondary" className="gap-1">
@@ -46,19 +91,81 @@ function SourcePicker({ sources, onAdd, onRemove }: { sources: any[]; onAdd: (ex
         ))}
         {sources.length === 0 && <span className="text-xs text-muted-foreground">কোনো source সেট করা নেই</span>}
       </div>
-      <Input placeholder="Exam খুঁজুন..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-sm" />
-      <div className="max-h-40 overflow-y-auto space-y-1">
-        {(exams || []).map((e: any) => (
-          <button
-            key={e.id}
-            onClick={() => onAdd(e.id, e.title, e.subject?.[0] || null, e.chapter || null)}
-            className="w-full text-left text-xs p-1.5 rounded hover:bg-accent flex items-center justify-between"
-          >
-            <span className="truncate">{e.title}</span>
-            <Plus className="h-3 w-3 shrink-0" />
-          </button>
-        ))}
-      </div>
+      <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetFlow(); }}>
+        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setOpen(true)}><Plus className="h-3 w-3 mr-1" />Source যোগ করুন</Button>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader><DialogTitle>Question Bank থেকে Source নির্বাচন</DialogTitle></DialogHeader>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            {view !== "category" && (
+              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => {
+                if (view === "exams") setView("chapters");
+                else if (view === "chapters") setView("subjects");
+                else if (view === "subjects") { setCategory(null); setView("category"); }
+              }}><ChevronDown className="h-3.5 w-3.5 rotate-90" /></Button>
+            )}
+            <span className={view === "category" ? "font-semibold text-foreground" : ""}>Category</span>
+            {category && <><span>/</span><span className={view === "subjects" ? "font-semibold text-foreground" : ""}>{category}</span></>}
+            {subjects.length > 0 && <><span>/</span><span className={view === "chapters" ? "font-semibold text-foreground" : ""}>{subjects.length} Subject</span></>}
+            {chapters.length > 0 && <><span>/</span><span className={view === "exams" ? "font-semibold text-foreground" : ""}>{chapters.length} Chapter</span></>}
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {view === "category" && (
+              <div className="grid grid-cols-3 gap-2">
+                {(["exams", "readymade", "archive"] as const).map((c) => (
+                  <button key={c} className="p-4 border rounded-lg hover:border-primary hover:bg-accent text-sm font-medium capitalize" onClick={() => { setCategory(c); setView("subjects"); }}>{c}</button>
+                ))}
+              </div>
+            )}
+            {view === "subjects" && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Subject(s) সিলেক্ট করুন</span>
+                  <Button size="sm" className="h-7 text-xs" disabled={subjects.length === 0} onClick={() => setView("chapters")}>Continue ({subjects.length})</Button>
+                </div>
+                {loadingSubjects ? <p className="text-xs text-muted-foreground">Loading...</p> : (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(subjectsData || []).map((s: string) => (
+                      <button key={s} onClick={() => setSubjects((p) => p.includes(s) ? p.filter((x) => x !== s) : [...p, s])} className={`p-2 rounded border text-xs ${subjects.includes(s) ? "bg-primary/10 border-primary text-primary" : "hover:bg-accent"}`}>{s}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {view === "chapters" && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Chapter (ঐচ্ছিক, না দিলে সব চ্যাপ্টার)</span>
+                  <Button size="sm" className="h-7 text-xs" onClick={() => setView("exams")}>Continue ({chapters.length || "সব"})</Button>
+                </div>
+                {loadingChapters ? <p className="text-xs text-muted-foreground">Loading...</p> : (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {(chaptersData || []).map((c: string) => (
+                      <button key={c} onClick={() => setChapters((p) => p.includes(c) ? p.filter((x) => x !== c) : [...p, c])} className={`p-2 rounded border text-xs ${chapters.includes(c) ? "bg-primary/10 border-primary text-primary" : "hover:bg-accent"}`}>{c}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {view === "exams" && (
+              <div className="space-y-1.5">
+                {loadingExams ? <p className="text-xs text-muted-foreground">Loading...</p> : (examsData || []).length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">কোনো exam পাওয়া যায়নি</p> : (
+                  (examsData || []).map((e: any) => (
+                    <div key={e.id} className="flex items-center justify-between p-2 border rounded-lg text-sm">
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate">{e.title}</p>
+                        <div className="flex gap-1 mt-0.5">{(e.subject || []).slice(0, 2).map((s: string) => <Badge key={s} variant="secondary" className="text-[9px] py-0">{s}</Badge>)}</div>
+                      </div>
+                      <Button size="sm" variant={alreadyAdded.has(e.id) ? "secondary" : "outline"} className="h-7 text-xs shrink-0 ml-2" disabled={alreadyAdded.has(e.id)} onClick={() => { onAdd(e.id, e.title); }}>
+                        {alreadyAdded.has(e.id) ? "যোগ হয়েছে" : "যোগ করুন"}
+                      </Button>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -97,7 +204,7 @@ function SliceRow({ table, sourceTable, sourceFk, row, nameField, onChanged }: {
     onChanged();
   };
 
-  const addSource = async (examId: string, examTitle: string, subject: string | null, chapter: string | null) => {
+  const addSource = async (examId: string, examTitle: string) => {
     // @ts-expect-error dynamic table
     const { error } = await supabase.from(sourceTable).insert({ [sourceFk]: row.id, source_exam_id: examId });
     if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
@@ -139,7 +246,7 @@ function SliceRow({ table, sourceTable, sourceFk, row, nameField, onChanged }: {
           <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={remove}><Trash2 className="h-3.5 w-3.5" /></Button>
         </div>
       </div>
-      {expanded && <SourcePicker sources={sources || []} onAdd={addSource} onRemove={removeSource} />}
+      {expanded && <SourcePickerDialog sources={sources || []} onAdd={addSource} onRemove={removeSource} />}
     </div>
   );
 }
