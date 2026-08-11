@@ -125,7 +125,6 @@ const Readymade = () => {
   const [currentBoardsList, setCurrentBoardsList] = useState<string[]>([]);
   const [currentSubChaptersList, setCurrentSubChaptersList] = useState<string[]>([]);
   const [manageSubjects, setManageSubjects] = useState(false);
-  const [modelTestCategory, setModelTestCategory] = useState<"medical" | "varsity" | null>(null);
   const { data: enrollments, isLoading: loadingEnrollments } = useEnrollments();
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
@@ -361,54 +360,40 @@ const Readymade = () => {
       </Dialog>
 
       <Dialog open={activeTypePanel === "model-test"} onOpenChange={(o) => setActiveTypePanel(o ? "model-test" : null)}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
           </DialogHeader>
-          {!modelTestCategory ? (
-            <div className="grid grid-cols-1 gap-2">
-              {([
-                { key: "medical", label: "মেডিকেল এডমিশন টেস্ট" },
-                { key: "varsity", label: "ভার্সিটি এডমিশন টেস্ট" },
-              ] as const).map((c) => (
-                <Button
-                  key={c.key}
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-3 text-sm w-full"
-                  onClick={() => setModelTestCategory(c.key)}
-                >
-                  {c.label}
-                </Button>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Button variant="ghost" size="sm" className="text-xs -ml-2" onClick={() => setModelTestCategory(null)}>← পিছনে</Button>
-              <div className="grid grid-cols-1 gap-2">
-                {([
-                  { key: "subject_final", label: "Subject Final" },
-                  { key: "paper_final", label: "Paper Final" },
-                  { key: "full_model", label: "Full Model Test" },
-                ] as const).map((m) => (
-                  <Button
-                    key={m.key}
-                    variant="outline"
-                    size="sm"
-                    className="h-auto py-2 text-xs w-full"
-                    onClick={() => {
-                      setActiveTypePanel(null);
-                      const cat = modelTestCategory;
-                      setModelTestCategory(null);
-                      navigate(`/dashboard/admission-test?category=${cat}&mode=${m.key}`);
-                    }}
-                  >
-                    {m.label}
-                  </Button>
-                ))}
+          <div className="space-y-4">
+            {([
+              { key: "medical", label: "মেডিকেল এডমিশন টেস্ট" },
+              { key: "varsity", label: "ভার্সিটি এডমিশন টেস্ট" },
+            ] as const).map((c) => (
+              <div key={c.key} className="space-y-2">
+                <p className="text-sm font-semibold text-primary">{c.label}</p>
+                <div className="grid grid-cols-1 gap-2">
+                  {([
+                    { key: "subject_final", label: "Subject Final" },
+                    { key: "paper_final", label: "Paper Final" },
+                    { key: "full_model", label: "Full Model Test" },
+                  ] as const).map((m) => (
+                    <Button
+                      key={m.key}
+                      variant="outline"
+                      size="sm"
+                      className="h-auto py-2 text-xs w-full justify-start"
+                      onClick={() => {
+                        setActiveTypePanel(null);
+                        navigate(`/dashboard/admission-test?category=${c.key}&mode=${m.key}`);
+                      }}
+                    >
+                      {m.label}
+                    </Button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </DialogContent>
       </Dialog>
 
