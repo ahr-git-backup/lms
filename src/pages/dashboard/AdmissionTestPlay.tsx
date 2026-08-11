@@ -437,7 +437,7 @@ export default function AdmissionTestPlay() {
                 <div className="mt-4 pt-4 border-t border-dashed flex items-start gap-2 text-xs text-muted-foreground">
                   <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
                   <p>
-                    সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে কর্তন করা হবে: ৩০ বা তার কম নম্বরের পরীক্ষায় ১ নম্বর, ৩০-৫০ নম্বরের পরীক্ষায় ১.৫ নম্বর, এবং ৫০ এর বেশি নম্বরের পরীক্ষায় ৩ নম্বর।
+                    সেকেন্ড টাইমার হিসেবে আপনার প্রাপ্ত নম্বর থেকে ৩% নম্বর কর্তন করা হবে।
                   </p>
                 </div>
               )}
