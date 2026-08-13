@@ -96,11 +96,26 @@ function FullModelCard({ testId, test }: { testId: string; test: any }) {
   );
 }
 
-function TestBlock({ test, defaultMode }: { test: any; defaultMode?: Mode }) {
+function TestBlock({ test, lockedMode }: { test: any; lockedMode?: Mode }) {
+  // When the user arrived via a specific "মডেল টেস্ট বানাও" mode button, show
+  // ONLY that mode's content — no tabs, no other mode's data.
+  if (lockedMode) {
+    return (
+      <div className="space-y-3">
+        <h2 className="font-semibold text-base flex items-center gap-2"><BookOpen className="h-4 w-4" />{test.title}</h2>
+        {lockedMode === "full_model" ? (
+          <FullModelCard testId={test.id} test={test} />
+        ) : (
+          <SubjectOrPaperList testId={test.id} mode={lockedMode} />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <h2 className="font-semibold text-base flex items-center gap-2"><BookOpen className="h-4 w-4" />{test.title}</h2>
-      <Tabs defaultValue={defaultMode || "subject_final"}>
+      <Tabs defaultValue="subject_final">
         <TabsList className="grid grid-cols-3 w-full">
           <TabsTrigger value="subject_final" className="text-xs">Subject Final</TabsTrigger>
           <TabsTrigger value="paper_final" className="text-xs">Paper Final</TabsTrigger>
@@ -119,6 +134,7 @@ export default function AdmissionTest() {
   const [params] = useSearchParams();
   const initialCategory = (params.get("category") as Category) || "medical";
   const [category, setCategory] = useState<Category>(initialCategory);
+  const lockedMode = (params.get("mode") as Mode) || undefined;
 
   const { data: tests, isLoading } = useQuery({
     queryKey: ["admission-tests-public", category],
@@ -149,7 +165,7 @@ export default function AdmissionTest() {
         <p className="text-sm text-muted-foreground text-center py-10">এখনো কোনো টেস্ট যোগ করা হয়নি</p>
       ) : (
         <div className="space-y-6">
-          {tests.map((t: any) => <TestBlock key={t.id} test={t} defaultMode={(params.get("mode") as Mode) || undefined} />)}
+          {tests.map((t: any) => <TestBlock key={t.id} test={t} lockedMode={lockedMode} />)}
         </div>
       )}
     </div>
