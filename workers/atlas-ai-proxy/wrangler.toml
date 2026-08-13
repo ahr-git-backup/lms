@@ -13,3 +13,11 @@ database_id = "699518e6-288c-4887-a763-84d941afe83e"
 [[r2_buckets]]
 binding = "PDF_BUCKET"
 bucket_name = "atlas-pdfs"
+
+[vars]
+VAPID_PUBLIC_KEY = "BFL06Cf7jFt5fQNITBDHxr88SIMgus-wtrmabfxZ95QgNlPbmkDH5CV7S5CgzgR99G3NqXFncBN8WpRaXmaOzkE"
+VAPID_SUBJECT = "mailto:admin@atlasprep.app"
+
+# Set as secrets (not committed): wrangler secret put VAPID_PRIVATE_KEY
+#   VAPID_PRIVATE_KEY = "4MWZHw-iLPrEcGULoRU-yCapddjCEqoe1j_M8ZK-zhM"
+# SUPABASE_URL / SUPABASE_KEY / D1_API_KEY are also expected as secrets, already used elsewhere in this worker.

@@ -26,6 +26,7 @@ import { ReportFeedbackAlert } from "@/components/ReportFeedbackAlert";
 import { CommunityJoinReminder } from "@/components/CommunityJoinReminder";
 import { AdminReportAlert } from "@/components/AdminReportAlert";
 import { StudyToolsProvider } from "@/contexts/StudyToolsContext";
+import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 
 export const DashboardLayout = () => {
   const { profile, signOut, isAdmin, isTeacher, user } = useAuth();
@@ -257,6 +258,7 @@ export const DashboardLayout = () => {
     <StudyToolsProvider>
     <SidebarProvider>
       <div className="min-h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
+        <PushPermissionPrompt />
         <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-4 supports-[backdrop-filter]:bg-background/60 print:hidden">
           <SidebarTrigger className="mr-3 hidden sm:inline-flex" />
           <div className="flex flex-1 items-center justify-between gap-3">

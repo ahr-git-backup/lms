@@ -116,6 +116,17 @@ const AdminAnnouncements = () => {
       } else {
         const { error } = await supabase.from("announcements").insert(payload);
         if (error) throw error;
+        // Fire-and-forget push notification to all subscribed devices — never blocks the save.
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (!session) return;
+          supabase.functions.invoke("send-push", {
+            body: {
+              title: parsed.title,
+              body: parsed.body || "",
+              url: "/dashboard/announcements",
+            },
+          }).catch(() => { /* best-effort */ });
+        });
       }
     },
     onSuccess: () => {
