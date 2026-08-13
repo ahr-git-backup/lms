@@ -1360,7 +1360,7 @@ async function handlePushSend(request, env) {
   } catch (e) {
     return jsonResponse({ success: false, error: "Invalid JSON body" }, 400);
   }
-  if (!env.D1_API_KEY || body.apiKey !== env.D1_API_KEY) {
+  if (!env.PUSH_API_KEY || body.apiKey !== env.PUSH_API_KEY) {
     return jsonResponse({ success: false, error: "Unauthorized" }, 401);
   }
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) {

@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        apiKey: Deno.env.get("PUSH_WORKER_API_KEY"),
+        apiKey: Deno.env.get("PUSH_API_KEY"),
         title: body.title,
         body: body.body,
         url: body.url,

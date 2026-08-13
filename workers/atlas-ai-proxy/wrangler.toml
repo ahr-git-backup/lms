@@ -18,6 +18,7 @@ bucket_name = "atlas-pdfs"
 VAPID_PUBLIC_KEY = "BFL06Cf7jFt5fQNITBDHxr88SIMgus-wtrmabfxZ95QgNlPbmkDH5CV7S5CgzgR99G3NqXFncBN8WpRaXmaOzkE"
 VAPID_SUBJECT = "mailto:admin@atlasprep.app"
 
-# Set as secrets (not committed): wrangler secret put VAPID_PRIVATE_KEY
+# Set as secrets (not committed): wrangler secret put VAPID_PRIVATE_KEY / PUSH_API_KEY
 #   VAPID_PRIVATE_KEY = "4MWZHw-iLPrEcGULoRU-yCapddjCEqoe1j_M8ZK-zhM"
-# SUPABASE_URL / SUPABASE_KEY / D1_API_KEY are also expected as secrets, already used elsewhere in this worker.
+#   PUSH_API_KEY = "b31fecfc69359ff6e760d3dcf5d2b52eba616ba79f46538b"
+# SUPABASE_URL / SUPABASE_KEY are also expected as secrets, already used elsewhere in this worker.
