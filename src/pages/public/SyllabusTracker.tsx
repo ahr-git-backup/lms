@@ -161,27 +161,33 @@ const SyllabusTracker = () => {
   });
 
   const subjPct = (m: Mode, s: Subject): [number, number, number] => {
-    let t = 0, d = 0;
+    let totalW = 0, doneW = 0, t = 0, d = 0;
     for (const c of s.chapters) for (const tp of c.topics) {
-      t++;
-      if (progress[topicKey(m, s.id, c.id, tp.id)]) d++;
+      const w = tp.weight || 1;
+      t++; totalW += w;
+      if (progress[topicKey(m, s.id, c.id, tp.id)]) { d++; doneW += w; }
     }
-    return [t ? Math.round((d / t) * 100) : 0, t, d];
+    return [totalW ? Math.round((doneW / totalW) * 100) : 0, t, d];
   };
   const chapPct = (s: Subject, c: Chapter) => {
-    let d = 0;
-    for (const tp of c.topics) if (progress[topicKey(mode, s.id, c.id, tp.id)]) d++;
-    return c.topics.length ? Math.round((d / c.topics.length) * 100) : 0;
+    let totalW = 0, doneW = 0;
+    for (const tp of c.topics) {
+      const w = tp.weight || 1;
+      totalW += w;
+      if (progress[topicKey(mode, s.id, c.id, tp.id)]) doneW += w;
+    }
+    return totalW ? Math.round((doneW / totalW) * 100) : 0;
   };
   const overallPct = (m: Mode) => {
     const subs = subjectsByMode[m];
     if (!subs) return 0;
-    let t = 0, d = 0;
+    let totalW = 0, doneW = 0;
     for (const s of subs) for (const c of s.chapters) for (const tp of c.topics) {
-      t++;
-      if (progress[topicKey(m, s.id, c.id, tp.id)]) d++;
+      const w = tp.weight || 1;
+      totalW += w;
+      if (progress[topicKey(m, s.id, c.id, tp.id)]) doneW += w;
     }
-    return t ? Math.round((d / t) * 100) : 0;
+    return totalW ? Math.round((doneW / totalW) * 100) : 0;
   };
   const revOverallPct = (m: Mode) => {
     const subs = subjectsByMode[m];
