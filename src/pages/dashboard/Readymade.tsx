@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import MathText from "@/components/MathText";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -1413,8 +1414,213 @@ const TopicPickerDropdown = ({ examId, navigate, open, setOpen }: { examId: stri
   );
 };
 
+// Admin-only inline dialog on the Readymade card: shows all MCQs of the exam
+// (full question + options) with a range/checkbox bar to assign `topic`
+// directly, without opening the full ExamCreator page.
+const TopicAddDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [rangeTopic, setRangeTopic] = useState("");
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  const [checkboxMode, setCheckboxMode] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [localTopics, setLocalTopics] = useState<Record<string, string | null>>({});
+
+  const { data: questions, isLoading } = useQuery({
+    queryKey: ["topic-add-questions", exam.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("id, question_index, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, topic")
+        .eq("exam_id", exam.id)
+        .order("question_index", { ascending: true });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const initial: Record<string, string | null> = {};
+      (data || []).forEach((q: any) => { initial[q.id] = q.topic || null; });
+      setLocalTopics(initial);
+      return data || [];
+    },
+  });
+
+  const applyRange = () => {
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10);
+    if (!rangeTopic.trim() || isNaN(from) || isNaN(to) || from < 1 || to < from || !questions) return;
+    const next = { ...localTopics };
+    questions.forEach((q: any) => {
+      if (q.question_index >= from && q.question_index <= to) {
+        next[q.id] = rangeTopic.trim();
+      }
+    });
+    setLocalTopics(next);
+    setRangeFrom("");
+    setRangeTo("");
+    toast({ title: `Q${from}-${to} কে "${rangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+  };
+
+  const applyChecked = () => {
+    if (!rangeTopic.trim() || checked.size === 0) return;
+    const next = { ...localTopics };
+    checked.forEach((id) => { next[id] = rangeTopic.trim(); });
+    setLocalTopics(next);
+    setChecked(new Set());
+    toast({ title: `${checked.size} টি প্রশ্নে "${rangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const entries = Object.entries(localTopics);
+      for (const [id, topic] of entries) {
+        const { error } = await supabase.from("exam_questions").update({ topic: topic || null }).eq("id", id);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ["exam-topics", exam.id] });
+      toast({ title: "Topic সেভ হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const distinctTopics = Array.from(new Set(Object.values(localTopics).filter(Boolean))) as string[];
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Topic ভাগ করুন — {exam.title}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3 pb-2 border-b border-border/60">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={rangeTopic}
+              onChange={e => setRangeTopic(e.target.value)}
+              placeholder="Topic নাম"
+              className="h-8 text-xs w-40 rounded-full px-3"
+            />
+            <Input
+              type="number"
+              value={rangeFrom}
+              onChange={e => setRangeFrom(e.target.value)}
+              placeholder="Q# From"
+              className="h-8 text-xs w-24 rounded-full px-3"
+            />
+            <Input
+              type="number"
+              value={rangeTo}
+              onChange={e => setRangeTo(e.target.value)}
+              placeholder="Q# To"
+              className="h-8 text-xs w-24 rounded-full px-3"
+            />
+            <Button size="sm" className="h-8 text-xs rounded-full" disabled={!rangeTopic.trim() || !rangeFrom || !rangeTo} onClick={applyRange}>
+              Range Apply
+            </Button>
+            <Button
+              size="sm"
+              variant={checkboxMode ? "default" : "outline"}
+              className="h-8 text-xs rounded-full"
+              onClick={() => { setCheckboxMode(v => !v); setChecked(new Set()); }}
+            >
+              {checkboxMode ? "Checkbox মোড বন্ধ করুন" : "Checkbox দিয়ে বাছাই করুন"}
+            </Button>
+            {checkboxMode && (
+              <Button size="sm" className="h-8 text-xs rounded-full" disabled={!rangeTopic.trim() || checked.size === 0} onClick={applyChecked}>
+                Selected ({checked.size}) এ Apply করুন
+              </Button>
+            )}
+          </div>
+          {distinctTopics.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {distinctTopics.map((t) => (
+                <span key={t} className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">
+                  {t} · {Object.values(localTopics).filter(v => v === t).length} MCQ
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">Loading...</div>
+        ) : (
+          <div className="space-y-3 py-2">
+            {(questions || []).map((q: any) => (
+              <div
+                key={q.id}
+                className={`p-3 rounded-xl border ${checkboxMode && checked.has(q.id) ? 'border-primary/60 bg-primary/5' : 'border-border/60 bg-card'}`}
+                onClick={() => {
+                  if (!checkboxMode) return;
+                  setChecked(prev => {
+                    const next = new Set(prev);
+                    if (next.has(q.id)) next.delete(q.id); else next.add(q.id);
+                    return next;
+                  });
+                }}
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  {checkboxMode && (
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={checked.has(q.id)}
+                      onChange={() => {
+                        setChecked(prev => {
+                          const next = new Set(prev);
+                          if (next.has(q.id)) next.delete(q.id); else next.add(q.id);
+                          return next;
+                        });
+                      }}
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-muted-foreground">Q{q.question_index}</span>
+                      {localTopics[q.id] && (
+                        <span className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">{localTopics[q.id]}</span>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium"><MathText text={q.question_text} /></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pl-0 sm:pl-6">
+                  {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => {
+                    const val = q[`option_${k}`];
+                    if (!val) return null;
+                    const letter = k.toUpperCase();
+                    return (
+                      <div key={k} className={`p-2 rounded border ${q.correct_option === letter ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                        <span className="font-semibold mr-2">{letter}.</span>
+                        <MathText text={val} inline />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2 border-t border-border/60 sticky bottom-0 bg-background">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>বাতিল</Button>
+          <Button className="flex-1" onClick={handleSave} disabled={saving || isLoading}>{saving ? "সেভ হচ্ছে..." : "সেভ করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [topicAddExam, setTopicAddExam] = useState<any | null>(null);
   // Which exam has its split/topic panel open, and which of the two panels
   // (mutually exclusive per exam) is showing.
   const [openPanelExamId, setOpenPanelExamId] = useState<string | null>(null);
@@ -1483,6 +1689,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
+    {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
     <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -1580,6 +1787,16 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
                   >
                     Split
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
+                  >
+                    Topic Add
                   </Button>
                 )}
               </div>
