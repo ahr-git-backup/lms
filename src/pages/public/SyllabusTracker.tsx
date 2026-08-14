@@ -549,8 +549,8 @@ function LeaderboardView({ lbMode, setLbMode, leaderboard, currentUserId }: { lb
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <button onClick={() => setLbMode("hsc")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC</button>
         <button onClick={() => setLbMode("medical")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical</button>
+        <button onClick={() => setLbMode("hsc")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC</button>
       </div>
       <div className="space-y-1.5">
         {(!leaderboard || leaderboard.length === 0) && <p className="text-center text-xs text-muted-foreground py-8">এখনো কেউ এই মোডে অগ্রগতি রেকর্ড করেনি।</p>}
