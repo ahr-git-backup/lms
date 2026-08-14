@@ -524,11 +524,8 @@ const FocusTimer = () => {
     const handleVisibilityChange = () => {
       if (document.hidden) {
         handleHide();
-      } else {
-        if (runningRef.current && pausedRef.current) {
-          resume();
-        }
       }
+      // ফিরে এসে auto-resume হবে না — ইউজারকে ম্যানুয়ালি Resume বাটনে ক্লিক করতে হবে।
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("pagehide", handleHide);
