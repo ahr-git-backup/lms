@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import MathText from "@/components/MathText";
 
 const ReportMcqDialog = ({
   mcqId,
@@ -540,7 +541,7 @@ const QuickPracticePlay = () => {
                         </button>
                       </div>
                     </div>
-                    <p className="text-sm font-bold mb-3">{m.question}</p>
+                    <p className="text-sm font-bold mb-3"><MathText text={m.question} as="span" /></p>
                     <div className="flex flex-col gap-2">
                       {m.options.map((opt, oi) => {
                         let cls = "border-border bg-card opacity-60";
@@ -551,7 +552,7 @@ const QuickPracticePlay = () => {
                             <span className="h-6 w-6 rounded-md flex items-center justify-center font-extrabold text-[11px] bg-muted flex-shrink-0">
                               {LETTERS[oi]}
                             </span>
-                            <span>{opt}</span>
+                            <span><MathText text={opt} as="span" /></span>
                           </div>
                         );
                       })}
@@ -703,7 +704,7 @@ const QuickPracticePlay = () => {
             </button>
           </div>
         </div>
-        <p className="text-[16px] font-bold leading-relaxed mb-5">{q.question}</p>
+        <p className="text-[16px] font-bold leading-relaxed mb-5"><MathText text={q.question} as="span" /></p>
 
         <div className="flex flex-col gap-2.5">
           {q.options.map((opt, i) => {
@@ -741,7 +742,7 @@ const QuickPracticePlay = () => {
                     LETTERS[i]
                   )}
                 </span>
-                <span>{opt}</span>
+                <span><MathText text={opt} as="span" /></span>
               </button>
             );
           })}
@@ -750,7 +751,7 @@ const QuickPracticePlay = () => {
         {ans && q.explanation && (
           <div className="mt-4 p-4 rounded-xl bg-muted/50 border-l-4 border-primary text-sm leading-relaxed animate-in fade-in slide-in-from-top-2">
             <div className="text-[11px] font-extrabold text-primary mb-1">ব্যাখ্যা</div>
-            {q.explanation}
+            <MathText text={q.explanation} as="span" />
           </div>
         )}
       </div>
