@@ -434,7 +434,7 @@ const SyllabusTracker = () => {
                     return (
                       <button key={s.id} onClick={() => setOpenSubjectId(s.id)} className={cn("relative text-left rounded-xl border-2 p-3.5 transition-colors", full ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-card hover:border-primary/30")}>
                         {full && <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/15 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>}
-                        <div className="text-sm font-bold pr-10 truncate whitespace-nowrap overflow-hidden">{s.name}</div>
+                        <div className="text-sm font-bold pr-7 truncate whitespace-nowrap overflow-hidden">{s.name}</div>
                         <div className="flex items-center gap-2 mt-2"><span className="text-sm font-black text-primary">{pct}%</span><div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} /></div></div>
                         <div className="text-[10px] text-muted-foreground mt-1.5">{s.chapters.length} অধ্যায় · {t} টপিক</div>
                       </button>
@@ -501,8 +501,8 @@ const SyllabusTracker = () => {
             {revView === "dashboard" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setRevMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC Revision</button>
                   <button onClick={() => setRevMode("medical")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical Revision</button>
+                  <button onClick={() => setRevMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC Revision</button>
                 </div>
                 {(() => {
                   const subs = subjectsByMode[revMode];
