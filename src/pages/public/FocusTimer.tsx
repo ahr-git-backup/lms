@@ -393,6 +393,18 @@ const FocusTimer = () => {
         p_is_paused: false,
       });
     }
+    // Instantly reflect the resume in the live list (don't wait for 3s refetch).
+    queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
+      if (!old) return old;
+      const rest = old.filter((r: any) => r.user_id !== user?.id);
+      const selfRow = old.find((r: any) => r.user_id === user?.id);
+      return [
+        ...rest,
+        { ...(selfRow || { user_id: user?.id, full_name: profile?.full_name, hsc_batch: profile?.hsc_batch }), mood: moodRef.current, duration_seconds: elapsedRef.current, is_paused: false },
+      ];
+    });
+    liveNowFetchedAtRef.current = Date.now();
+    refetchLiveNow();
   };
 
   // রাত ১২টা থেকে সকাল ৮টার মধ্যে Study Mood paused অবস্থায় ১.৫ ঘণ্টা পার হলে
@@ -489,27 +501,43 @@ const FocusTimer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tab/browser ছেড়ে গেলে (background/minimize) Study মোড শুধু pause হবে (mode বদলাবে না)।
-  // ফিরে আসলে আবার resume হবে — যদি না ইতিমধ্যে ১ ঘণ্টা পার হয়ে Break-এ চলে গিয়ে থাকে।
+  // পেজ/ট্যাব ছেড়ে গেলে (মিনিমাইজ, অন্য ট্যাবে যাওয়া, বা পেজ বন্ধ) timer শুধু pause হয় —
+  // mode বদলায় না। ফিরে এসে resume করলেই আগের elapsed time-এর সাথে যোগ হয়ে চলতে থাকে।
   useEffect(() => {
+    const handleHide = () => {
+      if (
+        runningRef.current &&
+        !pausedRef.current &&
+        sessionIdRef.current != null
+      ) {
+        pausedRef.current = true;
+        setPaused(true);
+        pauseStartRef.current = Date.now();
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        void supabase.rpc("focus_update_session", {
+          p_id: sessionIdRef.current,
+          p_duration_seconds: elapsedRef.current,
+          p_is_paused: true,
+        });
+      }
+    };
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (
-          moodRef.current === "study" &&
-          runningRef.current &&
-          !pausedRef.current &&
-          sessionIdRef.current != null
-        ) {
-          pause();
-        }
+        handleHide();
       } else {
-        if (moodRef.current === "study" && runningRef.current && pausedRef.current) {
+        if (runningRef.current && pausedRef.current) {
           resume();
         }
       }
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handleHide);
+    window.addEventListener("beforeunload", handleHide);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handleHide);
+      window.removeEventListener("beforeunload", handleHide);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
