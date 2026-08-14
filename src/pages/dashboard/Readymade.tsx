@@ -1804,7 +1804,16 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           </CardContent>
           {unlocked && (
             <div className="px-4 pb-3 -mt-1 flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
-              <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center justify-between gap-1 flex-wrap">
+                <TopicPickerDropdown
+                  examId={exam.id}
+                  navigate={navigate}
+                  open={openPanelExamId === exam.id && openPanelType === "topic"}
+                  setOpen={(v) => {
+                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("topic"); }
+                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
+                  }}
+                />
                 <SplitExamDropdown
                   parentId={exam.id}
                   navigate={navigate}
@@ -1812,15 +1821,6 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                   open={openPanelExamId === exam.id && openPanelType === "split"}
                   setOpen={(v) => {
                     if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("split"); }
-                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
-                  }}
-                />
-                <TopicPickerDropdown
-                  examId={exam.id}
-                  navigate={navigate}
-                  open={openPanelExamId === exam.id && openPanelType === "topic"}
-                  setOpen={(v) => {
-                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("topic"); }
                     else { setOpenPanelExamId(null); setOpenPanelType(null); }
                   }}
                 />
