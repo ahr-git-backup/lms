@@ -445,12 +445,11 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="animate-border-chase border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0">
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
-            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
+            className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => navigate("/dashboard/my-progress")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
@@ -459,8 +458,7 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+            className="cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
             onClick={() => navigate("/syllabus-tracker")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
@@ -469,8 +467,7 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
+            className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             onClick={() => navigate("/dashboard/top-performer")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
