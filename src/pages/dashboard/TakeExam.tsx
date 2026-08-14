@@ -478,6 +478,10 @@ const TakeExam = () => {
       ? Array.from(new Set((questions || []).filter((q: any) => q.subject && q.is_segment_mandatory === false).map((q: any) => q.subject)))
       : [];
 
+  // Readymade exam topic filter: ?topic=<name> restricts the pool to only
+  // questions tagged with that topic (falls back to full exam when absent).
+  const selectedTopic = searchParams.get("topic");
+
   const effectiveQuestions = (() => {
       if (!questions) return questions;
       let pool = questions;
@@ -488,6 +492,9 @@ const TakeExam = () => {
           pool = pool.filter((q: any) =>
               !q.subject || (q.is_segment_mandatory ?? true) || selectedOptionalSubjects.includes(q.subject)
           );
+      }
+      if (selectedTopic) {
+          pool = pool.filter((q: any) => q.topic === selectedTopic);
       }
       return pool;
   })();
@@ -1925,6 +1932,48 @@ const TakeExam = () => {
                             <div key={gi}>
                                 {g.subject && (
                                     <p className="text-xs font-bold text-primary mb-2">{g.subject}</p>
+                                )}
+                                <div className="grid grid-cols-5 gap-3">
+                                    {g.items.map(({ q, idx }) => {
+                                        const isAnswered = !!answers[q.id];
+                                        return (
+                                            <button
+                                                key={q.id}
+                                                onClick={() => scrollToQuestion(idx)}
+                                                className={`
+                                                    h-10 w-10 rounded-lg flex items-center justify-center text-sm font-bold transition-all
+                                                    ${isAnswered
+                                                        ? 'bg-primary text-primary-foreground shadow-sm'
+                                                        : 'bg-muted text-muted-foreground hover:bg-muted/80 border border-border'}
+                                                `}
+                                            >
+                                                {idx + 1}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ));
+                    })()}
+                </div>
+            ) : displayQuestions.some((q: any) => q.topic) ? (
+                <div className="space-y-4 p-2">
+                    {(() => {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const groups: { topic: string; items: { q: any; idx: number }[] }[] = [];
+                        displayQuestions.forEach((q: any, idx: number) => {
+                            const key = q.topic || "";
+                            const last = groups[groups.length - 1];
+                            if (last && last.topic === key) {
+                                last.items.push({ q, idx });
+                            } else {
+                                groups.push({ topic: key, items: [{ q, idx }] });
+                            }
+                        });
+                        return groups.map((g, gi) => (
+                            <div key={gi}>
+                                {g.topic && (
+                                    <p className="text-xs font-bold text-primary mb-2">{g.topic}</p>
                                 )}
                                 <div className="grid grid-cols-5 gap-3">
                                     {g.items.map(({ q, idx }) => {
