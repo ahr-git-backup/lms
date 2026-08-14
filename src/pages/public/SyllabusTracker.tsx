@@ -438,9 +438,9 @@ const SyllabusTracker = () => {
                     const [pct, t] = subjPct(mode, s);
                     const full = pct === 100;
                     return (
-                      <button key={s.id} onClick={() => setOpenSubjectId(s.id)} className={cn("relative text-left rounded-xl border-2 p-3.5 transition-colors", full ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-card hover:border-primary/30")}>
-                        {full && <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/15 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>}
-                        <div className={cn("text-sm font-bold leading-snug", full && "pr-7")}>{s.name}</div>
+                      <button key={s.id} onClick={() => setOpenSubjectId(s.id)} className={cn("relative text-left rounded-xl border-2 p-2.5 transition-colors", full ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-card hover:border-primary/30")}>
+                        {full && <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/15 px-1.5 py-0.5 rounded-full mb-1"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>}
+                        <div className="text-[13px] font-bold leading-snug whitespace-nowrap">{s.name}</div>
                         <div className="flex items-center gap-2 mt-2"><span className="text-sm font-black text-primary">{pct}%</span><div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} /></div></div>
                         <div className="text-[10px] text-muted-foreground mt-1.5">{s.chapters.length} অধ্যায় · {t} টপিক</div>
                       </button>
