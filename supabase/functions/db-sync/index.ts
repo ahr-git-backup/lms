@@ -10,15 +10,20 @@ const TARGET_URL = Deno.env.get("SUPABASE_URL")!;
 const TARGET_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const TABLES_WITH_UPDATED_AT = [
-  "profiles", "courses", "enrollments", "classes", "class_notes",
-  "exams", "exam_questions", "exam_schedules", "announcements",
-  "app_settings", "heroes", "mentors", "resources", "reviews", "routines",
+  "profiles", "courses", "enrollments", "classes",
+  "exams", "exam_questions", "exam_schedules",
+  "heroes", "mentors", "resources",
 ];
 
+// Tables that only have created_at (no updated_at) — insert-only data.
 const TABLES_CREATED_ONLY = [
+  "class_notes", "announcements", "reviews", "routines",
   "exam_attempts", "exam_answers", "bookmarks", "payment_requests",
   "promo_codes", "user_notifications", "study_activity_logs",
 ];
+
+// app_settings has a non-"id" primary key (key) — handled separately below.
+const APP_SETTINGS_CONFLICT_COL = "key";
 
 async function fetchChangedRows(table: string, sinceIso: string, timestampCol: string) {
   const url = `${SOURCE_URL}/rest/v1/${table}?select=*&${timestampCol}=gt.${encodeURIComponent(sinceIso)}&order=${timestampCol}.asc&limit=1000`;
@@ -34,7 +39,8 @@ async function fetchChangedRows(table: string, sinceIso: string, timestampCol: s
 
 async function upsertRows(table: string, rows: any[]) {
   if (!rows.length) return { ok: true };
-  const res = await fetch(`${TARGET_URL}/rest/v1/${table}?on_conflict=id`, {
+  const conflictCol = table === "app_settings" ? APP_SETTINGS_CONFLICT_COL : "id";
+  const res = await fetch(`${TARGET_URL}/rest/v1/${table}?on_conflict=${conflictCol}`, {
     method: "POST",
     headers: {
       apikey: TARGET_KEY,
@@ -107,6 +113,7 @@ async function runFullSync() {
   for (const table of TABLES_CREATED_ONLY) {
     results.push(await syncTable(table, "created_at"));
   }
+  results.push(await syncTable("app_settings", "updated_at"));
   return results;
 }
 
