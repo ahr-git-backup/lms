@@ -1250,9 +1250,8 @@ const SplitExamDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
+const SplitExamDropdown = ({ parentId, navigate, isAdmin, open, setOpen }: { parentId: string; navigate: any; isAdmin: boolean; open: boolean; setOpen: (v: boolean) => void }) => {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: splits, isLoading, refetch } = useQuery({
@@ -1300,7 +1299,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
         size="sm"
         variant="ghost"
         className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
-        onClick={() => setOpen(o => !o)}
+        onClick={() => setOpen(!open)}
       >
         {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
         <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
@@ -1347,7 +1346,7 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
 
 // Shows "পুরো এক্সাম" + each distinct question-topic for an exam; picking one
 // navigates to take-exam with ?topic= to restrict the question pool.
-const TopicPickerDropdown = ({ examId, navigate }: { examId: string; navigate: any }) => {
+const TopicPickerDropdown = ({ examId, navigate, open, setOpen }: { examId: string; navigate: any; open: boolean; setOpen: (v: boolean) => void }) => {
   const { data: topics, isLoading } = useQuery({
     queryKey: ["exam-topics", examId],
     queryFn: async () => {
@@ -1367,42 +1366,59 @@ const TopicPickerDropdown = ({ examId, navigate }: { examId: string; navigate: a
     navigate(`/dashboard/take-exam/${examId}?topic=${encodeURIComponent(topic)}`);
   };
 
-  if (isLoading) {
-    return <div className="text-[11px] text-muted-foreground px-2 py-1.5">Loading...</div>;
-  }
-
-  if (!topics || topics.length === 0) {
-    // No per-question topics set for this exam — just start it directly.
-    goFull();
+  // No per-question topics set for this exam — don't render the toggle at all.
+  if (!isLoading && (!topics || topics.length === 0)) {
     return null;
   }
 
   return (
-    <div className="space-y-1 border-l-2 border-primary/20 pl-2" onClick={(e) => e.stopPropagation()}>
-      <div
-        className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
-        onClick={goFull}
+    <div onClick={(e) => e.stopPropagation()}>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
+        onClick={() => setOpen(!open)}
       >
-        <span className="text-xs font-medium">পুরো এক্সাম</span>
-        <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
-      </div>
-      {topics.map((t) => (
-        <div
-          key={t.topic}
-          className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
-          onClick={() => goTopic(t.topic)}
-        >
-          <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
-          <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+        {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+        <span className="ml-1">টপিক ভিত্তিক পরীক্ষা</span>
+      </Button>
+      {open && (
+        <div className="mt-1 space-y-1 border-l-2 border-primary/20 pl-2">
+          {isLoading ? (
+            <div className="text-[11px] text-muted-foreground">Loading...</div>
+          ) : (
+            <>
+              <div
+                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+                onClick={goFull}
+              >
+                <span className="text-xs font-medium">পুরো এক্সাম</span>
+                <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+              </div>
+              {topics?.map((t) => (
+                <div
+                  key={t.topic}
+                  className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+                  onClick={() => goTopic(t.topic)}
+                >
+                  <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
+                  <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                </div>
+              ))}
+            </>
+          )}
         </div>
-      ))}
+      )}
     </div>
   );
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
-  const [topicPickerExamId, setTopicPickerExamId] = useState<string | null>(null);
+  // Which exam has its split/topic panel open, and which of the two panels
+  // (mutually exclusive per exam) is showing.
+  const [openPanelExamId, setOpenPanelExamId] = useState<string | null>(null);
+  const [openPanelType, setOpenPanelType] = useState<"split" | "topic" | null>(null);
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1504,7 +1520,8 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
             if (!unlocked) { onLockedClick?.(exam); return; }
-            setTopicPickerExamId(prev => prev === exam.id ? null : exam.id);
+            setExamSourceList(exam.id, "/dashboard/readymade");
+            navigate(`/dashboard/take-exam/${exam.id}`);
           }}>
           {!unlocked && (
             <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
@@ -1569,13 +1586,28 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
             </div>
           </CardContent>
           {unlocked && (
-            <div className="px-4 pb-2 -mt-1" onClick={(e) => e.stopPropagation()}>
-              <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
-            </div>
-          )}
-          {unlocked && topicPickerExamId === exam.id && (
-            <div className="px-4 pb-3 -mt-1" onClick={(e) => e.stopPropagation()}>
-              <TopicPickerDropdown examId={exam.id} navigate={navigate} />
+            <div className="px-4 pb-3 -mt-1 flex flex-col gap-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1 flex-wrap">
+                <SplitExamDropdown
+                  parentId={exam.id}
+                  navigate={navigate}
+                  isAdmin={isAdmin}
+                  open={openPanelExamId === exam.id && openPanelType === "split"}
+                  setOpen={(v) => {
+                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("split"); }
+                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
+                  }}
+                />
+                <TopicPickerDropdown
+                  examId={exam.id}
+                  navigate={navigate}
+                  open={openPanelExamId === exam.id && openPanelType === "topic"}
+                  setOpen={(v) => {
+                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("topic"); }
+                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
+                  }}
+                />
+              </div>
             </div>
           )}
         </Card>
