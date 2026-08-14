@@ -1345,8 +1345,64 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
   );
 };
 
+// Shows "পুরো এক্সাম" + each distinct question-topic for an exam; picking one
+// navigates to take-exam with ?topic= to restrict the question pool.
+const TopicPickerDropdown = ({ examId, navigate }: { examId: string; navigate: any }) => {
+  const { data: topics, isLoading } = useQuery({
+    queryKey: ["exam-topics", examId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_exam_topics", { p_exam_id: examId });
+      if (error) throw error;
+      return (data || []) as { topic: string; mcq_count: number }[];
+    },
+  });
+
+  const goFull = () => {
+    setExamSourceList(examId, "/dashboard/readymade");
+    navigate(`/dashboard/take-exam/${examId}`);
+  };
+
+  const goTopic = (topic: string) => {
+    setExamSourceList(examId, "/dashboard/readymade");
+    navigate(`/dashboard/take-exam/${examId}?topic=${encodeURIComponent(topic)}`);
+  };
+
+  if (isLoading) {
+    return <div className="text-[11px] text-muted-foreground px-2 py-1.5">Loading...</div>;
+  }
+
+  if (!topics || topics.length === 0) {
+    // No per-question topics set for this exam — just start it directly.
+    goFull();
+    return null;
+  }
+
+  return (
+    <div className="space-y-1 border-l-2 border-primary/20 pl-2" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+        onClick={goFull}
+      >
+        <span className="text-xs font-medium">পুরো এক্সাম</span>
+        <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+      </div>
+      {topics.map((t) => (
+        <div
+          key={t.topic}
+          className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+          onClick={() => goTopic(t.topic)}
+        >
+          <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
+          <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+  const [topicPickerExamId, setTopicPickerExamId] = useState<string | null>(null);
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1448,8 +1504,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
             if (!unlocked) { onLockedClick?.(exam); return; }
-            setExamSourceList(exam.id, "/dashboard/readymade");
-            navigate(`/dashboard/take-exam/${exam.id}`);
+            setTopicPickerExamId(prev => prev === exam.id ? null : exam.id);
           }}>
           {!unlocked && (
             <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
@@ -1516,6 +1571,11 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           {unlocked && (
             <div className="px-4 pb-2 -mt-1" onClick={(e) => e.stopPropagation()}>
               <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+            </div>
+          )}
+          {unlocked && topicPickerExamId === exam.id && (
+            <div className="px-4 pb-3 -mt-1" onClick={(e) => e.stopPropagation()}>
+              <TopicPickerDropdown examId={exam.id} navigate={navigate} />
             </div>
           )}
         </Card>
