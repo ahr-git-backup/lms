@@ -670,8 +670,8 @@ const FocusTimer = () => {
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
 
-      <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
-        {showIntro && (
+      {showIntro ? (
+        <div className="max-w-2xl mx-auto px-3.5 pt-4">
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -721,7 +721,9 @@ const FocusTimer = () => {
               পড়াশোনা শুরু করো
             </button>
           </div>
-        )}
+        </div>
+      ) : (
+      <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
         {!user && (
           <div className="text-center text-sm text-muted-foreground bg-muted/40 rounded-xl p-4">
             টাইমার সেভ করতে লগইন করুন।
@@ -1633,6 +1635,7 @@ const FocusTimer = () => {
         );
       })()}
     </div>
+      )}
 
     <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
       <DialogContent className="max-w-sm">
