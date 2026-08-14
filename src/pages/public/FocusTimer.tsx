@@ -124,6 +124,7 @@ const FocusTimer = () => {
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [nowTick, setNowTick] = useState(0);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
@@ -167,6 +168,11 @@ const FocusTimer = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -222,11 +228,13 @@ const FocusTimer = () => {
   });
 
   const queryClient = useQueryClient();
+  const liveNowFetchedAtRef = useRef<number>(Date.now());
   const { data: liveNow, refetch: refetchLiveNow } = useQuery({
     queryKey: ["focus-live-now"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("focus_live_now");
       if (error) throw error;
+      liveNowFetchedAtRef.current = Date.now();
       return data || [];
     },
     refetchInterval: 3000,
@@ -1074,16 +1082,23 @@ const FocusTimer = () => {
                     </p>
                   );
                 }
-                const liveAdjusted = (row: any) =>
-                  row.duration_seconds + ((row.user_id === user?.id && !paused && mood === row.mood) ? elapsed : 0);
+                const liveAdjusted = (row: any) => {
+                  if (row.user_id === user?.id) {
+                    return row.duration_seconds + ((!paused && mood === row.mood) ? elapsed : 0);
+                  }
+                  const extra = !row.is_paused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0;
+                  return row.duration_seconds + extra;
+                };
                 return [...filtered]
                   .sort((a: any, b: any) => liveAdjusted(b) - liveAdjusted(a))
                   .map((row: any, i: number) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
                   const isMe = row.user_id === user?.id;
-                  const liveExtra = (isMe && !paused && mood === row.mood) ? elapsed : 0;
-                  const t = formatHMS(row.duration_seconds + liveExtra);
                   const isPaused = !!row.is_paused;
+                  const liveExtra = isMe
+                    ? ((!paused && mood === row.mood) ? elapsed : 0)
+                    : (!isPaused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0);
+                  const t = formatHMS(row.duration_seconds + liveExtra);
                   const isRankOne = i === 0;
                   return (
                     <div
