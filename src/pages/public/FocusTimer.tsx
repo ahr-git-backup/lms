@@ -404,7 +404,10 @@ const FocusTimer = () => {
       ];
     });
     liveNowFetchedAtRef.current = Date.now();
-    refetchLiveNow();
+    // NOTE: do NOT call refetchLiveNow() here — the focus_update_session RPC above is
+    // fire-and-forget (void), so an immediate refetch can race ahead of it and pull back
+    // stale is_paused:true from the server, overwriting our optimistic patch. The normal
+    // 3s poll will pick up the confirmed server state once the RPC has landed.
   };
 
   // রাত ১২টা থেকে সকাল ৮টার মধ্যে Study Mood paused অবস্থায় ১.৫ ঘণ্টা পার হলে
