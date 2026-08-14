@@ -76,16 +76,27 @@ async function setLastSync(table: string, iso: string) {
 }
 
 async function syncTable(table: string, timestampCol: string) {
-  const since = await getLastSync(table);
-  const rows = await fetchChangedRows(table, since, timestampCol);
-  if (rows.length === 0) return { table, synced: 0 };
+  let since = await getLastSync(table);
+  let totalSynced = 0;
 
-  const result = await upsertRows(table, rows);
-  if (!result.ok) return { table, synced: 0, error: result.error };
+  // Loop until a fetch returns fewer than the page size — handles more than
+  // 1000 changed rows in a single cron run instead of leaving the rest for
+  // the next hour.
+  while (true) {
+    const rows = await fetchChangedRows(table, since, timestampCol);
+    if (rows.length === 0) break;
 
-  const latest = rows[rows.length - 1][timestampCol];
-  await setLastSync(table, latest);
-  return { table, synced: rows.length };
+    const result = await upsertRows(table, rows);
+    if (!result.ok) return { table, synced: totalSynced, error: result.error };
+
+    totalSynced += rows.length;
+    since = rows[rows.length - 1][timestampCol];
+    await setLastSync(table, since);
+
+    if (rows.length < 1000) break;
+  }
+
+  return { table, synced: totalSynced };
 }
 
 async function runFullSync() {
