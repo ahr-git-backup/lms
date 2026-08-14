@@ -176,7 +176,7 @@ const SyllabusTracker = () => {
       totalW += w;
       if (progress[topicKey(mode, s.id, c.id, tp.id)]) doneW += w;
     }
-    return totalW ? Math.round((doneW / totalW) * 100) : 0;
+    return totalW ? Math.round((doneW / totalW) * 1000) / 10 : 0;
   };
   const overallPct = (m: Mode) => {
     const subs = subjectsByMode[m];
