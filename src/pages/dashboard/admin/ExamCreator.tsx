@@ -43,6 +43,11 @@ const ExamCreator = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
+  const [topicRangeTopic, setTopicRangeTopic] = useState("");
+  const [topicRangeFrom, setTopicRangeFrom] = useState("");
+  const [topicRangeTo, setTopicRangeTo] = useState("");
+  const [topicCheckboxMode, setTopicCheckboxMode] = useState(false);
+  const [checkedForTopic, setCheckedForTopic] = useState<Set<number>>(new Set());
   const [bankTargetSubject, setBankTargetSubject] = useState<string | null>(null);
   const [bankTargetMandatory, setBankTargetMandatory] = useState(true);
   const [isOmr, setIsOmr] = useState(false);
@@ -1243,8 +1248,112 @@ const ExamCreator = () => {
                 </div>
             )}
 
+            {saveWebForm.is_readymade && questions.length > 0 && (
+                <div className="mb-3 border border-border/60 rounded-2xl p-3 bg-card">
+                    <p className="text-sm font-semibold text-muted-foreground mb-2">Topic ভাগ করুন (Readymade Exam)</p>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <Input
+                            value={topicRangeTopic}
+                            onChange={e => setTopicRangeTopic(e.target.value)}
+                            placeholder="Topic নাম"
+                            className="h-8 text-xs w-40 rounded-full px-3"
+                        />
+                        <Input
+                            type="number"
+                            value={topicRangeFrom}
+                            onChange={e => setTopicRangeFrom(e.target.value)}
+                            placeholder="Q# From"
+                            className="h-8 text-xs w-24 rounded-full px-3"
+                        />
+                        <Input
+                            type="number"
+                            value={topicRangeTo}
+                            onChange={e => setTopicRangeTo(e.target.value)}
+                            placeholder="Q# To"
+                            className="h-8 text-xs w-24 rounded-full px-3"
+                        />
+                        <Button
+                            size="sm"
+                            className="h-8 text-xs rounded-full"
+                            disabled={!topicRangeTopic.trim() || !topicRangeFrom || !topicRangeTo}
+                            onClick={() => {
+                                const from = parseInt(topicRangeFrom, 10);
+                                const to = parseInt(topicRangeTo, 10);
+                                if (isNaN(from) || isNaN(to) || from < 1 || to < from) return;
+                                const updated = questions.map((qq, idx) => {
+                                    const qNum = idx + 1;
+                                    if (qNum >= from && qNum <= to) {
+                                        return { ...qq, topic: topicRangeTopic.trim() };
+                                    }
+                                    return qq;
+                                });
+                                setQuestions(updated);
+                                setTopicRangeFrom("");
+                                setTopicRangeTo("");
+                                toast({ title: `Q${from}-${to} কে "${topicRangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+                            }}
+                        >
+                            Range Apply
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={topicCheckboxMode ? "default" : "outline"}
+                            className="h-8 text-xs rounded-full"
+                            onClick={() => {
+                                setTopicCheckboxMode(v => !v);
+                                setCheckedForTopic(new Set());
+                            }}
+                        >
+                            {topicCheckboxMode ? "Checkbox মোড বন্ধ করুন" : "Checkbox দিয়ে বাছাই করুন"}
+                        </Button>
+                        {topicCheckboxMode && (
+                            <Button
+                                size="sm"
+                                className="h-8 text-xs rounded-full"
+                                disabled={!topicRangeTopic.trim() || checkedForTopic.size === 0}
+                                onClick={() => {
+                                    const updated = questions.map((qq, idx) =>
+                                        checkedForTopic.has(idx) ? { ...qq, topic: topicRangeTopic.trim() } : qq
+                                    );
+                                    setQuestions(updated);
+                                    setCheckedForTopic(new Set());
+                                    toast({ title: `${checkedForTopic.size} টি প্রশ্নে "${topicRangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+                                }}
+                            >
+                                Selected ({checkedForTopic.size}) এ Apply করুন
+                            </Button>
+                        )}
+                    </div>
+                    {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).map((t) => (
+                                <span key={t as string} className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">
+                                    {t as string} · {questions.filter(qq => qq.topic === t).length} MCQ
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {questions.map((q, i) => (
                 <div key={i} id={q.subject && saveWebForm.exam_type === 'special' && questions.findIndex(qq => qq.subject === q.subject) === i ? `segment-${q.subject}` : undefined}>
+                    {topicCheckboxMode && saveWebForm.is_readymade && (
+                        <div className="flex items-center gap-2 px-2 py-1">
+                            <input
+                                type="checkbox"
+                                checked={checkedForTopic.has(i)}
+                                onChange={() => {
+                                    setCheckedForTopic(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(i)) next.delete(i); else next.add(i);
+                                        return next;
+                                    });
+                                }}
+                            />
+                            <span className="text-[10px] text-muted-foreground">Q{i + 1} {q.topic ? `— বর্তমান টপিক: ${q.topic}` : ""}</span>
+                        </div>
+                    )}
                     {(!activeForm || activeForm.index !== i || activeForm.type !== 'above') && (
                         <div className="flex items-center justify-center h-5 my-0.5 relative">
                             <button
