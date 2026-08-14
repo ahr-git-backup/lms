@@ -381,18 +381,11 @@ const FocusTimer = () => {
     }
   };
 
-  const resume = () => {
+  const resume = async () => {
     pausedRef.current = false;
     setPaused(false);
     pauseStartRef.current = null;
     startTicking();
-    if (sessionIdRef.current != null) {
-      void supabase.rpc("focus_update_session", {
-        p_id: sessionIdRef.current,
-        p_duration_seconds: elapsedRef.current,
-        p_is_paused: false,
-      });
-    }
     // Instantly reflect the resume in the live list (don't wait for 3s refetch).
     queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
       if (!old) return old;
@@ -404,6 +397,29 @@ const FocusTimer = () => {
       ];
     });
     liveNowFetchedAtRef.current = Date.now();
+    if (sessionIdRef.current != null) {
+      // The old session row may have been auto-closed server-side (60s no-heartbeat
+      // staleness sweep, e.g. tab was backgrounded and JS timers got throttled) while
+      // we were away. focus_update_session only affects status='active' rows, so if it
+      // got closed, that update would silently no-op and the 3s poll would then show the
+      // card gone. focus_start_session with p_resume_id reactivates it if still active,
+      // or transparently opens a fresh active row (carrying our locally-tracked elapsed
+      // time forward) if it was closed — either way the row is guaranteed 'active' after.
+      const { data, error } = await supabase.rpc("focus_start_session", {
+        p_mood: moodRef.current,
+        p_resume_id: sessionIdRef.current,
+      });
+      if (!error && data) {
+        sessionIdRef.current = data as number;
+        setSessionId(data as number);
+      }
+      await supabase.rpc("focus_update_session", {
+        p_id: sessionIdRef.current,
+        p_duration_seconds: elapsedRef.current,
+        p_is_paused: false,
+      });
+      startHeartbeat();
+    }
     // NOTE: do NOT call refetchLiveNow() here — the focus_update_session RPC above is
     // fire-and-forget (void), so an immediate refetch can race ahead of it and pull back
     // stale is_paused:true from the server, overwriting our optimistic patch. The normal
