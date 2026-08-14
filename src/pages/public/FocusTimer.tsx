@@ -533,10 +533,34 @@ const FocusTimer = () => {
         setPaused(true);
         pauseStartRef.current = Date.now();
         if (intervalRef.current) clearInterval(intervalRef.current);
-        void supabase.rpc("focus_update_session", {
-          p_id: sessionIdRef.current,
-          p_duration_seconds: elapsedRef.current,
-          p_is_paused: true,
+        // Show the pause tag instantly on our own card too, not just after a poll.
+        queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
+          if (!old) return old;
+          return old.map((r: any) =>
+            r.user_id === user?.id ? { ...r, is_paused: true, duration_seconds: elapsedRef.current } : r
+          );
+        });
+        // Regular supabase-js fetch can get killed mid-flight once the tab is actually
+        // backgrounded/suspended, which is why other users never saw the pause tag —
+        // the update never reached the server. keepalive:true tells the browser to
+        // finish sending this request even after the page is hidden/unloaded.
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/focus_update_session`;
+        supabase.auth.getSession().then(({ data }) => {
+          const token = data.session?.access_token;
+          fetch(url, {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              "Content-Type": "application/json",
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              p_id: sessionIdRef.current,
+              p_duration_seconds: elapsedRef.current,
+              p_is_paused: true,
+            }),
+          }).catch(() => {});
         });
       }
     };
