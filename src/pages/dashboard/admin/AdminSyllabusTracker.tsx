@@ -666,13 +666,14 @@ const AdminSyllabusTracker = () => {
                                   <span className="text-[9.5px] text-primary font-bold min-w-[26px] text-right">{pct}%</span>
                                   <Input
                                     type="number"
-                                    min={1}
+                                    min={0.1}
                                     max={20}
+                                    step={0.1}
                                     defaultValue={t.weight || 1}
                                     title="Weight"
-                                    className="h-6 w-10 text-[10px] text-center px-1"
+                                    className="h-6 w-12 text-[10px] text-center px-1"
                                     onBlur={(e) => {
-                                      const v = parseInt(e.target.value) || 1;
+                                      const v = parseFloat(e.target.value) || 1;
                                       if (v !== (t.weight || 1)) void updateWeight(t.id, v);
                                     }}
                                   />
