@@ -322,14 +322,18 @@ const AdminSyllabusTracker = () => {
   const moveTopic = async (list: any[], index: number, direction: "up" | "down") => {
     const targetIndex = direction === "up" ? index - 1 : index + 1;
     if (targetIndex < 0 || targetIndex >= list.length) return;
-    const a = list[index];
-    const b = list[targetIndex];
+    const reordered = [...list];
+    const tmp = reordered[index];
+    reordered[index] = reordered[targetIndex];
+    reordered[targetIndex] = tmp;
     setSaving(true);
     try {
-      const { error: e1 } = await (supabase.from as any)("st_topics").update({ sort_order: b.sort_order }).eq("id", a.id);
-      if (e1) throw e1;
-      const { error: e2 } = await (supabase.from as any)("st_topics").update({ sort_order: a.sort_order }).eq("id", b.id);
-      if (e2) throw e2;
+      for (let i = 0; i < reordered.length; i++) {
+        if (reordered[i].sort_order !== i) {
+          const { error } = await (supabase.from as any)("st_topics").update({ sort_order: i }).eq("id", reordered[i].id);
+          if (error) throw error;
+        }
+      }
       refreshTopics();
     } catch (e: any) {
       toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
@@ -627,25 +631,23 @@ const AdminSyllabusTracker = () => {
                                   key={t.id}
                                   className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-md p-2"
                                 >
-                                  <div className="flex flex-col flex-shrink-0">
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 text-muted-foreground disabled:opacity-20"
+                                  <div className="flex flex-col flex-shrink-0 -my-1">
+                                    <button
+                                      type="button"
                                       disabled={idx === 0 || saving}
-                                      onClick={() => void moveTopic(list, idx, "up")}
+                                      onClick={(e) => { e.stopPropagation(); void moveTopic(list, idx, "up"); }}
+                                      className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
                                     >
-                                      <ChevronUp className="h-3 w-3" />
-                                    </Button>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 text-muted-foreground disabled:opacity-20"
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
                                       disabled={idx === list.length - 1 || saving}
-                                      onClick={() => void moveTopic(list, idx, "down")}
+                                      onClick={(e) => { e.stopPropagation(); void moveTopic(list, idx, "down"); }}
+                                      className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
                                     >
-                                      <ChevronDown className="h-3 w-3" />
-                                    </Button>
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    </button>
                                   </div>
                                   {editTopicId === t.id ? (
                                     <div className="flex-1 flex items-center gap-1">
