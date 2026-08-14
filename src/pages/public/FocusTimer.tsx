@@ -241,6 +241,13 @@ const FocusTimer = () => {
     enabled: !!user,
   });
 
+  // Drive a 1s re-render so other students' live cards tick smoothly every second
+  // instead of jumping only on the 3s liveNow refetch.
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const { data: overlayRanking } = useQuery({
     queryKey: ["focus-overlay-ranking", overlayMood, overlayDays],
     queryFn: async () => {
@@ -1090,7 +1097,12 @@ const FocusTimer = () => {
                   return row.duration_seconds + extra;
                 };
                 return [...filtered]
-                  .sort((a: any, b: any) => liveAdjusted(b) - liveAdjusted(a))
+                  .sort((a: any, b: any) => {
+                    const aPaused = !!a.is_paused ? 1 : 0;
+                    const bPaused = !!b.is_paused ? 1 : 0;
+                    if (aPaused !== bPaused) return aPaused - bPaused; // active (0) first, paused/break/sleep (1) below
+                    return liveAdjusted(b) - liveAdjusted(a);
+                  })
                   .map((row: any, i: number) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
                   const isMe = row.user_id === user?.id;
