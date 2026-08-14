@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -1384,7 +1384,7 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
   );
 };
 
-const TopicPickerPanel = ({ examId, navigate }: { examId: string; navigate: any }) => {
+const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navigate: any; isAdmin?: boolean }) => {
   const { data: topics, isLoading } = useQuery({
     queryKey: ["exam-topics", examId],
     queryFn: async () => {
@@ -1393,6 +1393,7 @@ const TopicPickerPanel = ({ examId, navigate }: { examId: string; navigate: any 
       return (data || []) as { topic: string; mcq_count: number }[];
     },
   });
+  const [manageTopic, setManageTopic] = useState<string | null>(null);
 
   const goTopic = (topic: string) => {
     setExamSourceList(examId, "/dashboard/readymade");
@@ -1413,11 +1414,300 @@ const TopicPickerPanel = ({ examId, navigate }: { examId: string; navigate: any 
             onClick={() => goTopic(t.topic)}
           >
             <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
-            <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+            <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                  onClick={(e) => { e.stopPropagation(); setManageTopic(t.topic); }}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+              <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+            </div>
           </div>
         ))
       )}
+      {manageTopic && (
+        <TopicManageDialog examId={examId} topic={manageTopic} onClose={() => setManageTopic(null)} />
+      )}
     </div>
+  );
+};
+
+// Admin-only, opened via pencil icon on a topic row: rename topic, edit/delete
+// individual MCQs, add a new MCQ to the topic, or delete the whole topic.
+const TopicManageDialog = ({ examId, topic, onClose }: { examId: string; topic: string; onClose: () => void }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [topicName, setTopicName] = useState(topic);
+  const [renaming, setRenaming] = useState(false);
+  const [editingQ, setEditingQ] = useState<any | null>(null);
+  const [deletingDialogOpen, setDeletingDialogOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const { data: questions, isLoading, refetch } = useQuery({
+    queryKey: ["topic-manage-questions", examId, topic],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("id, question_index, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, topic")
+        .eq("exam_id", examId)
+        .eq("topic", topic)
+        .order("question_index", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["exam-topics", examId] });
+    queryClient.invalidateQueries({ queryKey: ["topic-manage-questions", examId] });
+  };
+
+  const handleRename = async () => {
+    const newName = topicName.trim();
+    if (!newName || newName === topic || !questions) return;
+    setRenaming(true);
+    try {
+      const { error } = await supabase.from("exam_questions").update({ topic: newName }).eq("exam_id", examId).eq("topic", topic);
+      if (error) throw error;
+      invalidateAll();
+      toast({ title: "Topic নাম আপডেট হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Rename করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDeleteMcq = async (id: string) => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("exam_questions").delete().eq("id", id);
+      if (error) throw error;
+      invalidateAll();
+      refetch();
+      toast({ title: "MCQ ডিলিট হয়েছে" });
+    } catch (err: any) {
+      toast({ title: "ডিলিট করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteTopic = async () => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("exam_questions").delete().eq("exam_id", examId).eq("topic", topic);
+      if (error) throw error;
+      invalidateAll();
+      toast({ title: "Topic সম্পূর্ণ ডিলিট হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "ডিলিট করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddMcq = async () => {
+    try {
+      const { data: maxRow } = await supabase
+        .from("exam_questions")
+        .select("question_index")
+        .eq("exam_id", examId)
+        .order("question_index", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextIndex = (maxRow?.question_index || 0) + 1;
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .insert({
+          exam_id: examId,
+          topic,
+          question_index: nextIndex,
+          question_text: "নতুন প্রশ্ন লিখুন",
+          option_a: "Option A",
+          option_b: "Option B",
+          option_c: "Option C",
+          option_d: "Option D",
+          correct_option: "A",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      invalidateAll();
+      refetch();
+      setEditingQ(data);
+      toast({ title: "নতুন MCQ যোগ হয়েছে, এডিট করুন" });
+    } catch (err: any) {
+      toast({ title: "MCQ যোগ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Topic ম্যানেজ করুন</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex items-center gap-2 pb-3 border-b border-border/60">
+          <Input
+            value={topicName}
+            onChange={(e) => setTopicName(e.target.value)}
+            className="h-8 text-xs flex-1 rounded-full px-3"
+            placeholder="Topic নাম"
+          />
+          <Button size="sm" className="h-8 text-xs rounded-full" disabled={renaming || !topicName.trim() || topicName.trim() === topic} onClick={handleRename}>
+            {renaming ? "..." : "নাম আপডেট"}
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between pb-2 border-b border-border/60">
+          <span className="text-xs text-muted-foreground">{questions?.length || 0} টি MCQ</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs rounded-full" onClick={handleAddMcq}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> নতুন MCQ
+            </Button>
+            {!deletingDialogOpen ? (
+              <Button size="sm" variant="destructive" className="h-8 text-xs rounded-full" onClick={() => setDeletingDialogOpen(true)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> পুরো Topic ডিলিট
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-destructive">নিশ্চিত?</span>
+                <Button size="sm" variant="destructive" className="h-8 text-xs rounded-full" disabled={busy} onClick={handleDeleteTopic}>হ্যাঁ</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs rounded-full" onClick={() => setDeletingDialogOpen(false)}>না</Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">Loading...</div>
+        ) : (
+          <div className="space-y-3 py-2">
+            {(questions || []).map((q: any) => (
+              <div key={q.id} className="p-3 rounded-xl border border-border/60 bg-card">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-muted-foreground">Q{q.question_index}</span>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingQ(q)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" disabled={busy} onClick={() => handleDeleteMcq(q.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm font-medium mb-2"><MathText text={q.question_text} /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => {
+                    const val = q[`option_${k}`];
+                    if (!val) return null;
+                    const letter = k.toUpperCase();
+                    return (
+                      <div key={k} className={`p-2 rounded border ${q.correct_option === letter ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                        <span className="font-semibold mr-2">{letter}.</span>
+                        <MathText text={val} inline />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2 border-t border-border/60 sticky bottom-0 bg-background">
+          <Button variant="outline" className="flex-1" onClick={onClose}>বন্ধ করুন</Button>
+        </div>
+
+        {editingQ && (
+          <McqEditDialog
+            question={editingQ}
+            onClose={() => setEditingQ(null)}
+            onSaved={() => { invalidateAll(); refetch(); setEditingQ(null); }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Simple inline editor for a single MCQ's text/options/correct answer.
+const McqEditDialog = ({ question, onClose, onSaved }: { question: any; onClose: () => void; onSaved: () => void }) => {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    question_text: question.question_text || "",
+    option_a: question.option_a || "",
+    option_b: question.option_b || "",
+    option_c: question.option_c || "",
+    option_d: question.option_d || "",
+    option_e: question.option_e || "",
+    correct_option: question.correct_option || "A",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("exam_questions").update(form).eq("id", question.id);
+      if (error) throw error;
+      toast({ title: "MCQ আপডেট হয়েছে" });
+      onSaved();
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>MCQ এডিট করুন</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          <textarea
+            className="w-full text-sm p-2 rounded border border-border/60 bg-background min-h-[70px]"
+            value={form.question_text}
+            onChange={(e) => setForm({ ...form, question_text: e.target.value })}
+            placeholder="প্রশ্ন"
+          />
+          {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => (
+            <div key={k} className="flex items-center gap-2">
+              <span className="text-xs font-semibold w-5">{k.toUpperCase()}.</span>
+              <Input
+                className="h-8 text-xs flex-1"
+                value={(form as any)[`option_${k}`]}
+                onChange={(e) => setForm({ ...form, [`option_${k}`]: e.target.value })}
+                placeholder={`Option ${k.toUpperCase()}`}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant={form.correct_option === k.toUpperCase() ? "default" : "outline"}
+                className="h-8 px-2 text-[10px]"
+                onClick={() => setForm({ ...form, correct_option: k.toUpperCase() })}
+              >
+                সঠিক
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-border/60">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>বাতিল</Button>
+          <Button className="flex-1" onClick={handleSave} disabled={saving}>{saving ? "সেভ হচ্ছে..." : "সেভ করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 
@@ -1832,7 +2122,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               </div>
               {openPanelExamId === exam.id && openPanelType === "topic" && (
                 <div className="mt-1 w-full">
-                  <TopicPickerPanel examId={exam.id} navigate={navigate} />
+                  <TopicPickerPanel examId={exam.id} navigate={navigate} isAdmin={isAdmin} />
                 </div>
               )}
               {openPanelExamId === exam.id && openPanelType === "split" && (
