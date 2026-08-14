@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, ChevronUp, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -477,7 +477,7 @@ const AdminSyllabusTracker = () => {
             বিষয় সমূহ {subjects ? `(${subjects.length}টি)` : ""}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2 px-2 sm:px-3">
+        <CardContent className="space-y-2 px-0">
           {isLoading && <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>}
           {!isLoading && (!subjects || subjects.length === 0) && (
             <p className="text-sm text-muted-foreground">কোনো বিষয় নেই। উপরে যোগ করুন।</p>
@@ -664,6 +664,18 @@ const AdminSyllabusTracker = () => {
                                     <span className="flex-1">{t.name}</span>
                                   )}
                                   <span className="text-[9.5px] text-primary font-bold min-w-[26px] text-right">{pct}%</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 flex-shrink-0 text-muted-foreground"
+                                    title="Copy topic name"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(t.name);
+                                      toast({ title: "কপি হয়েছে" });
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
                                   <Input
                                     type="number"
                                     min={0.1}
