@@ -908,7 +908,7 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{h}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
@@ -918,7 +918,7 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{min}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
@@ -928,7 +928,7 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{s}</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{s}</span>
               <span className="text-[8px] font-bold text-white/60 tracking-widest">SEC</span>
             </div>
           </div>
