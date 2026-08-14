@@ -229,7 +229,7 @@ const FocusTimer = () => {
       if (error) throw error;
       return data || [];
     },
-    refetchInterval: 8000,
+    refetchInterval: 3000,
     enabled: !!user,
   });
 
