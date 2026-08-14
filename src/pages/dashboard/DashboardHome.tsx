@@ -45,6 +45,14 @@ const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeF
 const DashboardHome = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [showTrackerReady, setShowTrackerReady] = useState(false);
+
+  useEffect(() => {
+    if (user && sessionStorage.getItem("study_tracker_pending") === "1") {
+      sessionStorage.removeItem("study_tracker_pending");
+      setShowTrackerReady(true);
+    }
+  }, [user]);
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -437,12 +445,11 @@ const DashboardHome = () => {
       )}
 
       {/* Smart Tracking System */}
-      <div className="animate-border-chase border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0" style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}>
+      <div className="border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0">
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
-            className="animate-border-chase cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
+            className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => navigate("/dashboard/my-progress")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
@@ -451,8 +458,7 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
+            className="cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
             onClick={() => navigate("/syllabus-tracker")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
@@ -461,8 +467,7 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
+            className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
             onClick={() => navigate("/dashboard/top-performer")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
@@ -817,6 +822,24 @@ const DashboardHome = () => {
            </>
            )}
       </div>
+
+      <Dialog open={showTrackerReady} onOpenChange={setShowTrackerReady}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>অ্যাকাউন্ট তৈরি সম্পন্ন! 🎉</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">এখন আপনি Study Tracker ব্যবহার করতে পারবেন।</p>
+          <Button
+            onClick={() => {
+              setShowTrackerReady(false);
+              navigate("/syllabus-tracker");
+            }}
+            className="w-full font-bold"
+          >
+            Study Tracker চালু করুন
+          </Button>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );

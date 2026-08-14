@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { toast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import MathText from "@/components/MathText";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -1250,9 +1251,41 @@ const SplitExamDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) 
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
+const SplitExamToggle = ({ parentId, isAdmin, open, setOpen }: { parentId: string; isAdmin: boolean; open: boolean; setOpen: (v: boolean) => void }) => {
+  const { data: splits, isLoading } = useQuery({
+    queryKey: ["split-exams", parentId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, split_start, split_end")
+        .eq("parent_exam_id", parentId)
+        .order("split_start", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Only show this toggle when the exam has actually been split.
+  if (!isLoading && (!splits || splits.length === 0)) {
+    return null;
+  }
+  if (isLoading) return null;
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
+      onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+    >
+      {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
+    </Button>
+  );
+};
+
+const SplitExamPanel = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: splits, isLoading, refetch } = useQuery({
@@ -1266,9 +1299,6 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
       if (error) throw error;
       return data || [];
     },
-    // Always check (not just when opened) so we know up front whether this
-    // exam has any splits at all — the toggle button itself should only
-    // render for exams the admin has actually split.
   });
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -1286,73 +1316,620 @@ const SplitExamDropdown = ({ parentId, navigate, isAdmin }: { parentId: string; 
     }
   };
 
-  // Nothing to show — this exam hasn't been split by admin, so don't render
-  // the "ভেঙে ভেঙে পরীক্ষা দাও" toggle at all for regular students.
-  // Admins still see it (as a loading/empty state) so they know the feature
-  // exists and can use the "Split" button to create some.
-  if (!isLoading && (!splits || splits.length === 0) && !isAdmin) {
-    return null;
-  }
-
   return (
-    <div onClick={(e) => e.stopPropagation()}>
-      <Button
-        size="sm"
-        variant="ghost"
-        className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
-        onClick={() => setOpen(o => !o)}
-      >
-        {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-        <span className="ml-1">ভেঙে ভেঙে পরীক্ষা দাও</span>
-      </Button>
-      {open && (
-        <div className="mt-1 space-y-1 border-l-2 border-primary/20 pl-2">
-          {isLoading ? (
-            <div className="text-[11px] text-muted-foreground">Loading...</div>
-          ) : !splits || splits.length === 0 ? (
-            <div className="text-[11px] text-muted-foreground">No splits yet.</div>
-          ) : (
-            splits.map((s: any) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
-                onClick={() => {
-                  setExamSourceList(s.id, "/dashboard/readymade");
-                  navigate(`/dashboard/take-exam/${s.id}`);
-                }}
-              >
-                <span className="text-xs font-medium">{s.title}</span>
-                <div className="flex items-center gap-1">
-                  <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
-                  {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-6 px-1.5 text-[10px] text-destructive hover:text-destructive"
-                      disabled={deletingId === s.id}
-                      onClick={(e) => handleDelete(e, s.id)}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+    <div className="w-full space-y-1 border-l-2 border-primary/20 pl-2">
+      {isLoading ? (
+        <div className="text-[11px] text-muted-foreground">Loading...</div>
+      ) : !splits || splits.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground">No splits yet.</div>
+      ) : (
+        splits.map((s: any) => (
+          <div
+            key={s.id}
+            className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+            onClick={() => {
+              setExamSourceList(s.id, "/dashboard/readymade");
+              navigate(`/dashboard/take-exam/${s.id}`);
+            }}
+          >
+            <span className="text-xs font-medium">{s.title}</span>
+            <div className="flex items-center gap-1">
+              <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1.5 text-[10px] text-destructive hover:text-destructive"
+                  disabled={deletingId === s.id}
+                  onClick={(e) => handleDelete(e, s.id)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+          </div>
+        ))
       )}
     </div>
   );
 };
 
+// Shows "পুরো এক্সাম" + each distinct question-topic for an exam; picking one
+// navigates to take-exam with ?topic= to restrict the question pool.
+const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: boolean; setOpen: (v: boolean) => void }) => {
+  const { data: topics, isLoading } = useQuery({
+    queryKey: ["exam-topics", examId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_exam_topics", { p_exam_id: examId });
+      if (error) throw error;
+      return (data || []) as { topic: string; mcq_count: number }[];
+    },
+  });
+
+  // No per-question topics set for this exam — don't render the toggle at all.
+  if (!isLoading && (!topics || topics.length === 0)) {
+    return null;
+  }
+
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
+      onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+    >
+      {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+      <span className="ml-1">টপিক ভিত্তিক পরীক্ষা</span>
+    </Button>
+  );
+};
+
+const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navigate: any; isAdmin?: boolean }) => {
+  const { data: topics, isLoading } = useQuery({
+    queryKey: ["exam-topics", examId],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_exam_topics", { p_exam_id: examId });
+      if (error) throw error;
+      return (data || []) as { topic: string; mcq_count: number }[];
+    },
+  });
+  const [manageTopic, setManageTopic] = useState<string | null>(null);
+
+  const goTopic = (topic: string) => {
+    setExamSourceList(examId, "/dashboard/readymade");
+    navigate(`/dashboard/take-exam/${examId}?topic=${encodeURIComponent(topic)}`);
+  };
+
+  return (
+    <div className="w-full space-y-1 border-l-2 border-primary/20 pl-2">
+      {isLoading ? (
+        <div className="text-[11px] text-muted-foreground">Loading...</div>
+      ) : !topics || topics.length === 0 ? (
+        <div className="text-[11px] text-muted-foreground">No topics yet.</div>
+      ) : (
+        topics.map((t) => (
+          <div
+            key={t.topic}
+            className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+            onClick={() => goTopic(t.topic)}
+          >
+            <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
+            <div className="flex items-center gap-1">
+              {isAdmin && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                  onClick={(e) => { e.stopPropagation(); setManageTopic(t.topic); }}
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+              <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+            </div>
+          </div>
+        ))
+      )}
+      {manageTopic && (
+        <TopicManageDialog examId={examId} topic={manageTopic} onClose={() => setManageTopic(null)} />
+      )}
+    </div>
+  );
+};
+
+// Admin-only, opened via pencil icon on a topic row: rename topic, edit/delete
+// individual MCQs, add a new MCQ to the topic, or delete the whole topic.
+const TopicManageDialog = ({ examId, topic, onClose }: { examId: string; topic: string; onClose: () => void }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [topicName, setTopicName] = useState(topic);
+  const [renaming, setRenaming] = useState(false);
+  const [editingQ, setEditingQ] = useState<any | null>(null);
+  const [deletingDialogOpen, setDeletingDialogOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const { data: questions, isLoading, refetch } = useQuery({
+    queryKey: ["topic-manage-questions", examId, topic],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("id, question_index, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, topic")
+        .eq("exam_id", examId)
+        .eq("topic", topic)
+        .order("question_index", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ["exam-topics", examId] });
+    queryClient.invalidateQueries({ queryKey: ["topic-manage-questions", examId] });
+  };
+
+  const handleRename = async () => {
+    const newName = topicName.trim();
+    if (!newName || newName === topic || !questions) return;
+    setRenaming(true);
+    try {
+      const { error } = await supabase.from("exam_questions").update({ topic: newName }).eq("exam_id", examId).eq("topic", topic);
+      if (error) throw error;
+      invalidateAll();
+      toast({ title: "Topic নাম আপডেট হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Rename করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDeleteMcq = async (id: string) => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("exam_questions").delete().eq("id", id);
+      if (error) throw error;
+      invalidateAll();
+      refetch();
+      toast({ title: "MCQ ডিলিট হয়েছে" });
+    } catch (err: any) {
+      toast({ title: "ডিলিট করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDeleteTopic = async () => {
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("exam_questions").delete().eq("exam_id", examId).eq("topic", topic);
+      if (error) throw error;
+      invalidateAll();
+      toast({ title: "Topic সম্পূর্ণ ডিলিট হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "ডিলিট করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleAddMcq = async () => {
+    try {
+      const { data: maxRow } = await supabase
+        .from("exam_questions")
+        .select("question_index")
+        .eq("exam_id", examId)
+        .order("question_index", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const nextIndex = (maxRow?.question_index || 0) + 1;
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .insert({
+          exam_id: examId,
+          topic,
+          question_index: nextIndex,
+          question_text: "নতুন প্রশ্ন লিখুন",
+          option_a: "Option A",
+          option_b: "Option B",
+          option_c: "Option C",
+          option_d: "Option D",
+          correct_option: "A",
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      invalidateAll();
+      refetch();
+      setEditingQ(data);
+      toast({ title: "নতুন MCQ যোগ হয়েছে, এডিট করুন" });
+    } catch (err: any) {
+      toast({ title: "MCQ যোগ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Topic ম্যানেজ করুন</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex items-center gap-2 pb-3 border-b border-border/60">
+          <Input
+            value={topicName}
+            onChange={(e) => setTopicName(e.target.value)}
+            className="h-8 text-xs flex-1 rounded-full px-3"
+            placeholder="Topic নাম"
+          />
+          <Button size="sm" className="h-8 text-xs rounded-full" disabled={renaming || !topicName.trim() || topicName.trim() === topic} onClick={handleRename}>
+            {renaming ? "..." : "নাম আপডেট"}
+          </Button>
+        </div>
+
+        <div className="flex items-center justify-between pb-2 border-b border-border/60">
+          <span className="text-xs text-muted-foreground">{questions?.length || 0} টি MCQ</span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" className="h-8 text-xs rounded-full" onClick={handleAddMcq}>
+              <Plus className="h-3.5 w-3.5 mr-1" /> নতুন MCQ
+            </Button>
+            {!deletingDialogOpen ? (
+              <Button size="sm" variant="destructive" className="h-8 text-xs rounded-full" onClick={() => setDeletingDialogOpen(true)}>
+                <Trash2 className="h-3.5 w-3.5 mr-1" /> পুরো Topic ডিলিট
+              </Button>
+            ) : (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-destructive">নিশ্চিত?</span>
+                <Button size="sm" variant="destructive" className="h-8 text-xs rounded-full" disabled={busy} onClick={handleDeleteTopic}>হ্যাঁ</Button>
+                <Button size="sm" variant="outline" className="h-8 text-xs rounded-full" onClick={() => setDeletingDialogOpen(false)}>না</Button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">Loading...</div>
+        ) : (
+          <div className="space-y-3 py-2">
+            {(questions || []).map((q: any) => (
+              <div key={q.id} className="p-3 rounded-xl border border-border/60 bg-card">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-xs font-bold text-muted-foreground">Q{q.question_index}</span>
+                  <div className="flex items-center gap-1">
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditingQ(q)}>
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" disabled={busy} onClick={() => handleDeleteMcq(q.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="text-sm font-medium mb-2"><MathText text={q.question_text} /></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => {
+                    const val = q[`option_${k}`];
+                    if (!val) return null;
+                    const letter = k.toUpperCase();
+                    return (
+                      <div key={k} className={`p-2 rounded border ${q.correct_option === letter ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                        <span className="font-semibold mr-2">{letter}.</span>
+                        <MathText text={val} inline />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2 border-t border-border/60 sticky bottom-0 bg-background">
+          <Button variant="outline" className="flex-1" onClick={onClose}>বন্ধ করুন</Button>
+        </div>
+
+        {editingQ && (
+          <McqEditDialog
+            question={editingQ}
+            onClose={() => setEditingQ(null)}
+            onSaved={() => { invalidateAll(); refetch(); setEditingQ(null); }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Simple inline editor for a single MCQ's text/options/correct answer.
+const McqEditDialog = ({ question, onClose, onSaved }: { question: any; onClose: () => void; onSaved: () => void }) => {
+  const { toast } = useToast();
+  const [form, setForm] = useState({
+    question_text: question.question_text || "",
+    option_a: question.option_a || "",
+    option_b: question.option_b || "",
+    option_c: question.option_c || "",
+    option_d: question.option_d || "",
+    option_e: question.option_e || "",
+    correct_option: question.correct_option || "A",
+  });
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("exam_questions").update(form).eq("id", question.id);
+      if (error) throw error;
+      toast({ title: "MCQ আপডেট হয়েছে" });
+      onSaved();
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>MCQ এডিট করুন</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-2">
+          <textarea
+            className="w-full text-sm p-2 rounded border border-border/60 bg-background min-h-[70px]"
+            value={form.question_text}
+            onChange={(e) => setForm({ ...form, question_text: e.target.value })}
+            placeholder="প্রশ্ন"
+          />
+          {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => (
+            <div key={k} className="flex items-center gap-2">
+              <span className="text-xs font-semibold w-5">{k.toUpperCase()}.</span>
+              <Input
+                className="h-8 text-xs flex-1"
+                value={(form as any)[`option_${k}`]}
+                onChange={(e) => setForm({ ...form, [`option_${k}`]: e.target.value })}
+                placeholder={`Option ${k.toUpperCase()}`}
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant={form.correct_option === k.toUpperCase() ? "default" : "outline"}
+                className="h-8 px-2 text-[10px]"
+                onClick={() => setForm({ ...form, correct_option: k.toUpperCase() })}
+              >
+                সঠিক
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 pt-2 border-t border-border/60">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>বাতিল</Button>
+          <Button className="flex-1" onClick={handleSave} disabled={saving}>{saving ? "সেভ হচ্ছে..." : "সেভ করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+// Admin-only inline dialog on the Readymade card: shows all MCQs of the exam
+// (full question + options) with a range/checkbox bar to assign `topic`
+// directly, without opening the full ExamCreator page.
+const TopicAddDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [rangeTopic, setRangeTopic] = useState("");
+  const [rangeFrom, setRangeFrom] = useState("");
+  const [rangeTo, setRangeTo] = useState("");
+  const [checkboxMode, setCheckboxMode] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [localTopics, setLocalTopics] = useState<Record<string, string | null>>({});
+
+  const { data: questions, isLoading } = useQuery({
+    queryKey: ["topic-add-questions", exam.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exam_questions")
+        .select("id, question_index, question_text, option_a, option_b, option_c, option_d, option_e, correct_option, topic")
+        .eq("exam_id", exam.id)
+        .order("question_index", { ascending: true });
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const initial: Record<string, string | null> = {};
+      (data || []).forEach((q: any) => { initial[q.id] = q.topic || null; });
+      setLocalTopics(initial);
+      return data || [];
+    },
+  });
+
+  const applyRange = () => {
+    const from = parseInt(rangeFrom, 10);
+    const to = parseInt(rangeTo, 10);
+    if (!rangeTopic.trim() || isNaN(from) || isNaN(to) || from < 1 || to < from || !questions) return;
+    const next = { ...localTopics };
+    questions.forEach((q: any) => {
+      if (q.question_index >= from && q.question_index <= to) {
+        next[q.id] = rangeTopic.trim();
+      }
+    });
+    setLocalTopics(next);
+    setRangeFrom("");
+    setRangeTo("");
+    toast({ title: `Q${from}-${to} কে "${rangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+  };
+
+  const applyChecked = () => {
+    if (!rangeTopic.trim() || checked.size === 0) return;
+    const next = { ...localTopics };
+    checked.forEach((id) => { next[id] = rangeTopic.trim(); });
+    setLocalTopics(next);
+    setChecked(new Set());
+    toast({ title: `${checked.size} টি প্রশ্নে "${rangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const entries = Object.entries(localTopics);
+      for (const [id, topic] of entries) {
+        const { error } = await supabase.from("exam_questions").update({ topic: topic || null }).eq("id", id);
+        if (error) throw error;
+      }
+      queryClient.invalidateQueries({ queryKey: ["exam-topics", exam.id] });
+      toast({ title: "Topic সেভ হয়েছে" });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const distinctTopics = Array.from(new Set(Object.values(localTopics).filter(Boolean))) as string[];
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Topic ভাগ করুন — {exam.title}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3 pb-2 border-b border-border/60">
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              value={rangeTopic}
+              onChange={e => setRangeTopic(e.target.value)}
+              placeholder="Topic নাম"
+              className="h-8 text-xs w-40 rounded-full px-3"
+            />
+            <Input
+              type="number"
+              value={rangeFrom}
+              onChange={e => setRangeFrom(e.target.value)}
+              placeholder="Q# From"
+              className="h-8 text-xs w-24 rounded-full px-3"
+            />
+            <Input
+              type="number"
+              value={rangeTo}
+              onChange={e => setRangeTo(e.target.value)}
+              placeholder="Q# To"
+              className="h-8 text-xs w-24 rounded-full px-3"
+            />
+            <Button size="sm" className="h-8 text-xs rounded-full" disabled={!rangeTopic.trim() || !rangeFrom || !rangeTo} onClick={applyRange}>
+              Range Apply
+            </Button>
+            <Button
+              size="sm"
+              variant={checkboxMode ? "default" : "outline"}
+              className="h-8 text-xs rounded-full"
+              onClick={() => { setCheckboxMode(v => !v); setChecked(new Set()); }}
+            >
+              {checkboxMode ? "Checkbox মোড বন্ধ করুন" : "Checkbox দিয়ে বাছাই করুন"}
+            </Button>
+            {checkboxMode && (
+              <Button size="sm" className="h-8 text-xs rounded-full" disabled={!rangeTopic.trim() || checked.size === 0} onClick={applyChecked}>
+                Selected ({checked.size}) এ Apply করুন
+              </Button>
+            )}
+          </div>
+          {distinctTopics.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {distinctTopics.map((t) => (
+                <span key={t} className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">
+                  {t} · {Object.values(localTopics).filter(v => v === t).length} MCQ
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="text-center py-10 text-muted-foreground text-sm">Loading...</div>
+        ) : (
+          <div className="space-y-3 py-2">
+            {(questions || []).map((q: any) => (
+              <div
+                key={q.id}
+                className={`p-3 rounded-xl border ${checkboxMode && checked.has(q.id) ? 'border-primary/60 bg-primary/5' : 'border-border/60 bg-card'}`}
+                onClick={() => {
+                  if (!checkboxMode) return;
+                  setChecked(prev => {
+                    const next = new Set(prev);
+                    if (next.has(q.id)) next.delete(q.id); else next.add(q.id);
+                    return next;
+                  });
+                }}
+              >
+                <div className="flex items-start gap-2 mb-2">
+                  {checkboxMode && (
+                    <input
+                      type="checkbox"
+                      className="mt-1"
+                      checked={checked.has(q.id)}
+                      onChange={() => {
+                        setChecked(prev => {
+                          const next = new Set(prev);
+                          if (next.has(q.id)) next.delete(q.id); else next.add(q.id);
+                          return next;
+                        });
+                      }}
+                    />
+                  )}
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="text-xs font-bold text-muted-foreground">Q{q.question_index}</span>
+                      {localTopics[q.id] && (
+                        <span className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">{localTopics[q.id]}</span>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium"><MathText text={q.question_text} /></div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pl-0 sm:pl-6">
+                  {(['a', 'b', 'c', 'd', 'e'] as const).map((k) => {
+                    const val = q[`option_${k}`];
+                    if (!val) return null;
+                    const letter = k.toUpperCase();
+                    return (
+                      <div key={k} className={`p-2 rounded border ${q.correct_option === letter ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}>
+                        <span className="font-semibold mr-2">{letter}.</span>
+                        <MathText text={val} inline />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2 border-t border-border/60 sticky bottom-0 bg-background">
+          <Button variant="outline" className="flex-1" onClick={onClose} disabled={saving}>বাতিল</Button>
+          <Button className="flex-1" onClick={handleSave} disabled={saving || isLoading}>{saving ? "সেভ হচ্ছে..." : "সেভ করুন"}</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [topicAddExam, setTopicAddExam] = useState<any | null>(null);
+  // Which exam has its split/topic panel open, and which of the two panels
+  // (mutually exclusive per exam) is showing.
+  const [openPanelExamId, setOpenPanelExamId] = useState<string | null>(null);
+  const [openPanelType, setOpenPanelType] = useState<"split" | "topic" | null>(null);
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [splittingExam, setSplittingExam] = useState<any | null>(null);
 
   const [sheetExam, setSheetExam] = useState<any | null>(null);
+  const [sheetHasPattern, setSheetHasPattern] = useState<boolean>(true);
+  const [sheetChecking, setSheetChecking] = useState(false);
 
   const isImageOrPatternQ = (q: any) => {
     const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
@@ -1362,9 +1939,19 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     return false;
   };
 
-  const openPracticeSheetPicker = (e: React.MouseEvent, exam: any) => {
+  const openPracticeSheetPicker = async (e: React.MouseEvent, exam: any) => {
     e.stopPropagation();
     setSheetExam(exam);
+    setSheetChecking(true);
+    try {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      if (error) throw error;
+      setSheetHasPattern((data || []).some((q: any) => isImageOrPatternQ(q)));
+    } catch {
+      setSheetHasPattern(true);
+    } finally {
+      setSheetChecking(false);
+    }
   };
 
   const handleDownloadPdf = async (style: "style1" | "style2", withPattern: boolean) => {
@@ -1411,34 +1998,57 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
+    {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
     <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Practice Sheet স্টাইল বেছে নিন</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          {sheetChecking ? (
+            <div className="text-center py-6 text-sm text-muted-foreground">Loading...</div>
+          ) : (
+          <>
           <div>
             <p className="text-sm font-semibold mb-2">Revision Style <span className="text-xs font-normal text-muted-foreground">[প্রশ্ন,উত্তর,ব্যাখ্যা একই সাথে]</span></p>
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true)}>
-                উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", false)}>
-                উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
-              </Button>
+              {sheetHasPattern ? (
+                <>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true)}>
+                    উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+                  </Button>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", false)}>
+                    উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true)}>
+                  Revision Style
+                </Button>
+              )}
             </div>
           </div>
           <div>
             <p className="text-sm font-semibold mb-2">Practice Style <span className="text-xs font-normal text-muted-foreground">[প্রশ্নের শেষে উত্তর+ব্যাখ্যা]</span></p>
             <div className="grid grid-cols-1 gap-2">
-              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", true)}>
-                উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
-              </Button>
-              <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", false)}>
-                উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
-              </Button>
+              {sheetHasPattern ? (
+                <>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", true)}>
+                    উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+                  </Button>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", false)}>
+                    উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style2", true)}>
+                  Practice Style
+                </Button>
+              )}
             </div>
           </div>
+          </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -1510,12 +2120,50 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     Split
                   </Button>
                 )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
+                  >
+                    Topic Add
+                  </Button>
+                )}
               </div>
             </div>
           </CardContent>
           {unlocked && (
-            <div className="px-4 pb-2 -mt-1" onClick={(e) => e.stopPropagation()}>
-              <SplitExamDropdown parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+            <div className="px-4 pb-3 -mt-1 w-full" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between gap-1 w-full">
+                <TopicPickerToggle
+                  examId={exam.id}
+                  open={openPanelExamId === exam.id && openPanelType === "topic"}
+                  setOpen={(v) => {
+                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("topic"); }
+                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
+                  }}
+                />
+                <SplitExamToggle
+                  parentId={exam.id}
+                  isAdmin={isAdmin}
+                  open={openPanelExamId === exam.id && openPanelType === "split"}
+                  setOpen={(v) => {
+                    if (v) { setOpenPanelExamId(exam.id); setOpenPanelType("split"); }
+                    else { setOpenPanelExamId(null); setOpenPanelType(null); }
+                  }}
+                />
+              </div>
+              {openPanelExamId === exam.id && openPanelType === "topic" && (
+                <div className="mt-1 w-full">
+                  <TopicPickerPanel examId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+                </div>
+              )}
+              {openPanelExamId === exam.id && openPanelType === "split" && (
+                <div className="mt-1 w-full">
+                  <SplitExamPanel parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+                </div>
+              )}
             </div>
           )}
         </Card>

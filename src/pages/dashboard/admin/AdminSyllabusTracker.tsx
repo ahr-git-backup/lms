@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -319,6 +319,29 @@ const AdminSyllabusTracker = () => {
     refreshTopics();
   };
 
+  const moveTopic = async (list: any[], index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    const reordered = [...list];
+    const tmp = reordered[index];
+    reordered[index] = reordered[targetIndex];
+    reordered[targetIndex] = tmp;
+    setSaving(true);
+    try {
+      for (let i = 0; i < reordered.length; i++) {
+        if (reordered[i].sort_order !== i) {
+          const { error } = await (supabase.from as any)("st_topics").update({ sort_order: i }).eq("id", reordered[i].id);
+          if (error) throw error;
+        }
+      }
+      refreshTopics();
+    } catch (e: any) {
+      toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -431,11 +454,11 @@ const AdminSyllabusTracker = () => {
 
       {/* Add subject */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-4">
           <CardTitle className="text-base">নতুন বিষয় যোগ করুন</CardTitle>
           <CardDescription>মোড: {mode === "hsc" ? "HSC" : "Medical Admission"}</CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-2">
+        <CardContent className="flex gap-2 px-3 sm:px-4">
           <Input
             placeholder="বিষয়ের নাম (যেমন: পদার্থবিজ্ঞান)"
             value={subjectName}
@@ -449,12 +472,12 @@ const AdminSyllabusTracker = () => {
 
       {/* Subjects/chapters/topics tree */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-4">
           <CardTitle className="text-base">
             বিষয় সমূহ {subjects ? `(${subjects.length}টি)` : ""}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-0">
           {isLoading && <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>}
           {!isLoading && (!subjects || subjects.length === 0) && (
             <p className="text-sm text-muted-foreground">কোনো বিষয় নেই। উপরে যোগ করুন।</p>
@@ -600,13 +623,32 @@ const AdminSyllabusTracker = () => {
                               )}
                               {(() => {
                                 const totalW = (topicsOfChapter || []).reduce((s2: number, t: any) => s2 + (t.weight || 1), 0);
-                                return topicsOfChapter?.map((t: any) => {
+                                const list = topicsOfChapter || [];
+                                return list.map((t: any, idx: number) => {
                                   const pct = totalW > 0 ? Math.round(((t.weight || 1) / totalW) * 100) : 0;
                                   return (
                                 <div
                                   key={t.id}
                                   className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-md p-2"
                                 >
+                                  <div className="flex flex-col flex-shrink-0 -my-1">
+                                    <button
+                                      type="button"
+                                      disabled={idx === 0 || saving}
+                                      onClick={(e) => { e.stopPropagation(); void moveTopic(list, idx, "up"); }}
+                                      className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
+                                    >
+                                      <ChevronUp className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={idx === list.length - 1 || saving}
+                                      onClick={(e) => { e.stopPropagation(); void moveTopic(list, idx, "down"); }}
+                                      className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-20 disabled:pointer-events-none"
+                                    >
+                                      <ChevronDown className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                   {editTopicId === t.id ? (
                                     <div className="flex-1 flex items-center gap-1">
                                       <Input
@@ -622,15 +664,28 @@ const AdminSyllabusTracker = () => {
                                     <span className="flex-1">{t.name}</span>
                                   )}
                                   <span className="text-[9.5px] text-primary font-bold min-w-[26px] text-right">{pct}%</span>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 flex-shrink-0 text-muted-foreground"
+                                    title="Copy topic name"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(t.name);
+                                      toast({ title: "কপি হয়েছে" });
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                  </Button>
                                   <Input
                                     type="number"
-                                    min={1}
+                                    min={0.1}
                                     max={20}
+                                    step={0.1}
                                     defaultValue={t.weight || 1}
                                     title="Weight"
-                                    className="h-6 w-10 text-[10px] text-center px-1"
+                                    className="h-6 w-12 text-[10px] text-center px-1"
                                     onBlur={(e) => {
-                                      const v = parseInt(e.target.value) || 1;
+                                      const v = parseFloat(e.target.value) || 1;
                                       if (v !== (t.weight || 1)) void updateWeight(t.id, v);
                                     }}
                                   />

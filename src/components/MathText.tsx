@@ -125,6 +125,29 @@ function fixBaselessExponents(text: string): string {
   );
 }
 
+// Besides <img> tags, imported CSV question/option text may contain a small
+// allow-list of inline formatting tags for chemistry/math notation, e.g.
+// "CH<sub>3</sub>CHO" or "x<sup>2</sup>" — these must pass through as real
+// HTML (not escaped to visible "&lt;sub&gt;" text) while everything else in
+// the string still gets escaped as plain text. No attributes are allowed on
+// these tags (kept attribute-free on purpose — this is a plain allow-list,
+// not a general sanitizer, so there is nothing here for CSV content to hide
+// a script or event handler inside).
+const PASSTHROUGH_TAG_PATTERN = /<img\b[^>]*>|<\/?(?:sub|sup|b|strong|i|em|u|mark|br)\s*\/?>/gi;
+
+// Some CSV-imported <img src="..."> URLs have a stray space or newline
+// accidentally inserted mid-URL (e.g. wrapped source text), breaking the
+// link entirely — "https://i.ibb.co/5Wgg H9mR/....png" instead of
+// "https://i.ibb.co/5WggH9mR/....png". Strip any whitespace found strictly
+// inside an <img ...> tag's src="..." attribute before rendering, so the
+// image actually loads instead of showing a broken-image icon.
+function fixBrokenImgSrcWhitespace(text: string): string {
+  return text.replace(
+    /(<img\b[^>]*\bsrc=["'])([^"']*)(["'][^>]*>)/gi,
+    (whole, before: string, url: string, after: string) => before + url.replace(/\s+/g, '') + after
+  );
+}
+
 // Some stored questions embed a literal <img class="qimg" src="..."> tag to
 // show a diagram inline. Everything else in the text is plain text that must
 // be escaped, not parsed as HTML. This splits on <img ...> tags, escapes the
@@ -132,12 +155,12 @@ function fixBaselessExponents(text: string): string {
 // "i./ii./iii." style questions render as separate lines, and re-assembles
 // safe HTML with the original <img> tags intact.
 function toSafeHtml(rawText: string): string {
-  const text = fixBaselessExponents(collapseNewlinesInsideMath(rawText));
-  const imgTagPattern = /<img\b[^>]*>/gi;
+  const text = fixBrokenImgSrcWhitespace(fixBaselessExponents(collapseNewlinesInsideMath(rawText)));
   let lastIndex = 0;
   let result = '';
   let match: RegExpExecArray | null;
-  while ((match = imgTagPattern.exec(text)) !== null) {
+  PASSTHROUGH_TAG_PATTERN.lastIndex = 0;
+  while ((match = PASSTHROUGH_TAG_PATTERN.exec(text)) !== null) {
     const before = text.slice(lastIndex, match.index);
     result += replaceVectorArrows(escapeHtml(before).replace(/\n/g, '<br>'));
     result += match[0];

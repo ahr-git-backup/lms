@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type Mood = "study" | "break" | "sleep";
 
@@ -122,6 +124,7 @@ const FocusTimer = () => {
   const [running, setRunning] = useState(false);
   const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
+  const [nowTick, setNowTick] = useState(0);
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
@@ -165,6 +168,11 @@ const FocusTimer = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (heartbeatRef.current) clearInterval(heartbeatRef.current);
     };
+  }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
@@ -220,16 +228,25 @@ const FocusTimer = () => {
   });
 
   const queryClient = useQueryClient();
+  const liveNowFetchedAtRef = useRef<number>(Date.now());
   const { data: liveNow, refetch: refetchLiveNow } = useQuery({
     queryKey: ["focus-live-now"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("focus_live_now");
       if (error) throw error;
+      liveNowFetchedAtRef.current = Date.now();
       return data || [];
     },
-    refetchInterval: 8000,
+    refetchInterval: 3000,
     enabled: !!user,
   });
+
+  // Drive a 1s re-render so other students' live cards tick smoothly every second
+  // instead of jumping only on the 3s liveNow refetch.
+  useEffect(() => {
+    const id = setInterval(() => setNowTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const { data: overlayRanking } = useQuery({
     queryKey: ["focus-overlay-ranking", overlayMood, overlayDays],
@@ -364,18 +381,49 @@ const FocusTimer = () => {
     }
   };
 
-  const resume = () => {
+  const resume = async () => {
     pausedRef.current = false;
     setPaused(false);
     pauseStartRef.current = null;
     startTicking();
+    // Instantly reflect the resume in the live list (don't wait for 3s refetch).
+    queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
+      if (!old) return old;
+      const rest = old.filter((r: any) => r.user_id !== user?.id);
+      const selfRow = old.find((r: any) => r.user_id === user?.id);
+      return [
+        ...rest,
+        { ...(selfRow || { user_id: user?.id, full_name: profile?.full_name, hsc_batch: profile?.hsc_batch }), mood: moodRef.current, duration_seconds: elapsedRef.current, is_paused: false },
+      ];
+    });
+    liveNowFetchedAtRef.current = Date.now();
     if (sessionIdRef.current != null) {
-      void supabase.rpc("focus_update_session", {
+      // The old session row may have been auto-closed server-side (60s no-heartbeat
+      // staleness sweep, e.g. tab was backgrounded and JS timers got throttled) while
+      // we were away. focus_update_session only affects status='active' rows, so if it
+      // got closed, that update would silently no-op and the 3s poll would then show the
+      // card gone. focus_start_session with p_resume_id reactivates it if still active,
+      // or transparently opens a fresh active row (carrying our locally-tracked elapsed
+      // time forward) if it was closed — either way the row is guaranteed 'active' after.
+      const { data, error } = await supabase.rpc("focus_start_session", {
+        p_mood: moodRef.current,
+        p_resume_id: sessionIdRef.current,
+      });
+      if (!error && data) {
+        sessionIdRef.current = data as number;
+        setSessionId(data as number);
+      }
+      await supabase.rpc("focus_update_session", {
         p_id: sessionIdRef.current,
         p_duration_seconds: elapsedRef.current,
         p_is_paused: false,
       });
+      startHeartbeat();
     }
+    // NOTE: do NOT call refetchLiveNow() here — the focus_update_session RPC above is
+    // fire-and-forget (void), so an immediate refetch can race ahead of it and pull back
+    // stale is_paused:true from the server, overwriting our optimistic patch. The normal
+    // 3s poll will pick up the confirmed server state once the RPC has landed.
   };
 
   // রাত ১২টা থেকে সকাল ৮টার মধ্যে Study Mood paused অবস্থায় ১.৫ ঘণ্টা পার হলে
@@ -472,27 +520,64 @@ const FocusTimer = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tab/browser ছেড়ে গেলে (background/minimize) Study মোড শুধু pause হবে (mode বদলাবে না)।
-  // ফিরে আসলে আবার resume হবে — যদি না ইতিমধ্যে ১ ঘণ্টা পার হয়ে Break-এ চলে গিয়ে থাকে।
+  // পেজ/ট্যাব ছেড়ে গেলে (মিনিমাইজ, অন্য ট্যাবে যাওয়া, বা পেজ বন্ধ) timer শুধু pause হয় —
+  // mode বদলায় না। ফিরে এসে resume করলেই আগের elapsed time-এর সাথে যোগ হয়ে চলতে থাকে।
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (
-          moodRef.current === "study" &&
-          runningRef.current &&
-          !pausedRef.current &&
-          sessionIdRef.current != null
-        ) {
-          pause();
-        }
-      } else {
-        if (moodRef.current === "study" && runningRef.current && pausedRef.current) {
-          resume();
-        }
+    const handleHide = () => {
+      if (
+        runningRef.current &&
+        !pausedRef.current &&
+        sessionIdRef.current != null
+      ) {
+        pausedRef.current = true;
+        setPaused(true);
+        pauseStartRef.current = Date.now();
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        // Show the pause tag instantly on our own card too, not just after a poll.
+        queryClient.setQueryData(["focus-live-now"], (old: any[] | undefined) => {
+          if (!old) return old;
+          return old.map((r: any) =>
+            r.user_id === user?.id ? { ...r, is_paused: true, duration_seconds: elapsedRef.current } : r
+          );
+        });
+        // Regular supabase-js fetch can get killed mid-flight once the tab is actually
+        // backgrounded/suspended, which is why other users never saw the pause tag —
+        // the update never reached the server. keepalive:true tells the browser to
+        // finish sending this request even after the page is hidden/unloaded.
+        const url = `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/focus_update_session`;
+        supabase.auth.getSession().then(({ data }) => {
+          const token = data.session?.access_token;
+          fetch(url, {
+            method: "POST",
+            keepalive: true,
+            headers: {
+              "Content-Type": "application/json",
+              apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              p_id: sessionIdRef.current,
+              p_duration_seconds: elapsedRef.current,
+              p_is_paused: true,
+            }),
+          }).catch(() => {});
+        });
       }
     };
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        handleHide();
+      }
+      // ফিরে এসে auto-resume হবে না — ইউজারকে ম্যানুয়ালি Resume বাটনে ক্লিক করতে হবে।
+    };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handleHide);
+    window.addEventListener("beforeunload", handleHide);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handleHide);
+      window.removeEventListener("beforeunload", handleHide);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -650,6 +735,16 @@ const FocusTimer = () => {
     }
   };
 
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+
+  const handleStartStudy = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    dismissIntro();
+  };
+
   const { h, m: min, s } = formatHMS(elapsed);
   const meta = MOOD_META[mood];
   const Icon = meta.icon;
@@ -658,8 +753,8 @@ const FocusTimer = () => {
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
 
-      <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
-        {showIntro && (
+      {showIntro ? (
+        <div className="max-w-2xl mx-auto px-3.5 pt-4">
           <div className="rounded-2xl border border-primary/30 bg-primary/5 p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
@@ -703,13 +798,15 @@ const FocusTimer = () => {
               </div>
             </div>
             <button
-              onClick={dismissIntro}
+              onClick={handleStartStudy}
               className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
             >
               পড়াশোনা শুরু করো
             </button>
           </div>
-        )}
+        </div>
+      ) : (
+      <div className="max-w-2xl mx-auto px-3.5 pt-1 space-y-1.5">
         {!user && (
           <div className="text-center text-sm text-muted-foreground bg-muted/40 rounded-xl p-4">
             টাইমার সেভ করতে লগইন করুন।
@@ -811,8 +908,8 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{h}</span>
-              <span className="text-[8px] font-bold text-white/60 tracking-widest">HRS</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{h}</span>
+              <span className="text-[9px] font-bold text-white/70 tracking-wide">HRS</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
             <div
@@ -821,8 +918,8 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{min}</span>
-              <span className="text-[8px] font-bold text-white/60 tracking-widest">MIN</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{min}</span>
+              <span className="text-[9px] font-bold text-white/70 tracking-wide">MIN</span>
             </div>
             <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
             <div
@@ -831,17 +928,16 @@ const FocusTimer = () => {
                 MOOD_DIGIT_BOX[mood]
               )}
             >
-              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_12px_rgba(255,255,255,.25)]">{s}</span>
-              <span className="text-[8px] font-bold text-white/60 tracking-widest">SEC</span>
+              <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{s}</span>
+              <span className="text-[9px] font-bold text-white/70 tracking-wide">SEC</span>
             </div>
           </div>
 
           <div className="flex gap-2 w-full">
             {!running && (
               <button
-                onClick={() => void start()}
-                disabled={!user}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40"
+                onClick={() => (user ? void start() : setShowAuthPrompt(true))}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
               >
                 <Play className="h-4 w-4 fill-current" /> পড়াশোনা শুরু করো
               </button>
@@ -1061,16 +1157,28 @@ const FocusTimer = () => {
                     </p>
                   );
                 }
-                const liveAdjusted = (row: any) =>
-                  row.duration_seconds + ((row.user_id === user?.id && !paused && mood === row.mood) ? elapsed : 0);
+                const liveAdjusted = (row: any) => {
+                  if (row.user_id === user?.id) {
+                    return row.duration_seconds + ((!paused && mood === row.mood) ? elapsed : 0);
+                  }
+                  const extra = !row.is_paused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0;
+                  return row.duration_seconds + extra;
+                };
                 return [...filtered]
-                  .sort((a: any, b: any) => liveAdjusted(b) - liveAdjusted(a))
+                  .sort((a: any, b: any) => {
+                    const aPaused = !!a.is_paused ? 1 : 0;
+                    const bPaused = !!b.is_paused ? 1 : 0;
+                    if (aPaused !== bPaused) return aPaused - bPaused; // active (0) first, paused/break/sleep (1) below
+                    return liveAdjusted(b) - liveAdjusted(a);
+                  })
                   .map((row: any, i: number) => {
                   const md = MOOD_META[row.mood as Mood] || MOOD_META.study;
                   const isMe = row.user_id === user?.id;
-                  const liveExtra = (isMe && !paused && mood === row.mood) ? elapsed : 0;
-                  const t = formatHMS(row.duration_seconds + liveExtra);
                   const isPaused = !!row.is_paused;
+                  const liveExtra = isMe
+                    ? ((!paused && mood === row.mood) ? elapsed : 0)
+                    : (!isPaused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0);
+                  const t = formatHMS(row.duration_seconds + liveExtra);
                   const isRankOne = i === 0;
                   return (
                     <div
@@ -1622,6 +1730,26 @@ const FocusTimer = () => {
         );
       })()}
     </div>
+      )}
+
+    <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>একাউন্ট প্রয়োজন</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Focus Timer ব্যবহার করে পড়াশোনার সময় ট্র্যাক করতে এবং rank/history সেভ রাখতে একটি একাউন্ট লাগবে। মাত্র কয়েক সেকেন্ডে ফ্রি রেজিস্ট্রেশন করে সাথে সাথেই টাইমার ব্যবহার শুরু করতে পারবে — login বারবার করার দরকার নেই।
+        </p>
+        <div className="flex flex-col gap-2 pt-2">
+          <Button className="w-full font-bold" onClick={() => navigate("/register")}>
+            একাউন্ট তৈরি করো
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+            আগে থেকে একাউন্ট থাকলে লগইন করো
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 };

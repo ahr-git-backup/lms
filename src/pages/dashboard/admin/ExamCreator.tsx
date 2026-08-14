@@ -43,6 +43,12 @@ const ExamCreator = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [exportProgress, setExportProgress] = useState("");
   const [showBankSelector, setShowBankSelector] = useState(false);
+  const [topicRangeTopic, setTopicRangeTopic] = useState("");
+  const [topicRangeFrom, setTopicRangeFrom] = useState("");
+  const [topicRangeTo, setTopicRangeTo] = useState("");
+  const [topicCheckboxMode, setTopicCheckboxMode] = useState(false);
+  const [checkedForTopic, setCheckedForTopic] = useState<Set<number>>(new Set());
+  const [showTopicPage, setShowTopicPage] = useState(false);
   const [bankTargetSubject, setBankTargetSubject] = useState<string | null>(null);
   const [bankTargetMandatory, setBankTargetMandatory] = useState(true);
   const [isOmr, setIsOmr] = useState(false);
@@ -1239,6 +1245,177 @@ const ExamCreator = () => {
                             <Plus className="h-5 w-5 text-muted-foreground" />
                             <span className="text-[10px] text-muted-foreground">Add Segment</span>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {saveWebForm.is_readymade && questions.length > 0 && (
+                <div className="mb-3 border border-border/60 rounded-2xl p-3 bg-card flex items-center justify-between flex-wrap gap-2">
+                    <div>
+                        <p className="text-sm font-semibold">Topic ভাগ করুন (Readymade Exam)</p>
+                        <p className="text-[11px] text-muted-foreground">সব MCQ এক পেজে দেখে Topic নাম + Range দিয়ে ভাগ করুন</p>
+                    </div>
+                    <Button size="sm" className="h-8 text-xs rounded-full" onClick={() => setShowTopicPage(true)}>
+                        সব MCQ দেখে Topic বানান
+                    </Button>
+                    {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).length > 0 && (
+                        <div className="w-full flex flex-wrap gap-1.5">
+                            {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).map((t) => (
+                                <span key={t as string} className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">
+                                    {t as string} · {questions.filter(qq => qq.topic === t).length} MCQ
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {showTopicPage && (
+                <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
+                    <div className="sticky top-0 z-10 bg-background border-b border-border/60 px-4 py-3 flex items-center justify-between gap-2 flex-wrap">
+                        <h2 className="text-lg font-bold">Topic ভাগ করুন — সব MCQ ({questions.length})</h2>
+                        <Button size="sm" variant="outline" className="h-8 rounded-full" onClick={() => { setShowTopicPage(false); setTopicCheckboxMode(false); setCheckedForTopic(new Set()); }}>
+                            বন্ধ করুন
+                        </Button>
+                    </div>
+
+                    <div className="px-4 py-3 border-b border-border/60 bg-muted/30 flex flex-wrap items-center gap-2">
+                        <Input
+                            value={topicRangeTopic}
+                            onChange={e => setTopicRangeTopic(e.target.value)}
+                            placeholder="Topic নাম"
+                            className="h-8 text-xs w-40 rounded-full px-3"
+                        />
+                        <Input
+                            type="number"
+                            value={topicRangeFrom}
+                            onChange={e => setTopicRangeFrom(e.target.value)}
+                            placeholder="Q# From"
+                            className="h-8 text-xs w-24 rounded-full px-3"
+                        />
+                        <Input
+                            type="number"
+                            value={topicRangeTo}
+                            onChange={e => setTopicRangeTo(e.target.value)}
+                            placeholder="Q# To"
+                            className="h-8 text-xs w-24 rounded-full px-3"
+                        />
+                        <Button
+                            size="sm"
+                            className="h-8 text-xs rounded-full"
+                            disabled={!topicRangeTopic.trim() || !topicRangeFrom || !topicRangeTo}
+                            onClick={() => {
+                                const from = parseInt(topicRangeFrom, 10);
+                                const to = parseInt(topicRangeTo, 10);
+                                if (isNaN(from) || isNaN(to) || from < 1 || to < from) return;
+                                const updated = questions.map((qq, idx) => {
+                                    const qNum = idx + 1;
+                                    if (qNum >= from && qNum <= to) {
+                                        return { ...qq, topic: topicRangeTopic.trim() };
+                                    }
+                                    return qq;
+                                });
+                                setQuestions(updated);
+                                setTopicRangeFrom("");
+                                setTopicRangeTo("");
+                                toast({ title: `Q${from}-${to} কে "${topicRangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+                            }}
+                        >
+                            Range Apply
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant={topicCheckboxMode ? "default" : "outline"}
+                            className="h-8 text-xs rounded-full"
+                            onClick={() => {
+                                setTopicCheckboxMode(v => !v);
+                                setCheckedForTopic(new Set());
+                            }}
+                        >
+                            {topicCheckboxMode ? "Checkbox মোড বন্ধ করুন" : "Checkbox দিয়ে বাছাই করুন"}
+                        </Button>
+                        {topicCheckboxMode && (
+                            <Button
+                                size="sm"
+                                className="h-8 text-xs rounded-full"
+                                disabled={!topicRangeTopic.trim() || checkedForTopic.size === 0}
+                                onClick={() => {
+                                    const updated = questions.map((qq, idx) =>
+                                        checkedForTopic.has(idx) ? { ...qq, topic: topicRangeTopic.trim() } : qq
+                                    );
+                                    setQuestions(updated);
+                                    setCheckedForTopic(new Set());
+                                    toast({ title: `${checkedForTopic.size} টি প্রশ্নে "${topicRangeTopic.trim()}" টপিক দেওয়া হয়েছে` });
+                                }}
+                            >
+                                Selected ({checkedForTopic.size}) এ Apply করুন
+                            </Button>
+                        )}
+                        {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).length > 0 && (
+                            <div className="w-full flex flex-wrap gap-1.5 mt-1">
+                                {Array.from(new Set(questions.map(qq => qq.topic).filter(Boolean))).map((t) => (
+                                    <span key={t as string} className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">
+                                        {t as string} · {questions.filter(qq => qq.topic === t).length} MCQ
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="px-4 py-3 space-y-3 pb-16">
+                        {questions.map((q, i) => (
+                            <div
+                                key={i}
+                                className={`p-3 rounded-xl border ${topicCheckboxMode && checkedForTopic.has(i) ? 'border-primary/60 bg-primary/5' : 'border-border/60 bg-card'}`}
+                                onClick={() => {
+                                    if (!topicCheckboxMode) return;
+                                    setCheckedForTopic(prev => {
+                                        const next = new Set(prev);
+                                        if (next.has(i)) next.delete(i); else next.add(i);
+                                        return next;
+                                    });
+                                }}
+                            >
+                                <div className="flex items-start gap-2 mb-2">
+                                    {topicCheckboxMode && (
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1"
+                                            checked={checkedForTopic.has(i)}
+                                            onChange={() => {
+                                                setCheckedForTopic(prev => {
+                                                    const next = new Set(prev);
+                                                    if (next.has(i)) next.delete(i); else next.add(i);
+                                                    return next;
+                                                });
+                                            }}
+                                        />
+                                    )}
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                                            <span className="text-xs font-bold text-muted-foreground">Q{i + 1}</span>
+                                            {q.topic && (
+                                                <span className="text-[10px] bg-secondary/60 text-secondary-foreground px-2 py-0.5 rounded-full">{q.topic}</span>
+                                            )}
+                                        </div>
+                                        <div className="text-sm font-medium">
+                                            <MathText text={q.question} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pl-0 sm:pl-6">
+                                    {(['A', 'B', 'C', 'D', 'E'] as const).filter(k => q.options?.[k]).map((k) => (
+                                        <div
+                                            key={k}
+                                            className={`p-2 rounded border ${q.correct_answer === k ? 'bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800' : 'bg-muted/30'}`}
+                                        >
+                                            <span className="font-semibold mr-2">{k}.</span>
+                                            <MathText text={q.options[k]} inline />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

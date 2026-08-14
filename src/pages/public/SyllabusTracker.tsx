@@ -75,7 +75,7 @@ const SyllabusTracker = () => {
 
   const [panel, setPanel] = useState<DashPanel>("none");
   const [sylView, setSylView] = useState<"dashboard" | "leaderboard">("dashboard");
-  const [mode, setMode] = useState<Mode>("hsc");
+  const [mode, setMode] = useState<Mode>("medical");
   const [openSubjectId, setOpenSubjectId] = useState<number | null>(null);
   const [openChapterId, setOpenChapterId] = useState<number | null>(null);
   const [lbMode, setLbMode] = useState<Mode>("hsc");
@@ -161,27 +161,33 @@ const SyllabusTracker = () => {
   });
 
   const subjPct = (m: Mode, s: Subject): [number, number, number] => {
-    let t = 0, d = 0;
+    let totalW = 0, doneW = 0, t = 0, d = 0;
     for (const c of s.chapters) for (const tp of c.topics) {
-      t++;
-      if (progress[topicKey(m, s.id, c.id, tp.id)]) d++;
+      const w = tp.weight || 1;
+      t++; totalW += w;
+      if (progress[topicKey(m, s.id, c.id, tp.id)]) { d++; doneW += w; }
     }
-    return [t ? Math.round((d / t) * 100) : 0, t, d];
+    return [totalW ? Math.round((doneW / totalW) * 100) : 0, t, d];
   };
   const chapPct = (s: Subject, c: Chapter) => {
-    let d = 0;
-    for (const tp of c.topics) if (progress[topicKey(mode, s.id, c.id, tp.id)]) d++;
-    return c.topics.length ? Math.round((d / c.topics.length) * 100) : 0;
+    let totalW = 0, doneW = 0;
+    for (const tp of c.topics) {
+      const w = tp.weight || 1;
+      totalW += w;
+      if (progress[topicKey(mode, s.id, c.id, tp.id)]) doneW += w;
+    }
+    return totalW ? Math.round((doneW / totalW) * 1000) / 10 : 0;
   };
   const overallPct = (m: Mode) => {
     const subs = subjectsByMode[m];
     if (!subs) return 0;
-    let t = 0, d = 0;
+    let totalW = 0, doneW = 0;
     for (const s of subs) for (const c of s.chapters) for (const tp of c.topics) {
-      t++;
-      if (progress[topicKey(m, s.id, c.id, tp.id)]) d++;
+      const w = tp.weight || 1;
+      totalW += w;
+      if (progress[topicKey(m, s.id, c.id, tp.id)]) doneW += w;
     }
-    return t ? Math.round((d / t) * 100) : 0;
+    return totalW ? Math.round((doneW / totalW) * 100) : 0;
   };
   const revOverallPct = (m: Mode) => {
     const subs = subjectsByMode[m];
@@ -408,8 +414,8 @@ const SyllabusTracker = () => {
             {!openSubject && sylView === "dashboard" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC সিলেবাস</button>
                   <button onClick={() => setMode("medical")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical Admission</button>
+                  <button onClick={() => setMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC সিলেবাস</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border bg-card py-2.5 text-center"><div className="text-lg font-black">{subjects?.length ?? "—"}</div><div className="text-[10px] text-muted-foreground font-bold">বিষয়</div></div>
@@ -432,9 +438,9 @@ const SyllabusTracker = () => {
                     const [pct, t] = subjPct(mode, s);
                     const full = pct === 100;
                     return (
-                      <button key={s.id} onClick={() => setOpenSubjectId(s.id)} className={cn("relative text-left rounded-xl border-2 p-3.5 transition-colors", full ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-card hover:border-primary/30")}>
-                        {full && <span className="absolute top-2 right-2 flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/15 px-1.5 py-0.5 rounded-full"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>}
-                        <div className="text-sm font-bold pr-10">{s.name}</div>
+                      <button key={s.id} onClick={() => setOpenSubjectId(s.id)} className={cn("relative text-left rounded-xl border-2 p-2.5 transition-colors", full ? "border-emerald-500/50 bg-emerald-500/5" : "border-border bg-card hover:border-primary/30")}>
+                        {full && <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-500/15 px-1.5 py-0.5 rounded-full mb-1"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>}
+                        <div className="text-[13px] font-bold leading-snug whitespace-nowrap">{s.name}</div>
                         <div className="flex items-center gap-2 mt-2"><span className="text-sm font-black text-primary">{pct}%</span><div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden"><div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} /></div></div>
                         <div className="text-[10px] text-muted-foreground mt-1.5">{s.chapters.length} অধ্যায় · {t} টপিক</div>
                       </button>
@@ -501,8 +507,8 @@ const SyllabusTracker = () => {
             {revView === "dashboard" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setRevMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC Revision</button>
                   <button onClick={() => setRevMode("medical")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical Revision</button>
+                  <button onClick={() => setRevMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", revMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC Revision</button>
                 </div>
                 {(() => {
                   const subs = subjectsByMode[revMode];
@@ -549,8 +555,8 @@ function LeaderboardView({ lbMode, setLbMode, leaderboard, currentUserId }: { lb
   return (
     <div className="space-y-3">
       <div className="flex gap-2">
-        <button onClick={() => setLbMode("hsc")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC</button>
         <button onClick={() => setLbMode("medical")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical</button>
+        <button onClick={() => setLbMode("hsc")} className={cn("flex-1 py-2 rounded-xl text-xs font-bold border-2", lbMode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC</button>
       </div>
       <div className="space-y-1.5">
         {(!leaderboard || leaderboard.length === 0) && <p className="text-center text-xs text-muted-foreground py-8">এখনো কেউ এই মোডে অগ্রগতি রেকর্ড করেনি।</p>}
