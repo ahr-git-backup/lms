@@ -408,8 +408,8 @@ const SyllabusTracker = () => {
             {!openSubject && sylView === "dashboard" && (
               <>
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={() => setMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC সিলেবাস</button>
                   <button onClick={() => setMode("medical")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "medical" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>Medical Admission</button>
+                  <button onClick={() => setMode("hsc")} className={cn("py-2.5 rounded-xl text-sm font-bold border-2", mode === "hsc" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground")}>HSC সিলেবাস</button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div className="rounded-xl border bg-card py-2.5 text-center"><div className="text-lg font-black">{subjects?.length ?? "—"}</div><div className="text-[10px] text-muted-foreground font-bold">বিষয়</div></div>

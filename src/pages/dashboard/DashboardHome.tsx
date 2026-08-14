@@ -45,6 +45,14 @@ const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeF
 const DashboardHome = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [showTrackerReady, setShowTrackerReady] = useState(false);
+
+  useEffect(() => {
+    if (user && sessionStorage.getItem("study_tracker_pending") === "1") {
+      sessionStorage.removeItem("study_tracker_pending");
+      setShowTrackerReady(true);
+    }
+  }, [user]);
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -817,6 +825,24 @@ const DashboardHome = () => {
            </>
            )}
       </div>
+
+      <Dialog open={showTrackerReady} onOpenChange={setShowTrackerReady}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>অ্যাকাউন্ট তৈরি সম্পন্ন! 🎉</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">এখন আপনি Study Tracker ব্যবহার করতে পারবেন।</p>
+          <Button
+            onClick={() => {
+              setShowTrackerReady(false);
+              navigate("/syllabus-tracker");
+            }}
+            className="w-full font-bold"
+          >
+            Study Tracker চালু করুন
+          </Button>
+        </DialogContent>
+      </Dialog>
 
     </div>
   );
