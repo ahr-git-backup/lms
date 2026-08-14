@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Plus, BarChart3, Pencil, Check, X, Layers, BookOpen, Trophy, RefreshCw, Calendar, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -319,6 +319,25 @@ const AdminSyllabusTracker = () => {
     refreshTopics();
   };
 
+  const moveTopic = async (list: any[], index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= list.length) return;
+    const a = list[index];
+    const b = list[targetIndex];
+    setSaving(true);
+    try {
+      const { error: e1 } = await (supabase.from as any)("st_topics").update({ sort_order: b.sort_order }).eq("id", a.id);
+      if (e1) throw e1;
+      const { error: e2 } = await (supabase.from as any)("st_topics").update({ sort_order: a.sort_order }).eq("id", b.id);
+      if (e2) throw e2;
+      refreshTopics();
+    } catch (e: any) {
+      toast({ title: "ব্যর্থ হয়েছে", description: e.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -431,11 +450,11 @@ const AdminSyllabusTracker = () => {
 
       {/* Add subject */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-4">
           <CardTitle className="text-base">নতুন বিষয় যোগ করুন</CardTitle>
           <CardDescription>মোড: {mode === "hsc" ? "HSC" : "Medical Admission"}</CardDescription>
         </CardHeader>
-        <CardContent className="flex gap-2">
+        <CardContent className="flex gap-2 px-3 sm:px-4">
           <Input
             placeholder="বিষয়ের নাম (যেমন: পদার্থবিজ্ঞান)"
             value={subjectName}
@@ -449,12 +468,12 @@ const AdminSyllabusTracker = () => {
 
       {/* Subjects/chapters/topics tree */}
       <Card>
-        <CardHeader>
+        <CardHeader className="px-3 sm:px-4">
           <CardTitle className="text-base">
             বিষয় সমূহ {subjects ? `(${subjects.length}টি)` : ""}
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2 px-2 sm:px-3">
           {isLoading && <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>}
           {!isLoading && (!subjects || subjects.length === 0) && (
             <p className="text-sm text-muted-foreground">কোনো বিষয় নেই। উপরে যোগ করুন।</p>
@@ -600,13 +619,34 @@ const AdminSyllabusTracker = () => {
                               )}
                               {(() => {
                                 const totalW = (topicsOfChapter || []).reduce((s2: number, t: any) => s2 + (t.weight || 1), 0);
-                                return topicsOfChapter?.map((t: any) => {
+                                const list = topicsOfChapter || [];
+                                return list.map((t: any, idx: number) => {
                                   const pct = totalW > 0 ? Math.round(((t.weight || 1) / totalW) * 100) : 0;
                                   return (
                                 <div
                                   key={t.id}
                                   className="flex items-center gap-2 text-[11px] bg-muted/30 rounded-md p-2"
                                 >
+                                  <div className="flex flex-col flex-shrink-0">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 text-muted-foreground disabled:opacity-20"
+                                      disabled={idx === 0 || saving}
+                                      onClick={() => void moveTopic(list, idx, "up")}
+                                    >
+                                      <ChevronUp className="h-3 w-3" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 text-muted-foreground disabled:opacity-20"
+                                      disabled={idx === list.length - 1 || saving}
+                                      onClick={() => void moveTopic(list, idx, "down")}
+                                    >
+                                      <ChevronDown className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                   {editTopicId === t.id ? (
                                     <div className="flex-1 flex items-center gap-1">
                                       <Input
