@@ -19,6 +19,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type Mood = "study" | "break" | "sleep";
 
@@ -650,6 +652,16 @@ const FocusTimer = () => {
     }
   };
 
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+
+  const handleStartStudy = () => {
+    if (!user) {
+      setShowAuthPrompt(true);
+      return;
+    }
+    dismissIntro();
+  };
+
   const { h, m: min, s } = formatHMS(elapsed);
   const meta = MOOD_META[mood];
   const Icon = meta.icon;
@@ -703,7 +715,7 @@ const FocusTimer = () => {
               </div>
             </div>
             <button
-              onClick={dismissIntro}
+              onClick={handleStartStudy}
               className="w-full py-2 rounded-xl bg-primary text-primary-foreground font-bold text-xs"
             >
               পড়াশোনা শুরু করো
@@ -839,9 +851,8 @@ const FocusTimer = () => {
           <div className="flex gap-2 w-full">
             {!running && (
               <button
-                onClick={() => void start()}
-                disabled={!user}
-                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40"
+                onClick={() => (user ? void start() : setShowAuthPrompt(true))}
+                className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm"
               >
                 <Play className="h-4 w-4 fill-current" /> পড়াশোনা শুরু করো
               </button>
@@ -1622,6 +1633,25 @@ const FocusTimer = () => {
         );
       })()}
     </div>
+
+    <Dialog open={showAuthPrompt} onOpenChange={setShowAuthPrompt}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>একাউন্ট প্রয়োজন</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Focus Timer ব্যবহার করে পড়াশোনার সময় ট্র্যাক করতে এবং rank/history সেভ রাখতে একটি একাউন্ট লাগবে। মাত্র কয়েক সেকেন্ডে ফ্রি রেজিস্ট্রেশন করে সাথে সাথেই টাইমার ব্যবহার শুরু করতে পারবে — login বারবার করার দরকার নেই।
+        </p>
+        <div className="flex flex-col gap-2 pt-2">
+          <Button className="w-full font-bold" onClick={() => navigate("/register")}>
+            একাউন্ট তৈরি করো
+          </Button>
+          <Button variant="outline" className="w-full" onClick={() => navigate("/login")}>
+            আগে থেকে একাউন্ট থাকলে লগইন করো
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
     </div>
   );
 };
