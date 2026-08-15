@@ -102,7 +102,7 @@ function DraggableRow({
   return (
     <div
       ref={ref}
-      className={`flex items-center gap-3 p-3 border rounded-md bg-card mb-2 w-full transition-all duration-150 ${
+      className={`flex items-center gap-3 p-3 border-y sm:border rounded-none sm:rounded-md bg-card mb-2 w-full transition-all duration-150 ${
         state === "dragging-over"
           ? "border-primary/60 bg-primary/5 shadow-md"
           : "border-border/60"
@@ -263,7 +263,7 @@ export function DraggableSortList({
   };
 
   return (
-    <div className="space-y-4 border rounded-lg p-2 sm:p-4 bg-muted/20 w-full">
+    <div className="space-y-4 border rounded-lg p-4 sm:p-4 pt-4 px-2 sm:px-4 bg-muted/20 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold truncate">{title}</h3>
@@ -284,7 +284,7 @@ export function DraggableSortList({
         </div>
       </div>
 
-      <div ref={listRef} className="max-h-[65vh] overflow-y-auto pr-1 space-y-0">
+      <div ref={listRef} className="max-h-[65vh] overflow-y-auto -mx-2 sm:mx-0 px-0 space-y-0">
         {items.map((item, index) => (
           <DraggableRow
             key={item.id}
