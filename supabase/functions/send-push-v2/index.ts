@@ -3,6 +3,7 @@
 // hand-rolled VAPID/aes128gcm implementation — much less room for a subtle
 // crypto bug that causes silent delivery failures.
 import webpush from "npm:web-push@3.6.7";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const VAPID_PUBLIC_KEY = "BFL06Cf7jFt5fQNITBDHxr88SIMgus-wtrmabfxZ95QgNlPbmkDH5CV7S5CgzgR99G3NqXFncBN8WpRaXmaOzkE";
 const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY")!;
@@ -10,6 +11,9 @@ const VAPID_SUBJECT = "mailto:admin@atlasprep.app";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
+// Still supported for trusted server-to-server calls (e.g. another worker)
+// that can't send a user JWT — the admin-panel path below uses JWT instead.
 const PUSH_API_KEY = Deno.env.get("PUSH_API_KEY")!;
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -27,7 +31,25 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    if (!PUSH_API_KEY || body.apiKey !== PUSH_API_KEY) {
+
+    // Two ways to authenticate: a trusted apiKey (server-to-server), OR a
+    // logged-in admin's JWT (from the admin panel via supabase.functions.invoke,
+    // which automatically attaches the user's session token).
+    let authorized = !!PUSH_API_KEY && body.apiKey === PUSH_API_KEY;
+
+    if (!authorized) {
+      const authHeader = req.headers.get("Authorization") || "";
+      const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        authorized = !!isAdmin;
+      }
+    }
+
+    if (!authorized) {
       return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
         status: 401,
         headers: { ...CORS_HEADERS, "Content-Type": "application/json" },

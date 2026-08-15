@@ -119,7 +119,7 @@ const AdminAnnouncements = () => {
         // Fire-and-forget push notification to all subscribed devices — never blocks the save.
         supabase.auth.getSession().then(({ data: { session } }) => {
           if (!session) return;
-          supabase.functions.invoke("send-push", {
+          supabase.functions.invoke("send-push-v2", {
             body: {
               title: parsed.title,
               body: parsed.body || "",
