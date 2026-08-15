@@ -84,7 +84,7 @@ function SortableSubjectItem({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex items-center gap-2 p-3 bg-card border rounded-lg mb-2",
+        "flex items-center gap-2 p-3 bg-card border-y sm:border rounded-none sm:rounded-lg mb-2",
         isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30",
         isHidden ? "opacity-50" : ""
       )}
@@ -422,8 +422,8 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
         </Button>
       </CardHeader>
 
-      <CardContent className="flex flex-col">
-        <div className="flex items-center justify-end py-2">
+      <CardContent className="flex flex-col px-0 sm:px-6">
+        <div className="flex items-center justify-end py-2 px-2 sm:px-0">
           <div className="flex gap-2">
             {isModified && (
               <>
@@ -443,7 +443,7 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-1 min-h-0 bg-muted/10 rounded-md border p-2">
+        <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
           {isLoading ? (
             <div className="text-center p-8 text-muted-foreground flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading...
