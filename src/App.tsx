@@ -9,6 +9,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import { ThemeProvider } from "@/components/ui/theme-provider";
 import { HelmetProvider } from "react-helmet-async";
 import Index from "./pages/Index";
+import PushDebug from "./pages/PushDebug";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -156,6 +157,7 @@ const App = () => {
             <Routes>
               <Route element={<ErrorBoundary><PublicLayout /></ErrorBoundary>}>
                 <Route path="/" element={<ErrorBoundary><Index /></ErrorBoundary>} />
+                <Route path="/push-debug" element={<ErrorBoundary><PushDebug /></ErrorBoundary>} />
                 <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
                 <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
                 <Route path="/forgot-password" element={<ErrorBoundary><ForgotPassword /></ErrorBoundary>} />
