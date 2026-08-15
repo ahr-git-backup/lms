@@ -168,6 +168,22 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
     },
   });
 
+  const renameMutation = useMutation({
+    mutationFn: async ({ id, newTitle }: { id: string; newTitle: string }) => {
+      const { error } = await supabase.from(resourceType).update({ title: newTitle }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Renamed successfully!" });
+      queryClient.invalidateQueries({ queryKey: ["admin-course-items", courseId, resourceType] });
+      queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to rename", description: err.message, variant: "destructive" });
+    },
+  });
+
   if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return null;
 
   return (
@@ -202,6 +218,8 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
                 onCancel={onClose}
                 title=""
                 description=""
+                onRename={(id, newTitle) => renameMutation.mutateAsync({ id, newTitle })}
+                isRenaming={renameMutation.isPending}
             />
         )}
       </CardContent>

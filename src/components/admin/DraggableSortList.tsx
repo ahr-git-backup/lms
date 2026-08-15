@@ -8,8 +8,9 @@ import { combine } from "@atlaskit/pragmatic-drag-and-drop/combine";
 
 import { extractClosestEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge";
 import { reorderWithEdge } from "@atlaskit/pragmatic-drag-and-drop-hitbox/util/reorder-with-edge";
-import { GripVertical, Save, X, Loader2 } from "lucide-react";
+import { GripVertical, Save, X, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 export interface SortableItem {
   id: string;
@@ -23,6 +24,8 @@ interface DraggableSortListProps {
   onCancel: () => void;
   title?: string;
   description?: string;
+  onRename?: (id: string, newTitle: string) => Promise<void> | void;
+  isRenaming?: boolean;
 }
 
 type DragState = "idle" | "dragging-over";
@@ -30,15 +33,42 @@ type DragState = "idle" | "dragging-over";
 function DraggableRow({
   item,
   index,
+  total,
   onDragStart,
+  onMoveUp,
+  onMoveDown,
+  onRename,
+  isRenaming,
 }: {
   item: SortableItem;
   index: number;
+  total: number;
   onDragStart: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onRename?: (id: string, newTitle: string) => Promise<void> | void;
+  isRenaming?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<DragState>("idle");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item.title);
+
+  const startEdit = () => {
+    setDraft(item.title);
+    setEditing(true);
+  };
+
+  const commitEdit = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === item.title) {
+      setEditing(false);
+      return;
+    }
+    await onRename?.(item.id, trimmed);
+    setEditing(false);
+  };
 
   useEffect(() => {
     const el = ref.current;
@@ -85,13 +115,69 @@ function DraggableRow({
         <GripVertical className="h-5 w-5" />
       </div>
       <div className="flex-1 min-w-0 overflow-hidden">
-        <p className="font-medium truncate">{item.title}</p>
-        {item.subtitle && (
-          <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+        {editing ? (
+          <div className="flex flex-col gap-1.5">
+            <Textarea
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              rows={2}
+              ref={(el) => { if (el) setTimeout(() => el.focus({ preventScroll: true }), 0); }}
+              className="text-sm py-1.5 min-h-0 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); commitEdit(); }
+                if (e.key === "Escape") setEditing(false);
+              }}
+            />
+            <div className="flex gap-1.5">
+              <button type="button" onClick={commitEdit} disabled={isRenaming} className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium bg-primary text-primary-foreground disabled:opacity-50">
+                {isRenaming ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />} Save
+              </button>
+              <button type="button" onClick={() => setEditing(false)} className="h-6 px-2 rounded flex items-center gap-1 text-[11px] font-medium border bg-background">
+                <XIcon className="h-3 w-3" /> Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <p className="font-medium truncate">{item.title}</p>
+            {item.subtitle && (
+              <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+            )}
+          </>
         )}
       </div>
+      {!editing && onRename && (
+        <button
+          type="button"
+          onClick={startEdit}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background hover:bg-muted flex-shrink-0"
+          aria-label="Edit title"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+      )}
       <div className="text-xs text-muted-foreground shrink-0 font-mono bg-muted/40 px-1.5 py-0.5 rounded">
         #{index + 1}
+      </div>
+      <div className="flex flex-col gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move up"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={index === total - 1}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move down"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );
@@ -103,6 +189,8 @@ export function DraggableSortList({
   onCancel,
   title = "Reorder Items",
   description = "Drag and drop to change order.",
+  onRename,
+  isRenaming,
 }: DraggableSortListProps) {
   const [items, setItems] = useState<SortableItem[]>(initialItems);
   const [saving, setSaving] = useState(false);
@@ -158,6 +246,22 @@ export function DraggableSortList({
     }
   };
 
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      const next = [...prev];
+      const [moved] = next.splice(index, 1);
+      next.splice(newIndex, 0, moved);
+      return next;
+    });
+  };
+
+  const handleRenameLocal = async (id: string, newTitle: string) => {
+    await onRename?.(id, newTitle);
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, title: newTitle } : i)));
+  };
+
   return (
     <div className="space-y-4 border rounded-lg p-4 bg-muted/20 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -186,7 +290,12 @@ export function DraggableSortList({
             key={item.id}
             item={item}
             index={index}
+            total={items.length}
             onDragStart={() => {}}
+            onMoveUp={() => moveItem(index, -1)}
+            onMoveDown={() => moveItem(index, 1)}
+            onRename={onRename ? handleRenameLocal : undefined}
+            isRenaming={isRenaming}
           />
         ))}
         {items.length === 0 && (
