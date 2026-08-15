@@ -57,7 +57,11 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
       if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return [];
       
       let query = supabase.from(resourceType).select("*");
-      
+
+      if (resourceType === "exams") {
+          query = query.is("split_start", null);
+      }
+
       if (courseId) {
           if (courseName === "Readymade Exams" && resourceType === "exams") {
               query = query.eq("is_readymade", true).or(`course_id.eq.${courseId},course_id.is.null,shared_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
