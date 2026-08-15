@@ -139,9 +139,9 @@ function DraggableRow({
           </div>
         ) : (
           <>
-            <p className="font-medium truncate">{item.title}</p>
+            <p className="font-medium break-words whitespace-normal">{item.title}</p>
             {item.subtitle && (
-              <p className="text-xs text-muted-foreground truncate">{item.subtitle}</p>
+              <p className="text-xs text-muted-foreground break-words whitespace-normal">{item.subtitle}</p>
             )}
           </>
         )}
@@ -263,7 +263,7 @@ export function DraggableSortList({
   };
 
   return (
-    <div className="space-y-4 border rounded-lg p-4 bg-muted/20 w-full">
+    <div className="space-y-4 border rounded-lg p-2 sm:p-4 bg-muted/20 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold truncate">{title}</h3>

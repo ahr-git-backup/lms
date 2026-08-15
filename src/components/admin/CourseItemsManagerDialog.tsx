@@ -200,7 +200,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
         </Button>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="px-0 sm:px-2">
         {isLoading ? (
             <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : items.length === 0 ? (
