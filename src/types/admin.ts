@@ -5,6 +5,7 @@ export interface Announcement {
   image_url?: string | null;
   course_id?: string | null;
   published_at: string;
+  send_notification?: boolean;
   course?: {
     id: string;
     name: string;

@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUploader } from "@/components/ui/image-uploader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -20,6 +21,7 @@ const announcementSchema = z.object({
   body: z.string().trim().max(4000).optional().default(""),
   image_url: z.string().optional().nullable(),
   course_id: z.string().optional().nullable(),
+  send_notification: z.boolean().optional().default(true),
 }).refine((val) => (val.body && val.body.length > 0) || (val.image_url && val.image_url.length > 0), {
   message: "Add text or an image",
   path: ["body"],
@@ -33,6 +35,7 @@ const AdminAnnouncements = () => {
     body: "",
     image_url: "",
     course_id: null,
+    send_notification: true,
   });
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [page, setPage] = useState(0);
@@ -93,6 +96,7 @@ const AdminAnnouncements = () => {
       body: "",
       image_url: "",
       course_id: null,
+      send_notification: true,
     });
     setIsFormVisible(false);
   };
@@ -105,6 +109,7 @@ const AdminAnnouncements = () => {
         body: parsed.body || "",
         image_url: parsed.image_url || null,
         course_id: parsed.course_id || null,
+        send_notification: parsed.send_notification,
       };
 
       if (parsed.id) {
@@ -116,17 +121,20 @@ const AdminAnnouncements = () => {
       } else {
         const { error } = await supabase.from("announcements").insert(payload);
         if (error) throw error;
-        // Fire-and-forget push notification to all subscribed devices — never blocks the save.
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (!session) return;
-          supabase.functions.invoke("send-push-v2", {
-            body: {
-              title: parsed.title,
-              body: parsed.body || "",
-              url: "/dashboard/announcements",
-            },
-          }).catch(() => { /* best-effort */ });
-        });
+        // Fire-and-forget push notification to all subscribed devices — only
+        // when the admin left the toggle on. Never blocks the save either way.
+        if (parsed.send_notification) {
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (!session) return;
+            supabase.functions.invoke("send-push-v2", {
+              body: {
+                title: parsed.title,
+                body: parsed.body || "",
+                url: "/dashboard/announcements",
+              },
+            }).catch(() => { /* best-effort */ });
+          });
+        }
       }
     },
     onSuccess: () => {
@@ -161,6 +169,26 @@ const AdminAnnouncements = () => {
     },
   });
 
+  const toggleNotificationMutation = useMutation({
+    mutationFn: async ({ id, send_notification }: { id: string; send_notification: boolean }) => {
+      const { error } = await supabase
+        .from("announcements")
+        .update({ send_notification })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-announcements"] });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error updating notification setting",
+        description: error.message ?? "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (announcement: Announcement) => {
     setForm({
       id: announcement.id,
@@ -168,6 +196,7 @@ const AdminAnnouncements = () => {
       body: announcement.body ?? "",
       image_url: announcement.image_url ?? "",
       course_id: announcement.course_id ?? null,
+      send_notification: announcement.send_notification ?? true,
     });
     setIsFormVisible(true);
   };
@@ -260,6 +289,22 @@ const AdminAnnouncements = () => {
               />
             </div>
 
+            {!form.id && (
+              <div className="flex items-center justify-between gap-3 md:col-span-2 rounded-md border border-border/60 p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="send_notification">Push notification পাঠান</Label>
+                  <p className="text-xs text-muted-foreground">
+                    On থাকলে subscribed সব ডিভাইসে notification যাবে।
+                  </p>
+                </div>
+                <Switch
+                  id="send_notification"
+                  checked={form.send_notification ?? true}
+                  onCheckedChange={(checked) => setForm((prev) => ({ ...prev, send_notification: checked }))}
+                />
+              </div>
+            )}
+
             <div className="flex items-center gap-2 md:col-span-2">
               <Button type="submit" size="sm" disabled={upsertMutation.isPending}>
                 {upsertMutation.isPending
@@ -305,6 +350,7 @@ const AdminAnnouncements = () => {
                     <TableHead>Course</TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Seen</TableHead>
+                    <TableHead className="text-center">Notify</TableHead>
                     <TableHead className="w-[80px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -324,6 +370,14 @@ const AdminAnnouncements = () => {
                       </TableCell>
                       <TableCell className="text-xs font-medium">
                         {announcementsData?.seenCounts?.[announcement.id] || 0}
+                      </TableCell>
+                      <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={announcement.send_notification ?? true}
+                          onCheckedChange={(checked) =>
+                            toggleNotificationMutation.mutate({ id: announcement.id, send_notification: checked })
+                          }
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
