@@ -6,6 +6,8 @@ interface NotificationContextType {
   requestPermission: () => Promise<void>;
   sendNotification: (title: string, options?: NotificationOptions) => void;
   permission: NotificationPermission;
+  isSubscribed: boolean;
+  disablePush: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -53,16 +55,50 @@ async function subscribeToPush() {
   }
 }
 
+// Removes this device's push subscription — both from the browser and from
+// the database — so the user stops receiving push notifications. Browsers
+// don't let a page revoke Notification permission itself, so this is the
+// practical "turn off" switch: no subscription, no more push delivery.
+async function unsubscribeFromPush() {
+  if (!("serviceWorker" in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return;
+    const endpoint = subscription.endpoint;
+    await subscription.unsubscribe();
+    await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+  } catch (error) {
+    console.error("Push unsubscribe failed:", error);
+  }
+}
+
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [permission, setPermission] = useState<NotificationPermission>("default");
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const { toast } = useToast();
+
+  const refreshSubscriptionState = useCallback(async () => {
+    if (!("serviceWorker" in navigator)) return;
+    try {
+      const registration = await navigator.serviceWorker.getRegistration();
+      const sub = await registration?.pushManager.getSubscription();
+      setIsSubscribed(!!sub);
+    } catch {
+      setIsSubscribed(false);
+    }
+  }, []);
 
   useEffect(() => {
     if ("Notification" in window) {
       setPermission(Notification.permission);
-      if (Notification.permission === "granted") subscribeToPush();
+      if (Notification.permission === "granted") {
+        subscribeToPush().then(refreshSubscriptionState);
+      } else {
+        refreshSubscriptionState();
+      }
     }
-  }, []);
+  }, [refreshSubscriptionState]);
 
   const requestPermission = useCallback(async () => {
     if (!("Notification" in window)) {
@@ -74,12 +110,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setPermission(p);
       if (p === 'granted') {
           toast({ title: "Notifications enabled" });
-          subscribeToPush();
+          await subscribeToPush();
+          await refreshSubscriptionState();
       }
     } catch (error) {
       console.error("Error requesting notification permission:", error);
     }
-  }, [toast]);
+  }, [toast, refreshSubscriptionState]);
+
+  const disablePush = useCallback(async () => {
+    await unsubscribeFromPush();
+    await refreshSubscriptionState();
+    toast({ title: "Notifications বন্ধ করা হয়েছে" });
+  }, [toast, refreshSubscriptionState]);
 
   const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
     if (permission === "granted") {
@@ -94,7 +137,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, [permission, toast]);
 
   return (
-    <NotificationContext.Provider value={{ requestPermission, sendNotification, permission }}>
+    <NotificationContext.Provider value={{ requestPermission, sendNotification, permission, isSubscribed, disablePush }}>
       {children}
     </NotificationContext.Provider>
   );
