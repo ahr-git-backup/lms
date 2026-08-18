@@ -21,7 +21,7 @@ import CourseBuy from "./pages/CourseBuy";
 import Reviews from "./pages/Reviews";
 import Tutorial from "./pages/public/Tutorial";
 import PublicLayout from "./layouts/PublicLayout";
-import DashboardLayout from "./layouts/DashboardLayout";
+import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LiveClass from "./pages/dashboard/LiveClass";
@@ -154,6 +154,9 @@ const App = () => {
         <BrowserRouter>
           <AuthProvider>
             <NotificationProvider>
+            <ErrorBoundary label="PWALoginGate" fallback={null}>
+              <PWALoginGate />
+            </ErrorBoundary>
             <Routes>
               <Route element={<ErrorBoundary><PublicLayout /></ErrorBoundary>}>
                 <Route path="/" element={<ErrorBoundary><Index /></ErrorBoundary>} />
