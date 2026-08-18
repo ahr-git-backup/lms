@@ -814,7 +814,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // --- LEVEL 2.5: BOARD/CATEGORY (readymade_category) — optional drill-down step
   // within the selected chapter. Skipped automatically if the chapter has no
   // exams carrying a readymade_category value.
-  const { data: chapterBoards, isLoading: loadingChapterBoards } = useQuery({
+  const { data: chapterBoardsResult, isLoading: loadingChapterBoards } = useQuery({
     queryKey: ["readymade-exams-chapter-boards", selectedSubject, selectedChapter, enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return [];
@@ -830,19 +830,28 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         return query;
       });
       const unique = new Set<string>();
-      data.forEach((row: any) => { if (row.readymade_category) unique.add(row.readymade_category); });
+      const examCountMap: Record<string, number> = {};
+      data.forEach((row: any) => {
+        if (row.readymade_category) {
+          unique.add(row.readymade_category);
+          examCountMap[row.readymade_category] = (examCountMap[row.readymade_category] || 0) + 1;
+        }
+      });
       const settingsKey = `board_order_global_${selectedSubject}_${selectedChapter}`;
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
-      return Array.from(unique).sort((a, b) => {
+      const boards = Array.from(unique).sort((a, b) => {
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
+      return { boards, examCountMap };
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedBoardStep && !searchQuery
   });
+  const chapterBoards = chapterBoardsResult?.boards;
+  const boardExamCountMap = chapterBoardsResult?.examCountMap || {};
 
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChaptersResult, isLoading: loadingSubChapters } = useQuery({
@@ -863,9 +872,11 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const unique = new Set<string>();
       const unlockMap: Record<string, boolean> = {};
+      const examCountMap: Record<string, number> = {};
       data.forEach((row: any) => {
         if (row.readymade_sub_chapter) {
           unique.add(row.readymade_sub_chapter);
+          examCountMap[row.readymade_sub_chapter] = (examCountMap[row.readymade_sub_chapter] || 0) + 1;
           if (!unlockMap[row.readymade_sub_chapter]) {
             const rowUnlocked = isExamUnlocked(
               { course_id: row.course_id, shared_course_ids: row.shared_course_ids, readymade_course_ids: row.readymade_course_ids, subject: [selectedSubject], chapter: selectedChapter, readymade_sub_chapter: row.readymade_sub_chapter, is_visible_on_free: false },
@@ -884,7 +895,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
-      return { subChapters, unlockMap };
+      return { subChapters, unlockMap, examCountMap };
     },
     enabled: !!selectedSubject && !!selectedChapter && !selectedSubChapter && !searchQuery
       && (!!selectedBoardStep || chapterBoards?.length === 0)
@@ -893,6 +904,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   useEffect(() => { if (chapterBoards) setCurrentBoardsList(chapterBoards); }, [chapterBoards, setCurrentBoardsList]);
   useEffect(() => { if (subChapters) setCurrentSubChaptersList(subChapters); }, [subChapters, setCurrentSubChaptersList]);
   const subChapterUnlockMap = subChaptersResult?.unlockMap || {};
+  const subChapterExamCountMap = subChaptersResult?.examCountMap || {};
 
   // --- LEVEL 4: EXAMS (filtered by sub-chapter if present, else no sub-chapter filter) ---
   // No .range() here on purpose — user wants every exam in the chapter/session
@@ -1101,7 +1113,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       </span>
                     )}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View <ChevronRight className="h-3 w-3 ml-1" /></div>
+                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">
+                    View{typeof boardExamCountMap[board] === "number" ? ` (${boardExamCountMap[board]})` : ""} <ChevronRight className="h-3 w-3 ml-1" />
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -1158,7 +1172,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       </span>
                     )}
                   </div>
-                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
+                  <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">
+                    View{typeof subChapterExamCountMap[sc] === "number" ? ` (${subChapterExamCountMap[sc]})` : ""} Exams <ChevronRight className="h-3 w-3 ml-1" />
+                  </div>
                 </CardContent>
               </Card>
               );
