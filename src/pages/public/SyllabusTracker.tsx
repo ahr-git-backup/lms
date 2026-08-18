@@ -78,13 +78,33 @@ const SyllabusTracker = () => {
   const [mode, setMode] = useState<Mode>("medical");
   const [openSubjectId, setOpenSubjectId] = useState<number | null>(null);
   const [openChapterId, setOpenChapterId] = useState<number | null>(null);
-  const [lbMode, setLbMode] = useState<Mode>("hsc");
+  const [lbMode, setLbMode] = useState<Mode>("medical");
 
   const [revView, setRevView] = useState<"dashboard" | "leaderboard">("dashboard");
   const [revMode, setRevMode] = useState<Mode>("hsc");
   const [revLbMode, setRevLbMode] = useState<Mode>("hsc");
 
   const [routineTab, setRoutineTab] = useState<"daily" | "target">("daily");
+
+  // Chrome/Android's back-forward cache (bfcache) can restore this page from
+  // a frozen snapshot instead of re-mounting it, which would otherwise leave
+  // stale view state (e.g. stuck on the leaderboard) when the user navigates
+  // back here. Force a reset to the always-Dashboard/Medical default whenever
+  // the page is restored from bfcache.
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setSylView("dashboard");
+        setMode("medical");
+        setLbMode("medical");
+        setOpenSubjectId(null);
+        setOpenChapterId(null);
+        setPanel("none");
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   const [progress, setProgress] = useState<Record<string, boolean>>({});
   const [revision, setRevision] = useState<Record<string, boolean>>({});
@@ -305,7 +325,18 @@ const SyllabusTracker = () => {
 
         {panel === "syllabus" && !openSubject && (
           <div className="flex gap-1.5 flex-shrink-0">
-            <button onClick={() => setSylView("dashboard")} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full", sylView === "dashboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>Dashboard</button>
+            <button
+              onClick={() => setSylView("dashboard")}
+              className={cn(
+                "text-[11px] font-bold px-2.5 py-1.5 rounded-full transition-all",
+                sylView === "dashboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                // Subtle glow pulse while the user is on the leaderboard —
+                // nudges them toward the Dashboard button without being loud.
+                sylView === "leaderboard" && "animate-pulse shadow-[0_0_0_3px_hsl(var(--primary)/0.25)]"
+              )}
+            >
+              Dashboard
+            </button>
             <button onClick={() => setSylView("leaderboard")} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1", sylView === "leaderboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Trophy className="h-3 w-3" /> Leaderboard</button>
           </div>
         )}
