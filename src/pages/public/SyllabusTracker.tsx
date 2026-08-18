@@ -302,7 +302,16 @@ const SyllabusTracker = () => {
 
   const goBack = () => {
     if (openSubject) { setOpenSubjectId(null); return; }
-    if (panel !== "none") { setPanel("none"); return; }
+    if (panel !== "none") {
+      setPanel("none");
+      // Reset syllabus dashboard/leaderboard view so the next time the user
+      // opens Syllabus Tracker (from the home grid or via browser back), it
+      // always starts on Dashboard + Medical instead of wherever they left off.
+      setSylView("dashboard");
+      setMode("medical");
+      setLbMode("medical");
+      return;
+    }
     navigate(user ? "/dashboard" : "/");
   };
 
@@ -356,7 +365,17 @@ const SyllabusTracker = () => {
           <>
             <div className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">ড্যাশবোর্ড</div>
             <div className="grid grid-cols-2 gap-3">
-              <button onClick={() => setPanel("syllabus")} className="text-left rounded-2xl border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors">
+              <button
+                onClick={() => {
+                  setSylView("dashboard");
+                  setMode("medical");
+                  setLbMode("medical");
+                  setOpenSubjectId(null);
+                  setOpenChapterId(null);
+                  setPanel("syllabus");
+                }}
+                className="text-left rounded-2xl border bg-card p-4 space-y-2 hover:border-primary/40 transition-colors"
+              >
                 <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><BookOpen className="h-5 w-5" /></div>
                 <div className="text-sm font-bold">Syllabus Tracker</div>
                 <div className="text-[11px] text-muted-foreground leading-relaxed">HSC ও Medical<br />টপিক মার্ক করুন</div>
