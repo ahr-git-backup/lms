@@ -55,13 +55,6 @@ export function PWASplash() {
         />
         <div className="atlas-splash__ring" />
       </div>
-      <div className="atlas-splash__brand">
-        <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 0 }}>A</span>
-        <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 1 }}>t</span>
-        <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 2 }}>l</span>
-        <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 3 }}>a</span>
-        <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 4 }}>s</span>
-      </div>
       <p className="atlas-splash__motto">
         {"সঠিক গাইডলাইনে গোছানো প্রস্তুতি".split(" ").map((word, i) => (
           <span
