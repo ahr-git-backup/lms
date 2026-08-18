@@ -720,12 +720,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       });
       const unique = new Set<string>(); const orderMap = new Map<string, number>();
       const unlockMap: Record<string, boolean> = {};
+      const examCountMap: Record<string, number> = {};
       const settingsKey = `chapter_order_global_${selectedSubject}`;
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
       data.forEach((row: any) => {
         if (row.chapter) {
           unique.add(row.chapter);
+          examCountMap[row.chapter] = (examCountMap[row.chapter] || 0) + 1;
           const cur = orderMap.get(row.chapter) || 0;
           if ((row.sort_order || 0) > cur) orderMap.set(row.chapter, row.sort_order || 0);
           if (!unlockMap[row.chapter]) {
@@ -745,12 +747,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         if (oA !== oB) return oB - oA;
         return a.localeCompare(b);
       });
-      return { chapters, unlockMap };
+      return { chapters, unlockMap, examCountMap };
     },
     enabled: !!selectedSubject && !selectedChapter && !searchQuery
   });
   const chapters = chaptersResult?.chapters;
   const chapterUnlockMap = chaptersResult?.unlockMap || {};
+  const chapterExamCountMap = chaptersResult?.examCountMap || {};
 
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
@@ -1061,7 +1064,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">View Exams <ChevronRight className="h-3 w-3 ml-1" /></div>
+                    <div className="text-[10px] sm:text-xs text-primary font-medium mt-1 flex items-center">
+                      View{typeof chapterExamCountMap[chapter] === "number" ? ` (${chapterExamCountMap[chapter]})` : ""} Exams <ChevronRight className="h-3 w-3 ml-1" />
+                    </div>
                   </CardContent>
                 </Card>
                 );
