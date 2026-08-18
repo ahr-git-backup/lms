@@ -20,6 +20,21 @@ function tryApplyUpdate() {
 
 document.addEventListener("visibilitychange", tryApplyUpdate);
 
+// When a new service worker takes control (after a deploy), the open tab's
+// in-memory JS is stale — reload once to pick up the fresh bundle. This never
+// touches localStorage/session, only refreshes the running code, so login
+// stays intact. Guarded against firing twice and against the very first
+// activation (which has no "old" controller to replace).
+let refreshing = false;
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (refreshing) return;
+    refreshing = true;
+    pendingReload = true;
+    tryApplyUpdate();
+  });
+}
+
 updateSW = registerSW({
   immediate: true,
   onRegisteredSW(_url, registration) {
