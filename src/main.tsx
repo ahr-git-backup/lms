@@ -3,12 +3,15 @@ import App from "./App.tsx";
 import "./index.css";
 import "./fonts.css";
 import { registerSW } from "virtual:pwa-register";
-import { PWASplash } from "./pwa/PWASplash";
-import { isStandaloneDisplay } from "./pwa/usePWADisplayMode";
 
 // Tag <html> with app-mode vs website-mode so CSS/components can branch
 // design without touching routing or logic. Runs before first paint.
-document.documentElement.classList.add(isStandaloneDisplay() ? "pwa-app-mode" : "pwa-web-mode");
+(() => {
+  const isStandalone =
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  document.documentElement.classList.add(isStandalone ? "pwa-app-mode" : "pwa-web-mode");
+})();
 
 let updateSW: (() => void) | undefined;
 let pendingReload = false;
@@ -60,9 +63,4 @@ if (window.matchMedia("(display-mode: standalone)").matches) {
   document.documentElement.classList.add("pwa-standalone");
 }
 
-createRoot(document.getElementById("root")!).render(
-  <>
-    <PWASplash />
-    <App />
-  </>
-);
+createRoot(document.getElementById("root")!).render(<App />);
