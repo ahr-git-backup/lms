@@ -83,12 +83,13 @@
   max-width: 320px;
 }
 
-.atlas-splash__motto-char {
+.atlas-splash__motto-word {
   display: inline-block;
   opacity: 0;
   transform: translateY(8px);
   animation: atlas-splash-char-in 0.45s ease-out forwards;
-  animation-delay: calc(0.9s + var(--i) * 0.028s);
+  animation-delay: calc(0.9s + var(--i) * 0.12s);
+  margin-right: 5px;
 }
 
 @keyframes atlas-splash-logo-in {

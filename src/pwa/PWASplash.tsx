@@ -63,13 +63,13 @@ export function PWASplash() {
         <span className="atlas-splash__brand-letter" style={{ ["--i" as string]: 4 }}>s</span>
       </div>
       <p className="atlas-splash__motto">
-        {"সঠিক গাইডলাইনে গোছানো প্রস্তুতি".split("").map((ch, i) => (
+        {"সঠিক গাইডলাইনে গোছানো প্রস্তুতি".split(" ").map((word, i) => (
           <span
             key={i}
-            className="atlas-splash__motto-char"
+            className="atlas-splash__motto-word"
             style={{ ["--i" as string]: i }}
           >
-            {ch === " " ? "\u00A0" : ch}
+            {word}
           </span>
         ))}
       </p>
