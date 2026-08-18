@@ -41,7 +41,10 @@ async function subscribeToPush() {
     }
     const json = subscription.toJSON();
     if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) return;
-    await supabase.from("push_subscriptions").upsert(
+    // Fire-and-forget the DB write — the browser subscription itself is what
+    // the UI's checked-state depends on, so we don't need to block the
+    // toggle on this network round-trip finishing.
+    supabase.from("push_subscriptions").upsert(
       {
         user_id: user.id,
         endpoint: json.endpoint,
@@ -49,7 +52,9 @@ async function subscribeToPush() {
         auth: json.keys.auth,
       },
       { onConflict: "endpoint" }
-    );
+    ).then(({ error }) => {
+      if (error) console.error("Push subscription DB save failed:", error);
+    });
   } catch (error) {
     console.error("Push subscription failed:", error);
   }
@@ -67,7 +72,11 @@ async function unsubscribeFromPush() {
     if (!subscription) return;
     const endpoint = subscription.endpoint;
     await subscription.unsubscribe();
-    await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+    // Fire-and-forget — the browser-side unsubscribe is what the UI's
+    // checked-state depends on.
+    supabase.from("push_subscriptions").delete().eq("endpoint", endpoint).then(({ error }) => {
+      if (error) console.error("Push subscription DB delete failed:", error);
+    });
   } catch (error) {
     console.error("Push unsubscribe failed:", error);
   }
