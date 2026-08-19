@@ -3,6 +3,20 @@ import App from "./App.tsx";
 import "./index.css";
 import "./fonts.css";
 import { registerSW } from "virtual:pwa-register";
+import ErrorBoundary from "./components/ErrorBoundary";
+import { PWASplash } from "./pwa/PWASplash";
+
+// Tag <html> with app-mode vs website-mode so CSS/components can branch
+// design without touching routing or logic. Wrapped defensively — must
+// never throw, since it runs before React mounts.
+try {
+  const isStandaloneNow =
+    window.matchMedia?.("(display-mode: standalone)").matches ||
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+  document.documentElement.classList.add(isStandaloneNow ? "pwa-app-mode" : "pwa-web-mode");
+} catch {
+  // no-op — never block app boot over this
+}
 
 let updateSW: (() => void) | undefined;
 let pendingReload = false;
@@ -54,4 +68,11 @@ if (window.matchMedia("(display-mode: standalone)").matches) {
   document.documentElement.classList.add("pwa-standalone");
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <>
+    <ErrorBoundary label="PWASplash" fallback={null}>
+      <PWASplash />
+    </ErrorBoundary>
+    <App />
+  </>
+);
