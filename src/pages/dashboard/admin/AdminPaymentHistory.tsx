@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ArrowLeft, Search, Users } from "lucide-react";
 import { format, differenceInCalendarDays } from "date-fns";
 
@@ -30,42 +31,36 @@ interface HistoryRow {
   } | null;
 }
 
-function StudentRow({ row }: { row: HistoryRow }) {
+function studentTableCells(row: HistoryRow) {
   const paymentTime = row.updated_at || row.created_at;
   const paid = row.amount_paid ?? row.amount_sent ?? 0;
   const due = row.due_amount ?? 0;
   const daysLeft = row.due_date ? differenceInCalendarDays(new Date(row.due_date), new Date()) : null;
 
   return (
-    <div className="flex items-center gap-1.5 py-1.5 px-2 border-b border-border/50 text-[10px] leading-tight whitespace-nowrap overflow-x-auto">
-      <span className="font-medium shrink-0 max-w-[80px] truncate">{row.profiles?.full_name || "—"}</span>
-      <span className="text-muted-foreground shrink-0">|</span>
-      <span className="shrink-0 max-w-[60px] truncate">{row.profiles?.hsc_batch || "—"}</span>
-      <span className="text-muted-foreground shrink-0">|</span>
-      <span className="shrink-0 max-w-[90px] truncate">{row.profiles?.college_name || "—"}</span>
-      <span className="text-muted-foreground shrink-0">|</span>
-      <span className="shrink-0">{format(new Date(paymentTime), "dd MMM")}</span>
-      <span className="shrink-0">{format(new Date(paymentTime), "hh:mma")}</span>
-      <span className="text-muted-foreground shrink-0">|</span>
-      <span className="shrink-0 text-emerald-600 dark:text-emerald-400 font-medium">৳{paid.toLocaleString("en-BD")}</span>
-      {due > 0 ? (
-        <>
-          <span className="text-muted-foreground shrink-0">|</span>
-          <span className="shrink-0 text-amber-600 dark:text-amber-400">বাকি ৳{due.toLocaleString("en-BD")}</span>
-          {row.due_date && (
-            <>
-              <span className="text-muted-foreground shrink-0">|</span>
-              <span className={`shrink-0 ${daysLeft !== null && daysLeft < 0 ? "text-destructive" : ""}`}>
-                {format(new Date(row.due_date), "dd MMM")}
-                {daysLeft !== null && ` (${daysLeft < 0 ? `${Math.abs(daysLeft)}দিন লেট` : `${daysLeft}দিন বাকি`})`}
-              </span>
-            </>
-          )}
-        </>
-      ) : (
-        <span className="shrink-0 text-emerald-600 dark:text-emerald-400">সম্পূর্ণ</span>
-      )}
-    </div>
+    <>
+      <TableCell className="p-1 text-[9px] font-medium truncate max-w-[70px]">{row.profiles?.full_name || "—"}</TableCell>
+      <TableCell className="p-1 text-[9px] truncate max-w-[50px]">{row.profiles?.hsc_batch || "—"}</TableCell>
+      <TableCell className="p-1 text-[9px] truncate max-w-[70px]">{row.profiles?.college_name || "—"}</TableCell>
+      <TableCell className="p-1 text-[9px] whitespace-nowrap">{format(new Date(paymentTime), "dd MMM")}</TableCell>
+      <TableCell className="p-1 text-[9px] whitespace-nowrap">{format(new Date(paymentTime), "hh:mma")}</TableCell>
+      <TableCell className="p-1 text-[9px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">৳{paid.toLocaleString("en-BD")}</TableCell>
+      <TableCell className="p-1 text-[9px] whitespace-nowrap">
+        {due > 0 ? <span className="text-amber-600 dark:text-amber-400">৳{due.toLocaleString("en-BD")}</span> : <span className="text-muted-foreground">—</span>}
+      </TableCell>
+      <TableCell className="p-1 text-[9px] whitespace-nowrap">
+        {due > 0 && row.due_date ? (
+          <span className={daysLeft !== null && daysLeft < 0 ? "text-destructive" : ""}>
+            {format(new Date(row.due_date), "dd MMM")}
+            {daysLeft !== null && ` (${daysLeft < 0 ? `${Math.abs(daysLeft)}দি লেট` : `${daysLeft}দি`})`}
+          </span>
+        ) : due > 0 ? (
+          <span className="text-muted-foreground">—</span>
+        ) : (
+          <span className="text-emerald-600 dark:text-emerald-400">সম্পূর্ণ</span>
+        )}
+      </TableCell>
+    </>
   );
 }
 
@@ -119,14 +114,31 @@ function DatewiseTab() {
       ) : filteredRows.length === 0 ? (
         <Card><CardContent className="p-6 text-center text-xs text-muted-foreground">কোনো পেমেন্ট পাওয়া যায়নি</CardContent></Card>
       ) : (
-        <Card className="w-full">
+        <Card className="w-full overflow-hidden">
           <CardContent className="p-0">
-            {filteredRows.map((row) => (
-              <div key={row.id} className="border-b border-border/30 last:border-0">
-                <div className="px-2 pt-1.5 text-[10px] font-medium text-primary truncate">{row.courses?.name || "Unknown Course"}</div>
-                <StudentRow row={row} />
-              </div>
-            ))}
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="p-1 text-[9px] max-w-[70px]">কোর্স</TableHead>
+                  <TableHead className="p-1 text-[9px]">নাম</TableHead>
+                  <TableHead className="p-1 text-[9px]">ব্যাচ</TableHead>
+                  <TableHead className="p-1 text-[9px]">কলেজ</TableHead>
+                  <TableHead className="p-1 text-[9px]">তারিখ</TableHead>
+                  <TableHead className="p-1 text-[9px]">সময়</TableHead>
+                  <TableHead className="p-1 text-[9px]">পেইড</TableHead>
+                  <TableHead className="p-1 text-[9px]">বাকি</TableHead>
+                  <TableHead className="p-1 text-[9px]">শেষ তারিখ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRows.map((row) => (
+                  <TableRow key={row.id}>
+                    <TableCell className="p-1 text-[9px] font-medium text-primary truncate max-w-[70px]">{row.courses?.name || "Unknown"}</TableCell>
+                    {studentTableCells(row)}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       )}
@@ -198,11 +210,29 @@ function CoursewiseTab() {
         ) : !courseRows || courseRows.length === 0 ? (
           <Card><CardContent className="p-6 text-center text-xs text-muted-foreground">কোনো শিক্ষার্থী নেই</CardContent></Card>
         ) : (
-          <Card className="w-full">
+          <Card className="w-full overflow-hidden">
             <CardContent className="p-0">
-              {courseRows.map((row) => (
-                <StudentRow key={row.id} row={row} />
-              ))}
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="p-1 text-[9px]">নাম</TableHead>
+                    <TableHead className="p-1 text-[9px]">ব্যাচ</TableHead>
+                    <TableHead className="p-1 text-[9px]">কলেজ</TableHead>
+                    <TableHead className="p-1 text-[9px]">তারিখ</TableHead>
+                    <TableHead className="p-1 text-[9px]">সময়</TableHead>
+                    <TableHead className="p-1 text-[9px]">পেইড</TableHead>
+                    <TableHead className="p-1 text-[9px]">বাকি</TableHead>
+                    <TableHead className="p-1 text-[9px]">শেষ তারিখ</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {courseRows.map((row) => (
+                    <TableRow key={row.id}>
+                      {studentTableCells(row)}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         )}
