@@ -335,6 +335,15 @@ const AdminPayments = () => {
                 <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => navigate("/admin/payments/history")}
+                    className="gap-2 h-9"
+                >
+                    <Calendar className="h-4 w-4" />
+                    <span className="hidden sm:inline">Payment History</span>
+                </Button>
+                <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsMuted(!isMuted)}
                     className="gap-2 h-9"
                     title={isMuted ? "Unmute notification sound" : "Mute notification sound"}

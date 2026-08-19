@@ -60,6 +60,7 @@ import AdminExams from "./pages/dashboard/admin/AdminExams";
 import AdminAnnouncements from "./pages/dashboard/admin/AdminAnnouncements";
 import AdminCommunity from "./pages/dashboard/admin/AdminCommunity";
 import AdminPayments from "./pages/dashboard/admin/AdminPayments";
+import AdminPaymentHistory from "./pages/dashboard/admin/AdminPaymentHistory";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
 import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
 import AdminExamCalendar from "./pages/dashboard/admin/AdminExamCalendar";
@@ -242,6 +243,7 @@ const App = () => {
                 <Route path="calendar" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExamCalendar /></ProtectedRoute>} />
                 <Route path="free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
                 <Route path="payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
+                <Route path="payments/history" element={<ProtectedRoute requireAdmin><AdminPaymentHistory /></ProtectedRoute>} />
                 <Route path="mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
                 <Route path="promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
                 <Route path="heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
