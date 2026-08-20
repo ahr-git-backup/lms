@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils";
 import { ExamForm } from "@/components/admin/ExamForm";
 import { ExternalExamForm } from "@/components/admin/ExternalExamForm";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
+import { openSolvePdf } from "@/lib/solvePdf";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ExamSortableList } from "@/components/admin/ExamSortableList";
 import { ArrowUpDown } from "lucide-react";
 
@@ -44,6 +46,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const editId = searchParams.get("editId");
   const [editingExam, setEditingExam] = useState<any>(null);
   const [editingExternalExam, setEditingExternalExam] = useState<any>(null);
+  const [sheetExam, setSheetExam] = useState<{ id: string; title: string } | null>(null);
   const [showForm, setShowFormRaw] = useState(() => sessionStorage.getItem("examManager_showForm") === "1");
   const setShowForm = (val: boolean) => {
     setShowFormRaw(val);
@@ -303,12 +306,17 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     }
   };
 
-  const handleGenerateSolvesheet = async (examId: string, examTitle: string) => {
+  const handleGenerateSolvesheet = (examId: string, examTitle: string) => {
+    setSheetExam({ id: examId, title: examTitle });
+  };
+
+  const handleDownloadSolveSheetStyle = async (style: "style1" | "style2") => {
+    if (!sheetExam) return;
     try {
         const { data: questions, error } = await supabase
             .from("exam_questions")
             .select("*")
-            .eq("exam_id", examId)
+            .eq("exam_id", sheetExam.id)
             .order("question_index", { ascending: true });
 
         if (error) throw error;
@@ -317,74 +325,24 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
             return;
         }
 
-        const escapeHtml = (unsafe: string) => {
-            if (!unsafe) return "";
-            return unsafe
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        };
-
-        const questionsHtml = questions.map(q => `
-          <div class="question-block">
-              <div class="q-text"><strong>${q.question_index}.</strong> ${escapeHtml(q.question_text)}</div>
-              <div class="options">
-                  <div>A) ${escapeHtml(q.option_a)}</div>
-                  <div>B) ${escapeHtml(q.option_b)}</div>
-                  <div>C) ${escapeHtml(q.option_c)}</div>
-                  <div>D) ${escapeHtml(q.option_d)}</div>
-              </div>
-              <div class="answer"><strong>Correct Answer:</strong> Option ${q.correct_option}</div>
-              ${q.explanation ? `<div class="explanation"><strong>Explanation:</strong> ${escapeHtml(q.explanation)}</div>` : ''}
-          </div>
-        `).join('');
-
-        const htmlContent = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <title>${escapeHtml(examTitle)} - Solvesheet</title>
-            <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-            <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-            <style>
-                body { font-family: sans-serif; padding: 20px; color: #333; max-width: 800px; margin: 0 auto; }
-                h1 { text-align: center; color: #10b981; }
-                .question-block { margin-bottom: 25px; page-break-inside: avoid; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-                .q-text { font-size: 16px; margin-bottom: 10px; line-height: 1.5; }
-                .options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; font-size: 14px; }
-                .answer { color: #16a34a; font-size: 14px; margin-bottom: 5px; }
-                .explanation { font-size: 13px; color: #666; background: #f9f9f9; padding: 8px; border-radius: 4px; line-height: 1.5; }
-                @media print {
-                    body { padding: 0; }
-                    .question-block { border-bottom: none; border-top: 1px solid #ccc; padding-top: 15px; }
-                    .question-block:first-of-type { border-top: none; }
-                }
-            </style>
-        </head>
-        <body>
-            <h1>${escapeHtml(examTitle)} - Solvesheet</h1>
-            ${questionsHtml}
-            <script>
-                window.onload = function() {
-                    setTimeout(function() {
-                        window.print();
-                    }, 2500); // give MathJax time to render
-                }
-            </script>
-        </body>
-        </html>
-        `;
-
-        const printWindow = window.open('', '_blank');
-        if (printWindow) {
-            printWindow.document.write(htmlContent);
-            printWindow.document.close();
-        } else {
-            toast({ title: "Popup blocked", description: "Allow popups to print solvesheet", variant: "destructive" });
-        }
+        openSolvePdf({
+            examName: sheetExam.title,
+            style,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            questions: questions.map((q: any) => ({
+                question_text: q.question_text,
+                option_a: q.option_a,
+                option_b: q.option_b,
+                option_c: q.option_c,
+                option_d: q.option_d,
+                option_e: q.option_e,
+                correct_option: q.correct_option,
+                user_answer: null,
+                explanation: q.explanation,
+            })),
+            totalMarks: questions.length,
+        });
+        setSheetExam(null);
     } catch (err: any) {
         console.error(err);
         toast({ title: "Failed to generate Solvesheet", description: err.message, variant: "destructive" });
@@ -419,6 +377,27 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   return (
     <section className="space-y-6">
+      <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solution PDF স্টাইল বেছে নিন</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Button variant="outline" className="justify-start h-auto py-2 w-full" onClick={() => handleDownloadSolveSheetStyle("style1")}>
+              <div className="text-left">
+                <div className="font-medium">Revision Style</div>
+                <div className="text-xs font-normal text-muted-foreground">প্রশ্ন, উত্তর, ব্যাখ্যা একই সাথে</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-2 w-full" onClick={() => handleDownloadSolveSheetStyle("style2")}>
+              <div className="text-left">
+                <div className="font-medium">Practice Style</div>
+                <div className="text-xs font-normal text-muted-foreground">প্রশ্নের শেষে উত্তর + ব্যাখ্যা (Answer Table)</div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       <header className="space-y-1">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
