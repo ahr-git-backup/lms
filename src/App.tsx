@@ -245,7 +245,7 @@ const App = () => {
                 <Route path="archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
                 <Route path="calendar" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExamCalendar /></ProtectedRoute>} />
                 <Route path="free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
-                <Route path="payments" element={<ProtectedRoute requireAdmin><AdminPayments /></ProtectedRoute>} />
+                <Route path="payments" element={<ProtectedRoute requireAdmin><ErrorBoundary><AdminPayments /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="payments/history" element={<ProtectedRoute requireAdmin><AdminPaymentHistory /></ProtectedRoute>} />
                 <Route path="mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
                 <Route path="promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />

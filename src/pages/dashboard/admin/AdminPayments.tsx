@@ -61,6 +61,21 @@ const isDueWarning = (due_date?: string | null) => {
   return !isPast(dueDate) && isBefore(dueDate, addDays(new Date(), 3));
 };
 
+// Safe date formatter — never throws. A malformed/missing timestamp from the
+// database used to crash this entire page to a blank white screen (no error
+// boundary on this route), because date-fns' format() throws on invalid
+// dates. This renders a fallback instead of crashing.
+const safeFormat = (value?: string | null, pattern = "dd MMM yyyy") => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return "—";
+  try {
+    return format(d, pattern);
+  } catch {
+    return "—";
+  }
+};
+
 const AdminPayments = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -455,7 +470,7 @@ const AdminPayments = () => {
                   requests.map((request) => (
                     <TableRow key={request.id} className={request.due_amount && request.due_amount > 0 ? "bg-amber-50/50 dark:bg-amber-950/10" : ""}>
                       <TableCell className="whitespace-nowrap text-xs">
-                          {format(new Date(request.created_at), "dd MMM, hh:mm a")}
+                          {safeFormat(request.created_at, "dd MMM, hh:mm a")}
                       </TableCell>
                       <TableCell>
                           <div className="font-medium text-sm">{request.profiles?.full_name || "Unknown"}</div>
@@ -489,7 +504,7 @@ const AdminPayments = () => {
                               {request.due_date && (
                                 <div className={`text-xs flex items-center gap-1 ${isDueCritical(request.due_date) ? 'text-red-600 font-bold' : isDueWarning(request.due_date) ? 'text-amber-600' : 'text-muted-foreground'}`}>
                                   <Calendar className="h-3 w-3" />
-                                  {format(new Date(request.due_date), "dd MMM")}
+                                  {safeFormat(request.due_date, "dd MMM")}
                                   {isDueCritical(request.due_date) && <AlertTriangle className="h-3 w-3" />}
                                 </div>
                               )}
@@ -618,7 +633,7 @@ const AdminPayments = () => {
                           {request.due_date ? (
                             <div className={`text-xs font-medium flex items-center gap-1 ${isCritical ? 'text-red-600' : isWarning ? 'text-amber-600' : 'text-muted-foreground'}`}>
                               {isCritical && <AlertTriangle className="h-3.5 w-3.5" />}
-                              {format(new Date(request.due_date), "dd MMM yyyy")}
+                              {safeFormat(request.due_date, "dd MMM yyyy")}
                               {isCritical && <span className="text-[10px] bg-red-100 text-red-700 px-1 rounded">OVERDUE</span>}
                               {isWarning && !isCritical && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded">DUE SOON</span>}
                             </div>
@@ -719,7 +734,7 @@ const AdminPayments = () => {
                   ).map((log) => (
                     <TableRow key={log.id}>
                       <TableCell className="text-xs whitespace-nowrap">
-                        {format(new Date(log.recorded_at), "dd MMM yyyy, hh:mm a")}
+                        {safeFormat(log.recorded_at, "dd MMM yyyy, hh:mm a")}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{log.profile?.full_name || "Unknown"}</div>
@@ -805,7 +820,7 @@ const AdminPayments = () => {
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Due Date</p>
                       <p className={`font-semibold ${isDueCritical(selectedRequest.due_date) ? 'text-red-600' : ''}`}>
-                        {selectedRequest.due_date ? format(new Date(selectedRequest.due_date), "PPP") : "Not set"}
+                        {selectedRequest.due_date ? safeFormat(selectedRequest.due_date, "PPP") : "Not set"}
                         {isDueCritical(selectedRequest.due_date) && " ⚠️ OVERDUE"}
                       </p>
                     </div>
@@ -818,7 +833,7 @@ const AdminPayments = () => {
                     <p className="text-xs text-muted-foreground">Approved On</p>
                     <p className="font-semibold text-green-700 flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4" />
-                      {format(new Date(selectedRequest.updated_at), "PPP, hh:mm a")}
+                      {safeFormat(selectedRequest.updated_at, "PPP, hh:mm a")}
                     </p>
                   </div>
                 )}
