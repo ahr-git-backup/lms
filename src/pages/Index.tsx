@@ -59,10 +59,12 @@ const Index = () => {
       const { data, error } = await supabase
         .from("mentors")
         .select("*")
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(20);
       if (error) throw error;
       return data || [];
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: heroes } = useQuery({
@@ -72,10 +74,12 @@ const Index = () => {
         .from("heroes")
         .select("*")
         .eq("is_active", true)
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(20);
       if (error) throw error;
       return data || [];
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: specialExams } = useQuery({
@@ -86,13 +90,15 @@ const Index = () => {
         .from("special_exam_cards")
         .select("*")
         .eq("is_active", true)
-        .order("display_order", { ascending: true });
+        .order("display_order", { ascending: true })
+        .limit(20);
       if (error) {
         if (error.code === '42P01') return [];
         throw error;
       };
       return data || [];
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   const { data: landingExams } = useQuery({
@@ -105,13 +111,15 @@ const Index = () => {
         .eq("is_visible_on_free", true)
         // @ts-ignore
         .eq("show_on_landing", true)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(20);
       if (error) {
         if (error.code === '42P01' || error.code === '42703') return [];
         throw error;
       }
       return data || [];
     },
+    staleTime: 5 * 60 * 1000,
   });
 
   const formatDate = (dateStr: string | null | undefined, options?: Intl.DateTimeFormatOptions) => {
@@ -141,6 +149,7 @@ const Index = () => {
        }
        return data;
     },
+    staleTime: 10 * 60 * 1000,
   });
 
   // Default hero content if no custom heroes are found
