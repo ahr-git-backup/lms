@@ -81,7 +81,8 @@ export default function Reviews() {
       const { data, error } = await supabase.from("reviews").select("*").order("created_at", { ascending: false });
       if (error) throw error;
       return data as any[];
-    }
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   const classReviews = reviews?.filter(r => r.category === 'classes' || !r.category) || [];

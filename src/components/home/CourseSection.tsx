@@ -29,6 +29,7 @@ export const CourseSection = () => {
           if (error) throw error;
           return data || [];
         },
+        staleTime: 5 * 60 * 1000,
     });
 
     const { data: activeDiscounts } = useQuery({
@@ -57,7 +58,8 @@ export const CourseSection = () => {
              }) || [];
 
              return Array.from(new Set(discountMeta)).map(id => ({ course_id: id }));
-        }
+        },
+        staleTime: 5 * 60 * 1000,
     });
 
     // Extract unique categories and subcategories flattened from arrays

@@ -102,6 +102,7 @@ const CourseDetails = () => {
       return data;
     },
     enabled: !!courseId,
+    staleTime: 3 * 60 * 1000,
   });
 
   // Fetch special discounts for this course
