@@ -81,7 +81,9 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .options-table-short td{border:none;padding:2px 8px 2px 0;vertical-align:top;font-size:13pt;color:#000;width:40%}
 .options-table-short td.answer-col{display:flex;justify-content:center;align-items:center;vertical-align:middle;font-family:'Poppins',sans-serif;font-weight:600;font-size:12pt;color:#000;padding-left:10px}
 .answer-circle{font-weight:300;font-family:'Poppins',sans-serif;font-size:12pt;line-height:1}
+.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:18pt;height:18pt;border-radius:50%;border:1.3px solid #000;font-size:10pt;font-weight:600;margin-right:6px;flex-shrink:0;vertical-align:middle}
 .options-list{margin:4px 0 4px 8px;padding:0;list-style:none}
+.options-list li{display:flex;align-items:center}
 .options-list li{margin:1px 0;font-size:13pt;color:#000;word-wrap:break-word;white-space:pre-line}
 .option-with-answer{display:flex;justify-content:space-between;align-items:flex-start}
 .explanation{margin:4px 0 2px 8px;padding:4px;color:#000;background-color:rgba(22,163,74,0.1);border-left:3px solid #16a34a;font-size:12pt;font-style:italic;break-inside:avoid;white-space:pre-line}
@@ -119,9 +121,9 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
       body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
 
       if (isShort) {
-        body += `<table class="options-table-short"><tr><td class="option-col">(A) ${escapeHtml(opts[0])}</td><td class="option-col">(B) ${escapeHtml(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col">(C) ${escapeHtml(opts[2])}</td><td class="option-col">(D) ${escapeHtml(opts[3])}</td></tr></table>`;
+        body += `<table class="options-table-short"><tr><td class="option-col"><span class="opt-letter">A</span>${escapeHtml(opts[0])}</td><td class="option-col"><span class="opt-letter">B</span>${escapeHtml(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col"><span class="opt-letter">C</span>${escapeHtml(opts[2])}</td><td class="option-col"><span class="opt-letter">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
       } else {
-        body += `<ul class="options-list"><li>(A) ${escapeHtml(opts[0])}</li><li>(B) ${escapeHtml(opts[1])}</li><li>(C) ${escapeHtml(opts[2])}</li><li class="option-with-answer"><span>(D) ${escapeHtml(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
+        body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtml(opts[2])}</li><li class="option-with-answer"><span><span class="opt-letter">D</span>${escapeHtml(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
       }
       if (q.explanation) {
         body += `<div class="explanation"><span class="explanation-label">ব্যাখ্যা:</span> ${escapeHtml(q.explanation)}</div>`;
@@ -146,9 +148,9 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
     body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
 
     if (isShort) {
-      body += `<table class="options-table-short"><tr><td>(A) ${escapeHtml(opts[0])}</td><td>(B) ${escapeHtml(opts[1])}</td></tr><tr><td>(C) ${escapeHtml(opts[2])}</td><td>(D) ${escapeHtml(opts[3])}</td></tr></table>`;
+      body += `<table class="options-table-short"><tr><td><span class="opt-letter">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
     } else {
-      body += `<ul class="options-list"><li>(A) ${escapeHtml(opts[0])}</li><li>(B) ${escapeHtml(opts[1])}</li><li>(C) ${escapeHtml(opts[2])}</li><li>(D) ${escapeHtml(opts[3])}</li></ul>`;
+      body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter">D</span>${escapeHtml(opts[3])}</li></ul>`;
     }
     body += "</div>";
   });
