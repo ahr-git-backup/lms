@@ -81,7 +81,7 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .options-table-short td{border:none;padding:2px 8px 2px 0;vertical-align:top;font-size:13pt;color:#000;width:40%}
 .options-table-short td.answer-col{display:flex;justify-content:center;align-items:center;vertical-align:middle;font-family:'Poppins',sans-serif;font-weight:600;font-size:12pt;color:#000;padding-left:10px}
 .answer-circle{font-weight:300;font-family:'Poppins',sans-serif;font-size:12pt;line-height:1}
-.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:18pt;height:18pt;border-radius:50%;border:1.3px solid #000;font-size:10pt;font-weight:600;margin-right:6px;flex-shrink:0;vertical-align:middle}
+.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:13pt;height:13pt;border-radius:50%;border:1px solid #000;font-size:8pt;font-weight:600;margin-right:5px;flex-shrink:0;vertical-align:middle}
 .options-list{margin:4px 0 4px 8px;padding:0;list-style:none}
 .options-list li{display:flex;align-items:center}
 .options-list li{margin:1px 0;font-size:13pt;color:#000;word-wrap:break-word;white-space:pre-line}
