@@ -549,7 +549,7 @@ const QuickPracticePlay = () => {
                         else if (a && oi === a.selectedIdx) cls = "border-destructive bg-destructive/10";
                         return (
                           <div key={oi} className={cn("flex items-center gap-3 px-3 py-2.5 rounded-lg border-2 text-sm", cls)}>
-                            <span className="h-6 w-6 rounded-md flex items-center justify-center font-extrabold text-[11px] bg-muted flex-shrink-0">
+                            <span className="h-6 w-6 rounded-full flex items-center justify-center font-extrabold text-[11px] bg-muted flex-shrink-0">
                               {LETTERS[oi]}
                             </span>
                             <span><MathText text={opt} as="span" /></span>
@@ -726,7 +726,7 @@ const QuickPracticePlay = () => {
               >
                 <span
                   className={cn(
-                    "h-7 w-7 rounded-lg flex items-center justify-center font-extrabold text-xs flex-shrink-0",
+                    "h-7 w-7 rounded-full flex items-center justify-center font-extrabold text-xs flex-shrink-0",
                     ans && i === q.correct_index
                       ? "bg-emerald-500 text-white"
                       : ans && i === ans.selectedIdx
