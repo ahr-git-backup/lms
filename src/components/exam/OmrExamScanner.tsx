@@ -309,6 +309,12 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       setHistoryArray([JSON.stringify(mapped)]);
       setHistoryIndex(0);
 
+      // Auto-apply immediately on scan so the outer submit button unlocks
+      // right after upload — student can still adjust bubbles below and the
+      // "Apply" button will re-sync any manual corrections afterward.
+      onFillAnswers(mapped);
+      setHasApplied(true);
+
       // Load image for canvas
       const img = new Image();
       img.onload = () => { setBaseImage(img); };
