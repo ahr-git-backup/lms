@@ -276,7 +276,7 @@ const PastExamCatalog = () => {
                     onClick={() => handleStartPractice(exam)}
                     className="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-none text-xs px-2"
                   >
-                    Start Practice
+                    Start
                   </Button>
                   <Button
                     size="sm"
