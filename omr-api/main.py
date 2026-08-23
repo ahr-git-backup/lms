@@ -186,8 +186,8 @@ def process_omr_logic(image_bytes, corners=None):
             max_m = max(m['val'] for m in means)
             selected = []
             
-            if max_m - min_m > 25:
-                threshold = min_m + ((max_m - min_m) * 0.5)
+            if max_m - min_m > 12:
+                threshold = min_m + ((max_m - min_m) * 0.55)
                 selected = [m for m in means if m['val'] < threshold]
             
             if selected:
@@ -200,7 +200,7 @@ def process_omr_logic(image_bytes, corners=None):
     reg_no = process_info_block(reg_block)
 
     # --- 2. Extract Questions ---
-    Q_HEADER_RATIO = 0.043
+    Q_HEADER_RATIO = 0.0537
     Q_NUM_COL_RATIO = 0.18
     current_q = 1
     labels = ['A', 'B', 'C', 'D']
@@ -222,17 +222,17 @@ def process_omr_logic(image_bytes, corners=None):
                 val = get_mean_darkness(col_x, row_y, opt_w, row_h)
                 means.append({'opt': opt, 'val': val, 'x': col_x})
             
-            # Always record all 4 bubble positions for this question
-            for m in means:
-                all_bubbles.append({"q": current_q, "opt": labels[m['opt']], "x": int(m['x'] + opt_w / 2.0), "y": int(row_y + row_h / 2.0)})
-            
             min_m = min(m['val'] for m in means)
             max_m = max(m['val'] for m in means)
             selected = []
             
-            if max_m - min_m > 25:
-                threshold = min_m + ((max_m - min_m) * 0.5)
+            if max_m - min_m > 12:
+                threshold = min_m + ((max_m - min_m) * 0.55)
                 selected = [m for m in means if m['val'] < threshold]
+            
+            # Always record all 4 bubble positions for this question
+            for m in means:
+                all_bubbles.append({"q": current_q, "opt": labels[m['opt']], "x": int(m['x'] + opt_w / 2.0), "y": int(row_y + row_h / 2.0)})
             
             ans_str = ""
             if selected:

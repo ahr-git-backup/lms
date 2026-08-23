@@ -19,7 +19,6 @@ import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
-import { openSolvePdf } from "@/lib/solvePdf";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
@@ -1382,26 +1381,7 @@ const TakeExam = () => {
                               variant="outline"
                               className="w-full justify-start h-auto py-2.5"
                               onClick={() => {
-                                  if (!effectiveQuestions || effectiveQuestions.length === 0) return;
-                                  openSolvePdf({
-                                      examName: exam.title,
-                                      style: "style2",
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-
-                                      questions: effectiveQuestions.map((q: any) => ({
-                                          question_text: q.question_text,
-                                          option_a: q.option_a,
-                                          option_b: q.option_b,
-                                          option_c: q.option_c,
-                                          option_d: q.option_d,
-                                          option_e: q.option_e,
-                                          correct_option: "",
-                                          user_answer: null,
-                                          explanation: "",
-                                      })),
-                                      totalMarks: effectiveQuestions.length,
-                                      hideAnswers: true,
-                                  });
+                                  window.open("/omr/atlas-omr-sheet.pdf", "_blank");
                               }}
                           >
                               <div className="text-left">
