@@ -238,7 +238,7 @@ const PastExamCatalog = () => {
             const qCount = questionCounts?.[exam.id];
             const startDate = fmtDate(exam.time_window_start);
             return (
-            <Card key={exam.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
+            <Card key={exam.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full overflow-hidden">
               <CardHeader className="space-y-1 py-3 px-4">
                 <div className="flex justify-between items-start gap-2">
                     <p className="text-xs font-mono uppercase text-muted-foreground">
@@ -269,12 +269,12 @@ const PastExamCatalog = () => {
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-col flex-1 pt-0 pb-3 px-4">
-                <div className="mt-auto flex items-center gap-1.5">
+              <CardContent className="flex flex-col flex-1 pt-0 pb-3 px-4 overflow-hidden">
+                <div className="mt-auto flex items-center gap-1.5 flex-wrap min-w-0">
                   <Button
                     size="sm"
                     onClick={() => handleStartPractice(exam)}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-none text-xs px-2"
+                    className="flex-1 min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full border-none text-xs px-2"
                   >
                     Start Practice
                   </Button>
@@ -289,7 +289,7 @@ const PastExamCatalog = () => {
                       }
                     }}
                     disabled={downloadingId === exam.id}
-                    className="rounded-full text-xs px-2"
+                    className="rounded-full text-xs px-2 shrink-0"
                   >
                     <FileDown className="h-3.5 w-3.5 mr-1" /> Practice Sheet
                   </Button>
@@ -297,7 +297,7 @@ const PastExamCatalog = () => {
                     size="sm"
                     variant="outline"
                     onClick={() => navigate(`/dashboard/leaderboard/${exam.id}`)}
-                    className="rounded-full text-xs px-2"
+                    className="rounded-full text-xs px-2 shrink-0"
                   >
                     <Trophy className="h-3.5 w-3.5 mr-1" /> Leaderboard
                   </Button>
