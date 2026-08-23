@@ -206,7 +206,6 @@ const TakeExam = () => {
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
   const [omrMode, setOmrMode] = useState(false);
-  const [omrPage, setOmrPage] = useState(0);
   const [showOmrPopup, setShowOmrPopup] = useState(false);
   const [omrUploadFile, setOmrUploadFile] = useState<File | null>(null);
   const [omrSubmitting, setOmrSubmitting] = useState(false);
@@ -1517,8 +1516,6 @@ const TakeExam = () => {
     const omrQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : (effectiveQuestions || []);
     const omrQuestionIds = omrQuestions.map((q: any) => q.id);
     const omrOptionLabels = ["A", "B", "C", "D"];
-    const omrTotalPages = Math.max(1, Math.ceil(omrQuestions.length / 6));
-    const omrPageQuestions = omrQuestions.slice(omrPage * 6, omrPage * 6 + 6);
     return (
       <div className="min-h-screen bg-background pb-10">
         <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
@@ -1548,44 +1545,30 @@ const TakeExam = () => {
           </div>
         </div>
 
-        <div className="w-full h-[calc(100vh-var(--omr-header-h,0px))] flex flex-col">
-          <div className="flex-1 p-1.5 grid grid-cols-2 grid-rows-3 gap-1.5 overflow-hidden">
+        <div className="w-full">
+          <div className="p-2 grid grid-cols-2 gap-2">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {omrPageQuestions.map((q: any, i: number) => {
-              const idx = omrPage * 6 + i;
-              return (
-              <Card key={q.id} className="rounded-lg border p-2 flex flex-col overflow-hidden min-h-0">
-                <div className="flex items-start gap-1.5 mb-1">
+            {omrQuestions.map((q: any, idx: number) => (
+              <Card key={q.id} className="rounded-lg border p-2.5 flex flex-col">
+                <div className="flex items-start gap-1.5 mb-1.5">
                   <span className="text-xs font-bold text-emerald-600 shrink-0">{String(idx + 1).padStart(2, "0")}.</span>
-                  <div className="text-xs flex-1 overflow-hidden">
+                  <div className="text-xs flex-1">
                     <MathText text={q.question_text} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-1 pl-4 text-[10px] overflow-hidden">
+                <div className="grid grid-cols-1 gap-1 pl-4 text-[11px]">
                   {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, oi: number) => (
-                    <div key={oi} className="flex items-center gap-1 text-muted-foreground overflow-hidden">
-                      <span className="h-4 w-4 rounded-full border flex items-center justify-center text-[8px] font-bold shrink-0">
+                    <div key={oi} className="flex items-start gap-1.5 text-muted-foreground">
+                      <span className="h-4 w-4 rounded-full border flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5">
                         {omrOptionLabels[oi]}
                       </span>
-                      <span className="truncate"><MathText text={opt} as="span" /></span>
+                      <span className="break-words"><MathText text={opt} as="span" /></span>
                     </div>
                   ))}
                 </div>
               </Card>
-              );
-            })}
+            ))}
           </div>
-          {omrTotalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 py-2 border-t bg-background shrink-0">
-              <Button size="sm" variant="outline" disabled={omrPage === 0} onClick={() => setOmrPage((p) => Math.max(0, p - 1))}>
-                আগে
-              </Button>
-              <span className="text-xs font-medium">{omrPage + 1} / {omrTotalPages}</span>
-              <Button size="sm" variant="outline" disabled={omrPage >= omrTotalPages - 1} onClick={() => setOmrPage((p) => Math.min(omrTotalPages - 1, p + 1))}>
-                পরে
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     );
