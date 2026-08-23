@@ -82,7 +82,7 @@ body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbo
 .options-table-short td{border:none;padding:2px 8px 2px 0;vertical-align:top;font-size:13pt;color:#000;width:40%}
 .options-table-short td.answer-col{display:flex;justify-content:center;align-items:center;vertical-align:middle;font-family:'Poppins',sans-serif;font-weight:600;font-size:12pt;color:#000;padding-left:10px}
 .answer-circle{font-weight:300;font-family:'Poppins',sans-serif;font-size:12pt;line-height:1}
-.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:13pt;height:13pt;border-radius:50%;border:1px solid #000;font-size:8pt;font-weight:600;margin-right:5px;flex-shrink:0;vertical-align:middle}
+.opt-letter{display:inline-flex;align-items:center;justify-content:center;width:11pt;height:11pt;border-radius:50%;border:1px solid #000;font-size:7pt;font-weight:600;margin-right:5px;flex-shrink:0;vertical-align:middle}
 .options-list{margin:4px 0 4px 8px;padding:0;list-style:none}
 .options-list li{display:flex;align-items:center}
 .options-list li{margin:1px 0;font-size:13pt;color:#000;word-wrap:break-word;white-space:pre-line}
@@ -109,7 +109,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .question-s3 .question-text{flex:1;line-height:1.15;font-size:8.3pt;color:#000;word-wrap:break-word;white-space:pre-line}
 .options-list-s3{margin:1px 0 2px 10px;padding:0;list-style:none}
 .options-list-s3 li{display:flex;align-items:center;margin:0;font-size:8pt;color:#000;word-wrap:break-word}
-.opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:9pt;height:9pt;border-radius:50%;border:0.8px solid #000;font-size:6pt;font-weight:600;margin-right:3px;flex-shrink:0}
+.opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:7pt;height:7pt;border-radius:50%;border:0.6px solid #000;font-size:5pt;font-weight:600;margin-right:3px;flex-shrink:0}
 .options-table-s3{width:100%;border-collapse:collapse;margin:1px 0 2px 10px;table-layout:fixed}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
