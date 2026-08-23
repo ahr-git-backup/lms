@@ -19,6 +19,7 @@ import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
+import { openSolvePdf } from "@/lib/solvePdf";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
@@ -203,6 +204,11 @@ const TakeExam = () => {
   const [hasStarted, setHasStarted] = useState(false);
   const [agreedToInstructions, setAgreedToInstructions] = useState(false);
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
+  const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
+  const [omrMode, setOmrMode] = useState(false);
+  const [showOmrPopup, setShowOmrPopup] = useState(false);
+  const [omrUploadFile, setOmrUploadFile] = useState<File | null>(null);
+  const [omrSubmitting, setOmrSubmitting] = useState(false);
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
@@ -723,7 +729,9 @@ const TakeExam = () => {
     // For readymade exams where the student picked a specific MCQ count,
     // exam duration = count × 30 seconds per MCQ, overriding the exam's fixed duration.
     const isReadymadeCountMode = showsReadymadeUI && !!selectedQuestionCount;
-    const durationSeconds = isReadymadeCountMode
+    const durationSeconds = customTimeMinutes
+        ? customTimeMinutes * 60
+        : isReadymadeCountMode
         ? selectedQuestionCount * 30
         : exam.duration_minutes * 60;
     const elapsedSeconds = Math.floor((now - parseInt(startTime)) / 1000);
@@ -752,7 +760,7 @@ const TakeExam = () => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [exam, user, guestInfo, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount, isQuickPracticeMode]);
+  }, [exam, user, guestInfo, LOCAL_STORAGE_KEY_PREFIX, retakeFromAttemptId, hasStarted, selectedQuestionCount, isQuickPracticeMode, customTimeMinutes]);
 
   // Auto-submit
   const submitExamMutation = useMutation({
@@ -1203,8 +1211,9 @@ const TakeExam = () => {
                               নির্দিষ্ট সংখ্যক প্রশ্ন দিতে চাইলে লিখুন, খালি রাখলে সব MCQ থাকবে।
                           </p>
                       </div>
-                      <div className="px-3 py-1.5 flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="px-3 py-1.5 flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 min-w-0 mb-1">
                               <Zap className="h-4 w-4 text-violet-500 shrink-0" />
                               <span className="text-xs font-semibold truncate">MCQs to attempt</span>
                           </div>
@@ -1282,6 +1291,34 @@ const TakeExam = () => {
                                   <Plus className="h-3 w-3" />
                               </button>
                           </div>
+                          </div>
+
+                          {/* Right column: optional custom exam time */}
+                          <div className="flex-1 min-w-0 border-l pl-3">
+                              <div className="flex items-center gap-1.5 min-w-0 mb-1">
+                                  <Clock className="h-4 w-4 text-emerald-500 shrink-0" />
+                                  <span className="text-xs font-semibold truncate">সময় (মিনিট)</span>
+                              </div>
+                              <div className="relative rounded-lg border-2 border-emerald-400 dark:border-emerald-600 bg-white dark:bg-black w-20">
+                                  <input
+                                      type="number"
+                                      min={1}
+                                      placeholder="Optional"
+                                      value={customTimeMinutes ?? ""}
+                                      onChange={(e) => {
+                                          const raw = e.target.value;
+                                          if (raw === "") {
+                                              setCustomTimeMinutes(null);
+                                              return;
+                                          }
+                                          const val = parseInt(raw, 10);
+                                          setCustomTimeMinutes(Number.isNaN(val) ? null : Math.max(val, 1));
+                                      }}
+                                      className="h-8 w-full bg-transparent text-center text-sm font-bold text-foreground focus:outline-none cursor-text [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none px-1"
+                                  />
+                              </div>
+                              <span className="text-[10px] text-muted-foreground">খালি রাখলে ডিফল্ট সময়</span>
+                          </div>
                       </div>
                       <div className="px-3 pb-1.5 -mt-1">
                           <span className="text-[10px] text-muted-foreground">
@@ -1292,7 +1329,19 @@ const TakeExam = () => {
               )}
 
               {/* Card 2: Instructions */}
-              <Card className="w-full rounded-xl shadow-sm border">
+              <Card className="w-full rounded-xl shadow-sm border relative">
+                  <button
+                      type="button"
+                      onClick={() => setShowOmrPopup(true)}
+                      className={cn(
+                          "absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full border-2 transition-colors z-10",
+                          omrMode
+                              ? "bg-emerald-500 border-emerald-500 text-white"
+                              : "bg-muted border-border text-muted-foreground hover:border-emerald-400"
+                      )}
+                  >
+                      OMR {omrMode ? "ON" : "OFF"}
+                  </button>
                   <div className="p-3 md:p-4 space-y-1.5">
                       <h3 className="text-xs font-semibold flex items-center gap-1.5">
                           <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -1314,6 +1363,60 @@ const TakeExam = () => {
                       </div>
                   </div>
               </Card>
+
+              {/* OMR Mode Popup */}
+              <Dialog open={showOmrPopup} onOpenChange={setShowOmrPopup}>
+                  <DialogContent className="max-w-md">
+                      <DialogHeader>
+                          <DialogTitle>OMR মোড</DialogTitle>
+                          <DialogDescription>
+                              OMR শীটে উত্তর দিয়ে স্ক্যান করে জমা দিতে চাইলে এই মোড ব্যবহার করুন।
+                          </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-3">
+                          <Button
+                              variant="outline"
+                              className="w-full justify-start h-auto py-2.5"
+                              onClick={() => {
+                                  if (!effectiveQuestions || effectiveQuestions.length === 0) return;
+                                  openSolvePdf({
+                                      examName: exam.title,
+                                      style: "style2",
+                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                      questions: effectiveQuestions.map((q: any) => ({
+                                          question_text: q.question_text,
+                                          option_a: q.option_a,
+                                          option_b: q.option_b,
+                                          option_c: q.option_c,
+                                          option_d: q.option_d,
+                                          option_e: q.option_e,
+                                          correct_option: "",
+                                          user_answer: null,
+                                          explanation: "",
+                                      })),
+                                      totalMarks: effectiveQuestions.length,
+                                      hideAnswers: true,
+                                  });
+                              }}
+                          >
+                              <div className="text-left">
+                                  <div className="font-medium">OMR শীট ডাউনলোড করুন</div>
+                                  <div className="text-[10px] font-normal text-muted-foreground">এখনো ডাউনলোড করা না থাকলে এখান থেকে করুন</div>
+                              </div>
+                          </Button>
+
+                          <Button
+                              className="w-full h-11 text-sm font-semibold"
+                              onClick={() => {
+                                  setOmrMode(true);
+                                  setShowOmrPopup(false);
+                              }}
+                          >
+                              OMR এ পরীক্ষা দিন
+                          </Button>
+                      </div>
+                  </DialogContent>
+              </Dialog>
 
               {/* Card 3: Actions */}
               <Card className="w-full rounded-xl shadow-sm border">
@@ -1397,6 +1500,38 @@ const TakeExam = () => {
           </div>
           </div>
       );
+  }
+
+  // OMR-only mode: bypass the normal click-through MCQ screen entirely —
+  // student scans/uploads their filled OMR sheet and that's the whole exam.
+  if (omrMode && hasStarted && !isQuickPracticeMode) {
+    const omrQuestionIds = (shuffledQuestions.length > 0 ? shuffledQuestions : (effectiveQuestions || [])).map((q: any) => q.id);
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 md:p-6">
+        <Card className="w-full max-w-md rounded-xl shadow-sm border">
+          <div className="p-4 space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Clock className="h-4 w-4 text-emerald-500" />
+              {timeLeft !== null ? `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}` : "--:--"}
+            </h2>
+            <OmrExamScanner
+              questionIds={omrQuestionIds}
+              answers={answers}
+              onFillAnswers={(filledAnswers) => {
+                setAnswers((prev) => ({ ...prev, ...filledAnswers }));
+              }}
+            />
+            <Button
+              className="w-full h-11 text-sm font-semibold"
+              disabled={submitExamMutation.isPending || Object.keys(answers).length === 0}
+              onClick={() => submitExamMutation.mutate()}
+            >
+              {submitExamMutation.isPending ? "জমা হচ্ছে..." : "OMR জমা দিন"}
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
   }
 
   // Quick Practice Mode: dedicated quiz-style UI (30s/question, instant feedback, end anytime)

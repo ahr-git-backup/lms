@@ -24,6 +24,8 @@ interface SolvePdfParams {
   score?: number;
   /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table, "style3" = compact 3-column, 50/page. Defaults to style2. */
   style?: "style1" | "style2" | "style3";
+  /** When true (OMR download), omit the answer-key table entirely — blank questions only. */
+  hideAnswers?: boolean;
 }
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
@@ -116,7 +118,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .s3-page{page:s3}
 </style>`;
 
-export function generateSolvePdfHtml({ examName, questions, style = "style2" }: SolvePdfParams): string {
+export function generateSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
   const heading = escapeHtml(examName) || "Exam";
 
   if (style === "style1") {
@@ -205,15 +207,19 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
     body += "</div>";
   });
 
-  body += `</div><div class="page-break"></div><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
+  body += `</div>`;
 
-  questions.forEach((q, idx) => {
-    const n = idx + 1;
-    const al = OPTION_KEYS.includes(q.correct_option as any) ? q.correct_option : "-";
-    body += `<tr><td class="qno-col">${n}</td><td class="ans-col">${escapeHtml(al)}</td><td class="exp-col">${q.explanation ? escapeHtml(q.explanation) : "-"}</td></tr>`;
-  });
+  if (!hideAnswers) {
+    body += `<div class="page-break"></div><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
 
-  body += "</tbody></table></div>";
+    questions.forEach((q, idx) => {
+      const n = idx + 1;
+      const al = OPTION_KEYS.includes(q.correct_option as any) ? q.correct_option : "-";
+      body += `<tr><td class="qno-col">${n}</td><td class="ans-col">${escapeHtml(al)}</td><td class="exp-col">${q.explanation ? escapeHtml(q.explanation) : "-"}</td></tr>`;
+    });
+
+    body += "</tbody></table></div>";
+  }
   body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
 
   return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
