@@ -1519,13 +1519,13 @@ const TakeExam = () => {
     return (
       <div className="min-h-screen bg-background pb-10">
         <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
-          <div className="max-w-3xl mx-auto p-3 flex items-center justify-between gap-3">
+          <div className="max-w-5xl mx-auto p-3 flex items-center justify-between gap-3">
             <span className="text-xs font-mono font-bold px-2 py-1 rounded-full bg-muted">
               {timeLeft !== null ? `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}` : "--:--"}
             </span>
             <span className="text-xs font-semibold flex-1 truncate">{exam.title}</span>
           </div>
-          <div className="max-w-3xl mx-auto px-3 pb-3">
+          <div className="max-w-5xl mx-auto px-3 pb-3">
             <OmrExamScanner
               questionIds={omrQuestionIds}
               answers={answers}
@@ -1534,7 +1534,7 @@ const TakeExam = () => {
               }}
             />
           </div>
-          <div className="max-w-3xl mx-auto px-3 pb-3">
+          <div className="max-w-5xl mx-auto px-3 pb-3">
             <Button
               className="w-full h-11 text-sm font-semibold"
               disabled={submitExamMutation.isPending || Object.keys(answers).length === 0}
@@ -1545,7 +1545,7 @@ const TakeExam = () => {
           </div>
         </div>
 
-        <div className="max-w-3xl mx-auto p-3 space-y-4">
+        <div className="max-w-5xl mx-auto p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {omrQuestions.map((q: any, idx: number) => (
             <Card key={q.id} className="rounded-lg border p-3">
