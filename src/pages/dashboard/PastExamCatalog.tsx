@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search, Trophy, FileDown, CalendarDays } from "lucide-react";
@@ -21,6 +22,7 @@ const PastExamCatalog = () => {
   const [sortOrder, setSortOrder] = useState<string>("recent");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [pdfDialogExam, setPdfDialogExam] = useState<any>(null);
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -279,23 +281,18 @@ const PastExamCatalog = () => {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDownloadPdf(exam)}
+                    onClick={() => {
+                      if (isAdmin) {
+                        setPdfDialogExam(exam);
+                      } else {
+                        handleDownloadPdf(exam);
+                      }
+                    }}
                     disabled={downloadingId === exam.id}
                     className="rounded-full text-xs px-2"
                   >
                     <FileDown className="h-3.5 w-3.5 mr-1" /> Practice Sheet
                   </Button>
-                  {isAdmin && (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownloadPdf(exam, "style3")}
-                      disabled={downloadingId === exam.id}
-                      className="rounded-full text-xs px-2"
-                    >
-                      <FileDown className="h-3.5 w-3.5 mr-1" /> Compact (3 Col)
-                    </Button>
-                  )}
                   <Button
                     size="sm"
                     variant="outline"
@@ -311,6 +308,35 @@ const PastExamCatalog = () => {
           })}
         </div>
       )}
+
+      <Dialog open={!!pdfDialogExam} onOpenChange={(o) => { if (!o) setPdfDialogExam(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Practice Sheet</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2">
+            <Button
+              variant="outline"
+              className="justify-start h-auto py-2.5"
+              onClick={() => { handleDownloadPdf(pdfDialogExam); setPdfDialogExam(null); }}
+            >
+              <div className="text-left">
+                <div className="font-medium">Normal Style</div>
+              </div>
+            </Button>
+            <Button
+              variant="outline"
+              className="justify-start h-auto py-2.5"
+              onClick={() => { handleDownloadPdf(pdfDialogExam, "style3"); setPdfDialogExam(null); }}
+            >
+              <div className="text-left">
+                <div className="font-medium">Compact Style (3 Column)</div>
+                <div className="text-[10px] font-normal text-muted-foreground">প্রতি পেজে ৫০টি প্রশ্ন, ৩ কলাম</div>
+              </div>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
