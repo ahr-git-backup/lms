@@ -22,7 +22,7 @@ const PastExamCatalog = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { data: enrollments, isLoading: enrollmentsLoading } = useEnrollments();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -112,7 +112,7 @@ const PastExamCatalog = () => {
     navigate(`/dashboard/take-exam/${exam.id}`);
   };
 
-  const handleDownloadPdf = async (exam: any) => {
+  const handleDownloadPdf = async (exam: any, style: "style2" | "style3" = "style2") => {
     if (downloadingId) return;
     setDownloadingId(exam.id);
     try {
@@ -141,7 +141,7 @@ const PastExamCatalog = () => {
           explanation: q.explanation,
         })),
         totalMarks: data.length,
-        style: "style2",
+        style,
       });
     } catch (err: any) {
       toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
@@ -285,6 +285,17 @@ const PastExamCatalog = () => {
                   >
                     <FileDown className="h-3.5 w-3.5 mr-1" /> Practice Sheet
                   </Button>
+                  {isAdmin && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownloadPdf(exam, "style3")}
+                      disabled={downloadingId === exam.id}
+                      className="rounded-full text-xs px-2"
+                    >
+                      <FileDown className="h-3.5 w-3.5 mr-1" /> Compact (3 Col)
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"

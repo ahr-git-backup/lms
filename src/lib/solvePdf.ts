@@ -22,8 +22,8 @@ interface SolvePdfParams {
   questions: SolvePdfQuestion[];
   totalMarks?: number;
   score?: number;
-  /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table. Defaults to style2. */
-  style?: "style1" | "style2";
+  /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table, "style3" = compact 3-column, 50/page. Defaults to style2. */
+  style?: "style1" | "style2" | "style3";
 }
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
@@ -101,6 +101,18 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download{position:fixed;bottom:20px;right:20px;z-index:999;display:flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#5A5FE0,#7c3aed);color:#fff;border:none;box-shadow:0 4px 16px rgba(90,95,224,0.5);cursor:pointer}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
+.content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
+.question-s3{margin-bottom:4px;break-inside:avoid;page-break-inside:avoid;font-size:8.3pt;line-height:1.15}
+.question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
+.question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.3pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
+.question-s3 .question-text{flex:1;line-height:1.15;font-size:8.3pt;color:#000;word-wrap:break-word;white-space:pre-line}
+.options-list-s3{margin:1px 0 2px 10px;padding:0;list-style:none}
+.options-list-s3 li{display:flex;align-items:center;margin:0;font-size:8pt;color:#000;word-wrap:break-word}
+.opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:9pt;height:9pt;border-radius:50%;border:0.8px solid #000;font-size:6pt;font-weight:600;margin-right:3px;flex-shrink:0}
+.options-table-s3{width:100%;border-collapse:collapse;margin:1px 0 2px 10px;table-layout:fixed}
+.options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8pt;color:#000;width:50%}
+@page s3{size:A4 portrait;margin:8mm 8mm}
+.s3-page{page:s3}
 </style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2" }: SolvePdfParams): string {
@@ -132,6 +144,43 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
     });
 
     body += "</div>";
+    body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
+  }
+
+  if (style === "style3") {
+    // Compact 3-column layout, 50 MCQs per printed page, answer table at end.
+    const PER_PAGE = 50;
+    let body = "";
+    const pages: SolvePdfQuestion[][] = [];
+    for (let i = 0; i < questions.length; i += PER_PAGE) pages.push(questions.slice(i, i + PER_PAGE));
+
+    pages.forEach((pageQs, pIdx) => {
+      body += `<div class="s3-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
+      body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns-3">`;
+      pageQs.forEach((q, idx) => {
+        const n = pIdx * PER_PAGE + idx + 1;
+        const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+        const isShort = checkShortOption(opts);
+        const qNum = String(n).padStart(2, "0");
+        body += `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+        if (isShort) {
+          body += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+        } else {
+          body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+        }
+        body += "</div>";
+      });
+      body += "</div></div>";
+    });
+
+    body += `<div class="page-break"></div><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
+    questions.forEach((q, idx) => {
+      const n = idx + 1;
+      const al = OPTION_KEYS.includes(q.correct_option as any) ? q.correct_option : "-";
+      body += `<tr><td class="qno-col">${n}</td><td class="ans-col">${escapeHtml(al)}</td><td class="exp-col">${q.explanation ? escapeHtml(q.explanation) : "-"}</td></tr>`;
+    });
+    body += "</tbody></table></div>";
     body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
     return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
   }

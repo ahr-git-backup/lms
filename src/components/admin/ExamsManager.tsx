@@ -310,7 +310,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     setSheetExam({ id: examId, title: examTitle });
   };
 
-  const handleDownloadSolveSheetStyle = async (style: "style1" | "style2") => {
+  const handleDownloadSolveSheetStyle = async (style: "style1" | "style2" | "style3") => {
     if (!sheetExam) return;
     try {
         const { data: questions, error } = await supabase
@@ -393,6 +393,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
               <div className="text-left">
                 <div className="font-medium">Practice Style</div>
                 <div className="text-xs font-normal text-muted-foreground">প্রশ্নের শেষে উত্তর + ব্যাখ্যা (Answer Table)</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-2 w-full" onClick={() => handleDownloadSolveSheetStyle("style3")}>
+              <div className="text-left">
+                <div className="font-medium">Compact Style (3 Column)</div>
+                <div className="text-xs font-normal text-muted-foreground">প্রতি পেজে ৫০টি প্রশ্ন, ৩ কলাম</div>
               </div>
             </Button>
           </div>

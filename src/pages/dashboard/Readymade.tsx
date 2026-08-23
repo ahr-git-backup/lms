@@ -1975,7 +1975,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     }
   };
 
-  const handleDownloadPdf = async (style: "style1" | "style2", withPattern: boolean) => {
+  const handleDownloadPdf = async (style: "style1" | "style2" | "style3", withPattern: boolean) => {
     const exam = sheetExam;
     if (!exam || downloadingId) return;
     setSheetExam(null);
@@ -2068,6 +2068,27 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               )}
             </div>
           </div>
+          {isAdmin && (
+          <div>
+            <p className="text-sm font-semibold mb-2">Compact Style <span className="text-xs font-normal text-muted-foreground">[৩ কলাম, প্রতি পেজে ৫০টি প্রশ্ন]</span></p>
+            <div className="grid grid-cols-1 gap-2">
+              {sheetHasPattern ? (
+                <>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style3", true)}>
+                    উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+                  </Button>
+                  <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style3", false)}>
+                    উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+                  </Button>
+                </>
+              ) : (
+                <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style3", true)}>
+                  Compact Style
+                </Button>
+              )}
+            </div>
+          </div>
+          )}
           </>
           )}
         </div>
