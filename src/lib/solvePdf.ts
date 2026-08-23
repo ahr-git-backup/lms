@@ -150,17 +150,59 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2" }: 
   }
 
   if (style === "style3") {
-    // Compact 3-column layout, 50 MCQs per printed page, answer table at end.
-    const PER_PAGE = 50;
-    let body = "";
-    const pages: SolvePdfQuestion[][] = [];
-    for (let i = 0; i < questions.length; i += PER_PAGE) pages.push(questions.slice(i, i + PER_PAGE));
+    // Compact 3-column layout, ~50 MCQs per printed page (fewer when
+    // questions/options run long, so pages don't overflow). Each page's
+    // content is packed by an estimated "weight" per question rather than a
+    // flat count, so long-option MCQs don't push a page past its physical
+    // A4 capacity.
+    const MAX_PER_PAGE = 50;
+    // Rough capacity budget per page, in "weight units". A short MCQ (2-line
+    // question, short options in the 2x2 table) is weight ~1. Budget tuned
+    // so 50 short MCQs ~= one page.
+    const PAGE_BUDGET = 50;
 
+    function estimateWeight(q: SolvePdfQuestion): number {
+      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const isShort = checkShortOption(opts);
+      const qLen = String(q.question_text || "").replace(/<[^>]+>/g, "").length;
+      // Question text: ~28 chars per line at this column width/font size.
+      const qLines = Math.max(1, Math.ceil(qLen / 28));
+      let optWeight: number;
+      if (isShort) {
+        optWeight = 0.6; // compact 2x2 table, roughly fixed height
+      } else {
+        // Full-width list: each option can itself wrap to multiple lines.
+        optWeight = opts.reduce((sum, o) => {
+          const len = String(o || "").replace(/<[^>]+>/g, "").length;
+          return sum + Math.max(1, Math.ceil(len / 30)) * 0.35;
+        }, 0);
+      }
+      return qLines * 0.55 + optWeight + 0.3;
+    }
+
+    const pages: SolvePdfQuestion[][] = [];
+    let current: SolvePdfQuestion[] = [];
+    let currentWeight = 0;
+    for (const q of questions) {
+      const w = estimateWeight(q);
+      if (current.length > 0 && (currentWeight + w > PAGE_BUDGET || current.length >= MAX_PER_PAGE)) {
+        pages.push(current);
+        current = [];
+        currentWeight = 0;
+      }
+      current.push(q);
+      currentWeight += w;
+    }
+    if (current.length > 0) pages.push(current);
+
+    let body = "";
+    let qCounter = 0;
     pages.forEach((pageQs, pIdx) => {
       body += `<div class="s3-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
       body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns-3">`;
-      pageQs.forEach((q, idx) => {
-        const n = pIdx * PER_PAGE + idx + 1;
+      pageQs.forEach((q) => {
+        qCounter += 1;
+        const n = qCounter;
         const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
         const isShort = checkShortOption(opts);
         const qNum = String(n).padStart(2, "0");
