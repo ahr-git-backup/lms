@@ -1332,15 +1332,19 @@ const TakeExam = () => {
               <Card className="w-full rounded-xl shadow-sm border relative">
                   <button
                       type="button"
-                      onClick={() => setShowOmrPopup(true)}
+                      role="switch"
+                      aria-checked={omrMode}
+                      onClick={() => {
+                          const next = !omrMode;
+                          setOmrMode(next);
+                          if (next) setShowOmrPopup(true);
+                      }}
                       className={cn(
-                          "absolute top-2 right-2 text-[10px] font-bold px-2 py-1 rounded-full border-2 transition-colors z-10",
-                          omrMode
-                              ? "bg-emerald-500 border-emerald-500 text-white"
-                              : "bg-muted border-border text-muted-foreground hover:border-emerald-400"
+                          "absolute top-2 right-2 h-5 w-9 rounded-full border-2 transition-colors z-10 flex items-center px-0.5",
+                          omrMode ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-muted border-border justify-start"
                       )}
                   >
-                      OMR {omrMode ? "ON" : "OFF"}
+                      <span className="h-3.5 w-3.5 rounded-full bg-white shadow-sm" />
                   </button>
                   <div className="p-3 md:p-4 space-y-1.5">
                       <h3 className="text-xs font-semibold flex items-center gap-1.5">
@@ -1365,7 +1369,7 @@ const TakeExam = () => {
               </Card>
 
               {/* OMR Mode Popup */}
-              <Dialog open={showOmrPopup} onOpenChange={setShowOmrPopup}>
+              <Dialog open={showOmrPopup} onOpenChange={(o) => { setShowOmrPopup(o); if (!o) setOmrMode(false); }}>
                   <DialogContent className="max-w-md">
                       <DialogHeader>
                           <DialogTitle>OMR মোড</DialogTitle>
@@ -1383,6 +1387,7 @@ const TakeExam = () => {
                                       examName: exam.title,
                                       style: "style2",
                                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                                       questions: effectiveQuestions.map((q: any) => ({
                                           question_text: q.question_text,
                                           option_a: q.option_a,
@@ -1410,6 +1415,7 @@ const TakeExam = () => {
                               onClick={() => {
                                   setOmrMode(true);
                                   setShowOmrPopup(false);
+                                  setHasStarted(true);
                               }}
                           >
                               OMR এ পরীক্ষা দিন
@@ -1503,17 +1509,23 @@ const TakeExam = () => {
   }
 
   // OMR-only mode: bypass the normal click-through MCQ screen entirely —
-  // student scans/uploads their filled OMR sheet and that's the whole exam.
+  // sticky upload bar at the very top, then a read-only (non-clickable)
+  // style2-style question+options view below. No answer selection here;
+  // the student fills the printed OMR sheet by hand and uploads/scans it.
   if (omrMode && hasStarted && !isQuickPracticeMode) {
-    const omrQuestionIds = (shuffledQuestions.length > 0 ? shuffledQuestions : (effectiveQuestions || [])).map((q: any) => q.id);
+    const omrQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : (effectiveQuestions || []);
+    const omrQuestionIds = omrQuestions.map((q: any) => q.id);
+    const omrOptionLabels = ["A", "B", "C", "D"];
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-4 p-4 md:p-6">
-        <Card className="w-full max-w-md rounded-xl shadow-sm border">
-          <div className="p-4 space-y-3">
-            <h2 className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-emerald-500" />
+      <div className="min-h-screen bg-background pb-10">
+        <div className="sticky top-0 z-20 bg-background border-b shadow-sm">
+          <div className="max-w-3xl mx-auto p-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-mono font-bold px-2 py-1 rounded-full bg-muted">
               {timeLeft !== null ? `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}` : "--:--"}
-            </h2>
+            </span>
+            <span className="text-xs font-semibold flex-1 truncate">{exam.title}</span>
+          </div>
+          <div className="max-w-3xl mx-auto px-3 pb-3">
             <OmrExamScanner
               questionIds={omrQuestionIds}
               answers={answers}
@@ -1521,6 +1533,8 @@ const TakeExam = () => {
                 setAnswers((prev) => ({ ...prev, ...filledAnswers }));
               }}
             />
+          </div>
+          <div className="max-w-3xl mx-auto px-3 pb-3">
             <Button
               className="w-full h-11 text-sm font-semibold"
               disabled={submitExamMutation.isPending || Object.keys(answers).length === 0}
@@ -1529,7 +1543,31 @@ const TakeExam = () => {
               {submitExamMutation.isPending ? "জমা হচ্ছে..." : "OMR জমা দিন"}
             </Button>
           </div>
-        </Card>
+        </div>
+
+        <div className="max-w-3xl mx-auto p-3 space-y-4">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {omrQuestions.map((q: any, idx: number) => (
+            <Card key={q.id} className="rounded-lg border p-3">
+              <div className="flex items-start gap-2 mb-1.5">
+                <span className="text-xs font-bold text-emerald-600 shrink-0">{String(idx + 1).padStart(2, "0")}.</span>
+                <div className="text-sm flex-1">
+                  <MathText text={q.question_text} />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pl-5">
+                {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, oi: number) => (
+                  <div key={oi} className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="h-5 w-5 rounded-full border flex items-center justify-center text-[10px] font-bold shrink-0">
+                      {omrOptionLabels[oi]}
+                    </span>
+                    <MathText text={opt} as="span" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
