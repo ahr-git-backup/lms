@@ -69,6 +69,7 @@ const PRINT_CSS = `<style>
 @page{size:A4 portrait;margin:10mm 10mm;@top-center{content:none}@bottom-center{content:none}}
 body{font-family:'Noto Sans Bengali','SolaimanLipi','Noto Sans','Noto Sans Symbols','Noto Sans Symbols 2',Arial,sans-serif;font-size:12pt;line-height:1.2;color:#000;margin:0 auto;padding:10px}
 @media screen{html{background:#fff}body{width:100%;max-width:210mm}}
+@media screen{.s3-page{min-width:190mm}}
 @media print{body{width:210mm;max-width:210mm}}
 .exam-header{text-align:center;border:2px solid #16a34a;background-color:#F0FDF4;border-radius:6px;padding:10px;margin-bottom:15px}
 .exam-header h1{color:#166534;margin:0;font-size:15pt;font-weight:bold}
