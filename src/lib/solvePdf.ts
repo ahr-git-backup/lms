@@ -108,11 +108,12 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
 .omr-page-inner{display:flex;gap:8px;align-items:flex-start;min-height:181mm}
-.omr-image-col{flex:0 0 26%;display:flex;align-items:flex-start;justify-content:center}
-.omr-image-col img{width:auto!important;max-width:100%!important;height:181mm!important;object-fit:contain!important}
-.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:7.2pt;min-height:181mm}
-.omr-q-cols-full{width:100%;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:7.2pt;min-height:181mm}
-.omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:14pt;color:#166534;text-align:center;margin:0 0 4mm 0}
+.omr-image-col-wrap{flex:0 0 26%;display:flex;flex-direction:column}
+.omr-image-col{display:flex;align-items:flex-start;justify-content:center}
+.omr-image-col img{width:auto!important;max-width:100%!important;height:168mm!important;object-fit:contain!important}
+.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
+.omr-q-cols-full{width:100%;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
+.omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
 @media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
@@ -229,8 +230,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
 
-    body += `<div class="omr-page"><div class="omr-header">${heading}</div><div class="omr-page-inner">`;
-    body += `<div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>`;
+    body += `<div class="omr-page"><div class="omr-page-inner">`;
+    body += `<div class="omr-image-col-wrap"><div class="omr-header">${heading}</div><div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div></div>`;
     body += `<div class="omr-q-cols">`;
     page1Qs.forEach((q, idx) => { body += renderQ(q, idx + 1); });
     body += `</div></div></div>`;
