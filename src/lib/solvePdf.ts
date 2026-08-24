@@ -124,6 +124,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-image-col-wrap{flex:0 0 26%;display:flex;flex-direction:column}
 .omr-image-col{display:flex;align-items:flex-start;justify-content:center}
 .omr-image-col img{width:auto!important;max-width:100%!important;height:185mm!important;object-fit:contain!important}
+.omr-blank-col{visibility:hidden}
 .omr-q-cols{flex:1;height:198mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:8.8pt;overflow:hidden}
 .omr-q-cols-full{width:100%;height:198mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:8.8pt;overflow:hidden}
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
@@ -269,9 +270,15 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       pageIdx++;
       var p = document.createElement('div');
       p.className = 'omr-page';
+      var inner = document.createElement('div');
+      inner.className = 'omr-page-inner';
+      var blankWrap = document.createElement('div');
+      blankWrap.className = 'omr-image-col-wrap omr-blank-col';
       var cols = document.createElement('div');
-      cols.className = 'omr-q-cols-full';
-      p.appendChild(cols);
+      cols.className = 'omr-q-cols';
+      inner.appendChild(blankWrap);
+      inner.appendChild(cols);
+      p.appendChild(inner);
       root.appendChild(p);
       return { page: p, target: cols };
     }
