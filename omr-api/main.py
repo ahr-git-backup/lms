@@ -154,6 +154,24 @@ def process_omr_logic(image_bytes, corners=None):
 
     SHRINK = 0.20
 
+    def get_fill_percent(col_x, row_y, c_width, c_height):
+        """Returns the % of dark (ink) pixels inside a bubble's sampling
+        region, using Otsu auto-thresholding so it adapts to scan
+        lighting/contrast per-image instead of relying on a fixed gray
+        cutoff."""
+        roi_x = int(col_x + c_width * SHRINK)
+        roi_y = int(row_y + c_height * SHRINK)
+        roi_w = int(c_width * (1 - 2 * SHRINK))
+        roi_h = int(c_height * (1 - 2 * SHRINK))
+
+        roi = process_gray[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
+        if roi.size == 0:
+            return 0.0
+
+        _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        dark_pixels = int(np.count_nonzero(roi_bin))
+        return (dark_pixels / roi_bin.size) * 100.0
+
     def get_mean_darkness(col_x, row_y, c_width, c_height):
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
@@ -226,16 +244,17 @@ def process_omr_logic(image_bytes, corners=None):
             
             for opt in range(4):
                 col_x = opt_start_x + (opt * opt_w)
-                val = get_mean_darkness(col_x, row_y, opt_w, row_h)
-                means.append({'opt': opt, 'val': val, 'x': col_x})
+                fill_pct = get_fill_percent(col_x, row_y, opt_w, row_h)
+                means.append({'opt': opt, 'val': fill_pct, 'x': col_x})
             
-            min_m = min(m['val'] for m in means)
-            max_m = max(m['val'] for m in means)
-            selected = []
-            
-            if max_m - min_m > 12:
-                threshold = min_m + ((max_m - min_m) * 0.55)
-                selected = [m for m in means if m['val'] < threshold]
+            # Absolute rule: a bubble counts as marked if it's >=50% filled
+            # with ink, regardless of how the other 3 bubbles look. If more
+            # than one bubble in the same question is >=50% filled, the
+            # question is invalidated (no answer recorded) — matches how a
+            # real OMR scanner treats multi-marked rows as void.
+            FILL_THRESHOLD = 50.0
+            marked = [m for m in means if m['val'] >= FILL_THRESHOLD]
+            selected = marked if len(marked) == 1 else []
             
             # Always record all 4 bubble positions for this question
             for m in means:
