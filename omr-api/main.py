@@ -200,18 +200,25 @@ def process_omr_logic(image_bytes, corners=None):
     reg_no = process_info_block(reg_block)
 
     # --- 2. Extract Questions ---
-    Q_HEADER_RATIO = 0.0537
-    Q_NUM_COL_RATIO = 0.18
+    # Precisely measured from the official ATLAS OMR PDF template (595x841pt
+    # page, question block height ~495.7pt): row sampling-box top starts at
+    # 4.996% of block height, each row is 3.7825% of block height tall.
+    # Bubble centers for A/B/C/D sit at 0.2826 / 0.4891 / 0.6956 / 0.9020 of
+    # the block width. These replace the old evenly-divided estimates, which
+    # accumulated drift toward D (columns) and row 25 (rows).
+    Q_ROW0_TOP_RATIO = 0.04996
+    Q_ROW_H_RATIO = 0.037825
+    Q_NUM_COL_RATIO = 0.1794
+    OPT_SPACING_RATIO = 0.20645
     current_q = 1
     labels = ['A', 'B', 'C', 'D']
 
     for qb in q_blocks:
         bx, by, bw, bh = qb
-        start_y = by + (bh * Q_HEADER_RATIO)
-        row_h = (bh - (bh * Q_HEADER_RATIO)) / 25.0
-        q_no_width = bw * Q_NUM_COL_RATIO
-        opt_start_x = bx + q_no_width
-        opt_w = (bw - q_no_width) / 4.0
+        start_y = by + (bh * Q_ROW0_TOP_RATIO)
+        row_h = bh * Q_ROW_H_RATIO
+        opt_w = bw * OPT_SPACING_RATIO
+        opt_start_x = bx + (bw * Q_NUM_COL_RATIO)
 
         for r in range(25):
             row_y = start_y + (r * row_h)
