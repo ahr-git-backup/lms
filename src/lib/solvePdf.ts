@@ -105,14 +105,14 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-.omr-page{page-break-after:always;break-after:page}
+.omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
-.omr-page-inner{display:flex;gap:8px;align-items:stretch;height:100%}
-.omr-image-col{flex:0 0 26%;display:flex;align-items:flex-start;justify-content:center}
-.omr-image-col img{width:100%;height:auto;object-fit:contain}
-.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@media print{.omr-page{width:297mm}}
-@media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee}}
+.omr-page-inner{display:flex;gap:8px;align-items:stretch}
+.omr-image-col{flex:0 0 26%;display:flex}
+.omr-image-col img{width:100%!important;max-width:100%!important;height:100%!important;object-fit:fill!important}
+.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd}
+@media print{.omr-page{width:297mm}@page{size:A4 landscape;margin:8mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
+@media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
 .question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
 .question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.8pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
@@ -198,9 +198,10 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
   if (style === "style4") {
     // OMR sheet layout: landscape pages. Page 1 = OMR image (26% width) + 3 question
-    // columns (13 questions each = 39 on page 1). Later pages = 3 question columns only.
-    const PAGE1_COUNT = 39;
-    const LATER_PAGE_COUNT = 39;
+    // columns (36 questions total, balanced across 3 cols to fit one landscape page
+    // alongside the OMR sheet). Later pages = 3 question columns only, landscape.
+    const PAGE1_COUNT = 36;
+    const LATER_PAGE_COUNT = 30;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
@@ -233,8 +234,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       body += `</div></div>`;
     }
 
-    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}</style>`;
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button></body></html>`;
+    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}@media print{@page{size:A4 landscape;margin:8mm}}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body class="omr-body">${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
