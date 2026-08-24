@@ -310,7 +310,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
     setSheetExam({ id: examId, title: examTitle });
   };
 
-  const handleDownloadSolveSheetStyle = async (style: "style1" | "style2" | "style3") => {
+  const handleDownloadSolveSheetStyle = async (style: "style1" | "style2" | "style3" | "style4") => {
     if (!sheetExam) return;
     try {
         const { data: questions, error } = await supabase
@@ -399,6 +399,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
               <div className="text-left">
                 <div className="font-medium">Compact Style (3 Column)</div>
                 <div className="text-xs font-normal text-muted-foreground">প্রতি পেজে ৫০টি প্রশ্ন, ৩ কলাম</div>
+              </div>
+            </Button>
+            <Button variant="outline" className="justify-start h-auto py-2 w-full" onClick={() => handleDownloadSolveSheetStyle("style4")}>
+              <div className="text-left">
+                <div className="font-medium">OMR Style</div>
+                <div className="text-xs font-normal text-muted-foreground">ল্যান্ডস্কেপ, ১ম পেজে OMR শিট + ৩৯টি প্রশ্ন, পরের পেজে ৩ কলাম</div>
               </div>
             </Button>
           </div>

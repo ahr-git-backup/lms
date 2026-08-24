@@ -22,8 +22,8 @@ interface SolvePdfParams {
   questions: SolvePdfQuestion[];
   totalMarks?: number;
   score?: number;
-  /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table, "style3" = compact 3-column, 50/page. Defaults to style2. */
-  style?: "style1" | "style2" | "style3";
+  /** "style1" = inline (Q+Ans+Explanation together), "style2" = separate Answer Table, "style3" = compact 3-column, 50/page, "style4" = OMR sheet layout, landscape, page1 has OMR image + 3 question columns (13 each), later pages 3 columns. Defaults to style2. */
+  style?: "style1" | "style2" | "style3" | "style4";
   /** When true (OMR download), omit the answer-key table entirely — blank questions only. */
   hideAnswers?: boolean;
 }
@@ -105,6 +105,14 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
+.omr-page{page-break-after:always;break-after:page}
+.omr-page:last-child{page-break-after:auto}
+.omr-page-inner{display:flex;gap:8px;align-items:stretch;height:100%}
+.omr-image-col{flex:0 0 26%;display:flex;align-items:flex-start;justify-content:center}
+.omr-image-col img{width:100%;height:auto;object-fit:contain}
+.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
+@media print{.omr-page{width:297mm}}
+@media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
 .question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
 .question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.8pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
@@ -186,6 +194,47 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     body += "</tbody></table></div>";
     body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
     return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
+  }
+
+  if (style === "style4") {
+    // OMR sheet layout: landscape pages. Page 1 = OMR image (26% width) + 3 question
+    // columns (13 questions each = 39 on page 1). Later pages = 3 question columns only.
+    const PAGE1_COUNT = 39;
+    const LATER_PAGE_COUNT = 39;
+
+    const renderQ = (q: SolvePdfQuestion, n: number) => {
+      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const isShort = checkShortOption(opts);
+      const qNum = String(n).padStart(2, "0");
+      let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+      if (isShort) {
+        h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+      } else {
+        h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+      }
+      h += "</div>";
+      return h;
+    };
+
+    let body = "";
+    const page1Qs = questions.slice(0, PAGE1_COUNT);
+    const restQs = questions.slice(PAGE1_COUNT);
+
+    body += `<div class="omr-page"><div class="omr-page-inner">`;
+    body += `<div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>`;
+    body += `<div class="omr-q-cols">`;
+    page1Qs.forEach((q, idx) => { body += renderQ(q, idx + 1); });
+    body += `</div></div></div>`;
+
+    for (let i = 0; i < restQs.length; i += LATER_PAGE_COUNT) {
+      const pageQs = restQs.slice(i, i + LATER_PAGE_COUNT);
+      body += `<div class="omr-page"><div class="omr-q-cols" style="width:100%">`;
+      pageQs.forEach((q, idx) => { body += renderQ(q, PAGE1_COUNT + i + idx + 1); });
+      body += `</div></div>`;
+    }
+
+    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
