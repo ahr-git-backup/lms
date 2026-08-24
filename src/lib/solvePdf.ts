@@ -131,8 +131,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:13pt;text-align:center;margin:0 0 2mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:9pt;margin-bottom:1mm}
 .omr-qpage-type{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:10pt;text-align:center;border-top:1px solid #333;border-bottom:1px solid #333;padding:1mm 0;margin-bottom:2mm}
-@media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
-@media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
+@media print{.omr-page{width:297mm;height:198mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
+@media screen{.omr-page{width:297mm;height:198mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
 .question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
 .question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.8pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
