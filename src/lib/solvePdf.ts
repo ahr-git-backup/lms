@@ -202,8 +202,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // OMR sheet layout: landscape pages. Page 1 = OMR image (26% width) + 3 question
     // columns (36 questions total, balanced across 3 cols to fit one landscape page
     // alongside the OMR sheet). Later pages = 3 question columns only, landscape.
-    const PAGE1_COUNT = 36;
-    const LATER_PAGE_COUNT = 30;
+    const PAGE1_COUNT = 37;
+    const LATER_PAGE_COUNT = 63;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
