@@ -326,7 +326,15 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
       setStep("results");
       const filledCount = Object.keys(mapped).length;
-      toast({ title: "Scan Complete", description: `Detected answers for ${filledCount}/${questionIds.length} questions.` });
+      if (data.warning === "sheet_not_straightened") {
+        toast({
+          title: "ছবিটি সোজা করা যায়নি",
+          description: "শিট বাঁকা মনে হচ্ছে — ফলাফল সঠিক না হলে ভালো আলোয়, সোজাভাবে আবার ছবি তুলে দেখুন।",
+          variant: "destructive",
+        });
+      } else {
+        toast({ title: "Scan Complete", description: `Detected answers for ${filledCount}/${questionIds.length} questions.` });
+      }
     } catch (err) {
       console.error("OMR scan error:", err);
       const msg = err instanceof Error ? err.message : "Could not connect to OMR server.";

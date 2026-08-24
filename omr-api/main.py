@@ -32,6 +32,63 @@ async def verify_api_key(x_api_key: str = Header(None)):
         raise HTTPException(status_code=403, detail="Invalid API Key")
     return x_api_key
 
+def detect_paper_edges(img):
+    """Fallback perspective-correction when the 4 corner anchor squares
+    aren't reliably detected (poor lighting, shadow, marker cut off, camera
+    too far away). Finds the largest 4-sided contour in the image — assumed
+    to be the sheet's own outer edge against the background — and warps it
+    to a straight rectangle, similar to how CamScanner-style document
+    scanners work. Returns the warped image, or None if no confident
+    4-sided paper contour could be found."""
+    h, w = img.shape[:2]
+    img_area = h * w
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    edges = cv2.Canny(blurred, 50, 150)
+    edges = cv2.dilate(edges, np.ones((5, 5), np.uint8), iterations=1)
+
+    cnts, _ = cv2.findContours(edges, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+    if not cnts:
+        return None
+
+    cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
+    paper_contour = None
+    for c in cnts:
+        area = cv2.contourArea(c)
+        # The sheet should dominate most of the frame in a normal photo,
+        # but not be the entire frame (that would just be image noise).
+        if area < img_area * 0.25:
+            continue
+        peri = cv2.arcLength(c, True)
+        approx = cv2.approxPolyDP(c, 0.02 * peri, True)
+        if len(approx) == 4:
+            paper_contour = approx
+            break
+
+    if paper_contour is None:
+        return None
+
+    pts = paper_contour.reshape(4, 2).astype(np.float32)
+    # Order points: top-left, top-right, bottom-right, bottom-left
+    s = pts.sum(axis=1)
+    diff = np.diff(pts, axis=1).flatten()
+    tl = pts[np.argmin(s)]
+    br = pts[np.argmax(s)]
+    tr = pts[np.argmin(diff)]
+    bl = pts[np.argmax(diff)]
+
+    dstWidth = max(int(np.hypot(*(tr - tl))), int(np.hypot(*(br - bl))))
+    dstHeight = max(int(np.hypot(*(bl - tl))), int(np.hypot(*(br - tr))))
+    if dstWidth < 100 or dstHeight < 100:
+        return None
+
+    srcPts = np.float32([tl, tr, br, bl])
+    dstPts = np.float32([[0, 0], [dstWidth, 0], [dstWidth, dstHeight], [0, dstHeight]])
+    M = cv2.getPerspectiveTransform(srcPts, dstPts)
+    return cv2.warpPerspective(img, M, (dstWidth, dstHeight))
+
+
 def process_omr_logic(image_bytes, corners=None):
     np_arr = np.frombuffer(image_bytes, np.uint8)
     image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
@@ -84,7 +141,10 @@ def process_omr_logic(image_bytes, corners=None):
             if 0.7 < aspect < 1.3 and extent > 0.75:
                 anchor_rects.append((x, y, w, h))
     
-    if len(anchor_rects) >= 4:
+    anchors_found = len(anchor_rects) >= 4
+    paper_edge_used = False
+
+    if anchors_found:
         anchor_rects.sort(key=lambda r: r[0] + r[1])
         tl_rect = anchor_rects[0]
         br_rect = anchor_rects[-1]
@@ -106,6 +166,16 @@ def process_omr_logic(image_bytes, corners=None):
 
         M = cv2.getPerspectiveTransform(srcPts, dstPts)
         processing_mat = cv2.warpPerspective(processing_mat, M, (dstWidth, dstHeight))
+    elif not (corners and len(corners) == 4):
+        # The 4 corner anchor squares weren't confidently detected AND the
+        # user didn't manually crop — try a CamScanner-style fallback that
+        # finds the sheet's own outer paper edge against the background and
+        # straightens to that instead. This handles tilted photos, shadows,
+        # or a marker that's too small/cut off for anchor detection.
+        edge_warped = detect_paper_edges(processing_mat)
+        if edge_warped is not None:
+            processing_mat = edge_warped
+            paper_edge_used = True
 
     # ==========================================
     # STEP 2: 6 MAIN BLOCKS EXTRACTION
@@ -295,6 +365,16 @@ def process_omr_logic(image_bytes, corners=None):
     warped_b64 = base64.b64encode(buf).decode('utf-8')
     cipher = base64.b64encode(json.dumps(tensor_nodes).encode('utf-8')).decode('utf-8')
 
+    # Let the frontend know if we couldn't confidently straighten the photo
+    # (no anchor squares found, no paper-edge fallback match, and no manual
+    # corners given) — the raw, possibly tilted image was used as-is, so
+    # detected answers are less reliable and the user should be told to
+    # retake the photo straighter / with better lighting.
+    used_manual_corners = bool(corners and len(corners) == 4)
+    warning = None
+    if not anchors_found and not paper_edge_used and not used_manual_corners:
+        warning = "sheet_not_straightened"
+
     return {
         "status": "resolved", 
         "image_width": processing_mat.shape[1], 
@@ -305,6 +385,7 @@ def process_omr_logic(image_bytes, corners=None):
         "extracted_nodes": quiz_data, 
         "roll_no": roll_no, 
         "reg_no": reg_no,
+        "warning": warning,
     }
 
 
