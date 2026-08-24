@@ -245,8 +245,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const page1Qs = questions.slice(0, 35);
-    const page2Qs = questions.slice(35, 100);
+    const page1Qs = questions.slice(0, 50);
+    const page2Qs = questions.slice(50, 100);
     const splitIntoN = (qs: SolvePdfQuestion[], n: number) => {
       const len = qs.length;
       const base = Math.floor(len / n);
@@ -288,7 +288,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   </div></div>
   <div class="omr-page"><div class="omr-page-inner">
     <div class="omr-image-col-wrap omr-blank-col"></div>
-    <div class="omr-q-cols">${renderQCols(page2Qs, 35)}</div>
+    <div class="omr-q-cols">${renderQCols(page2Qs, 50)}</div>
   </div></div>
 </div>`;
 
