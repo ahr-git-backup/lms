@@ -210,7 +210,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // capacity is higher than previous 26/page. Bumped up so 100 questions fit in
     // exactly 2 pages (page1 has image column so fewer; page2 is full-width).
     const PAGE1_COUNT = 30;
-    const LATER_PAGE_COUNT = 30;
+    const LATER_PAGE_COUNT = 70;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
