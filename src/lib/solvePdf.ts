@@ -111,7 +111,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-image-col{flex:0 0 26%;display:flex}
 .omr-image-col img{width:100%!important;max-width:100%!important;height:100%!important;object-fit:fill!important}
 .omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd}
-@media print{.omr-page{width:297mm}@page{size:A4 landscape;margin:8mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
+@media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
 .question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
@@ -124,6 +124,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
+@page omr4{size:A4 landscape;margin:8mm}
+.omr-page{page:omr4}
 </style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
@@ -234,8 +236,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       body += `</div></div>`;
     }
 
-    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}@media print{@page{size:A4 landscape;margin:8mm}}</style>`;
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body class="omr-body">${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button></body></html>`;
+    const OMR_PAGE_CSS = `<style>.omr-page{page:omr4}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body class="omr-body">${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Layout: Landscape সিলেক্ট করুন)</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.

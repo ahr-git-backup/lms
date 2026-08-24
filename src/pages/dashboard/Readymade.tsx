@@ -2091,7 +2091,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           )}
           {isAdmin && (
           <div>
-            <p className="text-sm font-semibold mb-2">OMR Style <span className="text-xs font-normal text-muted-foreground">[ল্যান্ডস্কেপ, ১ম পেজে OMR শিট + ৩৯টি প্রশ্ন]</span></p>
+            <p className="text-sm font-semibold mb-2">OMR Style <span className="text-xs font-normal text-muted-foreground">[ল্যান্ডস্কেপ, ১ম পেজে OMR শিট + ৩৬টি প্রশ্ন]</span></p>
             <div className="grid grid-cols-1 gap-2">
               {sheetHasPattern ? (
                 <>
