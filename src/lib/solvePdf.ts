@@ -120,12 +120,13 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
 .omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
-.omr-page-inner{display:flex;gap:8px;align-items:flex-start}
-.omr-only-page{width:100%;height:170mm;display:flex;flex-direction:column;align-items:center;position:relative;border-right:2px dashed #999;padding-right:6mm;box-sizing:border-box}
+.omr-page-inner{display:flex;gap:8px;align-items:flex-start;height:100%}
+.omr-image-col-wrap{flex:0 0 25%;height:100%;display:flex;flex-direction:column;position:relative;border-right:2px dashed #999;padding-right:6mm;box-sizing:border-box}
+.omr-blank-col{visibility:hidden}
 .omr-cut-icon{position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:16pt;background:#fff;padding:2px}
-.omr-only-page .omr-image-col{width:100%;height:150mm;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.omr-only-page .omr-image-col img{width:auto!important;max-width:100%!important;max-height:150mm!important;object-fit:contain!important}
-.omr-q-cols{width:100%;display:flex;gap:8px;font-size:8.8pt}
+.omr-image-col{flex:1;width:100%;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+.omr-image-col img{width:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
+.omr-q-cols{flex:1;min-width:0;display:flex;gap:8px;font-size:8.8pt;height:100%}
 .omr-q-col{flex:1;min-width:0;border-right:1px solid #ddd;padding-right:8px}
 .omr-q-col:last-child{border-right:none}
 
@@ -225,11 +226,9 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   }
 
   if (style === "style4") {
-    // OMR sheet layout: landscape pages. Page 1 = OMR image alone (full page).
-    // Page 2 and Page 3 = 3 question columns each, 50 questions per page
-    // (split evenly across 3 columns, ~17 per column) — always exactly
-    // 2 question pages for 100 questions, no client-side JS pagination
-    // (that approach was unreliable across browsers/print engines).
+    // OMR sheet layout: landscape pages, exactly 2 pages total for 100 MCQs.
+    // Page 1 = 4 columns: col1 = OMR image, col2-4 = questions (Q1-35).
+    // Page 2 = 4 columns: col1 = blank (mirrors page1 spacing), col2-4 = questions (Q36-100).
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
       const tier = classifyOptionLength(opts);
@@ -246,46 +245,51 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const half1 = questions.slice(0, 50);
-    const half2 = questions.slice(50, 100);
-    const splitInto3 = (qs: SolvePdfQuestion[]) => {
-      const n = qs.length;
-      const base = Math.floor(n / 3);
-      const rem = n % 3;
-      const sizes = [base + (rem > 0 ? 1 : 0), base + (rem > 1 ? 1 : 0), base];
+    const page1Qs = questions.slice(0, 35);
+    const page2Qs = questions.slice(35, 100);
+    const splitIntoN = (qs: SolvePdfQuestion[], n: number) => {
+      const len = qs.length;
+      const base = Math.floor(len / n);
+      const rem = len % n;
       const cols: SolvePdfQuestion[][] = [];
       let off = 0;
-      for (const s of sizes) { cols.push(qs.slice(off, off + s)); off += s; }
+      for (let c = 0; c < n; c++) {
+        const size = base + (c < rem ? 1 : 0);
+        cols.push(qs.slice(off, off + size));
+        off += size;
+      }
       return cols;
     };
-    const renderQPage = (qs: SolvePdfQuestion[], startIdx: number, withHeader: boolean) => {
-      const cols = splitInto3(qs);
+    const renderQCols = (qs: SolvePdfQuestion[], startIdx: number) => {
+      const cols = splitIntoN(qs, 3);
       let colOffset = startIdx;
-      const colsHtml = cols.map((colQs) => {
+      return cols.map((colQs) => {
         let h = "";
         colQs.forEach((q, i) => { h += renderQ(q, colOffset + i + 1); });
         colOffset += colQs.length;
         return `<div class="omr-q-col">${h}</div>`;
       }).join("");
-      let header = "";
-      if (withHeader) {
-        header = `<div class="omr-qpage-header" style="break-inside:avoid;break-after:avoid">
+    };
+
+    const headerBlock = `<div class="omr-qpage-header" style="break-inside:avoid;break-after:avoid">
       <div class="omr-qpage-title">প্রশ্নপত্র</div>
       <div class="omr-qpage-meta"><span>পূর্নমান: ১০০</span><span>সময়: ১ ঘন্টা</span></div>
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
     </div>`;
-      }
-      return `<div class="omr-page"><div class="omr-page-inner" style="flex-direction:column">${header}<div class="omr-q-cols">${colsHtml}</div></div></div>`;
-    };
 
     const body = `<div id="omr-pages-root">
-  <div class="omr-page" id="omr-page-0"><div class="omr-only-page">
-    <div class="omr-header">${heading}</div>
-    <div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-    <span class="omr-cut-icon">✂</span>
+  <div class="omr-page"><div class="omr-page-inner">
+    <div class="omr-image-col-wrap">
+      <div class="omr-header">${heading}</div>
+      <div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
+      <span class="omr-cut-icon">✂</span>
+    </div>
+    <div class="omr-q-cols">${headerBlock}${renderQCols(page1Qs, 0)}</div>
   </div></div>
-  ${renderQPage(half1, 0, true)}
-  ${renderQPage(half2, 50, false)}
+  <div class="omr-page"><div class="omr-page-inner">
+    <div class="omr-image-col-wrap omr-blank-col"></div>
+    <div class="omr-q-cols">${renderQCols(page2Qs, 35)}</div>
+  </div></div>
 </div>`;
 
     const OMR_PAGE_CSS = `<style>.omr-page{page:omr4}</style>`;
