@@ -728,13 +728,13 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         {step === "preview" && rawImage && (
           <div className="space-y-3">
             <div className="rounded-xl border border-border/60 bg-black/5 overflow-hidden flex justify-center items-center p-3">
-              <img src={rawImage} alt="Selected OMR sheet" className="max-h-[420px] w-auto rounded-lg" />
+              <img ref={imageRef} src={rawImage} alt="Selected OMR sheet" className="max-h-[420px] w-auto rounded-lg" />
             </div>
             <div className="flex items-center justify-center gap-2">
               <Button variant="ghost" size="sm" onClick={() => { setRawImage(null); setStep("upload"); }} className="text-xs">
                 <X className="h-3.5 w-3.5 mr-1" /> বাতিল
               </Button>
-              <Button size="sm" onClick={() => setStep("crop")} className="rounded-full px-6 text-xs bg-emerald-600 hover:bg-emerald-700">
+              <Button size="sm" onClick={handleSkipCrop} className="rounded-full px-6 text-xs bg-emerald-600 hover:bg-emerald-700">
                 OMR জমা দিন
               </Button>
             </div>
