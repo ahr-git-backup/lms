@@ -205,8 +205,11 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // ratio via object-fit:contain) + 3 question columns (40 questions, ~13-14 per
     // column), heading at top. Later pages = 3 question columns only (60/page),
     // landscape, fixed-height to prevent overflow leaking to next page.
-    const PAGE1_COUNT = 40;
-    const LATER_PAGE_COUNT = 60;
+    // Measured from real device output: ~26 questions fit per landscape page
+    // (both page1-with-image and later pages, since font-size/line-height are
+    // the limiting factor, not the image column). Adjust here if still off.
+    const PAGE1_COUNT = 26;
+    const LATER_PAGE_COUNT = 26;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
