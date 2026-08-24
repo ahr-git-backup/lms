@@ -134,6 +134,10 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.8pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
 .question-s3 .question-text{flex:1;line-height:1.18;font-size:8.8pt;color:#000;word-wrap:break-word;white-space:pre-line}
 .options-list-s3{margin:1px 0 2px 10px;padding:0;list-style:none}
+.options-row-s3{display:flex;flex-wrap:wrap;gap:6px;margin:1px 0 2px 10px}
+.options-row-s3 .opt-item-s3{display:inline-flex;align-items:center;font-size:8.5pt;color:#000;white-space:nowrap}
+.options-row-s3{display:flex;gap:6px;margin:1px 0 2px 10px;flex-wrap:nowrap}
+.options-row-s3 .opt-item-s3{display:flex;align-items:center;font-size:8.5pt;color:#000;white-space:nowrap}
 .options-list-s3 li{display:flex;align-items:center;margin:0;font-size:8.5pt;color:#000;word-wrap:break-word}
 .opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:7pt;height:7pt;border-radius:50%;border:0.6px solid #000;font-size:5pt;font-weight:600;margin-right:3px;flex-shrink:0}
 .options-table-s3{width:100%;border-collapse:collapse;margin:1px 0 2px 10px;table-layout:fixed}
@@ -225,9 +229,16 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // no leftover blank space, regardless of question/answer text length.
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const tier = classifyOptionLength(opts);
       const qNum = String(n).padStart(2, "0");
       let h = `<div class="question-s3" data-qn="${n}"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
-      h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+      if (tier === "tiny") {
+        h += `<div class="options-row-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</span></div>`;
+      } else if (tier === "medium") {
+        h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+      } else {
+        h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+      }
       h += "</div>";
       return h;
     };
