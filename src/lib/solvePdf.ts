@@ -107,12 +107,15 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
 .omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
-.omr-page-inner{display:flex;gap:8px;align-items:flex-start;min-height:181mm}
+.omr-page-inner{display:flex;gap:8px;align-items:flex-start;min-height:198mm}
 .omr-image-col-wrap{flex:0 0 26%;display:flex;flex-direction:column}
 .omr-image-col{display:flex;align-items:flex-start;justify-content:center}
-.omr-image-col img{width:auto!important;max-width:100%!important;height:168mm!important;object-fit:contain!important}
+.omr-image-col img{width:auto!important;max-width:100%!important;height:185mm!important;object-fit:contain!important}
 .omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
 .omr-q-cols-full{width:100%;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
+.omr-q-cols .question-s3,.omr-q-cols-full .question-s3{margin-bottom:3px;font-size:7.2pt;line-height:1.1}
+.omr-q-cols .question-s3 .question-num,.omr-q-cols-full .question-s3 .question-num,.omr-q-cols .question-s3 .question-text,.omr-q-cols-full .question-s3 .question-text{font-size:7.2pt;line-height:1.1}
+.omr-q-cols .options-list-s3,.omr-q-cols-full .options-list-s3{margin:1px 0 1px 8px}
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
 @media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
@@ -127,7 +130,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
-@page omr4{size:A4 landscape;margin:8mm}
+@page omr4{size:A4 landscape;margin:4mm}
 .omr-page{page:omr4}
 </style>`;
 
