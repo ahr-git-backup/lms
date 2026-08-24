@@ -277,7 +277,7 @@ export const CourseSection = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center justify-between gap-2 mt-auto pt-4 border-t border-dashed">
+                                    <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
                                         <div className="flex flex-col items-start">
                                             {course.original_price != null && Number(course.original_price) > Number(course.price) && (
                                                 <span className="text-[10px] text-muted-foreground line-through">
@@ -288,11 +288,11 @@ export const CourseSection = () => {
                                                 {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                             </div>
                                         </div>
-                                        <div className="flex gap-2">
-                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs">
+                                        <div className="flex gap-2 w-full">
+                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
                                                 <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
                                             </Button>
-                                            <Button asChild size="sm" className="h-8 px-2 text-xs">
+                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1">
                                                 <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
                                             </Button>
                                         </div>
