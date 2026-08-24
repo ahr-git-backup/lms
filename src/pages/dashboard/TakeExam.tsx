@@ -1528,7 +1528,9 @@ const TakeExam = () => {
         <div className="w-full">
           <div className="p-2 grid grid-cols-2 gap-2">
             {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-            {omrQuestions.map((q: any, idx: number) => (
+            {omrQuestions.map((q: any, idx: number) => {
+              const currentAnswer = answers[q.id];
+              return (
               <Card key={q.id} className="rounded-lg border p-2.5 flex flex-col">
                 <div className="flex items-start gap-1.5 mb-1.5">
                   <span className="text-xs font-bold text-emerald-600 shrink-0">{String(idx + 1).padStart(2, "0")}.</span>
@@ -1537,17 +1539,24 @@ const TakeExam = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-1 gap-1 pl-4 text-[11px]">
-                  {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, oi: number) => (
-                    <div key={oi} className="flex items-start gap-1.5 text-muted-foreground">
-                      <span className="h-4 w-4 rounded-full border flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5">
+                  {[q.option_a, q.option_b, q.option_c, q.option_d].map((opt: string, oi: number) => {
+                    const isMarked = currentAnswer === omrOptionLabels[oi];
+                    return (
+                    <div key={oi} className={cn("flex items-start gap-1.5", isMarked ? "text-emerald-700 dark:text-emerald-400 font-semibold" : "text-muted-foreground")}>
+                      <span className={cn(
+                        "h-4 w-4 rounded-full border flex items-center justify-center text-[8px] font-bold shrink-0 mt-0.5",
+                        isMarked ? "bg-emerald-500 border-emerald-500 text-white" : ""
+                      )}>
                         {omrOptionLabels[oi]}
                       </span>
                       <span className="break-words"><MathText text={opt} as="span" /></span>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
