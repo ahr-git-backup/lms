@@ -1368,7 +1368,7 @@ const TakeExam = () => {
               </Card>
 
               {/* OMR Mode Popup */}
-              <Dialog open={showOmrPopup} onOpenChange={(o) => { setShowOmrPopup(o); if (!o) setOmrMode(false); }}>
+              <Dialog open={showOmrPopup} onOpenChange={(o) => { setShowOmrPopup(o); if (!o && !hasStarted) setOmrMode(false); }}>
                   <DialogContent className="max-w-md">
                       <DialogHeader>
                           <DialogTitle>OMR মোড</DialogTitle>
