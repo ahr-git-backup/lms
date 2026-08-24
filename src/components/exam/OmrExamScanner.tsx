@@ -61,7 +61,7 @@ interface ApiData {
   reg_no: string;
 }
 
-type ScannerStep = "upload" | "preview" | "crop" | "scanning" | "results";
+type ScannerStep = "upload" | "crop" | "scanning" | "results";
 
 export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamScannerProps) => {
   const { toast } = useToast();
@@ -125,8 +125,20 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     const reader = new FileReader();
     reader.onload = () => {
       setRawImage(reader.result as string);
-      setStep("preview");
       setScanError(null);
+      setStep("scanning");
+      setIsScanning(true);
+      // Auto-start scanning immediately — no intermediate confirm/preview
+      // screen. Load the image off-DOM to read its natural dimensions,
+      // then feed it straight into the same normalize+scan path used by
+      // the "Skip Crop" flow.
+      const img = new Image();
+      img.onload = () => {
+        getNormalizedImageBlob(img, (blob) => {
+          handleScan(blob, null);
+        });
+      };
+      img.src = reader.result as string;
     };
     reader.readAsDataURL(file);
     e.target.value = "";
@@ -694,7 +706,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         </div>
 
         {/* Error Alert available in upload and crop steps */}
-        {scanError && (step === "upload" || step === "preview" || step === "crop") && (
+        {scanError && (step === "upload" || step === "crop") && (
           <div className="flex items-start gap-2 p-3 mb-4 rounded-xl bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 text-xs text-red-700 dark:text-red-400">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <div><p className="font-semibold">Scan Failed</p><p>{scanError}</p></div>
@@ -720,23 +732,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
               </div>
               <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
               <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSelect} />
-            </div>
-          </div>
-        )}
-
-        {/* Step: Preview (image selected, waiting for user to confirm upload) */}
-        {step === "preview" && rawImage && (
-          <div className="space-y-3">
-            <div className="rounded-xl border border-border/60 bg-black/5 overflow-hidden flex justify-center items-center p-3">
-              <img ref={imageRef} src={rawImage} alt="Selected OMR sheet" className="max-h-[420px] w-auto rounded-lg" />
-            </div>
-            <div className="flex items-center justify-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setRawImage(null); setStep("upload"); }} className="text-xs">
-                <X className="h-3.5 w-3.5 mr-1" /> বাতিল
-              </Button>
-              <Button size="sm" onClick={handleSkipCrop} className="rounded-full px-6 text-xs bg-emerald-600 hover:bg-emerald-700">
-                OMR জমা দিন
-              </Button>
             </div>
           </div>
         )}
