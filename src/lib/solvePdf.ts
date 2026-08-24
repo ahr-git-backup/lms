@@ -121,7 +121,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
 .omr-page-inner{display:flex;gap:8px;align-items:flex-start;height:198mm}
-.omr-only-page{width:100%;height:100%;display:flex;flex-direction:column;align-items:center}
+.omr-only-page{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;position:relative;border-right:2px dashed #999;padding-right:6mm}
+.omr-cut-icon{position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:16pt;background:#fff;padding:2px}
 .omr-only-page .omr-image-col{flex:1;width:100%;display:flex;align-items:center;justify-content:center}
 .omr-only-page .omr-image-col img{width:auto!important;max-width:100%!important;height:100%!important;object-fit:contain!important}
 .omr-q-cols{width:100%;height:198mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:8.8pt;overflow:hidden}
@@ -251,6 +252,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   <div class="omr-page" id="omr-page-0"><div class="omr-only-page">
     <div class="omr-header">${heading}</div>
     <div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
+    <span class="omr-cut-icon">✂</span>
   </div></div>
   <div class="omr-page" id="omr-page-1"><div class="omr-page-inner">
     <div class="omr-q-cols" id="omr-q-target-1"></div>
