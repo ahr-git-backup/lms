@@ -218,16 +218,19 @@ def process_omr_logic(image_bytes, corners=None):
     reg_no = process_info_block(reg_block)
 
     # --- 2. Extract Questions ---
-    # Precisely measured from the official ATLAS OMR PDF template (595x841pt
-    # page, question block height ~495.7pt): row sampling-box top starts at
-    # 4.996% of block height, each row is 3.7825% of block height tall.
-    # Bubble centers for A/B/C/D sit at 0.2826 / 0.4891 / 0.6956 / 0.9020 of
-    # the block width. These replace the old evenly-divided estimates, which
-    # accumulated drift toward D (columns) and row 25 (rows).
-    Q_ROW0_TOP_RATIO = 0.04996
-    Q_ROW_H_RATIO = 0.037825
-    Q_NUM_COL_RATIO = 0.1794
-    OPT_SPACING_RATIO = 0.20645
+    # Calibrated against the ACTUAL cv2.boundingRect() output of a real
+    # scanned OMR sheet (not the idealized PDF coordinates) — the detected
+    # contour box includes a few pixels of the outer table border, which
+    # made the PDF-derived ratios drift (worse toward option D and toward
+    # later rows) once applied to a real photo's slightly-larger box.
+    # Measured directly from HoughCircles bubble centers vs. the real
+    # detected block rect on a sample scan: A/B/C/D sit at 0.2820 / 0.4797 /
+    # 0.6890 / 0.8866 of block width; row 0 starts at 5.278% of block height,
+    # each row is 3.767% of block height tall.
+    Q_ROW0_TOP_RATIO = 0.05278
+    Q_ROW_H_RATIO = 0.037670
+    Q_NUM_COL_RATIO = 0.18121
+    OPT_SPACING_RATIO = 0.20155
     current_q = 1
     labels = ['A', 'B', 'C', 'D']
 
