@@ -111,11 +111,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-image-col-wrap{flex:0 0 26%;display:flex;flex-direction:column}
 .omr-image-col{display:flex;align-items:flex-start;justify-content:center}
 .omr-image-col img{width:auto!important;max-width:100%!important;height:185mm!important;object-fit:contain!important}
-.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
-.omr-q-cols-full{width:100%;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.2pt}
-.omr-q-cols .question-s3,.omr-q-cols-full .question-s3{margin-bottom:3px;font-size:7.2pt;line-height:1.1}
-.omr-q-cols .question-s3 .question-num,.omr-q-cols-full .question-s3 .question-num,.omr-q-cols .question-s3 .question-text,.omr-q-cols-full .question-s3 .question-text{font-size:7.2pt;line-height:1.1}
-.omr-q-cols .options-list-s3,.omr-q-cols-full .options-list-s3{margin:1px 0 1px 8px}
+.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:8.8pt}
+.omr-q-cols-full{width:100%;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd;font-size:8.8pt}
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
 @media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
@@ -212,8 +209,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // Measured from real device output with empty space remaining below columns —
     // capacity is higher than previous 26/page. Bumped up so 100 questions fit in
     // exactly 2 pages (page1 has image column so fewer; page2 is full-width).
-    const PAGE1_COUNT = 35;
-    const LATER_PAGE_COUNT = 65;
+    const PAGE1_COUNT = 30;
+    const LATER_PAGE_COUNT = 30;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
