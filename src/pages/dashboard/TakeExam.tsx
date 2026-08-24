@@ -386,7 +386,7 @@ const TakeExam = () => {
                console.warn("RPC returned no questions. Attempting direct fallback...");
                const { data: directData, error: directError } = await supabase
                    .from("exam_questions")
-                   .select("id, question_text, option_a, option_b, option_c, option_d, option_e, question_index, subject, is_segment_mandatory")
+                   .select("id, question_text, option_a, option_b, option_c, option_d, option_e, question_index, subject, is_segment_mandatory, topic, subtopic")
                    .eq("exam_id", examId)
                    .order("question_index", { ascending: true });
 
@@ -485,7 +485,10 @@ const TakeExam = () => {
 
   // Readymade exam topic filter: ?topic=<name> restricts the pool to only
   // questions tagged with that topic (falls back to full exam when absent).
+  // ?subtopic=<name> further restricts within that topic, when the topic
+  // picker's dropdown was used instead of "সম্পূর্ণ <topic>".
   const selectedTopic = searchParams.get("topic");
+  const selectedSubtopic = searchParams.get("subtopic");
 
   const effectiveQuestions = (() => {
       if (!questions) return questions;
@@ -500,6 +503,9 @@ const TakeExam = () => {
       }
       if (selectedTopic) {
           pool = pool.filter((q: any) => q.topic === selectedTopic);
+      }
+      if (selectedSubtopic) {
+          pool = pool.filter((q: any) => q.subtopic === selectedSubtopic);
       }
       return pool;
   })();

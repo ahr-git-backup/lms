@@ -1406,48 +1406,99 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
 };
 
 const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navigate: any; isAdmin?: boolean }) => {
-  const { data: topics, isLoading } = useQuery({
-    queryKey: ["exam-topics", examId],
+  // get_exam_topic_tree returns one row per (topic, subtopic) pair --
+  // subtopic is null/"" for topics with no subtopics. Grouped client-side
+  // into topic -> [subtopics] so a topic with subtopics expands into a
+  // dropdown instead of navigating straight to take-exam.
+  const { data: rows, isLoading } = useQuery({
+    queryKey: ["exam-topic-tree", examId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_exam_topics", { p_exam_id: examId });
+      const { data, error } = await supabase.rpc("get_exam_topic_tree", { p_exam_id: examId });
       if (error) throw error;
-      return (data || []) as { topic: string; mcq_count: number }[];
+      return (data || []) as { topic: string; subtopic: string | null; mcq_count: number; first_index: number }[];
     },
   });
   const [manageTopic, setManageTopic] = useState<string | null>(null);
+  const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
 
-  const goTopic = (topic: string) => {
+  const goTopic = (topic: string, subtopic?: string) => {
     setExamSourceList(examId, "/dashboard/readymade");
-    navigate(`/dashboard/take-exam/${examId}?topic=${encodeURIComponent(topic)}`);
+    const params = new URLSearchParams({ topic });
+    if (subtopic) params.set("subtopic", subtopic);
+    navigate(`/dashboard/take-exam/${examId}?${params.toString()}`);
   };
+
+  // Group rows by topic, preserving first-appearance order (rows already
+  // arrive ordered by first_index from the RPC).
+  const topicGroups: { topic: string; mcq_count: number; subtopics: { subtopic: string; mcq_count: number }[] }[] = [];
+  for (const r of rows || []) {
+    let g = topicGroups.find(g => g.topic === r.topic);
+    if (!g) {
+      g = { topic: r.topic, mcq_count: 0, subtopics: [] };
+      topicGroups.push(g);
+    }
+    g.mcq_count += r.mcq_count;
+    if (r.subtopic) g.subtopics.push({ subtopic: r.subtopic, mcq_count: r.mcq_count });
+  }
 
   return (
     <div className="w-full space-y-1 border-l-2 border-primary/20 pl-2">
       {isLoading ? (
         <div className="text-[11px] text-muted-foreground">Loading...</div>
-      ) : !topics || topics.length === 0 ? (
+      ) : topicGroups.length === 0 ? (
         <div className="text-[11px] text-muted-foreground">No topics yet.</div>
       ) : (
-        topics.map((t) => (
-          <div
-            key={t.topic}
-            className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
-            onClick={() => goTopic(t.topic)}
-          >
-            <span className="text-xs font-medium">{t.topic} <span className="text-[10px] text-muted-foreground">({t.mcq_count} Q)</span></span>
-            <div className="flex items-center gap-1">
-              {isAdmin && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
-                  onClick={(e) => { e.stopPropagation(); setManageTopic(t.topic); }}
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
-              <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+        topicGroups.map((g) => (
+          <div key={g.topic}>
+            <div
+              className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
+              onClick={() => g.subtopics.length > 0 ? setExpandedTopic(expandedTopic === g.topic ? null : g.topic) : goTopic(g.topic)}
+            >
+              <span className="text-xs font-medium flex items-center gap-1">
+                {g.subtopics.length > 0 && (
+                  expandedTopic === g.topic
+                    ? <ChevronLeft className="h-3 w-3" />
+                    : <ChevronRight className="h-3 w-3" />
+                )}
+                {g.topic} <span className="text-[10px] text-muted-foreground">({g.mcq_count} Q)</span>
+              </span>
+              <div className="flex items-center gap-1">
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0 text-muted-foreground hover:text-primary"
+                    onClick={(e) => { e.stopPropagation(); setManageTopic(g.topic); }}
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+                {g.subtopics.length === 0 && (
+                  <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                )}
+              </div>
             </div>
+            {g.subtopics.length > 0 && expandedTopic === g.topic && (
+              <div className="ml-4 mt-1 space-y-1 border-l-2 border-primary/10 pl-2">
+                <div
+                  className="flex items-center justify-between gap-2 rounded-md bg-muted/30 px-2 py-1 cursor-pointer hover:bg-muted"
+                  onClick={() => goTopic(g.topic)}
+                >
+                  <span className="text-[11px]">সম্পূর্ণ {g.topic} <span className="text-[10px] text-muted-foreground">({g.mcq_count} Q)</span></span>
+                  <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                </div>
+                {g.subtopics.map((s) => (
+                  <div
+                    key={s.subtopic}
+                    className="flex items-center justify-between gap-2 rounded-md bg-muted/30 px-2 py-1 cursor-pointer hover:bg-muted"
+                    onClick={() => goTopic(g.topic, s.subtopic)}
+                  >
+                    <span className="text-[11px]">{s.subtopic} <span className="text-[10px] text-muted-foreground">({s.mcq_count} Q)</span></span>
+                    <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ))
       )}

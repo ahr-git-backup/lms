@@ -144,6 +144,7 @@ const ExamCreator = () => {
                     subject: q.subject || "",
                     chapter: q.chapter || "",
                     topic: q.topic || "",
+                    subtopic: q.subtopic || "",
                     exam_code: q.exam_code || "",
                     year: q.year || "",
                     difficulty: q.difficulty || "",
@@ -330,6 +331,7 @@ const ExamCreator = () => {
               subject: q.subject || null,
               chapter: q.chapter || null,
               topic: q.topic || null,
+              subtopic: q.subtopic || null,
               exam_code: q.exam_code || null,
               year: q.year || null,
               difficulty: q.difficulty || null,
@@ -390,6 +392,7 @@ const ExamCreator = () => {
                 subject: q.subject || "",
                 chapter: q.chapter || "",
                 topic: q.topic || "",
+                subtopic: q.subtopic || "",
                 exam_code: q.exam_code || "",
                 year: q.year || "",
                 difficulty: q.difficulty || "",
@@ -450,6 +453,7 @@ const ExamCreator = () => {
               subject: q.subject || null,
               chapter: q.chapter || null,
               topic: q.topic || null,
+              subtopic: q.subtopic || null,
               exam_code: q.exam_code || null,
               year: q.year || null,
               difficulty: q.difficulty || null,
@@ -484,6 +488,7 @@ const ExamCreator = () => {
                 subject: q.subject || "",
                 chapter: q.chapter || "",
                 topic: q.topic || "",
+                subtopic: q.subtopic || "",
                 exam_code: q.exam_code || "",
                 year: q.year || "",
                 difficulty: q.difficulty || "",
@@ -564,6 +569,7 @@ const ExamCreator = () => {
         subject: q.subject || null,
         chapter: q.chapter || null,
         topic: q.topic || null,
+        subtopic: q.subtopic || null,
         exam_code: q.exam_code || null,
         year: q.year || null,
         difficulty: q.difficulty || null,
@@ -592,6 +598,14 @@ const ExamCreator = () => {
 
   const processImportedData = (data: any[], type: 'json' | 'csv') => {
         try {
+            // Forward-fill topic/subtopic for CSV's dual-purpose column format
+            // (QuizBot's /pdfs & /qbm CSVs only fill these cells on the FIRST
+            // row of each segment, blank on the rest -- same convention as
+            // Excel-style grouped exports). Track the last-seen value and
+            // carry it down until a new one appears, mirroring how
+            // _build_topicwise_csv_rows on the bot side wrote them.
+            let _lastTopic = "";
+            let _lastSubtopic = "";
             const normalized = data.map((q: any) => {
                 let options = q.options || { A: "", B: "", C: "", D: "" };
                 let correct_answer = String(q.correct_answer || q.correct_option || q.answer || "").toUpperCase();
@@ -641,6 +655,24 @@ const ExamCreator = () => {
                     options = rest;
                 }
 
+                // Forward-fill topic/subtopic on CSV rows: an empty cell
+                // means "same segment as the row above" (per the grouped
+                // export convention), a non-empty cell starts a new segment.
+                // JSON import is left untouched -- it's expected to carry
+                // an explicit value (or none) on every row.
+                let rowTopic = q.topic || "";
+                let rowSubtopic = q.subtopic || "";
+                if (type === 'csv') {
+                    if (rowTopic) { _lastTopic = rowTopic; _lastSubtopic = ""; }
+                    else { rowTopic = _lastTopic; }
+                    if (rowSubtopic) { _lastSubtopic = rowSubtopic; }
+                    else if (!q.topic) { rowSubtopic = _lastSubtopic; }
+                    // ^ a fresh topic cell resets subtopic tracking (new
+                    // main segment starts), so a blank subtopic right after
+                    // a new topic cell means "no subtopic for this segment"
+                    // rather than inheriting the previous topic's subtopic.
+                }
+
                 return {
                     question: question_text,
                     options,
@@ -648,7 +680,8 @@ const ExamCreator = () => {
                     explanation: String(q.explanation || ""),
                     subject: q.subject || "",
                     chapter: q.chapter || "",
-                    topic: q.topic || "",
+                    topic: rowTopic,
+                    subtopic: rowSubtopic,
                     exam_code: q.exam_code || "",
                     year: q.year || "",
                     difficulty: q.difficulty || "",
