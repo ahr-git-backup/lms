@@ -118,15 +118,15 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-.omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
+.omr-page{box-sizing:border-box}
 .omr-page:last-child{page-break-after:auto}
-.omr-page-inner{display:flex;gap:8px;align-items:flex-start;height:100%}
-.omr-image-col-wrap{flex:0 0 25%;height:100%;display:flex;flex-direction:column;position:relative;border-right:2px dashed #999;padding-right:6mm;box-sizing:border-box}
+.omr-page-inner{display:flex;gap:8px;align-items:flex-start}
+.omr-image-col-wrap{flex:0 0 25%;display:flex;flex-direction:column;position:relative;border-right:2px dashed #999;padding-right:6mm;box-sizing:border-box;align-self:stretch}
 .omr-blank-col{visibility:hidden}
 .omr-cut-icon{position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:16pt;background:#fff;padding:2px}
 .omr-image-col{flex:1;width:100%;display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
 .omr-image-col img{width:auto!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
-.omr-q-cols{flex:1;min-width:0;display:flex;gap:8px;font-size:8.8pt;height:100%}
+.omr-q-cols{flex:1;min-width:0;display:flex;gap:8px;font-size:8.8pt;align-items:flex-start}
 .omr-q-col{flex:1;min-width:0;border-right:1px solid #ddd;padding-right:8px}
 .omr-q-col:last-child{border-right:none}
 
@@ -134,8 +134,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:13pt;text-align:center;margin:0 0 2mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:9pt;margin-bottom:1mm}
 .omr-qpage-type{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:10pt;text-align:center;border-top:1px solid #333;border-bottom:1px solid #333;padding:1mm 0;margin-bottom:2mm}
-@media print{.omr-page{width:289mm;height:190mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
-@media screen{.omr-page{width:289mm;height:190mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
+@media print{.omr-page{width:289mm;min-height:190mm;page-break-after:always;break-after:page}.omr-page:last-child{page-break-after:auto;break-after:auto}body.omr-body{width:297mm!important;max-width:297mm!important}}
+@media screen{.omr-page{width:289mm;min-height:190mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box;page-break-after:always;break-after:page}.omr-page:last-child{page-break-after:auto;break-after:auto}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
 .question-s3 .question-header{margin-bottom:1px;display:flex;align-items:flex-start}
 .question-s3 .question-num{font-family:'Times New Roman',serif;font-weight:bold;color:#15803d;font-size:8.8pt;margin-right:3px;white-space:nowrap;flex-shrink:0}
@@ -260,18 +260,18 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       }
       return cols;
     };
-    const renderQCols = (qs: SolvePdfQuestion[], startIdx: number) => {
+    const renderQCols = (qs: SolvePdfQuestion[], startIdx: number, firstColExtra: string = "") => {
       const cols = splitIntoN(qs, 3);
       let colOffset = startIdx;
-      return cols.map((colQs) => {
-        let h = "";
+      return cols.map((colQs, ci) => {
+        let h = ci === 0 ? firstColExtra : "";
         colQs.forEach((q, i) => { h += renderQ(q, colOffset + i + 1); });
         colOffset += colQs.length;
         return `<div class="omr-q-col">${h}</div>`;
       }).join("");
     };
 
-    const headerBlock = `<div class="omr-qpage-header" style="break-inside:avoid;break-after:avoid">
+    const headerBlock = `<div class="omr-qpage-header">
       <div class="omr-qpage-title">প্রশ্নপত্র</div>
       <div class="omr-qpage-meta"><span>পূর্নমান: ১০০</span><span>সময়: ১ ঘন্টা</span></div>
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
@@ -284,7 +284,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-image-col"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
       <span class="omr-cut-icon">✂</span>
     </div>
-    <div class="omr-q-cols">${headerBlock}${renderQCols(page1Qs, 0)}</div>
+    <div class="omr-q-cols">${renderQCols(page1Qs, 0, headerBlock)}</div>
   </div></div>
   <div class="omr-page"><div class="omr-page-inner">
     <div class="omr-image-col-wrap omr-blank-col"></div>
