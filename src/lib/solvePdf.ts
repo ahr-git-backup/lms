@@ -128,6 +128,9 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-q-cols{width:100%;height:198mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;font-size:8.8pt;overflow:hidden}
 
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
+.omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:13pt;text-align:center;margin:0 0 2mm 0}
+.omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:9pt;margin-bottom:1mm}
+.omr-qpage-type{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:10pt;text-align:center;border-top:1px solid #333;border-bottom:1px solid #333;padding:1mm 0;margin-bottom:2mm}
 @media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
@@ -255,7 +258,11 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     <span class="omr-cut-icon">✂</span>
   </div></div>
   <div class="omr-page" id="omr-page-1"><div class="omr-page-inner">
-    <div class="omr-q-cols" id="omr-q-target-1"></div>
+    <div class="omr-q-cols" id="omr-q-target-1"><div class="omr-qpage-header" style="break-inside:avoid;break-after:avoid">
+      <div class="omr-qpage-title">প্রশ্নপত্র</div>
+      <div class="omr-qpage-meta"><span>পূর্নমান: ১০০</span><span>সময়: ১ ঘন্টা</span></div>
+      <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
+    </div></div>
   </div></div>
 </div>`;
 
