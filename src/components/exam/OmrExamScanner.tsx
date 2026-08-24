@@ -352,7 +352,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     ctx.drawImage(baseImage, 0, 0, canvas.width, canvas.height);
 
     // Draw filled bubbles
-    ctx.fillStyle = "rgba(239, 68, 68, 0.85)";
+    ctx.fillStyle = "rgba(34, 197, 94, 0.85)";
     apiData.results.forEach((qData) => {
       if (qData.correct_answer === "") return;
       const selectedOptions = qData.correct_answer.split(", ");
@@ -440,6 +440,44 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       drawCanvas();
     }
   }, [apiData, questionIds, historyArray, historyIndex, drawCanvas, zoom]);
+
+  // Directly set (or clear) the answer for a given 1-based question number.
+  // Used by the "Detected Answers" grid so users can correct/override a
+  // scanned answer without needing to tap the exact bubble on the image.
+  const setAnswerForQuestion = useCallback((qNum: number, opt: string | null) => {
+    if (!apiData) return;
+    const newResults = [...apiData.results];
+    const resultItem = newResults.find(r => parseInt(r.question) === qNum);
+    if (!resultItem) return;
+
+    resultItem.correct_answer = opt || "";
+
+    const mapped: Record<string, string> = {};
+    newResults.forEach((r) => {
+      const n = parseInt(r.question);
+      if (n <= questionIds.length && r.correct_answer) {
+        const firstAnswer = r.correct_answer.split(", ")[0];
+        if (firstAnswer && ["A", "B", "C", "D"].includes(firstAnswer)) {
+          mapped[questionIds[n - 1]] = firstAnswer;
+        }
+      }
+    });
+
+    const newHistory = historyArray.slice(0, historyIndex + 1);
+    newHistory.push(JSON.stringify(mapped));
+
+    setApiData({ ...apiData, results: newResults });
+    setScannedAnswers(mapped);
+    // Directly re-apply so the outer submit stays unlocked & in sync with
+    // the manual correction (no separate "Apply" click required here).
+    onFillAnswers(mapped);
+    setHasApplied(true);
+    setHistoryArray(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+    drawCanvas();
+  }, [apiData, questionIds, historyArray, historyIndex, drawCanvas, onFillAnswers]);
+
+  const [editingQNum, setEditingQNum] = useState<number | null>(null);
 
   // Handle canvas click (mouse) — suppressed after touch taps to prevent double-fire
   const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -892,19 +930,56 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                   <div className="grid grid-cols-5 gap-1.5">
                     {questionIds.map((qId, idx) => {
                       const answer = scannedAnswers[qId];
+                      const qNum = idx + 1;
+                      const isEditing = editingQNum === qNum;
                       return (
-                        <div
-                          key={qId}
-                          className={`flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors ${
-                            answer
-                              ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
-                              : "bg-muted/30 border-border/30"
-                          }`}
-                        >
-                          <span className="font-bold text-[9px] text-muted-foreground">Q{idx + 1}</span>
-                          <span className={`font-bold ${answer ? "text-green-700 dark:text-green-400" : "text-muted-foreground/50"}`}>
-                            {answer || "—"}
-                          </span>
+                        <div key={qId} className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setEditingQNum(isEditing ? null : qNum)}
+                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors ${
+                              answer
+                                ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
+                                : "bg-muted/30 border-border/30"
+                            } ${isEditing ? "ring-2 ring-violet-400" : ""}`}
+                          >
+                            <span className="font-bold text-[9px] text-muted-foreground">Q{qNum}</span>
+                            <span className={`font-bold ${answer ? "text-green-700 dark:text-green-400" : "text-muted-foreground/50"}`}>
+                              {answer || "—"}
+                            </span>
+                          </button>
+                          {isEditing && (
+                            <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1 flex gap-1 bg-background border border-border rounded-lg shadow-lg p-1.5">
+                              {["A", "B", "C", "D"].map((opt) => (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => {
+                                    setAnswerForQuestion(qNum, opt === answer ? null : opt);
+                                    setEditingQNum(null);
+                                  }}
+                                  className={`h-7 w-7 rounded-full border text-[11px] font-bold flex items-center justify-center transition-colors ${
+                                    answer === opt
+                                      ? "bg-green-500 border-green-500 text-white"
+                                      : "border-border hover:bg-muted"
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAnswerForQuestion(qNum, null);
+                                  setEditingQNum(null);
+                                }}
+                                className="h-7 w-7 rounded-full border border-border text-[11px] flex items-center justify-center hover:bg-muted"
+                                aria-label="Clear answer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       );
                     })}
