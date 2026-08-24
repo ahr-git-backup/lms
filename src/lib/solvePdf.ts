@@ -105,12 +105,13 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-.omr-page{page-break-after:always;break-after:page;box-sizing:border-box}
+.omr-page{page-break-after:always;break-after:page;box-sizing:border-box;overflow:hidden}
 .omr-page:last-child{page-break-after:auto}
-.omr-page-inner{display:flex;gap:8px;align-items:stretch}
-.omr-image-col{flex:0 0 26%;display:flex}
+.omr-page-inner{display:flex;gap:8px;align-items:stretch;height:181mm;overflow:hidden}
+.omr-image-col{flex:0 0 26%;display:flex;overflow:hidden}
 .omr-image-col img{width:100%!important;max-width:100%!important;height:100%!important;object-fit:fill!important}
-.omr-q-cols{flex:1;column-count:3;column-gap:8px;column-fill:balance;column-rule:1px solid #ddd}
+.omr-q-cols{flex:1;height:181mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;overflow:hidden}
+.omr-q-cols-full{width:100%;height:181mm;column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd;overflow:hidden}
 @media print{.omr-page{width:297mm}body.omr-body{width:297mm!important;max-width:297mm!important}}
 @media screen{.omr-page{width:297mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
 .question-s3{margin-bottom:7px;break-inside:avoid;page-break-inside:avoid;font-size:8.8pt;line-height:1.18}
@@ -200,10 +201,11 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
   if (style === "style4") {
     // OMR sheet layout: landscape pages. Page 1 = OMR image (26% width) + 3 question
-    // columns (36 questions total, balanced across 3 cols to fit one landscape page
-    // alongside the OMR sheet). Later pages = 3 question columns only, landscape.
-    const PAGE1_COUNT = 37;
-    const LATER_PAGE_COUNT = 63;
+    // columns (21 questions, 7 per column) fixed-height so image and questions stay
+    // together on page 1 with no overflow leaking into later pages. Later pages =
+    // 3 question columns only (30/page), landscape, also fixed-height to prevent leak.
+    const PAGE1_COUNT = 21;
+    const LATER_PAGE_COUNT = 30;
 
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
@@ -231,7 +233,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
     for (let i = 0; i < restQs.length; i += LATER_PAGE_COUNT) {
       const pageQs = restQs.slice(i, i + LATER_PAGE_COUNT);
-      body += `<div class="omr-page"><div class="omr-q-cols" style="width:100%">`;
+      body += `<div class="omr-page"><div class="omr-q-cols-full">`;
       pageQs.forEach((q, idx) => { body += renderQ(q, PAGE1_COUNT + i + idx + 1); });
       body += `</div></div>`;
     }
