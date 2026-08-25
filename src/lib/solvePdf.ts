@@ -118,11 +118,11 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@page omrLandscape{size:11in 8.5in;margin:6mm 6mm}
+@page omrLandscape{size:11in 8.5in;margin:4mm 5mm}
 .omr-page-grid{page:omrLandscape;width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
 .omr-page-grid:last-child{page-break-after:auto}
 @media print{.omr-page-grid{width:269mm}}
-@media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
+@media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:4mm 5mm;box-sizing:border-box}}
 .omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm;position:relative}
 .omr-grid-inner.omr-cut-line-wrap::after{content:"";position:absolute;left:calc(24% + 4px);top:0;bottom:0;width:0;border-right:2px dashed #999}
 .omr-grid-inner.omr-cut-line-wrap::before{content:"✂";position:absolute;left:calc(24% + 4px);top:50%;transform:translate(-50%,-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
@@ -132,8 +132,9 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-qcols-fixed{display:flex;gap:8px;width:100%;align-items:flex-start}
 .omr-qcol{flex:1;min-width:0;font-size:7.8pt}
 .omr-qcol:not(:last-child){border-right:2px solid #999;padding-right:8px}
-.omr-qcol .question-s3{font-size:7.8pt;margin-bottom:3px}
+.omr-qcol .question-s3{font-size:7.8pt;margin-bottom:2px}
 .omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7.8pt}
+.omr-qcol .options-list-s3,.omr-qcol .options-table-s3{margin:0 0 1px 8px}
 .omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td{font-size:7.8pt}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
