@@ -1127,7 +1127,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     key={s}
                     className={
                       compactGrid
-                        ? "w-[calc(50%-0.25rem)]"
+                        ? (zoneSubjects.length === 1 ? "w-full" : "w-[calc(50%-0.25rem)]")
                         : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"
                     }
                   >
