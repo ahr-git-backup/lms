@@ -315,9 +315,10 @@ function ZoneLayoutManager({ allTopics }: { allTopics: string[] }) {
     });
   };
 
-  // Toggle: if zone isn't in any group, merge it with the previous zone in
-  // display order into a new (or existing) row-group. If it's already in a
-  // group, remove it from that group (splitting the group apart).
+  // Toggle: if zone isn't in any group, pair it with the immediately-previous
+  // zone in display order (creating a new group, or joining that zone's
+  // existing group). If it's already in a group, split it back out on its
+  // own — leaving any other members of that group intact.
   const toggleRow = (zone: string) => {
     setRowGroups((prev) => {
       const existing = prev.find((g) => g.includes(zone));
@@ -356,6 +357,7 @@ function ZoneLayoutManager({ allTopics }: { allTopics: string[] }) {
       toast({ title: "Zone layout saved!" });
       setIsModified(false);
       queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-zone-layout"] });
     },
     onError: (err: any) => {
       toast({ title: "Failed to save zone layout", description: err.message, variant: "destructive" });
@@ -405,6 +407,15 @@ function ZoneLayoutManager({ allTopics }: { allTopics: string[] }) {
           </div>
         )}
       </CardContent>
+      {isModified && (
+        <div className="sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur border-t px-4 py-3 flex items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">পরিবর্তন সেভ করা হয়নি</span>
+          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+            Save Zone Layout
+          </Button>
+        </div>
+      )}
     </Card>
   );
 }
