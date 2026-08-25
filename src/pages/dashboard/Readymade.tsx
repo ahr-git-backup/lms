@@ -1110,7 +1110,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-              className={`rounded-xl border transition-colors duration-300 ${zone ? "border-border/40 p-3" : "border-transparent"} ${extraClass}`}
+              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? "border-border/40 p-3" : "border-transparent"} ${extraClass}`}
             >
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
@@ -1121,14 +1121,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className="flex flex-wrap items-stretch gap-2 sm:gap-4">
+              <div className="flex flex-wrap items-stretch flex-1 gap-2 sm:gap-4">
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
                     className={
-                      compactGrid
+                      (compactGrid
                         ? (zoneSubjects.length === 1 ? "w-full" : "w-[calc(50%-0.25rem)]")
-                        : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"
+                        : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
                     }
                   >
                     {renderSubjectCard(s)}
@@ -1145,9 +1145,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="flex flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
+                  <div key={`row-${ci}`} className="flex flex-row items-stretch gap-0 rounded-xl border border-border/40 overflow-hidden">
                     {c.groups.map((g, gi) => (
-                      <div key={g.zone} className="flex-1 min-w-0 relative">
+                      <div key={g.zone} className="flex-1 min-w-0 relative flex">
                         {renderZoneBox(g.zone, g.subjects, "border-none rounded-none", true)}
                         {gi > 0 && (
                           <div className="absolute left-0 top-3 bottom-3 w-px bg-border/60" />
