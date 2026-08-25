@@ -1033,7 +1033,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             return (
               <Card
                 key={subject}
-                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
                 onClick={() => setSelectedSubject(subject)}
               >
                 {!unlocked && (
@@ -1050,7 +1050,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     <Lock className="h-3 w-3" />
                   </button>
                 )}
-                <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                <CardContent className="px-3 py-3 sm:px-4 sm:py-4 flex-1 flex flex-col justify-center">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
                     {loadingMcqCounts ? (
@@ -1121,7 +1121,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className="flex flex-wrap gap-2 sm:gap-4">
+              <div className="flex flex-wrap items-stretch gap-2 sm:gap-4">
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
