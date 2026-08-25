@@ -1345,23 +1345,26 @@ const TakeExam = () => {
 
               {/* Card 2: Instructions */}
               <Card className="w-full rounded-xl shadow-sm border relative">
-                  <button
-                      type="button"
-                      role="switch"
-                      aria-checked={omrMode}
-                      onClick={() => {
-                          const next = !omrMode;
-                          setOmrMode(next);
-                          if (next) setShowOmrPopup(true);
-                      }}
-                      className={cn(
-                          "absolute top-2 right-2 h-5 w-9 rounded-full border-2 transition-colors z-10 flex items-center px-0.5",
-                          omrMode ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-muted border-border justify-start"
-                      )}
-                  >
-                      <span className="h-3.5 w-3.5 rounded-full bg-white shadow-sm" />
-                  </button>
-                  <div className="p-3 md:p-4 space-y-1.5">
+                  <div className="absolute top-2 right-2 z-10 flex items-center gap-1.5">
+                      <span className="text-[10px] font-bold text-muted-foreground">OMR এ পরীক্ষা</span>
+                      <button
+                          type="button"
+                          role="switch"
+                          aria-checked={omrMode}
+                          onClick={() => {
+                              const next = !omrMode;
+                              setOmrMode(next);
+                              if (next) setShowOmrPopup(true);
+                          }}
+                          className={cn(
+                              "h-5 w-9 rounded-full border-2 transition-colors flex items-center px-0.5",
+                              omrMode ? "bg-emerald-500 border-emerald-500 justify-end" : "bg-muted border-border justify-start"
+                          )}
+                      >
+                          <span className="h-3.5 w-3.5 rounded-full bg-white shadow-sm" />
+                      </button>
+                  </div>
+                  <div className="p-3 md:p-4 pr-28 space-y-1.5">
                       <h3 className="text-xs font-semibold flex items-center gap-1.5">
                           <AlertTriangle className="h-4 w-4 text-amber-500" />
                           Instructions
