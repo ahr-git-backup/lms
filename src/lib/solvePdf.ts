@@ -129,6 +129,13 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-qcols{column-count:3;column-gap:10px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.8pt}
 .omr-grid-qcols .question-s3{font-size:7.8pt;margin-bottom:5px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.8pt}
+.omr-cut-line{position:relative}
+.omr-cut-line::after{content:"✂";position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
+.omr-grid-imgcol.omr-cut-line{border-right:2px dashed #999}
+.omr-qpage-header{margin-bottom:2mm}
+.omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
+.omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
+.omr-qpage-type{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:9.5pt;text-align:center;border-top:1px solid #333;border-bottom:1px solid #333;padding:1mm 0;margin-bottom:2mm}
 
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:13pt;text-align:center;margin:0 0 2mm 0}
@@ -241,13 +248,19 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const half = Math.ceil(questions.length / 2);
+    const half = Math.ceil(questions.length / 2) - 8;
     const page1Qs = questions.slice(0, half);
     const page2Qs = questions.slice(half);
 
+    const headerBlock = `<div class="omr-qpage-header">
+      <div class="omr-qpage-title">প্রশ্নপত্র</div>
+      <div class="omr-qpage-meta"><span>পূর্নমান: ${questions.length}</span><span>সময়: ১ ঘন্টা</span></div>
+      <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
+    </div>`;
+
     const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner">
-      <div class="omr-grid-imgcol"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-      <div class="omr-grid-qcols">${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
+      <div class="omr-grid-imgcol omr-cut-line"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
+      <div class="omr-grid-qcols">${headerBlock}${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
     </div></div>`;
 
     const page2 = `<div class="omr-page-grid"><div class="omr-grid-inner">
