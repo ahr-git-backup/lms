@@ -124,11 +124,9 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{.omr-page-grid{width:269mm}}
 @media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
 .omr-grid-inner{display:grid;grid-template-columns:20% 1fr;gap:8px;width:100%;align-items:stretch;border-left:0;min-height:196mm}
-.omr-grid-inner-full{display:block;width:100%;min-height:196mm}
-.omr-grid-inner-full .omr-grid-qcols{column-count:4;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
 .omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:6px}
 .omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain;display:block}
-.omr-grid-qcols{column-count:4;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
+.omr-grid-qcols{column-count:3;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
 .omr-cut-line{position:relative}
@@ -271,9 +269,10 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     </div></div>`;
 
     let running = PAGE1_COUNT;
-    const laterPages = restPages
+    const page2Plus = restPages
       .map((pageQs, pIdx) => {
-        const html = `<div class="omr-page-grid"><div class="omr-grid-inner-full">
+        const html = `<div class="omr-page-grid"><div class="omr-grid-inner">
+      <div class="omr-grid-imgcol"></div>
       <div class="omr-grid-qcols">${pageQs.map((q, i) => renderQ(q, running + i + 1)).join("")}</div>
     </div></div>`;
         running += pageQs.length;
@@ -281,7 +280,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       })
       .join("");
 
-    const body = `${page1}${laterPages}`;
+    const body = `${page1}${page2Plus}`;
 
     const OMR_PAGE_CSS = `<style>@page{size:11in 8.5in;margin:6mm}@media print{@page{size:11in 8.5in;margin:6mm}body{width:269mm!important;max-width:269mm!important}}body{width:269mm!important;max-width:269mm!important}</style>`;
     return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: Letter, Landscape)</button></body></html>`;
