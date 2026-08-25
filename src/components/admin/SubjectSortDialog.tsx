@@ -216,6 +216,198 @@ function SortableSubjectItem({
 
 const ORDER_KEY = "subject_order_global";
 const HIDDEN_KEY = "subject_hidden_global";
+const ZONE_ORDER_KEY = "readymade_zone_order_global";
+const ZONE_ROWS_KEY = "readymade_zone_rows_global";
+
+// --- Zone Layout manager ---------------------------------------------------
+// Lets admin set (a) the top-to-bottom order of zones (parent topics) on the
+// Readymade subject-selection page, and (b) which zones should sit side-by-
+// side in one row together (with a vertical divider), instead of each zone
+// always taking a full-width section. Saved as two app_settings rows:
+//   ZONE_ORDER_KEY -> string[] of zone names, top to bottom
+//   ZONE_ROWS_KEY  -> string[][], each inner array = one row-group of zones
+// A zone not listed in ZONE_ROWS_KEY renders as its own full-width section.
+function SortableZoneItem({ zone, index, inRow, onMoveUp, onMoveDown, onToggleRow, isFirst, isLast }: {
+  zone: string;
+  index: number;
+  inRow: string | null; // row-group id this zone belongs to, or null
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onToggleRow: () => void;
+  isFirst: boolean;
+  isLast: boolean;
+}) {
+  return (
+    <div className={cn(
+      "flex items-center gap-2 p-2.5 bg-card border rounded-lg mb-1.5",
+      inRow ? "border-primary/40 bg-primary/5" : ""
+    )}>
+      <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+        {index + 1}
+      </span>
+      <span className="flex-1 min-w-0 text-sm font-medium truncate">{zone}</span>
+      <button
+        type="button"
+        onClick={onToggleRow}
+        className={cn(
+          "h-6 px-2 rounded text-[10px] font-semibold border flex-shrink-0",
+          inRow ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground"
+        )}
+      >
+        {inRow ? "একই সারিতে ✓" : "একই সারিতে রাখুন"}
+      </button>
+      <div className="flex flex-col gap-0.5 flex-shrink-0">
+        <button type="button" onClick={onMoveUp} disabled={isFirst} className="h-4 w-6 flex items-center justify-center rounded border bg-background disabled:opacity-30">
+          <ChevronUp className="h-3 w-3" />
+        </button>
+        <button type="button" onClick={onMoveDown} disabled={isLast} className="h-4 w-6 flex items-center justify-center rounded border bg-background disabled:opacity-30">
+          <ChevronDown className="h-3 w-3" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ZoneLayoutManager({ allTopics }: { allTopics: string[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [zoneOrder, setZoneOrder] = useState<string[]>([]);
+  // rowGroups: array of arrays of zone names. A zone's membership in a group
+  // is looked up via a helper below.
+  const [rowGroups, setRowGroups] = useState<string[][]>([]);
+  const [isModified, setIsModified] = useState(false);
+
+  const { data: savedLayout, isLoading } = useQuery({
+    queryKey: ["readymade-zone-layout"],
+    queryFn: async () => {
+      const [{ data: orderRow }, { data: rowsRow }] = await Promise.all([
+        supabase.from("app_settings").select("value").eq("key", ZONE_ORDER_KEY).maybeSingle(),
+        supabase.from("app_settings").select("value").eq("key", ZONE_ROWS_KEY).maybeSingle(),
+      ]);
+      return {
+        order: (orderRow?.value as string[]) || [],
+        rows: (rowsRow?.value as string[][]) || [],
+      };
+    },
+  });
+
+  useEffect(() => {
+    if (!savedLayout || allTopics.length === 0) return;
+    const known = new Set(allTopics);
+    // Start from saved order, append any new zones not yet positioned.
+    const ordered = savedLayout.order.filter((z) => known.has(z));
+    allTopics.forEach((z) => { if (!ordered.includes(z)) ordered.push(z); });
+    setZoneOrder(ordered);
+    setRowGroups(savedLayout.rows.map((g) => g.filter((z) => known.has(z))).filter((g) => g.length > 1));
+    setIsModified(false);
+  }, [savedLayout, allTopics.join("|")]);
+
+  const groupOf = (zone: string): string[] | null => rowGroups.find((g) => g.includes(zone)) || null;
+
+  const moveZone = (index: number, dir: -1 | 1) => {
+    setZoneOrder((prev) => {
+      const next = index + dir;
+      if (next < 0 || next >= prev.length) return prev;
+      const arr = [...prev];
+      [arr[index], arr[next]] = [arr[next], arr[index]];
+      setIsModified(true);
+      return arr;
+    });
+  };
+
+  // Toggle: if zone isn't in any group, merge it with the previous zone in
+  // display order into a new (or existing) row-group. If it's already in a
+  // group, remove it from that group (splitting the group apart).
+  const toggleRow = (zone: string) => {
+    setRowGroups((prev) => {
+      const existing = prev.find((g) => g.includes(zone));
+      if (existing) {
+        const shrunk = existing.filter((z) => z !== zone);
+        const rest = prev.filter((g) => g !== existing);
+        setIsModified(true);
+        return shrunk.length > 1 ? [...rest, shrunk] : rest;
+      }
+      const idx = zoneOrder.indexOf(zone);
+      const prevZone = idx > 0 ? zoneOrder[idx - 1] : null;
+      if (!prevZone) {
+        toast({ title: "সবার প্রথমে থাকা zone-কে আগের zone-এর সাথে সারিতে রাখা যাবে না।" });
+        return prev;
+      }
+      const prevGroup = prev.find((g) => g.includes(prevZone));
+      setIsModified(true);
+      if (prevGroup) {
+        const rest = prev.filter((g) => g !== prevGroup);
+        return [...rest, [...prevGroup, zone]];
+      }
+      return [...prev, [prevZone, zone]];
+    });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const [{ error: e1 }, { error: e2 }] = await Promise.all([
+        supabase.from("app_settings").upsert({ key: ZONE_ORDER_KEY, value: zoneOrder }, { onConflict: "key" }),
+        supabase.from("app_settings").upsert({ key: ZONE_ROWS_KEY, value: rowGroups }, { onConflict: "key" }),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+    },
+    onSuccess: () => {
+      toast({ title: "Zone layout saved!" });
+      setIsModified(false);
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-subjects"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Failed to save zone layout", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (allTopics.length < 2) return null;
+
+  return (
+    <Card className="mt-4">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">Zone Layout (Parent Topics)</CardTitle>
+            <CardDescription className="text-xs mt-1">
+              Zone-এর উপর-নিচ অর্ডার ঠিক করুন, আর কোন zone গুলো একই সারিতে (পাশাপাশি, লাইন সেপারেটর দিয়ে) থাকবে সেট করুন।
+            </CardDescription>
+          </div>
+          {isModified && (
+            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="shrink-0">
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+              Save
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center p-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : (
+          <div>
+            {zoneOrder.map((zone, index) => (
+              <SortableZoneItem
+                key={zone}
+                zone={zone}
+                index={index}
+                inRow={groupOf(zone) ? "yes" : null}
+                onMoveUp={() => moveZone(index, -1)}
+                onMoveDown={() => moveZone(index, 1)}
+                onToggleRow={() => toggleRow(zone)}
+                isFirst={index === 0}
+                isLast={index === zoneOrder.length - 1}
+              />
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 // Simple vertical reorder list — full subject names are always visible (no truncation,
 // no side-to-side empty space from a grid). Two ways to reorder, whichever feels easier:
@@ -585,6 +777,10 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
           )}
         </div>
       </CardContent>
+
+      <div className="px-2 sm:px-0">
+        <ZoneLayoutManager allTopics={allData?.allTopics || []} />
+      </div>
     </Card>
   );
 }

@@ -673,6 +673,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       const { data: hiddenData } = await supabase.from("app_settings").select("value").eq("key", "subject_hidden_global").maybeSingle();
       const hiddenList: string[] = hiddenData?.value ? (hiddenData.value as string[]) : [];
       const hiddenSet = new Set<string>(hiddenList);
+      // Admin-configured zone display order and row-clustering (which zones
+      // sit side-by-side), set via Manage Subject Position -> Zone Layout.
+      const [{ data: zoneOrderRow }, { data: zoneRowsRow }] = await Promise.all([
+        supabase.from("app_settings").select("value").eq("key", "readymade_zone_order_global").maybeSingle(),
+        supabase.from("app_settings").select("value").eq("key", "readymade_zone_rows_global").maybeSingle(),
+      ]);
+      const savedZoneOrder: string[] = zoneOrderRow?.value ? (zoneOrderRow.value as string[]) : [];
+      const savedZoneRows: string[][] = zoneRowsRow?.value ? (zoneRowsRow.value as string[][]) : [];
       // Students never see hidden subjects. Admins see everything (hidden ones
       // dimmed, with a toggle) so they can find and unhide a subject again.
       const allSubjects = Array.from(unique);
@@ -683,23 +691,28 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
-      // Group subjects by zone (parent topic), preserving the saved order
-      // within each zone; subjects with no zone fall in a trailing "" group.
+      // Group subjects by zone (parent topic). Zone display order follows the
+      // admin-saved zone order when present, falling back to first-seen order;
+      // any zone not in the saved order is appended at the end (before "").
+      const orderedZones = savedZoneOrder.length > 0
+        ? [...savedZoneOrder.filter(z => zoneOrder.includes(z)), ...zoneOrder.filter(z => !savedZoneOrder.includes(z))]
+        : zoneOrder;
       const zoneGroups: { zone: string; subjects: string[] }[] = [];
-      const zonesInUse = [...zoneOrder, ""];
+      const zonesInUse = [...orderedZones, ""];
       zonesInUse.forEach(zone => {
         const inZone = sortedSubjects.filter(s => (subjectZones[s] || "") === zone);
         if (inZone.length > 0) zoneGroups.push({ zone, subjects: inZone });
       });
       const courseIdsBySubject: Record<string, string[]> = {};
       Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
-      return { subjects: sortedSubjects, zoneGroups, courseIdsBySubject, unlockMap, hiddenSet };
+      return { subjects: sortedSubjects, zoneGroups, zoneRows: savedZoneRows, courseIdsBySubject, unlockMap, hiddenSet };
     },
     enabled: !selectedSubject && !searchQuery
   });
 
   const subjects = subjectsResult?.subjects;
   const subjectZoneGroups = subjectsResult?.zoneGroups || [];
+  const subjectZoneRows = subjectsResult?.zoneRows || [];
   const hiddenSubjects = subjectsResult?.hiddenSet || new Set<string>();
   const isSubjectUnlocked = (subject: string): boolean => {
     if (isAdmin) return true;
@@ -1061,30 +1074,30 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             );
           }
 
-          // Cluster consecutive small zones (1-2 subjects) so they sit
-          // side-by-side in one row instead of each getting a full-width
-          // lonely section.
-          type Cluster = { kind: "single-run"; groups: typeof subjectZoneGroups } | { kind: "normal"; group: typeof subjectZoneGroups[number] };
+          // Cluster zones into rows using the admin-configured row-groups
+          // (Manage Subject Position -> Zone Layout). A zone not listed in
+          // any saved row-group renders as its own full-width section.
+          type Cluster = { kind: "row"; groups: typeof subjectZoneGroups } | { kind: "normal"; group: typeof subjectZoneGroups[number] };
           const clusters: Cluster[] = [];
-          let i = 0;
-          while (i < subjectZoneGroups.length) {
-            const g = subjectZoneGroups[i];
-            if (g.zone && g.subjects.length <= 2) {
-              const run = [g];
-              let j = i + 1;
-              while (j < subjectZoneGroups.length && subjectZoneGroups[j].zone && subjectZoneGroups[j].subjects.length <= 2) {
-                run.push(subjectZoneGroups[j]);
-                j++;
-              }
-              if (run.length > 1) {
-                clusters.push({ kind: "single-run", groups: run });
-                i = j;
-                continue;
+          const consumedZones = new Set<string>();
+          subjectZoneGroups.forEach((g) => {
+            if (!g.zone || consumedZones.has(g.zone)) return;
+            const rowDef = subjectZoneRows.find((row) => row.includes(g.zone));
+            if (rowDef && rowDef.length > 1) {
+              const groupsInRow = rowDef
+                .map((z) => subjectZoneGroups.find((gg) => gg.zone === z))
+                .filter((gg): gg is typeof subjectZoneGroups[number] => !!gg);
+              if (groupsInRow.length > 1) {
+                clusters.push({ kind: "row", groups: groupsInRow });
+                groupsInRow.forEach((gg) => consumedZones.add(gg.zone));
+                return;
               }
             }
             clusters.push({ kind: "normal", group: g });
-            i++;
-          }
+            consumedZones.add(g.zone);
+          });
+          // Zones with no readymade_topic ("") always render standalone, in order.
+          subjectZoneGroups.filter((g) => !g.zone).forEach((g) => clusters.push({ kind: "normal", group: g }));
 
           const renderZoneBox = (zone: string, zoneSubjects: string[], extraClass = "") => (
             <div
@@ -1114,7 +1127,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`cluster-${ci}`} className="flex flex-col sm:flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
+                  <div key={`row-${ci}`} className="flex flex-col sm:flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
                     {c.groups.map((g, gi) => (
                       <div key={g.zone} className="flex-1 relative">
                         {renderZoneBox(g.zone, g.subjects, "border-none rounded-none")}
