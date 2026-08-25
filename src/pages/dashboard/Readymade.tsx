@@ -1396,7 +1396,7 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
     <Button
       size="sm"
       variant="ghost"
-      className="h-7 px-2.5 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-full shadow-sm relative overflow-hidden animate-pulse"
+      className="h-7 px-2.5 text-[11px] font-bold bg-red-600 hover:bg-red-700 active:bg-red-700 focus:bg-red-600 text-white hover:text-white active:text-white focus:text-white focus-visible:text-white focus-visible:ring-0 rounded-full shadow-sm relative overflow-hidden animate-pulse"
       onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
     >
       <span className="absolute inset-0 rounded-full ring-2 ring-red-400/60 animate-ping pointer-events-none" />
