@@ -223,8 +223,13 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
-.topic-box{background:#dbeafe;color:#1e3a8a;font-weight:700;font-size:10.5pt;padding:4px 10px;border-radius:5px;margin:8px 0 4px;break-after:avoid;break-inside:avoid}
-.subtopic-box{background:#fee2e2;color:#7f1d1d;font-weight:600;font-size:9.5pt;padding:3px 9px;border-radius:5px;margin:0 0 6px 12px;break-after:avoid;break-inside:avoid}
+.topic-box{background-color:#F0FDF4;border:2px solid #16a34a;color:#166534;font-weight:700;font-size:11pt;padding:6px 14px;border-radius:6px;margin:10px auto 6px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:80%}
+.subtopic-box{background-color:#FEF9C3;border:1.5px solid #ca8a04;color:#713f12;font-weight:600;font-size:9.5pt;padding:4px 12px;border-radius:6px;margin:0 auto 8px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:70%}
+@media screen{
+.a4-page{background:#fff;width:210mm;max-width:100%;box-sizing:border-box;margin:0 auto 16px;padding:10mm;box-shadow:0 1px 6px rgba(0,0,0,0.15);border:1px solid #e5e7eb;border-radius:2px}
+body{background:#e5e7eb;padding:16px 0}
+}
+@media print{.a4-page{width:auto;margin:0;padding:0;box-shadow:none;border:none}}
 </style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
@@ -232,36 +237,49 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
   if (style === "style1") {
     // Ported 1:1 from QuizBot _build_print_style1: Q + inline answer circle + explanation together.
-    let body = `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns">`;
+    // Paginated into fixed-size chunks (matching style3's proven approach) so
+    // screen preview shows distinct A4-look page cards instead of one long
+    // CSS-column-balanced scroll, and print output breaks at the same points.
+    const PER_PAGE = 20;
+    const pages: SolvePdfQuestion[][] = [];
+    for (let i = 0; i < questions.length; i += PER_PAGE) pages.push(questions.slice(i, i + PER_PAGE));
 
+    let body = "";
     let _prevTopic1 = "";
     let _prevSubtopic1 = "";
-    questions.forEach((q, idx) => {
-      const n = idx + 1;
-      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-      const isShort = checkShortOption(opts);
-      const qNum = String(n).padStart(2, "0");
-      const ai = OPTION_KEYS.indexOf(q.correct_option as any);
-      const ansCircle = `[${ai >= 0 ? OPTION_KEYS[ai] : "?"}]`;
+    pages.forEach((pageQs, pIdx) => {
+      body += `<div class="a4-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
+      if (pIdx === 0) body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div>`;
+      body += `<div class="content-columns">`;
 
-      body += renderTopicHeaderIfChanged(q, _prevTopic1, _prevSubtopic1);
-      _prevTopic1 = q.topic || "";
-      _prevSubtopic1 = q.subtopic || "";
+      pageQs.forEach((q, idx) => {
+        const n = pIdx * PER_PAGE + idx + 1;
+        const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+        const isShort = checkShortOption(opts);
+        const qNum = String(n).padStart(2, "0");
+        const ai = OPTION_KEYS.indexOf(q.correct_option as any);
+        const ansCircle = `[${ai >= 0 ? OPTION_KEYS[ai] : "?"}]`;
 
-      body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
+        body += renderTopicHeaderIfChanged(q, _prevTopic1, _prevSubtopic1);
+        _prevTopic1 = q.topic || "";
+        _prevSubtopic1 = q.subtopic || "";
 
-      if (isShort) {
-        body += `<table class="options-table-short"><tr><td class="option-col"><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td class="option-col"><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col"><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td class="option-col"><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
-      } else {
-        body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li class="option-with-answer"><span><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
-      }
-      if (q.explanation) {
-        body += `<div class="explanation"><span class="explanation-label">ব্যাখ্যা:</span> ${escapeHtml(q.explanation)}</div>`;
-      }
-      body += "</div>";
+        body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
+
+        if (isShort) {
+          body += `<table class="options-table-short"><tr><td class="option-col"><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td class="option-col"><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col"><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td class="option-col"><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
+        } else {
+          body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li class="option-with-answer"><span><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
+        }
+        if (q.explanation) {
+          body += `<div class="explanation"><span class="explanation-label">ব্যাখ্যা:</span> ${escapeHtml(q.explanation)}</div>`;
+        }
+        body += "</div>";
+      });
+
+      body += "</div></div>";
     });
 
-    body += "</div>";
     body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
     return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
   }
@@ -274,7 +292,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     for (let i = 0; i < questions.length; i += PER_PAGE) pages.push(questions.slice(i, i + PER_PAGE));
 
     pages.forEach((pageQs, pIdx) => {
-      body += `<div class="s3-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
+      body += `<div class="a4-page s3-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
       body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns-3">`;
       pageQs.forEach((q, idx) => {
         const n = pIdx * PER_PAGE + idx + 1;
@@ -402,34 +420,43 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   }
 
   // style2 (default): questions page + separate answer table.
-  let body = `<div class="exam-header"><h1>${heading} - Questions</h1></div><div class="content-columns">`;
+  const PER_PAGE_S2 = 24;
+  const pages2: SolvePdfQuestion[][] = [];
+  for (let i = 0; i < questions.length; i += PER_PAGE_S2) pages2.push(questions.slice(i, i + PER_PAGE_S2));
 
+  let body = "";
   let _prevTopic2 = "";
   let _prevSubtopic2 = "";
-  questions.forEach((q, idx) => {
-    const n = idx + 1;
-    const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-    const isShort = checkShortOption(opts);
-    const qNum = String(n).padStart(2, "0");
+  pages2.forEach((pageQs, pIdx) => {
+    body += `<div class="a4-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
+    if (pIdx === 0) body += `<div class="exam-header"><h1>${heading} - Questions</h1></div>`;
+    body += `<div class="content-columns">`;
 
-    body += renderTopicHeaderIfChanged(q, _prevTopic2, _prevSubtopic2);
-    _prevTopic2 = q.topic || "";
-    _prevSubtopic2 = q.subtopic || "";
+    pageQs.forEach((q, idx) => {
+      const n = pIdx * PER_PAGE_S2 + idx + 1;
+      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const isShort = checkShortOption(opts);
+      const qNum = String(n).padStart(2, "0");
 
-    body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
+      body += renderTopicHeaderIfChanged(q, _prevTopic2, _prevSubtopic2);
+      _prevTopic2 = q.topic || "";
+      _prevSubtopic2 = q.subtopic || "";
 
-    if (isShort) {
-      body += `<table class="options-table-short"><tr><td><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
-    } else {
-      body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
-    }
-    body += "</div>";
+      body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
+
+      if (isShort) {
+        body += `<table class="options-table-short"><tr><td><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
+      } else {
+        body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
+      }
+      body += "</div>";
+    });
+
+    body += `</div></div>`;
   });
 
-  body += `</div>`;
-
   if (!hideAnswers) {
-    body += `<div class="page-break"></div><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
+    body += `<div class="a4-page" style="page-break-before:always"><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
 
     questions.forEach((q, idx) => {
       const n = idx + 1;
@@ -437,7 +464,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       body += `<tr><td class="qno-col">${n}</td><td class="ans-col">${escapeHtml(al)}</td><td class="exp-col">${q.explanation ? escapeHtml(q.explanation) : "-"}</td></tr>`;
     });
 
-    body += "</tbody></table></div>";
+    body += "</tbody></table></div></div>";
   }
   body += `<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন</button><button class="fab-download" onclick="window.print()" aria-label="Download PDF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>`;
 
