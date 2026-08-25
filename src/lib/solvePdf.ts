@@ -123,16 +123,15 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-page-grid:last-child{page-break-after:auto}
 @media print{.omr-page-grid{width:269mm}}
 @media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
-.omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm}
-.omr-grid-imgcol{display:flex;align-items:flex-start;border-right:2px solid #999;padding-right:6px}
+.omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm;position:relative}
+.omr-grid-inner.omr-cut-line-wrap::after{content:"";position:absolute;left:calc(24% + 4px);top:0;bottom:0;width:0;border-right:2px dashed #999}
+.omr-grid-inner.omr-cut-line-wrap::before{content:"✂";position:absolute;left:calc(24% + 4px);top:50%;transform:translate(-50%,-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
+.omr-grid-imgcol{display:flex;align-items:flex-start}
 .omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols-wrap{display:flex;flex-direction:column}
 .omr-grid-qcols{column-count:3!important;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;max-height:194mm}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
-.omr-cut-line{position:relative}
-.omr-cut-line::after{content:"✂";position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
-.omr-grid-imgcol.omr-cut-line{border-right:2px dashed #999}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
@@ -264,15 +263,15 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
     </div>`;
 
-    const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner">
-      <div class="omr-grid-imgcol omr-cut-line"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
+    const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
+      <div class="omr-grid-imgcol"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
       <div class="omr-grid-qcols-wrap">${headerBlock}<div class="omr-grid-qcols">${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div></div>
     </div></div>`;
 
     let running = PAGE1_COUNT;
     const page2Plus = restPages
       .map((pageQs) => {
-        const html = `<div class="omr-page-grid"><div class="omr-grid-inner">
+        const html = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
       <div class="omr-grid-imgcol"></div>
       <div class="omr-grid-qcols">${pageQs.map((q, i) => renderQ(q, running + i + 1)).join("")}</div>
     </div></div>`;
