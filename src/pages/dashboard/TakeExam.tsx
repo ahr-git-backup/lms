@@ -205,6 +205,7 @@ const TakeExam = () => {
   const [selectedQuestionCount, setSelectedQuestionCount] = useState<number | null>(null);
   const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
   const [omrMode, setOmrMode] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showOmrPopup, setShowOmrPopup] = useState(false);
   const [omrUploadFile, setOmrUploadFile] = useState<File | null>(null);
   const [omrSubmitting, setOmrSubmitting] = useState(false);
@@ -839,6 +840,32 @@ const TakeExam = () => {
       });
     },
   });
+
+  // Intercept browser/mobile back navigation during an active (in-progress)
+  // exam and show our own confirmation popup instead of silently leaving —
+  // avoids losing an unsaved attempt. Not shown once the exam is finished
+  // (result screens use normal back navigation) or before the exam has
+  // actually started.
+  useEffect(() => {
+    const examIsActive = hasStarted && !isQuickPracticeMode ? !submitExamMutation.isSuccess : false;
+    const qpIsActive = hasStarted && isQuickPracticeMode ? !qpFinished : false;
+    if (!examIsActive && !qpIsActive) return;
+
+    // Push one extra history entry so the first back-press is intercepted
+    // (it consumes our pushed entry) instead of immediately leaving the page.
+    window.history.pushState(null, "", window.location.href);
+
+    const handlePopState = () => {
+      // Re-push immediately so the URL doesn't actually change while the
+      // confirmation is pending — the popup's own buttons drive navigation.
+      window.history.pushState(null, "", window.location.href);
+      setShowExitConfirm(true);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasStarted, isQuickPracticeMode, submitExamMutation.isSuccess, qpFinished]);
 
   useEffect(() => {
       if (timeLeft === 0 && !autoSubmitTriggered.current && !submitExamMutation.isPending) {
@@ -1737,6 +1764,34 @@ const TakeExam = () => {
 
     return (
       <div className="fixed inset-0 z-40 bg-background flex flex-col overflow-hidden">
+        <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+            <DialogContent className="max-w-sm">
+                <DialogHeader>
+                    <DialogTitle>Practice ছেড়ে যেতে চান?</DialogTitle>
+                    <DialogDescription>
+                        এখনো Quick Practice শেষ হয়নি। এই মুহূর্তে বের হয়ে গেলে আপনার অগ্রগতি হারিয়ে যেতে পারে।
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="flex gap-2 justify-end pt-2">
+                    <Button
+                        variant="outline"
+                        onClick={() => setShowExitConfirm(false)}
+                    >
+                        না, চালিয়ে যাই
+                    </Button>
+                    <Button
+                        variant="destructive"
+                        onClick={() => {
+                            setShowExitConfirm(false);
+                            qpCleanupStorage();
+                            navigate(-1);
+                        }}
+                    >
+                        হ্যাঁ, বের হবো
+                    </Button>
+                </div>
+            </DialogContent>
+        </Dialog>
         <div className="flex items-center gap-3 px-4 py-3 bg-card border-b shrink-0">
           <div className="flex-1">
             <div className="text-[11px] text-muted-foreground mb-1">প্রশ্ন {qpCurrent + 1}/{qpQuestions.length}</div>
@@ -1905,6 +1960,34 @@ const TakeExam = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
+
+      <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+          <DialogContent className="max-w-sm">
+              <DialogHeader>
+                  <DialogTitle>পরীক্ষা ছেড়ে যেতে চান?</DialogTitle>
+                  <DialogDescription>
+                      এখনো পরীক্ষা শেষ হয়নি। এই মুহূর্তে বের হয়ে গেলে আপনার অগ্রগতি হারিয়ে যেতে পারে।
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-2 justify-end pt-2">
+                  <Button
+                      variant="outline"
+                      onClick={() => setShowExitConfirm(false)}
+                  >
+                      না, পরীক্ষা চালিয়ে যাই
+                  </Button>
+                  <Button
+                      variant="destructive"
+                      onClick={() => {
+                          setShowExitConfirm(false);
+                          navigate(-1);
+                      }}
+                  >
+                      হ্যাঁ, বের হবো
+                  </Button>
+              </div>
+          </DialogContent>
+      </Dialog>
 
       <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0.5 py-4 md:px-3 md:py-8 space-y-3 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
