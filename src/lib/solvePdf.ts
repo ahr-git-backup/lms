@@ -134,12 +134,12 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@page omrLandscape{size:11in 8.5in;margin:3mm 4mm}
+@page omrLandscape{size:297mm 210mm;margin:3mm 4mm}
 .omr-page-grid{page:omrLandscape;width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
 .omr-page-grid:last-child{page-break-after:auto}
-@media print{.omr-page-grid{width:271mm}}
-@media screen{.omr-page-grid{width:271mm;margin:0 auto 20px auto;border:1px solid #eee;padding:3mm 4mm;box-sizing:border-box}}
-.omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm;position:relative}
+@media print{.omr-page-grid{width:289mm}}
+@media screen{.omr-page-grid{width:289mm;margin:0 auto 20px auto;border:1px solid #eee;padding:3mm 4mm;box-sizing:border-box}}
+.omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:190mm;position:relative}
 .omr-grid-inner.omr-cut-line-wrap::after{content:"";position:absolute;left:calc(24% + 4px);top:0;bottom:0;width:0;border-right:2px dashed #999}
 .omr-grid-inner.omr-cut-line-wrap::before{content:"✂";position:absolute;left:calc(24% + 4px);top:50%;transform:translate(-50%,-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
 .omr-grid-imgcol{display:flex;align-items:flex-start}
@@ -152,6 +152,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7.8pt}
 .omr-qcol .options-list-s3,.omr-qcol .options-table-s3,.omr-qcol .options-inline-s3{margin:0 0 1px 8px}
 .omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td,.omr-qcol .options-inline-s3 .opt-item-s3{font-size:7.8pt}
+.omr-page2-full{width:100%;min-height:190mm}
+.omr-page2-cols{display:flex;gap:8px;width:100%;align-items:flex-start}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
@@ -274,19 +276,28 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const PAGE1_COUNT = 49;
+    const PAGE1_COUNT = 45;
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
     // Force everything after page1 onto a single page2 (user requires exactly
     // 2 pages total) rather than splitting into a 3rd page.
     const restPages: SolvePdfQuestion[][] = restQs.length > 0 ? [restQs] : [];
 
-    // Split a page's questions into exactly 3 fixed columns (deterministic —
+    // Split a page's questions into exactly N fixed columns (deterministic —
     // no CSS column-balancing, so it can never overflow to an extra page).
-    // If withHeader is true, column-1 gets a smaller share (since the header
-    // block eats some of its vertical room) while columns 2/3 take more,
-    // keeping all three columns visually bottom-aligned instead of column-1
-    // running short and leaving columns 2/3 with unused space at the top.
+    const splitIntoN = (qs: SolvePdfQuestion[], startNum: number, n: number) => {
+      const per = Math.ceil(qs.length / n);
+      const cols: SolvePdfQuestion[][] = [];
+      for (let i = 0; i < n; i++) cols.push(qs.slice(i * per, (i + 1) * per));
+      let num = startNum;
+      return cols.map((col) => col.map((q) => renderQ(q, num++)).join(""));
+    };
+
+    // Split a page's questions into exactly 3 fixed columns. If withHeader is
+    // true, column-1 gets a smaller share (since the header block eats some
+    // of its vertical room) while columns 2/3 take more, keeping all three
+    // columns visually bottom-aligned instead of column-1 running short and
+    // leaving columns 2/3 with unused space at the top.
     const splitInto3 = (qs: SolvePdfQuestion[], startNum: number, withHeader = false) => {
       const total = qs.length;
       let c1: number, c2: number, c3: number;
@@ -325,10 +336,9 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     let running = PAGE1_COUNT;
     const page2Plus = restPages
       .map((pageQs) => {
-        const cols = splitInto3(pageQs, running + 1);
-        const html = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
-      <div class="omr-grid-imgcol"></div>
-      <div class="omr-grid-qcols-fixed">${cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div>
+        const cols = splitIntoN(pageQs, running + 1, 4);
+        const html = `<div class="omr-page-grid"><div class="omr-page2-full">
+      <div class="omr-page2-cols">${cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div>
     </div></div>`;
         running += pageQs.length;
         return html;
@@ -337,8 +347,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
     const body = `${page1}${page2Plus}`;
 
-    const OMR_PAGE_CSS = `<style>@page{size:11in 8.5in;margin:6mm}@media print{@page{size:11in 8.5in;margin:6mm}body{width:269mm!important;max-width:269mm!important}}body{width:269mm!important;max-width:269mm!important}</style>`;
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: Letter, Landscape)</button></body></html>`;
+    const OMR_PAGE_CSS = `<style>@page{size:297mm 210mm;margin:4mm}@media print{@page{size:297mm 210mm;margin:4mm}body{width:289mm!important;max-width:289mm!important}}body{width:289mm!important;max-width:289mm!important}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
