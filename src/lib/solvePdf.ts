@@ -254,12 +254,41 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const PAGE1_COUNT = 42;
-    const REST_PER_PAGE = 58;
+    const PAGE1_COUNT = 49;
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
-    const restPages: SolvePdfQuestion[][] = [];
-    for (let i = 0; i < restQs.length; i += REST_PER_PAGE) restPages.push(restQs.slice(i, i + REST_PER_PAGE));
+    // Force everything after page1 onto a single page2 (user requires exactly
+    // 2 pages total) rather than splitting into a 3rd page.
+    const restPages: SolvePdfQuestion[][] = restQs.length > 0 ? [restQs] : [];
+
+    // Split a page's questions into exactly 3 fixed columns (deterministic —
+    // no CSS column-balancing, so it can never overflow to an extra page).
+    // If withHeader is true, column-1 gets a smaller share (since the header
+    // block eats some of its vertical room) while columns 2/3 take more,
+    // keeping all three columns visually bottom-aligned instead of column-1
+    // running short and leaving columns 2/3 with unused space at the top.
+    const splitInto3 = (qs: SolvePdfQuestion[], startNum: number, withHeader = false) => {
+      const total = qs.length;
+      let c1: number, c2: number, c3: number;
+      if (withHeader && total > 6) {
+        // Header ~= 4 questions' worth of vertical space at this font/margin.
+        const headerCostQs = 4;
+        const remaining = total - Math.max(0, Math.ceil(total / 3) - headerCostQs);
+        c1 = Math.max(1, Math.ceil(total / 3) - headerCostQs);
+        c2 = Math.ceil((total - c1) / 2);
+        c3 = total - c1 - c2;
+      } else {
+        c1 = Math.ceil(total / 3);
+        c2 = Math.ceil(total / 3);
+        c3 = total - c1 - c2;
+      }
+      const cols = [qs.slice(0, c1), qs.slice(c1, c1 + c2), qs.slice(c1 + c2)];
+      let n = startNum;
+      return cols.map((col, ci) => {
+        const html = col.map((q) => renderQ(q, n++)).join("");
+        return ci === 0 && withHeader ? headerBlock + html : html;
+      });
+    };
 
     const headerBlock = `<div class="omr-qpage-header">
       <div class="omr-qpage-title">প্রশ্নপত্র</div>
@@ -267,22 +296,10 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
     </div>`;
 
-    // Split a page's questions into exactly 3 fixed columns (deterministic —
-    // no CSS column-balancing, so it can never overflow to an extra page).
-    const splitInto3 = (qs: SolvePdfQuestion[], startNum: number) => {
-      const per = Math.ceil(qs.length / 3);
-      const cols = [qs.slice(0, per), qs.slice(per, per * 2), qs.slice(per * 2)];
-      let n = startNum;
-      return cols.map((col) => {
-        const html = col.map((q) => renderQ(q, n++)).join("");
-        return html;
-      });
-    };
-
-    const page1Cols = splitInto3(page1Qs, 1);
+    const page1Cols = splitInto3(page1Qs, 1, true);
     const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
       <div class="omr-grid-imgcol"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-      <div class="omr-grid-qcols-wrap">${headerBlock}<div class="omr-grid-qcols-fixed">${page1Cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div></div>
+      <div class="omr-grid-qcols-fixed">${page1Cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div>
     </div></div>`;
 
     let running = PAGE1_COUNT;
