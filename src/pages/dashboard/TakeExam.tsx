@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, ArrowLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -520,14 +520,21 @@ const TakeExam = () => {
   useEffect(() => {
     if (!isQuickPracticeMode || !hasStarted || !practiceQuestions || practiceQuestions.length === 0) return;
     if (qpQuestions.length > 0) return;
-    const shuffled = [...practiceQuestions].sort(() => Math.random() - 0.5);
+    let pool = practiceQuestions;
+    if (selectedTopic) {
+        pool = pool.filter((q: any) => q.topic === selectedTopic);
+    }
+    if (selectedSubtopic) {
+        pool = pool.filter((q: any) => q.subtopic === selectedSubtopic);
+    }
+    const shuffled = [...pool].sort(() => Math.random() - 0.5);
     const finalSet = selectedQuestionCount && selectedQuestionCount < shuffled.length
       ? shuffled.slice(0, selectedQuestionCount)
       : shuffled;
     setQpQuestions(finalSet);
     setQpTimeLeft(30);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isQuickPracticeMode, hasStarted, practiceQuestions]);
+  }, [isQuickPracticeMode, hasStarted, practiceQuestions, selectedTopic, selectedSubtopic]);
 
   // Quick Practice: per-question 30s countdown. If time runs out without an answer,
   // reveal the correct answer and mark the question as skipped (doesn't count as wrong).
