@@ -402,12 +402,13 @@ mjx-container[display="true"] {
 }
 
 /* Subtle highlight flash for a Readymade Exam zone section when the user
-   taps its Parent Topic pill and gets smooth-scrolled to it. */
+   taps its Parent Topic pill and gets smooth-scrolled to it. The zone's
+   own boundary (border) lights up briefly, along with a faint fill. */
 @keyframes zoneFlash {
-  0% { background-color: hsl(var(--primary) / 0.08); }
-  100% { background-color: transparent; }
+  0% { background-color: hsl(var(--primary) / 0.06); border-color: hsl(var(--primary) / 0.5); }
+  100% { background-color: transparent; border-color: hsl(var(--border) / 0.4); }
 }
 .zone-flash {
-  animation: zoneFlash 1.2s ease-out;
+  animation: zoneFlash 1.4s ease-out;
   border-radius: 0.75rem;
 }

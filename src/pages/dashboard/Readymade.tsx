@@ -1067,7 +1067,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                 <div
                   key={zone || "__none__"}
                   id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-                  className={gi > 0 ? "pt-4 border-t border-border/50" : ""}
+                  className={`rounded-xl border transition-colors duration-300 ${zone ? "border-border/40 p-3" : "border-transparent"}`}
                 >
                   {zone && (
                     <div className="flex items-center gap-3 mb-3">
