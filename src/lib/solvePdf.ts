@@ -124,8 +124,11 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{.omr-page-grid{width:269mm}}
 @media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
 .omr-grid-inner{display:grid;grid-template-columns:20% 1fr;gap:8px;width:100%;align-items:stretch;border-left:0;min-height:196mm}
-.omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:6px}
-.omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain;display:block}
+.omr-grid-imgcol{display:flex;flex-direction:column;border-right:2px solid #999;padding-right:6px}
+.omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block;flex-shrink:0}
+.omr-grid-imgcol-fill{column-count:1;font-size:7.4pt;margin-top:4px;flex:1;overflow:hidden}
+.omr-grid-imgcol-fill .question-s3{font-size:7.4pt;margin-bottom:3px}
+.omr-grid-imgcol-fill .question-s3 .question-num,.omr-grid-imgcol-fill .question-s3 .question-text{font-size:7.4pt}
 .omr-grid-qcols{column-count:3;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
@@ -252,6 +255,11 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
     const PAGE1_COUNT = 50;
     const REST_PER_PAGE = 50;
+    // Reserve a small slice of each page's questions to fill the space below
+    // the OMR image / blank mirror column (image doesn't stretch full height,
+    // so pack a few Qs underneath instead of leaving it empty).
+    const IMGCOL_FILL_P1 = 6;
+    const IMGCOL_FILL_P2 = 8;
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
     const restPages: SolvePdfQuestion[][] = [];
@@ -263,17 +271,25 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
     </div>`;
 
+    const p1FillQs = page1Qs.slice(0, IMGCOL_FILL_P1);
+    const p1MainQs = page1Qs.slice(IMGCOL_FILL_P1);
     const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner">
-      <div class="omr-grid-imgcol omr-cut-line"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-      <div class="omr-grid-qcols">${headerBlock}${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
+      <div class="omr-grid-imgcol omr-cut-line"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /><div class="omr-grid-imgcol-fill">${p1FillQs.map((q, i) => renderQ(q, i + 1)).join("")}</div></div>
+      <div class="omr-grid-qcols">${headerBlock}${p1MainQs.map((q, i) => renderQ(q, IMGCOL_FILL_P1 + i + 1)).join("")}</div>
     </div></div>`;
 
     let running = PAGE1_COUNT;
     const page2Plus = restPages
       .map((pageQs, pIdx) => {
+        const isFirstRest = pIdx === 0;
+        const fillCount = isFirstRest ? IMGCOL_FILL_P2 : 0;
+        const fillQs = pageQs.slice(0, fillCount);
+        const mainQs = pageQs.slice(fillCount);
+        const fillHtml = fillQs.map((q, i) => renderQ(q, running + i + 1)).join("");
+        const mainHtml = mainQs.map((q, i) => renderQ(q, running + fillCount + i + 1)).join("");
         const html = `<div class="omr-page-grid"><div class="omr-grid-inner">
-      <div class="omr-grid-imgcol"></div>
-      <div class="omr-grid-qcols">${pageQs.map((q, i) => renderQ(q, running + i + 1)).join("")}</div>
+      <div class="omr-grid-imgcol">${isFirstRest ? `<div class="omr-grid-imgcol-fill" style="margin-top:0">${fillHtml}</div>` : ""}</div>
+      <div class="omr-grid-qcols">${mainHtml}</div>
     </div></div>`;
         running += pageQs.length;
         return html;
