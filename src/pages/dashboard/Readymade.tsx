@@ -448,7 +448,7 @@ const Readymade = () => {
                 // Scroll smoothly to this zone's section instead of hard-filtering.
                 const el = document.getElementById(`zone-${encodeURIComponent(topic.value)}`);
                 if (el) {
-                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  el.scrollIntoView({ behavior: "smooth", block: "center" });
                   el.classList.add("zone-flash");
                   setTimeout(() => el.classList.remove("zone-flash"), 1200);
                 }
@@ -1061,28 +1061,71 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             );
           }
 
+          // Cluster consecutive small zones (1-2 subjects) so they sit
+          // side-by-side in one row instead of each getting a full-width
+          // lonely section.
+          type Cluster = { kind: "single-run"; groups: typeof subjectZoneGroups } | { kind: "normal"; group: typeof subjectZoneGroups[number] };
+          const clusters: Cluster[] = [];
+          let i = 0;
+          while (i < subjectZoneGroups.length) {
+            const g = subjectZoneGroups[i];
+            if (g.zone && g.subjects.length <= 2) {
+              const run = [g];
+              let j = i + 1;
+              while (j < subjectZoneGroups.length && subjectZoneGroups[j].zone && subjectZoneGroups[j].subjects.length <= 2) {
+                run.push(subjectZoneGroups[j]);
+                j++;
+              }
+              if (run.length > 1) {
+                clusters.push({ kind: "single-run", groups: run });
+                i = j;
+                continue;
+              }
+            }
+            clusters.push({ kind: "normal", group: g });
+            i++;
+          }
+
+          const renderZoneBox = (zone: string, zoneSubjects: string[], extraClass = "") => (
+            <div
+              key={zone || "__none__"}
+              id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
+              className={`rounded-xl border transition-colors duration-300 ${zone ? "border-border/40 p-3" : "border-transparent"} ${extraClass}`}
+            >
+              {zone && (
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-px flex-1 bg-border/60" />
+                  <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 whitespace-nowrap">
+                    {zone}
+                  </span>
+                  <div className="h-px flex-1 bg-border/60" />
+                </div>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                {zoneSubjects.map(renderSubjectCard)}
+              </div>
+            </div>
+          );
+
           return (
             <div className="space-y-5">
-              {subjectZoneGroups.map(({ zone, subjects: zoneSubjects }, gi) => (
-                <div
-                  key={zone || "__none__"}
-                  id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-                  className={`rounded-xl border transition-colors duration-300 ${zone ? "border-border/40 p-3" : "border-transparent"}`}
-                >
-                  {zone && (
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="h-px flex-1 bg-border/60" />
-                      <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 whitespace-nowrap">
-                        {zone}
-                      </span>
-                      <div className="h-px flex-1 bg-border/60" />
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-                    {zoneSubjects.map(renderSubjectCard)}
+              {clusters.map((c, ci) => {
+                if (c.kind === "normal") {
+                  return renderZoneBox(c.group.zone, c.group.subjects);
+                }
+                return (
+                  <div key={`cluster-${ci}`} className="flex flex-col sm:flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
+                    {c.groups.map((g, gi) => (
+                      <div key={g.zone} className="flex-1 relative">
+                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none")}
+                        {gi > 0 && (
+                          <div className="hidden sm:block absolute left-0 top-3 bottom-3 w-px bg-border/60" />
+                        )}
+                      </div>
+                    ))}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           );
         })()}
