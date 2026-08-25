@@ -14,6 +14,8 @@ interface SolvePdfQuestion {
   correct_option: string; // 'A' | 'B' | 'C' | 'D' | 'E'
   user_answer: string | null;
   explanation?: string;
+  topic?: string | null;
+  subtopic?: string | null;
 }
 
 interface SolvePdfParams {
@@ -29,6 +31,23 @@ interface SolvePdfParams {
 }
 
 const OPTION_KEYS = ["A", "B", "C", "D"] as const;
+
+// Renders a topic/subtopic segment header when the topic or subtopic changes
+// from the previous question (blank string means "no topic set"). Topic gets
+// a bluish background box, subtopic (if present) a reddish one right below it.
+function renderTopicHeaderIfChanged(q: SolvePdfQuestion, prevTopic: string, prevSubtopic: string): string {
+  const topic = q.topic || "";
+  const subtopic = q.subtopic || "";
+  if (topic === prevTopic && subtopic === prevSubtopic) return "";
+  let html = "";
+  if (topic) {
+    html += `<div class="topic-box">${escapeHtml(topic)}</div>`;
+  }
+  if (subtopic) {
+    html += `<div class="subtopic-box">${escapeHtml(subtopic)}</div>`;
+  }
+  return html;
+}
 
 // NOTE: question_text/options/explanation contain trusted HTML (e.g. <img> tags
 // for question images) coming from our own DB, same as on the Result page where
@@ -204,6 +223,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
+.topic-box{background:#dbeafe;color:#1e3a8a;font-weight:700;font-size:10.5pt;padding:4px 10px;border-radius:5px;margin:8px 0 4px;break-after:avoid;break-inside:avoid}
+.subtopic-box{background:#fee2e2;color:#7f1d1d;font-weight:600;font-size:9.5pt;padding:3px 9px;border-radius:5px;margin:0 0 6px 12px;break-after:avoid;break-inside:avoid}
 </style>`;
 
 export function generateSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
@@ -213,6 +234,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // Ported 1:1 from QuizBot _build_print_style1: Q + inline answer circle + explanation together.
     let body = `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns">`;
 
+    let _prevTopic1 = "";
+    let _prevSubtopic1 = "";
     questions.forEach((q, idx) => {
       const n = idx + 1;
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
@@ -220,6 +243,10 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       const qNum = String(n).padStart(2, "0");
       const ai = OPTION_KEYS.indexOf(q.correct_option as any);
       const ansCircle = `[${ai >= 0 ? OPTION_KEYS[ai] : "?"}]`;
+
+      body += renderTopicHeaderIfChanged(q, _prevTopic1, _prevSubtopic1);
+      _prevTopic1 = q.topic || "";
+      _prevSubtopic1 = q.subtopic || "";
 
       body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
 
@@ -377,11 +404,17 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   // style2 (default): questions page + separate answer table.
   let body = `<div class="exam-header"><h1>${heading} - Questions</h1></div><div class="content-columns">`;
 
+  let _prevTopic2 = "";
+  let _prevSubtopic2 = "";
   questions.forEach((q, idx) => {
     const n = idx + 1;
     const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
     const isShort = checkShortOption(opts);
     const qNum = String(n).padStart(2, "0");
+
+    body += renderTopicHeaderIfChanged(q, _prevTopic2, _prevSubtopic2);
+    _prevTopic2 = q.topic || "";
+    _prevSubtopic2 = q.subtopic || "";
 
     body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
 

@@ -2057,6 +2057,8 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           correct_option: q.correct_option,
           user_answer: null,
           explanation: q.explanation,
+          topic: q.topic || null,
+          subtopic: q.subtopic || null,
         })),
         totalMarks: filtered.length,
       });
