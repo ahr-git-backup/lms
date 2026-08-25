@@ -123,9 +123,9 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-page-grid:last-child{page-break-after:auto}
 @media print{.omr-page-grid{width:269mm}}
 @media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
-.omr-grid-inner{display:grid;grid-template-columns:20% 1fr;gap:8px;width:100%;align-items:stretch;border-left:0;min-height:196mm}
-.omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:6px}
-.omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:cover;display:block}
+.omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm}
+.omr-grid-imgcol{display:flex;align-items:flex-start;border-right:2px solid #999;padding-right:6px}
+.omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols-wrap{display:flex;flex-direction:column}
 .omr-grid-qcols{column-count:3!important;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:188mm;max-height:188mm;overflow:hidden}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
