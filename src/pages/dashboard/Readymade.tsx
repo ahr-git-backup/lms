@@ -1396,11 +1396,12 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
     <Button
       size="sm"
       variant="ghost"
-      className="h-6 px-2 text-[11px] text-muted-foreground hover:text-primary"
+      className="h-7 px-2.5 text-[11px] font-bold bg-red-600 hover:bg-red-700 text-white rounded-full shadow-sm relative overflow-hidden animate-pulse"
       onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
     >
-      {open ? <ChevronLeft className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-      <span className="ml-1">টপিক ভিত্তিক পরীক্ষা</span>
+      <span className="absolute inset-0 rounded-full ring-2 ring-red-400/60 animate-ping pointer-events-none" />
+      {open ? <ChevronLeft className="h-3.5 w-3.5 relative z-10" /> : <ChevronRight className="h-3.5 w-3.5 relative z-10" />}
+      <span className="ml-1 relative z-10">টপিক ভিত্তিক পরীক্ষা</span>
     </Button>
   );
 };
