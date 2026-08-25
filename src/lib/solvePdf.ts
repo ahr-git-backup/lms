@@ -118,8 +118,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@page omrPortrait{size:A4 landscape;margin:8mm 8mm}
-.omr-page-grid{width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
+@page omrLandscape{size:A4 landscape;margin:8mm 8mm}
+.omr-page-grid{page:omrLandscape;width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
 .omr-page-grid:last-child{page-break-after:auto}
 @media print{.omr-page-grid{width:277mm}}
 @media screen{.omr-page-grid{width:277mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
@@ -257,7 +257,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
     const body = `${page1}${page2}`;
 
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
+    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}@media print{@page{size:A4 landscape;margin:8mm}body{width:277mm!important;max-width:277mm!important}}body{width:277mm!important;max-width:277mm!important}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
