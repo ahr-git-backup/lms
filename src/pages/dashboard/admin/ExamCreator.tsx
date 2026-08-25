@@ -606,7 +606,32 @@ const ExamCreator = () => {
             // _build_topicwise_csv_rows on the bot side wrote them.
             let _lastTopic = "";
             let _lastSubtopic = "";
-            const normalized = data.map((q: any) => {
+            // Blank-row topic marker (2nd alternative, CSV only): a row whose
+            // `questions` cell has text but every option cell is empty isn't
+            // an MCQ -- it's a topic-name marker for the segment that follows.
+            // The explicit `topic` column (forward-fill above) still wins
+            // when present; this is a fallback for sheets that skip it.
+            let _markerTopic = "";
+            const isBlankRowMarker = (q: any): boolean => {
+                if (type !== 'csv') return false;
+                const qText = String(q.question || q.question_text || q.questions || "").trim();
+                if (!qText) return false;
+                const opts = [
+                    q.option1, q.option_a, q.A, q["Option A"],
+                    q.option2, q.option_b, q.B, q["Option B"],
+                    q.option3, q.option_c, q.C, q["Option C"],
+                    q.option4, q.option_d, q.D, q["Option D"],
+                ];
+                const anyOptionFilled = opts.some(v => String(v || "").trim() !== "");
+                return !anyOptionFilled;
+            };
+            const normalized = data.filter((q: any) => {
+                if (isBlankRowMarker(q)) {
+                    _markerTopic = String(q.question || q.question_text || q.questions || "").trim();
+                    return false; // don't save this row as a question
+                }
+                return true;
+            }).map((q: any) => {
                 let options = q.options || { A: "", B: "", C: "", D: "" };
                 let correct_answer = String(q.correct_answer || q.correct_option || q.answer || "").toUpperCase();
                 const question_text = String(q.question || q.question_text || q.questions || "");
@@ -664,6 +689,7 @@ const ExamCreator = () => {
                 let rowSubtopic = q.subtopic || "";
                 if (type === 'csv') {
                     if (rowTopic) { _lastTopic = rowTopic; _lastSubtopic = ""; }
+                    else if (_markerTopic) { rowTopic = _markerTopic; _lastTopic = _markerTopic; _lastSubtopic = ""; }
                     else { rowTopic = _lastTopic; }
                     if (rowSubtopic) { _lastSubtopic = rowSubtopic; }
                     else if (!q.topic) { rowSubtopic = _lastSubtopic; }
