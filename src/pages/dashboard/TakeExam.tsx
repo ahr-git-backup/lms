@@ -581,6 +581,20 @@ const TakeExam = () => {
       } catch { /* ignore */ }
   };
 
+  // Full cleanup for the timed-exam (non-Quick-Practice) session — same keys
+  // cleared on successful submit. Used when the student explicitly confirms
+  // "yes, exit" from the back-navigation dialog, so a later "Start Exam"
+  // begins fresh instead of silently resuming the abandoned attempt.
+  const cleanupExamStorage = () => {
+      try {
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
+          localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`);
+          localStorage.removeItem(QUESTIONS_STORAGE_KEY);
+      } catch { /* ignore */ }
+  };
+
   const qpGoNext = () => {
     if (qpCurrent >= qpQuestions.length - 1) {
       setQpFinished(true);
@@ -1980,6 +1994,7 @@ const TakeExam = () => {
                       variant="destructive"
                       onClick={() => {
                           setShowExitConfirm(false);
+                          cleanupExamStorage();
                           navigate(-1);
                       }}
                   >
