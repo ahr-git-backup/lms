@@ -1106,7 +1106,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           // Zones with no readymade_topic ("") always render standalone, in order.
           subjectZoneGroups.filter((g) => !g.zone).forEach((g) => clusters.push({ kind: "normal", group: g }));
 
-          const renderZoneBox = (zone: string, zoneSubjects: string[], extraClass = "") => (
+          const renderZoneBox = (zone: string, zoneSubjects: string[], extraClass = "", compactGrid = false) => (
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
@@ -1121,7 +1121,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+              <div className={compactGrid ? "grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4" : "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4"}>
                 {zoneSubjects.map(renderSubjectCard)}
               </div>
             </div>
@@ -1134,12 +1134,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="flex flex-col sm:flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
+                  <div key={`row-${ci}`} className="flex flex-row gap-0 rounded-xl border border-border/40 overflow-hidden">
                     {c.groups.map((g, gi) => (
-                      <div key={g.zone} className="flex-1 relative">
-                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none")}
+                      <div key={g.zone} className="flex-1 min-w-0 relative">
+                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none", true)}
                         {gi > 0 && (
-                          <div className="hidden sm:block absolute left-0 top-3 bottom-3 w-px bg-border/60" />
+                          <div className="absolute left-0 top-3 bottom-3 w-px bg-border/60" />
                         )}
                       </div>
                     ))}
