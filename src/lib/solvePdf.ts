@@ -118,12 +118,14 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@page omrLandscape{size:A4 landscape;margin:8mm 8mm}
+@page omrLandscape{size:11in 8.5in;margin:6mm 6mm}
 .omr-page-grid{page:omrLandscape;width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
 .omr-page-grid:last-child{page-break-after:auto}
-@media print{.omr-page-grid{width:277mm}}
-@media screen{.omr-page-grid{width:277mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
+@media print{.omr-page-grid{width:269mm}}
+@media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
 .omr-grid-inner{display:grid;grid-template-columns:26% 1fr;gap:10px;width:100%;align-items:stretch;border-left:0}
+.omr-grid-inner-full{display:block;width:100%}
+.omr-grid-inner-full .omr-grid-qcols{column-count:4;column-gap:10px;column-fill:balance;column-rule:2px solid #999;font-size:7.8pt}
 .omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:8px}
 .omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols{column-count:3;column-gap:10px;column-fill:balance;column-rule:2px solid #999;font-size:7.8pt}
@@ -230,10 +232,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   }
 
   if (style === "style4") {
-    // OMR sheet layout: LANDSCAPE A4 pages using CSS grid (verified stable — no
-    // flex/column pagination bug). Page 1: grid col1 = OMR sheet image, col2 =
-    // 3-column question block (Q1..half). Page 2: grid col1 = blank spacer
-    // (mirrors OMR width), col2 = 3-column question block (remaining Qs).
+    // OMR sheet layout: Letter landscape (792x612pt / 11in x 8.5in) — matches the
+    // reference app's real PDF output exactly (verified against sample PDF).
+    // Page 1: grid col1 = OMR sheet image + header, col2 = 3-column Q block (42 Qs,
+    // since image+header eats vertical room). Page 2..N: full-width 4-column Q
+    // block, 50 Qs/page (blank img-col only rendered visually on page2 as a
+    // continuation stripe, not on later pages — avoids wasted empty space).
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
       const isShort = checkShortOption(opts);
@@ -248,9 +252,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const half = Math.ceil(questions.length / 2) - 8;
-    const page1Qs = questions.slice(0, half);
-    const page2Qs = questions.slice(half);
+    const PAGE1_COUNT = 42;
+    const REST_PER_PAGE = 50;
+    const page1Qs = questions.slice(0, PAGE1_COUNT);
+    const restQs = questions.slice(PAGE1_COUNT);
+    const restPages: SolvePdfQuestion[][] = [];
+    for (let i = 0; i < restQs.length; i += REST_PER_PAGE) restPages.push(restQs.slice(i, i + REST_PER_PAGE));
 
     const headerBlock = `<div class="omr-qpage-header">
       <div class="omr-qpage-title">প্রশ্নপত্র</div>
@@ -263,15 +270,21 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-grid-qcols">${headerBlock}${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
     </div></div>`;
 
-    const page2 = `<div class="omr-page-grid"><div class="omr-grid-inner">
-      <div class="omr-grid-imgcol"></div>
-      <div class="omr-grid-qcols">${page2Qs.map((q, i) => renderQ(q, half + i + 1)).join("")}</div>
+    let running = PAGE1_COUNT;
+    const laterPages = restPages
+      .map((pageQs, pIdx) => {
+        const html = `<div class="omr-page-grid"><div class="omr-grid-inner-full">
+      <div class="omr-grid-qcols">${pageQs.map((q, i) => renderQ(q, running + i + 1)).join("")}</div>
     </div></div>`;
+        running += pageQs.length;
+        return html;
+      })
+      .join("");
 
-    const body = `${page1}${page2}`;
+    const body = `${page1}${laterPages}`;
 
-    const OMR_PAGE_CSS = `<style>@page{size:A4 landscape;margin:8mm}@media print{@page{size:A4 landscape;margin:8mm}body{width:277mm!important;max-width:277mm!important}}body{width:277mm!important;max-width:277mm!important}</style>`;
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
+    const OMR_PAGE_CSS = `<style>@page{size:11in 8.5in;margin:6mm}@media print{@page{size:11in 8.5in;margin:6mm}body{width:269mm!important;max-width:269mm!important}}body{width:269mm!important;max-width:269mm!important}</style>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}${OMR_PAGE_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: Letter, Landscape)</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
