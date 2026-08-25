@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Pencil, Check, X as XIcon, Eye, EyeOff, Tag } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { CreatableSelect } from "@/components/ui/creatable-select";
 import {
   DndContext,
   closestCenter,
@@ -35,23 +36,31 @@ function SortableSubjectItem({
   index,
   total,
   isHidden,
+  parentTopic,
+  topicOptions,
   onMoveUp,
   onMoveDown,
   onRename,
   onToggleHidden,
+  onTopicChange,
   isRenaming,
   isTogglingHidden,
+  isTopicChanging,
 }: {
   subject: string;
   index: number;
   total: number;
   isHidden: boolean;
+  parentTopic: string;
+  topicOptions: { label: string; value: string }[];
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRename: (oldName: string, newName: string) => void;
   onToggleHidden: (subject: string) => void;
+  onTopicChange: (subject: string, newTopic: string) => void;
   isRenaming: boolean;
   isTogglingHidden: boolean;
+  isTopicChanging: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: subject });
   const [editing, setEditing] = useState(false);
@@ -121,10 +130,26 @@ function SortableSubjectItem({
             </div>
           </div>
         ) : (
-          <h4 className="font-medium text-sm leading-snug break-words whitespace-pre-line">
-            {subject}
-            {isHidden && <span className="ml-2 text-[10px] font-normal text-muted-foreground">(Hidden)</span>}
-          </h4>
+          <div>
+            <h4 className="font-medium text-sm leading-snug break-words whitespace-pre-line">
+              {subject}
+              {isHidden && <span className="ml-2 text-[10px] font-normal text-muted-foreground">(Hidden)</span>}
+            </h4>
+            <div className="flex items-center gap-1.5 mt-1.5">
+              <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
+              <div className="w-full max-w-[220px]">
+                <CreatableSelect
+                  options={topicOptions}
+                  value={parentTopic}
+                  onChange={(v) => onTopicChange(subject, v)}
+                  onCreate={(v) => onTopicChange(subject, v)}
+                  placeholder="Parent Topic বাছাই করুন"
+                  className="h-7 text-[11px]"
+                />
+              </div>
+              {isTopicChanging && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+            </div>
+          </div>
         )}
       </div>
       {!editing && (
@@ -190,6 +215,7 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
   const [items, setItems] = useState<string[]>([]);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [isModified, setIsModified] = useState(false);
+  const [subjectTopics, setSubjectTopics] = useState<Record<string, string>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -199,20 +225,42 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
       const BATCH = 1000;
       let from = 0;
       const unique = new Set<string>();
+      // subject -> { topicValue -> examCount }, so we can show the majority
+      // topic as this subject's current mapping when exams disagree.
+      const topicCounts = new Map<string, Map<string, number>>();
+      const allTopics = new Set<string>();
       while (true) {
         const { data: rows, error } = await supabase
           .from("exams")
-          .select("subject")
+          .select("subject, readymade_topic")
           .eq("is_readymade", true)
           .range(from, from + BATCH - 1);
         if (error) throw error;
         (rows || []).forEach((row: any) => {
           const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === "string" ? [row.subject] : []);
-          subs.forEach((s) => s && unique.add(s));
+          const topic: string = row.readymade_topic || "";
+          if (topic) allTopics.add(topic);
+          subs.forEach((s) => {
+            if (!s) return;
+            unique.add(s);
+            if (!topicCounts.has(s)) topicCounts.set(s, new Map());
+            const m = topicCounts.get(s)!;
+            m.set(topic, (m.get(topic) || 0) + 1);
+          });
         });
         if (!rows || rows.length < BATCH) break;
         from += BATCH;
       }
+
+      const topicMap: Record<string, string> = {};
+      topicCounts.forEach((counts, subj) => {
+        let best = "";
+        let bestCount = -1;
+        counts.forEach((c, t) => {
+          if (c > bestCount) { best = t; bestCount = c; }
+        });
+        topicMap[subj] = best;
+      });
 
       const [{ data: orderRow }, { data: hiddenRow }] = await Promise.all([
         supabase.from("app_settings").select("value").eq("key", ORDER_KEY).maybeSingle(),
@@ -227,7 +275,7 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
-      return { sorted, hiddenList };
+      return { sorted, hiddenList, topicMap, allTopics: Array.from(allTopics).sort() };
     },
   });
 
@@ -235,6 +283,7 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
     if (allData) {
       setItems(allData.sorted);
       setHidden(new Set(allData.hiddenList));
+      setSubjectTopics(allData.topicMap);
       setIsModified(false);
     }
   }, [allData]);
@@ -369,6 +418,51 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
     renameMutation.mutate({ oldName, newName });
   };
 
+  // Bulk-assigns readymade_topic on every exam whose subject array contains
+  // this subject, so a subject's parent-topic mapping is always consistent
+  // across all its exams — no more per-exam manual entry that can be missed.
+  const [changingTopicFor, setChangingTopicFor] = useState<string | null>(null);
+  const topicChangeMutation = useMutation({
+    mutationFn: async ({ subject, newTopic }: { subject: string; newTopic: string }) => {
+      const { data: rows, error: fetchErr } = await supabase
+        .from("exams")
+        .select("id")
+        .contains("subject", [subject]);
+      if (fetchErr) throw fetchErr;
+
+      const targetRows = rows || [];
+      const results = await Promise.allSettled(
+        targetRows.map((row) =>
+          supabase.from("exams").update({ readymade_topic: newTopic || null }).eq("id", row.id)
+        )
+      );
+      const failures = results.filter(
+        (r) => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)
+      );
+      if (failures.length > 0) {
+        throw new Error(`${failures.length}/${targetRows.length} exams failed to update — please try again.`);
+      }
+      return { subject, newTopic, count: targetRows.length };
+    },
+    onMutate: ({ subject }) => setChangingTopicFor(subject),
+    onSuccess: ({ subject, newTopic, count }) => {
+      setSubjectTopics((prev) => ({ ...prev, [subject]: newTopic }));
+      toast({ title: `${count}টি এক্সাম আপডেট হয়েছে`, description: `"${subject}" এখন "${newTopic || "কোনো টপিক নেই"}" এর অধীনে।` });
+      queryClient.invalidateQueries({ queryKey: ["subject-sort-dialog-all-subjects"] });
+      queryClient.invalidateQueries({ queryKey: ["exam-topics"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-parent-topics"] });
+      queryClient.refetchQueries({ queryKey: ["readymade-exams-list"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "টপিক আপডেট করা যায়নি", description: err.message, variant: "destructive" });
+    },
+    onSettled: () => setChangingTopicFor(null),
+  });
+
+  const handleTopicChange = (subject: string, newTopic: string) => {
+    topicChangeMutation.mutate({ subject, newTopic });
+  };
+
   const toggleHiddenMutation = useMutation({
     mutationFn: async (subject: string) => {
       const next = new Set(hidden);
@@ -460,12 +554,16 @@ export function SubjectSortDialog({ onClose }: SubjectSortDialogProps) {
                     index={index}
                     total={items.length}
                     isHidden={hidden.has(subject)}
+                    parentTopic={subjectTopics[subject] || ""}
+                    topicOptions={(allData?.allTopics || []).map((t) => ({ label: t, value: t }))}
                     onMoveUp={() => moveItem(index, -1)}
                     onMoveDown={() => moveItem(index, 1)}
                     onRename={handleRename}
                     onToggleHidden={(s) => toggleHiddenMutation.mutate(s)}
+                    onTopicChange={handleTopicChange}
                     isRenaming={renameMutation.isPending}
                     isTogglingHidden={toggleHiddenMutation.isPending}
+                    isTopicChanging={changingTopicFor === subject}
                   />
                 ))}
               </SortableContext>
