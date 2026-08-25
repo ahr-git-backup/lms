@@ -119,27 +119,15 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
 @page omrPortrait{size:A4 landscape;margin:8mm 8mm}
-.omr-portrait-page{page:omrPortrait;box-sizing:border-box}
-.omr-portrait-page:last-child{page-break-after:auto}
-@media print{.omr-portrait-page{width:277mm;min-height:190mm;page-break-after:always;break-after:page}.omr-portrait-page:last-child{page-break-after:auto;break-after:auto}}
-@media screen{.omr-portrait-page{width:277mm;min-height:190mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box;page-break-after:always;break-after:page}.omr-portrait-page:last-child{page-break-after:auto;break-after:auto}}
-.omr-portrait-page.has-cut{display:flex;flex-direction:column}
-.omr-only-full{display:flex;flex-direction:column;align-items:center;position:relative;flex:1;min-height:0}
-.omr-only-full img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain!important}
-.omr-cut-icon-v{position:absolute;top:50%;right:-6mm;transform:translateY(-50%) rotate(90deg);font-size:16pt;background:#fff;padding:2px}
-.omr-portrait-page.has-cut{border-right:2px dashed #999}
-.omr-qpage-4col{display:flex;gap:6px;font-size:8.3pt;height:100%}
-.omr-portrait-page.omr-landscape{height:194mm;overflow:hidden}
-.omr-qpage-4col .question-s3{margin-bottom:4px;font-size:7.6pt;line-height:1.1}
-.omr-qpage-4col .question-s3 .question-num,.omr-qpage-4col .question-s3 .question-text{font-size:7.6pt}
-.omr-qpage-4col .options-list-s3,.omr-qpage-4col .options-row-s3,.omr-qpage-4col .options-table-s3{margin:1px 0 1px 8px}
-.omr-qpage-4col-col{flex:1;min-width:0;border-right:1px solid #ddd;padding-right:6px}
-.omr-qpage-4col-col:last-child{border-right:none}
-.omr-qpage-4col-col.blank-col{visibility:hidden;border-right:none}
-.omr-embed-col{flex:1.1;display:flex;flex-direction:column;overflow:hidden}
-.omr-only-embed{display:flex;flex-direction:column;align-items:center;width:100%;height:100%;overflow:hidden}
-.omr-only-embed img{width:auto!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important}
-.omr-qpage-2col{column-count:2;column-gap:8mm;column-rule:1px solid #ddd;font-size:9.5pt}
+.omr-page-grid{width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
+.omr-page-grid:last-child{page-break-after:auto}
+@media print{.omr-page-grid{width:277mm}}
+@media screen{.omr-page-grid{width:277mm;margin:0 auto 20px auto;border:1px solid #eee;padding:8mm;box-sizing:border-box}}
+.omr-grid-inner{display:grid;grid-template-columns:26% 1fr;gap:10px;width:100%}
+.omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;display:block}
+.omr-grid-qcols{column-count:3;column-gap:10px;column-fill:balance;column-rule:1px solid #ddd;font-size:7.8pt}
+.omr-grid-qcols .question-s3{font-size:7.8pt;margin-bottom:5px}
+.omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.8pt}
 
 .omr-header{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:11pt;color:#166534;text-align:center;background:#DCFCE7;border:1px solid #86efac;border-radius:4px;padding:3mm 2mm;margin:0 0 3mm 0}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:13pt;text-align:center;margin:0 0 2mm 0}
@@ -234,20 +222,16 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
   }
 
   if (style === "style4") {
-    // OMR sheet layout: LANDSCAPE A4 pages, 2 pages total for 100 MCQ.
-    // Page 1: 4 columns — column 1 = OMR sheet image (embedded), columns
-    // 2-4 = questions starting at Q1.
-    // Page 2: 4 columns — column 1 = BLANK (mirrors OMR column width so the
-    // sheet aligns if printed double-sided/cut), columns 2-4 = remaining
-    // questions continuing from where page 1 left off.
+    // OMR sheet layout: LANDSCAPE A4 pages using CSS grid (verified stable — no
+    // flex/column pagination bug). Page 1: grid col1 = OMR sheet image, col2 =
+    // 3-column question block (Q1..half). Page 2: grid col1 = blank spacer
+    // (mirrors OMR width), col2 = 3-column question block (remaining Qs).
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-      const tier = classifyOptionLength(opts);
+      const isShort = checkShortOption(opts);
       const qNum = String(n).padStart(2, "0");
-      let h = `<div class="question-s3" data-qn="${n}"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
-      if (tier === "tiny") {
-        h += `<div class="options-row-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</span></div>`;
-      } else if (tier === "medium") {
+      let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+      if (isShort) {
         h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
       } else {
         h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
@@ -256,65 +240,23 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const splitIntoN = (qs: SolvePdfQuestion[], n: number) => {
-      const len = qs.length;
-      const base = Math.floor(len / n);
-      const rem = len % n;
-      const cols: SolvePdfQuestion[][] = [];
-      let off = 0;
-      for (let c = 0; c < n; c++) {
-        const size = base + (c < rem ? 1 : 0);
-        cols.push(qs.slice(off, off + size));
-        off += size;
-      }
-      return cols;
-    };
-
-    const headerBlock = `<div class="omr-qpage-header">
-      <div class="omr-qpage-title">প্রশ্নপত্র</div>
-      <div class="omr-qpage-meta"><span>পূর্নমান: ১০০</span><span>সময়: ১ ঘন্টা</span></div>
-      <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
-    </div>`;
-
-    const omrCol = `<div class="omr-qpage-4col-col omr-embed-col"><div class="omr-only-embed">
-      <div class="omr-header">${heading}</div>
-      <img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" />
-    </div></div>`;
-
-    const blankCol = `<div class="omr-qpage-4col-col blank-col"></div>`;
-
-    // Split all 100 questions evenly across 6 usable columns (3 on page 1 + 3 on page 2).
     const half = Math.ceil(questions.length / 2);
     const page1Qs = questions.slice(0, half);
     const page2Qs = questions.slice(half);
 
-    const buildQCols = (qs: SolvePdfQuestion[], startN: number, withHeader: boolean) => {
-      const cols = splitIntoN(qs, 3);
-      let offset = startN;
-      return cols.map((colQs, ci) => {
-        let h = ci === 0 && withHeader ? headerBlock : "";
-        colQs.forEach((q, i) => { h += renderQ(q, offset + i); });
-        offset += colQs.length;
-        return `<div class="omr-qpage-4col-col">${h}</div>`;
-      }).join("");
-    };
-
-    const page1Cols = buildQCols(page1Qs, 1, true);
-    const page2Cols = buildQCols(page2Qs, page1Qs.length + 1, true);
-
-    const page1 = `<div class="omr-portrait-page omr-landscape"><div class="omr-qpage-4col">
-      ${omrCol}
-      ${page1Cols}
+    const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner">
+      <div class="omr-grid-imgcol"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
+      <div class="omr-grid-qcols">${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
     </div></div>`;
 
-    const page2 = `<div class="omr-portrait-page omr-landscape"><div class="omr-qpage-4col">
-      ${blankCol}
-      ${page2Cols}
+    const page2 = `<div class="omr-page-grid"><div class="omr-grid-inner">
+      <div class="omr-grid-imgcol"></div>
+      <div class="omr-grid-qcols">${page2Qs.map((q, i) => renderQ(q, half + i + 1)).join("")}</div>
     </div></div>`;
 
-    const body = `<div id="omr-pages-root">${page1}${page2}</div>`;
+    const body = `${page1}${page2}`;
 
-    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body class="omr-body">${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
+    return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}<button class="print-btn" onclick="window.print()">PDF হিসেবে ডাউনলোড / প্রিন্ট করুন (Paper: A4, Landscape)</button></body></html>`;
   }
 
   // style2 (default): questions page + separate answer table.
