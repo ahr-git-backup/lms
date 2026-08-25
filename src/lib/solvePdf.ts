@@ -52,6 +52,26 @@ function escapeHtml(str: string | undefined | null): string {
   );
 }
 
+// Collapses stray blank lines / repeated whitespace inside question or option
+// text (e.g. "1.\n\n\nWhat is your name?") down to single spaces, so PDF
+// output never shows unexpected extra vertical gaps above/inside a question
+// regardless of how the source data was entered.
+function normalizeText(str: string | undefined | null): string {
+  if (!str) return "";
+  return String(str)
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join(" ")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+function escapeHtmlClean(str: string | undefined | null): string {
+  return escapeHtml(normalizeText(str));
+}
+
 // Returns "inline" (all 4 options on one line — very short values like
 // numbers/single words), "table" (2x2 grid — short-ish values), or "list"
 // (4 separate rows — long option text).
@@ -201,12 +221,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       const ai = OPTION_KEYS.indexOf(q.correct_option as any);
       const ansCircle = `[${ai >= 0 ? OPTION_KEYS[ai] : "?"}]`;
 
-      body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+      body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
 
       if (isShort) {
-        body += `<table class="options-table-short"><tr><td class="option-col"><span class="opt-letter">A</span>${escapeHtml(opts[0])}</td><td class="option-col"><span class="opt-letter">B</span>${escapeHtml(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col"><span class="opt-letter">C</span>${escapeHtml(opts[2])}</td><td class="option-col"><span class="opt-letter">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+        body += `<table class="options-table-short"><tr><td class="option-col"><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td class="option-col"><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td><td rowspan="2" class="answer-col"><span class="answer-circle">${ansCircle}</span></td></tr><tr><td class="option-col"><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td class="option-col"><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
       } else {
-        body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtml(opts[2])}</li><li class="option-with-answer"><span><span class="opt-letter">D</span>${escapeHtml(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
+        body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li class="option-with-answer"><span><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</span><span class="answer-circle">${ansCircle}</span></li></ul>`;
       }
       if (q.explanation) {
         body += `<div class="explanation"><span class="explanation-label">ব্যাখ্যা:</span> ${escapeHtml(q.explanation)}</div>`;
@@ -234,11 +254,11 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
         const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
         const isShort = checkShortOption(opts);
         const qNum = String(n).padStart(2, "0");
-        body += `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+        body += `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
         if (isShort) {
-          body += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+          body += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
         } else {
-          body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+          body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
         }
         body += "</div>";
       });
@@ -267,13 +287,13 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
       const layout = getOptionLayout(opts);
       const qNum = String(n).padStart(2, "0");
-      let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+      let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
       if (layout === "inline") {
-        h += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</span></div>`;
+        h += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
       } else if (layout === "table") {
-        h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+        h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
       } else {
-        h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
+        h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
       }
       h += "</div>";
       return h;
@@ -363,12 +383,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     const isShort = checkShortOption(opts);
     const qNum = String(n).padStart(2, "0");
 
-    body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
+    body += `<div class="question"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
 
     if (isShort) {
-      body += `<table class="options-table-short"><tr><td><span class="opt-letter">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
+      body += `<table class="options-table-short"><tr><td><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
     } else {
-      body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter">D</span>${escapeHtml(opts[3])}</li></ul>`;
+      body += `<ul class="options-list"><li><span class="opt-letter">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
     }
     body += "</div>";
   });
