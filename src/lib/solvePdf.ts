@@ -52,13 +52,29 @@ function escapeHtml(str: string | undefined | null): string {
   );
 }
 
+// Returns "inline" (all 4 options on one line — very short values like
+// numbers/single words), "table" (2x2 grid — short-ish values), or "list"
+// (4 separate rows — long option text).
+function getOptionLayout(opts: string[]): "inline" | "table" | "list" {
+  let maxLen = 0;
+  for (const v of opts) {
+    if (v) {
+      const clean = String(v).replace(/<[^>]+>/g, "").trim();
+      if (clean.length > maxLen) maxLen = clean.length;
+    }
+  }
+  if (maxLen <= 8) return "inline";
+  if (maxLen <= 24) return "table";
+  return "list";
+}
+
 // Ported from QuizBot _check_short_option: options count as "short" only if
 // every non-empty option (tags stripped) is 16 chars or fewer.
 function checkShortOption(opts: string[]): boolean {
   for (const v of opts) {
     if (v) {
       const clean = String(v).replace(/<[^>]+>/g, "").trim();
-      if (clean.length > 16) return false;
+      if (clean.length > 24) return false;
     }
   }
   return true;
@@ -118,11 +134,11 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .fab-download svg{width:26px;height:26px}
 @media print{.fab-download{display:none}}
 .content-columns-3{column-count:3;column-gap:8px;column-fill:auto;column-rule:1px solid #ddd}
-@page omrLandscape{size:11in 8.5in;margin:4mm 5mm}
+@page omrLandscape{size:11in 8.5in;margin:3mm 4mm}
 .omr-page-grid{page:omrLandscape;width:100%;box-sizing:border-box;page-break-after:always;break-after:page}
 .omr-page-grid:last-child{page-break-after:auto}
-@media print{.omr-page-grid{width:269mm}}
-@media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:4mm 5mm;box-sizing:border-box}}
+@media print{.omr-page-grid{width:271mm}}
+@media screen{.omr-page-grid{width:271mm;margin:0 auto 20px auto;border:1px solid #eee;padding:3mm 4mm;box-sizing:border-box}}
 .omr-grid-inner{display:grid;grid-template-columns:24% 1fr;gap:8px;width:100%;align-items:start;border-left:0;min-height:196mm;position:relative}
 .omr-grid-inner.omr-cut-line-wrap::after{content:"";position:absolute;left:calc(24% + 4px);top:0;bottom:0;width:0;border-right:2px dashed #999}
 .omr-grid-inner.omr-cut-line-wrap::before{content:"✂";position:absolute;left:calc(24% + 4px);top:50%;transform:translate(-50%,-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
@@ -134,8 +150,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-qcol:not(:last-child){border-right:2px solid #999;padding-right:8px}
 .omr-qcol .question-s3{font-size:7.8pt;margin-bottom:2px}
 .omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7.8pt}
-.omr-qcol .options-list-s3,.omr-qcol .options-table-s3{margin:0 0 1px 8px}
-.omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td{font-size:7.8pt}
+.omr-qcol .options-list-s3,.omr-qcol .options-table-s3,.omr-qcol .options-inline-s3{margin:0 0 1px 8px}
+.omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td,.omr-qcol .options-inline-s3 .opt-item-s3{font-size:7.8pt}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
@@ -155,6 +171,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-row-s3 .opt-item-s3{display:inline-flex;align-items:center;font-size:8.5pt;color:#000;white-space:nowrap}
 .options-row-s3{display:flex;gap:6px;margin:1px 0 2px 10px;flex-wrap:nowrap}
 .options-row-s3 .opt-item-s3{display:flex;align-items:center;font-size:8.5pt;color:#000;white-space:nowrap}
+.options-inline-s3{display:flex;gap:6px;margin:1px 0 2px 10px;flex-wrap:nowrap}
+.options-inline-s3 .opt-item-s3{display:flex;align-items:center;white-space:nowrap}
 .options-list-s3 li{display:flex;align-items:center;margin:0;font-size:8.5pt;color:#000;word-wrap:break-word}
 .opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:7pt;height:7pt;border-radius:50%;border:0.6px solid #000;font-size:5pt;font-weight:600;margin-right:3px;flex-shrink:0}
 .options-table-s3{width:100%;border-collapse:collapse;margin:1px 0 2px 10px;table-layout:fixed}
@@ -242,10 +260,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
     // continuation stripe, not on later pages — avoids wasted empty space).
     const renderQ = (q: SolvePdfQuestion, n: number) => {
       const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-      const isShort = checkShortOption(opts);
+      const layout = getOptionLayout(opts);
       const qNum = String(n).padStart(2, "0");
       let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtml(q.question_text)}</div></div>`;
-      if (isShort) {
+      if (layout === "inline") {
+        h += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</span></div>`;
+      } else if (layout === "table") {
         h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</td></tr></table>`;
       } else {
         h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtml(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtml(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtml(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtml(opts[3])}</li></ul>`;
