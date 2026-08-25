@@ -492,9 +492,15 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const rows: any[] = [];
 
+            // Forward-fill topic/subtopic: CSV only fills these cells on the
+            // FIRST row of each segment, blank on the rest (grouped-export
+            // convention, same as ExamCreator.tsx's processImportedData).
+            let _lastTopic = "";
+            let _lastSubtopic = "";
+
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((row: any) => {
-              // Expected headers: questions,option1,option2,option3,option4,option5,answer,explanation,type,section
+              // Expected headers: questions,option1,option2,option3,option4,option5,answer,explanation,type,section,topic,subtopic
               const qText = row["questions"];
               if (!qText) return;
 
@@ -510,6 +516,15 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               const ansIdx = Number(answer);
               const correct = ansIdx >= 1 && ansIdx <= 4 ? ["A", "B", "C", "D"][ansIdx - 1] : "A";
 
+              const rawTopic = row["topic"] ? String(row["topic"]).trim() : "";
+              const rawSubtopic = row["subtopic"] ? String(row["subtopic"]).trim() : "";
+              let rowTopic = rawTopic;
+              let rowSubtopic = rawSubtopic;
+              if (rawTopic) { _lastTopic = rawTopic; _lastSubtopic = ""; }
+              else { rowTopic = _lastTopic; }
+              if (rawSubtopic) { _lastSubtopic = rawSubtopic; }
+              else if (!rawTopic) { rowSubtopic = _lastSubtopic; }
+
               rows.push({
                 question_text: qText,
                 option_a: o1,
@@ -521,6 +536,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 explanation: explanation || null,
                 question_type: type || null,
                 section: section || null,
+                topic: rowTopic || null,
+                subtopic: rowSubtopic || null,
               });
             });
 
