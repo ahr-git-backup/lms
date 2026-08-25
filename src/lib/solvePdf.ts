@@ -123,14 +123,14 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-page-grid:last-child{page-break-after:auto}
 @media print{.omr-page-grid{width:269mm}}
 @media screen{.omr-page-grid{width:269mm;margin:0 auto 20px auto;border:1px solid #eee;padding:6mm;box-sizing:border-box}}
-.omr-grid-inner{display:grid;grid-template-columns:26% 1fr;gap:10px;width:100%;align-items:stretch;border-left:0}
-.omr-grid-inner-full{display:block;width:100%}
-.omr-grid-inner-full .omr-grid-qcols{column-count:4;column-gap:10px;column-fill:balance;column-rule:2px solid #999;font-size:7.8pt}
-.omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:8px}
+.omr-grid-inner{display:grid;grid-template-columns:20% 1fr;gap:8px;width:100%;align-items:stretch;border-left:0;min-height:196mm}
+.omr-grid-inner-full{display:block;width:100%;min-height:196mm}
+.omr-grid-inner-full .omr-grid-qcols{column-count:4;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
+.omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:6px}
 .omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:contain;display:block}
-.omr-grid-qcols{column-count:3;column-gap:10px;column-fill:balance;column-rule:2px solid #999;font-size:7.8pt}
-.omr-grid-qcols .question-s3{font-size:7.8pt;margin-bottom:5px}
-.omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.8pt}
+.omr-grid-qcols{column-count:4;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
+.omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
+.omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
 .omr-cut-line{position:relative}
 .omr-cut-line::after{content:"✂";position:absolute;top:50%;right:-4mm;transform:translateY(-50%) rotate(90deg);font-size:14pt;background:#fff;padding:2px;z-index:2;font-family:'Noto Sans Symbols 2','Noto Sans Symbols',sans-serif}
 .omr-grid-imgcol.omr-cut-line{border-right:2px dashed #999}
@@ -252,7 +252,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const PAGE1_COUNT = 42;
+    const PAGE1_COUNT = 50;
     const REST_PER_PAGE = 50;
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
