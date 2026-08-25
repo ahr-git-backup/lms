@@ -129,9 +129,12 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-imgcol{display:flex;align-items:flex-start}
 .omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols-wrap{display:flex;flex-direction:column}
-.omr-grid-qcols{column-count:3!important;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;max-height:194mm}
-.omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
-.omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
+.omr-grid-qcols-fixed{display:flex;gap:8px;width:100%;align-items:flex-start}
+.omr-qcol{flex:1;min-width:0;font-size:7pt}
+.omr-qcol:not(:last-child){border-right:2px solid #999;padding-right:8px}
+.omr-qcol .question-s3{font-size:7pt;margin-bottom:2.5px}
+.omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7pt}
+.omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td{font-size:7pt}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
@@ -263,17 +266,31 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       <div class="omr-qpage-type">বহুনির্বাচনি প্রশ্ন</div>
     </div>`;
 
+    // Split a page's questions into exactly 3 fixed columns (deterministic —
+    // no CSS column-balancing, so it can never overflow to an extra page).
+    const splitInto3 = (qs: SolvePdfQuestion[], startNum: number) => {
+      const per = Math.ceil(qs.length / 3);
+      const cols = [qs.slice(0, per), qs.slice(per, per * 2), qs.slice(per * 2)];
+      let n = startNum;
+      return cols.map((col) => {
+        const html = col.map((q) => renderQ(q, n++)).join("");
+        return html;
+      });
+    };
+
+    const page1Cols = splitInto3(page1Qs, 1);
     const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
       <div class="omr-grid-imgcol"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-      <div class="omr-grid-qcols-wrap">${headerBlock}<div class="omr-grid-qcols">${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div></div>
+      <div class="omr-grid-qcols-wrap">${headerBlock}<div class="omr-grid-qcols-fixed">${page1Cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div></div>
     </div></div>`;
 
     let running = PAGE1_COUNT;
     const page2Plus = restPages
       .map((pageQs) => {
+        const cols = splitInto3(pageQs, running + 1);
         const html = `<div class="omr-page-grid"><div class="omr-grid-inner omr-cut-line-wrap">
       <div class="omr-grid-imgcol"></div>
-      <div class="omr-grid-qcols">${pageQs.map((q, i) => renderQ(q, running + i + 1)).join("")}</div>
+      <div class="omr-grid-qcols-fixed">${cols.map((c) => `<div class="omr-qcol">${c}</div>`).join("")}</div>
     </div></div>`;
         running += pageQs.length;
         return html;
