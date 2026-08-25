@@ -128,6 +128,20 @@ function SortableSubjectItem({
                 <XIcon className="h-3 w-3" /> Cancel
               </button>
             </div>
+            <div className="flex items-center gap-1 mt-0.5">
+              <Tag className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+              <div className="w-full max-w-[160px]">
+                <CreatableSelect
+                  options={topicOptions}
+                  value={parentTopic}
+                  onChange={(v) => onTopicChange(subject, v)}
+                  onCreate={(v) => onTopicChange(subject, v)}
+                  placeholder="Parent Topic"
+                  className="h-6 text-[10px] px-2 py-1"
+                />
+              </div>
+              {isTopicChanging && <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />}
+            </div>
           </div>
         ) : (
           <div>
@@ -135,19 +149,19 @@ function SortableSubjectItem({
               {subject}
               {isHidden && <span className="ml-2 text-[10px] font-normal text-muted-foreground">(Hidden)</span>}
             </h4>
-            <div className="flex items-center gap-1.5 mt-1.5">
-              <Tag className="h-3 w-3 text-muted-foreground shrink-0" />
-              <div className="w-full max-w-[220px]">
+            <div className="flex items-center gap-1 mt-1">
+              <Tag className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
+              <div className="w-full max-w-[160px]">
                 <CreatableSelect
                   options={topicOptions}
                   value={parentTopic}
                   onChange={(v) => onTopicChange(subject, v)}
                   onCreate={(v) => onTopicChange(subject, v)}
-                  placeholder="Parent Topic বাছাই করুন"
-                  className="h-7 text-[11px]"
+                  placeholder="Parent Topic"
+                  className="h-6 text-[10px] px-2 py-1"
                 />
               </div>
-              {isTopicChanging && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+              {isTopicChanging && <Loader2 className="h-2.5 w-2.5 animate-spin text-muted-foreground" />}
             </div>
           </div>
         )}
