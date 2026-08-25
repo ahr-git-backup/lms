@@ -1062,15 +1062,18 @@ const TakeExam = () => {
               <Card className="w-full rounded-xl shadow-sm border shrink-0">
                   <div className="p-2 md:p-3 space-y-1">
                       <div className="text-center space-y-0.5">
-                          <h1 className="text-xl md:text-3xl font-bold tracking-tight leading-tight">{exam.title}</h1>
+                          <h1 className="text-xl md:text-3xl font-bold tracking-tight leading-tight">
+                              {exam.title}
+                              {selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""}
+                          </h1>
                           <p className="text-muted-foreground text-[10px]">Please review the details below before starting.</p>
                       </div>
 
                       <div className="grid grid-cols-3 gap-1.5">
                           <div className="flex flex-col items-center justify-center p-1.5 bg-secondary/30 rounded-lg">
                               <span className="text-base font-bold text-primary">
-                                  {showsReadymadeUI && selectedQuestionCount
-                                      ? Math.ceil((selectedQuestionCount * 30) / 60)
+                                  {showsReadymadeUI && (selectedQuestionCount || selectedTopic)
+                                      ? Math.ceil(((selectedQuestionCount || effectiveQuestions?.length || 0) * 30) / 60)
                                       : exam.duration_minutes}
                               </span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
@@ -1509,7 +1512,7 @@ const TakeExam = () => {
             <span className="text-xs font-mono font-bold px-2 py-1 rounded-full bg-muted">
               {timeLeft !== null ? `${Math.floor(timeLeft / 60).toString().padStart(2, "0")}:${(timeLeft % 60).toString().padStart(2, "0")}` : "--:--"}
             </span>
-            <span className="text-xs font-semibold flex-1 truncate">{exam.title}</span>
+            <span className="text-xs font-semibold flex-1 truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""}</span>
           </div>
           <div className="max-w-5xl mx-auto px-3 pb-3">
             <OmrExamScanner
@@ -1897,7 +1900,7 @@ const TakeExam = () => {
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
+              <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
               <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {displayQuestions.length}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
