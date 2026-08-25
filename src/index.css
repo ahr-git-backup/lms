@@ -400,3 +400,14 @@ mjx-container[display="true"] {
   max-width: none;
   max-height: none;
 }
+
+/* Subtle highlight flash for a Readymade Exam zone section when the user
+   taps its Parent Topic pill and gets smooth-scrolled to it. */
+@keyframes zoneFlash {
+  0% { background-color: hsl(var(--primary) / 0.08); }
+  100% { background-color: transparent; }
+}
+.zone-flash {
+  animation: zoneFlash 1.2s ease-out;
+  border-radius: 0.75rem;
+}

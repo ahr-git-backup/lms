@@ -445,12 +445,13 @@ const Readymade = () => {
               size="sm"
               className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-pre-line text-center"
               onClick={() => {
-                setPage(0);
-                setSelectedBoards([]);
-                setActiveTypePanel(null);
-                setSelectedParentTopics(prev =>
-                  prev.includes(topic.value) ? prev.filter(t => t !== topic.value) : [...prev, topic.value]
-                );
+                // Scroll smoothly to this zone's section instead of hard-filtering.
+                const el = document.getElementById(`zone-${encodeURIComponent(topic.value)}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  el.classList.add("zone-flash");
+                  setTimeout(() => el.classList.remove("zone-flash"), 1200);
+                }
               }}
             >
               {topic.label}
@@ -632,8 +633,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
     queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
     queryFn: async () => {
-      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; chapter: string | null; readymade_sub_chapter: string | null; is_visible_on_free: boolean | null }>((from, to) => {
-        let query = supabase.from("exams").select("subject, course_id, shared_course_ids, readymade_course_ids, chapter, readymade_sub_chapter, is_visible_on_free")
+      const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; chapter: string | null; readymade_sub_chapter: string | null; is_visible_on_free: boolean | null; readymade_topic: string | null }>((from, to) => {
+        let query = supabase.from("exams").select("subject, course_id, shared_course_ids, readymade_course_ids, chapter, readymade_sub_chapter, is_visible_on_free, readymade_topic")
           .eq("is_readymade", true).eq("is_published", true).range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
@@ -642,8 +643,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       const unique = new Set<string>();
       const subjectCourseIds: Record<string, Set<string>> = {};
       const unlockMap: Record<string, boolean> = {};
+      // Track which parent-topic "zone" each subject belongs to, in first-seen
+      // order, so the subject grid can be grouped/sectioned by zone.
+      const subjectZones: Record<string, string> = {};
+      const zoneOrder: string[] = [];
       data.forEach((row: any) => {
         const subs: string[] = Array.isArray(row.subject) ? row.subject : (typeof row.subject === 'string' ? [row.subject] : []);
+        const zone: string = row.readymade_topic || "";
         subs.forEach((s: string) => {
           unique.add(s);
           if (!subjectCourseIds[s]) subjectCourseIds[s] = new Set();
@@ -655,6 +661,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               enrolledIds, fullAccessCourseIds, subChapterGrants
             );
             if (rowUnlocked) unlockMap[s] = true;
+          }
+          if (zone && !subjectZones[s]) {
+            subjectZones[s] = zone;
+            if (!zoneOrder.includes(zone)) zoneOrder.push(zone);
           }
         });
       });
@@ -673,14 +683,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         if (iA !== -1) return -1; if (iB !== -1) return 1;
         return a.localeCompare(b);
       });
+      // Group subjects by zone (parent topic), preserving the saved order
+      // within each zone; subjects with no zone fall in a trailing "" group.
+      const zoneGroups: { zone: string; subjects: string[] }[] = [];
+      const zonesInUse = [...zoneOrder, ""];
+      zonesInUse.forEach(zone => {
+        const inZone = sortedSubjects.filter(s => (subjectZones[s] || "") === zone);
+        if (inZone.length > 0) zoneGroups.push({ zone, subjects: inZone });
+      });
       const courseIdsBySubject: Record<string, string[]> = {};
       Object.entries(subjectCourseIds).forEach(([s, ids]) => { courseIdsBySubject[s] = Array.from(ids); });
-      return { subjects: sortedSubjects, courseIdsBySubject, unlockMap, hiddenSet };
+      return { subjects: sortedSubjects, zoneGroups, courseIdsBySubject, unlockMap, hiddenSet };
     },
     enabled: !selectedSubject && !searchQuery
   });
 
   const subjects = subjectsResult?.subjects;
+  const subjectZoneGroups = subjectsResult?.zoneGroups || [];
   const hiddenSubjects = subjectsResult?.hiddenSet || new Set<string>();
   const isSubjectUnlocked = (subject: string): boolean => {
     if (isAdmin) return true;
@@ -987,52 +1006,86 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             ))}
           </div>
         ) : null}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
-        {subjects.map(subject => {
-          const unlocked = isSubjectUnlocked(subject);
-          const isHidden = hiddenSubjects.has(subject);
-          return (
-          <Card
-            key={subject}
-            className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
-            onClick={() => setSelectedSubject(subject)}
-          >
-            {!unlocked && (
-              <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
-                <span className="text-lg sm:text-xl font-black text-foreground/15 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
-              </div>
-            )}
-            {!unlocked && (
-              <button
-                type="button"
-                onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${subject}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
-                className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+        {(() => {
+          const renderSubjectCard = (subject: string) => {
+            const unlocked = isSubjectUnlocked(subject);
+            const isHidden = hiddenSubjects.has(subject);
+            return (
+              <Card
+                key={subject}
+                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                onClick={() => setSelectedSubject(subject)}
               >
-                <Lock className="h-3 w-3" />
-              </button>
-            )}
-            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
-                {loadingMcqCounts ? (
-                  <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
-                ) : typeof subjectMcqCounts?.[subject] === "number" ? (
-                  <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
-                    {subjectMcqCounts[subject]} MCQ
-                  </span>
-                ) : (
-                  <Trophy className="h-3.5 w-3.5 text-primary" />
+                {!unlocked && (
+                  <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
+                    <span className="text-lg sm:text-xl font-black text-foreground/15 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
+                  </div>
                 )}
+                {!unlocked && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toast({ title: "Locked", description: `"${subject}" বিষয়ে আপনার এক্সেস নেই। ভর্তি হলে আনলক হয়ে যাবে।` }); }}
+                    className="absolute bottom-1.5 right-1.5 z-10 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300 rounded-full p-1"
+                  >
+                    <Lock className="h-3 w-3" />
+                  </button>
+                )}
+                <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
+                    {loadingMcqCounts ? (
+                      <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
+                    ) : typeof subjectMcqCounts?.[subject] === "number" ? (
+                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                        {subjectMcqCounts[subject]} MCQ
+                      </span>
+                    ) : (
+                      <Trophy className="h-3.5 w-3.5 text-primary" />
+                    )}
+                  </div>
+                  <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
+                  {isAdmin && isHidden && (
+                    <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          };
+
+          const hasZones = subjectZoneGroups.length > 1 || (subjectZoneGroups.length === 1 && subjectZoneGroups[0].zone !== "");
+          if (!hasZones) {
+            return (
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                {subjects.map(renderSubjectCard)}
               </div>
-              <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
-              {isAdmin && isHidden && (
-                <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
-              )}
-            </CardContent>
-          </Card>
+            );
+          }
+
+          return (
+            <div className="space-y-5">
+              {subjectZoneGroups.map(({ zone, subjects: zoneSubjects }, gi) => (
+                <div
+                  key={zone || "__none__"}
+                  id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
+                  className={gi > 0 ? "pt-4 border-t border-border/50" : ""}
+                >
+                  {zone && (
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-px flex-1 bg-border/60" />
+                      <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 whitespace-nowrap">
+                        {zone}
+                      </span>
+                      <div className="h-px flex-1 bg-border/60" />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                    {zoneSubjects.map(renderSubjectCard)}
+                  </div>
+                </div>
+              ))}
+            </div>
           );
-        })}
-        </div>
+        })()}
       </div>
     );
   }
