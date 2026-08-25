@@ -1121,9 +1121,16 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={compactGrid ? "grid grid-cols-2 gap-2 sm:gap-4" : "flex flex-wrap gap-2 sm:gap-4"}>
+              <div className="flex flex-wrap gap-2 sm:gap-4">
                 {zoneSubjects.map((s) => (
-                  <div key={s} className={compactGrid ? "" : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"}>
+                  <div
+                    key={s}
+                    className={
+                      compactGrid
+                        ? "w-[calc(50%-0.25rem)]"
+                        : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"
+                    }
+                  >
                     {renderSubjectCard(s)}
                   </div>
                 ))}
