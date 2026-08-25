@@ -137,6 +137,10 @@ const Readymade = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(0);
   const [selectedParentTopics, setSelectedParentTopics] = useState<string[]>([]);
+  // Purely visual: which zone pill was tapped most recently, for a brief
+  // pressed/active highlight since these pills now scroll-to-zone instead
+  // of toggling a filter.
+  const [activeZonePill, setActiveZonePill] = useState<string | null>(null);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
   const [activeTypePanel, setActiveTypePanel] = useState<"type-based" | "model-test" | null>(null);
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
@@ -441,10 +445,13 @@ const Readymade = () => {
           {parentTopics.map(topic => (
             <Button
               key={topic.value}
-              variant={selectedParentTopics.includes(topic.value) ? "default" : "secondary"}
+              variant={activeZonePill === topic.value ? "default" : "secondary"}
               size="sm"
-              className="rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 transition-transform leading-tight whitespace-pre-line text-center"
+              className={`rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 active:scale-95 transition-transform leading-tight whitespace-pre-line text-center ${activeZonePill === topic.value ? "ring-2 ring-primary/40" : ""}`}
               onClick={() => {
+                // Visual click feedback (pill turns active/green briefly).
+                setActiveZonePill(topic.value);
+                setTimeout(() => setActiveZonePill(prev => (prev === topic.value ? null : prev)), 1200);
                 // Scroll smoothly to this zone's section instead of hard-filtering.
                 const el = document.getElementById(`zone-${encodeURIComponent(topic.value)}`);
                 if (el) {
