@@ -130,11 +130,11 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols-wrap{display:flex;flex-direction:column}
 .omr-grid-qcols-fixed{display:flex;gap:8px;width:100%;align-items:flex-start}
-.omr-qcol{flex:1;min-width:0;font-size:7pt}
+.omr-qcol{flex:1;min-width:0;font-size:7.8pt}
 .omr-qcol:not(:last-child){border-right:2px solid #999;padding-right:8px}
-.omr-qcol .question-s3{font-size:7pt;margin-bottom:2.5px}
-.omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7pt}
-.omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td{font-size:7pt}
+.omr-qcol .question-s3{font-size:7.8pt;margin-bottom:3px}
+.omr-qcol .question-s3 .question-num,.omr-qcol .question-s3 .question-text{font-size:7.8pt}
+.omr-qcol .options-list-s3 li,.omr-qcol .options-table-s3 td{font-size:7.8pt}
 .omr-qpage-header{margin-bottom:2mm}
 .omr-qpage-title{font-family:'Noto Sans Bengali',sans-serif;font-weight:700;font-size:12pt;text-align:center;margin:0 0 1.5mm 0}
 .omr-qpage-meta{display:flex;justify-content:space-between;font-family:'Noto Sans Bengali',sans-serif;font-size:8.5pt;margin-bottom:1mm}
@@ -253,8 +253,8 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       return h;
     };
 
-    const PAGE1_COUNT = 50;
-    const REST_PER_PAGE = 50;
+    const PAGE1_COUNT = 42;
+    const REST_PER_PAGE = 58;
     const page1Qs = questions.slice(0, PAGE1_COUNT);
     const restQs = questions.slice(PAGE1_COUNT);
     const restPages: SolvePdfQuestion[][] = [];
