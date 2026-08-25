@@ -127,7 +127,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-imgcol{display:flex;align-items:flex-start;border-right:2px solid #999;padding-right:6px}
 .omr-grid-imgcol img{width:100%!important;height:auto!important;max-width:100%!important;object-fit:contain;display:block}
 .omr-grid-qcols-wrap{display:flex;flex-direction:column}
-.omr-grid-qcols{column-count:3!important;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:188mm;max-height:188mm;overflow:hidden}
+.omr-grid-qcols{column-count:3!important;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;max-height:194mm}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
 .omr-cut-line{position:relative}
