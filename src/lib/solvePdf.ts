@@ -126,7 +126,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .omr-grid-inner{display:grid;grid-template-columns:20% 1fr;gap:8px;width:100%;align-items:stretch;border-left:0;min-height:196mm}
 .omr-grid-imgcol{display:flex;border-right:2px solid #999;padding-right:6px}
 .omr-grid-imgcol img{width:100%!important;height:100%!important;max-width:100%!important;object-fit:cover;display:block}
-.omr-grid-qcols{column-count:3;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:196mm}
+.omr-grid-qcols-wrap{display:flex;flex-direction:column}
+.omr-grid-qcols{column-count:3;column-gap:8px;column-fill:auto;column-rule:2px solid #999;font-size:7.4pt;height:188mm}
 .omr-grid-qcols .question-s3{font-size:7.4pt;margin-bottom:3px}
 .omr-grid-qcols .question-s3 .question-num,.omr-grid-qcols .question-s3 .question-text{font-size:7.4pt}
 .omr-cut-line{position:relative}
@@ -265,7 +266,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
     const page1 = `<div class="omr-page-grid"><div class="omr-grid-inner">
       <div class="omr-grid-imgcol omr-cut-line"><img src="/omr/atlas-omr-sheet.png" alt="OMR Sheet" /></div>
-      <div class="omr-grid-qcols">${headerBlock}${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div>
+      <div class="omr-grid-qcols-wrap">${headerBlock}<div class="omr-grid-qcols">${page1Qs.map((q, i) => renderQ(q, i + 1)).join("")}</div></div>
     </div></div>`;
 
     let running = PAGE1_COUNT;
