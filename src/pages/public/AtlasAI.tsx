@@ -207,7 +207,11 @@ export async function fetchUserContext(userId: string): Promise<string> {
     examReportRpc,
   ] = await Promise.all([
     safe("profile", () =>
-      supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle()
+      supabase
+        .from("profiles")
+        .select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa, father_name, mother_name, phone, registration_id")
+        .eq("id", userId)
+        .maybeSingle()
     ),
     safe("enrollments", () =>
       supabase.from("enrollments").select("course_id, valid_until, courses(name, slug)").eq("profile_id", userId)
@@ -316,7 +320,11 @@ export async function fetchUserContext(userId: string): Promise<string> {
     lines.push(
       `নাম: ${profile.full_name || "অজানা"}, স্কুল/কলেজ: ${profile.college_name || profile.school || "অজানা"}, HSC ব্যাচ: ${profile.hsc_batch || "অজানা"}${
         profile.ssc_gpa ? `, SSC GPA: ${profile.ssc_gpa}` : ""
-      }${profile.hsc_gpa ? `, HSC GPA: ${profile.hsc_gpa}` : ""}`
+      }${profile.hsc_gpa ? `, HSC GPA: ${profile.hsc_gpa}` : ""}${
+        profile.father_name ? `, বাবার নাম: ${profile.father_name}` : ""
+      }${profile.mother_name ? `, মায়ের নাম: ${profile.mother_name}` : ""}${
+        profile.phone ? `, ফোন: ${profile.phone}` : ""
+      }${profile.registration_id ? `, রেজিস্ট্রেশন আইডি: ${profile.registration_id}` : ""}`
     );
   }
   if (enrollments.length > 0) {
