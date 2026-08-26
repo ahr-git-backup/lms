@@ -200,6 +200,7 @@ export async function fetchUserContext(userId: string): Promise<string> {
     focusRes,
     bookmarksRes,
     classWatchRes,
+    syllabusRes,
     weaknessReport,
     overallReport,
     examReportRpc,
@@ -261,6 +262,9 @@ export async function fetchUserContext(userId: string): Promise<string> {
         .eq("profile_id", userId)
         .order("last_watched_at", { ascending: false })
         .limit(30)
+    ),
+    safe("syllabus_progress", () =>
+      supabase.from("st_user_progress").select("mode, pct, done_topics, total_topics").eq("user_id", userId)
     ),
     safe("weakness_rpc", () => supabase.rpc("get_my_exam_weakness_report" as any)),
     safe("overall_rpc", () => supabase.rpc("get_my_overall_activity_report" as any)),
@@ -370,6 +374,11 @@ export async function fetchUserContext(userId: string): Promise<string> {
   const examReportData = (examReportRpc as any)?.data;
   if (examReportData) {
     lines.push(`প্রতিটা পরীক্ষার বিস্তারিত রিপোর্ট (JSON, দরকার হলে পড়ে ব্যবহার করো): ${JSON.stringify(examReportData).slice(0, 2000)}`);
+  }
+  const syllabusProgress = ((syllabusRes as any)?.data as any[]) || [];
+  if (syllabusProgress.length > 0) {
+    const s = syllabusProgress.map((s) => `${s.mode}: ${s.done_topics}/${s.total_topics} টপিক শেষ (${s.pct}%)`).join(", ");
+    lines.push(`সিলেবাস অগ্রগতি: ${s}`);
   }
 
   return lines.join("\n");
