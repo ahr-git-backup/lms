@@ -201,6 +201,7 @@ export async function fetchUserContext(userId: string): Promise<string> {
     bookmarksRes,
     classWatchRes,
     syllabusRes,
+    allCoursesRes,
     weaknessReport,
     overallReport,
     examReportRpc,
@@ -209,7 +210,7 @@ export async function fetchUserContext(userId: string): Promise<string> {
       supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle()
     ),
     safe("enrollments", () =>
-      supabase.from("enrollments").select("course_id, valid_until, courses(name)").eq("profile_id", userId)
+      supabase.from("enrollments").select("course_id, valid_until, courses(name, slug)").eq("profile_id", userId)
     ),
     safe("payments", () =>
       supabase
@@ -266,6 +267,9 @@ export async function fetchUserContext(userId: string): Promise<string> {
     safe("syllabus_progress", () =>
       supabase.from("st_user_progress").select("mode, pct, done_topics, total_topics").eq("user_id", userId)
     ),
+    safe("all_courses", () =>
+      supabase.from("courses").select("name, slug, id").eq("is_active", true).eq("is_public", true).limit(100)
+    ),
     safe("weakness_rpc", () => supabase.rpc("get_my_exam_weakness_report" as any)),
     safe("overall_rpc", () => supabase.rpc("get_my_overall_activity_report" as any)),
     safe("exam_report_rpc", () => supabase.rpc("get_my_exam_report" as any)),
@@ -316,7 +320,10 @@ export async function fetchUserContext(userId: string): Promise<string> {
     );
   }
   if (enrollments.length > 0) {
-    lines.push(`ভর্তি থাকা কোর্স: ${enrollments.map((e) => e.courses?.name).filter(Boolean).join(", ")}`);
+    const courseList = enrollments
+      .map((e) => `${e.courses?.name || "কোর্স"} (dashboard লিংক: https://asedu.pages.dev/dashboard/course/${e.course_id}, পাবলিক পেজ: https://asedu.pages.dev/courses/${e.courses?.slug || e.course_id})`)
+      .join("; ");
+    lines.push(`ভর্তি থাকা কোর্স ও লিংক: ${courseList}`);
   }
   if (payments.length > 0) {
     const p = payments
@@ -379,6 +386,11 @@ export async function fetchUserContext(userId: string): Promise<string> {
   if (syllabusProgress.length > 0) {
     const s = syllabusProgress.map((s) => `${s.mode}: ${s.done_topics}/${s.total_topics} টপিক শেষ (${s.pct}%)`).join(", ");
     lines.push(`সিলেবাস অগ্রগতি: ${s}`);
+  }
+  const allCourses = ((allCoursesRes as any)?.data as any[]) || [];
+  if (allCourses.length > 0) {
+    const c = allCourses.map((c) => `${c.name} → https://asedu.pages.dev/courses/${c.slug || c.id}`).join("; ");
+    lines.push(`সাইটের সব কোর্স ও তাদের সরাসরি লিংক (ইউজার এনরোল না থাকলেও কোনো কোর্সের লিংক চাইলে এখান থেকে ফুল লিংক দাও): ${c}`);
   }
 
   return lines.join("\n");
