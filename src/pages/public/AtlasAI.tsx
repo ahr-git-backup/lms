@@ -173,91 +173,183 @@ function detectSubject(qRaw: string) {
   return "general";
 }
 
-// ── User context: profile + courses + exam history + routine + bookmarks +
-// weakness, fetched fresh each session and folded into the system prompt so
-// ATLAS AI can answer personal questions ("আমার রেজাল্ট কেমন", "আমার কোন
-// কোর্স আছে", "আমার রুটিন কী", "আমি কোন চ্যাপ্টারে দুর্বল") without the user
-// re-typing it. Best-effort: any failure here must never block the chat.
+// ── User context: profile, courses, payments, exam/mock/quick-practice
+// history, focus study-time, routines, bookmarks, and weakness — everything
+// the website tracks about the logged-in student — fetched fresh each
+// session and folded into the system prompt so ATLAS AI can answer ANY
+// personal question about the student's own data. Best-effort: any single
+// failed fetch is dropped silently and must never block the chat.
 export async function fetchUserContext(userId: string): Promise<string> {
-  try {
-    const [profileRes, enrollRes, attemptsRes, bookmarksRes] = await Promise.all([
-      supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle(),
-      supabase.from("enrollments").select("course_id, valid_until, courses(name)").eq("profile_id", userId),
+  const lines: string[] = [];
+
+  const safe = async <T,>(label: string, fn: () => Promise<T>): Promise<T | null> => {
+    try {
+      return await fn();
+    } catch {
+      return null;
+    }
+  };
+
+  const [
+    profileRes,
+    enrollRes,
+    paymentsRes,
+    attemptsRes,
+    mockAttemptsRes,
+    qpAttemptsRes,
+    focusRes,
+    bookmarksRes,
+    weaknessReport,
+    overallReport,
+  ] = await Promise.all([
+    safe("profile", () =>
+      supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle()
+    ),
+    safe("enrollments", () =>
+      supabase.from("enrollments").select("course_id, valid_until, courses(name)").eq("profile_id", userId)
+    ),
+    safe("payments", () =>
+      supabase
+        .from("payment_requests")
+        .select("status, payment_method, created_at, courses(name)")
+        .eq("profile_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10)
+    ),
+    safe("exam_attempts", () =>
       supabase
         .from("exam_attempts")
         .select("score, total_marks, submitted_at, exam:exams(title, exam_type)")
         .eq("profile_id", userId)
         .not("submitted_at", "is", null)
         .order("submitted_at", { ascending: false })
-        .limit(15),
+        .limit(15)
+    ),
+    safe("mock_exam_attempts", () =>
+      supabase
+        .from("mock_exam_attempts")
+        .select("score, total_marks, submitted_at, mock_exams(title)")
+        .eq("user_id", userId)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false })
+        .limit(10)
+    ),
+    safe("qp_attempts", () =>
+      supabase
+        .from("qp_attempts")
+        .select("mode, total_questions, correct_count, points_earned, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10)
+    ),
+    safe("focus_sessions", () =>
+      supabase.from("focus_sessions").select("mood, duration_seconds, started_at").eq("user_id", userId).eq("mood", "study")
+    ),
+    safe("bookmarks", () =>
       supabase
         .from("bookmarks")
         .select("question:exam_questions(exam:exams(subject, chapter))")
         .eq("profile_id", userId)
-        .limit(50),
-    ]);
+        .limit(50)
+    ),
+    safe("weakness_rpc", () => supabase.rpc("get_my_exam_weakness_report" as any)),
+    safe("overall_rpc", () => supabase.rpc("get_my_overall_activity_report" as any)),
+  ]);
 
-    const profile = profileRes.data as any;
-    const enrollments = (enrollRes.data as any[]) || [];
-    const attempts = (attemptsRes.data as any[]) || [];
-    const bookmarks = (bookmarksRes.data as any[]) || [];
+  const profile = (profileRes as any)?.data;
+  const enrollments = ((enrollRes as any)?.data as any[]) || [];
+  const payments = ((paymentsRes as any)?.data as any[]) || [];
+  const attempts = ((attemptsRes as any)?.data as any[]) || [];
+  const mockAttempts = ((mockAttemptsRes as any)?.data as any[]) || [];
+  const qpAttempts = ((qpAttemptsRes as any)?.data as any[]) || [];
+  const focusSessions = ((focusRes as any)?.data as any[]) || [];
+  const bookmarks = ((bookmarksRes as any)?.data as any[]) || [];
 
-    const courseIds = enrollments.map((e) => e.course_id).filter(Boolean);
-    let routineLines: string[] = [];
-    if (courseIds.length > 0) {
-      const { data: routines } = await supabase
+  const courseIds = enrollments.map((e) => e.course_id).filter(Boolean);
+  let routineLines: string[] = [];
+  if (courseIds.length > 0) {
+    const routinesRes = await safe("routines", () =>
+      supabase
         .from("routines")
         .select("title, content, course_id, is_visible")
         .in("course_id", courseIds)
         .eq("is_visible", true)
         .order("created_at", { ascending: false })
-        .limit(10);
-      routineLines = ((routines as any[]) || []).map((r) => `${r.title}${r.content ? `: ${r.content}` : ""}`);
-    }
-
-    const weaknessBySubject: Record<string, { wrong: number; total: number }> = {};
-    for (const b of bookmarks) {
-      const subjArr: string[] = b.question?.exam?.subject || [];
-      const subj = subjArr[0] || b.question?.exam?.chapter;
-      if (!subj) continue;
-      weaknessBySubject[subj] = weaknessBySubject[subj] || { wrong: 0, total: 0 };
-      weaknessBySubject[subj].wrong += 1;
-    }
-    const weaknessLines = Object.entries(weaknessBySubject)
-      .sort((a, b) => b[1].wrong - a[1].wrong)
-      .slice(0, 5)
-      .map(([subj, v]) => `${subj} (${v.wrong}টা প্রশ্ন বুকমার্ক করা আছে, মানে এখানে বেশি সময় দরকার)`);
-
-    const lines: string[] = [];
-    if (profile) {
-      lines.push(
-        `নাম: ${profile.full_name || "অজানা"}, স্কুল/কলেজ: ${profile.college_name || profile.school || "অজানা"}, HSC ব্যাচ: ${profile.hsc_batch || "অজানা"}${
-          profile.ssc_gpa ? `, SSC GPA: ${profile.ssc_gpa}` : ""
-        }${profile.hsc_gpa ? `, HSC GPA: ${profile.hsc_gpa}` : ""}`
-      );
-    }
-    if (enrollments.length > 0) {
-      lines.push(`ভর্তি থাকা কোর্স: ${enrollments.map((e) => e.courses?.name).filter(Boolean).join(", ")}`);
-    }
-    if (attempts.length > 0) {
-      const recent = attempts
-        .slice(0, 5)
-        .map((a) => `${a.exam?.title || "একটা পরীক্ষা"}: ${a.score ?? "?"}/${a.total_marks ?? "?"}`)
-        .join("; ");
-      lines.push(`সাম্প্রতিক পরীক্ষার ফলাফল: ${recent}`);
-    }
-    if (routineLines.length > 0) {
-      lines.push(`রুটিন/নোটিশ: ${routineLines.join(" | ")}`);
-    }
-    if (weaknessLines.length > 0) {
-      lines.push(`দুর্বলতার ইঙ্গিত (বেশি বুকমার্ক করা বিষয়): ${weaknessLines.join(", ")}`);
-    }
-
-    return lines.join("\n");
-  } catch {
-    // Never let a personalization fetch break the chat.
-    return "";
+        .limit(10)
+    );
+    routineLines = (((routinesRes as any)?.data as any[]) || []).map((r) => `${r.title}${r.content ? `: ${r.content}` : ""}`);
   }
+
+  const weaknessBySubject: Record<string, { wrong: number }> = {};
+  for (const b of bookmarks) {
+    const subjArr: string[] = b.question?.exam?.subject || [];
+    const subj = subjArr[0] || b.question?.exam?.chapter;
+    if (!subj) continue;
+    weaknessBySubject[subj] = weaknessBySubject[subj] || { wrong: 0 };
+    weaknessBySubject[subj].wrong += 1;
+  }
+  const weaknessLines = Object.entries(weaknessBySubject)
+    .sort((a, b) => b[1].wrong - a[1].wrong)
+    .slice(0, 5)
+    .map(([subj, v]) => `${subj} (${v.wrong}টা প্রশ্ন বুকমার্ক করা আছে, মানে এখানে বেশি সময় দরকার)`);
+
+  if (profile) {
+    lines.push(
+      `নাম: ${profile.full_name || "অজানা"}, স্কুল/কলেজ: ${profile.college_name || profile.school || "অজানা"}, HSC ব্যাচ: ${profile.hsc_batch || "অজানা"}${
+        profile.ssc_gpa ? `, SSC GPA: ${profile.ssc_gpa}` : ""
+      }${profile.hsc_gpa ? `, HSC GPA: ${profile.hsc_gpa}` : ""}`
+    );
+  }
+  if (enrollments.length > 0) {
+    lines.push(`ভর্তি থাকা কোর্স: ${enrollments.map((e) => e.courses?.name).filter(Boolean).join(", ")}`);
+  }
+  if (payments.length > 0) {
+    const p = payments
+      .slice(0, 5)
+      .map((p) => `${p.courses?.name || "কোর্স"} (${p.payment_method}, ${p.status})`)
+      .join("; ");
+    lines.push(`পেমেন্ট হিস্টোরি: ${p}`);
+  }
+  if (attempts.length > 0) {
+    const recent = attempts
+      .slice(0, 5)
+      .map((a) => `${a.exam?.title || "একটা পরীক্ষা"}: ${a.score ?? "?"}/${a.total_marks ?? "?"}`)
+      .join("; ");
+    lines.push(`সাম্প্রতিক পরীক্ষার ফলাফল: ${recent}`);
+  }
+  if (mockAttempts.length > 0) {
+    const m = mockAttempts
+      .slice(0, 5)
+      .map((a) => `${a.mock_exams?.title || "মক টেস্ট"}: ${a.score ?? "?"}/${a.total_marks ?? "?"}`)
+      .join("; ");
+    lines.push(`মক টেস্টের ফলাফল: ${m}`);
+  }
+  if (qpAttempts.length > 0) {
+    const totalCorrect = qpAttempts.reduce((s, a) => s + (a.correct_count || 0), 0);
+    const totalQ = qpAttempts.reduce((s, a) => s + (a.total_questions || 0), 0);
+    lines.push(`Quick Practice: সম্প্রতি ${qpAttempts.length}টা সেশন, মোট ${totalQ}টার মধ্যে ${totalCorrect}টা সঠিক`);
+  }
+  if (focusSessions.length > 0) {
+    const totalSeconds = focusSessions.reduce((s, f) => s + (f.duration_seconds || 0), 0);
+    const totalHours = (totalSeconds / 3600).toFixed(1);
+    lines.push(`মোট Focus/Study সময়: ${totalHours} ঘণ্টা (${focusSessions.length}টা সেশনে)`);
+  }
+  if (routineLines.length > 0) {
+    lines.push(`রুটিন/নোটিশ: ${routineLines.join(" | ")}`);
+  }
+  if (weaknessLines.length > 0) {
+    lines.push(`দুর্বলতার ইঙ্গিত (বেশি বুকমার্ক করা বিষয়): ${weaknessLines.join(", ")}`);
+  }
+  const weaknessData = (weaknessReport as any)?.data;
+  if (weaknessData) {
+    lines.push(`বিস্তারিত দুর্বলতা রিপোর্ট (JSON, দরকার হলে পড়ে ব্যবহার করো): ${JSON.stringify(weaknessData).slice(0, 2000)}`);
+  }
+  const overallData = (overallReport as any)?.data;
+  if (overallData) {
+    lines.push(`সার্বিক পারফরম্যান্স/rank ডেটা (JSON): ${JSON.stringify(overallData).slice(0, 1500)}`);
+  }
+
+  return lines.join("\n");
 }
 
 
