@@ -199,8 +199,10 @@ export async function fetchUserContext(userId: string): Promise<string> {
     qpAttemptsRes,
     focusRes,
     bookmarksRes,
+    classWatchRes,
     weaknessReport,
     overallReport,
+    examReportRpc,
   ] = await Promise.all([
     safe("profile", () =>
       supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle()
@@ -252,8 +254,17 @@ export async function fetchUserContext(userId: string): Promise<string> {
         .eq("profile_id", userId)
         .limit(50)
     ),
+    safe("class_watch", () =>
+      supabase
+        .from("class_watch_sessions")
+        .select("watched_seconds, category, classes(title, subject, chapter)")
+        .eq("profile_id", userId)
+        .order("last_watched_at", { ascending: false })
+        .limit(30)
+    ),
     safe("weakness_rpc", () => supabase.rpc("get_my_exam_weakness_report" as any)),
     safe("overall_rpc", () => supabase.rpc("get_my_overall_activity_report" as any)),
+    safe("exam_report_rpc", () => supabase.rpc("get_my_exam_report" as any)),
   ]);
 
   const profile = (profileRes as any)?.data;
@@ -348,6 +359,18 @@ export async function fetchUserContext(userId: string): Promise<string> {
   if (overallData) {
     lines.push(`সার্বিক পারফরম্যান্স/rank ডেটা (JSON): ${JSON.stringify(overallData).slice(0, 1500)}`);
   }
+  const classWatch = ((classWatchRes as any)?.data as any[]) || [];
+  if (classWatch.length > 0) {
+    const byClass = classWatch
+      .slice(0, 10)
+      .map((c) => `${c.classes?.title || "একটা ক্লাস"} (${Math.round((c.watched_seconds || 0) / 60)} মিনিট দেখেছে, ${c.category})`)
+      .join("; ");
+    lines.push(`সাম্প্রতিক দেখা ক্লাস: ${byClass}`);
+  }
+  const examReportData = (examReportRpc as any)?.data;
+  if (examReportData) {
+    lines.push(`প্রতিটা পরীক্ষার বিস্তারিত রিপোর্ট (JSON, দরকার হলে পড়ে ব্যবহার করো): ${JSON.stringify(examReportData).slice(0, 2000)}`);
+  }
 
   return lines.join("\n");
 }
@@ -418,7 +441,7 @@ export function getSystemPrompt(question: string, userMemoryNote?: string, userC
 - তিনি MBBS ৪র্থ বর্ষের ছাত্র, Sylhet MAG Osmani Medical College-এ পড়াশোনা করছেন।
 - ইউজার যদি "তোমাকে কে বানিয়েছে", "ডেভেলপার কে", "মালিক/এডমিন কে" এই ধরনের প্রশ্ন করে, স্পষ্টভাবে উপরের তথ্য দিয়ে উত্তর দিবে, ঘুরিয়ে-প্যাঁচিয়ে বা অস্বীকার করে বলবে না।
 ${userMemoryNote ? `\nএই ইউজার সম্পর্কে আগের কথোপকথন থেকে যা জানা গেছে (habit/পছন্দ বুঝতে ব্যবহার করবে, সরাসরি উল্লেখ করবে না):\n${userMemoryNote}\n` : ""}
-${userContext ? `\nইউজারের প্রোফাইল/কোর্স/পরীক্ষা/রুটিন ডেটা (ইউজার নিজের ব্যাপারে প্রশ্ন করলে এইটা দিয়ে সরাসরি উত্তর দাও, অন্য কারো ডেটা মনে করে ভুল বলবে না):\n${userContext}\n` : ""}
+${userContext ? `\nইউজারের প্রোফাইল/কোর্স/পেমেন্ট/সব পরীক্ষা(regular+mock+quick practice)/ক্লাস দেখার হিস্টোরি/রুটিন/দুর্বলতা ডেটা (ইউজার নিজের ব্যাপারে প্রশ্ন করলে এইটা বিশ্লেষণ করে সরাসরি উত্তর দাও — যেমন "আমার কোন সাবজেক্টে দুর্বলতা বেশি", "আমি কোন ক্লাস মিস করেছি", "আমার rank/percentile ট্রেন্ড কেমন" — JSON অংশগুলো পড়ে দরকারি সংখ্যা/প্যাটার্ন বের করে সহজ বাংলায় বলবে, raw JSON কখনো দেখাবে না, অন্য কারো ডেটা মনে করে ভুল বলবে না):\n${userContext}\n` : ""}
 
 গাণিতিক/রাসায়নিক সূত্র লেখার নিয়ম (কঠোরভাবে মানতে হবে):
 - কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
