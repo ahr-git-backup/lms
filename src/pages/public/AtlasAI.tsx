@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const AI_PROXY_URL = "https://atlas-ai-proxy.hamza818483.workers.dev/";
 
@@ -171,7 +173,95 @@ function detectSubject(qRaw: string) {
   return "general";
 }
 
-export function getSystemPrompt(question: string, userMemoryNote?: string) {
+// ── User context: profile + courses + exam history + routine + bookmarks +
+// weakness, fetched fresh each session and folded into the system prompt so
+// ATLAS AI can answer personal questions ("আমার রেজাল্ট কেমন", "আমার কোন
+// কোর্স আছে", "আমার রুটিন কী", "আমি কোন চ্যাপ্টারে দুর্বল") without the user
+// re-typing it. Best-effort: any failure here must never block the chat.
+export async function fetchUserContext(userId: string): Promise<string> {
+  try {
+    const [profileRes, enrollRes, attemptsRes, bookmarksRes] = await Promise.all([
+      supabase.from("profiles").select("full_name, school, hsc_batch, college_name, batch_year, ssc_gpa, hsc_gpa").eq("id", userId).maybeSingle(),
+      supabase.from("enrollments").select("course_id, valid_until, courses(name)").eq("profile_id", userId),
+      supabase
+        .from("exam_attempts")
+        .select("score, total_marks, submitted_at, exam:exams(title, exam_type)")
+        .eq("profile_id", userId)
+        .not("submitted_at", "is", null)
+        .order("submitted_at", { ascending: false })
+        .limit(15),
+      supabase
+        .from("bookmarks")
+        .select("question:exam_questions(exam:exams(subject, chapter))")
+        .eq("profile_id", userId)
+        .limit(50),
+    ]);
+
+    const profile = profileRes.data as any;
+    const enrollments = (enrollRes.data as any[]) || [];
+    const attempts = (attemptsRes.data as any[]) || [];
+    const bookmarks = (bookmarksRes.data as any[]) || [];
+
+    const courseIds = enrollments.map((e) => e.course_id).filter(Boolean);
+    let routineLines: string[] = [];
+    if (courseIds.length > 0) {
+      const { data: routines } = await supabase
+        .from("routines")
+        .select("title, content, course_id, is_visible")
+        .in("course_id", courseIds)
+        .eq("is_visible", true)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      routineLines = ((routines as any[]) || []).map((r) => `${r.title}${r.content ? `: ${r.content}` : ""}`);
+    }
+
+    const weaknessBySubject: Record<string, { wrong: number; total: number }> = {};
+    for (const b of bookmarks) {
+      const subjArr: string[] = b.question?.exam?.subject || [];
+      const subj = subjArr[0] || b.question?.exam?.chapter;
+      if (!subj) continue;
+      weaknessBySubject[subj] = weaknessBySubject[subj] || { wrong: 0, total: 0 };
+      weaknessBySubject[subj].wrong += 1;
+    }
+    const weaknessLines = Object.entries(weaknessBySubject)
+      .sort((a, b) => b[1].wrong - a[1].wrong)
+      .slice(0, 5)
+      .map(([subj, v]) => `${subj} (${v.wrong}টা প্রশ্ন বুকমার্ক করা আছে, মানে এখানে বেশি সময় দরকার)`);
+
+    const lines: string[] = [];
+    if (profile) {
+      lines.push(
+        `নাম: ${profile.full_name || "অজানা"}, স্কুল/কলেজ: ${profile.college_name || profile.school || "অজানা"}, HSC ব্যাচ: ${profile.hsc_batch || "অজানা"}${
+          profile.ssc_gpa ? `, SSC GPA: ${profile.ssc_gpa}` : ""
+        }${profile.hsc_gpa ? `, HSC GPA: ${profile.hsc_gpa}` : ""}`
+      );
+    }
+    if (enrollments.length > 0) {
+      lines.push(`ভর্তি থাকা কোর্স: ${enrollments.map((e) => e.courses?.name).filter(Boolean).join(", ")}`);
+    }
+    if (attempts.length > 0) {
+      const recent = attempts
+        .slice(0, 5)
+        .map((a) => `${a.exam?.title || "একটা পরীক্ষা"}: ${a.score ?? "?"}/${a.total_marks ?? "?"}`)
+        .join("; ");
+      lines.push(`সাম্প্রতিক পরীক্ষার ফলাফল: ${recent}`);
+    }
+    if (routineLines.length > 0) {
+      lines.push(`রুটিন/নোটিশ: ${routineLines.join(" | ")}`);
+    }
+    if (weaknessLines.length > 0) {
+      lines.push(`দুর্বলতার ইঙ্গিত (বেশি বুকমার্ক করা বিষয়): ${weaknessLines.join(", ")}`);
+    }
+
+    return lines.join("\n");
+  } catch {
+    // Never let a personalization fetch break the chat.
+    return "";
+  }
+}
+
+
+export function getSystemPrompt(question: string, userMemoryNote?: string, userContext?: string) {
   const subj = detectSubject(question);
   const isMCQ =
     /\(ক\)|\(খ\)|\(গ\)|\(ঘ\)|ক\)|খ\)|গ\)|ঘ\)|A\)|B\)|C\)|D\)|[Aa][.)]|[Bb][.)]|[Cc][.)]|[Dd][.)]/.test(
@@ -236,6 +326,7 @@ export function getSystemPrompt(question: string, userMemoryNote?: string) {
 - তিনি MBBS ৪র্থ বর্ষের ছাত্র, Sylhet MAG Osmani Medical College-এ পড়াশোনা করছেন।
 - ইউজার যদি "তোমাকে কে বানিয়েছে", "ডেভেলপার কে", "মালিক/এডমিন কে" এই ধরনের প্রশ্ন করে, স্পষ্টভাবে উপরের তথ্য দিয়ে উত্তর দিবে, ঘুরিয়ে-প্যাঁচিয়ে বা অস্বীকার করে বলবে না।
 ${userMemoryNote ? `\nএই ইউজার সম্পর্কে আগের কথোপকথন থেকে যা জানা গেছে (habit/পছন্দ বুঝতে ব্যবহার করবে, সরাসরি উল্লেখ করবে না):\n${userMemoryNote}\n` : ""}
+${userContext ? `\nইউজারের প্রোফাইল/কোর্স/পরীক্ষা/রুটিন ডেটা (ইউজার নিজের ব্যাপারে প্রশ্ন করলে এইটা দিয়ে সরাসরি উত্তর দাও, অন্য কারো ডেটা মনে করে ভুল বলবে না):\n${userContext}\n` : ""}
 
 গাণিতিক/রাসায়নিক সূত্র লেখার নিয়ম (কঠোরভাবে মানতে হবে):
 - কখনো LaTeX সিনট্যাক্স ব্যবহার করবে না — যেমন \\frac, \\rightarrow, \\times, $...$, \\(...\\), ^{...}, _{...} এসব একদমই লিখবে না।
@@ -639,6 +730,7 @@ export function renderAnswer(rawText: string) {
 
 const AtlasAI = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -647,6 +739,7 @@ const AtlasAI = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [userContext, setUserContext] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -654,6 +747,14 @@ const AtlasAI = () => {
   useEffect(() => {
     document.title = "ATLAS AI";
   }, []);
+
+  // Logged-in student হলে profile/course/exam/routine/bookmark data ফেচ করে
+  // system prompt-এ জোগ করার জন্য রেখে দেওয়া হয় — চ্যাট শুরুর আগেই একবার।
+  useEffect(() => {
+    if (!user) { setUserContext(""); return; }
+    fetchUserContext(user.id).then(setUserContext);
+  }, [user]);
+
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -764,7 +865,7 @@ const AtlasAI = () => {
     const answer = await askAI(
       questionWithContext,
       imgToSend,
-      getSystemPrompt(question || "ছবি বিশ্লেষণ করো", userMemoryNote || undefined)
+      getSystemPrompt(question || "ছবি বিশ্লেষণ করো", userMemoryNote || undefined, userContext || undefined)
     );
     setMessages((m) => {
       const next = [...m, { role: "assistant" as const, text: answer }];
