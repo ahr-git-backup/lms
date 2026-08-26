@@ -178,7 +178,7 @@ const TakeExam = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
-      const { data } = await supabase.from("bookmarks").select("question_id").eq("user_id", user.id);
+      const { data } = await supabase.from("bookmarks").select("question_id").eq("profile_id", user.id);
       if (data) setBookmarkedIds(new Set(data.map((b: any) => b.question_id)));
     })();
   }, [user]);
@@ -192,9 +192,9 @@ const TakeExam = () => {
       return next;
     });
     if (isBookmarked) {
-      await supabase.from("bookmarks").delete().eq("user_id", user.id).eq("question_id", questionId);
+      await supabase.from("bookmarks").delete().eq("profile_id", user.id).eq("question_id", questionId);
     } else {
-      await supabase.from("bookmarks").insert({ user_id: user.id, question_id: questionId });
+      await supabase.from("bookmarks").insert({ profile_id: user.id, question_id: questionId });
     }
   };
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
