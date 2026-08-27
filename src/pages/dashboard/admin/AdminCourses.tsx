@@ -107,6 +107,7 @@ const AdminCourses = () => {
   const [couponCode, setCouponCode] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
   const [listStatusFilter, setListStatusFilter] = useState<"active" | "inactive" | "hidden">("active");
+  const [listCategoryFilter, setListCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -131,7 +132,7 @@ const AdminCourses = () => {
   }, []);
 
   const { data: coursesData, isLoading } = useQuery({
-    queryKey: ["admin-courses", page, debouncedSearch, listStatusFilter],
+    queryKey: ["admin-courses", page, debouncedSearch, listStatusFilter, listCategoryFilter],
     queryFn: async () => {
       let query = (supabase as any)
         .from("courses")
@@ -148,6 +149,10 @@ const AdminCourses = () => {
 
       if (debouncedSearch) {
           query = query.ilike("name", `%${debouncedSearch}%`);
+      }
+
+      if (listCategoryFilter !== "all") {
+          query = query.contains("category", [listCategoryFilter]);
       }
 
       const { data, error, count } = await query
@@ -954,6 +959,30 @@ const AdminCourses = () => {
                 <TabsTrigger value="hidden">Hidden</TabsTrigger>
             </TabsList>
         </Tabs>
+
+        {tagsData?.cats && tagsData.cats.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={listCategoryFilter === "all" ? "default" : "outline"}
+              onClick={() => { setListCategoryFilter("all"); setPage(0); }}
+            >
+              সব ক্যাটাগরি
+            </Button>
+            {tagsData.cats.map((cat) => (
+              <Button
+                key={cat}
+                type="button"
+                size="sm"
+                variant={listCategoryFilter === cat ? "default" : "outline"}
+                onClick={() => { setListCategoryFilter(cat); setPage(0); }}
+              >
+                {cat}
+              </Button>
+            ))}
+          </div>
+        )}
 
         {isLoading ? (
             <div className="text-sm text-muted-foreground">Loading courses...</div>
