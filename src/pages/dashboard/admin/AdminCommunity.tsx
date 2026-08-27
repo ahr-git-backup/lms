@@ -38,13 +38,15 @@ const AdminCommunity = () => {
             let query = supabase
                 .from("resources")
                 .select("*, course:courses(name)", { count: 'exact' })
-                .eq("resource_type", "Link") // Focus on Links
-                .order("created_at", { ascending: false })
-                .range(page * 10, (page + 1) * 10 - 1);
+                .eq("resource_type", "Link"); // Focus on Links
 
             if (selectedCourse !== "all") {
                 query = query.or(`course_id.eq.${selectedCourse},shared_course_ids.cs.{${selectedCourse}}`);
             }
+
+            query = query
+                .order("created_at", { ascending: false })
+                .range(page * 10, (page + 1) * 10 - 1);
 
             const { data, count, error } = await query;
             if (error) throw error;
