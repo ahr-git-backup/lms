@@ -1078,6 +1078,7 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
   const [pDeadline, setPDeadline] = useState("");
   const [pUsageLimit, setPUsageLimit] = useState("");
   const [pActive, setPActive] = useState(true);
+  const [pBannerText, setPBannerText] = useState("");
 
   const { data: promos, isLoading } = useQuery({
     queryKey: ["course-promo-codes", courseId],
@@ -1100,6 +1101,7 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
     setPDeadline("");
     setPUsageLimit("");
     setPActive(true);
+    setPBannerText("");
   };
 
   const startEdit = (promo: any) => {
@@ -1110,6 +1112,7 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
     setPDeadline(promo.special_discount_deadline ? promo.special_discount_deadline.slice(0, 16) : "");
     setPUsageLimit(promo.usage_limit != null ? String(promo.usage_limit) : "");
     setPActive(promo.is_active ?? true);
+    setPBannerText(promo.special_discount_text || "");
   };
 
   const upsertPromo = useMutation({
@@ -1123,6 +1126,7 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
         special_discount_deadline: pDeadline ? new Date(pDeadline).toISOString() : null,
         usage_limit: pUsageLimit ? Number(pUsageLimit) : null,
         is_active: pActive,
+        special_discount_text: pBannerText.trim() || null,
       };
       if (editingPromoId) {
         const { error } = await (supabase as any).from("promo_codes").update(payload).eq("id", editingPromoId);
@@ -1195,6 +1199,11 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
             <Switch checked={pActive} onCheckedChange={setPActive} />
             <Label>সক্রিয়</Label>
           </div>
+          <div className="sm:col-span-2 space-y-2 border-t pt-4 mt-2">
+            <Label>ডিসকাউন্ট ব্যানার টেক্সট (ঐচ্ছিক)</Label>
+            <p className="text-xs text-muted-foreground">সেট করলে এই টেক্সট কোর্স ডিটেইলস পেজে প্রোমোশনাল ব্যানার হিসেবে দেখাবে (উপরের Deadline countdown সহ)।</p>
+            <Input value={pBannerText} onChange={(e) => setPBannerText(e.target.value)} placeholder="যেমন: 🎉 বিশেষ ৫০% ছাড়! কোড ব্যবহার করুন SUMMER24" />
+          </div>
           <div className="sm:col-span-2 flex gap-2">
             <Button
               type="button"
@@ -1224,6 +1233,9 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
                   {promo.usage_limit != null ? ` • সীমা: ${promo.used_count ?? 0}/${promo.usage_limit}` : ""}
                   {!promo.is_active ? " • নিষ্ক্রিয়" : ""}
                 </span>
+                {promo.special_discount_text && (
+                  <span className="text-xs text-primary mt-0.5">ব্যানার: {promo.special_discount_text}</span>
+                )}
               </div>
               <div className="flex gap-2">
                 <Button size="icon" variant="outline" onClick={() => startEdit(promo)}><Edit2 className="h-4 w-4" /></Button>
