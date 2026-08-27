@@ -523,6 +523,9 @@ const AdminCourses = () => {
                     <TabsTrigger value="description" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Description</TabsTrigger>
                     <TabsTrigger value="content" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Curriculum Info</TabsTrigger>
                     <TabsTrigger value="demos" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Demo Content</TabsTrigger>
+                    {form.id && (
+                      <TabsTrigger value="promo" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Promo Code</TabsTrigger>
+                    )}
                   </TabsList>
               </div>
 
@@ -901,6 +904,12 @@ const AdminCourses = () => {
                         ))}
                     </div>
                 </TabsContent>
+
+                {form.id && (
+                  <TabsContent value="promo" className="mt-0 space-y-4">
+                    <CoursePromoCodesPanel courseId={form.id} courseName={form.name} />
+                  </TabsContent>
+                )}
               </div>
 
               <div className="flex items-center gap-4 pt-6 mt-6 border-t">
@@ -1054,5 +1063,178 @@ const AdminCourses = () => {
     </section>
   );
 };
+
+// ── Per-course Promo Code panel: lets an admin manage promo codes scoped to
+// THIS course directly from inside the course edit form, without needing to
+// go to the separate global Promo Codes page. Reuses the same promo_codes
+// table (course_ids text[] column), just pre-filtered/pre-filled to this course.
+function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; courseName?: string }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingPromoId, setEditingPromoId] = useState<string | null>(null);
+  const [pCode, setPCode] = useState("");
+  const [pType, setPType] = useState<"flat" | "percentage">("percentage");
+  const [pAmount, setPAmount] = useState("");
+  const [pDeadline, setPDeadline] = useState("");
+  const [pUsageLimit, setPUsageLimit] = useState("");
+  const [pActive, setPActive] = useState(true);
+
+  const { data: promos, isLoading } = useQuery({
+    queryKey: ["course-promo-codes", courseId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("promo_codes")
+        .select("*")
+        .or(`course_id.eq.${courseId},course_ids.cs.{${courseId}}`)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const resetForm = () => {
+    setEditingPromoId(null);
+    setPCode("");
+    setPType("percentage");
+    setPAmount("");
+    setPDeadline("");
+    setPUsageLimit("");
+    setPActive(true);
+  };
+
+  const startEdit = (promo: any) => {
+    setEditingPromoId(promo.id);
+    setPCode(promo.code || "");
+    setPType(promo.discount_type || "percentage");
+    setPAmount(String(promo.discount_amount ?? ""));
+    setPDeadline(promo.special_discount_deadline ? promo.special_discount_deadline.slice(0, 16) : "");
+    setPUsageLimit(promo.usage_limit != null ? String(promo.usage_limit) : "");
+    setPActive(promo.is_active ?? true);
+  };
+
+  const upsertPromo = useMutation({
+    mutationFn: async () => {
+      const payload: any = {
+        code: pCode.trim().toUpperCase(),
+        discount_type: pType,
+        discount_amount: Number(pAmount) || 0,
+        course_id: courseId,
+        course_ids: [courseId],
+        special_discount_deadline: pDeadline ? new Date(pDeadline).toISOString() : null,
+        usage_limit: pUsageLimit ? Number(pUsageLimit) : null,
+        is_active: pActive,
+      };
+      if (editingPromoId) {
+        const { error } = await (supabase as any).from("promo_codes").update(payload).eq("id", editingPromoId);
+        if (error) throw error;
+      } else {
+        const { error } = await (supabase as any).from("promo_codes").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: editingPromoId ? "প্রোমো কোড আপডেট হয়েছে" : "প্রোমো কোড তৈরি হয়েছে" });
+      queryClient.invalidateQueries({ queryKey: ["course-promo-codes", courseId] });
+      resetForm();
+    },
+    onError: (error: any) => {
+      const isDuplicateCode = error?.message?.includes("promo_codes_code_key") || error?.code === "23505";
+      toast({
+        title: "Error",
+        description: isDuplicateCode ? "এই কোড আগে থেকেই ব্যবহৃত হয়েছে — অন্য একটা কোড লিখুন।" : error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deletePromo = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("promo_codes").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "প্রোমো কোড মুছে ফেলা হয়েছে" });
+      queryClient.invalidateQueries({ queryKey: ["course-promo-codes", courseId] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">{courseName ? `"${courseName}"-এর প্রোমো কোড` : "প্রোমো কোড"}</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 border rounded-lg">
+          <div className="space-y-2">
+            <Label>কোড</Label>
+            <Input value={pCode} onChange={(e) => setPCode(e.target.value.toUpperCase())} placeholder="EX: SAVE20" />
+          </div>
+          <div className="space-y-2">
+            <Label>ধরন</Label>
+            <div className="flex gap-2">
+              <Button type="button" size="sm" variant={pType === "percentage" ? "default" : "outline"} onClick={() => setPType("percentage")}>%</Button>
+              <Button type="button" size="sm" variant={pType === "flat" ? "default" : "outline"} onClick={() => setPType("flat")}>৳ ফ্ল্যাট</Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>{pType === "percentage" ? "কত % ছাড়" : "কত টাকা ছাড়"}</Label>
+            <Input type="number" value={pAmount} onChange={(e) => setPAmount(e.target.value)} placeholder={pType === "percentage" ? "20" : "500"} />
+          </div>
+          <div className="space-y-2">
+            <Label>শেষ হওয়ার তারিখ/সময় (ঐচ্ছিক)</Label>
+            <Input type="datetime-local" value={pDeadline} onChange={(e) => setPDeadline(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label>ব্যবহারের সীমা (ঐচ্ছিক)</Label>
+            <Input type="number" value={pUsageLimit} onChange={(e) => setPUsageLimit(e.target.value)} placeholder="ফাঁকা রাখলে unlimited" />
+          </div>
+          <div className="space-y-2 flex items-center gap-3 pt-6">
+            <Switch checked={pActive} onCheckedChange={setPActive} />
+            <Label>সক্রিয়</Label>
+          </div>
+          <div className="sm:col-span-2 flex gap-2">
+            <Button
+              type="button"
+              disabled={!pCode.trim() || !pAmount || upsertPromo.isPending}
+              onClick={() => upsertPromo.mutate()}
+            >
+              {upsertPromo.isPending ? "সেভ হচ্ছে..." : editingPromoId ? "আপডেট করো" : "প্রোমো কোড যোগ করো"}
+            </Button>
+            {editingPromoId && (
+              <Button type="button" variant="outline" onClick={resetForm}>বাতিল</Button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          {isLoading && <p className="text-sm text-muted-foreground">লোড হচ্ছে...</p>}
+          {!isLoading && (!promos || promos.length === 0) && (
+            <p className="text-sm text-muted-foreground">এই কোর্সের জন্য এখনো কোনো প্রোমো কোড নেই।</p>
+          )}
+          {promos?.map((promo: any) => (
+            <div key={promo.id} className="flex items-center justify-between gap-3 p-3 border rounded-lg">
+              <div className="flex flex-col">
+                <span className="font-mono font-semibold">{promo.code}</span>
+                <span className="text-xs text-muted-foreground">
+                  {promo.discount_type === "flat" ? `৳${promo.discount_amount} ছাড়` : `${promo.discount_amount}% ছাড়`}
+                  {promo.special_discount_deadline ? ` • শেষ: ${new Date(promo.special_discount_deadline).toLocaleString("bn-BD")}` : ""}
+                  {promo.usage_limit != null ? ` • সীমা: ${promo.used_count ?? 0}/${promo.usage_limit}` : ""}
+                  {!promo.is_active ? " • নিষ্ক্রিয়" : ""}
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button size="icon" variant="outline" onClick={() => startEdit(promo)}><Edit2 className="h-4 w-4" /></Button>
+                <Button size="icon" variant="outline" onClick={() => deletePromo.mutate(promo.id)}><Trash2 className="h-4 w-4" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default AdminCourses;
