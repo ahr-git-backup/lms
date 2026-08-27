@@ -1295,8 +1295,8 @@ function CoursePromoCodesPanel({ courseId, courseName }: { courseId: string; cou
                 )}
               </div>
               <div className="flex gap-2">
-                <Button size="icon" variant="outline" onClick={() => startEdit(promo)}><Edit2 className="h-4 w-4" /></Button>
-                <Button size="icon" variant="outline" onClick={() => deletePromo.mutate(promo.id)}><Trash2 className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" onClick={() => startEdit(promo)}><Edit2 className="h-4 w-4" /></Button>
+                <Button type="button" size="icon" variant="outline" onClick={() => deletePromo.mutate(promo.id)}><Trash2 className="h-4 w-4" /></Button>
               </div>
             </div>
           ))}
