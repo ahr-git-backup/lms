@@ -108,6 +108,7 @@ const AdminCourses = () => {
   const [activeTab, setActiveTab] = useState("basic");
   const [listStatusFilter, setListStatusFilter] = useState<"active" | "inactive" | "hidden">("active");
   const [listCategoryFilter, setListCategoryFilter] = useState<string>("all");
+  const [listSubCategoryFilter, setListSubCategoryFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -132,7 +133,7 @@ const AdminCourses = () => {
   }, []);
 
   const { data: coursesData, isLoading } = useQuery({
-    queryKey: ["admin-courses", page, debouncedSearch, listStatusFilter, listCategoryFilter],
+    queryKey: ["admin-courses", page, debouncedSearch, listStatusFilter, listCategoryFilter, listSubCategoryFilter],
     queryFn: async () => {
       let query = (supabase as any)
         .from("courses")
@@ -153,6 +154,9 @@ const AdminCourses = () => {
 
       if (listCategoryFilter !== "all") {
           query = query.contains("category", [listCategoryFilter]);
+      }
+      if (listSubCategoryFilter !== "all") {
+          query = query.contains("sub_category", [listSubCategoryFilter]);
       }
 
       const { data, error, count } = await query
@@ -966,7 +970,7 @@ const AdminCourses = () => {
               type="button"
               size="sm"
               variant={listCategoryFilter === "all" ? "default" : "outline"}
-              onClick={() => { setListCategoryFilter("all"); setPage(0); }}
+              onClick={() => { setListCategoryFilter("all"); setListSubCategoryFilter("all"); setPage(0); }}
             >
               সব ক্যাটাগরি
             </Button>
@@ -976,9 +980,33 @@ const AdminCourses = () => {
                 type="button"
                 size="sm"
                 variant={listCategoryFilter === cat ? "default" : "outline"}
-                onClick={() => { setListCategoryFilter(cat); setPage(0); }}
+                onClick={() => { setListCategoryFilter(cat); setListSubCategoryFilter("all"); setPage(0); }}
               >
                 {cat}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {tagsData?.subs && tagsData.subs.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant={listSubCategoryFilter === "all" ? "secondary" : "outline"}
+              onClick={() => { setListSubCategoryFilter("all"); setPage(0); }}
+            >
+              সব কোর্স টাইপ
+            </Button>
+            {tagsData.subs.map((sub) => (
+              <Button
+                key={sub}
+                type="button"
+                size="sm"
+                variant={listSubCategoryFilter === sub ? "secondary" : "outline"}
+                onClick={() => { setListSubCategoryFilter(sub); setPage(0); }}
+              >
+                {sub}
               </Button>
             ))}
           </div>
