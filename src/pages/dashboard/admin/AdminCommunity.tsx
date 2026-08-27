@@ -42,7 +42,9 @@ const AdminCommunity = () => {
                 .order("created_at", { ascending: false })
                 .range(page * 10, (page + 1) * 10 - 1);
 
-            if (selectedCourse !== "all") query = query.eq("course_id", selectedCourse);
+            if (selectedCourse !== "all") {
+                query = query.or(`course_id.eq.${selectedCourse},shared_course_ids.cs.{${selectedCourse}}`);
+            }
 
             const { data, count, error } = await query;
             if (error) throw error;
