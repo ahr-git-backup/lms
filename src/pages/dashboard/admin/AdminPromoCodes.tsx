@@ -120,9 +120,12 @@ const AdminPromoCodes = () => {
       setEditingId(null);
     },
     onError: (error) => {
+      const isDuplicateCode = (error as any)?.message?.includes("promo_codes_code_key") || (error as any)?.code === "23505";
       toast({
         title: "Error",
-        description: error.message,
+        description: isDuplicateCode
+          ? "এই কোড আগে থেকেই ব্যবহৃত হয়েছে — অন্য একটা কোড লিখুন।"
+          : error.message,
         variant: "destructive",
       });
     },
