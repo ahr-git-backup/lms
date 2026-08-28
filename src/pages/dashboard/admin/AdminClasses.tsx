@@ -227,6 +227,7 @@ const AdminClasses = () => {
                         value={categoryFilter}
                         onValueChange={(v) => {
                             setCategoryFilter(v as "all" | "live" | "recorded" | "archive");
+                            setSubjectFilter("all");
                             setPage(0);
                         }}
                     >
@@ -238,25 +239,6 @@ const AdminClasses = () => {
                             <SelectItem value="live">Live</SelectItem>
                             <SelectItem value="recorded">Recorded</SelectItem>
                             <SelectItem value="archive">Archive</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    <Select
-                        value={subjectFilter}
-                        onValueChange={(v) => {
-                            setSubjectFilter(v);
-                            setPage(0);
-                        }}
-                    >
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Filter by Subject" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All Subjects</SelectItem>
-                            {SUBJECTS.map((subject) => (
-                                <SelectItem key={subject} value={subject}>
-                                    {subject}
-                                </SelectItem>
-                            ))}
                         </SelectContent>
                     </Select>
                      <Input
@@ -276,6 +258,30 @@ const AdminClasses = () => {
                      )}
                  </div>
              </div>
+
+             {categoryFilter !== "all" && (
+                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                     <Card
+                         className={`cursor-pointer transition-colors ${subjectFilter === "all" ? "border-primary bg-primary/5" : ""}`}
+                         onClick={() => { setSubjectFilter("all"); setPage(0); }}
+                     >
+                         <CardContent className="p-3 text-center text-sm font-medium">
+                             All Subjects
+                         </CardContent>
+                     </Card>
+                     {SUBJECTS.map((subject) => (
+                         <Card
+                             key={subject}
+                             className={`cursor-pointer transition-colors ${subjectFilter === subject ? "border-primary bg-primary/5" : ""}`}
+                             onClick={() => { setSubjectFilter(subject); setPage(0); }}
+                         >
+                             <CardContent className="p-3 text-center text-sm font-medium">
+                                 {subject}
+                             </CardContent>
+                         </Card>
+                     ))}
+                 </div>
+             )}
 
              {isLoading ? (
                 <div className="text-sm text-muted-foreground">Loading...</div>
