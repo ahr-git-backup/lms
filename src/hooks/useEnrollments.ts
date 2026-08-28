@@ -78,6 +78,7 @@ export const useEnrollments = () => {
 
           if (extraCourses) {
               const extraCourseById = new Map(extraCourses.map((c: any) => [c.id, c]));
+              const directCourseById = new Map(activeEnrollments.map((e: any) => [e.course_id, e.course]));
 
               // Attach each direct enrollment's own bonus course list (id + name only).
               const enrichedDirect = activeEnrollments.map((e: any) => {
@@ -89,16 +90,43 @@ export const useEnrollments = () => {
                   return { ...e, bonus_courses: bonusCourses };
               });
 
-              const extraEnrollments = extraCourses.map(c => ({
-                  id: `virtual-${c.id}`, // Virtual ID
-                  course_id: c.id,
-                  profile_id: user.id,
-                  created_at: new Date().toISOString(),
-                  expires_at: null, // Bonus courses inherit from parent (no separate expiry)
-                  course: c,
-                  is_extra: true,       // Mark as bonus/extra course
-                  is_bonus: true,       // Explicit bonus flag
-              }));
+              // Reverse map: bonus course id -> set of root course ids that unlocked it.
+              // Used so a bonus course inherits full-access toggles (readymade_full_access,
+              // archive_full_access) from whichever root/main course granted it — a bonus
+              // course itself almost never has these flags set directly.
+              const rootsByBonusId = new Map<string, Set<string>>();
+              bonusIdsByRoot.forEach((bonusSet, rootId) => {
+                  bonusSet.forEach((bonusId) => {
+                      if (!rootsByBonusId.has(bonusId)) rootsByBonusId.set(bonusId, new Set());
+                      rootsByBonusId.get(bonusId)!.add(rootId);
+                  });
+              });
+
+              const extraEnrollments = extraCourses.map(c => {
+                  const rootIds = Array.from(rootsByBonusId.get(c.id) || []);
+                  const inheritedReadymadeFullAccess = rootIds.some(
+                      (rid) => directCourseById.get(rid)?.readymade_full_access
+                  );
+                  const inheritedArchiveFullAccess = rootIds.some(
+                      (rid) => directCourseById.get(rid)?.archive_full_access
+                  );
+                  return {
+                      id: `virtual-${c.id}`, // Virtual ID
+                      course_id: c.id,
+                      profile_id: user.id,
+                      created_at: new Date().toISOString(),
+                      expires_at: null, // Bonus courses inherit from parent (no separate expiry)
+                      course: {
+                          ...c,
+                          // Bonus course unlocks fully if EITHER its own flag OR any root
+                          // course that granted it has the flag on.
+                          readymade_full_access: c.readymade_full_access || inheritedReadymadeFullAccess,
+                          archive_full_access: c.archive_full_access || inheritedArchiveFullAccess,
+                      },
+                      is_extra: true,       // Mark as bonus/extra course
+                      is_bonus: true,       // Explicit bonus flag
+                  };
+              });
               return [...enrichedDirect, ...extraEnrollments] as any[];
           }
       }
