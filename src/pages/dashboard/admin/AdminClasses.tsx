@@ -206,7 +206,7 @@ const AdminClasses = () => {
              <div className="flex flex-col gap-2">
              <div className="flex flex-row justify-between items-start gap-4">
                  <h2 className="text-lg font-semibold hidden sm:block">Scheduled Classes</h2>
-                 <div className="flex flex-nowrap items-center gap-2 w-full overflow-x-auto">
+                 <div className="grid grid-cols-3 gap-2 w-full">
                     <Select
                         value={courseFilter}
                         onValueChange={(v) => {
@@ -214,8 +214,8 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-[140px] shrink-0">
-                            <SelectValue placeholder="Filter by Course" />
+                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                            <SelectValue placeholder="Course" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Courses</SelectItem>
@@ -232,8 +232,8 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-[140px] shrink-0">
-                            <SelectValue placeholder="Filter by Category" />
+                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                            <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Categories</SelectItem>
@@ -249,8 +249,8 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-[140px] shrink-0">
-                            <SelectValue placeholder="Filter by Subject" />
+                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                            <SelectValue placeholder="Subject" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="all">All Subjects</SelectItem>
@@ -261,6 +261,8 @@ const AdminClasses = () => {
                             ))}
                         </SelectContent>
                     </Select>
+                 </div>
+                 <div className="flex items-center gap-2 w-full">
                      {courseFilter !== 'all' ? (
                        <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
                            <ArrowUpDown className="h-4 w-4" />
