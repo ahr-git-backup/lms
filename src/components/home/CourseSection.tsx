@@ -108,6 +108,15 @@ export const CourseSection = () => {
         });
     }
 
+    const { data: subCategoryOrder } = useQuery({
+        queryKey: ["sub-category-display-order"],
+        queryFn: async () => {
+            const { data } = await supabase.from("app_settings").select("value").eq("key", "sub_category_order_global").maybeSingle();
+            return (data?.value as string[]) || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
     // Get subcategories for the selected category (or all if no category selected)
     const availableSubCategories = Array.from(new Set(
         courses
@@ -121,7 +130,17 @@ export const CourseSection = () => {
                 Array.isArray(c.sub_category) ? c.sub_category : (c.sub_category ? [c.sub_category] : [])
             )
             .filter(Boolean) || []
-    )).sort() as string[];
+    )).sort((a, b) => {
+        // Respect admin's custom drag-order (Manage Course Position →
+        // Sub-Category Order) when set; unlisted names fall back to
+        // alphabetical, appended after the ordered ones.
+        const order = subCategoryOrder || [];
+        const iA = order.indexOf(a), iB = order.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1;
+        if (iB !== -1) return 1;
+        return a.localeCompare(b);
+    }) as string[];
 
     // Reset subcategory when category changes if it's no longer valid
     useEffect(() => {

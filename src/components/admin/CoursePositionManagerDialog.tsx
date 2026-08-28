@@ -108,6 +108,125 @@ function SortableCourseItem({
 // so the same course can sit at a different position under a different
 // sub-category tab. Falls back to the global "priority" column when a
 // sub_category has no override yet (see CourseSection.tsx on the landing page).
+const SUB_CATEGORY_ORDER_KEY = "sub_category_order_global";
+
+// Simple drag/arrow reorder list for the sub-category (course type) FILTER
+// BUTTONS themselves shown on the landing page — separate from ordering the
+// courses inside a sub-category. Saved once, globally, in app_settings.
+function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: string[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [items, setItems] = useState<string[]>([]);
+  const [isModified, setIsModified] = useState(false);
+
+  const { data: savedOrder, isLoading } = useQuery({
+    queryKey: ["sub-category-order-manager"],
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", SUB_CATEGORY_ORDER_KEY).maybeSingle();
+      return (data?.value as string[]) || [];
+    },
+  });
+
+  useEffect(() => {
+    if (savedOrder === undefined || allSubCategories.length === 0) return;
+    const known = new Set(allSubCategories);
+    const ordered = savedOrder.filter((s) => known.has(s));
+    allSubCategories.forEach((s) => { if (!ordered.includes(s)) ordered.push(s); });
+    setItems(ordered);
+    setIsModified(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedOrder, allSubCategories.join("|")]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setItems((prev) => {
+        const oldIndex = prev.indexOf(active.id as string);
+        const newIndex = prev.indexOf(over.id as string);
+        setIsModified(true);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      setIsModified(true);
+      return arrayMove(prev, index, newIndex);
+    });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("app_settings").upsert({ key: SUB_CATEGORY_ORDER_KEY, value: items }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Sub-category বাটনের অর্ডার সেভ হয়েছে!" });
+      setIsModified(false);
+      queryClient.invalidateQueries({ queryKey: ["sub-category-display-order"] });
+      queryClient.invalidateQueries({ queryKey: ["sub-category-order-manager"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "সেভ করা যায়নি", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (allSubCategories.length < 2) return null;
+
+  return (
+    <Card className="mt-4">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <CardTitle className="text-base">Sub-Category বাটনের অর্ডার</CardTitle>
+            <CardDescription className="text-xs mt-1">
+              ল্যান্ডিং পেজে কোর্স টাইপ (sub-category) বাটন গুলো কোন দিকে থাকবে, সেই ক্রম এখানে ঠিক করুন।
+            </CardDescription>
+          </div>
+          {isModified && (
+            <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="shrink-0">
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> : <Save className="h-4 w-4 mr-1.5" />}
+              Save
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="text-center p-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={items} strategy={verticalListSortingStrategy}>
+              {items.map((sub, index) => (
+                <SortableCourseItem
+                  key={sub}
+                  id={sub}
+                  name={sub}
+                  index={index}
+                  total={items.length}
+                  onMoveUp={() => moveItem(index, -1)}
+                  onMoveDown={() => moveItem(index, 1)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDialogProps) {
   const [selectedSub, setSelectedSub] = useState<string>("");
   const [items, setItems] = useState<CourseRow[]>([]);
@@ -276,6 +395,10 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
           </>
         )}
       </CardContent>
+
+      <div className="px-2 sm:px-0">
+        <SubCategoryOrderManager allSubCategories={allSubCategories} />
+      </div>
     </Card>
   );
 }
