@@ -553,7 +553,7 @@ async function askAIOnce(
   image: PendingImage | null,
   systemPrompt: string,
   skipGroq: boolean
-): Promise<string | null> {
+): Promise<{ answer: string; provider?: string } | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 110000);
@@ -571,7 +571,7 @@ async function askAIOnce(
     clearTimeout(timeoutId);
     const data = await res.json();
     if (data?.answer && String(data.answer).trim().length > 5) {
-      return String(data.answer).trim();
+      return { answer: String(data.answer).trim(), provider: data?.provider };
     }
     return null;
   } catch {
@@ -602,6 +602,18 @@ export async function askAI(
   systemPromptOverride?: string,
   opts?: { skipGroq?: boolean }
 ): Promise<string> {
+  const res = await askAIWithMeta(question, image, systemPromptOverride, opts);
+  return res.answer;
+}
+
+/** Same as askAI but also returns which provider actually generated the answer
+ *  (e.g. "gemini:gemini-2.5-flash"), for UI that wants to show it. */
+export async function askAIWithMeta(
+  question: string,
+  image: PendingImage | null,
+  systemPromptOverride?: string,
+  opts?: { skipGroq?: boolean }
+): Promise<{ answer: string; provider?: string }> {
   const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
   for (let attempt = 1; attempt <= MAX_CLIENT_RETRIES; attempt++) {
     // প্রথম attempt-এ যা caller চেয়েছে (opts.skipGroq) তাই মানা হয়; retry-গুলোতে
@@ -613,7 +625,7 @@ export async function askAI(
     if (result !== null) return result;
     if (attempt < MAX_CLIENT_RETRIES) await sleep(RETRY_DELAY_MS * attempt);
   }
-  return "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏";
+  return { answer: "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏" };
 }
 
 // Converts "**bold**" markdown into real <strong> bold, no asterisks shown.

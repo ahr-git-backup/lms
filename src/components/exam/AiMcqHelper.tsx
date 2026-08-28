@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sparkles, Send, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { askAI, renderAnswer, containsSexualContentRequest } from "@/pages/public/AtlasAI";
+import { askAI, askAIWithMeta, renderAnswer, containsSexualContentRequest } from "@/pages/public/AtlasAI";
 import { supabase } from "@/integrations/supabase/client";
 
 interface RelatedMcq {
@@ -198,7 +198,14 @@ function isFailureResponse(text: string) {
 
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 export async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
-  const raw = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
+  const res = await generateAndCacheExplanationWithMeta(q, questionId);
+  return res.answer;
+}
+
+/** Same as generateAndCacheExplanation but also returns which AI provider generated it,
+ *  for UI (like bulk "AI Tag" runs) that wants to show progress detail. */
+export async function generateAndCacheExplanationWithMeta(q: McqLike, questionId?: string): Promise<{ answer: string; provider?: string }> {
+  const { answer: raw, provider } = await askAIWithMeta(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
   const answer = normalizeAiAnswer(raw);
   if (questionId && !isFailureResponse(answer)) {
     // Fire-and-forget: don't block the UI on the cache write.
@@ -208,7 +215,7 @@ export async function generateAndCacheExplanation(q: McqLike, questionId?: strin
       p_explanation: answer,
     }).then(() => {});
   }
-  return answer;
+  return { answer, provider };
 }
 
 /**

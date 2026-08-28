@@ -91,31 +91,31 @@ var atlas_ai_proxy_worker_default = {
     const budget = makeSubrequestBudget();
     const expectMcqArray = /option_k/.test(systemPrompt);
 
-    // --- Order changed: Groq (full key rotation) tried FIRST. Gemini only runs
-    // if Groq fails on every key. Then openrouter -> cerebras -> cloudflare. ---
+    // --- Order: Gemini tried FIRST. Groq only runs if Gemini fails on every
+    // key. Then openrouter -> cerebras -> cloudflare. ---
     const errors = [];
     let result = null;
 
-    if (!skipGroq) {
-      try {
-        const groqResult = await callGroq(env, question, systemPrompt, image, expectMcqArray, budget);
-        if (groqResult && groqResult.answer && groqResult.answer.trim().length > 5) {
-          result = groqResult;
-        } else if (groqResult?.error) {
-          errors.push(groqResult.error);
-        }
-      } catch (e) {
-        errors.push(String(e.message || e));
-      }
-    }
-
-    if (!result && !skipGemini) {
+    if (!skipGemini) {
       try {
         const geminiResult = await callGemini(env, question, systemPrompt, image, budget);
         if (geminiResult && geminiResult.answer && geminiResult.answer.trim().length > 5) {
           result = geminiResult;
         } else if (geminiResult?.error) {
           errors.push(geminiResult.error);
+        }
+      } catch (e) {
+        errors.push(String(e.message || e));
+      }
+    }
+
+    if (!result && !skipGroq) {
+      try {
+        const groqResult = await callGroq(env, question, systemPrompt, image, expectMcqArray, budget);
+        if (groqResult && groqResult.answer && groqResult.answer.trim().length > 5) {
+          result = groqResult;
+        } else if (groqResult?.error) {
+          errors.push(groqResult.error);
         }
       } catch (e) {
         errors.push(String(e.message || e));

@@ -23,7 +23,7 @@ import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
-import { generateAndCacheExplanation } from "@/components/exam/AiMcqHelper";
+import { generateAndCacheExplanationWithMeta } from "@/components/exam/AiMcqHelper";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -2141,12 +2141,28 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const [sheetChecking, setSheetChecking] = useState(false);
 
   // AI Tag bulk explanation generation state.
-  const [aiRun, setAiRun] = useState<{ scope: "single" | "all"; examTitle: string; total: number; done: number; skipped: number; failed: number; cancelled: boolean } | null>(null);
+  const [aiRun, setAiRun] = useState<{ scope: "single" | "all"; examTitle: string; total: number; done: number; skipped: number; failed: number; cancelled: boolean; currentProvider: string | null; startedAt: number } | null>(null);
   const aiCancelRef = useRef(false);
+  const [aiElapsedMs, setAiElapsedMs] = useState(0);
+
+  useEffect(() => {
+    if (!aiRun || aiRun.done >= aiRun.total) return;
+    const interval = setInterval(() => setAiElapsedMs(Date.now() - aiRun.startedAt), 250);
+    return () => clearInterval(interval);
+  }, [aiRun]);
+
+  const formatElapsed = (ms: number) => {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return m > 0 ? `${m}মি ${s}সে` : `${s}সে`;
+  };
 
   const runAiTagForQuestions = async (questionRows: any[], scope: "single" | "all", examTitle: string) => {
     aiCancelRef.current = false;
-    setAiRun({ scope, examTitle, total: questionRows.length, done: 0, skipped: 0, failed: 0, cancelled: false });
+    const startedAt = Date.now();
+    setAiElapsedMs(0);
+    setAiRun({ scope, examTitle, total: questionRows.length, done: 0, skipped: 0, failed: 0, cancelled: false, currentProvider: null, startedAt });
     for (const q of questionRows) {
       if (aiCancelRef.current) {
         setAiRun((prev) => prev ? { ...prev, cancelled: true } : prev);
@@ -2157,7 +2173,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         continue;
       }
       try {
-        await generateAndCacheExplanation(
+        const { provider } = await generateAndCacheExplanationWithMeta(
           {
             question_text: q.question_text,
             option_a: q.option_a,
@@ -2168,7 +2184,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           },
           q.id
         );
-        setAiRun((prev) => prev ? { ...prev, done: prev.done + 1 } : prev);
+        setAiRun((prev) => prev ? { ...prev, done: prev.done + 1, currentProvider: provider || prev.currentProvider } : prev);
       } catch {
         setAiRun((prev) => prev ? { ...prev, done: prev.done + 1, failed: prev.failed + 1 } : prev);
       }
@@ -2310,6 +2326,10 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               {aiRun.skipped > 0 && ` · ${aiRun.skipped}টি আগে থেকেই ছিল`}
               {aiRun.failed > 0 && ` · ${aiRun.failed}টি ব্যর্থ`}
             </p>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>AI: <span className="font-medium text-foreground">{aiRun.currentProvider || "..."}</span></span>
+              <span>সময়: <span className="font-medium text-foreground">{formatElapsed(aiElapsedMs)}</span></span>
+            </div>
             {aiRun.done >= aiRun.total ? (
               <Button size="sm" className="w-full" onClick={() => setAiRun(null)}>
                 {aiRun.cancelled ? "বন্ধ করা হয়েছে" : "সম্পন্ন — বন্ধ করুন"}
