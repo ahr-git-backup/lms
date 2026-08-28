@@ -1134,7 +1134,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border/40 ${compactGrid ? "p-1.5 sm:p-3" : "p-3"}` : "border-transparent"} ${extraClass}`}
+              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border/40 ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
             >
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
@@ -1145,7 +1145,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1.5 sm:gap-4"} ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
+              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"} ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
@@ -1161,7 +1161,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                             : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
                     }
                   >
-                    {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
+                    {renderSubjectCard(s, zoneSubjects.length <= 3)}
                   </div>
                 ))}
               </div>
