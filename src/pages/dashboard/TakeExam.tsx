@@ -680,7 +680,18 @@ const TakeExam = () => {
     }
   }, [effectiveQuestions, shuffledQuestions.length, exam, selectedQuestionCount, hasStarted, isQuickPracticeMode, isSpecialExam, mandatorySubjects, optionalSubjects, selectedOptionalSubjects]);
 
-  // Load persistence logic - ONLY ON MOUNT
+  // Load persistence logic - ONLY ON MOUNT.
+  // Instead of silently auto-resuming, show a confirmation popup so the user
+  // explicitly chooses Continue (restore saved answers) or Restart (fresh attempt).
+  const [resumePrompt, setResumePrompt] = useState<null | {
+      savedAnswers: string | null;
+      savedViolations: string | null;
+      savedStartTime: string | null;
+      savedCount: string | null;
+      savedQpMode: string | null;
+      isReadymadeCountExam: boolean;
+  }>(null);
+
   useEffect(() => {
       if (!examId || !exam) return;
       if (!user && !guestInfo) return; // guest info not yet collected — nothing to restore
@@ -691,34 +702,43 @@ const TakeExam = () => {
       const savedCountKey = `${LOCAL_STORAGE_KEY_PREFIX}_selected_count`;
       const savedCount = localStorage.getItem(savedCountKey);
       const savedQpMode = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`);
-
       const isReadymadeCountExam = showsReadymadeUI;
 
-      // If the in-progress session was Quick Practice, restore that mode and STOP —
-      // Quick Practice never uses the normal timer/answers session below.
+      // Nothing saved for this exam — fresh start, no popup needed.
+      if (!savedStartTime && savedQpMode !== "1") return;
+
+      setResumePrompt({ savedAnswers, savedViolations, savedStartTime, savedCount, savedQpMode, isReadymadeCountExam });
+  }, [user, guestInfo, examId, LOCAL_STORAGE_KEY_PREFIX, exam, QUESTIONS_STORAGE_KEY]);
+
+  const clearSavedExamSession = () => {
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_answers`);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+      localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_violations`);
+      localStorage.removeItem(QUESTIONS_STORAGE_KEY);
+  };
+
+  const handleResumeContinue = () => {
+      if (!resumePrompt) return;
+      const { savedAnswers, savedViolations, savedStartTime, savedCount, savedQpMode, isReadymadeCountExam } = resumePrompt;
+
       if (savedQpMode === "1" && isReadymadeCountExam) {
           setIsQuickPracticeMode(true);
           if (savedCount && !isNaN(parseInt(savedCount, 10))) {
               setSelectedQuestionCount(parseInt(savedCount, 10));
           }
           setHasStarted(true);
+          setResumePrompt(null);
           return;
       }
 
       if (savedStartTime) {
-          if (isReadymadeCountExam) {
-              // Restore the count that was used to build the question set for this in-progress
-              // attempt (if any was chosen). A missing count is valid — it just means the student
-              // started with the full question bank, not an incomplete/stale session.
-              if (savedCount && !isNaN(parseInt(savedCount, 10))) {
-                  setSelectedQuestionCount(parseInt(savedCount, 10));
-              }
-              setHasStarted(true);
-          } else {
-              setHasStarted(true);
+          if (isReadymadeCountExam && savedCount && !isNaN(parseInt(savedCount, 10))) {
+              setSelectedQuestionCount(parseInt(savedCount, 10));
           }
+          setHasStarted(true);
       }
-
       if (savedAnswers) {
           try {
               setAnswers(JSON.parse(savedAnswers));
@@ -729,7 +749,15 @@ const TakeExam = () => {
       if (savedViolations) {
           setViolationCount(parseInt(savedViolations));
       }
-  }, [user, guestInfo, examId, LOCAL_STORAGE_KEY_PREFIX, exam, QUESTIONS_STORAGE_KEY]);
+      setResumePrompt(null);
+  };
+
+  const handleResumeRestart = () => {
+      clearSavedExamSession();
+      setResumePrompt(null);
+      // hasStarted stays false — the exam's normal "start" screen/flow takes over,
+      // producing a fully fresh attempt with no restored answers/timer.
+  };
 
   // Save state on changes
   useEffect(() => {
@@ -1985,6 +2013,25 @@ const TakeExam = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20 relative font-sans">
+
+      <Dialog open={!!resumePrompt} onOpenChange={() => { /* must choose an option below */ }}>
+          <DialogContent className="max-w-sm" onInteractOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+              <DialogHeader>
+                  <DialogTitle>আগের পরীক্ষা চালিয়ে যাবেন?</DialogTitle>
+                  <DialogDescription>
+                      এই পরীক্ষার একটি অসম্পূর্ণ session পাওয়া গেছে। আগের উত্তরগুলো নিয়ে চালিয়ে যেতে চান, নাকি নতুন করে শুরু করবেন?
+                  </DialogDescription>
+              </DialogHeader>
+              <div className="flex gap-2 justify-end pt-2">
+                  <Button variant="outline" onClick={handleResumeRestart}>
+                      নতুন করে শুরু করুন
+                  </Button>
+                  <Button onClick={handleResumeContinue}>
+                      চালিয়ে যান
+                  </Button>
+              </div>
+          </DialogContent>
+      </Dialog>
 
       <Dialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
           <DialogContent className="max-w-sm">
