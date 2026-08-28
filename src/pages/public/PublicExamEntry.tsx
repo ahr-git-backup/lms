@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, Loader2, AlertTriangle, LogOut, LayoutDashboard } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
+import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 
 const PublicExamEntry = () => {
     const { examId } = useParams();
@@ -28,6 +29,7 @@ const PublicExamEntry = () => {
     const [hscBatch, setHscBatch] = useState("2025");
     const [hscGpa, setHscGpa] = useState("");
     const [captchaToken, setCaptchaToken] = useState<string | undefined>();
+    const [showGuestDialog, setShowGuestDialog] = useState(false);
 
     useEffect(() => {
         if (hscBatch === "2026" || hscBatch === "2027") {
@@ -40,13 +42,13 @@ const PublicExamEntry = () => {
         const fetchExam = async () => {
             const { data, error } = await supabase
                 .from("exams")
-                .select("title, course_id")
+                .select("title, course_id, allow_guest")
                 .eq("id", examId)
                 .single();
 
             if (error || !data) {
                 console.warn("Exam fetch failed (likely RLS). Using fallback.", error);
-                setExam({ title: "Public Exam Entry", course_id: null });
+                setExam({ title: "Public Exam Entry", course_id: null, allow_guest: false });
                 return;
             }
             setExam(data);
@@ -209,6 +211,23 @@ const PublicExamEntry = () => {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
+                            {exam.allow_guest && (
+                                <div className="mb-4">
+                                    <Button
+                                        type="button"
+                                        variant="secondary"
+                                        className="w-full h-11"
+                                        onClick={() => setShowGuestDialog(true)}
+                                    >
+                                        লগইন ছাড়াই এক্সাম দাও
+                                    </Button>
+                                    <div className="flex items-center gap-2 my-4">
+                                        <div className="h-px bg-border flex-1" />
+                                        <span className="text-xs text-muted-foreground">অথবা</span>
+                                        <div className="h-px bg-border flex-1" />
+                                    </div>
+                                </div>
+                            )}
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsList className="grid w-full grid-cols-2 mb-4">
                                     <TabsTrigger value="login">Login</TabsTrigger>
@@ -414,6 +433,11 @@ const PublicExamEntry = () => {
                     </Card>
                 )}
             </div>
+            <GuestExamInfoDialog
+                open={showGuestDialog}
+                onOpenChange={setShowGuestDialog}
+                onConfirm={() => navigate(`/take-exam/${examId}`)}
+            />
         </div>
     );
 };

@@ -190,6 +190,10 @@ const App = () => {
               <Route path="/mock-test" element={<ErrorBoundary><UnlimitedMockTest /></ErrorBoundary>} />
               <Route path="/mock-test/history" element={<ErrorBoundary><MockTestHistory /></ErrorBoundary>} />
               <Route path="/mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
+              {/* Public route so guest-allowed exams (allow_guest=true) can actually be taken
+                  without login — /dashboard/take-exam is behind ProtectedRoute and would redirect
+                  guests to /login before TakeExam.tsx's own guest-info logic ever runs. */}
+              <Route path="/take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
