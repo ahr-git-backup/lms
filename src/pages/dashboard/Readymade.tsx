@@ -1051,7 +1051,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           </div>
         ) : null}
         {(() => {
-          const renderSubjectCard = (subject: string) => {
+          const renderSubjectCard = (subject: string, compact = false) => {
             const unlocked = isSubjectUnlocked(subject);
             const isHidden = hiddenSubjects.has(subject);
             return (
@@ -1074,20 +1074,20 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                     <Lock className="h-3 w-3" />
                   </button>
                 )}
-                <CardContent className="px-3 py-3 sm:px-4 sm:py-4 flex-1 flex flex-col justify-center">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] sm:text-xs font-medium text-muted-foreground">Subject</span>
+                <CardContent className={`${compact ? "px-1.5 py-2 sm:px-4 sm:py-4" : "px-3 py-3 sm:px-4 sm:py-4"} flex-1 flex flex-col justify-center`}>
+                  <div className="flex items-center justify-between mb-1 gap-1">
+                    <span className={`${compact ? "text-[9px] sm:text-xs" : "text-[10px] sm:text-xs"} font-medium text-muted-foreground`}>Subject</span>
                     {loadingMcqCounts ? (
                       <span className="shrink-0 h-4 w-10 bg-muted animate-pulse rounded-full" />
                     ) : typeof subjectMcqCounts?.[subject] === "number" ? (
-                      <span className="shrink-0 text-[9px] sm:text-[10px] font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      <span className={`${compact ? "text-[7px] sm:text-[10px] px-1 sm:px-1.5" : "text-[9px] sm:text-[10px] px-1.5"} shrink-0 font-bold bg-blue-500/15 text-blue-600 dark:text-blue-400 py-0.5 rounded-full whitespace-nowrap`}>
                         {subjectMcqCounts[subject]} MCQ
                       </span>
                     ) : (
-                      <Trophy className="h-3.5 w-3.5 text-primary" />
+                      <Trophy className="h-3.5 w-3.5 text-primary shrink-0" />
                     )}
                   </div>
-                  <div className={`text-base sm:text-xl font-bold leading-tight whitespace-pre-line ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
+                  <div className={`${compact ? "text-sm sm:text-xl" : "text-base sm:text-xl"} font-bold leading-tight whitespace-pre-line break-words ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
                   {isAdmin && isHidden && (
                     <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
                   )}
@@ -1145,19 +1145,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`flex flex-wrap items-stretch flex-1 gap-2 sm:gap-4 ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
+              <div className={`flex flex-wrap items-stretch flex-1 gap-1.5 sm:gap-4 ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
                     className={
                       (zoneSubjects.length === 1
                         ? "w-full max-w-xs"
-                        : compactGrid
-                          ? "w-[calc(50%-0.25rem)]"
-                          : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
+                        : zoneSubjects.length === 3
+                          // Exactly 3 cards must sit evenly side-by-side even on mobile —
+                          // 2-per-row would wrap the 3rd card and look unbalanced/cut off.
+                          ? "w-[calc(33.333%-0.5rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"
+                          : compactGrid
+                            ? "w-[calc(50%-0.25rem)]"
+                            : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
                     }
                   >
-                    {renderSubjectCard(s)}
+                    {renderSubjectCard(s, zoneSubjects.length === 3)}
                   </div>
                 ))}
               </div>
