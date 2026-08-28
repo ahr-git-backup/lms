@@ -433,11 +433,11 @@ const Readymade = () => {
       </Dialog>
 
       {!selectedSubject && !categoryName && parentTopics && parentTopics.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-1.5 sm:gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <Button
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
             size="sm"
-            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-pre-line text-center leading-tight"
+            className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal break-words text-center leading-tight"
             onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); setActiveTypePanel(null); }}
           >
             All
@@ -447,7 +447,7 @@ const Readymade = () => {
               key={topic.value}
               variant={activeZonePill === topic.value ? "default" : "secondary"}
               size="sm"
-              className={`rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 active:scale-95 transition-transform leading-tight whitespace-pre-line text-center ${activeZonePill === topic.value ? "ring-2 ring-primary/40" : ""}`}
+              className={`rounded-full shadow-sm text-[11px] sm:text-xs h-auto min-h-7 sm:min-h-8 py-1 px-2 hover:scale-105 active:scale-95 transition-transform leading-tight whitespace-normal break-words text-center ${activeZonePill === topic.value ? "ring-2 ring-primary/40" : ""}`}
               onClick={() => {
                 // Visual click feedback (pill turns active/green briefly).
                 setActiveZonePill(topic.value);
@@ -1141,7 +1141,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
           );
 
           return (
-            <div className="space-y-5">
+            <div className="space-y-2">
               {clusters.map((c, ci) => {
                 if (c.kind === "normal") {
                   return renderZoneBox(c.group.zone, c.group.subjects);
