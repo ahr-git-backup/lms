@@ -802,7 +802,7 @@ const DashboardHome = () => {
                             }
                         }}
                     >
-                       <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3">
+                       <CardContent className="p-4 flex flex-col items-center justify-center text-center gap-3 min-h-[132px]">
                            <div className={`p-3 rounded-full ${item.bg} group-hover:scale-110 transition-transform duration-300 relative`}>
                                {item.isExternal && (
                                    <div className="absolute inset-0 rounded-full bg-violet-400/20 animate-ping" />
