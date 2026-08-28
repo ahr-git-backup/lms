@@ -13,6 +13,7 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
+import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const PAGE_SIZE = 15;
@@ -58,6 +59,7 @@ const Archive = () => {
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
+  const [manageSubjects, setManageSubjects] = useState(false);
   const [currentChaptersList, setCurrentChaptersList] = useState<string[]>([]);
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
@@ -139,6 +141,8 @@ const Archive = () => {
           contextName={"Archive"}
           onClose={() => setManageChapters(false)}
         />
+      ) : manageSubjects ? (
+        <SubjectSortDialog onClose={() => setManageSubjects(false)} />
       ) : activeTab === "classes" ? (
         <ArchiveClassView
             enrollments={enrollments}
@@ -152,6 +156,8 @@ const Archive = () => {
             setPage={setPage}
             setCurrentChaptersList={setCurrentChaptersList}
             isAdmin={isAdmin}
+            setManageChapters={setManageChapters}
+            setManageSubjects={setManageSubjects}
         />
       ) : (
         <ArchiveExamView
@@ -165,6 +171,9 @@ const Archive = () => {
             page={page}
             setPage={setPage}
             setCurrentChaptersList={setCurrentChaptersList}
+            isAdmin={isAdmin}
+            setManageChapters={setManageChapters}
+            setManageSubjects={setManageSubjects}
         />
       )}
     </div>
@@ -172,7 +181,7 @@ const Archive = () => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin }: any) => {
+const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin, setManageChapters, setManageSubjects }: any) => {
 
     const [lockedClassOpen, setLockedClassOpen] = useState(false);
     const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
@@ -404,18 +413,25 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         if (loadingSubjects) return <div className="text-muted-foreground">Loading subjects...</div>;
         if (!subjects || subjects.length === 0) return <div className="text-muted-foreground">No classes found in your courses.</div>;
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {subjects.map(subject => (
-                     <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
-                            <BookOpen className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-xl font-bold text-primary">{subject}</div>
-                        </CardContent>
-                     </Card>
-                ))}
+            <div className="space-y-4">
+                {isAdmin && (
+                    <div className="flex justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subjects Order</Button>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {subjects.map(subject => (
+                         <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
+                                <BookOpen className="h-4 w-4 text-primary" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-xl font-bold text-primary">{subject}</div>
+                            </CardContent>
+                         </Card>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -423,7 +439,12 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     if (!selectedChapter) {
          return (
             <div className="space-y-6">
-                <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
+                <div className="flex items-center justify-between">
+                    <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
+                    {isAdmin && (
+                        <Button variant="outline" size="sm" onClick={() => setManageChapters(true)}>Manage Chapters Order</Button>
+                    )}
+                </div>
                 <h2 className="text-xl font-bold">{selectedSubject}</h2>
                 {loadingChapters ? (
                     <div className="text-muted-foreground">Loading chapters...</div>
@@ -529,7 +550,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList }: any) => {
+const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin, setManageChapters, setManageSubjects }: any) => {
 
     const { data: searchResults, isLoading: searching } = useQuery({
         queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
@@ -732,18 +753,25 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
         if (loadingSubjects) return <div className="text-muted-foreground">Loading subjects...</div>;
         if (!subjects || subjects.length === 0) return <div className="text-muted-foreground">No exams found in your courses.</div>;
         return (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {subjects.map(subject => (
-                     <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
-                            <Trophy className="h-4 w-4 text-primary" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-xl font-bold text-primary">{subject}</div>
-                        </CardContent>
-                     </Card>
-                ))}
+            <div className="space-y-4">
+                {isAdmin && (
+                    <div className="flex justify-end">
+                        <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subjects Order</Button>
+                    </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {subjects.map(subject => (
+                         <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
+                            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Subject</CardTitle>
+                                <Trophy className="h-4 w-4 text-primary" />
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-xl font-bold text-primary">{subject}</div>
+                            </CardContent>
+                         </Card>
+                    ))}
+                </div>
             </div>
         );
     }
@@ -751,7 +779,12 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     if (!selectedChapter) {
          return (
             <div className="space-y-6">
-                <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
+                <div className="flex items-center justify-between">
+                    <Button variant="ghost" onClick={() => setSelectedSubject(null)} className="pl-0"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
+                    {isAdmin && (
+                        <Button variant="outline" size="sm" onClick={() => setManageChapters(true)}>Manage Chapters Order</Button>
+                    )}
+                </div>
                 <h2 className="text-xl font-bold">{selectedSubject}</h2>
                 {loadingChapters ? (
                     <div className="text-muted-foreground">Loading chapters...</div>
