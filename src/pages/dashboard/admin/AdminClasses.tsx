@@ -203,6 +203,7 @@ const AdminClasses = () => {
         ) : (
         <div className="space-y-4">
              {/* Classes List */}
+             <div className="flex flex-col gap-2">
              <div className="flex flex-row justify-between items-start gap-4">
                  <h2 className="text-lg font-semibold hidden sm:block">Scheduled Classes</h2>
                  <div className="flex flex-nowrap items-center gap-2 w-full overflow-x-auto">
@@ -260,12 +261,6 @@ const AdminClasses = () => {
                             ))}
                         </SelectContent>
                     </Select>
-                     <Input
-                        placeholder="Search Title..."
-                        value={searchQuery}
-                        onChange={e => setSearchQuery(e.target.value)}
-                        className="w-[140px] shrink-0"
-                     />
                      {courseFilter !== 'all' ? (
                        <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
                            <ArrowUpDown className="h-4 w-4" />
@@ -276,6 +271,13 @@ const AdminClasses = () => {
                        </Button>
                      )}
                  </div>
+             </div>
+             <Input
+                placeholder="Search Title..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full sm:w-[240px]"
+             />
              </div>
 
              {categoryFilter !== "all" && (
