@@ -203,9 +203,9 @@ const AdminClasses = () => {
         ) : (
         <div className="space-y-4">
              {/* Classes List */}
-             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                 <h2 className="text-lg font-semibold">Scheduled Classes</h2>
-                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
+             <div className="flex flex-row justify-between items-start gap-4">
+                 <h2 className="text-lg font-semibold hidden sm:block">Scheduled Classes</h2>
+                 <div className="flex flex-nowrap items-center gap-2 w-full overflow-x-auto">
                     <Select
                         value={courseFilter}
                         onValueChange={(v) => {
@@ -213,7 +213,7 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[140px] shrink-0">
                             <SelectValue placeholder="Filter by Course" />
                         </SelectTrigger>
                         <SelectContent>
@@ -231,7 +231,7 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-[140px] shrink-0">
                             <SelectValue placeholder="Filter by Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -241,26 +241,45 @@ const AdminClasses = () => {
                             <SelectItem value="archive">Archive</SelectItem>
                         </SelectContent>
                     </Select>
+                    <Select
+                        value={subjectFilter}
+                        onValueChange={(v) => {
+                            setSubjectFilter(v);
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-[140px] shrink-0">
+                            <SelectValue placeholder="Filter by Subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Subjects</SelectItem>
+                            {SUBJECTS.map((subject) => (
+                                <SelectItem key={subject} value={subject}>
+                                    {subject}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                      <Input
                         placeholder="Search Title..."
                         value={searchQuery}
                         onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full sm:w-[200px]"
+                        className="w-[140px] shrink-0"
                      />
                      {courseFilter !== 'all' ? (
-                       <Button variant="outline" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
-                           <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder
+                       <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
+                           <ArrowUpDown className="h-4 w-4" />
                        </Button>
                      ) : (
-                       <Button variant="outline" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
-                           <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
+                       <Button variant="outline" size="sm" className="shrink-0" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
+                           <ArrowUpDown className="h-4 w-4" />
                        </Button>
                      )}
                  </div>
              </div>
 
              {categoryFilter !== "all" && (
-                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                 <div className="grid grid-cols-2 gap-2">
                      <Card
                          className={`cursor-pointer transition-colors ${subjectFilter === "all" ? "border-primary bg-primary/5" : ""}`}
                          onClick={() => { setSubjectFilter("all"); setPage(0); }}
