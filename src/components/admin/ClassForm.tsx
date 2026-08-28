@@ -286,7 +286,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             </CardHeader>
             <CardContent className="p-3">
                 <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-                    {isArchiveMode ? (
+                    {(isArchiveMode || form.is_archive) ? (
                         <div className="space-y-2 min-w-0 md:col-span-2">
                             <Label>Archive For Courses (Select one or more)</Label>
                             <MultiSelect
@@ -349,8 +349,14 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="class_type">Type</Label>
                         <Select
-                            value={form.class_type}
-                            onValueChange={(val) => setForm((prev) => ({ ...prev, class_type: val as "live" | "recorded" }))}
+                            value={form.is_archive ? "archive" : form.class_type}
+                            onValueChange={(val) => {
+                                if (val === "archive") {
+                                    setForm((prev) => ({ ...prev, is_archive: true }));
+                                } else {
+                                    setForm((prev) => ({ ...prev, is_archive: false, class_type: val as "live" | "recorded" }));
+                                }
+                            }}
                         >
                             <SelectTrigger id="class_type" className="w-full">
                                 <SelectValue />
@@ -358,11 +364,12 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             <SelectContent>
                                 <SelectItem value="live">Live Class</SelectItem>
                                 <SelectItem value="recorded">Recorded Class</SelectItem>
+                                <SelectItem value="archive">Archive Class</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {!isArchiveMode && form.course_id && (
+                    {!(isArchiveMode || form.is_archive) && form.course_id && (
                         <div className="space-y-2 min-w-0">
                             <Label>Also Share With (Optional)</Label>
                             <MultiSelect
@@ -374,7 +381,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         </div>
                     )}
 
-                    {!isArchiveMode && (
+                    {!(isArchiveMode || form.is_archive) && (
                         <div className="space-y-2 min-w-0">
                             <Label>Add to Archive of (Optional)</Label>
                             <MultiSelect
