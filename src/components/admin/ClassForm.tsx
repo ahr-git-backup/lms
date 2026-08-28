@@ -286,17 +286,71 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             </CardHeader>
             <CardContent className="p-3">
                 <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+                    {isArchiveMode ? (
+                        <div className="space-y-2 min-w-0 md:col-span-2">
+                            <Label>Archive For Courses (Select one or more)</Label>
+                            <MultiSelect
+                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                selected={form.archive_course_ids}
+                                onChange={(vals) => {
+                                    // If strictly archive mode, set primary course to first selection if empty
+                                    // But keep visible only archive list
+                                    const first = vals.length > 0 ? vals[0] : "";
+                                    setForm(prev => ({
+                                        ...prev,
+                                        archive_course_ids: vals,
+                                        course_id: prev.course_id || first // Keep existing or set new primary
+                                    }));
+                                }}
+                                placeholder="Select courses..."
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                                These classes will appear in the Archive section for selected courses.
+                                (Primary course set to: {courses?.find(c => c.id === form.course_id)?.name || "None"})
+                            </p>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="space-y-2 min-w-0">
+                                <div className="flex justify-between items-center">
+                                    <Label htmlFor="course">Primary Course (Optional)</Label>
+                                    {form.course_id && (
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-5 px-2 text-xs"
+                                            onClick={() => setForm(prev => ({ ...prev, course_id: "" }))}
+                                        >
+                                            Clear
+                                        </Button>
+                                    )}
+                                </div>
+                                <Select
+                                    value={form.course_id || ""}
+                                    onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
+                                >
+                                    <SelectTrigger id="course" className="w-full">
+                                        <SelectValue placeholder="Select course (or leave empty for Public)" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {courses?.map((c: Pick<Course, "id" | "name">) => (
+                                            <SelectItem key={c.id} value={c.id}>
+                                                {c.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                {!form.course_id && <p className="text-[10px] text-muted-foreground">This class will be public (no course restriction).</p>}
+                            </div>
+                        </>
+                    )}
+
                     <div className="space-y-2 min-w-0">
                         <Label htmlFor="class_type">Type</Label>
                         <Select
-                            value={form.is_archive ? "archive" : form.class_type}
-                            onValueChange={(val) => {
-                                if (val === "archive") {
-                                    setForm((prev) => ({ ...prev, is_archive: true }));
-                                } else {
-                                    setForm((prev) => ({ ...prev, is_archive: false, class_type: val as "live" | "recorded" }));
-                                }
-                            }}
+                            value={form.class_type}
+                            onValueChange={(val) => setForm((prev) => ({ ...prev, class_type: val as "live" | "recorded" }))}
                         >
                             <SelectTrigger id="class_type" className="w-full">
                                 <SelectValue />
@@ -304,68 +358,11 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             <SelectContent>
                                 <SelectItem value="live">Live Class</SelectItem>
                                 <SelectItem value="recorded">Recorded Class</SelectItem>
-                                <SelectItem value="archive">Archive Class</SelectItem>
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {form.is_archive ? (
-                        <div className="space-y-2 min-w-0 md:col-span-2">
-                            <Label>Archive For Courses (Select one or more)</Label>
-                            <MultiSelect
-                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
-                                selected={form.archive_course_ids}
-                                onChange={(vals) => {
-                                    const first = vals.length > 0 ? vals[0] : "";
-                                    setForm(prev => ({
-                                        ...prev,
-                                        archive_course_ids: vals,
-                                        course_id: prev.course_id || first, // Keep existing or set new primary
-                                    }));
-                                }}
-                                placeholder="Select courses..."
-                            />
-                            <p className="text-[10px] text-muted-foreground">
-                                This class will appear in the Archive section for every selected course -- add as many courses as you like.
-                                (Primary course set to: {courses?.find(c => c.id === form.course_id)?.name || "None"})
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="space-y-2 min-w-0">
-                            <div className="flex justify-between items-center">
-                                <Label htmlFor="course">Primary Course (Optional)</Label>
-                                {form.course_id && (
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-5 px-2 text-xs"
-                                        onClick={() => setForm(prev => ({ ...prev, course_id: "" }))}
-                                    >
-                                        Clear
-                                    </Button>
-                                )}
-                            </div>
-                            <Select
-                                value={form.course_id || ""}
-                                onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
-                            >
-                                <SelectTrigger id="course" className="w-full">
-                                    <SelectValue placeholder="Select course (or leave empty for Public)" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {courses?.map((c: Pick<Course, "id" | "name">) => (
-                                        <SelectItem key={c.id} value={c.id}>
-                                            {c.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            {!form.course_id && <p className="text-[10px] text-muted-foreground">This class will be public (no course restriction).</p>}
-                        </div>
-                    )}
-
-                    {!form.is_archive && form.course_id && (
+                    {!isArchiveMode && form.course_id && (
                         <div className="space-y-2 min-w-0">
                             <Label>Also Share With (Optional)</Label>
                             <MultiSelect
@@ -377,9 +374,9 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         </div>
                     )}
 
-                    {!form.is_archive && (
+                    {!isArchiveMode && (
                         <div className="space-y-2 min-w-0">
-                            <Label>Also Add to Archive of (Optional)</Label>
+                            <Label>Add to Archive of (Optional)</Label>
                             <MultiSelect
                                 options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
                                 selected={form.archive_course_ids}
