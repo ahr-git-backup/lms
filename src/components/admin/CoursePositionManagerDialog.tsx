@@ -369,7 +369,13 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
   ).sort();
 
   useEffect(() => {
-    if (!allCourses || !selectedSub || selectedSub === "all") return;
+    if (!allCourses || !selectedSub) return;
+    if (selectedSub === "all") {
+      const sorted = [...allCourses].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+      setItems(sorted);
+      setIsModified(false);
+      return;
+    }
     const inSub = allCourses.filter((c) => Array.isArray(c.sub_category) && c.sub_category.includes(selectedSub));
     const sorted = [...inSub].sort((a, b) => {
       const orderA = a.sub_category_order?.[selectedSub] ?? a.priority ?? 0;
@@ -409,6 +415,20 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
 
   const saveOrderMutation = useMutation({
     mutationFn: async () => {
+      if (selectedSub === "all") {
+        // Global order — writes directly to the existing "priority" column,
+        // which the landing page already uses as its default/fallback sort.
+        const results = await Promise.allSettled(
+          items.map((course, idx) => supabase.from("courses").update({ priority: idx }).eq("id", course.id))
+        );
+        const failures = results.filter(
+          (r) => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)
+        );
+        if (failures.length > 0) {
+          throw new Error(`${failures.length}/${items.length} কোর্সের পজিশন সেভ করা যায়নি, আবার চেষ্টা করুন।`);
+        }
+        return;
+      }
       // Each course keeps its OWN full sub_category_order map — we only touch
       // the key for the currently-selected sub-category, so a course's order
       // under any other sub-category tab is left untouched.
@@ -479,42 +499,47 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
               ))}
             </div>
 
-            {selectedSub === "all" ? (
-              <CategoryOrderManager allCategories={allCategories} />
-            ) : (
-              <>
-                <div className="flex items-center justify-end py-2 px-2 sm:px-0">
-                  {isModified && (
-                    <Button size="sm" onClick={() => saveOrderMutation.mutate()} disabled={saveOrderMutation.isPending}>
-                      {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                      Save Position
-                    </Button>
-                  )}
-                </div>
-
-                <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
-                  {items.length === 0 ? (
-                    <div className="text-center p-8 text-muted-foreground">এই টাইপে কোনো কোর্স নেই।</div>
-                  ) : (
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                      <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                        {items.map((course, index) => (
-                          <SortableCourseItem
-                            key={course.id}
-                            id={course.id}
-                            name={course.name}
-                            index={index}
-                            total={items.length}
-                            onMoveUp={() => moveItem(index, -1)}
-                            onMoveDown={() => moveItem(index, 1)}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DndContext>
-                  )}
-                </div>
-              </>
+            {selectedSub === "all" && (
+              <div className="mb-4">
+                <CategoryOrderManager allCategories={allCategories} />
+              </div>
             )}
+
+            <div className="flex items-center justify-between gap-2 px-2 sm:px-0 pb-1">
+              <p className="text-xs text-muted-foreground">
+                {selectedSub === "all"
+                  ? "সব কোর্সের overall (global) ক্রম — কোনো নির্দিষ্ট sub-category ছাড়া যেভাবে প্রথমে দেখা যাবে।"
+                  : `"${selectedSub}" টাইপের কোর্স গুলোর ক্রম।`}
+              </p>
+              {isModified && (
+                <Button size="sm" onClick={() => saveOrderMutation.mutate()} disabled={saveOrderMutation.isPending} className="shrink-0">
+                  {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Position
+                </Button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
+              {items.length === 0 ? (
+                <div className="text-center p-8 text-muted-foreground">এই টাইপে কোনো কোর্স নেই।</div>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    {items.map((course, index) => (
+                      <SortableCourseItem
+                        key={course.id}
+                        id={course.id}
+                        name={course.name}
+                        index={index}
+                        total={items.length}
+                        onMoveUp={() => moveItem(index, -1)}
+                        onMoveDown={() => moveItem(index, 1)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
           </>
         )}
       </CardContent>
