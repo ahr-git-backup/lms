@@ -48,6 +48,37 @@ const CourseView = () => {
   };
 
   const enrollment = enrollments?.find((e: any) => e.course_id === courseId);
+  // Course-level "Full Access" toggle for readymade exams (mirrors the
+  // Readymade Access Manager toggle) -- when on, every published readymade
+  // exam should be visible here, not just ones directly linked to this course.
+  const readymadeFullAccess = !!enrollment?.course?.readymade_full_access;
+
+  // Per subject/chapter grants (course_readymade_access, mode='readymade')
+  // given to this specific course via the admin's Readymade Access Manager
+  // sub-chapter checkboxes. These exams aren't linked to the course via
+  // course_id/shared_course_ids/readymade_course_ids at all, so without this
+  // they never show up in this tab even though the student can access them
+  // from the main Readymade Exam page.
+  const { data: courseReadymadeGrants } = useQuery({
+    queryKey: ["course-view-readymade-grants", courseId],
+    queryFn: async () => {
+      if (!courseId) return [] as { subject: string; chapter: string }[];
+      const { data, error } = await supabase
+        .from("course_readymade_access")
+        .select("subject, chapter")
+        .eq("course_id", courseId)
+        .eq("mode", "readymade");
+      if (error) throw error;
+      return (data || []) as { subject: string; chapter: string }[];
+    },
+    enabled: !!courseId,
+  });
+  const grantedSubjects = Array.from(new Set((courseReadymadeGrants || []).map(g => g.subject)));
+  const grantedChaptersBySubject: Record<string, string[]> = {};
+  (courseReadymadeGrants || []).forEach(g => {
+    if (!grantedChaptersBySubject[g.subject]) grantedChaptersBySubject[g.subject] = [];
+    grantedChaptersBySubject[g.subject].push(g.chapter);
+  });
 
   useEffect(() => {
     if (enrollment?.course?.name) {
@@ -66,7 +97,7 @@ const CourseView = () => {
 
   // 1. Subjects (scoped to selected category+section)
   const { data: subjects, isLoading: loadingSubjects } = useQuery({
-    queryKey: ["course-subjects", courseId, selectedSection],
+    queryKey: ["course-subjects", courseId, selectedSection, readymadeFullAccess, grantedSubjects.join(',')],
     queryFn: async () => {
       if (!courseId || !selectedSection) return [];
       const cfg = sectionTable(selectedSection);
@@ -79,6 +110,12 @@ const CourseView = () => {
                   ? `archive_course_ids.cs.{${courseId}},and(course_id.eq.${courseId},is_archive.eq.true)`
                   : `course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`);
           if (!cfg.archive) query = query.not("is_archive", "is", true);
+      } else if (cfg.readymade && readymadeFullAccess) {
+          // Full-access toggle is on: every published readymade exam's
+          // subject is relevant here, not just ones linked to this course.
+          query = supabase.from("exams").select("subject")
+              .eq("is_published", true)
+              .eq("is_readymade", true);
       } else {
           query = supabase.from("exams").select("subject")
               .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
@@ -93,6 +130,9 @@ const CourseView = () => {
           if (Array.isArray(row.subject)) row.subject.forEach((s: string) => unique.add(s));
           else if (typeof row.subject === 'string') unique.add(row.subject);
       });
+      // Also fold in any subjects granted via course_readymade_access (chapter
+      // grants) even if no directly-linked exam exists for them.
+      if (cfg.readymade) grantedSubjects.forEach(s => unique.add(s));
 
       const { data: settingsData } = await supabase.from("app_settings").select("value").eq("key", "subject_order_global").maybeSingle();
       const savedOrder: string[] = settingsData?.value ? (settingsData.value as string[]) : [];
@@ -111,7 +151,7 @@ const CourseView = () => {
 
   // 2. Chapters (scoped to selected category+section+subject)
   const { data: chapters, isLoading: loadingChapters } = useQuery({
-    queryKey: ["course-chapters", courseId, selectedSection, selectedSubject],
+    queryKey: ["course-chapters", courseId, selectedSection, selectedSubject, readymadeFullAccess, (grantedChaptersBySubject[selectedSubject || ""] || []).join(',')],
     queryFn: async () => {
       if (!courseId || !selectedSection || !selectedSubject) return [];
       const cfg = sectionTable(selectedSection);
@@ -125,6 +165,11 @@ const CourseView = () => {
                   : `course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
               .contains("subject", [selectedSubject]);
           if (!cfg.archive) query = query.not("is_archive", "is", true);
+      } else if (cfg.readymade && readymadeFullAccess) {
+          query = supabase.from("exams").select("chapter, sort_order")
+              .contains("subject", [selectedSubject])
+              .eq("is_published", true)
+              .eq("is_readymade", true);
       } else {
           query = supabase.from("exams").select("chapter, sort_order")
               .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
@@ -151,6 +196,9 @@ const CourseView = () => {
               if (itemOrder > currentMax) orderMap.set(row.chapter, itemOrder);
           }
       });
+      // Fold in chapters granted via course_readymade_access for this subject,
+      // even when no directly-linked exam exists for them.
+      if (cfg.readymade) (grantedChaptersBySubject[selectedSubject] || []).forEach(c => unique.add(c));
 
       return Array.from(unique).sort((a, b) => {
           const idxA = savedOrder.indexOf(a);
@@ -299,7 +347,7 @@ const CourseView = () => {
                   )}
               </div>
           ) : (
-              <CourseSectionContent courseId={courseId!} section={selectedSection} subject={selectedSubject} chapter={selectedChapter} />
+              <CourseSectionContent courseId={courseId!} section={selectedSection} subject={selectedSubject} chapter={selectedChapter} readymadeFullAccess={readymadeFullAccess} />
           )}
           </>
       )}
@@ -307,11 +355,11 @@ const CourseView = () => {
   );
 };
 
-const CourseSectionContent = ({ courseId, section, subject, chapter }: { courseId: string, section: string, subject: string, chapter: string }) => {
+const CourseSectionContent = ({ courseId, section, subject, chapter, readymadeFullAccess }: { courseId: string, section: string, subject: string, chapter: string, readymadeFullAccess?: boolean }) => {
     if (section === "record") return <ClassList courseId={courseId} subject={subject} chapter={chapter} />;
     if (section === "archive-class") return <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} />;
     if (section === "practice") return <ExamList courseId={courseId} subject={subject} chapter={chapter} />;
-    if (section === "readymade") return <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} />;
+    if (section === "readymade") return <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} readymadeFullAccess={readymadeFullAccess} />;
     return null;
 }
 
@@ -404,22 +452,47 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
     );
 }
 
-const ReadymadeExamList = ({ courseId, subject, chapter }: any) => {
+const ReadymadeExamList = ({ courseId, subject, chapter, readymadeFullAccess }: any) => {
     const navigate = useNavigate();
-    const { data: exams, isLoading } = useQuery({
-        queryKey: ["course-readymade-exams", courseId, subject, chapter],
+    const { data: hasChapterGrant } = useQuery({
+        queryKey: ["course-readymade-chapter-grant", courseId, subject, chapter],
         queryFn: async () => {
-            const { data } = await supabase
+            if (readymadeFullAccess) return true; // full access already covers everything
+            const { data, error } = await supabase
+                .from("course_readymade_access")
+                .select("course_id")
+                .eq("course_id", courseId)
+                .eq("mode", "readymade")
+                .eq("subject", subject)
+                .eq("chapter", chapter)
+                .limit(1);
+            if (error) throw error;
+            return (data || []).length > 0;
+        },
+        enabled: !!courseId && !!subject && !!chapter,
+    });
+
+    const { data: exams, isLoading } = useQuery({
+        queryKey: ["course-readymade-exams", courseId, subject, chapter, readymadeFullAccess, hasChapterGrant],
+        queryFn: async () => {
+            let query = supabase
                 .from("exams")
                 .select("*")
-                .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`)
                 .contains("subject", [subject])
                 .eq("chapter", chapter)
                 .eq("is_published", true)
                 .eq("is_readymade", true)
                 .order("created_at", { ascending: false });
+            // Full-access toggle or a chapter-level grant unlocks EVERY exam in
+            // this subject/chapter, not just ones directly linked to the course.
+            if (!readymadeFullAccess && !hasChapterGrant) {
+                query = query.or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}},readymade_course_ids.ov.{${courseId}}`);
+            }
+            const { data, error } = await query;
+            if (error) throw error;
             return data || [];
-        }
+        },
+        enabled: hasChapterGrant !== undefined
     });
 
     if (isLoading) return <div>Loading...</div>;
