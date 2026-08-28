@@ -1,7 +1,7 @@
 // Guest identity for anonymous (login-free) Free Exam attempts.
-// Collected once via GuestExamInfoDialog, then kept in sessionStorage so the
-// visitor doesn't have to re-type it on every free exam within the same
-// browser session.
+// Collected once via GuestExamInfoDialog, then kept in localStorage so the
+// visitor doesn't have to re-type it on future free exams, AND so the same
+// info can pre-fill the real Register form if they come back to sign up later.
 
 export interface GuestExamInfo {
   name: string;
@@ -14,7 +14,7 @@ const KEY = "freeExamGuestInfo";
 
 export function getGuestInfo(): GuestExamInfo | null {
   try {
-    const raw = sessionStorage.getItem(KEY);
+    const raw = localStorage.getItem(KEY);
     return raw ? (JSON.parse(raw) as GuestExamInfo) : null;
   } catch {
     return null;
@@ -23,7 +23,7 @@ export function getGuestInfo(): GuestExamInfo | null {
 
 export function setGuestInfo(info: GuestExamInfo) {
   try {
-    sessionStorage.setItem(KEY, JSON.stringify(info));
+    localStorage.setItem(KEY, JSON.stringify(info));
   } catch {
     // ignore — worst case, dialog asks again next time
   }

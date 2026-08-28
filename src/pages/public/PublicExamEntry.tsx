@@ -13,6 +13,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { Eye, EyeOff, Loader2, AlertTriangle, LogOut, LayoutDashboard } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
+import { getGuestInfo } from "@/lib/guestExamInfo";
 
 const PublicExamEntry = () => {
     const { examId } = useParams();
@@ -26,7 +27,7 @@ const PublicExamEntry = () => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [isSecondTimer, setIsSecondTimer] = useState(false);
     const [activeTab, setActiveTab] = useState("login");
-    const [hscBatch, setHscBatch] = useState("2025");
+    const [hscBatch, setHscBatch] = useState(getGuestInfo()?.hscBatch || "2025");
     const [hscGpa, setHscGpa] = useState("");
     const [captchaToken, setCaptchaToken] = useState<string | undefined>();
     const [showGuestDialog, setShowGuestDialog] = useState(false);
@@ -173,6 +174,14 @@ const PublicExamEntry = () => {
         }
     };
 
+    // For allow_guest exams, skip the login/register card entirely and open the
+    // guest-info popup automatically as soon as the exam is fetched.
+    useEffect(() => {
+        if (exam && !user && exam.allow_guest) {
+            setShowGuestDialog(true);
+        }
+    }, [exam, user]);
+
     if (!exam) return <div className="flex justify-center p-10"><Loader2 className="animate-spin" /></div>;
 
     return (
@@ -200,6 +209,18 @@ const PublicExamEntry = () => {
                             </Button>
                         </CardFooter>
                     </Card>
+                ) : exam.allow_guest ? (
+                    <Card className="w-full max-w-md border-2 border-primary/20 shadow-lg animate-in zoom-in-95 duration-200">
+                        <CardHeader className="text-center">
+                            <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
+                            <CardTitle className="text-2xl font-bold text-primary">{exam.title}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Button onClick={() => setShowGuestDialog(true)} className="w-full h-12 text-lg" size="lg">
+                                Start Exam
+                            </Button>
+                        </CardContent>
+                    </Card>
                 ) : (
                     <Card className="w-full max-w-xl border-2 border-primary/20 shadow-lg">
                         <CardHeader className="text-center pb-2">
@@ -211,23 +232,6 @@ const PublicExamEntry = () => {
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {exam.allow_guest && (
-                                <div className="mb-4">
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        className="w-full h-11"
-                                        onClick={() => setShowGuestDialog(true)}
-                                    >
-                                        লগইন ছাড়াই এক্সাম দাও
-                                    </Button>
-                                    <div className="flex items-center gap-2 my-4">
-                                        <div className="h-px bg-border flex-1" />
-                                        <span className="text-xs text-muted-foreground">অথবা</span>
-                                        <div className="h-px bg-border flex-1" />
-                                    </div>
-                                </div>
-                            )}
                             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                                 <TabsList className="grid w-full grid-cols-2 mb-4">
                                     <TabsTrigger value="login">Login</TabsTrigger>
@@ -278,12 +282,12 @@ const PublicExamEntry = () => {
                                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                             <div className="space-y-1.5">
                                                 <Label htmlFor="fullName">Own Full Name</Label>
-                                                <Input id="fullName" name="fullName" required placeholder="Your full name" />
+                                                <Input id="fullName" name="fullName" required defaultValue={getGuestInfo()?.name || ""} placeholder="Your full name" />
                                                 <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full name.</p>
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="phone">Phone Number</Label>
-                                                <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
+                                                <Input id="phone" name="phone" required defaultValue={getGuestInfo()?.phone || ""} placeholder="01XXXXXXXXX" />
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
@@ -301,7 +305,7 @@ const PublicExamEntry = () => {
                                             </div>
                                             <div className="space-y-2">
                                                 <Label htmlFor="collegeName">Full College Name</Label>
-                                                <Input id="collegeName" name="collegeName" required placeholder="Your full college name" />
+                                                <Input id="collegeName" name="collegeName" required defaultValue={getGuestInfo()?.collegeName || ""} placeholder="Your full college name" />
                                                 <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full college name.</p>
                                             </div>
                                             <div className="space-y-2">
