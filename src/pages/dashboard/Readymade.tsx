@@ -806,6 +806,15 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   useEffect(() => { if (chapters) setCurrentChaptersList(chapters); }, [chapters, setCurrentChaptersList]);
   useEffect(() => { if (subjects) setCurrentSubjectsList(subjects); }, [subjects, setCurrentSubjectsList]);
+  // Subject has no chapters at all — skip straight past the chapter grid to
+  // whichever next step actually has content (boards → sub-chapters → exams),
+  // exactly like the existing board/sub-chapter auto-skip below. Must run
+  // unconditionally (before any early `return`) to keep hook order stable.
+  useEffect(() => {
+    if (selectedSubject && !selectedChapter && !loadingChapters && chapters && chapters.length === 0) {
+      setSelectedChapter(NO_CHAPTER);
+    }
+  }, [selectedSubject, selectedChapter, loadingChapters, chapters, setSelectedChapter]);
 
   // Per-chapter MCQ counts now come from the same get_readymade_mcq_counts
   // RPC call above (chapterMcqCounts), no separate query needed.
@@ -1182,14 +1191,6 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   }
 
   // LEVEL 2: Chapter selection
-  // Subject has no chapters at all — skip straight past the chapter grid to
-  // whichever next step actually has content (boards → sub-chapters → exams),
-  // exactly like the existing board/sub-chapter auto-skip below.
-  useEffect(() => {
-    if (selectedSubject && !selectedChapter && !loadingChapters && chapters && chapters.length === 0) {
-      setSelectedChapter(NO_CHAPTER);
-    }
-  }, [selectedSubject, selectedChapter, loadingChapters, chapters, setSelectedChapter]);
 
   if (!selectedChapter) {
     return (
