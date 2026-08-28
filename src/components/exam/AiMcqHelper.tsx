@@ -197,7 +197,7 @@ function isFailureResponse(text: string) {
 }
 
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
-async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
+export async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
   const raw = await askAI(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
   const answer = normalizeAiAnswer(raw);
   if (questionId && !isFailureResponse(answer)) {

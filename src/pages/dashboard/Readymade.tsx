@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +23,7 @@ import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
+import { generateAndCacheExplanation } from "@/components/exam/AiMcqHelper";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -2139,6 +2140,75 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const [sheetHasPattern, setSheetHasPattern] = useState<boolean>(true);
   const [sheetChecking, setSheetChecking] = useState(false);
 
+  // AI Tag bulk explanation generation state.
+  const [aiRun, setAiRun] = useState<{ scope: "single" | "all"; examTitle: string; total: number; done: number; skipped: number; failed: number; cancelled: boolean } | null>(null);
+  const aiCancelRef = useRef(false);
+
+  const runAiTagForQuestions = async (questionRows: any[], scope: "single" | "all", examTitle: string) => {
+    aiCancelRef.current = false;
+    setAiRun({ scope, examTitle, total: questionRows.length, done: 0, skipped: 0, failed: 0, cancelled: false });
+    for (const q of questionRows) {
+      if (aiCancelRef.current) {
+        setAiRun((prev) => prev ? { ...prev, cancelled: true } : prev);
+        break;
+      }
+      if (q.explanation && String(q.explanation).trim().length > 0) {
+        setAiRun((prev) => prev ? { ...prev, done: prev.done + 1, skipped: prev.skipped + 1 } : prev);
+        continue;
+      }
+      try {
+        await generateAndCacheExplanation(
+          {
+            question_text: q.question_text,
+            option_a: q.option_a,
+            option_b: q.option_b,
+            option_c: q.option_c,
+            option_d: q.option_d,
+            correct_option: q.correct_option,
+          },
+          q.id
+        );
+        setAiRun((prev) => prev ? { ...prev, done: prev.done + 1 } : prev);
+      } catch {
+        setAiRun((prev) => prev ? { ...prev, done: prev.done + 1, failed: prev.failed + 1 } : prev);
+      }
+    }
+  };
+
+  const handleAiTagSingle = async (e: React.MouseEvent, exam: any) => {
+    e.stopPropagation();
+    try {
+      const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+      if (error) throw error;
+      const rows = data || [];
+      if (rows.length === 0) {
+        toast({ title: "কোনো প্রশ্ন নেই", variant: "destructive" });
+        return;
+      }
+      await runAiTagForQuestions(rows, "single", exam.title);
+    } catch (err: any) {
+      toast({ title: "শুরু করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  const handleAiTagAll = async () => {
+    try {
+      const allRows: any[] = [];
+      for (const exam of exams) {
+        const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
+        if (error) continue;
+        allRows.push(...(data || []));
+      }
+      if (allRows.length === 0) {
+        toast({ title: "কোনো প্রশ্ন নেই", variant: "destructive" });
+        return;
+      }
+      await runAiTagForQuestions(allRows, "all", `${exams.length}টি Exam`);
+    } catch (err: any) {
+      toast({ title: "শুরু করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
   const isImageOrPatternQ = (q: any) => {
     const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
     const combined = fields.filter(Boolean).join(" ");
@@ -2209,6 +2279,50 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
+    {isAdmin && exams.length > 0 && (
+      <div className="col-span-1 lg:col-span-2 flex justify-end">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 px-2 text-[11px] text-violet-600 border-violet-300 hover:text-violet-700 gap-1"
+          onClick={handleAiTagAll}
+        >
+          <Sparkles className="h-3 w-3" /> AI Tag — All ({exams.length}টি Exam)
+        </Button>
+      </div>
+    )}
+    <Dialog open={!!aiRun} onOpenChange={(o) => { if (!o) { aiCancelRef.current = true; setAiRun(null); } }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-1.5"><Sparkles className="h-4 w-4 text-violet-600" /> AI ব্যাখ্যা তৈরি হচ্ছে</DialogTitle>
+        </DialogHeader>
+        {aiRun && (
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">{aiRun.examTitle}</p>
+            <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-violet-600 h-2 transition-all"
+                style={{ width: `${aiRun.total ? Math.round((aiRun.done / aiRun.total) * 100) : 0}%` }}
+              />
+            </div>
+            <p className="text-sm">
+              {aiRun.done}/{aiRun.total} সম্পন্ন
+              {aiRun.skipped > 0 && ` · ${aiRun.skipped}টি আগে থেকেই ছিল`}
+              {aiRun.failed > 0 && ` · ${aiRun.failed}টি ব্যর্থ`}
+            </p>
+            {aiRun.done >= aiRun.total ? (
+              <Button size="sm" className="w-full" onClick={() => setAiRun(null)}>
+                {aiRun.cancelled ? "বন্ধ করা হয়েছে" : "সম্পন্ন — বন্ধ করুন"}
+              </Button>
+            ) : (
+              <Button size="sm" variant="outline" className="w-full" onClick={() => { aiCancelRef.current = true; }}>
+                থামান
+              </Button>
+            )}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
     <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -2385,6 +2499,16 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
                   >
                     Topic Add
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-[11px] text-violet-600 hover:text-violet-700 gap-1"
+                    onClick={(e) => handleAiTagSingle(e, exam)}
+                  >
+                    <Sparkles className="h-3 w-3" /> AI Tag
                   </Button>
                 )}
               </div>
