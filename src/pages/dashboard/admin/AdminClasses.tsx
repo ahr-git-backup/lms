@@ -204,9 +204,7 @@ const AdminClasses = () => {
         <div className="space-y-4">
              {/* Classes List */}
              <div className="flex flex-col gap-2">
-             <div className="flex flex-row justify-between items-start gap-4">
-                 <h2 className="text-lg font-semibold hidden sm:block">Scheduled Classes</h2>
-                 <div className="grid grid-cols-3 gap-2 w-full">
+                 <div className="grid grid-cols-3 gap-1.5">
                     <Select
                         value={courseFilter}
                         onValueChange={(v) => {
@@ -214,7 +212,7 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                        <SelectTrigger className="w-full text-[11px] sm:text-sm px-1.5 sm:px-2">
                             <SelectValue placeholder="Course" />
                         </SelectTrigger>
                         <SelectContent>
@@ -232,7 +230,7 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                        <SelectTrigger className="w-full text-[11px] sm:text-sm px-1.5 sm:px-2">
                             <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
@@ -249,7 +247,7 @@ const AdminClasses = () => {
                             setPage(0);
                         }}
                     >
-                        <SelectTrigger className="w-full text-xs sm:text-sm px-2">
+                        <SelectTrigger className="w-full text-[11px] sm:text-sm px-1.5 sm:px-2">
                             <SelectValue placeholder="Subject" />
                         </SelectTrigger>
                         <SelectContent>
@@ -262,24 +260,23 @@ const AdminClasses = () => {
                         </SelectContent>
                     </Select>
                  </div>
-                 <div className="flex items-center gap-2 w-full">
-                     {courseFilter !== 'all' ? (
-                       <Button variant="outline" size="sm" className="shrink-0" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
-                           <ArrowUpDown className="h-4 w-4" />
-                       </Button>
-                     ) : (
-                       <Button variant="outline" size="sm" className="shrink-0" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
-                           <ArrowUpDown className="h-4 w-4" />
-                       </Button>
-                     )}
-                 </div>
-             </div>
              <Input
                 placeholder="Search Title..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 className="w-full sm:w-[240px]"
              />
+             </div>
+             <div className="flex justify-end">
+                 {courseFilter !== 'all' ? (
+                   <Button variant="outline" size="sm" onClick={() => { setReorderCourseId(courseFilter); setIsReordering(true); }} disabled={!classes || classes.length === 0} title="Reorder classes for this course">
+                       <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder
+                   </Button>
+                 ) : (
+                   <Button variant="outline" size="sm" onClick={() => setIsReordering(true)} disabled={!classes || classes.length === 0}>
+                       <ArrowUpDown className="h-4 w-4 mr-2" /> Reorder Page
+                   </Button>
+                 )}
              </div>
 
              {categoryFilter !== "all" && (
