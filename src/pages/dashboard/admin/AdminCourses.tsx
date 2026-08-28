@@ -25,6 +25,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { MultiSelect, Option } from "@/components/ui/multi-select";
+import { CoursePositionManagerDialog } from "@/components/admin/CoursePositionManagerDialog";
 import { ImageUploader } from "@/components/ui/image-uploader";
 
 const demoContentSchema = z.object({
@@ -109,6 +110,7 @@ const AdminCourses = () => {
   const [listStatusFilter, setListStatusFilter] = useState<"active" | "inactive" | "hidden">("active");
   const [listCategoryFilter, setListCategoryFilter] = useState<string>("all");
   const [listSubCategoryFilter, setListSubCategoryFilter] = useState<string>("all");
+  const [showPositionManager, setShowPositionManager] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
 
@@ -435,6 +437,10 @@ const AdminCourses = () => {
 
   return (
     <section className="space-y-8 pb-12">
+      {showPositionManager ? (
+        <CoursePositionManagerDialog onClose={() => setShowPositionManager(false)} />
+      ) : (
+      <>
       <Dialog open={isCouponDialogOpen} onOpenChange={setIsCouponDialogOpen}>
         <DialogContent>
             <DialogHeader>
@@ -964,6 +970,12 @@ const AdminCourses = () => {
             </TabsList>
         </Tabs>
 
+        <div>
+          <Button type="button" variant="outline" size="sm" onClick={() => setShowPositionManager(true)}>
+            Manage Course Position
+          </Button>
+        </div>
+
         {tagsData?.cats && tagsData.cats.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <Button
@@ -1117,6 +1129,8 @@ const AdminCourses = () => {
             </>
           )}
       </div>
+      </>
+      )}
     </section>
   );
 };

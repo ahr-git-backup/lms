@@ -22,7 +22,7 @@ export const CourseSection = () => {
         queryFn: async () => {
           const { data, error } = await supabase
             .from("courses")
-            .select("id, name, short_description, price, original_price, image_url, slug, is_active, category, sub_category, priority")
+            .select("id, name, short_description, price, original_price, image_url, slug, is_active, category, sub_category, priority, sub_category_order")
             .eq("is_public", true)
             .order("priority", { ascending: true })
             .order("created_at", { ascending: false });
@@ -95,6 +95,18 @@ export const CourseSection = () => {
 
         return true;
     });
+
+    // When a specific sub-category tab is active, respect that sub-category's
+    // own drag-ordered position (set via Admin → Courses → Manage Course
+    // Position) instead of the single global "priority" — a course can be
+    // #1 under "Full Course" but #5 under "GK-English".
+    if (selectedSubCategory !== "all" && filteredCourses) {
+        filteredCourses.sort((a: any, b: any) => {
+            const orderA = a.sub_category_order?.[selectedSubCategory] ?? a.priority ?? 0;
+            const orderB = b.sub_category_order?.[selectedSubCategory] ?? b.priority ?? 0;
+            return orderA - orderB;
+        });
+    }
 
     // Get subcategories for the selected category (or all if no category selected)
     const availableSubCategories = Array.from(new Set(

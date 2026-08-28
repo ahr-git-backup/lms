@@ -1,0 +1,281 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { cn } from "@/lib/utils";
+
+interface CoursePositionManagerDialogProps {
+  onClose: () => void;
+}
+
+interface CourseRow {
+  id: string;
+  name: string;
+  priority: number;
+  sub_category: string[] | null;
+  sub_category_order: Record<string, number> | null;
+}
+
+function SortableCourseItem({
+  id,
+  name,
+  index,
+  total,
+  onMoveUp,
+  onMoveDown,
+}: {
+  id: string;
+  name: string;
+  index: number;
+  total: number;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "flex items-center gap-2 p-3 bg-card border-y sm:border rounded-none sm:rounded-lg mb-2",
+        isDragging ? "shadow-lg border-primary/50" : "hover:border-primary/30"
+      )}
+    >
+      <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing p-2 -m-1 bg-muted/50 rounded flex-shrink-0 touch-none">
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </div>
+      <span className="h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center flex-shrink-0">
+        {index + 1}
+      </span>
+      <div className="flex-1 min-w-0">
+        <h4 className="font-medium text-sm leading-snug break-words">{name}</h4>
+      </div>
+      <div className="flex flex-col gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={index === 0}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move up"
+        >
+          <ChevronUp className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={index === total - 1}
+          className="h-6 w-6 rounded flex items-center justify-center border bg-background disabled:opacity-30 disabled:cursor-not-allowed hover:bg-muted"
+          aria-label="Move down"
+        >
+          <ChevronDown className="h-3.5 w-3.5" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Lets admin pick a sub-category (course type — "Full Course", "GK-English",
+// etc.) and drag-order just the courses that belong to it. Saved per-course
+// into courses.sub_category_order (jsonb: { "<sub_category>": <int order> }),
+// so the same course can sit at a different position under a different
+// sub-category tab. Falls back to the global "priority" column when a
+// sub_category has no override yet (see CourseSection.tsx on the landing page).
+export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDialogProps) {
+  const [selectedSub, setSelectedSub] = useState<string>("");
+  const [items, setItems] = useState<CourseRow[]>([]);
+  const [isModified, setIsModified] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: allCourses, isLoading } = useQuery({
+    queryKey: ["course-position-manager-all-courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, name, priority, sub_category, sub_category_order")
+        .eq("is_public", true);
+      if (error) throw error;
+      return (data || []) as unknown as CourseRow[];
+    },
+  });
+
+  const allSubCategories = Array.from(
+    new Set((allCourses || []).flatMap((c) => (Array.isArray(c.sub_category) ? c.sub_category : [])))
+  ).sort();
+
+  useEffect(() => {
+    if (!selectedSub && allSubCategories.length > 0) {
+      setSelectedSub(allSubCategories[0]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSubCategories.length]);
+
+  useEffect(() => {
+    if (!allCourses || !selectedSub) return;
+    const inSub = allCourses.filter((c) => Array.isArray(c.sub_category) && c.sub_category.includes(selectedSub));
+    const sorted = [...inSub].sort((a, b) => {
+      const orderA = a.sub_category_order?.[selectedSub] ?? a.priority ?? 0;
+      const orderB = b.sub_category_order?.[selectedSub] ?? b.priority ?? 0;
+      return orderA - orderB;
+    });
+    setItems(sorted);
+    setIsModified(false);
+  }, [allCourses, selectedSub]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setItems((prev) => {
+        const oldIndex = prev.findIndex((c) => c.id === active.id);
+        const newIndex = prev.findIndex((c) => c.id === over.id);
+        setIsModified(true);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      setIsModified(true);
+      return arrayMove(prev, index, newIndex);
+    });
+  };
+
+  const saveOrderMutation = useMutation({
+    mutationFn: async () => {
+      // Each course keeps its OWN full sub_category_order map — we only touch
+      // the key for the currently-selected sub-category, so a course's order
+      // under any other sub-category tab is left untouched.
+      const results = await Promise.allSettled(
+        items.map((course, idx) => {
+          const nextMap = { ...(course.sub_category_order || {}), [selectedSub]: idx };
+          return supabase.from("courses").update({ sub_category_order: nextMap }).eq("id", course.id);
+        })
+      );
+      const failures = results.filter(
+        (r) => r.status === "rejected" || (r.status === "fulfilled" && (r.value as any).error)
+      );
+      if (failures.length > 0) {
+        throw new Error(`${failures.length}/${items.length} কোর্সের পজিশন সেভ করা যায়নি, আবার চেষ্টা করুন।`);
+      }
+    },
+    onSuccess: () => {
+      toast({ title: "কোর্সের পজিশন সেভ হয়েছে!" });
+      setIsModified(false);
+      queryClient.invalidateQueries({ queryKey: ["public-courses"] });
+      queryClient.invalidateQueries({ queryKey: ["course-position-manager-all-courses"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "সেভ করা যায়নি", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Card className="animate-in fade-in slide-in-from-bottom-4 duration-300">
+      <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center border-b pb-4 mb-4 gap-4">
+        <div>
+          <CardTitle>Manage Course Position</CardTitle>
+          <CardDescription>
+            একটা কোর্স টাইপ (sub-category) বেছে নিন, তারপর সেই টাইপের কোর্সগুলো ড্র্যাগ করে বা উপর-নিচ বাটন দিয়ে অর্ডার ঠিক করুন — এই অর্ডার শুধু ঐ টাইপের ট্যাবেই প্রযোজ্য, অন্য টাইপে এই কোর্সের অবস্থান আলাদা থাকতে পারে।
+          </CardDescription>
+        </div>
+        <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
+          <ChevronLeft className="h-4 w-4 mr-2" /> Back
+        </Button>
+      </CardHeader>
+
+      <CardContent className="flex flex-col px-0 sm:px-6">
+        {isLoading ? (
+          <div className="text-center p-8 text-muted-foreground flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : allSubCategories.length === 0 ? (
+          <div className="text-center p-8 text-muted-foreground">কোনো sub-category পাওয়া যায়নি।</div>
+        ) : (
+          <>
+            <div className="flex flex-wrap gap-2 px-2 sm:px-0 pb-3">
+              {allSubCategories.map((sub) => (
+                <Button
+                  key={sub}
+                  type="button"
+                  size="sm"
+                  variant={selectedSub === sub ? "default" : "outline"}
+                  onClick={() => setSelectedSub(sub)}
+                >
+                  {sub}
+                </Button>
+              ))}
+            </div>
+
+            <div className="flex items-center justify-end py-2 px-2 sm:px-0">
+              {isModified && (
+                <Button size="sm" onClick={() => saveOrderMutation.mutate()} disabled={saveOrderMutation.isPending}>
+                  {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Save Position
+                </Button>
+              )}
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
+              {items.length === 0 ? (
+                <div className="text-center p-8 text-muted-foreground">এই টাইপে কোনো কোর্স নেই।</div>
+              ) : (
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                    {items.map((course, index) => (
+                      <SortableCourseItem
+                        key={course.id}
+                        id={course.id}
+                        name={course.name}
+                        index={index}
+                        total={items.length}
+                        onMoveUp={() => moveItem(index, -1)}
+                        onMoveDown={() => moveItem(index, 1)}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              )}
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
