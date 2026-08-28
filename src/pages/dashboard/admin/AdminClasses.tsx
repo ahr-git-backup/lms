@@ -36,6 +36,7 @@ const AdminClasses = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [courseFilter, setCourseFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState<"all" | "live" | "recorded" | "archive">("all");
 
   useEffect(() => {
       const timer = setTimeout(() => {
@@ -63,7 +64,7 @@ const AdminClasses = () => {
   });
 
   const { data: classesData, isLoading } = useQuery({
-    queryKey: ["admin-classes", page, debouncedSearch, subjectFilter, courseFilter],
+    queryKey: ["admin-classes", page, debouncedSearch, subjectFilter, courseFilter, categoryFilter],
     queryFn: async () => {
       let query = supabase
         .from("classes")
@@ -75,6 +76,11 @@ const AdminClasses = () => {
       }
       if (courseFilter !== "all") {
           query = query.eq("course_id", courseFilter);
+      }
+      if (categoryFilter === "archive") {
+          query = query.eq("is_archive", true);
+      } else if (categoryFilter === "live" || categoryFilter === "recorded") {
+          query = query.eq("class_type", categoryFilter).not("is_archive", "is", true);
       }
       if (debouncedSearch) {
         query = query.ilike("title", `%${debouncedSearch}%`);
@@ -145,14 +151,17 @@ const AdminClasses = () => {
                     <TabsTrigger value="course"><LayoutGrid className="h-4 w-4 mr-2" /> Courses</TabsTrigger>
                 </TabsList>
             </Tabs>
-            <Button onClick={() => setShowForm(!showForm)} className="shrink-0" variant={showForm || editingClass ? "secondary" : "default"}>
-                {showForm || editingClass ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Add Class</>}
-            </Button>
-            <Button onClick={() => setShowTutorialDialog(true)} className="shrink-0" variant="outline">
-                <VideoIcon className="h-4 w-4 mr-2" /> Dashboard Tutorial Video
-            </Button>
         </div>
       </header>
+
+      <div className="flex flex-col sm:flex-row gap-2">
+          <Button onClick={() => setShowForm(!showForm)} className="shrink-0" variant={showForm || editingClass ? "secondary" : "default"}>
+              {showForm || editingClass ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Add Class</>}
+          </Button>
+          <Button onClick={() => setShowTutorialDialog(true)} className="shrink-0" variant="outline">
+              <VideoIcon className="h-4 w-4 mr-2" /> Dashboard Tutorial Video
+          </Button>
+      </div>
 
       <Dialog open={showTutorialDialog} onOpenChange={setShowTutorialDialog}>
         <DialogContent>
@@ -196,7 +205,7 @@ const AdminClasses = () => {
              {/* Classes List */}
              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                  <h2 className="text-lg font-semibold">Scheduled Classes</h2>
-                 <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                 <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full sm:w-auto">
                     <Select
                         value={courseFilter}
                         onValueChange={(v) => {
@@ -212,6 +221,23 @@ const AdminClasses = () => {
                             {courses?.map(c => (
                                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                             ))}
+                        </SelectContent>
+                    </Select>
+                    <Select
+                        value={categoryFilter}
+                        onValueChange={(v) => {
+                            setCategoryFilter(v as "all" | "live" | "recorded" | "archive");
+                            setPage(0);
+                        }}
+                    >
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem value="live">Live</SelectItem>
+                            <SelectItem value="recorded">Recorded</SelectItem>
+                            <SelectItem value="archive">Archive</SelectItem>
                         </SelectContent>
                     </Select>
                     <Select
