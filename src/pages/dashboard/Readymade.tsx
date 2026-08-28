@@ -693,6 +693,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       const allSubjects = Array.from(unique);
       const visible = isAdmin ? allSubjects : allSubjects.filter((s) => !hiddenSet.has(s));
       const sortedSubjects = visible.sort((a, b) => {
+        const uA = unlockMap[a] || false, uB = unlockMap[b] || false;
+        if (uA !== uB) return uA ? -1 : 1; // Unlocked subjects float to the top.
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
@@ -779,6 +781,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         }
       });
       const chapters = Array.from(unique).sort((a, b) => {
+        const uA = unlockMap[a] || false, uB = unlockMap[b] || false;
+        if (uA !== uB) return uA ? -1 : 1; // Unlocked chapters float to the top.
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
@@ -929,6 +933,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       const { data: sd } = await supabase.from("app_settings").select("value").eq("key", settingsKey).maybeSingle();
       const savedOrder: string[] = sd?.value ? (sd.value as string[]) : [];
       const subChapters = Array.from(unique).sort((a, b) => {
+        const uA = unlockMap[a] || false, uB = unlockMap[b] || false;
+        if (uA !== uB) return uA ? -1 : 1; // Unlocked sub-chapters float to the top.
         const iA = savedOrder.indexOf(a), iB = savedOrder.indexOf(b);
         if (iA !== -1 && iB !== -1) return iA - iB;
         if (iA !== -1) return -1; if (iB !== -1) return 1;
@@ -2298,7 +2304,12 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         </div>
       </DialogContent>
     </Dialog>
-    {exams.map((exam) => {
+    {[...exams].sort((a, b) => {
+      const uA = isExamUnlocked(a, enrolledIds, fullAccessCourseIds, subChapterGrants);
+      const uB = isExamUnlocked(b, enrolledIds, fullAccessCourseIds, subChapterGrants);
+      if (uA === uB) return 0;
+      return uA ? -1 : 1; // Unlocked exams first, locked ones pushed below.
+    }).map((exam) => {
       const unlocked = isExamUnlocked(exam, enrolledIds, fullAccessCourseIds, subChapterGrants);
       return (
         <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
