@@ -980,6 +980,13 @@ const TakeExam = () => {
       if (!enrollments) return false;
 
       const enrolledIds = enrollments.map((e: any) => e.course_id);
+      // Course-level bulk grant (Admin → Course → Readymade Access Manager →
+      // "Full Access" toggle) — separate from per-exam readymade_course_ids
+      // below. A student enrolled in a course with this flag on should reach
+      // EVERY readymade exam, not just ones individually listed on the exam.
+      const fullAccessCourseIds = enrollments
+        .filter((e: any) => e.course?.readymade_full_access)
+        .map((e: any) => e.course_id);
 
       // Check Primary Enrollment
       if (exam.course_id && enrolledIds.includes(exam.course_id)) return true;
@@ -1000,9 +1007,13 @@ const TakeExam = () => {
 
       // Check Readymade Linked Courses
       // @ts-ignore
-      if (exam.is_readymade && exam.readymade_course_ids && Array.isArray(exam.readymade_course_ids)) {
+      if (exam.is_readymade) {
+          if (fullAccessCourseIds.length > 0) return true;
           // @ts-ignore
-          if (exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+          if (exam.readymade_course_ids && Array.isArray(exam.readymade_course_ids)) {
+              // @ts-ignore
+              if (exam.readymade_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
+          }
       }
 
       return false;
