@@ -51,6 +51,11 @@ async function fetchAllRows<T>(buildQuery: (from: number, to: number) => any): P
 // client-side so we can render ALL exams and just lock the ones the user
 // doesn't have access to, instead of hiding them.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+// Sentinel used for "this subject has no chapters" — lets the same drill-down
+// state (`selectedChapter`) represent both a real chapter name and the
+// chapterless case, so downstream Board/SubChapter/Exam queries reuse one code path.
+const NO_CHAPTER = "__NO_CHAPTER__";
+
 const isExamUnlocked = (exam: any, enrolledIds: string[], fullAccessCourseIds: string[] = [], subChapterGrants: Set<string> = new Set()): boolean => {
   if (exam.is_visible_on_free) return true;
   if (enrolledIds.length === 0) return false;
@@ -866,7 +871,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         let query = supabase.from("exams")
           .select("readymade_category")
           .eq("is_readymade", true).eq("is_published", true)
-          .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+          .contains("subject", [selectedSubject])
+          [selectedChapter === NO_CHAPTER ? "is" : "eq"]("chapter", selectedChapter === NO_CHAPTER ? null : selectedChapter)
           .not("readymade_category", "is", null)
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
@@ -906,7 +912,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         let query = supabase.from("exams")
           .select("readymade_sub_chapter, course_id, shared_course_ids, readymade_course_ids")
           .eq("is_readymade", true).eq("is_published", true)
-          .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+          .contains("subject", [selectedSubject])
+          [selectedChapter === NO_CHAPTER ? "is" : "eq"]("chapter", selectedChapter === NO_CHAPTER ? null : selectedChapter)
           .not("readymade_sub_chapter", "is", null)
           .range(from, to);
         if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
@@ -963,7 +970,8 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
         .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
         .eq("is_readymade", true).eq("is_published", true)
         .is("parent_exam_id", null)
-        .contains("subject", [selectedSubject]).eq("chapter", selectedChapter)
+        .contains("subject", [selectedSubject])
+        [selectedChapter === NO_CHAPTER ? "is" : "eq"]("chapter", selectedChapter === NO_CHAPTER ? null : selectedChapter)
         .order("sort_order", { ascending: false }).order("created_at", { ascending: false });
       if (selectedParentTopics?.length > 0) query = query.in("readymade_topic", selectedParentTopics);
       if (selectedBoards?.length > 0) query = query.in("readymade_category", selectedBoards);
@@ -1174,12 +1182,21 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   }
 
   // LEVEL 2: Chapter selection
+  // Subject has no chapters at all — skip straight past the chapter grid to
+  // whichever next step actually has content (boards → sub-chapters → exams),
+  // exactly like the existing board/sub-chapter auto-skip below.
+  useEffect(() => {
+    if (selectedSubject && !selectedChapter && !loadingChapters && chapters && chapters.length === 0) {
+      setSelectedChapter(NO_CHAPTER);
+    }
+  }, [selectedSubject, selectedChapter, loadingChapters, chapters, setSelectedChapter]);
+
   if (!selectedChapter) {
     return (
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => setSelectedSubject(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Subjects</Button>
         <h2 className="text-base font-bold whitespace-pre-line">{selectedSubject}</h2>
-        {loadingChapters ? <div className="text-muted-foreground">Loading chapters...</div>
+        {loadingChapters || (chapters && chapters.length === 0) ? <div className="text-muted-foreground">Loading chapters...</div>
           : !chapters || chapters.length === 0 ? <div className="text-muted-foreground">No chapters found for this subject.</div>
           : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
@@ -1225,13 +1242,18 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     );
   }
 
+  const backFromChapter = () => {
+    if (selectedChapter === NO_CHAPTER) setSelectedSubject(null);
+    else setSelectedChapter(null);
+  };
+
   // LEVEL 2.5: Board/Category selection — only shown if this chapter has boards
   if (!selectedBoardStep && chapterBoards && chapterBoards.length > 0) {
     return (
       <div className="space-y-3">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedChapter(null)} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters</Button>
+        <Button variant="ghost" size="sm" onClick={backFromChapter} className="pl-0 h-8"><ArrowLeft className="mr-2 h-4 w-4" /> {selectedChapter === NO_CHAPTER ? "Back to Subjects" : "Back to Chapters"}</Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
+          <span>{selectedSubject}</span>{selectedChapter !== NO_CHAPTER && (<><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span></>)}
         </div>
         <h2 className="text-base font-bold">Select Board / Category</h2>
         {loadingChapterBoards ? <div className="text-muted-foreground">Loading boards...</div> : (
@@ -1267,12 +1289,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       <div className="space-y-3">
         <Button variant="ghost" size="sm" onClick={() => {
           if (selectedBoardStep && chapterBoards && chapterBoards.length > 0) setSelectedBoardStep(null);
-          else setSelectedChapter(null);
+          else backFromChapter();
         }} className="pl-0 h-8">
-          <ArrowLeft className="mr-2 h-4 w-4" /> {selectedBoardStep ? "Back to Boards" : "Back to Chapters"}
+          <ArrowLeft className="mr-2 h-4 w-4" /> {selectedBoardStep ? "Back to Boards" : selectedChapter === NO_CHAPTER ? "Back to Subjects" : "Back to Chapters"}
         </Button>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
-          <span>{selectedSubject}</span><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span>
+          <span>{selectedSubject}</span>{selectedChapter !== NO_CHAPTER && (<><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span></>)}
           {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
         </div>
         <h2 className="text-base font-bold">Select Session / Year</h2>
@@ -1330,15 +1352,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
       <Button variant="ghost" size="sm" onClick={() => {
         if (selectedSubChapter && subChapters && subChapters.length > 0) setSelectedSubChapter(null);
         else if (selectedBoardStep && chapterBoards && chapterBoards.length > 0) setSelectedBoardStep(null);
-        else setSelectedChapter(null);
+        else backFromChapter();
       }} className="pl-0 h-8">
-        <ArrowLeft className="mr-2 h-4 w-4" /> {selectedSubChapter ? "Back to Sessions" : selectedBoardStep ? "Back to Boards" : "Back to Chapters"}
+        <ArrowLeft className="mr-2 h-4 w-4" /> {selectedSubChapter ? "Back to Sessions" : selectedBoardStep ? "Back to Boards" : selectedChapter === NO_CHAPTER ? "Back to Subjects" : "Back to Chapters"}
       </Button>
       <div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
           <span>{selectedSubject}</span>
-          <ChevronRight className="h-3 w-3" />
-          <span>{selectedChapter}</span>
+          {selectedChapter !== NO_CHAPTER && (<><ChevronRight className="h-3 w-3" /><span>{selectedChapter}</span></>)}
           {selectedBoardStep && <><ChevronRight className="h-3 w-3" /><span>{selectedBoardStep}</span></>}
           {selectedSubChapter && <><ChevronRight className="h-3 w-3" /><span>{selectedSubChapter}</span></>}
         </div>
