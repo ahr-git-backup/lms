@@ -638,7 +638,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 1: SUBJECTS ---
   const { data: subjectsResult, isLoading: loadingSubjects } = useQuery({
-    queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-subjects", enrolledIds.join(','), selectedParentTopics, selectedBoards, fullAccessCourseIds.join(','), subChapterGrants ? subChapterGrants.size : 0],
     queryFn: async () => {
       const data = await fetchAllRows<{ subject: any; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; chapter: string | null; readymade_sub_chapter: string | null; is_visible_on_free: boolean | null; readymade_topic: string | null }>((from, to) => {
         let query = supabase.from("exams").select("subject, course_id, shared_course_ids, readymade_course_ids, chapter, readymade_sub_chapter, is_visible_on_free, readymade_topic")
@@ -749,7 +749,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 2: CHAPTERS ---
   const { data: chaptersResult, isLoading: loadingChapters } = useQuery({
-    queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-chapters", selectedSubject, enrolledIds.join(','), selectedParentTopics, selectedBoards, fullAccessCourseIds.join(','), subChapterGrants ? subChapterGrants.size : 0],
     queryFn: async () => {
       if (!selectedSubject) return { chapters: [], unlockMap: {} as Record<string, boolean> };
       const data = await fetchAllRows<{ chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null; readymade_sub_chapter: string | null; sort_order: number | null }>((from, to) => {
@@ -898,7 +898,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
 
   // --- LEVEL 3: SUB-CHAPTERS (readymade_sub_chapter) ---
   const { data: subChaptersResult, isLoading: loadingSubChapters } = useQuery({
-    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, selectedBoardStep, enrolledIds.join(','), selectedParentTopics, selectedBoards],
+    queryKey: ["readymade-exams-subchapters", selectedSubject, selectedChapter, selectedBoardStep, enrolledIds.join(','), selectedParentTopics, selectedBoards, fullAccessCourseIds.join(','), subChapterGrants ? subChapterGrants.size : 0],
     queryFn: async () => {
       if (!selectedSubject || !selectedChapter) return { subChapters: [], unlockMap: {} as Record<string, boolean> };
       const data = await fetchAllRows<{ readymade_sub_chapter: string | null; course_id: string | null; shared_course_ids: string[] | null; readymade_course_ids: string[] | null }>((from, to) => {
