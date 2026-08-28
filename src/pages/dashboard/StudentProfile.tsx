@@ -26,7 +26,16 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Link, useSearchParams } from "react-router-dom";
 
 const profileSchema = z.object({
-  full_name: z.string().trim().max(120).optional().or(z.literal("")),
+  full_name: z
+    .string()
+    .trim()
+    .max(120)
+    .optional()
+    .or(z.literal(""))
+    .refine(
+      (val) => !val || val.trim().split(/\s+/).filter(Boolean).length === 2,
+      { message: "নাম অবশ্যই ঠিক ২টা শব্দের হতে হবে (যেমন: Rafi Ahmed)" }
+    ),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   school: z.string().trim().max(160).optional().or(z.literal("")),
   batch_year: z
@@ -278,9 +287,10 @@ const StudentProfile = () => {
     const batchYearNumber = values.batch_year ? Number(values.batch_year) : null;
     const isSecondTimer = values.is_second_timer === "yes";
 
-    const { error } = await supabase
-      .from("profiles")
-      .update({
+    const canChangeName = !profile.name_changed_once;
+    const nameChanged = canChangeName && values.full_name && values.full_name.trim() !== (profile.full_name || "").trim();
+
+    const updatePayload: any = {
         phone: values.phone || null,
         school: values.school || null,
         batch_year: batchYearNumber,
@@ -293,7 +303,16 @@ const StudentProfile = () => {
         hsc_gpa: values.hsc_gpa,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         gender: values.gender as any,
-      })
+    };
+
+    if (nameChanged) {
+        updatePayload.full_name = values.full_name!.trim();
+        updatePayload.name_changed_once = true;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update(updatePayload)
       .eq("id", profile.id);
 
     if (error) {
@@ -304,6 +323,8 @@ const StudentProfile = () => {
       });
       return;
     }
+
+    await refreshProfile();
 
     toast({
       title: "Profile updated",
@@ -473,7 +494,15 @@ const StudentProfile = () => {
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="full_name">Full name</Label>
-                                <Input id="full_name" {...form.register("full_name")} disabled />
+                                <Input id="full_name" {...form.register("full_name")} disabled={profile.name_changed_once} />
+                                {profile.name_changed_once ? (
+                                    <p className="text-xs text-muted-foreground">নাম একবার পরিবর্তন করা হয়ে গেছে, আর পরিবর্তন করা যাবে না।</p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">শুধু একবার পরিবর্তন করা যাবে — নাম অবশ্যই ২টা শব্দের হতে হবে (যেমন: Rafi Ahmed)।</p>
+                                )}
+                                {form.formState.errors.full_name && (
+                                    <p className="text-xs text-destructive">{form.formState.errors.full_name.message}</p>
+                                )}
                             </div>
                             <div className="space-y-2">
                                 <Label>Registration ID</Label>

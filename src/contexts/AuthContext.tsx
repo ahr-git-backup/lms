@@ -23,6 +23,7 @@ interface Profile {
   hsc_gpa?: number | null;
   is_second_timer?: boolean;
   avatar_url?: string | null;
+  name_changed_once?: boolean;
 }
 
 interface AuthContextType {
