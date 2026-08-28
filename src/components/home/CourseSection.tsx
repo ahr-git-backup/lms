@@ -62,12 +62,30 @@ export const CourseSection = () => {
         staleTime: 5 * 60 * 1000,
     });
 
+    const { data: categoryOrder } = useQuery({
+        queryKey: ["category-display-order"],
+        queryFn: async () => {
+            const { data } = await supabase.from("app_settings").select("value").eq("key", "category_order_global").maybeSingle();
+            return (data?.value as string[]) || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
     // Extract unique categories and subcategories flattened from arrays
     let categories = Array.from(new Set(
         courses?.flatMap((c: any) =>
             Array.isArray(c.category) ? c.category : (c.category ? [c.category] : [])
         ) || []
-    )).sort() as string[];
+    )).sort((a, b) => {
+        // Respect admin's custom drag-order (Manage Course Position → All tab)
+        // when set; unlisted names fall back to alphabetical, appended after.
+        const order = categoryOrder || [];
+        const iA = order.indexOf(a), iB = order.indexOf(b);
+        if (iA !== -1 && iB !== -1) return iA - iB;
+        if (iA !== -1) return -1;
+        if (iB !== -1) return 1;
+        return a.localeCompare(b);
+    }) as string[];
 
     // Filter categories if configuration is set
     if (FEATURED_CATEGORIES.length > 0) {

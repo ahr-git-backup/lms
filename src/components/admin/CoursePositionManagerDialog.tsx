@@ -33,6 +33,7 @@ interface CourseRow {
   id: string;
   name: string;
   priority: number;
+  category: string[] | null;
   sub_category: string[] | null;
   sub_category_order: Record<string, number> | null;
 }
@@ -108,7 +109,120 @@ function SortableCourseItem({
 // so the same course can sit at a different position under a different
 // sub-category tab. Falls back to the global "priority" column when a
 // sub_category has no override yet (see CourseSection.tsx on the landing page).
+const CATEGORY_ORDER_KEY = "category_order_global";
 const SUB_CATEGORY_ORDER_KEY = "sub_category_order_global";
+
+// Drag/arrow reorder list for the TOP-LEVEL category filter buttons on the
+// landing page (batch/HSC-year-level grouping) — shown under the dialog's
+// "All" pill, separate from ordering courses inside one sub-category.
+function CategoryOrderManager({ allCategories }: { allCategories: string[] }) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [items, setItems] = useState<string[]>([]);
+  const [isModified, setIsModified] = useState(false);
+
+  const { data: savedOrder, isLoading } = useQuery({
+    queryKey: ["category-order-manager"],
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", CATEGORY_ORDER_KEY).maybeSingle();
+      return (data?.value as string[]) || [];
+    },
+  });
+
+  useEffect(() => {
+    if (savedOrder === undefined || allCategories.length === 0) return;
+    const known = new Set(allCategories);
+    const ordered = savedOrder.filter((s) => known.has(s));
+    allCategories.forEach((s) => { if (!ordered.includes(s)) ordered.push(s); });
+    setItems(ordered);
+    setIsModified(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedOrder, allCategories.join("|")]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setItems((prev) => {
+        const oldIndex = prev.indexOf(active.id as string);
+        const newIndex = prev.indexOf(over.id as string);
+        setIsModified(true);
+        return arrayMove(prev, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const moveItem = (index: number, direction: -1 | 1) => {
+    setItems((prev) => {
+      const newIndex = index + direction;
+      if (newIndex < 0 || newIndex >= prev.length) return prev;
+      setIsModified(true);
+      return arrayMove(prev, index, newIndex);
+    });
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("app_settings").upsert({ key: CATEGORY_ORDER_KEY, value: items }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "ক্যাটাগরি বাটনের অর্ডার সেভ হয়েছে!" });
+      setIsModified(false);
+      queryClient.invalidateQueries({ queryKey: ["category-display-order"] });
+      queryClient.invalidateQueries({ queryKey: ["category-order-manager"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "সেভ করা যায়নি", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="flex flex-col px-0 sm:px-6">
+      <div className="flex items-center justify-between gap-2 px-2 sm:px-0 pb-3">
+        <p className="text-xs text-muted-foreground">
+          ল্যান্ডিং পেজে একদম উপরে কোন ক্যাটাগরি বাটন কোন দিকে (উপরে/নিচে অর্থাৎ বামে/ডানে) থাকবে, সেই ক্রম এখানে ঠিক করুন।
+        </p>
+        {isModified && (
+          <Button size="sm" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="shrink-0">
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+            Save
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
+        {isLoading ? (
+          <div className="text-center p-8 text-muted-foreground flex items-center justify-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+          </div>
+        ) : items.length === 0 ? (
+          <div className="text-center p-8 text-muted-foreground">কোনো ক্যাটাগরি পাওয়া যায়নি।</div>
+        ) : (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={items} strategy={verticalListSortingStrategy}>
+              {items.map((cat, index) => (
+                <SortableCourseItem
+                  key={cat}
+                  id={cat}
+                  name={cat}
+                  index={index}
+                  total={items.length}
+                  onMoveUp={() => moveItem(index, -1)}
+                  onMoveDown={() => moveItem(index, 1)}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Simple drag/arrow reorder list for the sub-category (course type) FILTER
 // BUTTONS themselves shown on the landing page — separate from ordering the
@@ -228,7 +342,7 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
 }
 
 export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDialogProps) {
-  const [selectedSub, setSelectedSub] = useState<string>("");
+  const [selectedSub, setSelectedSub] = useState<string>("all");
   const [items, setItems] = useState<CourseRow[]>([]);
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
@@ -239,7 +353,7 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
     queryFn: async () => {
       const { data, error } = await supabase
         .from("courses")
-        .select("id, name, priority, sub_category, sub_category_order")
+        .select("id, name, priority, category, sub_category, sub_category_order")
         .eq("is_public", true);
       if (error) throw error;
       return (data || []) as unknown as CourseRow[];
@@ -250,15 +364,12 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
     new Set((allCourses || []).flatMap((c) => (Array.isArray(c.sub_category) ? c.sub_category : [])))
   ).sort();
 
-  useEffect(() => {
-    if (!selectedSub && allSubCategories.length > 0) {
-      setSelectedSub(allSubCategories[0]);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allSubCategories.length]);
+  const allCategories = Array.from(
+    new Set((allCourses || []).flatMap((c: any) => (Array.isArray(c.category) ? c.category : [])))
+  ).sort();
 
   useEffect(() => {
-    if (!allCourses || !selectedSub) return;
+    if (!allCourses || !selectedSub || selectedSub === "all") return;
     const inSub = allCourses.filter((c) => Array.isArray(c.sub_category) && c.sub_category.includes(selectedSub));
     const sorted = [...inSub].sort((a, b) => {
       const orderA = a.sub_category_order?.[selectedSub] ?? a.priority ?? 0;
@@ -331,7 +442,7 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
         <div>
           <CardTitle>Manage Course Position</CardTitle>
           <CardDescription>
-            একটা কোর্স টাইপ (sub-category) বেছে নিন, তারপর সেই টাইপের কোর্সগুলো ড্র্যাগ করে বা উপর-নিচ বাটন দিয়ে অর্ডার ঠিক করুন — এই অর্ডার শুধু ঐ টাইপের ট্যাবেই প্রযোজ্য, অন্য টাইপে এই কোর্সের অবস্থান আলাদা থাকতে পারে।
+            "All" ট্যাবে গিয়ে একদম উপরের ক্যাটাগরি বাটন গুলোর ক্রম ঠিক করুন। অথবা একটা কোর্স টাইপ (sub-category) বেছে নিয়ে সেই টাইপের কোর্সগুলো ড্র্যাগ করে বা উপর-নিচ বাটন দিয়ে অর্ডার ঠিক করুন — এই অর্ডার শুধু ঐ টাইপের ট্যাবেই প্রযোজ্য, অন্য টাইপে এই কোর্সের অবস্থান আলাদা থাকতে পারে।
           </CardDescription>
         </div>
         <Button variant="outline" size="sm" onClick={onClose} className="shrink-0">
@@ -344,11 +455,17 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
           <div className="text-center p-8 text-muted-foreground flex items-center justify-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading...
           </div>
-        ) : allSubCategories.length === 0 ? (
-          <div className="text-center p-8 text-muted-foreground">কোনো sub-category পাওয়া যায়নি।</div>
         ) : (
           <>
             <div className="flex flex-wrap gap-2 px-2 sm:px-0 pb-3">
+              <Button
+                type="button"
+                size="sm"
+                variant={selectedSub === "all" ? "default" : "outline"}
+                onClick={() => setSelectedSub("all")}
+              >
+                All
+              </Button>
               {allSubCategories.map((sub) => (
                 <Button
                   key={sub}
@@ -362,36 +479,42 @@ export function CoursePositionManagerDialog({ onClose }: CoursePositionManagerDi
               ))}
             </div>
 
-            <div className="flex items-center justify-end py-2 px-2 sm:px-0">
-              {isModified && (
-                <Button size="sm" onClick={() => saveOrderMutation.mutate()} disabled={saveOrderMutation.isPending}>
-                  {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-                  Save Position
-                </Button>
-              )}
-            </div>
+            {selectedSub === "all" ? (
+              <CategoryOrderManager allCategories={allCategories} />
+            ) : (
+              <>
+                <div className="flex items-center justify-end py-2 px-2 sm:px-0">
+                  {isModified && (
+                    <Button size="sm" onClick={() => saveOrderMutation.mutate()} disabled={saveOrderMutation.isPending}>
+                      {saveOrderMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                      Save Position
+                    </Button>
+                  )}
+                </div>
 
-            <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
-              {items.length === 0 ? (
-                <div className="text-center p-8 text-muted-foreground">এই টাইপে কোনো কোর্স নেই।</div>
-              ) : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
-                    {items.map((course, index) => (
-                      <SortableCourseItem
-                        key={course.id}
-                        id={course.id}
-                        name={course.name}
-                        index={index}
-                        total={items.length}
-                        onMoveUp={() => moveItem(index, -1)}
-                        onMoveDown={() => moveItem(index, 1)}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-              )}
-            </div>
+                <div className="flex-1 overflow-y-auto min-h-0 bg-muted/10 sm:rounded-md sm:border p-0 sm:p-2">
+                  {items.length === 0 ? (
+                    <div className="text-center p-8 text-muted-foreground">এই টাইপে কোনো কোর্স নেই।</div>
+                  ) : (
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                      <SortableContext items={items.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                        {items.map((course, index) => (
+                          <SortableCourseItem
+                            key={course.id}
+                            id={course.id}
+                            name={course.name}
+                            index={index}
+                            total={items.length}
+                            onMoveUp={() => moveItem(index, -1)}
+                            onMoveDown={() => moveItem(index, 1)}
+                          />
+                        ))}
+                      </SortableContext>
+                    </DndContext>
+                  )}
+                </div>
+              </>
+            )}
           </>
         )}
       </CardContent>
