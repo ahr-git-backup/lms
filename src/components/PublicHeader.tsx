@@ -44,10 +44,10 @@ export const PublicHeader = () => {
             টিউটোরিয়াল
           </a>
           <a href="/login" className="underline-offset-4 hover:underline">
-            লগইন
+            Login
           </a>
           <a href="/register">
-            <Button size="sm" variant="outline" className="h-8 px-3 text-xs">
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
               Create Account
             </Button>
           </a>
@@ -69,11 +69,11 @@ export const PublicHeader = () => {
           <div className="sm:hidden flex flex-col items-stretch gap-1">
             <a href="/login">
               <Button size="sm" variant="default" className="h-9 px-4 w-full">
-                লগইন
+                Login
               </Button>
             </a>
             <a href="/register">
-              <Button size="sm" variant="outline" className="h-7 px-4 w-full text-xs">
+              <Button size="sm" variant="outline" className="h-7 px-4 w-full text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
                 Create Account
               </Button>
             </a>
@@ -119,7 +119,7 @@ export const PublicHeader = () => {
                     টিউটোরিয়াল
                   </a>
                   <a href="/login" className="text-lg font-medium hover:text-primary">
-                    লগইন
+                    Login
                   </a>
                   <a href="/register" className="text-lg font-medium hover:text-primary">
                     Create Account
