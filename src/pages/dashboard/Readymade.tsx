@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import Papa from "papaparse";
 import { supabase } from "@/integrations/supabase/client";
 import MathText from "@/components/MathText";
 import { useEnrollments } from "@/hooks/useEnrollments";
@@ -2251,6 +2252,63 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     }
   };
 
+  const handleDownloadCsv = async (e: React.MouseEvent, exam: any) => {
+    e.stopPropagation();
+    try {
+      const { data: questions, error } = await supabase
+        .from("exam_questions")
+        .select("*")
+        .eq("exam_id", exam.id)
+        .order("question_index", { ascending: true });
+
+      if (error) throw error;
+      if (!questions || questions.length === 0) {
+        toast({ title: "কোনো প্রশ্ন নেই", variant: "destructive" });
+        return;
+      }
+
+      const rows = questions.map((q: any) => {
+        const answerLetter = String(q.correct_option || "").toUpperCase();
+        const answerNum =
+          answerLetter === "A" ? "1" :
+          answerLetter === "B" ? "2" :
+          answerLetter === "C" ? "3" :
+          answerLetter === "D" ? "4" :
+          answerLetter === "E" ? "5" : "";
+        return {
+          questions: q.question_text || "",
+          option1: q.option_a || "",
+          option2: q.option_b || "",
+          option3: q.option_c || "",
+          option4: q.option_d || "",
+          option5: q.option_e || "",
+          answer: answerNum,
+          explanation: q.explanation || "",
+          type: "1",
+          section: "1",
+        };
+      });
+
+      const csv = Papa.unparse(rows, {
+        columns: ["questions", "option1", "option2", "option3", "option4", "option5", "answer", "explanation", "type", "section"],
+      });
+
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", (exam.title || "quiz") + ".csv");
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      toast({ title: "CSV Downloaded", description: `Exported ${questions.length} questions.` });
+    } catch (err: any) {
+      toast({ title: "CSV Download Failed", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
   const isImageOrPatternQ = (q: any) => {
     const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
     const combined = fields.filter(Boolean).join(" ");
@@ -2525,6 +2583,17 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     onClick={(e) => openPracticeSheetPicker(e, exam)}
                   >
                     {downloadingId === exam.id ? "..." : "Practice Sheet"}
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                    onClick={(e) => handleDownloadCsv(e, exam)}
+                    title="CSV ডাউনলোড করুন"
+                  >
+                    <FileDown className="h-3.5 w-3.5" />
                   </Button>
                 )}
                 {isAdmin && (
