@@ -46,6 +46,11 @@ export const PublicHeader = () => {
           <a href="/login" className="underline-offset-4 hover:underline">
             লগইন
           </a>
+          <a href="/register">
+            <Button size="sm" variant="outline" className="h-8 px-3 text-xs">
+              Create Account
+            </Button>
+          </a>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -60,12 +65,19 @@ export const PublicHeader = () => {
             {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </Button>
 
-          {/* Mobile Login Button */}
-          <a href="/login" className="sm:hidden">
-            <Button size="sm" variant="default" className="h-9 px-4">
-              লগইন
-            </Button>
-          </a>
+          {/* Mobile Login + Create Account Buttons */}
+          <div className="sm:hidden flex flex-col items-stretch gap-1">
+            <a href="/login">
+              <Button size="sm" variant="default" className="h-9 px-4 w-full">
+                লগইন
+              </Button>
+            </a>
+            <a href="/register">
+              <Button size="sm" variant="outline" className="h-7 px-4 w-full text-xs">
+                Create Account
+              </Button>
+            </a>
+          </div>
 
           {/* Desktop Theme Toggle */}
           <Button
@@ -108,6 +120,9 @@ export const PublicHeader = () => {
                   </a>
                   <a href="/login" className="text-lg font-medium hover:text-primary">
                     লগইন
+                  </a>
+                  <a href="/register" className="text-lg font-medium hover:text-primary">
+                    Create Account
                   </a>
 
                   {/* Mobile Theme Toggle in Menu */}
