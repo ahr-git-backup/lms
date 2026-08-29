@@ -12,6 +12,43 @@ import { Input } from "@/components/ui/input";
 // If empty, all categories from active courses will be shown.
 const FEATURED_CATEGORIES: string[] = [];
 
+/** Types out `text` left-to-right, pauses, then erases and retypes on a loop. */
+const TypewriterHeading = ({ text }: { text: string }) => {
+    const [displayed, setDisplayed] = useState("");
+
+    useEffect(() => {
+        let i = 0;
+        let timeoutId: ReturnType<typeof setTimeout>;
+        const TYPE_SPEED_MS = 90;
+        const PAUSE_AFTER_TYPED_MS = 1600;
+        const PAUSE_BEFORE_RETYPE_MS = 400;
+
+        const typeNext = () => {
+            i += 1;
+            setDisplayed(text.slice(0, i));
+            if (i < text.length) {
+                timeoutId = setTimeout(typeNext, TYPE_SPEED_MS);
+            } else {
+                timeoutId = setTimeout(() => {
+                    i = 0;
+                    setDisplayed("");
+                    timeoutId = setTimeout(typeNext, PAUSE_BEFORE_RETYPE_MS);
+                }, PAUSE_AFTER_TYPED_MS);
+            }
+        };
+
+        timeoutId = setTimeout(typeNext, TYPE_SPEED_MS);
+        return () => clearTimeout(timeoutId);
+    }, [text]);
+
+    return (
+        <>
+            {displayed}
+            <span className="inline-block w-[2px] h-[0.9em] bg-primary ml-0.5 align-middle animate-[colon-blink_1s_step-end_infinite]" />
+        </>
+    );
+};
+
 export const CourseSection = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
@@ -178,10 +215,12 @@ export const CourseSection = () => {
         <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center justify-center text-center gap-2">
-                    <h2 className="text-3xl font-bold tracking-tight text-primary relative inline-block">
-                        চলমান কোর্স সমূহ
-                        <span className="absolute left-0 -bottom-2 w-full h-1 bg-primary rounded-full"></span>
-                    </h2>
+                    <div className="relative inline-block px-6 py-3 rounded-2xl bg-red-600/10 backdrop-blur-md border border-red-500/20 shadow-sm">
+                        <h2 className="text-3xl font-bold tracking-tight text-primary relative inline-block min-h-[1.2em]">
+                            <TypewriterHeading text="চলমান কোর্স সমূহ" />
+                            <span className="absolute left-0 -bottom-2 w-full h-1 bg-primary rounded-full"></span>
+                        </h2>
+                    </div>
 
                     {/* Search Input */}
                     <div className="w-full max-w-2xl mt-4">
