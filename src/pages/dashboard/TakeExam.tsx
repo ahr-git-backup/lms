@@ -199,6 +199,8 @@ const TakeExam = () => {
     }
   };
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const fixedHeaderRef = useRef<HTMLDivElement | null>(null);
+  const [fixedHeaderHeight, setFixedHeaderHeight] = useState(96);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
@@ -916,6 +918,23 @@ const TakeExam = () => {
           submitExamMutation.mutate();
       }
   }, [timeLeft, submitExamMutation]);
+
+  // Measure the fixed exam-progress header's real rendered height (it varies with
+  // retake/violation badges) so the spacer below it never overlaps or gaps.
+  useEffect(() => {
+      const measure = () => {
+          if (fixedHeaderRef.current) {
+              setFixedHeaderHeight(fixedHeaderRef.current.offsetHeight);
+          }
+      };
+      measure();
+      window.addEventListener("resize", measure);
+      const interval = setInterval(measure, 500);
+      return () => {
+          window.removeEventListener("resize", measure);
+          clearInterval(interval);
+      };
+  }, [violationCount]);
 
 
   const scrollToQuestion = (index: number) => {
@@ -2064,7 +2083,11 @@ const TakeExam = () => {
       </Dialog>
 
       <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0.5 py-4 md:px-3 md:py-8 space-y-3 overflow-x-hidden">
-        <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
+        {/* fixed (not sticky) so it stays visible no matter which ancestor actually
+            scrolls on mobile. top offset clears the dashboard's own 56px header when
+            logged in — guests hit this page standalone (no such header) so it sits at 0. */}
+        <div ref={fixedHeaderRef} className={cn("fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2", user ? "top-14" : "top-0")}>
+          <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
               <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
@@ -2113,7 +2136,11 @@ const TakeExam = () => {
                 </div>
             )}
           </div>
+          </div>
         </div>
+        {/* Spacer so page content isn't hidden under the fixed header above —
+            height is measured live from the header itself. */}
+        <div style={{ height: fixedHeaderHeight }} aria-hidden="true" />
 
         {/* OMR Scanner Section - only for OMR-enabled exams */}
         {exam.is_omr && displayQuestions && displayQuestions.length > 0 && (
