@@ -12,21 +12,31 @@ import { Input } from "@/components/ui/input";
 // If empty, all categories from active courses will be shown.
 const FEATURED_CATEGORIES: string[] = [];
 
-/** Types out `text` left-to-right, pauses, then erases and retypes on a loop. */
+/** Types out `text` left-to-right, pauses, then erases and retypes on a loop.
+ *  Advances by grapheme cluster (not raw UTF-16 code unit) so Bangla conjuncts
+ *  (যুক্তাক্ষর — built from multiple codepoints/combining marks) never get cut
+ *  mid-cluster, which is what caused the stuttery/broken-glyph look. */
 const TypewriterHeading = ({ text }: { text: string }) => {
     const [displayed, setDisplayed] = useState("");
 
     useEffect(() => {
+        const segmenter = typeof Intl !== "undefined" && (Intl as any).Segmenter
+            ? new (Intl as any).Segmenter(undefined, { granularity: "grapheme" })
+            : null;
+        const clusters: string[] = segmenter
+            ? Array.from(segmenter.segment(text), (s: any) => s.segment)
+            : Array.from(text); // fallback: still better than raw index slicing
+
         let i = 0;
         let timeoutId: ReturnType<typeof setTimeout>;
-        const TYPE_SPEED_MS = 90;
+        const TYPE_SPEED_MS = 70;
         const PAUSE_AFTER_TYPED_MS = 1600;
         const PAUSE_BEFORE_RETYPE_MS = 400;
 
         const typeNext = () => {
             i += 1;
-            setDisplayed(text.slice(0, i));
-            if (i < text.length) {
+            setDisplayed(clusters.slice(0, i).join(""));
+            if (i < clusters.length) {
                 timeoutId = setTimeout(typeNext, TYPE_SPEED_MS);
             } else {
                 timeoutId = setTimeout(() => {
@@ -44,7 +54,7 @@ const TypewriterHeading = ({ text }: { text: string }) => {
     return (
         <>
             {displayed}
-            <span className="inline-block w-[2px] h-[0.9em] bg-primary ml-0.5 align-middle animate-[colon-blink_1s_step-end_infinite]" />
+            <span className="inline-block w-[2px] h-[0.9em] bg-white ml-0.5 align-middle animate-[colon-blink_1s_step-end_infinite]" />
         </>
     );
 };
