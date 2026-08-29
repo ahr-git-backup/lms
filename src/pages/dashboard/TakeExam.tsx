@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { Progress } from "@/components/ui/progress";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -2065,9 +2066,16 @@ const TakeExam = () => {
       <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0.5 py-4 md:px-3 md:py-8 space-y-3 overflow-x-hidden">
         <div className="sticky top-0 z-40 bg-background/95 backdrop-blur py-2 -mx-[5px] px-[5px] md:mx-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
-              <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {displayQuestions.length}</p>
+              <p className="text-sm text-muted-foreground">
+                Answered: {answeredCount} / {displayQuestions.length}
+                {displayQuestions.length > 0 && ` (${Math.round((answeredCount / displayQuestions.length) * 100)}%)`}
+              </p>
+              <Progress
+                value={displayQuestions.length > 0 ? (answeredCount / displayQuestions.length) * 100 : 0}
+                className="h-1.5 mt-1"
+              />
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {/* Timer Badge */}
