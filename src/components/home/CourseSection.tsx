@@ -215,10 +215,10 @@ export const CourseSection = () => {
         <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center justify-center text-center gap-2">
-                    <div className="relative inline-block px-6 py-3 rounded-2xl bg-red-600/10 backdrop-blur-md border border-red-500/20 shadow-sm">
-                        <h2 className="text-3xl font-bold tracking-tight text-primary relative inline-block min-h-[1.2em]">
+                    <div className="relative inline-flex items-center justify-center px-8 py-3 rounded-2xl bg-red-600 shadow-md min-w-[280px] sm:min-w-[360px]">
+                        <h2 className="text-3xl font-bold tracking-tight text-white relative inline-block min-h-[1.2em]">
                             <TypewriterHeading text="চলমান কোর্স সমূহ" />
-                            <span className="absolute left-0 -bottom-2 w-full h-1 bg-primary rounded-full"></span>
+                            <span className="absolute left-0 -bottom-2 w-full h-1 bg-white rounded-full"></span>
                         </h2>
                     </div>
 
