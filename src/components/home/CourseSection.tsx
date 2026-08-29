@@ -285,7 +285,7 @@ export const CourseSection = () => {
                             : (course.category ? [course.category] : []);
 
                         return (
-                            <Card key={course.id} className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full hover:-translate-y-1 transition-all duration-300">
+                            <Card key={course.id} className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full hover:-translate-y-1 transition-all duration-300 border-2 border-foreground/15 dark:border-foreground/20">
                                 {/* Course Image */}
                                 <div className="w-full aspect-video relative">
                                     <img
@@ -341,7 +341,7 @@ export const CourseSection = () => {
                                             <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
                                                 <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
                                             </Button>
-                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1">
+                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
                                                 <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
                                             </Button>
                                         </div>
