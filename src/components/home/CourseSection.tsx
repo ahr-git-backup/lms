@@ -225,7 +225,7 @@ export const CourseSection = () => {
         <section id="courses" className="space-y-6 w-[1px] min-w-full">
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center justify-center text-center gap-2">
-                    <div className="relative inline-flex items-center justify-center px-8 py-3 rounded-2xl bg-red-600 shadow-md min-w-[280px] sm:min-w-[360px]">
+                    <div className="relative inline-flex items-center justify-center px-4 py-1.5 rounded-2xl bg-red-600 shadow-md">
                         <h2 className="text-3xl font-bold tracking-tight text-white relative inline-block min-h-[1.2em]">
                             <TypewriterHeading text="চলমান কোর্স সমূহ" />
                             <span className="absolute left-0 -bottom-2 w-full h-1 bg-white rounded-full"></span>
