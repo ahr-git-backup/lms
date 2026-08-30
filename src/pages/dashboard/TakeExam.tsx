@@ -2018,8 +2018,11 @@ const TakeExam = () => {
     );
   }
 
-  // Use shuffled questions if ready, else raw (should only be raw for a split second)
-  const displayQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : questions;
+  // Use shuffled questions if ready, else the (already topic/subtopic-filtered)
+  // effective pool for a split second -- never fall back to raw `questions`,
+  // which is unfiltered and would momentarily show every MCQ in the exam
+  // instead of just the selected topic's.
+  const displayQuestions = shuffledQuestions.length > 0 ? shuffledQuestions : (effectiveQuestions || []);
 
   const answeredCount = Object.keys(answers).length;
 
