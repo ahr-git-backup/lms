@@ -497,6 +497,14 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             // convention, same as ExamCreator.tsx's processImportedData).
             let _lastTopic = "";
             let _lastSubtopic = "";
+            // Blank-row topic marker (2nd alternative): a row whose `questions`
+            // cell has text but every option cell is empty isn't an MCQ -- it's
+            // a topic-name marker for the segment that follows. The explicit
+            // `topic` column (forward-fill above) still wins when present;
+            // this is a fallback for sheets that skip it and instead put the
+            // topic name as its own question-less row (exactly what /qbm's
+            // exports and this admin's CSVs commonly do).
+            let _markerTopic = "";
 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data.forEach((row: any) => {
@@ -512,6 +520,14 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               const explanation = row["explanation"];
               const type = row["type"];
               const section = row["section"];
+
+              const anyOptionFilled = [o1, o2, o3, o4].some((v) => String(v || "").trim() !== "");
+              if (!anyOptionFilled) {
+                _markerTopic = String(qText).trim();
+                _lastTopic = _markerTopic;
+                _lastSubtopic = "";
+                return; // don't save this row as a question
+              }
 
               const ansIdx = Number(answer);
               const correct = ansIdx >= 1 && ansIdx <= 4 ? ["A", "B", "C", "D"][ansIdx - 1] : "A";
