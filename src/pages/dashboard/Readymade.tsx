@@ -1162,7 +1162,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                             : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
                     }
                   >
-                    {renderSubjectCard(s, zoneSubjects.length <= 3)}
+                    {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
                   </div>
                 ))}
               </div>

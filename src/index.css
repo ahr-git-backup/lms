@@ -425,3 +425,21 @@ mjx-container[display="true"] {
   animation: zoneFlash 1.4s ease-out;
   border-radius: 0.75rem;
 }
+
+/* Force a phone-width layout when the site is running as an installed PWA
+   (standalone display-mode), even if it's installed on a tablet/desktop
+   where the browser's viewport is much wider than a phone. This class is
+   toggled onto <body> by PWALoginGate's standalone check. Real phones are
+   already ~this width, so this only changes anything on larger screens. */
+body.pwa-standalone-mobile-lock {
+  display: flex;
+  justify-content: center;
+  background-color: hsl(var(--muted) / 0.4);
+}
+body.pwa-standalone-mobile-lock #root {
+  width: 100%;
+  max-width: 480px;
+  min-height: 100vh;
+  background-color: hsl(var(--background));
+  box-shadow: 0 0 40px hsl(var(--foreground) / 0.08);
+}

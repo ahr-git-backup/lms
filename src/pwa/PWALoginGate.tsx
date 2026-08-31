@@ -33,6 +33,23 @@ export function PWALoginGate() {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Force a phone-width layout whenever the app is running standalone
+  // (installed PWA/TWA), even if actually installed on a tablet/desktop —
+  // this is a one-time, install-time check (display-mode doesn't change
+  // mid-session), so a plain mount/unmount effect is enough.
+  useEffect(() => {
+    try {
+      if (isStandaloneDisplay()) {
+        document.body.classList.add("pwa-standalone-mobile-lock");
+      }
+    } catch {
+      // no-op
+    }
+    return () => {
+      document.body.classList.remove("pwa-standalone-mobile-lock");
+    };
+  }, []);
+
   useEffect(() => {
     try {
       if (!isStandaloneDisplay()) return;
