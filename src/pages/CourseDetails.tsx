@@ -21,6 +21,9 @@ import { getEmbedUrl } from "@/lib/videoUtils";
 import { useToast } from "@/hooks/use-toast";
 import ClassPlayer from "@/components/ClassPlayer";
 import SEO from "@/components/SEO";
+import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
+import { Star } from "lucide-react";
 
 // Live countdown timer component
 const CountdownTimer = ({ deadline }: { deadline: string }) => {
@@ -104,6 +107,42 @@ const CourseDetails = () => {
     enabled: !!courseId,
     staleTime: 3 * 60 * 1000,
   });
+
+  // Fetch mentors linked to this course
+  const { data: courseMentors } = useQuery({
+    queryKey: ["public-course-mentors", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return [];
+      const { data, error } = await supabase
+        .from("course_mentors")
+        .select("*, mentors(*)")
+        .eq("course_id", course.id)
+        .order("display_order");
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
+  // Fetch reviews linked to this course
+  const { data: courseReviews } = useQuery({
+    queryKey: ["public-course-reviews", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return [];
+      const { data, error } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("course_id", course.id)
+        .order("created_at", { ascending: false });
+      if (error) return [];
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
+  const [reviewEmblaRef] = useEmblaCarousel({ loop: true, align: "start" }, [
+    Autoplay({ delay: 2500, stopOnInteraction: false }),
+  ]);
 
   // Fetch special discounts for this course
   const { data: specialDiscounts } = useQuery({
@@ -254,27 +293,29 @@ const CourseDetails = () => {
             {/* 1. Course Header & Media */}
             <div className="space-y-4">
                  <div className="w-full rounded-xl overflow-hidden border bg-muted shadow-sm">
-                    <AspectRatio ratio={16 / 9}>
                         {
                             // @ts-ignore
                             course?.video_url ? (
-                                <ClassPlayer
-                                    videoId={course.video_url}
-                                    title="Course Intro"
-                                />
+                                <AspectRatio ratio={16 / 9}>
+                                    <ClassPlayer
+                                        videoId={course.video_url}
+                                        title="Course Intro"
+                                    />
+                                </AspectRatio>
                             ) : course?.image_url ? (
                                 <img
                                     src={course.image_url}
                                     alt={`${course.name} cover`}
-                                    className="h-full w-full object-cover"
+                                    className="w-full h-auto max-h-[480px] object-contain mx-auto"
                                 />
                             ) : (
-                                <div className="h-full w-full flex items-center justify-center text-muted-foreground">
-                                    No Media Available
-                                </div>
+                                <AspectRatio ratio={16 / 9}>
+                                    <div className="h-full w-full flex items-center justify-center text-muted-foreground">
+                                        No Media Available
+                                    </div>
+                                </AspectRatio>
                             )
                         }
-                    </AspectRatio>
                 </div>
                 <div>
                      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
@@ -402,6 +443,83 @@ const CourseDetails = () => {
                         ))}
                      </CardContent>
                  </Card>
+            )}
+
+            {/* 5. Course Mentors */}
+            {courseMentors && courseMentors.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">এই কোর্সের মেন্টরবৃন্দ</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                            {courseMentors.map((cm: any) => (
+                                <div key={cm.id} className="flex flex-col items-center text-center space-y-2">
+                                    <div className="h-24 w-24 rounded-full overflow-hidden border-2 border-primary shadow-md">
+                                        {cm.mentors?.image_url ? (
+                                            <img src={cm.mentors.image_url} alt={cm.mentors?.name} className="h-full w-full object-cover" />
+                                        ) : (
+                                            <div className="h-full w-full bg-secondary" />
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-sm">{cm.mentors?.name}</p>
+                                        {cm.mentors?.role && (
+                                            <p className="text-xs text-primary font-medium">{cm.mentors.role}</p>
+                                        )}
+                                        {cm.experience_years && (
+                                            <p className="text-xs text-muted-foreground">{cm.experience_years} অভিজ্ঞতা</p>
+                                        )}
+                                        {cm.mentors?.description && (
+                                            <p className="text-xs text-muted-foreground mt-1 max-w-[150px]">{cm.mentors.description}</p>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* 6. Course Reviews (auto-scrolling carousel) */}
+            {courseReviews && courseReviews.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-xl">শিক্ষার্থীদের মতামত</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="overflow-hidden" ref={reviewEmblaRef}>
+                            <div className="flex gap-4">
+                                {courseReviews.map((r: any) => (
+                                    <div key={r.id} className="flex-[0_0_85%] sm:flex-[0_0_45%] min-w-0">
+                                        <div className="border rounded-xl p-4 h-full bg-card">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                {r.image_url ? (
+                                                    <img src={r.image_url} alt={r.student_name} className="h-10 w-10 rounded-full object-cover" />
+                                                ) : (
+                                                    <div className="h-10 w-10 rounded-full bg-secondary" />
+                                                )}
+                                                <div>
+                                                    <p className="font-medium text-sm">{r.student_name}</p>
+                                                    {r.college_name && <p className="text-xs text-muted-foreground">{r.college_name}</p>}
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-0.5 mb-1.5">
+                                                {Array.from({ length: 5 }).map((_, i) => (
+                                                    <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-amber-400 text-amber-400" : "text-muted-foreground/30"}`} />
+                                                ))}
+                                            </div>
+                                            <p className="text-sm text-muted-foreground line-clamp-4">{r.review_text}</p>
+                                            {r.post_image_url && (
+                                                <img src={r.post_image_url} alt="Review" className="mt-3 rounded-lg w-full h-auto object-contain max-h-64" />
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
             )}
 
             {/* Routine Button (Moved Below) */}
