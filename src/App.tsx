@@ -47,6 +47,8 @@ import StudentProfile from "./pages/dashboard/StudentProfile";
 import ExamAnalytics from "./pages/dashboard/ExamAnalytics";
 import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
+import SubjectPaperFinal from "./pages/dashboard/SubjectPaperFinal";
+import TakeSpFinalExam from "./pages/dashboard/TakeSpFinalExam";
 import CustomExamBuilder from "./pages/dashboard/CustomExamBuilder";
 import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
@@ -227,6 +229,8 @@ const App = () => {
                 <Route path="admission-test/play" element={<ErrorBoundary><AdmissionTestPlay /></ErrorBoundary>} />
                 <Route path="readymade/category/:categoryName" element={<ErrorBoundary><Readymade /></ErrorBoundary>} />
                 <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
+                <Route path="readymade/subject-paper-final" element={<ErrorBoundary><SubjectPaperFinal /></ErrorBoundary>} />
+                <Route path="readymade/subject-paper-final/take" element={<ErrorBoundary><TakeSpFinalExam /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
                 <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />
