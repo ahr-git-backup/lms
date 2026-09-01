@@ -118,11 +118,10 @@ const Login = () => {
             </CardFooter>
           </Card>
         ) : (
-          <Card className="w-full max-w-md overflow-hidden rounded-[26px] border border-[#f3d9e3] bg-gradient-to-br from-white via-white to-[#fff7fa] shadow-[0_25px_60px_rgba(237,52,125,0.14)] dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-            <div className="h-[5px] w-full bg-gradient-to-r from-[#f5327a] via-[#ff6b8d] to-[#e9287a]" />
-            <CardHeader className="space-y-2 pb-4 pt-7 text-center">
+          <Card className="w-full max-w-md overflow-hidden rounded-[26px] border-[3px] border-foreground shadow-lg">
+                        <CardHeader className="space-y-2 pb-4 pt-7 text-center">
               <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
-              <CardTitle className="text-xl font-semibold text-[#1f2328] dark:text-white">Student &amp; Admin Login</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">Student &amp; Admin Login</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Enter your Email to login.
               </CardDescription>
@@ -152,7 +151,7 @@ const Login = () => {
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="space-y-1.5">
-                  <Label htmlFor="identifier" className="text-xs font-semibold text-[#555]">ইমেইল / ফোন নম্বর</Label>
+                  <Label htmlFor="identifier" className="text-xs font-semibold text-muted-foreground">ইমেইল / ফোন নম্বর</Label>
                   <Input
                     id="identifier"
                     name="identifier"
@@ -160,13 +159,13 @@ const Login = () => {
                     required
                     autoComplete="username"
                     placeholder="Email অথবা Phone Number"
-                    className="h-12 rounded-xl border-[#e8dde3] pl-4 pr-4 text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"
+                    className="h-12 rounded-xl border-input pl-4 pr-4 text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                   />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-xs font-semibold text-[#555]">Password</Label>
-                    <Link to="/forgot-password" tabIndex={-1} className="text-xs font-semibold text-[#ed347d] hover:underline">
+                    <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">Password</Label>
+                    <Link to="/forgot-password" tabIndex={-1} className="text-xs text-primary font-medium hover:underline">
                       Forgot Password?
                     </Link>
                   </div>
@@ -177,7 +176,7 @@ const Login = () => {
                       type={showPassword ? "text" : "password"}
                       required
                       autoComplete="current-password"
-                      className="h-12 rounded-xl border-[#e8dde3] pl-4 pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"
+                      className="h-12 rounded-xl border-input pl-4 pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -204,7 +203,7 @@ const Login = () => {
 
                 <Button
                   type="submit"
-                  className="mt-1 h-12 w-full rounded-xl bg-gradient-to-r from-[#f5327a] to-[#e9287a] text-[15px] font-bold shadow-[0_10px_25px_rgba(239,45,117,0.28)] transition-transform hover:scale-[1.015] hover:shadow-[0_14px_30px_rgba(239,45,117,0.36)]"
+                  className="mt-1 h-12 w-full rounded-xl bg-primary text-primary-foreground text-[15px] font-bold shadow-sm transition-transform hover:scale-[1.01]"
                   disabled={loading || !captchaToken}
                 >
                   {loading ? "Logging in..." : "Login"}
@@ -212,7 +211,7 @@ const Login = () => {
 
                 <div className="mt-4 text-center text-sm">
                   Don&apos;t have an account?{" "}
-                  <Link to="/register" state={{ from: location.state?.from }} className="font-bold text-[#ed347d] hover:underline">
+                  <Link to="/register" state={{ from: location.state?.from }} className="font-semibold text-primary hover:underline">
                     Create new account
                   </Link>
                 </div>

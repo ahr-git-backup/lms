@@ -275,11 +275,10 @@ const Register = () => {
     <div className="min-h-screen bg-background text-foreground">
       <PublicHeader />
       <main className="flex min-h-[calc(100vh-56px)] items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-xl overflow-hidden rounded-[26px] border border-[#f3d9e3] bg-gradient-to-br from-white via-white to-[#fff7fa] shadow-[0_25px_60px_rgba(237,52,125,0.14)] dark:border-white/10 dark:from-slate-900 dark:via-slate-900 dark:to-slate-900">
-          <div className="h-[5px] w-full bg-gradient-to-r from-[#f5327a] via-[#ff6b8d] to-[#e9287a]" />
-          <CardHeader className="space-y-2 pb-4 pt-7 text-center">
+        <Card className="w-full max-w-xl overflow-hidden rounded-[26px] border-[3px] border-foreground shadow-lg">
+                    <CardHeader className="space-y-2 pb-4 pt-7 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
-            <CardTitle className="text-xl font-semibold text-[#1f2328] dark:text-white">Create an Account</CardTitle>
+            <CardTitle className="text-xl font-semibold text-foreground">Create an Account</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               Register a new student account.
             </CardDescription>
@@ -349,7 +348,7 @@ const Register = () => {
                       placeholder="Your full name"
                       value={fields.fullName}
                       onChange={(e) => updateField("fullName", e.target.value)}
-                      className={fieldValidity.fullName ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.fullName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.fullName && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -370,7 +369,7 @@ const Register = () => {
                       value={fields.phone}
                       onChange={(e) => updateField("phone", e.target.value)}
                       disabled={!isFieldUnlocked("phone")}
-                      className={fieldValidity.phone ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.phone ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.phone && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -382,7 +381,7 @@ const Register = () => {
                   <Label htmlFor="gender">Gender <span className="text-red-500">*</span></Label>
                   <div className="relative">
                     <Select value={gender} onValueChange={setGender} disabled={!isFieldUnlocked("gender")}>
-                      <SelectTrigger id="gender" className={fieldValidity.gender ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}>
+                      <SelectTrigger id="gender" className={fieldValidity.gender ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}>
                         <SelectValue placeholder="Select gender" />
                       </SelectTrigger>
                       <SelectContent>
@@ -409,7 +408,7 @@ const Register = () => {
                       value={fields.email}
                       onChange={(e) => updateField("email", e.target.value)}
                       disabled={!isFieldUnlocked("email")}
-                      className={fieldValidity.email ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.email ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.email && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -428,7 +427,7 @@ const Register = () => {
                       value={fields.fatherName}
                       onChange={(e) => updateField("fatherName", e.target.value)}
                       disabled={!isFieldUnlocked("fatherName")}
-                      className={fieldValidity.fatherName ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.fatherName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.fatherName && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -449,7 +448,7 @@ const Register = () => {
                       value={fields.motherName}
                       onChange={(e) => updateField("motherName", e.target.value)}
                       disabled={!isFieldUnlocked("motherName")}
-                      className={fieldValidity.motherName ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.motherName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.motherName && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -470,7 +469,7 @@ const Register = () => {
                       value={fields.collegeName}
                       onChange={(e) => updateField("collegeName", e.target.value)}
                       disabled={!isFieldUnlocked("collegeName")}
-                      className={fieldValidity.collegeName ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.collegeName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.collegeName && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -512,7 +511,7 @@ const Register = () => {
                       value={fields.sscGpa}
                       onChange={(e) => updateField("sscGpa", e.target.value)}
                       disabled={!isFieldUnlocked("sscGpa")}
-                      className={fieldValidity.sscGpa ? "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"}
+                      className={fieldValidity.sscGpa ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
                     />
                     {fieldValidity.sscGpa && (
                       <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
@@ -531,7 +530,7 @@ const Register = () => {
                     placeholder="5.00"
                     value={hscGpa}
                     onChange={(e) => setHscGpa(e.target.value)}
-                    className="h-11 rounded-xl border-[#e8dde3] text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"
+                    className="h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                   />
                   <p className="text-[11px] text-orange-600/90 dark:text-orange-400">If you have not given HSC exam yet, please fill 5.00</p>
                 </div>
@@ -567,7 +566,7 @@ const Register = () => {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="login-caret h-11 rounded-xl border-[#e8dde3] pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"
+                      className="login-caret h-11 rounded-xl border-input pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -593,7 +592,7 @@ const Register = () => {
                       name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      className="login-caret h-11 rounded-xl border-[#e8dde3] pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-[#ed347d] focus-visible:ring-[#ed347d]/20 dark:border-white/10"
+                      className="login-caret h-11 rounded-xl border-input pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -645,7 +644,7 @@ const Register = () => {
 
               <Button
                 type="submit"
-                className="mt-4 h-12 w-full rounded-xl bg-gradient-to-r from-[#f5327a] to-[#e9287a] text-[15px] font-bold shadow-[0_10px_25px_rgba(239,45,117,0.28)] transition-transform hover:scale-[1.015] hover:shadow-[0_14px_30px_rgba(239,45,117,0.36)]"
+                className="mt-4 h-12 w-full rounded-xl bg-primary text-primary-foreground text-[15px] font-bold shadow-sm transition-transform hover:scale-[1.01]"
                 disabled={loading || !captchaToken}
               >
                 {loading ? "Creating Account..." : "Register"}
