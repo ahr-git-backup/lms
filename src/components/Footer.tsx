@@ -48,7 +48,7 @@ const Footer = () => {
                   <ul className="space-y-2 text-sm">
                     <li><a href="/#free-resources" className="hover:text-primary transition-colors">ফ্রি এক্সাম</a></li>
                     <li><a href="/#free-resources" className="hover:text-primary transition-colors">ডেমো ক্লাস</a></li>
-                    <li><a href="/#success-stories" className="hover:text-primary transition-colors">সাফল্যের গল্প</a></li>
+                    <li><a href="/#reviews" className="hover:text-primary transition-colors">শিক্ষার্থীদের মতামত</a></li>
                     <li><a href="/#reviews" className="hover:text-primary transition-colors">শিক্ষার্থীদের মতামত</a></li>
                   </ul>
                 </div>
