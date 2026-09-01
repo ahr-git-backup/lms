@@ -28,6 +28,39 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
     const [isAddingBulkExams, setIsAddingBulkExams] = useState(false);
+    const [isAddingBulkChapters, setIsAddingBulkChapters] = useState(false);
+
+    // Navigation history stack -- back button pops this instead of guessing
+    // the previous view from current data, so back always restores the exact
+    // prior screen (including its selections) no matter how we got here.
+    const [viewHistory, setViewHistory] = useState<Array<typeof view>>([]);
+
+    const goToView = (next: typeof view) => {
+        setViewHistory(prev => [...prev, view]);
+        setView(next);
+    };
+
+    const goBack = () => {
+        setViewHistory(prev => {
+            if (prev.length === 0) return prev;
+            const copy = [...prev];
+            const last = copy.pop() as typeof view;
+            setView(last);
+            return copy;
+        });
+    };
+
+    // Breadcrumb clicks jump directly to an already-visited view; truncate
+    // history up to (and not including) that view so a subsequent Back still
+    // behaves correctly instead of looping.
+    const jumpToView = (target: typeof view) => {
+        setViewHistory(prev => {
+            const idx = prev.indexOf(target);
+            if (idx === -1) return prev; // not in history (e.g. never visited) -- leave as-is
+            return prev.slice(0, idx);
+        });
+        setView(target);
+    };
 
     // Search and pagination (for questions view)
     const [search, setSearch] = useState("");
@@ -37,6 +70,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
     // Reset flow
     const resetFlow = () => {
         setView('category');
+        setViewHistory([]);
         setSelectedCategory(null);
         setSelectedSubjects([]);
         setSelectedChapters([]);
@@ -113,6 +147,45 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         if (selectedCategory === 'readymade') return query.eq('is_readymade', true);
         if (selectedCategory === 'archive') return query.eq('is_archive', true);
         return query.eq('is_readymade', false).eq('is_archive', false);
+    };
+
+    // Import every question from every chapter of the currently selected
+    // subject(s) in one go -- skips the chapter/sub-chapter/exam drill-down
+    // entirely for admins who just want "all of Physics" etc.
+    const handleAddAllChaptersForSubjects = async () => {
+        if (selectedSubjects.length === 0) return;
+        setIsAddingBulkChapters(true);
+        try {
+            let examQuery = supabase.from("exams").select("id");
+            examQuery = applyCategoryFilter(examQuery);
+            examQuery = examQuery.overlaps('subject', selectedSubjects);
+            const { data: examRows, error: examError } = await examQuery;
+            if (examError) {
+                console.error(examError);
+                return;
+            }
+            const examIds = (examRows || []).map((e: any) => e.id);
+            if (examIds.length === 0) return;
+
+            const { data, error } = await supabase
+                .from("exam_questions")
+                .select("*")
+                .in("exam_id", examIds)
+                .order("question_index", { ascending: true });
+            if (error) {
+                console.error(error);
+                return;
+            }
+            const mapped = (data || []).map((q: any) => ({
+                question: q.question_text,
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                correct_answer: q.correct_option,
+                explanation: q.explanation || "",
+            }));
+            onSelect(mapped);
+        } finally {
+            setIsAddingBulkChapters(false);
+        }
     };
 
     // Fetch chapters for the selected subjects (step-by-step, like Readymade exam page)
@@ -258,23 +331,14 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
             {/* Header / Breadcrumb */}
             <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground overflow-x-auto whitespace-nowrap scrollbar-hide">
-                    {view !== 'category' && (
-                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => {
-                            if (view === 'questions') setView('exams');
-                            else if (view === 'exams') {
-                                if (subChaptersData && subChaptersData.length > 0) { setSelectedSubChapter(null); setView('subchapters'); }
-                                else { setSelectedChapter(null); setView('chapters'); }
-                            }
-                            else if (view === 'subchapters') { setSelectedChapter(null); setView('chapters'); }
-                            else if (view === 'chapters') { setSelectedSubjects([]); setView('subjects'); }
-                            else if (view === 'subjects') setView('category');
-                        }}>
+                    {viewHistory.length > 0 && (
+                        <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={goBack}>
                             <ChevronLeft className="h-4 w-4" />
                         </Button>
                     )}
                     <span
                         className={`cursor-pointer hover:text-foreground transition-colors ${view === 'category' ? 'text-foreground font-semibold' : ''}`}
-                        onClick={() => setView('category')}
+                        onClick={() => jumpToView('category')}
                     >
                         Category
                     </span>
@@ -284,7 +348,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                             <ChevronRight className="h-3 w-3 shrink-0" />
                             <span
                                 className={`cursor-pointer hover:text-foreground transition-colors capitalize ${view === 'subjects' ? 'text-foreground font-semibold' : ''}`}
-                                onClick={() => setView('subjects')}
+                                onClick={() => jumpToView('subjects')}
                             >
                                 {selectedCategory || "..."}
                             </span>
@@ -296,7 +360,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                             <ChevronRight className="h-3 w-3 shrink-0" />
                             <span
                                 className={`cursor-pointer hover:text-foreground transition-colors ${view === 'chapters' ? 'text-foreground font-semibold' : ''}`}
-                                onClick={() => setView('chapters')}
+                                onClick={() => jumpToView('chapters')}
                             >
                                 Subjects ({selectedSubjects.length})
                             </span>
@@ -308,7 +372,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                             <ChevronRight className="h-3 w-3 shrink-0" />
                             <span
                                 className={`cursor-pointer hover:text-foreground transition-colors ${view === 'subchapters' ? 'text-foreground font-semibold' : ''}`}
-                                onClick={() => setView('chapters')}
+                                onClick={() => jumpToView('chapters')}
                             >
                                 {selectedChapters.length === 1 ? selectedChapters[0] : `${selectedChapters.length} Chapters`}
                             </span>
@@ -345,7 +409,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:max-w-3xl sm:mx-auto mt-4">
                         <Card
                             className="p-6 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all text-center flex flex-col items-center gap-3"
-                            onClick={() => { setSelectedCategory('exams'); setView('subjects'); }}
+                            onClick={() => { setSelectedCategory('exams'); goToView('subjects'); }}
                         >
                             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full">
                                 <BookOpen className="h-6 w-6" />
@@ -358,7 +422,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
 
                         <Card
                             className="p-6 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all text-center flex flex-col items-center gap-3"
-                            onClick={() => { setSelectedCategory('readymade'); setView('subjects'); }}
+                            onClick={() => { setSelectedCategory('readymade'); goToView('subjects'); }}
                         >
                             <div className="p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full">
                                 <Clock className="h-6 w-6" />
@@ -371,7 +435,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
 
                         <Card
                             className="p-6 cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-all text-center flex flex-col items-center gap-3"
-                            onClick={() => { setSelectedCategory('archive'); setView('subjects'); }}
+                            onClick={() => { setSelectedCategory('archive'); goToView('subjects'); }}
                         >
                             <div className="p-3 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-full">
                                 <Archive className="h-6 w-6" />
@@ -387,14 +451,24 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 {/* View 2: Subjects Selection */}
                 {view === 'subjects' && (
                     <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                             <h3 className="text-lg font-semibold">Select Subjects</h3>
-                            <Button
-                                onClick={() => setView('chapters')}
-                                disabled={selectedSubjects.length === 0}
-                            >
-                                Continue ({selectedSubjects.length})
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    disabled={selectedSubjects.length === 0 || isAddingBulkChapters}
+                                    onClick={handleAddAllChaptersForSubjects}
+                                >
+                                    {isAddingBulkChapters ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                                    সব চ্যাপ্টার যোগ করুন
+                                </Button>
+                                <Button
+                                    onClick={() => goToView('chapters')}
+                                    disabled={selectedSubjects.length === 0}
+                                >
+                                    Continue ({selectedSubjects.length})
+                                </Button>
+                            </div>
                         </div>
 
                         {isLoadingSubjects ? (
@@ -440,7 +514,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Select Chapter(s)</h3>
                             <Button
-                                onClick={() => { setSelectedSubChapter(null); setView(selectedChapters.length === 1 ? 'subchapters' : 'exams'); }}
+                                onClick={() => { setSelectedSubChapter(null); goToView(selectedChapters.length === 1 ? 'subchapters' : 'exams'); }}
                                 disabled={selectedChapters.length === 0}
                             >
                                 Continue ({selectedChapters.length})
@@ -494,7 +568,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 {subChaptersData.map((sc: string) => (
                                     <div
                                         key={sc}
-                                        onClick={() => { setSelectedSubChapter(sc); setView('exams'); }}
+                                        onClick={() => { setSelectedSubChapter(sc); goToView('exams'); }}
                                         className="p-3 rounded-lg border cursor-pointer text-center text-sm font-medium transition-all bg-card hover:border-primary/50 hover:bg-muted/50"
                                     >
                                         {sc}
@@ -566,7 +640,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                     setSelectedExamTitle(exam.title);
                                                     setPage(1);
                                                     setSearch("");
-                                                    setView('questions');
+                                                    goToView('questions');
                                                 }}
                                             >
                                                 প্রশ্ন বাছাই করে যোগ করুন
