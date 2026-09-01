@@ -9,10 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { SUBJECTS } from "@/lib/constants";
+import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import type { QuestionData } from "@/types/exam";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
@@ -191,13 +191,9 @@ const SpFinalItemSourcesDialog = ({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [addingType, setAddingType] = useState<"existing_bank" | "csv" | null>(null);
-
-  // existing_bank form state
   const [ebLabel, setEbLabel] = useState("");
-  const [ebSubject, setEbSubject] = useState<string>("__any__");
-  const [ebChapter, setEbChapter] = useState("");
-  const [ebTopic, setEbTopic] = useState("");
-  const [ebCount, setEbCount] = useState("");
+  const [showQbSelector, setShowQbSelector] = useState(false);
+  const [qbSaving, setQbSaving] = useState(false);
 
   // csv form state
   const [csvLabel, setCsvLabel] = useState("");
@@ -222,35 +218,62 @@ const SpFinalItemSourcesDialog = ({
 
   const resetAddForms = () => {
     setAddingType(null);
-    setEbLabel(""); setEbSubject("__any__"); setEbChapter(""); setEbTopic(""); setEbCount("");
+    setEbLabel("");
     setCsvLabel(""); setCsvFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const refetchSources = () => queryClient.invalidateQueries({ queryKey: ["sp-final-sources", item.id, mode] });
 
-  const handleAddExistingBank = async () => {
-    const count = parseInt(ebCount, 10);
-    if (!ebLabel.trim() || !count || count <= 0) {
-      toast({ title: "তথ্য অসম্পূর্ণ", description: "Label ও question count দিন।", variant: "destructive" });
+  /** QuestionBankSelector hands back the exact questions the admin picked
+   *  (browsed Category -> Subject -> Chapter -> Exam -> individual questions,
+   *  same flow ExamForm.tsx uses). They're stored the same way an uploaded
+   *  CSV's questions are (sp_final_source_questions) -- the random-assembly
+   *  RPC doesn't care where a source's questions originally came from. */
+  const handleQbSelect = async (questions: QuestionData[]) => {
+    if (questions.length === 0) return;
+    if (!ebLabel.trim()) {
+      toast({ title: "আগে Label দিন", description: "Source-এর একটা নাম দিয়ে তারপর প্রশ্ন বাছাই করুন।", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("sp_final_sources").insert({
-      item_id: item.id,
-      mode,
-      source_type: "existing_bank",
-      label: ebLabel.trim(),
-      question_count: count,
-      filter_subject: ebSubject === "__any__" ? null : ebSubject,
-      filter_chapter: ebChapter.trim() || null,
-      filter_topic: ebTopic.trim() || null,
-    });
-    if (error) {
-      toast({ title: "যোগ করা যায়নি", description: error.message, variant: "destructive" });
-      return;
+    setQbSaving(true);
+    try {
+      const { data: sourceRow, error: sourceError } = await supabase
+        .from("sp_final_sources")
+        .insert({
+          item_id: item.id,
+          mode,
+          source_type: "csv", // same storage path as CSV-uploaded sources
+          label: ebLabel.trim(),
+          question_count: questions.length,
+        })
+        .select()
+        .single();
+      if (sourceError) throw sourceError;
+
+      const rows = questions.map((q) => ({
+        source_id: sourceRow.id,
+        question_text: q.question,
+        option_a: q.options?.A || "",
+        option_b: q.options?.B || "",
+        option_c: q.options?.C || "",
+        option_d: q.options?.D || "",
+        option_e: q.options?.E || null,
+        correct_option: q.correct_answer,
+        explanation: q.explanation || null,
+      }));
+      const { error: qError } = await supabase.from("sp_final_source_questions").insert(rows);
+      if (qError) throw qError;
+
+      toast({ title: "যোগ হয়েছে", description: `${questions.length}টি প্রশ্ন যোগ হয়েছে।` });
+      resetAddForms();
+      setShowQbSelector(false);
+      refetchSources();
+    } catch (err: any) {
+      toast({ title: "যোগ করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
+    } finally {
+      setQbSaving(false);
     }
-    resetAddForms();
-    refetchSources();
   };
 
   const parseCsv = (csv: string) => {
@@ -332,6 +355,7 @@ const SpFinalItemSourcesDialog = ({
   };
 
   return (
+    <>
     <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
@@ -397,17 +421,15 @@ const SpFinalItemSourcesDialog = ({
                 <Button size="sm" variant="ghost" onClick={resetAddForms}><X className="h-4 w-4" /></Button>
               </div>
               <Input placeholder="Source-এর নাম (যেমন: HSC Board 2023-24)" value={ebLabel} onChange={(e) => setEbLabel(e.target.value)} />
-              <Select value={ebSubject} onValueChange={setEbSubject}>
-                <SelectTrigger><SelectValue placeholder="Subject (ঐচ্ছিক)" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__any__">যেকোনো Subject</SelectItem>
-                  {SUBJECTS.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Input placeholder="Chapter (ঐচ্ছিক)" value={ebChapter} onChange={(e) => setEbChapter(e.target.value)} />
-              <Input placeholder="Topic (ঐচ্ছিক)" value={ebTopic} onChange={(e) => setEbTopic(e.target.value)} />
-              <Input type="number" min="1" placeholder="কতটা MCQ আসবে" value={ebCount} onChange={(e) => setEbCount(e.target.value)} />
-              <Button size="sm" className="w-full" onClick={handleAddExistingBank}>যোগ করুন</Button>
+              <Button
+                size="sm"
+                className="w-full"
+                disabled={!ebLabel.trim()}
+                onClick={() => setShowQbSelector(true)}
+              >
+                প্রশ্ন বাছাই করুন
+              </Button>
+              {!ebLabel.trim() && <p className="text-[11px] text-muted-foreground">আগে একটা নাম দিন।</p>}
             </CardContent>
           </Card>
         )}
@@ -435,5 +457,22 @@ const SpFinalItemSourcesDialog = ({
         )}
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showQbSelector} onOpenChange={setShowQbSelector}>
+      <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+        <DialogHeader className="p-4 pb-0">
+          <DialogTitle>প্রশ্ন বাছাই করুন — {ebLabel}</DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-hidden px-0.5 sm:p-4 pt-2 h-[calc(85vh-60px)] relative">
+          {qbSaving && (
+            <div className="absolute inset-0 z-10 bg-background/80 flex items-center justify-center text-sm">
+              সংরক্ষণ হচ্ছে...
+            </div>
+          )}
+          <QuestionBankSelector onSelect={handleQbSelect} />
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
