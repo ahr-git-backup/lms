@@ -247,13 +247,8 @@ const SpFinalItemSourcesDialog = ({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [addingType, setAddingType] = useState<"existing_bank" | "csv" | null>(null);
   const [showQbSelector, setShowQbSelector] = useState(false);
   const [qbSaving, setQbSaving] = useState(false);
-
-  // csv form state
-  const [csvLabel, setCsvLabel] = useState("");
-  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvUploading, setCsvUploading] = useState(false);
 
   const { data: sources, isLoading } = useQuery({
@@ -273,8 +268,6 @@ const SpFinalItemSourcesDialog = ({
   const total = (sources || []).reduce((sum, s) => sum + s.question_count, 0);
 
   const resetAddForms = () => {
-    setAddingType(null);
-    setCsvLabel(""); setCsvFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -359,27 +352,24 @@ const SpFinalItemSourcesDialog = ({
     return rows;
   };
 
-  const handleAddCsv = async () => {
-    if (!csvLabel.trim() || !csvFile) {
-      toast({ title: "তথ্য অসম্পূর্ণ", description: "Label ও CSV ফাইল দিন।", variant: "destructive" });
-      return;
-    }
+  const handleAddCsv = async (file: File) => {
     setCsvUploading(true);
     try {
-      const text = await csvFile.text();
+      const text = await file.text();
       const rows = parseCsv(text);
       if (rows.length === 0) {
         toast({ title: "CSV-তে কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
         setCsvUploading(false);
         return;
       }
+      const autoLabel = file.name.replace(/\.csv$/i, "");
       const { data: sourceRow, error: sourceError } = await supabase
         .from("sp_final_sources")
         .insert({
           item_id: item.id,
           mode,
           source_type: "csv",
-          label: csvLabel.trim(),
+          label: autoLabel,
           question_count: rows.length,
         })
         .select()
@@ -459,38 +449,25 @@ const SpFinalItemSourcesDialog = ({
           ))}
         </div>
 
-        {addingType === null && (
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" onClick={() => setShowQbSelector(true)}>
-              <Plus className="h-3.5 w-3.5 mr-1" /> Existing Bank
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setAddingType("csv")}>
-              <Upload className="h-3.5 w-3.5 mr-1" /> CSV আপলোড
-            </Button>
-          </div>
-        )}
-
-        {addingType === "csv" && (
-          <Card>
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">CSV থেকে যোগ করুন</p>
-                <Button size="sm" variant="ghost" onClick={resetAddForms}><X className="h-4 w-4" /></Button>
-              </div>
-              <Input placeholder="Source-এর নাম" value={csvLabel} onChange={(e) => setCsvLabel(e.target.value)} />
-              <Input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv"
-                onChange={(e) => setCsvFile(e.target.files?.[0] || null)}
-              />
-              <p className="text-[11px] text-muted-foreground">Columns: questions, option1-5, answer (1-5), explanation</p>
-              <Button size="sm" className="w-full" onClick={handleAddCsv} disabled={csvUploading}>
-                {csvUploading ? "আপলোড হচ্ছে..." : "আপলোড করুন"}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" size="sm" onClick={() => setShowQbSelector(true)}>
+            <Plus className="h-3.5 w-3.5 mr-1" /> Existing Bank
+          </Button>
+          <Button variant="outline" size="sm" disabled={csvUploading} onClick={() => fileInputRef.current?.click()}>
+            {csvUploading ? "আপলোড হচ্ছে..." : <><Upload className="h-3.5 w-3.5 mr-1" /> CSV আপলোড</>}
+          </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) handleAddCsv(file);
+              if (fileInputRef.current) fileInputRef.current.value = "";
+            }}
+          />
+        </div>
       </DialogContent>
     </Dialog>
 
