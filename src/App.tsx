@@ -109,6 +109,7 @@ import StudentCourseResults from "./pages/dashboard/admin/StudentCourseResults";
 import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ScrollToTop from "@/components/ScrollToTop";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -156,6 +157,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <AuthProvider>
             <NotificationProvider>
             <ErrorBoundary label="PWALoginGate" fallback={null}>
