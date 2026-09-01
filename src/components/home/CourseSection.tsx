@@ -360,8 +360,8 @@ export const CourseSection = () => {
                                 {/* Content */}
                                 <div className="flex-1 p-5 flex flex-col justify-between gap-4">
                                     <div>
-                                        <div className="flex justify-between items-start gap-2">
-                                             <h3 className="text-lg font-bold mb-2 leading-tight">{course.name}</h3>
+                                        <div className="flex justify-center items-start gap-2">
+                                             <h3 className="text-xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
                                         </div>
 
                                         <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
