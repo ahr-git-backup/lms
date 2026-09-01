@@ -9,7 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import type { QuestionData } from "@/types/exam";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, Pencil } from "lucide-react";
 
 type MtMode = string;
 
@@ -65,6 +65,8 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
   const [managingSubject, setManagingSubject] = useState<ModelTestSubjectRow | null>(null);
   const [addingMode, setAddingMode] = useState(false);
   const [newModeLabel, setNewModeLabel] = useState("");
+  const [editingModeKey, setEditingModeKey] = useState<string | null>(null);
+  const [editModeLabel, setEditModeLabel] = useState("");
 
   const { data: modes } = useQuery({
     queryKey: ["model-test-modes"],
@@ -111,6 +113,17 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
     queryClient.invalidateQueries({ queryKey: ["model-test-modes"] });
   };
 
+  const handleRenameMode = async () => {
+    if (!editingModeKey || !editModeLabel.trim()) return;
+    const { error } = await supabase.rpc("rename_model_test_mode", { p_mode_key: editingModeKey, p_new_label: editModeLabel.trim() });
+    if (error) {
+      toast({ title: "নাম পরিবর্তন করা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    setEditingModeKey(null);
+    queryClient.invalidateQueries({ queryKey: ["model-test-modes"] });
+  };
+
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
@@ -123,22 +136,43 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
           </p>
 
           <div className="flex flex-wrap gap-2">
-            {modes?.map((m) => (
-              <div key={m.mode_key} className="flex items-center gap-0.5">
-                <Button
-                  size="sm"
-                  variant={mode === m.mode_key ? "default" : "outline"}
-                  onClick={() => setMode(m.mode_key)}
-                >
-                  {m.label}
-                </Button>
-                {(modes?.length || 0) > 1 && (
-                  <Button size="sm" variant="ghost" className="text-destructive px-1.5" onClick={() => handleDeleteMode(m.mode_key, m.label)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+            {modes?.map((m) =>
+              editingModeKey === m.mode_key ? (
+                <div key={m.mode_key} className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    className="h-8 rounded-md border px-2 text-sm w-32 bg-background"
+                    value={editModeLabel}
+                    onChange={(e) => setEditModeLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleRenameMode(); if (e.key === "Escape") setEditingModeKey(null); }}
+                  />
+                  <Button size="sm" onClick={handleRenameMode}>সেভ</Button>
+                </div>
+              ) : (
+                <div key={m.mode_key} className="flex items-center gap-0.5">
+                  <Button
+                    size="sm"
+                    variant={mode === m.mode_key ? "default" : "outline"}
+                    onClick={() => setMode(m.mode_key)}
+                  >
+                    {m.label}
                   </Button>
-                )}
-              </div>
-            ))}
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="px-1.5"
+                    onClick={() => { setEditingModeKey(m.mode_key); setEditModeLabel(m.label); }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                  {(modes?.length || 0) > 1 && (
+                    <Button size="sm" variant="ghost" className="text-destructive px-1.5" onClick={() => handleDeleteMode(m.mode_key, m.label)}>
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
+              )
+            )}
             {addingMode ? (
               <div className="flex items-center gap-1">
                 <input
