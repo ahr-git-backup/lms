@@ -26,6 +26,17 @@ const MODE_LABELS: Record<SpMode, string> = {
 const MODES: SpMode[] = ["medical_standard", "standard_hard", "varsity_standard"];
 const TOTAL_TARGET = 100;
 
+// উদ্দীপক (context-based), চিত্র (image-based), and Roman-numeral (i./ii./iii.)
+// questions are skipped for Medical modes only -- same rule as Model Test.
+const isMedicalMode = (m: SpMode) => m === "medical_standard" || m === "standard_hard";
+const isSkippableQuestion = (text: string): boolean => {
+  if (!text) return false;
+  if (text.includes("উদ্দীপক") || text.includes("চিত্র")) return true;
+  if (/<img[\s>]/i.test(text)) return true;
+  if (/(^|[<>।\n])\s*i{1,3}\s*\./i.test(text) || /(^|[<>।\n])\s*iv\s*\./i.test(text)) return true;
+  return false;
+};
+
 interface SpItem {
   id: string;
   name: string;
@@ -280,8 +291,13 @@ const SpFinalItemSourcesDialog = ({
    *  same flow ExamForm.tsx uses). They're stored the same way an uploaded
    *  CSV's questions are (sp_final_source_questions) -- the random-assembly
    *  RPC doesn't care where a source's questions originally came from. */
-  const handleQbSelect = async (questions: QuestionData[]) => {
-    if (questions.length === 0) return;
+  const handleQbSelect = async (questionsRaw: QuestionData[]) => {
+    const skippedCount = isMedicalMode(mode) ? questionsRaw.filter((q) => isSkippableQuestion(q.question || "")).length : 0;
+    const questions = isMedicalMode(mode) ? questionsRaw.filter((q) => !isSkippableQuestion(q.question || "")) : questionsRaw;
+    if (questions.length === 0) {
+      toast({ title: "কোনো উপযুক্ত প্রশ্ন নেই", description: skippedCount > 0 ? "উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়ার পর কিছু অবশিষ্ট নেই।" : undefined, variant: "destructive" });
+      return;
+    }
     // Auto-generate label from unique subjects in the picked questions
     // (no manual naming step -- admin goes straight from click to Q-bank picker).
     const uniqueSubjects = Array.from(new Set(questions.map((q) => q.subject).filter(Boolean))) as string[];
@@ -317,7 +333,7 @@ const SpFinalItemSourcesDialog = ({
       const { error: qError } = await supabase.from("sp_final_source_questions").insert(rows);
       if (qError) throw qError;
 
-      toast({ title: "যোগ হয়েছে", description: `${questions.length}টি প্রশ্ন যোগ হয়েছে।` });
+      toast({ title: "যোগ হয়েছে", description: `${questions.length}টি প্রশ্ন যোগ হয়েছে।${skippedCount > 0 ? ` (${skippedCount}টি উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়া হয়েছে)` : ""}` });
       resetAddForms();
       setShowQbSelector(false);
       refetchSources();
@@ -332,10 +348,12 @@ const SpFinalItemSourcesDialog = ({
     const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = [];
+    let skipped = 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (parsed.data as any[]).forEach((row) => {
       const qText = row["questions"] || row["question"];
       if (!qText) return;
+      if (isMedicalMode(mode) && isSkippableQuestion(String(qText))) { skipped++; return; }
       const o1 = row["option1"], o2 = row["option2"], o3 = row["option3"], o4 = row["option4"], o5 = row["option5"];
       const answer = row["answer"];
       const ansIdx = Number(answer);
@@ -351,16 +369,16 @@ const SpFinalItemSourcesDialog = ({
         explanation: row["explanation"] || null,
       });
     });
-    return rows;
+    return { rows, skipped };
   };
 
   const handleAddCsv = async (file: File) => {
     setCsvUploading(true);
     try {
       const text = await file.text();
-      const rows = parseCsv(text);
+      const { rows, skipped } = parseCsv(text);
       if (rows.length === 0) {
-        toast({ title: "CSV-তে কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+        toast({ title: "CSV-তে কোনো উপযুক্ত প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
         setCsvUploading(false);
         return;
       }
@@ -383,7 +401,7 @@ const SpFinalItemSourcesDialog = ({
         .insert(rows.map((r) => ({ ...r, source_id: sourceRow.id })));
       if (qError) throw qError;
 
-      toast({ title: "CSV আপলোড হয়েছে", description: `${rows.length}টি প্রশ্ন যোগ হয়েছে।` });
+      toast({ title: "CSV আপলোড হয়েছে", description: `${rows.length}টি প্রশ্ন যোগ হয়েছে।${skipped > 0 ? ` (${skipped}টি উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়া হয়েছে)` : ""}` });
       resetAddForms();
       refetchSources();
     } catch (err: any) {
