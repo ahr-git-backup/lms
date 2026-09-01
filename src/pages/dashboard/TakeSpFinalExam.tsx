@@ -23,6 +23,7 @@ interface SpQuestion {
 const MODE_LABELS: Record<string, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
+  varsity_standard: "Varsity Standard",
 };
 
 /** Runs a single Subject/Paper Final attempt: fetches the randomly-assembled

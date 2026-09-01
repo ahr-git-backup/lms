@@ -16,13 +16,14 @@ import type { QuestionData } from "@/types/exam";
 import { Plus, Trash2, Upload, X, Pencil, Check } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard";
+type SpMode = "medical_standard" | "standard_hard" | "varsity_standard";
 
 const MODE_LABELS: Record<SpMode, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
+  varsity_standard: "Varsity Standard",
 };
-const MODES: SpMode[] = ["medical_standard", "standard_hard"];
+const MODES: SpMode[] = ["medical_standard", "standard_hard", "varsity_standard"];
 const TOTAL_TARGET = 100;
 
 interface SpItem {
@@ -31,6 +32,7 @@ interface SpItem {
   sort_order: number;
   medical_standard_configured: number;
   standard_hard_configured: number;
+  varsity_standard_configured: number;
 }
 
 interface SpSource {

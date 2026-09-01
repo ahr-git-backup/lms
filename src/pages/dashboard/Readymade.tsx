@@ -349,50 +349,51 @@ const Readymade = () => {
           <DialogHeader>
             <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            {([
-              { key: "medical", label: "মেডিকেল এডমিশন টেস্ট" },
-              { key: "varsity", label: "ভার্সিটি এডমিশন টেস্ট" },
-            ] as const).map((c) => (
-              <div key={c.key} className="space-y-2">
-                <p className="text-sm font-semibold text-primary">{c.label}</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {([
-                    { key: "subject_final", label: "Subject Final" },
-                    { key: "paper_final", label: "Paper Final" },
-                    { key: "full_model", label: "Full Model Test" },
-                  ] as const).map((m) => (
-                    <div key={m.key} className="relative">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-auto py-2 text-xs w-full justify-start"
-                        onClick={() => {
-                          setActiveTypePanel(null);
-                          navigate(`/dashboard/admission-test?category=${c.key}&mode=${m.key}`);
-                        }}
-                      >
-                        {m.label}
-                      </Button>
-                      {isAdmin && (
-                        <button
-                          type="button"
-                          aria-label={`Add ${m.label} config for ${c.label}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveTypePanel(null);
-                            navigate(`/admin/admission-test?category=${c.key}&mode=${m.key}`);
-                          }}
-                          className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm hover:bg-primary/90"
-                        >
-                          <Plus className="h-3 w-3" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+          <div className="flex items-stretch gap-3">
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-semibold text-primary text-center">মেডিকেল</p>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 text-xs w-full"
+                  onClick={() => {
+                    setActiveTypePanel(null);
+                    navigate("/dashboard/readymade/subject-paper-final?track=medical");
+                  }}
+                >
+                  Standard
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 text-xs w-full"
+                  onClick={() => {
+                    setActiveTypePanel(null);
+                    navigate("/dashboard/readymade/subject-paper-final?track=medical");
+                  }}
+                >
+                  Standard+Hard
+                </Button>
               </div>
-            ))}
+            </div>
+            <div className="w-px bg-border" />
+            <div className="flex-1 space-y-2">
+              <p className="text-sm font-semibold text-primary text-center">ভার্সিটি</p>
+              <div className="grid grid-cols-1 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-auto py-2 text-xs w-full"
+                  onClick={() => {
+                    setActiveTypePanel(null);
+                    navigate("/dashboard/readymade/subject-paper-final?track=varsity");
+                  }}
+                >
+                  Standard
+                </Button>
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

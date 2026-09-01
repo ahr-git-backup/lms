@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,19 +9,26 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ArrowLeft, BookOpen, FileText } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard";
+type SpMode = "medical_standard" | "standard_hard" | "varsity_standard";
 
 const MODE_LABELS: Record<SpMode, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
+  varsity_standard: "Varsity Standard",
 };
-const MODES: SpMode[] = ["medical_standard", "standard_hard"];
+// Which modes are offered depends on which admission track the student came
+// from (Medical: Standard + Standard+Hard, Varsity: Standard only).
+const MODES_BY_TRACK: Record<"medical" | "varsity", SpMode[]> = {
+  medical: ["medical_standard", "standard_hard"],
+  varsity: ["varsity_standard"],
+};
 
 interface SpItem {
   id: string;
   name: string;
   medical_standard_configured: number;
   standard_hard_configured: number;
+  varsity_standard_configured: number;
 }
 
 /** Student-facing Subject Final / Paper Final browser: pick the category tab,
@@ -31,6 +38,9 @@ interface SpItem {
  *  get_sp_final_exam_questions. */
 const SubjectPaperFinal = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const track = (searchParams.get("track") === "varsity" ? "varsity" : "medical") as "medical" | "varsity";
+  const MODES = MODES_BY_TRACK[track];
   const [category, setCategory] = useState<SpCategory>("subject_final");
   const [selectedItem, setSelectedItem] = useState<SpItem | null>(null);
 
@@ -52,7 +62,7 @@ const SubjectPaperFinal = () => {
       <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard/readymade")} className="pl-0 h-8">
         <ArrowLeft className="mr-2 h-4 w-4" /> Readymade Exam
       </Button>
-      <h1 className="text-xl font-bold">Subject/Paper Final</h1>
+      <h1 className="text-xl font-bold">Subject/Paper Final {track === "varsity" ? "— Varsity" : "— Medical"}</h1>
 
       <div className="flex gap-2">
         <Button
@@ -87,7 +97,12 @@ const SubjectPaperFinal = () => {
             <Card
               key={item.id}
               className={`transition-all ${anyReady ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
-              onClick={() => setSelectedItem(item)}
+              onClick={() => {
+                if (!anyReady) return;
+                // Varsity only has one mode -- skip the mode-select popup entirely.
+                if (MODES.length === 1) { startExam(item, MODES[0]); return; }
+                setSelectedItem(item);
+              }}
             >
               <CardContent className="p-3 text-center">
                 <p className="font-bold text-primary">{item.name}</p>
