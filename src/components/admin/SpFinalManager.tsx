@@ -13,7 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import type { QuestionData } from "@/types/exam";
-import { Plus, Trash2, Upload, X } from "lucide-react";
+import { Plus, Trash2, Upload, X, Pencil, Check } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
 type SpMode = "medical_standard" | "standard_hard";
@@ -57,6 +57,8 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
   const [newItemName, setNewItemName] = useState("");
   const [managingItem, setManagingItem] = useState<SpItem | null>(null);
   const [managingMode, setManagingMode] = useState<SpMode>("medical_standard");
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState("");
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["sp-final-items", category],
@@ -87,6 +89,28 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
       toast({ title: "মুছা যায়নি", description: error.message, variant: "destructive" });
       return;
     }
+    queryClient.invalidateQueries({ queryKey: ["sp-final-items", category] });
+  };
+
+  const startEditItem = (item: SpItem) => {
+    setEditingItemId(item.id);
+    setEditingName(item.name);
+  };
+
+  const cancelEditItem = () => {
+    setEditingItemId(null);
+    setEditingName("");
+  };
+
+  const saveEditItem = async (item: SpItem) => {
+    const name = editingName.trim();
+    if (!name || name === item.name) { cancelEditItem(); return; }
+    const { error } = await supabase.from("sp_final_items").update({ name }).eq("id", item.id);
+    if (error) {
+      toast({ title: "নাম বদলানো যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    cancelEditItem();
     queryClient.invalidateQueries({ queryKey: ["sp-final-items", category] });
   };
 
@@ -131,30 +155,63 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
             {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
             {items?.length === 0 && <p className="text-sm text-muted-foreground">কোনো {category === "subject_final" ? "Subject" : "Paper"} যোগ করা হয়নি।</p>}
             {items?.map((item) => (
-              <Card key={item.id} className="cursor-pointer hover:border-primary/40" onClick={() => { setManagingItem(item); setManagingMode("medical_standard"); }}>
+              <Card
+                key={item.id}
+                className={editingItemId === item.id ? "" : "cursor-pointer hover:border-primary/40"}
+                onClick={() => { if (editingItemId !== item.id) { setManagingItem(item); setManagingMode("medical_standard"); } }}
+              >
                 <CardContent className="p-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{item.name}</p>
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {MODES.map((m) => {
-                        const key = `${m}_configured` as keyof SpItem;
-                        const count = item[key] as number;
-                        return (
-                          <Badge key={m} variant={count >= TOTAL_TARGET ? "default" : "outline"} className="text-[10px]">
-                            {MODE_LABELS[m]}: {count}/{TOTAL_TARGET}
-                          </Badge>
-                        );
-                      })}
+                  {editingItemId === item.id ? (
+                    <div className="flex-1 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                      <Input
+                        autoFocus
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === "Enter") saveEditItem(item); if (e.key === "Escape") cancelEditItem(); }}
+                        className="h-8"
+                      />
+                      <Button size="sm" variant="ghost" className="shrink-0" onClick={() => saveEditItem(item)}>
+                        <Check className="h-4 w-4" />
+                      </Button>
+                      <Button size="sm" variant="ghost" className="shrink-0" onClick={cancelEditItem}>
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="text-destructive shrink-0"
-                    onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  ) : (
+                    <>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{item.name}</p>
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {MODES.map((m) => {
+                            const key = `${m}_configured` as keyof SpItem;
+                            const count = item[key] as number;
+                            return (
+                              <Badge key={m} variant={count >= TOTAL_TARGET ? "default" : "outline"} className="text-[10px]">
+                                {MODE_LABELS[m]}: {count}/{TOTAL_TARGET}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => { e.stopPropagation(); startEditItem(item); }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-destructive"
+                          onClick={(e) => { e.stopPropagation(); handleDeleteItem(item); }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             ))}

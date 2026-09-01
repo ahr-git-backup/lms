@@ -149,16 +149,15 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         return query.eq('is_readymade', false).eq('is_archive', false);
     };
 
-    // Import every question from every chapter of the currently selected
-    // subject(s) in one go -- skips the chapter/sub-chapter/exam drill-down
-    // entirely for admins who just want "all of Physics" etc.
-    const handleAddAllChaptersForSubjects = async () => {
-        if (selectedSubjects.length === 0) return;
+    // Import every exam's questions for the currently selected chapter(s) in
+    // one go -- skips picking individual exams inside each chapter.
+    const handleAddAllExamsForChapters = async () => {
+        if (selectedSubjects.length === 0 || selectedChapters.length === 0) return;
         setIsAddingBulkChapters(true);
         try {
             let examQuery = supabase.from("exams").select("id");
             examQuery = applyCategoryFilter(examQuery);
-            examQuery = examQuery.overlaps('subject', selectedSubjects);
+            examQuery = examQuery.overlaps('subject', selectedSubjects).in('chapter', selectedChapters);
             const { data: examRows, error: examError } = await examQuery;
             if (examError) {
                 console.error(examError);
@@ -451,24 +450,14 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 {/* View 2: Subjects Selection */}
                 {view === 'subjects' && (
                     <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
+                        <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Select Subjects</h3>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    disabled={selectedSubjects.length === 0 || isAddingBulkChapters}
-                                    onClick={handleAddAllChaptersForSubjects}
-                                >
-                                    {isAddingBulkChapters ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-                                    সব চ্যাপ্টার যোগ করুন
-                                </Button>
-                                <Button
-                                    onClick={() => goToView('chapters')}
-                                    disabled={selectedSubjects.length === 0}
-                                >
-                                    Continue ({selectedSubjects.length})
-                                </Button>
-                            </div>
+                            <Button
+                                onClick={() => goToView('chapters')}
+                                disabled={selectedSubjects.length === 0}
+                            >
+                                Continue ({selectedSubjects.length})
+                            </Button>
                         </div>
 
                         {isLoadingSubjects ? (
@@ -511,14 +500,24 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 {/* View 2b: Chapters Selection (multi-select, like Subjects step) */}
                 {view === 'chapters' && (
                     <div className="max-w-3xl mx-auto">
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
                             <h3 className="text-lg font-semibold">Select Chapter(s)</h3>
-                            <Button
-                                onClick={() => { setSelectedSubChapter(null); goToView(selectedChapters.length === 1 ? 'subchapters' : 'exams'); }}
-                                disabled={selectedChapters.length === 0}
-                            >
-                                Continue ({selectedChapters.length})
-                            </Button>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    disabled={selectedChapters.length === 0 || isAddingBulkChapters}
+                                    onClick={handleAddAllExamsForChapters}
+                                >
+                                    {isAddingBulkChapters ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                                    সব এক্সাম যোগ করুন
+                                </Button>
+                                <Button
+                                    onClick={() => { setSelectedSubChapter(null); goToView(selectedChapters.length === 1 ? 'subchapters' : 'exams'); }}
+                                    disabled={selectedChapters.length === 0}
+                                >
+                                    Continue ({selectedChapters.length})
+                                </Button>
+                            </div>
                         </div>
                         {isLoadingChapters ? (
                             <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
