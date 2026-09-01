@@ -44,7 +44,7 @@ const SubjectPaperFinal = () => {
   });
 
   const startExam = (item: SpItem, mode: SpMode) => {
-    navigate(`/dashboard/readymade/subject-paper-final/take?item=${item.id}&mode=${mode}&name=${encodeURIComponent(item.name)}`);
+    navigate(`/dashboard/readymade/subject-paper-final/take?item=${item.id}&category=${category}&mode=${mode}&name=${encodeURIComponent(item.name)}`);
   };
 
   if (selectedItem) {

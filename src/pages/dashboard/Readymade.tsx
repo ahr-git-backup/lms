@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2, History } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -268,6 +268,10 @@ const Readymade = () => {
       <ErrorBoundary label="Readymade header">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-lg font-semibold tracking-tight">Readymade Exam</h1>
+        <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" className="h-9 text-xs gap-1.5" onClick={() => navigate("/dashboard/readymade/history")}>
+          <History className="h-3.5 w-3.5" /> Your History
+        </Button>
         <div className="relative">
         {isSearchExpanded ? (
           <div className="flex items-center w-[180px] sm:w-64 relative animate-in fade-in zoom-in duration-200">
@@ -289,6 +293,7 @@ const Readymade = () => {
             <Search className="h-4 w-4 text-muted-foreground" />
           </Button>
         )}
+        </div>
         </div>
       </div>
       </ErrorBoundary>

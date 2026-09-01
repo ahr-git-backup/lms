@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -34,7 +35,9 @@ const TakeSpFinalExam = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const itemId = searchParams.get("item") || "";
+  const category = (searchParams.get("category") as "subject_final" | "paper_final") || "subject_final";
   const mode = searchParams.get("mode") || "medical_standard";
   const itemName = searchParams.get("name") || "";
 
@@ -70,10 +73,32 @@ const TakeSpFinalExam = () => {
 
   const answeredCount = Object.keys(answers).length;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setSubmitted(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
     toast({ title: "পরীক্ষা শেষ", description: `আপনি ${score.correct}/${score.total} পেয়েছেন।` });
+
+    if (user && questions) {
+      const skipped = questions.length - answeredCount;
+      const wrong = answeredCount - score.correct;
+      try {
+        await supabase.from("sp_final_attempts" as any).insert({
+          profile_id: user.id,
+          item_id: itemId,
+          item_name: itemName,
+          category,
+          mode,
+          questions_snapshot: questions,
+          answers,
+          correct_count: score.correct,
+          wrong_count: wrong,
+          skipped_count: skipped,
+          total_questions: questions.length,
+        });
+      } catch {
+        // Non-blocking -- the student still sees their result either way.
+      }
+    }
   };
 
   if (isLoading) {

@@ -49,6 +49,7 @@ import Archive from "./pages/dashboard/Archive";
 import Readymade from "./pages/dashboard/Readymade";
 import SubjectPaperFinal from "./pages/dashboard/SubjectPaperFinal";
 import TakeSpFinalExam from "./pages/dashboard/TakeSpFinalExam";
+import ReadymadeHistory from "./pages/dashboard/ReadymadeHistory";
 import CustomExamBuilder from "./pages/dashboard/CustomExamBuilder";
 import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
@@ -231,6 +232,7 @@ const App = () => {
                 <Route path="readymade/custom-exam" element={<ErrorBoundary><CustomExamBuilder /></ErrorBoundary>} />
                 <Route path="readymade/subject-paper-final" element={<ErrorBoundary><SubjectPaperFinal /></ErrorBoundary>} />
                 <Route path="readymade/subject-paper-final/take" element={<ErrorBoundary><TakeSpFinalExam /></ErrorBoundary>} />
+                <Route path="readymade/history" element={<ErrorBoundary><ReadymadeHistory /></ErrorBoundary>} />
                 <Route path="archive" element={<ErrorBoundary><Archive /></ErrorBoundary>} />
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
                 <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />
