@@ -334,7 +334,16 @@ export const CourseSection = () => {
                             : (course.category ? [course.category] : []);
 
                         return (
-                            <Card key={course.id} className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full hover:-translate-y-1 transition-all duration-300 border-2 border-foreground/15 dark:border-foreground/20">
+                            <article
+                                key={course.id}
+                                className="group relative w-full rounded-[24px] p-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.85),0_8px_25px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:-translate-y-[7px] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.95),0_15px_35px_rgba(237,60,124,0.16)]"
+                                style={{
+                                    background: "linear-gradient(120deg, #111 0%, #ff3f78 25%, #111 50%, #ff6b8d 75%, #111 100%)",
+                                    backgroundSize: "350% 350%",
+                                    animation: "phStrongBorderMove 5s linear infinite",
+                                }}
+                            >
+                            <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
                                 {/* Course Image */}
                                 <div className="w-full aspect-video relative">
                                     <img
@@ -360,8 +369,8 @@ export const CourseSection = () => {
                                 {/* Content */}
                                 <div className="flex-1 p-5 flex flex-col justify-between gap-4">
                                     <div>
-                                        <div className="flex justify-between items-start gap-2">
-                                             <h3 className="text-lg font-bold mb-2 leading-tight">{course.name}</h3>
+                                        <div className="flex justify-center items-start gap-2">
+                                             <h3 className="text-2xl font-extrabold mb-2 leading-tight text-center">{course.name}</h3>
                                         </div>
 
                                         <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
@@ -397,6 +406,7 @@ export const CourseSection = () => {
                                     </div>
                                 </div>
                             </Card>
+                            </article>
                         );
                     })
                 )}

@@ -118,10 +118,10 @@ const Login = () => {
             </CardFooter>
           </Card>
         ) : (
-          <Card className="w-full max-w-md border-[3px] border-foreground">
-            <CardHeader className="space-y-2 pb-4">
+          <Card className="w-full max-w-md overflow-hidden rounded-[26px] border-[3px] border-foreground shadow-lg">
+                        <CardHeader className="space-y-2 pb-4 pt-7 text-center">
               <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
-              <CardTitle className="text-xl font-semibold">Student &amp; Admin Login</CardTitle>
+              <CardTitle className="text-xl font-semibold text-foreground">Student &amp; Admin Login</CardTitle>
               <CardDescription className="text-xs text-muted-foreground">
                 Enter your Email to login.
               </CardDescription>
@@ -150,13 +150,21 @@ const Login = () => {
               </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
-                <div className="space-y-2">
-                  <Label htmlFor="identifier">ইমেইল / ফোন নম্বর</Label>
-                  <Input id="identifier" name="identifier" type="text" required autoComplete="username" placeholder="Email অথবা Phone Number" />
+                <div className="space-y-1.5">
+                  <Label htmlFor="identifier" className="text-xs font-semibold text-muted-foreground">ইমেইল / ফোন নম্বর</Label>
+                  <Input
+                    id="identifier"
+                    name="identifier"
+                    type="text"
+                    required
+                    autoComplete="username"
+                    placeholder="Email অথবা Phone Number"
+                    className="h-12 rounded-xl border-input pl-4 pr-4 text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
+                  />
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-xs font-semibold text-muted-foreground">Password</Label>
                     <Link to="/forgot-password" tabIndex={-1} className="text-xs text-primary font-medium hover:underline">
                       Forgot Password?
                     </Link>
@@ -168,7 +176,7 @@ const Login = () => {
                       type={showPassword ? "text" : "password"}
                       required
                       autoComplete="current-password"
-                      className="pr-10"
+                      className="h-12 rounded-xl border-input pl-4 pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -193,7 +201,11 @@ const Login = () => {
                   />
                 </div>
 
-                <Button type="submit" className="mt-2 w-full" disabled={loading || !captchaToken}>
+                <Button
+                  type="submit"
+                  className="mt-1 h-12 w-full rounded-xl bg-primary text-primary-foreground text-[15px] font-bold shadow-sm transition-transform hover:scale-[1.01]"
+                  disabled={loading || !captchaToken}
+                >
                   {loading ? "Logging in..." : "Login"}
                 </Button>
 
@@ -205,14 +217,16 @@ const Login = () => {
                 </div>
               </form>
 
-              <div className="mt-6 rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                  <div className="text-sm text-yellow-800 dark:text-yellow-400 w-full">
-                    <p className="font-bold mb-1">সতর্কবার্তা!</p>
-                    <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
-                    <p className="mt-2">লগইন সংক্রান্ত সমস্যা হলে নিচে মেসেজ করুন:</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2">
+              <div className="mt-6 overflow-hidden rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-orange-50/60 to-white shadow-[0_8px_25px_rgba(245,158,11,0.1)] dark:border-amber-500/20 dark:from-amber-950/30 dark:via-amber-900/10 dark:to-transparent">
+                <div className="flex items-start gap-3 p-4">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-[0_6px_16px_rgba(245,158,11,0.3)]">
+                    <AlertTriangle className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div className="text-sm text-amber-900 dark:text-amber-200 w-full">
+                    <p className="mb-1 text-sm font-black tracking-tight">সতর্কবার্তা!</p>
+                    <p className="leading-relaxed text-amber-800/90 dark:text-amber-200/80">আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
+                    <p className="mt-2 leading-relaxed text-amber-800/90 dark:text-amber-200/80">লগইন সংক্রান্ত সমস্যা হলে নিচে মেসেজ করুন:</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
                       <Button
                         asChild
                         size="sm"

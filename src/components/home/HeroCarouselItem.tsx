@@ -93,8 +93,22 @@ const HeroCarouselItem: React.FC<HeroCarouselItemProps> = ({ hero }) => {
               />
             </div>
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-secondary/50 text-muted-foreground">
-              <span className="opacity-20 text-4xl font-bold italic uppercase">Atlas Banner</span>
+            <div
+              className="relative flex h-full w-full items-center justify-center overflow-hidden"
+              style={{ background: "linear-gradient(135deg, #064e3b 0%, #022c22 100%)" }}
+            >
+              <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[60%] bg-white/10 rounded-full blur-[80px]" />
+              <div className="absolute bottom-[-20%] left-[-10%] w-[50%] h-[70%] bg-black/10 rounded-full blur-[100px]" />
+              <div className="relative z-10 text-center px-6 space-y-2">
+                <h2 className="text-2xl md:text-5xl font-black text-white drop-shadow-lg tracking-tight">
+                  {hero.title || "এটলাসে স্বাগতম"}
+                </h2>
+                {hero.subtitle && (
+                  <p className="text-white/80 text-xs md:text-lg font-medium max-w-xl mx-auto line-clamp-2">
+                    {hero.subtitle}
+                  </p>
+                )}
+              </div>
             </div>
           )}
         </a>

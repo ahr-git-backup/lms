@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { PostEditor } from "@/components/PostEditor";
+import { ChecklistEditor, ChecklistLine } from "@/components/ChecklistEditor";
+import { DescriptionBlockEditor, DescriptionBlock } from "@/components/DescriptionBlockEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { Course } from "@/types/admin";
 import { Button } from "@/components/ui/button";
@@ -38,8 +40,9 @@ const demoContentSchema = z.object({
 const courseSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, "Name is required").max(200),
-  short_description: z.string().trim().max(300).optional().or(z.literal("")),
-  full_description: z.string().trim().max(4000).optional().or(z.literal("")),
+  short_description_lines: z.array(z.object({ text: z.string(), bold: z.boolean().optional() })).optional().default([]),
+  full_description_blocks: z.array(z.object({ heading: z.string(), body: z.string() })).optional().default([]),
+  extra_links: z.array(z.object({ label: z.string(), url: z.string() })).optional().default([]),
   price: z
     .string()
     .trim()
@@ -81,8 +84,9 @@ const AdminCourses = () => {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState<z.infer<typeof courseSchema>>({
     name: "",
-    short_description: "",
-    full_description: "",
+    short_description_lines: [],
+    full_description_blocks: [],
+    extra_links: [],
     price: "",
     original_price: "",
     what_you_get: "",
@@ -235,8 +239,9 @@ const AdminCourses = () => {
   const resetForm = () => {
     setForm({
       name: "",
-      short_description: "",
-      full_description: "",
+      short_description_lines: [],
+      full_description_blocks: [],
+      extra_links: [],
       price: "",
       original_price: "",
       what_you_get: "",
@@ -263,8 +268,9 @@ const AdminCourses = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         name: parsed.name,
-        short_description: parsed.short_description || null,
-        full_description: parsed.full_description || null,
+        short_description_lines: parsed.short_description_lines || [],
+        full_description_blocks: parsed.full_description_blocks || [],
+        extra_links: parsed.extra_links || [],
         price: parsed.price ? Number(parsed.price) : null,
         original_price: parsed.original_price ? Number(parsed.original_price) : null,
         what_you_get: parsed.what_you_get
@@ -345,8 +351,9 @@ const AdminCourses = () => {
     setForm({
       id: course.id,
       name: course.name ?? "",
-      short_description: course.short_description ?? "",
-      full_description: course.full_description ?? "",
+      short_description_lines: (course as any).short_description_lines ?? [],
+      full_description_blocks: (course as any).full_description_blocks ?? [],
+      extra_links: (course as any).extra_links ?? [],
       price: course.price != null ? String(course.price) : "",
       original_price: course.original_price != null ? String(course.original_price) : "",
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
@@ -506,8 +513,9 @@ const AdminCourses = () => {
              <Button variant="ghost" size="sm" onClick={() => {
                  setForm({
                     name: "",
-                    short_description: "",
-                    full_description: "",
+                    short_description_lines: [],
+                    full_description_blocks: [],
+                    extra_links: [],
                     price: "",
                     original_price: "",
                     image_url: "",
@@ -536,7 +544,6 @@ const AdminCourses = () => {
                   <TabsList className="inline-flex h-11 items-center justify-start sm:justify-center rounded-lg bg-muted p-1 text-muted-foreground w-max shadow-sm">
                     <TabsTrigger value="basic" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Basic Info</TabsTrigger>
                     <TabsTrigger value="description" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Description</TabsTrigger>
-                    <TabsTrigger value="content" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Curriculum Info</TabsTrigger>
                     <TabsTrigger value="demos" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Demo Content</TabsTrigger>
                     {form.id && (
                       <TabsTrigger value="promo" className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-6 py-2 text-sm font-medium transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm">Promo Code</TabsTrigger>
@@ -793,38 +800,84 @@ const AdminCourses = () => {
 
                 <TabsContent value="description" className="mt-0 space-y-4">
                     <div className="space-y-2">
-                    <Label htmlFor="short_description">Short description</Label>
-                    <Textarea
-                        id="short_description"
-                        rows={3}
-                        value={form.short_description}
-                        onChange={(e) => setForm((prev) => ({ ...prev, short_description: e.target.value }))}
-                        placeholder="A brief overview shown on course cards..."
+                    <Label>Short description (animated checklist)</Label>
+                    <ChecklistEditor
+                        value={form.short_description_lines as ChecklistLine[]}
+                        onChange={(lines) => setForm((prev) => ({ ...prev, short_description_lines: lines }))}
                     />
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="full_description">Full description</Label>
-                        <PostEditor
-                            key={form.id || 'desc-new'}
-                            initialValue={form.full_description}
-                            onChange={(val) => setForm((prev) => ({ ...prev, full_description: val }))}
+                        <Label>Full description</Label>
+                        <DescriptionBlockEditor
+                            value={form.full_description_blocks as DescriptionBlock[]}
+                            onChange={(blocks) => setForm((prev) => ({ ...prev, full_description_blocks: blocks }))}
                         />
                     </div>
-                </TabsContent>
 
-                <TabsContent value="content" className="mt-0 space-y-4">
-                    <div className="flex justify-between items-center mb-2">
-                        <Label htmlFor="what_you_get">
-                            "What you get" Section
-                        </Label>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                            <Label>Extra Links</Label>
+                            <Button
+                                type="button"
+                                size="sm"
+                                onClick={() =>
+                                    setForm((prev) => ({
+                                        ...prev,
+                                        extra_links: [...(prev.extra_links || []), { label: "", url: "" }],
+                                    }))
+                                }
+                            >
+                                <Plus className="w-4 h-4 mr-1" /> Add Link
+                            </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            এই লিংকগুলো পাবলিক কোর্স পেজে "এই কোর্স সম্পর্কে আরো" এর নিচে embedded text আকারে দেখাবে।
+                        </p>
+                        {(form.extra_links || []).length === 0 && (
+                            <div className="text-center py-6 border-2 border-dashed rounded-lg text-muted-foreground text-sm">
+                                No extra links added yet.
+                            </div>
+                        )}
+                        <div className="grid gap-2">
+                            {(form.extra_links || []).map((link, idx) => (
+                                <div key={idx} className="flex items-center gap-2 rounded-md border p-2">
+                                    <Input
+                                        value={link.label}
+                                        onChange={(e) => {
+                                            const updated = [...(form.extra_links || [])];
+                                            updated[idx] = { ...updated[idx], label: e.target.value };
+                                            setForm({ ...form, extra_links: updated });
+                                        }}
+                                        className="h-8 text-sm"
+                                        placeholder="Link text..."
+                                    />
+                                    <Input
+                                        value={link.url}
+                                        onChange={(e) => {
+                                            const updated = [...(form.extra_links || [])];
+                                            updated[idx] = { ...updated[idx], url: e.target.value };
+                                            setForm({ ...form, extra_links: updated });
+                                        }}
+                                        className="h-8 font-mono text-xs"
+                                        placeholder="https://..."
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 shrink-0 text-destructive"
+                                        onClick={() => {
+                                            const updated = (form.extra_links || []).filter((_, i) => i !== idx);
+                                            setForm({ ...form, extra_links: updated });
+                                        }}
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
-
-                    <PostEditor
-                        key={form.id || 'wyg-new'}
-                        initialValue={form.what_you_get}
-                        onChange={(val) => setForm((prev) => ({ ...prev, what_you_get: val }))}
-                    />
                 </TabsContent>
 
                 <TabsContent value="demos" className="mt-0 space-y-4">

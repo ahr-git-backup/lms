@@ -425,3 +425,8 @@ mjx-container[display="true"] {
   animation: zoneFlash 1.4s ease-out;
   border-radius: 0.75rem;
 }
+
+@keyframes phStrongBorderMove {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 350% 350%; }
+}

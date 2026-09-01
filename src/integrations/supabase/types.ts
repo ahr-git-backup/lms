@@ -230,6 +230,8 @@ export type Database = {
           contact_info: string | null
           created_at: string
           full_description: string | null
+          full_description_blocks: Json | null
+          extra_links: Json | null
           id: string
           image_url: string | null
           is_active: boolean
@@ -237,6 +239,7 @@ export type Database = {
           name: string
           price: number | null
           short_description: string | null
+          short_description_lines: Json | null
           slug: string | null
           updated_at: string
           what_you_get: string[] | null
@@ -249,6 +252,8 @@ export type Database = {
           contact_info?: string | null
           created_at?: string
           full_description?: string | null
+          full_description_blocks?: Json | null
+          extra_links?: Json | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -256,6 +261,7 @@ export type Database = {
           name: string
           price?: number | null
           short_description?: string | null
+          short_description_lines?: Json | null
           slug?: string | null
           updated_at?: string
           what_you_get?: string[] | null
@@ -268,6 +274,8 @@ export type Database = {
           contact_info?: string | null
           created_at?: string
           full_description?: string | null
+          full_description_blocks?: Json | null
+          extra_links?: Json | null
           id?: string
           image_url?: string | null
           is_active?: boolean
@@ -275,6 +283,7 @@ export type Database = {
           name?: string
           price?: number | null
           short_description?: string | null
+          short_description_lines?: Json | null
           slug?: string | null
           updated_at?: string
           what_you_get?: string[] | null

@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
-import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send, User } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send, User, CheckCircle2 } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 
 const Register = () => {
@@ -46,6 +46,51 @@ const Register = () => {
       '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9'
     };
     return str.split('').map(char => bengaliToEnglish[char] || char).join('');
+  };
+
+  // Sequential field validation — each field shows a success tick once valid,
+  // and unlocks the next field in order.
+  const [fields, setFields] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    fatherName: "",
+    motherName: "",
+    collegeName: "",
+    sscGpa: "",
+  });
+
+  const fieldValidity = {
+    fullName: fields.fullName.trim().length >= 3,
+    phone: (() => {
+      const p = convertToEnglishDigits(fields.phone).trim();
+      const validPrefixes = ['013', '014', '015', '016', '017', '018', '019'];
+      return p.length === 11 && validPrefixes.some((prefix) => p.startsWith(prefix));
+    })(),
+    gender: !!gender,
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email.trim()),
+    fatherName: fields.fatherName.trim().length >= 3,
+    motherName: fields.motherName.trim().length >= 3,
+    collegeName: fields.collegeName.trim().length >= 10,
+    sscGpa: (() => {
+      const v = parseFloat(fields.sscGpa);
+      return !isNaN(v) && v >= 1 && v <= 5;
+    })(),
+  };
+
+  // Order in which fields must be completed before the next unlocks
+  const fieldOrder: (keyof typeof fieldValidity)[] = [
+    "fullName", "phone", "gender", "email", "fatherName", "motherName", "collegeName", "sscGpa",
+  ];
+
+  const isFieldUnlocked = (name: keyof typeof fieldValidity) => {
+    const idx = fieldOrder.indexOf(name);
+    if (idx <= 0) return true;
+    return fieldOrder.slice(0, idx).every((f) => fieldValidity[f]);
+  };
+
+  const updateField = (name: keyof typeof fields, value: string) => {
+    setFields((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,10 +275,10 @@ const Register = () => {
     <div className="min-h-screen bg-background text-foreground">
       <PublicHeader />
       <main className="flex min-h-[calc(100vh-56px)] items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-xl border-[3px] border-foreground">
-          <CardHeader className="space-y-2 pb-4">
+        <Card className="w-full max-w-xl overflow-hidden rounded-[26px] border-[3px] border-foreground shadow-lg">
+                    <CardHeader className="space-y-2 pb-4 pt-7 text-center">
             <p className="text-xs font-medium uppercase tracking-[0.25em] text-muted-foreground">Atlas</p>
-            <CardTitle className="text-xl font-semibold">Create an Account</CardTitle>
+            <CardTitle className="text-xl font-semibold text-foreground">Create an Account</CardTitle>
             <CardDescription className="text-xs text-muted-foreground">
               Register a new student account.
             </CardDescription>
@@ -295,47 +340,144 @@ const Register = () => {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label htmlFor="fullName">Own Full Name</Label>
-                  <Input id="fullName" name="fullName" required placeholder="Your full name" />
-                  <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full name.</p>
+                  <div className="relative">
+                    <Input
+                      id="fullName"
+                      name="fullName"
+                      required
+                      placeholder="Your full name"
+                      value={fields.fullName}
+                      onChange={(e) => updateField("fullName", e.target.value)}
+                      className={fieldValidity.fullName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.fullName && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                  {!fieldValidity.fullName && (
+                    <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full name.</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" name="phone" required placeholder="01XXXXXXXXX" />
+                  <div className="relative">
+                    <Input
+                      id="phone"
+                      name="phone"
+                      required
+                      placeholder="01XXXXXXXXX"
+                      value={fields.phone}
+                      onChange={(e) => updateField("phone", e.target.value)}
+                      disabled={!isFieldUnlocked("phone")}
+                      className={fieldValidity.phone ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.phone && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="gender">Gender <span className="text-red-500">*</span></Label>
-                  <Select value={gender} onValueChange={setGender}>
-                    <SelectTrigger id="gender">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <div className="relative">
+                    <Select value={gender} onValueChange={setGender} disabled={!isFieldUnlocked("gender")}>
+                      <SelectTrigger id="gender" className={fieldValidity.gender ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {fieldValidity.gender && (
+                      <CheckCircle2 className="absolute right-8 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500 pointer-events-none" />
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address <span className="text-red-500">*</span></Label>
-                  <Input id="email" name="email" type="email" required placeholder="user@example.com" />
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="user@example.com"
+                      value={fields.email}
+                      onChange={(e) => updateField("email", e.target.value)}
+                      disabled={!isFieldUnlocked("email")}
+                      className={fieldValidity.email ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.email && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="fatherName">Father's Full Name</Label>
-                  <Input id="fatherName" name="fatherName" required placeholder="Father's full name" />
-                  <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide father's full name.</p>
+                  <div className="relative">
+                    <Input
+                      id="fatherName"
+                      name="fatherName"
+                      required
+                      placeholder="Father's full name"
+                      value={fields.fatherName}
+                      onChange={(e) => updateField("fatherName", e.target.value)}
+                      disabled={!isFieldUnlocked("fatherName")}
+                      className={fieldValidity.fatherName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.fatherName && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                  {!fieldValidity.fatherName && isFieldUnlocked("fatherName") && (
+                    <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide father's full name.</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="motherName">Mother's Full Name</Label>
-                  <Input id="motherName" name="motherName" required placeholder="Mother's full name" />
-                  <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide mother's full name.</p>
+                  <div className="relative">
+                    <Input
+                      id="motherName"
+                      name="motherName"
+                      required
+                      placeholder="Mother's full name"
+                      value={fields.motherName}
+                      onChange={(e) => updateField("motherName", e.target.value)}
+                      disabled={!isFieldUnlocked("motherName")}
+                      className={fieldValidity.motherName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.motherName && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                  {!fieldValidity.motherName && isFieldUnlocked("motherName") && (
+                    <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide mother's full name.</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="collegeName">Full College Name</Label>
-                  <Input id="collegeName" name="collegeName" required placeholder="Your full college name" />
-                  <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full college name.</p>
+                  <div className="relative">
+                    <Input
+                      id="collegeName"
+                      name="collegeName"
+                      required
+                      placeholder="Your full college name"
+                      value={fields.collegeName}
+                      onChange={(e) => updateField("collegeName", e.target.value)}
+                      disabled={!isFieldUnlocked("collegeName")}
+                      className={fieldValidity.collegeName ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.collegeName && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                  {!fieldValidity.collegeName && isFieldUnlocked("collegeName") && (
+                    <p className="text-[11px] text-orange-600/90 dark:text-orange-400">Please provide your full college name.</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="hscBatch">HSC Batch</Label>
@@ -356,7 +498,25 @@ const Register = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="sscGpa">SSC GPA (Out of 5)</Label>
-                  <Input id="sscGpa" name="sscGpa" type="number" step="0.01" max="5.00" min="1.00" required placeholder="5.00" />
+                  <div className="relative">
+                    <Input
+                      id="sscGpa"
+                      name="sscGpa"
+                      type="number"
+                      step="0.01"
+                      max="5.00"
+                      min="1.00"
+                      required
+                      placeholder="5.00"
+                      value={fields.sscGpa}
+                      onChange={(e) => updateField("sscGpa", e.target.value)}
+                      disabled={!isFieldUnlocked("sscGpa")}
+                      className={fieldValidity.sscGpa ? "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10 pr-9 border-green-500 focus-visible:ring-green-500" : "h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"}
+                    />
+                    {fieldValidity.sscGpa && (
+                      <CheckCircle2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="hscGpa">HSC GPA (Optional)</Label>
@@ -370,6 +530,7 @@ const Register = () => {
                     placeholder="5.00"
                     value={hscGpa}
                     onChange={(e) => setHscGpa(e.target.value)}
+                    className="h-11 rounded-xl border-input text-[15px] shadow-sm transition-all placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                   />
                   <p className="text-[11px] text-orange-600/90 dark:text-orange-400">If you have not given HSC exam yet, please fill 5.00</p>
                 </div>
@@ -405,7 +566,7 @@ const Register = () => {
                       name="password"
                       type={showPassword ? "text" : "password"}
                       required
-                      className="pr-10"
+                      className="login-caret h-11 rounded-xl border-input pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -431,7 +592,7 @@ const Register = () => {
                       name="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
                       required
-                      className="pr-10"
+                      className="login-caret h-11 rounded-xl border-input pr-10 text-[15px] tracking-wide shadow-sm transition-all focus-visible:border-primary focus-visible:ring-primary/20 dark:border-white/10"
                     />
                     <Button
                       type="button"
@@ -451,13 +612,15 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/50 dark:bg-yellow-900/20">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                  <div className="text-sm text-yellow-800 dark:text-yellow-400 space-y-1">
-                    <p className="font-bold mb-1 text-base">সতর্কবার্তা!</p>
-                    <p>আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
-                    <p className="font-semibold text-red-600 dark:text-red-400">অবশ্যই নিজের সচল ইমেইল দিবেন।</p>
+              <div className="overflow-hidden rounded-2xl border border-amber-200/70 bg-gradient-to-br from-amber-50 via-orange-50/60 to-white shadow-[0_8px_25px_rgba(245,158,11,0.1)] dark:border-amber-500/20 dark:from-amber-950/30 dark:via-amber-900/10 dark:to-transparent">
+                <div className="flex items-start gap-3 p-4">
+                  <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 shadow-[0_6px_16px_rgba(245,158,11,0.3)]">
+                    <AlertTriangle className="h-4.5 w-4.5 text-white" />
+                  </div>
+                  <div className="space-y-1 text-[13px] text-amber-900 dark:text-amber-200">
+                    <p className="mb-1 text-sm font-black tracking-tight">সতর্কবার্তা!</p>
+                    <p className="leading-relaxed text-amber-800/90 dark:text-amber-200/80">আপনার ফোন নম্বর এবং পাসওয়ার্ড মনে রাখুন এবং কোথাও লিখে রাখুন।</p>
+                    <p className="font-bold text-red-600 dark:text-red-400">অবশ্যই নিজের সচল ইমেইল দিবেন।</p>
                   </div>
                 </div>
               </div>
@@ -479,7 +642,11 @@ const Register = () => {
                 </Label>
               </div>
 
-              <Button type="submit" className="mt-4 w-full" disabled={loading || !captchaToken}>
+              <Button
+                type="submit"
+                className="mt-4 h-12 w-full rounded-xl bg-primary text-primary-foreground text-[15px] font-bold shadow-sm transition-transform hover:scale-[1.01]"
+                disabled={loading || !captchaToken}
+              >
                 {loading ? "Creating Account..." : "Register"}
               </Button>
             </form>
