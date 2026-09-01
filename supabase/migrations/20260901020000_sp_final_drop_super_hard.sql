@@ -14,6 +14,8 @@ ALTER TABLE public.sp_final_attempts DROP CONSTRAINT IF EXISTS sp_final_attempts
 ALTER TABLE public.sp_final_attempts
   ADD CONSTRAINT sp_final_attempts_mode_check CHECK (mode IN ('medical_standard', 'standard_hard'));
 
+DROP FUNCTION IF EXISTS public.get_sp_final_items(text);
+
 CREATE OR REPLACE FUNCTION public.get_sp_final_items(p_category text)
 RETURNS TABLE(
   id uuid, name text, sort_order integer,
