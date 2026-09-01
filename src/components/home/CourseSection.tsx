@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Tag, Users } from "lucide-react";
+import { Check, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 
@@ -75,25 +75,6 @@ export const CourseSection = () => {
             .order("created_at", { ascending: false });
           if (error) throw error;
           return data || [];
-        },
-        staleTime: 5 * 60 * 1000,
-    });
-
-    const { data: enrollmentCounts } = useQuery({
-        queryKey: ["course-enrollment-counts"],
-        queryFn: async () => {
-            const { data, error } = await supabase
-                .from("enrollments")
-                .select("course_id");
-            if (error) {
-                console.error("Error fetching enrollment counts:", error);
-                return {} as Record<string, number>;
-            }
-            const counts: Record<string, number> = {};
-            (data || []).forEach((row: any) => {
-                counts[row.course_id] = (counts[row.course_id] || 0) + 1;
-            });
-            return counts;
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -334,7 +315,7 @@ export const CourseSection = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {isLoading ? (
                     <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
                 ) : !filteredCourses || filteredCourses.length === 0 ? (
@@ -344,8 +325,13 @@ export const CourseSection = () => {
                 ) : (
                     filteredCourses.map((course: any) => {
                         const image = course.image_url || "/placeholder.svg";
+                        const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
-                        const enrollCount = enrollmentCounts?.[course.id] || 0;
+
+                        // Handle array or string display
+                        const categoryBadges = Array.isArray(course.category)
+                            ? course.category
+                            : (course.category ? [course.category] : []);
 
                         return (
                             <article
@@ -357,68 +343,69 @@ export const CourseSection = () => {
                                     animation: "phStrongBorderMove 5s linear infinite",
                                 }}
                             >
-                                <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[22px] bg-white shadow-[inset_0_0_0_1px_rgba(20,20,20,0.1)] dark:bg-slate-900">
-                                    {/* Thumbnail */}
-                                    <div className="relative w-full overflow-hidden bg-[#f1f2f4]" style={{ aspectRatio: "16/9" }}>
-                                        <img
-                                            src={image}
-                                            alt={course.name}
-                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.045]"
-                                        />
-                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[0.02] via-transparent to-black/[0.12]" />
-                                        {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
-                                            <div className="absolute top-0 left-0 z-20 h-24 w-24 overflow-hidden">
-                                                <div className="absolute top-4 -left-7 flex w-32 rotate-[-45deg] animate-pulse items-center justify-center gap-1 truncate border-y border-red-400 bg-red-600 py-1 text-center text-[10px] font-bold text-white shadow-lg">
-                                                    <Tag className="h-3 w-3 fill-white" /> SALE
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Body */}
-                                    <div className="flex flex-1 flex-col px-5 pb-[19px] pt-6">
-                                        <h3 className="mb-[15px] min-h-[57px] text-[19px] font-extrabold leading-[1.5] tracking-[-0.15px] text-[#171b1c] line-clamp-2 dark:text-white text-center">
-                                            {course.name}
-                                        </h3>
-
-                                        {/* Enrollment meta */}
-                                        <div className="mb-[17px] flex w-full items-center">
-                                            <div className="inline-flex items-center gap-2.5 rounded-[13px] border border-[#e8dce1] bg-gradient-to-br from-[#fff8fa] to-white py-[7px] pl-[7px] pr-[15px] shadow-[0_4px_14px_rgba(0,0,0,0.055)] transition-transform hover:-translate-y-0.5 dark:border-white/10 dark:from-slate-800 dark:to-slate-800">
-                                                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] border border-[#ffd0df] bg-[#fff0f5] shadow-[0_3px_10px_rgba(237,59,112,0.08)]">
-                                                    <Users className="h-[18px] w-[18px] text-[#ed347d]" />
-                                                </span>
-                                                <span className="flex items-baseline gap-1.5 whitespace-nowrap">
-                                                    <span className="text-[18px] font-black leading-none text-[#e92f68]">{enrollCount.toLocaleString("en-BD")}</span>
-                                                    <span className="text-[13px] font-bold text-[#45484d] dark:text-slate-300">জন ভর্তি</span>
-                                                </span>
+                            <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
+                                {/* Course Image */}
+                                <div className="w-full aspect-video relative">
+                                    <img
+                                        src={image}
+                                        alt={`${course.name} cover`}
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                    {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
+                                        <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
+                                            <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 text-center truncate rotate-[-45deg] flex items-center justify-center gap-1 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] border-y border-red-400">
+                                                <Tag className="w-3 h-3 fill-white" /> SALE
                                             </div>
                                         </div>
+                                    )}
+                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                                        {categoryBadges.map((cat: string) => (
+                                            <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
+                                                {cat}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Content */}
+                                <div className="flex-1 p-5 flex flex-col justify-between gap-4">
+                                    <div>
+                                        <div className="flex justify-center items-start gap-2">
+                                             <h3 className="text-xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
+                                        </div>
 
-                                        {/* Divider */}
-                                        <div className="mb-[17px] h-px w-full bg-gradient-to-r from-[#eee] via-[#f5dbe4] to-[#eee]" />
+                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
+                                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> প্রিমিয়াম গাইডলাইন</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লিডারবোর্ড</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ইউনিক কন্টেন্ট</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ওয়ান টু ওয়ান মেন্টরিং</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> র‍্যাপিড ফায়ার</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
+                                        </div>
+                                    </div>
 
-                                        {/* Price + Button */}
-                                        <div className="mt-auto flex w-full items-center justify-between gap-3.5">
-                                            <div className="flex min-w-0 flex-col gap-[3px]">
-                                                <p className="m-0 text-[11px] font-semibold text-[#858a91]">কোর্স ফি</p>
-                                                {course.original_price != null && Number(course.original_price) > Number(course.price) && (
-                                                    <del className="text-[13px] font-semibold leading-none text-[#a5a8ad]">৳{Number(course.original_price).toLocaleString("en-BD")}</del>
-                                                )}
-                                                <p className="m-0 text-[26px] font-black leading-[1.15] tracking-[-0.4px] text-[#ed3068]">
-                                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
-                                                </p>
+                                    <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
+                                        <div className="flex flex-col items-start">
+                                            {course.original_price != null && Number(course.original_price) > Number(course.price) && (
+                                                <span className="text-[10px] text-muted-foreground line-through">
+                                                    ৳{Number(course.original_price).toLocaleString("en-BD")}
+                                                </span>
+                                            )}
+                                            <div className="text-base font-bold text-primary">
+                                                {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                             </div>
-                                            <a
-                                                href={`/courses/${idOrSlug}`}
-                                                className="group/btn relative flex min-w-[125px] flex-shrink-0 items-center justify-center gap-2 overflow-hidden rounded-[13px] bg-gradient-to-br from-[#ff6872] to-[#ed3c7c] px-[17px] py-[13px] text-[13px] font-extrabold text-white shadow-[0_8px_20px_rgba(237,60,124,0.22)] transition-all hover:-translate-y-[3px] hover:shadow-[0_12px_28px_rgba(237,60,124,0.32)]"
-                                            >
-                                                <span className="absolute -left-[120%] top-0 h-full w-4/5 -skew-x-[20deg] bg-gradient-to-r from-transparent via-white/35 to-transparent transition-all duration-500 group-hover/btn:left-[140%]" />
-                                                <span className="relative z-[1]">বিস্তারিত</span>
-                                                <span className="relative z-[1] text-base font-black transition-transform group-hover/btn:translate-x-1">→</span>
-                                            </a>
+                                        </div>
+                                        <div className="flex gap-2 w-full">
+                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
+                                                <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
+                                            </Button>
+                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
+                                                <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
+                            </Card>
                             </article>
                         );
                     })
