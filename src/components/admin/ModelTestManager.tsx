@@ -11,9 +11,13 @@ import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import type { QuestionData } from "@/types/exam";
 import { Plus, Trash2, Upload } from "lucide-react";
 
-type MtMode = "standard" | "standard_hard";
-const MODE_LABELS: Record<MtMode, string> = { standard: "Standard", standard_hard: "Standard+Hard" };
-const MODES: MtMode[] = ["standard", "standard_hard"];
+type MtMode = string;
+
+interface ModelTestMode {
+  mode_key: string;
+  label: string;
+  sort_order: number;
+}
 
 // উদ্দীপক (context-based), চিত্র (image-based), and Roman-numeral (i./ii./iii.)
 // questions must never be pulled into Model Test sources -- only plain MCQs.
@@ -55,9 +59,24 @@ interface ModelTestSource {
  *  উদ্দীপক/চিত্র/Roman-numeral questions are filtered out automatically on
  *  import so only plain MCQs ever enter a Model Test pool. */
 export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
+  const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [mode, setMode] = useState<MtMode>("standard");
+  const [mode, setMode] = useState<MtMode | null>(null);
   const [managingSubject, setManagingSubject] = useState<ModelTestSubjectRow | null>(null);
+  const [addingMode, setAddingMode] = useState(false);
+  const [newModeLabel, setNewModeLabel] = useState("");
+
+  const { data: modes } = useQuery({
+    queryKey: ["model-test-modes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("model_test_modes").select("*").order("sort_order", { ascending: true });
+      if (error) throw error;
+      const rows = (data || []) as ModelTestMode[];
+      if (!mode && rows.length > 0) setMode(rows[0].mode_key);
+      return rows;
+    },
+    enabled: open,
+  });
 
   const { data: subjects, isLoading } = useQuery({
     queryKey: ["model-test-summary", mode],
@@ -66,8 +85,31 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
       if (error) throw error;
       return (data || []) as ModelTestSubjectRow[];
     },
-    enabled: open,
+    enabled: open && !!mode,
   });
+
+  const handleAddMode = async () => {
+    if (!newModeLabel.trim()) return;
+    const { error } = await supabase.rpc("add_model_test_mode", { p_key: newModeLabel, p_label: newModeLabel.trim() });
+    if (error) {
+      toast({ title: "মোড যোগ করা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewModeLabel("");
+    setAddingMode(false);
+    queryClient.invalidateQueries({ queryKey: ["model-test-modes"] });
+  };
+
+  const handleDeleteMode = async (modeKey: string, label: string) => {
+    if (!confirm(`"${label}" মোড মুছে ফেলবেন?`)) return;
+    const { error } = await supabase.rpc("delete_model_test_mode", { p_mode_key: modeKey });
+    if (error) {
+      toast({ title: "মোড মুছা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    if (mode === modeKey) setMode(null);
+    queryClient.invalidateQueries({ queryKey: ["model-test-modes"] });
+  };
 
   return (
     <>
@@ -80,18 +122,40 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
             ফিক্সড ৬টি সাবজেক্ট, মোট ১০০ MCQ। প্রতিটি মোডের নিজস্ব আলাদা সোর্স।
           </p>
 
-          <div className="flex gap-2">
-            {MODES.map((m) => (
-              <Button
-                key={m}
-                size="sm"
-                variant={mode === m ? "default" : "outline"}
-                className="flex-1"
-                onClick={() => setMode(m)}
-              >
-                {MODE_LABELS[m]}
-              </Button>
+          <div className="flex flex-wrap gap-2">
+            {modes?.map((m) => (
+              <div key={m.mode_key} className="flex items-center gap-0.5">
+                <Button
+                  size="sm"
+                  variant={mode === m.mode_key ? "default" : "outline"}
+                  onClick={() => setMode(m.mode_key)}
+                >
+                  {m.label}
+                </Button>
+                {(modes?.length || 0) > 1 && (
+                  <Button size="sm" variant="ghost" className="text-destructive px-1.5" onClick={() => handleDeleteMode(m.mode_key, m.label)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             ))}
+            {addingMode ? (
+              <div className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  className="h-8 rounded-md border px-2 text-sm w-32 bg-background"
+                  placeholder="মোডের নাম"
+                  value={newModeLabel}
+                  onChange={(e) => setNewModeLabel(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddMode(); if (e.key === "Escape") setAddingMode(false); }}
+                />
+                <Button size="sm" onClick={handleAddMode}>যোগ করুন</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={() => setAddingMode(true)}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> নতুন মোড
+              </Button>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -114,10 +178,11 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
         </DialogContent>
       </Dialog>
 
-      {managingSubject && (
+      {managingSubject && mode && (
         <ModelTestSourcesDialog
           subject={managingSubject}
           mode={mode}
+          modeLabel={modes?.find((m) => m.mode_key === mode)?.label || mode}
           onClose={() => {
             setManagingSubject(null);
             queryClient.invalidateQueries({ queryKey: ["model-test-summary", mode] });
@@ -135,10 +200,11 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
  *  Both the QuestionBankSelector pick and the CSV parse drop any
  *  উদ্দীপক/চিত্র/Roman-numeral question before it's stored. */
 const ModelTestSourcesDialog = ({
-  subject, mode, onClose,
+  subject, mode, modeLabel, onClose,
 }: {
   subject: ModelTestSubjectRow;
   mode: MtMode;
+  modeLabel: string;
   onClose: () => void;
 }) => {
   const { toast } = useToast();
@@ -304,7 +370,7 @@ const ModelTestSourcesDialog = ({
       <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{subject.name} — {MODE_LABELS[mode]} — সোর্স ম্যানেজ করুন</DialogTitle>
+            <DialogTitle>{subject.name} — {modeLabel} — সোর্স ম্যানেজ করুন</DialogTitle>
           </DialogHeader>
 
           <div className={`text-sm font-medium px-3 py-2 rounded-lg ${total >= subject.target_count ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}>

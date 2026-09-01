@@ -155,6 +155,15 @@ const Readymade = () => {
   const [spFinalManagerOpen, setSpFinalManagerOpen] = useState(false);
   const [modelTestManagerOpen, setModelTestManagerOpen] = useState(false);
   const [modelTestModePanelOpen, setModelTestModePanelOpen] = useState(false);
+  const { data: modelTestModes } = useQuery({
+    queryKey: ["model-test-modes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("model_test_modes").select("*").order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as { mode_key: string; label: string }[];
+    },
+    enabled: modelTestModePanelOpen,
+  });
   const [startingModelTest, setStartingModelTest] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
@@ -355,16 +364,16 @@ const Readymade = () => {
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-2">Difficulty মোড বেছে নিন</p>
           <div className="grid grid-cols-1 gap-3">
-            {(["standard", "standard_hard"] as const).map((m) => (
+            {modelTestModes?.map((m) => (
               <Button
-                key={m}
+                key={m.mode_key}
                 variant="outline"
                 disabled={startingModelTest}
                 className="h-auto py-3 justify-between"
                 onClick={async () => {
                   setStartingModelTest(true);
                   try {
-                    const { data: examId, error } = await supabase.rpc("create_model_test_exam", { p_mode: m });
+                    const { data: examId, error } = await supabase.rpc("create_model_test_exam", { p_mode: m.mode_key });
                     if (error) throw error;
                     setModelTestModePanelOpen(false);
                     navigate(`/dashboard/take-exam/${examId}`);
@@ -375,7 +384,7 @@ const Readymade = () => {
                   }
                 }}
               >
-                <span className="font-semibold">{m === "standard" ? "Standard" : "Standard+Hard"}</span>
+                <span className="font-semibold">{m.label}</span>
                 {startingModelTest && <Loader2 className="h-4 w-4 animate-spin" />}
               </Button>
             ))}
