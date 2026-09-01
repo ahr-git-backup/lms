@@ -316,12 +316,12 @@ const SyllabusTracker = () => {
   };
 
   const panelTitle =
-    panel === "syllabus" ? (openSubject ? openSubject.name : "Study Tracker") :
+    panel === "syllabus" ? (openSubject ? openSubject.name : "Syllabus Tracker") :
     panel === "routine" ? "Routine Maker" :
     panel === "progress" ? "Weak & Progress" :
     panel === "revision" ? "Revision Planner" :
     panel === "gpa" ? "GPA Calculator" :
-    "Study Tracker";
+    "Syllabus Tracker";
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">

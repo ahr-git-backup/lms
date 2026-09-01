@@ -55,7 +55,7 @@ export const studentItems: SidebarNavItem[] = [
   { title: "Readymade Exam", url: "/dashboard/readymade", icon: ListChecks, color: "text-blue-400" },
   { title: "Quick Practice", url: "/quick-practice", icon: Zap, color: "text-violet-500" },
   { title: "Unlimited Mock Test", url: "/mock-test", icon: Infinity, color: "text-fuchsia-600" },
-  { title: "Study Tracker", url: "/syllabus-tracker", icon: BarChart3, color: "text-sky-600" },
+  { title: "Syllabus Tracker", url: "/syllabus-tracker", icon: BarChart3, color: "text-sky-600" },
   { title: "Archive Class & Exam", url: "/dashboard/archive", icon: Archive, color: "text-gray-500" },
   { title: "Class & Exam History", url: "/dashboard/results", icon: ClipboardList, color: "text-teal-500" },
   { title: "My Progress & History", url: "/dashboard/my-progress", icon: BarChart3, color: "text-blue-600" },
@@ -91,7 +91,7 @@ export const adminItems: AdminSidebarNavItem[] = [
   { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
   { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
   { title: "Quick Practice", url: "/admin/quick-practice", icon: Zap, roles: ["admin", "teacher"], color: "text-violet-500" },
-  { title: "Study Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
+  { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
   { title: "Telegram Channels", url: "/admin/telegram-channels", icon: Send, roles: ["admin"], color: "text-blue-500" },
   { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
 ];
