@@ -378,7 +378,7 @@ const Readymade = () => {
             variant={selectedParentTopics.length === 0 ? "default" : "secondary"}
             size="sm"
             className="rounded-full shadow-sm text-[11px] sm:text-xs min-h-7 sm:min-h-8 h-auto px-2 py-1 hover:scale-105 transition-transform whitespace-normal break-words text-center leading-tight"
-            onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); setActiveTypePanel(null); }}
+            onClick={() => { setPage(0); setSelectedParentTopics([]); setSelectedBoards([]); }}
           >
             All
           </Button>
