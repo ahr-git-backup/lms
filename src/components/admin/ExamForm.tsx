@@ -940,41 +940,6 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 </DialogContent>
               </Dialog>
 
-              {form.exam_type === "live" && (
-                <div className="space-y-2 border rounded-md p-3">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="telegram_notify_enabled">Telegram Notify (on exam start)</Label>
-                    <Switch
-                      id="telegram_notify_enabled"
-                      checked={!!form.telegram_notify_enabled}
-                      onCheckedChange={(checked) =>
-                        setForm((prev) => ({ ...prev, telegram_notify_enabled: checked }))
-                      }
-                    />
-                  </div>
-                  {form.telegram_notify_enabled && (
-                    <div className="space-y-1">
-                      <Label htmlFor="telegram_message">Telegram Message</Label>
-                      <Textarea
-                        id="telegram_message"
-                        placeholder="Exam live message likhun..."
-                        value={form.telegram_message}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, telegram_message: e.target.value }))
-                        }
-                      />
-                      <Label>Send to Channel(s)</Label>
-                      <MultiSelect
-                        options={telegramChannels?.map((c: any) => ({ label: c.name, value: c.id })) || []}
-                        selected={form.telegram_channel_ids}
-                        onChange={(vals) => setForm((prev) => ({ ...prev, telegram_channel_ids: vals }))}
-                        placeholder="Select channel(s)..."
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
