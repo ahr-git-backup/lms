@@ -10,26 +10,18 @@ import { ArrowLeft, BookOpen, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard" | "varsity_standard";
+type SpMode = string;
 
-const MODE_LABELS: Record<SpMode, string> = {
-  medical_standard: "Medical Standard",
-  standard_hard: "Standard+Hard",
-  varsity_standard: "Varsity Standard",
-};
-// Which modes are offered depends on which admission track the student came
-// from (Medical: Standard + Standard+Hard, Varsity: Standard only).
-const MODES_BY_TRACK: Record<"medical" | "varsity", SpMode[]> = {
-  medical: ["medical_standard", "standard_hard"],
-  varsity: ["varsity_standard"],
-};
+interface SpModeRow {
+  mode_key: string;
+  label: string;
+  sort_order: number;
+}
 
 interface SpItem {
   id: string;
   name: string;
-  medical_standard_configured: number;
-  standard_hard_configured: number;
-  varsity_standard_configured: number;
+  mode_counts: Record<string, number>;
 }
 
 /** Student-facing Subject Final / Paper Final browser: pick the category tab,
@@ -37,16 +29,29 @@ interface SpItem {
  *  which difficulty mode to take -- each fully-configured (>=100 MCQ) mode is
  *  tappable and materializes a real `exams` row via create_sp_final_exam (RPC),
  *  then redirects into the main TakeExam.tsx player -- same timer, negative
- *  marking, attempts and leaderboard as every other readymade exam. */
+ *  marking, attempts and leaderboard as every other readymade exam.
+ *  Modes are admin-managed (sp_final_modes); the Varsity track always shows
+ *  only "varsity_standard", the Medical track shows every other mode, so any
+ *  new mode admin adds automatically appears for Medical students. */
 const SubjectPaperFinal = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const track = (searchParams.get("track") === "varsity" ? "varsity" : "medical") as "medical" | "varsity";
-  const MODES = MODES_BY_TRACK[track];
   const [category, setCategory] = useState<SpCategory>("subject_final");
   const [selectedItem, setSelectedItem] = useState<SpItem | null>(null);
   const [startingMode, setStartingMode] = useState<SpMode | null>(null);
+
+  const { data: allModes } = useQuery({
+    queryKey: ["sp-final-modes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sp_final_modes").select("*").order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as SpModeRow[];
+    },
+  });
+
+  const MODES = (allModes || []).filter((m) => (track === "varsity" ? m.mode_key === "varsity_standard" : m.mode_key !== "varsity_standard"));
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["sp-final-items", category],
@@ -108,7 +113,7 @@ const SubjectPaperFinal = () => {
           </p>
         )}
         {items?.map((item) => {
-          const anyReady = MODES.some((m) => (item[`${m}_configured` as keyof SpItem] as number) >= 100);
+          const anyReady = MODES.some((m) => (item.mode_counts?.[m.mode_key] || 0) >= 100);
           return (
             <Card
               key={item.id}
@@ -116,7 +121,7 @@ const SubjectPaperFinal = () => {
               onClick={() => {
                 if (!anyReady || startingMode) return;
                 // Varsity only has one mode -- skip the mode-select popup entirely.
-                if (MODES.length === 1) { startExam(item, MODES[0]); return; }
+                if (MODES.length === 1) { startExam(item, MODES[0].mode_key); return; }
                 setSelectedItem(item);
               }}
             >
@@ -139,9 +144,9 @@ const SubjectPaperFinal = () => {
           </DialogHeader>
           <p className="text-sm text-muted-foreground -mt-2">Difficulty মোড বেছে নিন</p>
           <div className="grid grid-cols-1 gap-3">
-            {selectedItem && MODES.map((mode) => {
-              const key = `${mode}_configured` as keyof SpItem;
-              const count = selectedItem[key] as number;
+            {selectedItem && MODES.map((m) => {
+              const mode = m.mode_key;
+              const count = selectedItem.mode_counts?.[mode] || 0;
               const ready = count >= 100;
               return (
                 <Card
@@ -151,7 +156,7 @@ const SubjectPaperFinal = () => {
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
-                      <p className="font-semibold">{MODE_LABELS[mode]}</p>
+                      <p className="font-semibold">{m.label}</p>
                       <p className="text-xs text-muted-foreground">{count}/100 MCQ {ready ? "প্রস্তুত" : "প্রস্তুত হচ্ছে"}</p>
                     </div>
                     {startingMode === mode ? (

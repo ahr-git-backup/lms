@@ -16,14 +16,14 @@ import type { QuestionData } from "@/types/exam";
 import { Plus, Trash2, Upload, X, Pencil, Check } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard" | "varsity_standard";
+type SpMode = string;
 
-const MODE_LABELS: Record<SpMode, string> = {
-  medical_standard: "Medical Standard",
-  standard_hard: "Standard+Hard",
-  varsity_standard: "Varsity Standard",
-};
-const MODES: SpMode[] = ["medical_standard", "standard_hard", "varsity_standard"];
+interface SpModeRow {
+  mode_key: string;
+  label: string;
+  sort_order: number;
+}
+
 const TOTAL_TARGET = 100;
 
 // উদ্দীপক (context-based), চিত্র (image-based), and Roman-numeral (i./ii./iii.)
@@ -41,9 +41,7 @@ interface SpItem {
   id: string;
   name: string;
   sort_order: number;
-  medical_standard_configured: number;
-  standard_hard_configured: number;
-  varsity_standard_configured: number;
+  mode_counts: Record<string, number>;
 }
 
 interface SpSource {
@@ -69,9 +67,23 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
   const [category, setCategory] = useState<SpCategory>("subject_final");
   const [newItemName, setNewItemName] = useState("");
   const [managingItem, setManagingItem] = useState<SpItem | null>(null);
-  const [managingMode, setManagingMode] = useState<SpMode>("medical_standard");
+  const [managingMode, setManagingMode] = useState<SpMode | null>(null);
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [addingMode, setAddingMode] = useState(false);
+  const [newModeLabel, setNewModeLabel] = useState("");
+  const [editingModeKey, setEditingModeKey] = useState<string | null>(null);
+  const [editModeLabel, setEditModeLabel] = useState("");
+
+  const { data: modes } = useQuery({
+    queryKey: ["sp-final-modes"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("sp_final_modes").select("*").order("sort_order", { ascending: true });
+      if (error) throw error;
+      return (data || []) as SpModeRow[];
+    },
+    enabled: open,
+  });
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["sp-final-items", category],
@@ -82,6 +94,39 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
     },
     enabled: open,
   });
+
+  const handleAddMode = async () => {
+    if (!newModeLabel.trim()) return;
+    const { error } = await supabase.rpc("add_sp_final_mode", { p_key: newModeLabel, p_label: newModeLabel.trim() });
+    if (error) {
+      toast({ title: "মোড যোগ করা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewModeLabel("");
+    setAddingMode(false);
+    queryClient.invalidateQueries({ queryKey: ["sp-final-modes"] });
+  };
+
+  const handleRenameMode = async () => {
+    if (!editingModeKey || !editModeLabel.trim()) return;
+    const { error } = await supabase.rpc("rename_sp_final_mode", { p_mode_key: editingModeKey, p_new_label: editModeLabel.trim() });
+    if (error) {
+      toast({ title: "নাম পরিবর্তন করা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    setEditingModeKey(null);
+    queryClient.invalidateQueries({ queryKey: ["sp-final-modes"] });
+  };
+
+  const handleDeleteMode = async (modeKey: string, label: string) => {
+    if (!confirm(`"${label}" মোড মুছে ফেলবেন?`)) return;
+    const { error } = await supabase.rpc("delete_sp_final_mode", { p_mode_key: modeKey });
+    if (error) {
+      toast({ title: "মোড মুছা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["sp-final-modes"] });
+  };
 
   const handleAddItem = async () => {
     const name = newItemName.trim();
@@ -171,7 +216,7 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
               <Card
                 key={item.id}
                 className={editingItemId === item.id ? "" : "cursor-pointer hover:border-primary/40"}
-                onClick={() => { if (editingItemId !== item.id) { setManagingItem(item); setManagingMode("medical_standard"); } }}
+                onClick={() => { if (editingItemId !== item.id) { setManagingItem(item); setManagingMode(modes?.[0]?.mode_key || null); } }}
               >
                 <CardContent className="p-3 flex items-center justify-between gap-2">
                   {editingItemId === item.id ? (
@@ -195,12 +240,11 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate">{item.name}</p>
                         <div className="flex gap-1 mt-1 flex-wrap">
-                          {MODES.map((m) => {
-                            const key = `${m}_configured` as keyof SpItem;
-                            const count = item[key] as number;
+                          {modes?.map((m) => {
+                            const count = item.mode_counts?.[m.mode_key] || 0;
                             return (
-                              <Badge key={m} variant={count >= TOTAL_TARGET ? "default" : "outline"} className="text-[10px]">
-                                {MODE_LABELS[m]}: {count}/{TOTAL_TARGET}
+                              <Badge key={m.mode_key} variant={count >= TOTAL_TARGET ? "default" : "outline"} className="text-[10px]">
+                                {m.label}: {count}/{TOTAL_TARGET}
                               </Badge>
                             );
                           })}
@@ -232,11 +276,23 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
         </DialogContent>
       </Dialog>
 
-      {managingItem && (
+      {managingItem && managingMode && (
         <SpFinalItemSourcesDialog
           item={managingItem}
           mode={managingMode}
           setMode={setManagingMode}
+          modes={modes || []}
+          addingMode={addingMode}
+          setAddingMode={setAddingMode}
+          newModeLabel={newModeLabel}
+          setNewModeLabel={setNewModeLabel}
+          onAddMode={handleAddMode}
+          editingModeKey={editingModeKey}
+          setEditingModeKey={setEditingModeKey}
+          editModeLabel={editModeLabel}
+          setEditModeLabel={setEditModeLabel}
+          onRenameMode={handleRenameMode}
+          onDeleteMode={handleDeleteMode}
           onClose={() => {
             setManagingItem(null);
             queryClient.invalidateQueries({ queryKey: ["sp-final-items", category] });
@@ -250,11 +306,24 @@ export const SpFinalManager = ({ open, onOpenChange }: { open: boolean; onOpenCh
 /** Per (item, mode) source list: add an existing-bank filter or upload a CSV,
  *  each with a target question_count. Shows a running total against 100. */
 const SpFinalItemSourcesDialog = ({
-  item, mode, setMode, onClose,
+  item, mode, setMode, modes, addingMode, setAddingMode, newModeLabel, setNewModeLabel, onAddMode,
+  editingModeKey, setEditingModeKey, editModeLabel, setEditModeLabel, onRenameMode, onDeleteMode, onClose,
 }: {
   item: SpItem;
   mode: SpMode;
   setMode: (m: SpMode) => void;
+  modes: SpModeRow[];
+  addingMode: boolean;
+  setAddingMode: (b: boolean) => void;
+  newModeLabel: string;
+  setNewModeLabel: (s: string) => void;
+  onAddMode: () => void;
+  editingModeKey: string | null;
+  setEditingModeKey: (k: string | null) => void;
+  editModeLabel: string;
+  setEditModeLabel: (s: string) => void;
+  onRenameMode: () => void;
+  onDeleteMode: (key: string, label: string) => void;
   onClose: () => void;
 }) => {
   const { toast } = useToast();
@@ -429,18 +498,57 @@ const SpFinalItemSourcesDialog = ({
           <DialogTitle>{item.name} — সোর্স ম্যানেজ করুন</DialogTitle>
         </DialogHeader>
 
-        <div className="flex gap-1.5">
-          {MODES.map((m) => (
-            <Button
-              key={m}
-              size="sm"
-              variant={mode === m ? "default" : "outline"}
-              className="flex-1 text-[11px] h-8 px-1"
-              onClick={() => setMode(m)}
-            >
-              {MODE_LABELS[m]}
+        <div className="flex flex-wrap gap-1.5">
+          {modes.map((m) =>
+            editingModeKey === m.mode_key ? (
+              <div key={m.mode_key} className="flex items-center gap-1">
+                <input
+                  autoFocus
+                  className="h-8 rounded-md border px-2 text-xs w-28 bg-background"
+                  value={editModeLabel}
+                  onChange={(e) => setEditModeLabel(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") onRenameMode(); if (e.key === "Escape") setEditingModeKey(null); }}
+                />
+                <Button size="sm" className="h-8 px-2 text-[11px]" onClick={onRenameMode}>সেভ</Button>
+              </div>
+            ) : (
+              <div key={m.mode_key} className="flex items-center gap-0.5">
+                <Button
+                  size="sm"
+                  variant={mode === m.mode_key ? "default" : "outline"}
+                  className="text-[11px] h-8 px-2"
+                  onClick={() => setMode(m.mode_key)}
+                >
+                  {m.label}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-8 px-1" onClick={() => { setEditingModeKey(m.mode_key); setEditModeLabel(m.label); }}>
+                  <Pencil className="h-3 w-3" />
+                </Button>
+                {modes.length > 1 && (
+                  <Button size="sm" variant="ghost" className="h-8 px-1 text-destructive" onClick={() => onDeleteMode(m.mode_key, m.label)}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            )
+          )}
+          {addingMode ? (
+            <div className="flex items-center gap-1">
+              <input
+                autoFocus
+                className="h-8 rounded-md border px-2 text-xs w-28 bg-background"
+                placeholder="মোডের নাম"
+                value={newModeLabel}
+                onChange={(e) => setNewModeLabel(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") onAddMode(); if (e.key === "Escape") setAddingMode(false); }}
+              />
+              <Button size="sm" className="h-8 px-2 text-[11px]" onClick={onAddMode}>যোগ করুন</Button>
+            </div>
+          ) : (
+            <Button size="sm" variant="outline" className="h-8 px-2 text-[11px]" onClick={() => setAddingMode(true)}>
+              <Plus className="h-3 w-3 mr-1" /> নতুন মোড
             </Button>
-          ))}
+          )}
         </div>
 
         <div className={`text-sm font-medium px-3 py-2 rounded-lg ${total >= TOTAL_TARGET ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}>
