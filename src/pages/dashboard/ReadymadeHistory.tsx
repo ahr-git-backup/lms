@@ -25,6 +25,22 @@ const formatDateTime = (iso: string | null) => {
   return `${d.toLocaleDateString()} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 };
 
+/** CustomExamBuilder bakes source exam names into the title as
+ *  "Custom Exam — Source1, Source2". Split that so the source list can
+ *  render in a smaller font than the main title. */
+const renderCustomExamTitle = (title: string) => {
+  const idx = title.indexOf(" — ");
+  if (idx === -1) return <>{title}</>;
+  const main = title.slice(0, idx);
+  const sources = title.slice(idx + 3);
+  return (
+    <>
+      {main}
+      <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">{sources}</span>
+    </>
+  );
+};
+
 /** Standalone history page reachable from the Readymade page header's "Your
  *  History" button. Three tabs, one per exam-creation flow that doesn't
  *  already have its own history surface: Custom Exam (student-built via
@@ -127,7 +143,7 @@ const ReadymadeHistory = () => {
             return (
               <Card key={attempt.id} className="border rounded-2xl shadow-sm hover:shadow-md transition-all">
                 <CardHeader className="space-y-0.5 p-3 pb-2">
-                  <CardTitle className="text-sm leading-tight">{attempt.exam.title}</CardTitle>
+                  <CardTitle className="text-sm leading-tight">{renderCustomExamTitle(attempt.exam.title)}</CardTitle>
                   <CardDescription className="text-[11px] leading-snug">
                     <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
                     <div className="text-muted-foreground">{formatDateTime(attempt.submitted_at)}</div>

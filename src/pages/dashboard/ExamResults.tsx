@@ -13,6 +13,22 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
+/** CustomExamBuilder bakes source exam names into the title as
+ *  "Custom Exam — Source1, Source2". Split that so the source list can
+ *  render in a smaller font than the main title. */
+const renderCustomExamTitle = (title: string) => {
+  const idx = title.indexOf(" — ");
+  if (idx === -1) return <>{title}</>;
+  const main = title.slice(0, idx);
+  const sources = title.slice(idx + 3);
+  return (
+    <>
+      {main}
+      <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">{sources}</span>
+    </>
+  );
+};
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLive: boolean, navigate: any, profile: any }) => {
     let gpaScore = 0;
@@ -133,7 +149,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     </Button>
                 </div>
             </div>
-            <CardTitle className="text-sm leading-tight">{attempt.exam.title}</CardTitle>
+            <CardTitle className="text-sm leading-tight">{renderCustomExamTitle(attempt.exam.title)}</CardTitle>
             <CardDescription className="text-[11px] leading-snug">
                 <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
                 {gpaScore > 0 && <div>With GPA: <span className="font-bold text-primary">{totalScoreWithGpa.toFixed(2)}</span></div>}

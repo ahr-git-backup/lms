@@ -418,10 +418,22 @@ const CustomExamBuilder = () => {
     if (pickedList.length === 0) return;
     setCreating(true);
     try {
+      // Bake the source exam names into the title itself (comma-separated,
+      // de-duplicated, capped so it doesn't run away) -- shown in small font
+      // wherever this exam's title is rendered (exam card, history, take-exam
+      // header), same as any other exam title.
+      const uniqueTitles = Array.from(new Set(pickedList.map((e) => e.title)));
+      const MAX_TITLE_LEN = 150;
+      let sourcesPart = uniqueTitles.join(", ");
+      if (sourcesPart.length > MAX_TITLE_LEN) {
+        sourcesPart = sourcesPart.slice(0, MAX_TITLE_LEN - 1) + "…";
+      }
+      const title = `Custom Exam — ${sourcesPart}`;
+
       const { data, error } = await supabase.rpc("create_custom_exam", {
         p_exam_ids: pickedList.map((e) => e.id),
         p_counts: pickedList.map((e) => e.count),
-        p_title: `Custom Exam (${pickedList.length} sources)`,
+        p_title: title,
       });
       if (error) throw error;
       toast({ title: "কাস্টম এক্সাম তৈরি হয়েছে!" });
