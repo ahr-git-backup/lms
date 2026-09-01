@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ArrowLeft, BookOpen, FileText } from "lucide-react";
+import { ArrowLeft, BookOpen, FileText, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type SpCategory = "subject_final" | "paper_final";
 type SpMode = "medical_standard" | "standard_hard" | "varsity_standard";
@@ -34,15 +35,18 @@ interface SpItem {
 /** Student-facing Subject Final / Paper Final browser: pick the category tab,
  *  tap an item (subject or paper name admin added) to open a popup asking
  *  which difficulty mode to take -- each fully-configured (>=100 MCQ) mode is
- *  tappable and starts a freshly-assembled random exam via
- *  get_sp_final_exam_questions. */
+ *  tappable and materializes a real `exams` row via create_sp_final_exam (RPC),
+ *  then redirects into the main TakeExam.tsx player -- same timer, negative
+ *  marking, attempts and leaderboard as every other readymade exam. */
 const SubjectPaperFinal = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const track = (searchParams.get("track") === "varsity" ? "varsity" : "medical") as "medical" | "varsity";
   const MODES = MODES_BY_TRACK[track];
   const [category, setCategory] = useState<SpCategory>("subject_final");
   const [selectedItem, setSelectedItem] = useState<SpItem | null>(null);
+  const [startingMode, setStartingMode] = useState<SpMode | null>(null);
 
   const { data: items, isLoading } = useQuery({
     queryKey: ["sp-final-items", category],
@@ -53,8 +57,20 @@ const SubjectPaperFinal = () => {
     },
   });
 
-  const startExam = (item: SpItem, mode: SpMode) => {
-    navigate(`/dashboard/readymade/subject-paper-final/take?item=${item.id}&category=${category}&mode=${mode}&name=${encodeURIComponent(item.name)}`);
+  const startExam = async (item: SpItem, mode: SpMode) => {
+    setStartingMode(mode);
+    try {
+      const { data: examId, error } = await supabase.rpc("create_sp_final_exam", {
+        p_item_id: item.id,
+        p_mode: mode,
+      });
+      if (error) throw error;
+      navigate(`/dashboard/take-exam/${examId}`);
+    } catch (err: any) {
+      toast({ title: "শুরু করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
+    } finally {
+      setStartingMode(null);
+    }
   };
 
   return (
@@ -98,14 +114,17 @@ const SubjectPaperFinal = () => {
               key={item.id}
               className={`transition-all ${anyReady ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
               onClick={() => {
-                if (!anyReady) return;
+                if (!anyReady || startingMode) return;
                 // Varsity only has one mode -- skip the mode-select popup entirely.
                 if (MODES.length === 1) { startExam(item, MODES[0]); return; }
                 setSelectedItem(item);
               }}
             >
               <CardContent className="p-3 text-center">
-                <p className="font-bold text-primary">{item.name}</p>
+                <p className="font-bold text-primary flex items-center justify-center gap-1.5">
+                  {item.name}
+                  {startingMode && MODES.length === 1 && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                </p>
                 {!anyReady && <p className="text-[10px] text-muted-foreground mt-1">প্রস্তুত হচ্ছে</p>}
               </CardContent>
             </Card>
@@ -113,7 +132,7 @@ const SubjectPaperFinal = () => {
         })}
       </div>
 
-      <Dialog open={!!selectedItem} onOpenChange={(o) => { if (!o) setSelectedItem(null); }}>
+      <Dialog open={!!selectedItem} onOpenChange={(o) => { if (!o && !startingMode) setSelectedItem(null); }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>{selectedItem?.name}</DialogTitle>
@@ -127,15 +146,19 @@ const SubjectPaperFinal = () => {
               return (
                 <Card
                   key={mode}
-                  className={`transition-all ${ready ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
-                  onClick={() => ready && startExam(selectedItem, mode)}
+                  className={`transition-all ${ready && !startingMode ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
+                  onClick={() => ready && !startingMode && startExam(selectedItem, mode)}
                 >
                   <CardContent className="p-4 flex items-center justify-between">
                     <div>
                       <p className="font-semibold">{MODE_LABELS[mode]}</p>
                       <p className="text-xs text-muted-foreground">{count}/100 MCQ {ready ? "প্রস্তুত" : "প্রস্তুত হচ্ছে"}</p>
                     </div>
-                    {!ready && <Badge variant="outline" className="text-[10px]">শীঘ্রই আসছে</Badge>}
+                    {startingMode === mode ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : !ready ? (
+                      <Badge variant="outline" className="text-[10px]">শীঘ্রই আসছে</Badge>
+                    ) : null}
                   </CardContent>
                 </Card>
               );
