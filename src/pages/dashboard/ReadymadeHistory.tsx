@@ -10,44 +10,34 @@ import { ArrowLeft, Sparkles, LayoutTemplate, FileDown } from "lucide-react";
 
 type HistoryTab = "custom" | "sp_final" | "model_test";
 
-const MODE_LABELS: Record<string, string> = {
-  medical_standard: "Medical Standard",
-  standard_hard: "Standard+Hard",
-};
-const CATEGORY_LABELS: Record<string, string> = {
-  subject_final: "Subject Final",
-  paper_final: "Paper Final",
-};
-
 const formatDateTime = (iso: string | null) => {
   if (!iso) return "";
   const d = new Date(iso);
   return `${d.toLocaleDateString()} · ${d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
 };
 
-/** CustomExamBuilder bakes source exam names into the title as
- *  "Custom Exam — Source1, Source2". Split that so the source list can
- *  render in a smaller font than the main title. */
-const renderCustomExamTitle = (title: string) => {
+/** CustomExamBuilder / SpFinal / ModelTest all bake extra context into the
+ *  title as "Main — Extra". Split so the extra part renders smaller. */
+const renderTitle = (title: string) => {
   const idx = title.indexOf(" — ");
   if (idx === -1) return <>{title}</>;
   const main = title.slice(0, idx);
-  const sources = title.slice(idx + 3);
+  const extra = title.slice(idx + 3);
   return (
     <>
       {main}
-      <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">{sources}</span>
+      <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">{extra}</span>
     </>
   );
 };
 
 /** Standalone history page reachable from the Readymade page header's "Your
- *  History" button. Three tabs, one per exam-creation flow that doesn't
- *  already have its own history surface: Custom Exam (student-built via
- *  CustomExamBuilder), Subject/Paper Final, and Model Test (admission test).
- *  Cards follow the same visual language as the existing Exam & Class
- *  History tab's cards, minus the Leaderboard button (not meaningful for
- *  these three types since they're personal/random-pool attempts). */
+ *  History" button. Three tabs: Custom Exam (student-built), Subject/Paper
+ *  Final, and Model Test. All three now go through the same real exam
+ *  pipeline (create_custom_exam / create_sp_final_exam / create_model_test_exam
+ *  -> exams + exam_questions -> TakeExam.tsx), so all three tabs read from
+ *  exam_attempts joined to exams, filtered by exams.chapter/category -- the
+ *  single source of truth every attempt actually gets written to. */
 const ReadymadeHistory = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -75,12 +65,14 @@ const ReadymadeHistory = () => {
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase
-        .from("sp_final_attempts" as any)
-        .select("*")
+        .from("exam_attempts")
+        .select("*, exam:exams(*)")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as any[];
+      return (data || []).filter(
+        (a: any) => a.exam && a.exam.category?.includes?.("Subject/Paper Final")
+      );
     },
     enabled: !!user && tab === "sp_final",
   });
@@ -90,15 +82,63 @@ const ReadymadeHistory = () => {
     queryFn: async () => {
       if (!user) return [];
       const { data, error } = await supabase
-        .from("admission_test_attempts" as any)
-        .select("*, admission_test:admission_tests(title)")
+        .from("exam_attempts")
+        .select("*, exam:exams(*)")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
-      return (data || []) as any[];
+      return (data || []).filter(
+        (a: any) => a.exam && a.exam.category?.includes?.("Model Test")
+      );
     },
     enabled: !!user && tab === "model_test",
   });
+
+  const renderAttemptCard = (attempt: any, practiceAgainPath: string) => {
+    const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
+    return (
+      <Card key={attempt.id} className="border rounded-2xl shadow-sm hover:shadow-md transition-all">
+        <CardHeader className="space-y-0.5 p-3 pb-2">
+          <CardTitle className="text-sm leading-tight">{renderTitle(attempt.exam.title)}</CardTitle>
+          <CardDescription className="text-[11px] leading-snug">
+            <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
+            <div className="text-muted-foreground">{formatDateTime(attempt.submitted_at)}</div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-3 pt-0">
+          <div className="grid grid-cols-3 gap-1.5">
+            <Button size="sm" className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
+              Result Detail
+            </Button>
+            <Button size="sm" className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line" onClick={() => navigate(practiceAgainPath)}>
+              Practice Again
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line">
+                  Mistake Practice
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="center" className="w-56 p-1.5">
+                <button
+                  onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "wrong" } })}
+                  className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted"
+                >
+                  Only Wrong
+                </button>
+                <button
+                  onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "both" } })}
+                  className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted"
+                >
+                  Wrong + Skip
+                </button>
+              </PopoverContent>
+            </Popover>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -138,51 +178,7 @@ const ReadymadeHistory = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {customLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
           {customAttempts?.length === 0 && <p className="text-sm text-muted-foreground">এখনো কোনো Custom Exam attempt নেই।</p>}
-          {customAttempts?.map((attempt: any) => {
-            const percentage = attempt.exam.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.exam.total_marks)) * 100).toFixed(1) : null;
-            return (
-              <Card key={attempt.id} className="border rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <CardHeader className="space-y-0.5 p-3 pb-2">
-                  <CardTitle className="text-sm leading-tight">{renderCustomExamTitle(attempt.exam.title)}</CardTitle>
-                  <CardDescription className="text-[11px] leading-snug">
-                    <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
-                    <div className="text-muted-foreground">{formatDateTime(attempt.submitted_at)}</div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="grid grid-cols-3 gap-1.5">
-                    <Button size="sm" className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line" onClick={() => navigate(`/dashboard/exam-review/${attempt.id}`)}>
-                      Result Detail
-                    </Button>
-                    <Button size="sm" className="rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line" onClick={() => navigate(`/dashboard/take-exam/${attempt.exam.id}`)}>
-                      Practice Again
-                    </Button>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button size="sm" className="rounded-lg bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line">
-                          Mistake Practice
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent align="center" className="w-56 p-1.5">
-                        <button
-                          onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "wrong" } })}
-                          className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted"
-                        >
-                          Only Wrong
-                        </button>
-                        <button
-                          onClick={() => navigate("/dashboard/take-mistakes", { state: { examIds: [attempt.exam.id], filterMode: "both" } })}
-                          className="w-full text-left text-xs px-2.5 py-2 rounded-md hover:bg-muted"
-                        >
-                          Wrong + Skip
-                        </button>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {customAttempts?.map((attempt: any) => renderAttemptCard(attempt, `/dashboard/take-exam/${attempt.exam.id}`))}
         </div>
       )}
 
@@ -190,32 +186,7 @@ const ReadymadeHistory = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {spFinalLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
           {spFinalAttempts?.length === 0 && <p className="text-sm text-muted-foreground">এখনো কোনো Subject/Paper Final attempt নেই।</p>}
-          {spFinalAttempts?.map((attempt: any) => {
-            const percentage = attempt.total_questions > 0 ? ((attempt.correct_count / attempt.total_questions) * 100).toFixed(1) : null;
-            return (
-              <Card key={attempt.id} className="border rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <CardHeader className="space-y-0.5 p-3 pb-2">
-                  <p className="text-[10px] font-mono uppercase text-muted-foreground truncate">
-                    {CATEGORY_LABELS[attempt.category]} · {MODE_LABELS[attempt.mode]}
-                  </p>
-                  <CardTitle className="text-sm leading-tight">{attempt.item_name}</CardTitle>
-                  <CardDescription className="text-[11px] leading-snug">
-                    <div>Score: <span className="font-bold text-foreground">{attempt.correct_count}</span> / {attempt.total_questions} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
-                    <div className="text-muted-foreground">{formatDateTime(attempt.submitted_at)}</div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <Button
-                    size="sm"
-                    className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line"
-                    onClick={() => navigate(`/dashboard/readymade/subject-paper-final/take?item=${attempt.item_id}&category=${attempt.category}&mode=${attempt.mode}&name=${encodeURIComponent(attempt.item_name)}`)}
-                  >
-                    Practice Again
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {spFinalAttempts?.map((attempt: any) => renderAttemptCard(attempt, `/dashboard/take-exam/${attempt.exam.id}`))}
         </div>
       )}
 
@@ -223,30 +194,7 @@ const ReadymadeHistory = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {modelTestLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
           {modelTestAttempts?.length === 0 && <p className="text-sm text-muted-foreground">এখনো কোনো Model Test attempt নেই।</p>}
-          {modelTestAttempts?.map((attempt: any) => {
-            const percentage = attempt.total_marks > 0 ? ((Number(attempt.score) / Number(attempt.total_marks)) * 100).toFixed(1) : null;
-            return (
-              <Card key={attempt.id} className="border rounded-2xl shadow-sm hover:shadow-md transition-all">
-                <CardHeader className="space-y-0.5 p-3 pb-2">
-                  <p className="text-[10px] font-mono uppercase text-muted-foreground truncate">{attempt.ref_name || attempt.mode}</p>
-                  <CardTitle className="text-sm leading-tight">{attempt.admission_test?.title || "Model Test"}</CardTitle>
-                  <CardDescription className="text-[11px] leading-snug">
-                    <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
-                    <div className="text-muted-foreground">{formatDateTime(attempt.submitted_at)}</div>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <Button
-                    size="sm"
-                    className="w-full rounded-lg bg-blue-600 hover:bg-blue-700 text-white border-none text-[10px] h-8 px-1 leading-tight whitespace-pre-line"
-                    onClick={() => navigate(`/dashboard/admission-test/play?testId=${attempt.admission_test_id}&mode=${attempt.mode}${attempt.ref_id ? `&refId=${attempt.ref_id}` : ""}`)}
-                  >
-                    Practice Again
-                  </Button>
-                </CardContent>
-              </Card>
-            );
-          })}
+          {modelTestAttempts?.map((attempt: any) => renderAttemptCard(attempt, `/dashboard/take-exam/${attempt.exam.id}`))}
         </div>
       )}
     </div>

@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
 import { generateAndCacheExplanationWithMeta } from "@/components/exam/AiMcqHelper";
 import { SpFinalManager } from "@/components/admin/SpFinalManager";
+import { ModelTestManager } from "@/components/admin/ModelTestManager";
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -150,9 +151,10 @@ const Readymade = () => {
   // of toggling a filter.
   const [activeZonePill, setActiveZonePill] = useState<string | null>(null);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
-  const [activeTypePanel, setActiveTypePanel] = useState<"model-test" | null>(null);
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   const [spFinalManagerOpen, setSpFinalManagerOpen] = useState(false);
+  const [modelTestManagerOpen, setModelTestManagerOpen] = useState(false);
+  const [startingModelTest, setStartingModelTest] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
 
@@ -329,74 +331,31 @@ const Readymade = () => {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTypePanel(activeTypePanel === "model-test" ? null : "model-test")}
-            className={`rounded-xl border-2 p-3 text-center transition-all ${
-              activeTypePanel === "model-test"
-                ? "border-primary bg-primary/10"
-                : "border-border hover:border-primary/40"
-            }`}
+            disabled={startingModelTest}
+            onClick={async () => {
+              if (isAdmin) { setModelTestManagerOpen(true); return; }
+              if (startingModelTest) return;
+              setStartingModelTest(true);
+              try {
+                const { data: examId, error } = await supabase.rpc("create_model_test_exam");
+                if (error) throw error;
+                navigate(`/dashboard/take-exam/${examId}`);
+              } catch (err: any) {
+                toast({ title: "শুরু করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
+              } finally {
+                setStartingModelTest(false);
+              }
+            }}
+            className="rounded-xl border-2 p-3 text-center transition-all border-border hover:border-primary/40 disabled:opacity-60"
           >
             <FileDown className="h-5 w-5 mx-auto mb-1 text-primary" />
-            <p className="text-xs font-semibold leading-tight">মডেল টেস্ট বানাও</p>
+            <p className="text-xs font-semibold leading-tight">{startingModelTest ? "শুরু হচ্ছে..." : "মডেল টেস্ট বানাও"}</p>
           </button>
         </div>
       )}
 
       {isAdmin && <SpFinalManager open={spFinalManagerOpen} onOpenChange={setSpFinalManagerOpen} />}
-
-      <Dialog open={activeTypePanel === "model-test"} onOpenChange={(o) => setActiveTypePanel(o ? "model-test" : null)}>
-        <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>মডেল টেস্ট বানাও</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-stretch gap-3">
-            <div className="flex-1 space-y-2">
-              <p className="text-sm font-semibold text-primary text-center">মেডিকেল</p>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 text-xs w-full"
-                  onClick={() => {
-                    setActiveTypePanel(null);
-                    navigate("/dashboard/readymade/subject-paper-final?track=medical");
-                  }}
-                >
-                  Standard
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 text-xs w-full"
-                  onClick={() => {
-                    setActiveTypePanel(null);
-                    navigate("/dashboard/readymade/subject-paper-final?track=medical");
-                  }}
-                >
-                  Standard+Hard
-                </Button>
-              </div>
-            </div>
-            <div className="w-px bg-border" />
-            <div className="flex-1 space-y-2">
-              <p className="text-sm font-semibold text-primary text-center">ভার্সিটি</p>
-              <div className="grid grid-cols-1 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-auto py-2 text-xs w-full"
-                  onClick={() => {
-                    setActiveTypePanel(null);
-                    navigate("/dashboard/readymade/subject-paper-final?track=varsity");
-                  }}
-                >
-                  Standard
-                </Button>
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {isAdmin && <ModelTestManager open={modelTestManagerOpen} onOpenChange={setModelTestManagerOpen} />}
 
       <Dialog open={!!addQuestionCategory} onOpenChange={(o) => { if (!o) setAddQuestionCategory(null); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
