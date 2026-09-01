@@ -13,7 +13,6 @@ type HistoryTab = "custom" | "sp_final" | "model_test";
 const MODE_LABELS: Record<string, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
-  super_hard: "Super Hard",
 };
 const CATEGORY_LABELS: Record<string, string> = {
   subject_final: "Subject Final",

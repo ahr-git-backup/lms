@@ -16,14 +16,13 @@ import { SUBJECTS } from "@/lib/constants";
 import { Plus, Trash2, Upload, X } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard" | "super_hard";
+type SpMode = "medical_standard" | "standard_hard";
 
 const MODE_LABELS: Record<SpMode, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
-  super_hard: "Super Hard",
 };
-const MODES: SpMode[] = ["medical_standard", "standard_hard", "super_hard"];
+const MODES: SpMode[] = ["medical_standard", "standard_hard"];
 const TOTAL_TARGET = 100;
 
 interface SpItem {
@@ -32,7 +31,6 @@ interface SpItem {
   sort_order: number;
   medical_standard_configured: number;
   standard_hard_configured: number;
-  super_hard_configured: number;
 }
 
 interface SpSource {

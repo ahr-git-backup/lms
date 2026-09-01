@@ -5,30 +5,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, BookOpen, FileText } from "lucide-react";
 
 type SpCategory = "subject_final" | "paper_final";
-type SpMode = "medical_standard" | "standard_hard" | "super_hard";
+type SpMode = "medical_standard" | "standard_hard";
 
 const MODE_LABELS: Record<SpMode, string> = {
   medical_standard: "Medical Standard",
   standard_hard: "Standard+Hard",
-  super_hard: "Super Hard",
 };
-const MODES: SpMode[] = ["medical_standard", "standard_hard", "super_hard"];
+const MODES: SpMode[] = ["medical_standard", "standard_hard"];
 
 interface SpItem {
   id: string;
   name: string;
   medical_standard_configured: number;
   standard_hard_configured: number;
-  super_hard_configured: number;
 }
 
 /** Student-facing Subject Final / Paper Final browser: pick the category tab,
- *  pick an item (subject or paper name admin added), then pick a difficulty
- *  mode -- each fully-configured (>=100 MCQ) mode is tappable and starts a
- *  freshly-assembled random exam via get_sp_final_exam_questions. */
+ *  tap an item (subject or paper name admin added) to open a popup asking
+ *  which difficulty mode to take -- each fully-configured (>=100 MCQ) mode is
+ *  tappable and starts a freshly-assembled random exam via
+ *  get_sp_final_exam_questions. */
 const SubjectPaperFinal = () => {
   const navigate = useNavigate();
   const [category, setCategory] = useState<SpCategory>("subject_final");
@@ -46,40 +46,6 @@ const SubjectPaperFinal = () => {
   const startExam = (item: SpItem, mode: SpMode) => {
     navigate(`/dashboard/readymade/subject-paper-final/take?item=${item.id}&category=${category}&mode=${mode}&name=${encodeURIComponent(item.name)}`);
   };
-
-  if (selectedItem) {
-    return (
-      <div className="space-y-3">
-        <Button variant="ghost" size="sm" onClick={() => setSelectedItem(null)} className="pl-0 h-8">
-          <ArrowLeft className="mr-2 h-4 w-4" /> {category === "subject_final" ? "Subject" : "Paper"} লিস্টে ফিরুন
-        </Button>
-        <h2 className="text-lg font-bold">{selectedItem.name}</h2>
-        <p className="text-sm text-muted-foreground">Difficulty মোড বেছে নিন</p>
-        <div className="grid grid-cols-1 gap-3">
-          {MODES.map((mode) => {
-            const key = `${mode}_configured` as keyof SpItem;
-            const count = selectedItem[key] as number;
-            const ready = count >= 100;
-            return (
-              <Card
-                key={mode}
-                className={`transition-all ${ready ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
-                onClick={() => ready && startExam(selectedItem, mode)}
-              >
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold">{MODE_LABELS[mode]}</p>
-                    <p className="text-xs text-muted-foreground">{count}/100 MCQ {ready ? "প্রস্তুত" : "প্রস্তুত হচ্ছে"}</p>
-                  </div>
-                  {!ready && <Badge variant="outline" className="text-[10px]">শীঘ্রই আসছে</Badge>}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -131,6 +97,37 @@ const SubjectPaperFinal = () => {
           );
         })}
       </div>
+
+      <Dialog open={!!selectedItem} onOpenChange={(o) => { if (!o) setSelectedItem(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{selectedItem?.name}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">Difficulty মোড বেছে নিন</p>
+          <div className="grid grid-cols-1 gap-3">
+            {selectedItem && MODES.map((mode) => {
+              const key = `${mode}_configured` as keyof SpItem;
+              const count = selectedItem[key] as number;
+              const ready = count >= 100;
+              return (
+                <Card
+                  key={mode}
+                  className={`transition-all ${ready ? "cursor-pointer hover:border-primary/50 hover:shadow-md" : "opacity-60"}`}
+                  onClick={() => ready && startExam(selectedItem, mode)}
+                >
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold">{MODE_LABELS[mode]}</p>
+                      <p className="text-xs text-muted-foreground">{count}/100 MCQ {ready ? "প্রস্তুত" : "প্রস্তুত হচ্ছে"}</p>
+                    </div>
+                    {!ready && <Badge variant="outline" className="text-[10px]">শীঘ্রই আসছে</Badge>}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
