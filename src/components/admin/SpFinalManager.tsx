@@ -191,7 +191,6 @@ const SpFinalItemSourcesDialog = ({
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [addingType, setAddingType] = useState<"existing_bank" | "csv" | null>(null);
-  const [ebLabel, setEbLabel] = useState("");
   const [showQbSelector, setShowQbSelector] = useState(false);
   const [qbSaving, setQbSaving] = useState(false);
 
@@ -218,7 +217,6 @@ const SpFinalItemSourcesDialog = ({
 
   const resetAddForms = () => {
     setAddingType(null);
-    setEbLabel("");
     setCsvLabel(""); setCsvFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
@@ -232,10 +230,12 @@ const SpFinalItemSourcesDialog = ({
    *  RPC doesn't care where a source's questions originally came from. */
   const handleQbSelect = async (questions: QuestionData[]) => {
     if (questions.length === 0) return;
-    if (!ebLabel.trim()) {
-      toast({ title: "আগে Label দিন", description: "Source-এর একটা নাম দিয়ে তারপর প্রশ্ন বাছাই করুন।", variant: "destructive" });
-      return;
-    }
+    // Auto-generate label from unique subjects in the picked questions
+    // (no manual naming step -- admin goes straight from click to Q-bank picker).
+    const uniqueSubjects = Array.from(new Set(questions.map((q) => q.subject).filter(Boolean))) as string[];
+    const autoLabel = uniqueSubjects.length > 0
+      ? uniqueSubjects.slice(0, 2).join(", ") + (uniqueSubjects.length > 2 ? ` +${uniqueSubjects.length - 2}` : "")
+      : "Existing Bank";
     setQbSaving(true);
     try {
       const { data: sourceRow, error: sourceError } = await supabase
@@ -244,7 +244,7 @@ const SpFinalItemSourcesDialog = ({
           item_id: item.id,
           mode,
           source_type: "csv", // same storage path as CSV-uploaded sources
-          label: ebLabel.trim(),
+          label: autoLabel,
           question_count: questions.length,
         })
         .select()
@@ -404,34 +404,13 @@ const SpFinalItemSourcesDialog = ({
 
         {addingType === null && (
           <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" size="sm" onClick={() => setAddingType("existing_bank")}>
+            <Button variant="outline" size="sm" onClick={() => setShowQbSelector(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" /> Existing Bank
             </Button>
             <Button variant="outline" size="sm" onClick={() => setAddingType("csv")}>
               <Upload className="h-3.5 w-3.5 mr-1" /> CSV আপলোড
             </Button>
           </div>
-        )}
-
-        {addingType === "existing_bank" && (
-          <Card>
-            <CardContent className="p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-medium">Existing Bank থেকে যোগ করুন</p>
-                <Button size="sm" variant="ghost" onClick={resetAddForms}><X className="h-4 w-4" /></Button>
-              </div>
-              <Input placeholder="Source-এর নাম (যেমন: HSC Board 2023-24)" value={ebLabel} onChange={(e) => setEbLabel(e.target.value)} />
-              <Button
-                size="sm"
-                className="w-full"
-                disabled={!ebLabel.trim()}
-                onClick={() => setShowQbSelector(true)}
-              >
-                প্রশ্ন বাছাই করুন
-              </Button>
-              {!ebLabel.trim() && <p className="text-[11px] text-muted-foreground">আগে একটা নাম দিন।</p>}
-            </CardContent>
-          </Card>
         )}
 
         {addingType === "csv" && (
@@ -461,7 +440,7 @@ const SpFinalItemSourcesDialog = ({
     <Dialog open={showQbSelector} onOpenChange={setShowQbSelector}>
       <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
         <DialogHeader className="p-4 pb-0">
-          <DialogTitle>প্রশ্ন বাছাই করুন — {ebLabel}</DialogTitle>
+          <DialogTitle>প্রশ্ন বাছাই করুন — Existing Bank</DialogTitle>
         </DialogHeader>
         <div className="flex-1 overflow-hidden px-0.5 sm:p-4 pt-2 h-[calc(85vh-60px)] relative">
           {qbSaving && (
