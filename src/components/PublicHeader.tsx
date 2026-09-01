@@ -1,6 +1,5 @@
-import { Flame, Menu, Moon, Sun } from "lucide-react";
+import { Flame, Menu } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,15 +13,13 @@ import InstallPWA from "@/components/InstallPWA";
 
 export const PublicHeader = () => {
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
-  const isDark = theme === "dark";
 
   return (
     <header className="w-full border-b bg-background/80 backdrop-blur">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-2 py-1.5 sm:gap-4 sm:px-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-2 py-1 sm:gap-4 sm:px-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <a href="/" className="block bg-white rounded p-1">
-            <img src="/logo.png" alt="Atlas Logo" className="h-10 w-auto object-contain" />
+            <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
           </a>
         </div>
 
@@ -54,41 +51,19 @@ export const PublicHeader = () => {
         </nav>
 
         <div className="flex items-center gap-2">
-          {/* Mobile Theme Toggle — same single toggle as desktop, placed right by Login */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            aria-label="Toggle theme"
-            className="sm:hidden rounded-full"
-          >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
-
-          {/* Mobile Login + Create Account Buttons */}
-          <div className="sm:hidden flex flex-col items-stretch gap-1">
+          {/* Mobile Login + Create Account Buttons — same row */}
+          <div className="sm:hidden flex items-center gap-1.5">
             <a href="/login">
-              <Button size="sm" variant="default" className="h-9 px-4 w-full">
+              <Button size="sm" variant="default" className="h-8 px-3 text-xs">
                 Login
               </Button>
             </a>
             <a href="/register">
-              <Button size="sm" variant="outline" className="h-7 px-4 w-full text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
+              <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
                 Create Account
               </Button>
             </a>
           </div>
-
-          {/* Desktop Theme Toggle */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            aria-label="Toggle theme"
-            className="hidden sm:flex rounded-full"
-          >
-            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-          </Button>
 
           {/* Mobile Menu */}
           <div className="sm:hidden">
@@ -124,20 +99,6 @@ export const PublicHeader = () => {
                   <a href="/register" className="text-lg font-medium hover:text-primary">
                     Create Account
                   </a>
-
-                  {/* Mobile Theme Toggle in Menu */}
-                  <div className="flex items-center justify-between mt-4 border-t pt-4">
-                    <span className="text-lg font-medium">ডার্ক মোড</span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setTheme(isDark ? "light" : "dark")}
-                      aria-label="Toggle theme"
-                      className="rounded-full"
-                    >
-                      {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    </Button>
-                  </div>
                 </nav>
               </SheetContent>
             </Sheet>
