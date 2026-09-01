@@ -11,6 +11,21 @@ import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import type { QuestionData } from "@/types/exam";
 import { Plus, Trash2, Upload } from "lucide-react";
 
+type MtMode = "standard" | "standard_hard";
+const MODE_LABELS: Record<MtMode, string> = { standard: "Standard", standard_hard: "Standard+Hard" };
+const MODES: MtMode[] = ["standard", "standard_hard"];
+
+// উদ্দীপক (context-based), চিত্র (image-based), and Roman-numeral (i./ii./iii.)
+// questions must never be pulled into Model Test sources -- only plain MCQs.
+const isSkippableQuestion = (text: string): boolean => {
+  if (!text) return false;
+  if (text.includes("উদ্দীপক") || text.includes("চিত্র")) return true;
+  if (/<img[\s>]/i.test(text)) return true;
+  // Roman-numeral sub-statement pattern: i. / ii. / iii. appearing as list items.
+  if (/(^|[<>।\n])\s*i{1,3}\s*\./i.test(text) || /(^|[<>।\n])\s*iv\s*\./i.test(text)) return true;
+  return false;
+};
+
 interface ModelTestSubjectRow {
   subject_key: string;
   name: string;
@@ -22,6 +37,7 @@ interface ModelTestSubjectRow {
 interface ModelTestSource {
   id: string;
   subject_key: string;
+  mode: MtMode;
   source_type: "existing_bank" | "csv";
   label: string;
   question_count: number;
@@ -32,19 +48,21 @@ interface ModelTestSource {
 
 /** Admin management screen for the standalone Model Test type: six fixed
  *  subjects (Biology 30, Chemistry 25, Physics 15, English 15, GK 10,
- *  মানবিক গুণাবলী 5 = 100), never editable, never track-split. Per subject,
- *  admin configures sources (existing bank filter or CSV) the same way as
- *  Subject/Paper Final -- the create_model_test_exam RPC pulls exactly
- *  target_count random questions per subject regardless of how many total
- *  are configured, guaranteeing exact composition every attempt. */
+ *  মানবিক গুণাবলী 5 = 100), never editable. Two Medical modes -- Standard and
+ *  Standard+Hard -- share the same fixed composition but draw from
+ *  completely separate source pools per (subject, mode). Admin picks a mode
+ *  tab, then per subject configures sources (existing bank filter or CSV);
+ *  উদ্দীপক/চিত্র/Roman-numeral questions are filtered out automatically on
+ *  import so only plain MCQs ever enter a Model Test pool. */
 export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) => {
   const queryClient = useQueryClient();
+  const [mode, setMode] = useState<MtMode>("standard");
   const [managingSubject, setManagingSubject] = useState<ModelTestSubjectRow | null>(null);
 
   const { data: subjects, isLoading } = useQuery({
-    queryKey: ["model-test-summary"],
+    queryKey: ["model-test-summary", mode],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_model_test_summary");
+      const { data, error } = await supabase.rpc("get_model_test_summary", { p_mode: mode });
       if (error) throw error;
       return (data || []) as ModelTestSubjectRow[];
     },
@@ -56,11 +74,25 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Model Test ম্যানেজ করুন</DialogTitle>
+            <DialogTitle>Model Test (Medical) ম্যানেজ করুন</DialogTitle>
           </DialogHeader>
           <p className="text-xs text-muted-foreground -mt-2">
-            ফিক্সড ৬টি সাবজেক্ট, মোট ১০০ MCQ। প্রতিটি সাবজেক্টে ট্যাপ করে সোর্স যোগ করুন।
+            ফিক্সড ৬টি সাবজেক্ট, মোট ১০০ MCQ। প্রতিটি মোডের নিজস্ব আলাদা সোর্স।
           </p>
+
+          <div className="flex gap-2">
+            {MODES.map((m) => (
+              <Button
+                key={m}
+                size="sm"
+                variant={mode === m ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setMode(m)}
+              >
+                {MODE_LABELS[m]}
+              </Button>
+            ))}
+          </div>
 
           <div className="space-y-2">
             {isLoading && <p className="text-sm text-muted-foreground">Loading...</p>}
@@ -85,9 +117,10 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
       {managingSubject && (
         <ModelTestSourcesDialog
           subject={managingSubject}
+          mode={mode}
           onClose={() => {
             setManagingSubject(null);
-            queryClient.invalidateQueries({ queryKey: ["model-test-summary"] });
+            queryClient.invalidateQueries({ queryKey: ["model-test-summary", mode] });
           }}
         />
       )}
@@ -95,14 +128,17 @@ export const ModelTestManager = ({ open, onOpenChange }: { open: boolean; onOpen
   );
 };
 
-/** Per-subject source list: add an existing-bank filter or upload a CSV,
- *  each with a raw question_count. Shows running total against the
+/** Per (subject, mode) source list: add an existing-bank filter or upload a
+ *  CSV, each with a raw question_count. Shows running total against the
  *  subject's fixed target (informational -- the RPC caps to target
- *  regardless, so over-configuring is safe, just wasted admin effort). */
+ *  regardless, so over-configuring is safe, just wasted admin effort).
+ *  Both the QuestionBankSelector pick and the CSV parse drop any
+ *  উদ্দীপক/চিত্র/Roman-numeral question before it's stored. */
 const ModelTestSourcesDialog = ({
-  subject, onClose,
+  subject, mode, onClose,
 }: {
   subject: ModelTestSubjectRow;
+  mode: MtMode;
   onClose: () => void;
 }) => {
   const { toast } = useToast();
@@ -113,12 +149,13 @@ const ModelTestSourcesDialog = ({
   const [csvUploading, setCsvUploading] = useState(false);
 
   const { data: sources, isLoading } = useQuery({
-    queryKey: ["model-test-sources", subject.subject_key],
+    queryKey: ["model-test-sources", subject.subject_key, mode],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("model_test_sources")
         .select("*")
         .eq("subject_key", subject.subject_key)
+        .eq("mode", mode)
         .order("sort_order", { ascending: true });
       if (error) throw error;
       return (data || []) as ModelTestSource[];
@@ -127,11 +164,16 @@ const ModelTestSourcesDialog = ({
 
   const total = (sources || []).reduce((sum, s) => sum + s.question_count, 0);
 
-  const refetchSources = () => queryClient.invalidateQueries({ queryKey: ["model-test-sources", subject.subject_key] });
+  const refetchSources = () => queryClient.invalidateQueries({ queryKey: ["model-test-sources", subject.subject_key, mode] });
 
   const handleQbSelect = async (questions: QuestionData[]) => {
-    if (questions.length === 0) return;
-    const uniqueSubjects = Array.from(new Set(questions.map((q) => q.subject).filter(Boolean))) as string[];
+    const filtered = questions.filter((q) => !isSkippableQuestion(q.question || ""));
+    const skippedCount = questions.length - filtered.length;
+    if (filtered.length === 0) {
+      toast({ title: "কোনো উপযুক্ত প্রশ্ন নেই", description: "উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়ার পর কিছু অবশিষ্ট নেই।", variant: "destructive" });
+      return;
+    }
+    const uniqueSubjects = Array.from(new Set(filtered.map((q) => q.subject).filter(Boolean))) as string[];
     const autoLabel = uniqueSubjects.length > 0
       ? uniqueSubjects.slice(0, 2).join(", ") + (uniqueSubjects.length > 2 ? ` +${uniqueSubjects.length - 2}` : "")
       : "Existing Bank";
@@ -141,15 +183,16 @@ const ModelTestSourcesDialog = ({
         .from("model_test_sources")
         .insert({
           subject_key: subject.subject_key,
+          mode,
           source_type: "csv",
           label: autoLabel,
-          question_count: questions.length,
+          question_count: filtered.length,
         })
         .select()
         .single();
       if (sourceError) throw sourceError;
 
-      const rows = questions.map((q) => ({
+      const rows = filtered.map((q) => ({
         source_id: sourceRow.id,
         question_text: q.question,
         option_a: q.options?.A || "",
@@ -163,7 +206,10 @@ const ModelTestSourcesDialog = ({
       const { error: qError } = await supabase.from("model_test_source_questions").insert(rows);
       if (qError) throw qError;
 
-      toast({ title: "যোগ হয়েছে", description: `${questions.length}টি প্রশ্ন যোগ হয়েছে।` });
+      toast({
+        title: "যোগ হয়েছে",
+        description: `${filtered.length}টি প্রশ্ন যোগ হয়েছে।${skippedCount > 0 ? ` (${skippedCount}টি উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়া হয়েছে)` : ""}`,
+      });
       setShowQbSelector(false);
       refetchSources();
     } catch (err: any) {
@@ -177,10 +223,12 @@ const ModelTestSourcesDialog = ({
     const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rows: any[] = [];
+    let skipped = 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (parsed.data as any[]).forEach((row) => {
       const qText = row["questions"] || row["question"];
       if (!qText) return;
+      if (isSkippableQuestion(String(qText))) { skipped++; return; }
       const o1 = row["option1"], o2 = row["option2"], o3 = row["option3"], o4 = row["option4"], o5 = row["option5"];
       const answer = row["answer"];
       const ansIdx = Number(answer);
@@ -196,16 +244,16 @@ const ModelTestSourcesDialog = ({
         explanation: row["explanation"] || null,
       });
     });
-    return rows;
+    return { rows, skipped };
   };
 
   const handleAddCsv = async (file: File) => {
     setCsvUploading(true);
     try {
       const text = await file.text();
-      const rows = parseCsv(text);
+      const { rows, skipped } = parseCsv(text);
       if (rows.length === 0) {
-        toast({ title: "CSV-তে কোনো প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
+        toast({ title: "CSV-তে কোনো উপযুক্ত প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
         setCsvUploading(false);
         return;
       }
@@ -214,6 +262,7 @@ const ModelTestSourcesDialog = ({
         .from("model_test_sources")
         .insert({
           subject_key: subject.subject_key,
+          mode,
           source_type: "csv",
           label: autoLabel,
           question_count: rows.length,
@@ -227,7 +276,10 @@ const ModelTestSourcesDialog = ({
         .insert(rows.map((r) => ({ ...r, source_id: sourceRow.id })));
       if (qError) throw qError;
 
-      toast({ title: "CSV আপলোড হয়েছে", description: `${rows.length}টি প্রশ্ন যোগ হয়েছে।` });
+      toast({
+        title: "CSV আপলোড হয়েছে",
+        description: `${rows.length}টি প্রশ্ন যোগ হয়েছে।${skipped > 0 ? ` (${skipped}টি উদ্দীপক/চিত্র/রোমান সংখ্যা প্রশ্ন বাদ দেওয়া হয়েছে)` : ""}`,
+      });
       if (fileInputRef.current) fileInputRef.current.value = "";
       refetchSources();
     } catch (err: any) {
@@ -252,7 +304,7 @@ const ModelTestSourcesDialog = ({
       <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
         <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{subject.name} — সোর্স ম্যানেজ করুন</DialogTitle>
+            <DialogTitle>{subject.name} — {MODE_LABELS[mode]} — সোর্স ম্যানেজ করুন</DialogTitle>
           </DialogHeader>
 
           <div className={`text-sm font-medium px-3 py-2 rounded-lg ${total >= subject.target_count ? "bg-green-500/10 text-green-700 dark:text-green-400" : "bg-amber-500/10 text-amber-700 dark:text-amber-400"}`}>

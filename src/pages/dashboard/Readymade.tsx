@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2, History } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2, History, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -154,6 +154,7 @@ const Readymade = () => {
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   const [spFinalManagerOpen, setSpFinalManagerOpen] = useState(false);
   const [modelTestManagerOpen, setModelTestManagerOpen] = useState(false);
+  const [modelTestModePanelOpen, setModelTestModePanelOpen] = useState(false);
   const [startingModelTest, setStartingModelTest] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [lockedExam, setLockedExam] = useState<any | null>(null);
@@ -332,30 +333,56 @@ const Readymade = () => {
           <button
             type="button"
             disabled={startingModelTest}
-            onClick={async () => {
+            onClick={() => {
               if (isAdmin) { setModelTestManagerOpen(true); return; }
-              if (startingModelTest) return;
-              setStartingModelTest(true);
-              try {
-                const { data: examId, error } = await supabase.rpc("create_model_test_exam");
-                if (error) throw error;
-                navigate(`/dashboard/take-exam/${examId}`);
-              } catch (err: any) {
-                toast({ title: "শুরু করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
-              } finally {
-                setStartingModelTest(false);
-              }
+              setModelTestModePanelOpen(true);
             }}
             className="rounded-xl border-2 p-3 text-center transition-all border-border hover:border-primary/40 disabled:opacity-60"
           >
             <FileDown className="h-5 w-5 mx-auto mb-1 text-primary" />
-            <p className="text-xs font-semibold leading-tight">{startingModelTest ? "শুরু হচ্ছে..." : "মডেল টেস্ট বানাও"}</p>
+            <p className="text-xs font-semibold leading-tight">মডেল টেস্ট বানাও</p>
           </button>
         </div>
       )}
 
       {isAdmin && <SpFinalManager open={spFinalManagerOpen} onOpenChange={setSpFinalManagerOpen} />}
       {isAdmin && <ModelTestManager open={modelTestManagerOpen} onOpenChange={setModelTestManagerOpen} />}
+
+      <Dialog open={modelTestModePanelOpen} onOpenChange={(o) => { if (!startingModelTest) setModelTestModePanelOpen(o); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>মডেল টেস্ট — মেডিকেল</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground -mt-2">Difficulty মোড বেছে নিন</p>
+          <div className="grid grid-cols-1 gap-3">
+            {(["standard", "standard_hard"] as const).map((m) => (
+              <Button
+                key={m}
+                variant="outline"
+                disabled={startingModelTest}
+                className="h-auto py-3 justify-between"
+                onClick={async () => {
+                  setStartingModelTest(true);
+                  try {
+                    const { data: examId, error } = await supabase.rpc("create_model_test_exam", { p_mode: m });
+                    if (error) throw error;
+                    setModelTestModePanelOpen(false);
+                    navigate(`/dashboard/take-exam/${examId}`);
+                  } catch (err: any) {
+                    toast({ title: "শুরু করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
+                  } finally {
+                    setStartingModelTest(false);
+                  }
+                }}
+              >
+                <span className="font-semibold">{m === "standard" ? "Standard" : "Standard+Hard"}</span>
+                {startingModelTest && <Loader2 className="h-4 w-4 animate-spin" />}
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={!!addQuestionCategory} onOpenChange={(o) => { if (!o) setAddQuestionCategory(null); }}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
