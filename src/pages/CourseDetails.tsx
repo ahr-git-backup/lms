@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Users, CheckCircle2, Star, Gift, PlayCircle, Sparkles, Check, Loader2, Copy, Download, Eye } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Star, Gift, PlayCircle, Sparkles, Check, Loader2, Copy, Download, Eye } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { getEmbedUrl } from "@/lib/videoUtils";
@@ -112,20 +112,6 @@ const CourseDetails = () => {
     },
     enabled: !!courseId,
     staleTime: 3 * 60 * 1000,
-  });
-
-  const { data: enrollmentCount } = useQuery({
-    queryKey: ["course-enrollment-count", course?.id],
-    queryFn: async () => {
-      if (!course?.id) return 0;
-      const { count, error } = await supabase
-        .from("enrollments")
-        .select("id", { count: "exact", head: true })
-        .eq("course_id", course.id);
-      if (error) return 0;
-      return count || 0;
-    },
-    enabled: !!course?.id,
   });
 
   // Fetch mentors linked to this course
@@ -337,6 +323,7 @@ const CourseDetails = () => {
       </div>
 
       {/* Premium coupon card: special-discount banner(s) + coupon input, merged into one card */}
+      {((specialDiscounts && specialDiscounts.length > 0) || appliedCoupon) && (
       <div className="mb-5 space-y-3 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-secondary/30 p-4 shadow-md">
         {specialDiscounts && specialDiscounts.length > 0 && specialDiscounts.map((discount: any, idx: number) => (
           <div
@@ -405,37 +392,37 @@ const CourseDetails = () => {
             </Button>
           </div>
         ) : (
-          <div className="space-y-2">
-            <div className="flex gap-2">
-              <Input
-                value={couponCode}
-                onChange={(e) => {
-                  setCouponCode(e.target.value);
-                  setCouponError("");
-                }}
-                placeholder="কুপন কোড লিখুন"
-                className="text-sm"
-                onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleApplyCoupon}
-                disabled={couponLoading || !couponCode.trim()}
-                className="shrink-0"
-              >
-                {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
-              </Button>
+          specialDiscounts && specialDiscounts.length > 0 && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  value={couponCode}
+                  onChange={(e) => {
+                    setCouponCode(e.target.value);
+                    setCouponError("");
+                  }}
+                  placeholder="কুপন কোড লিখুন"
+                  className="text-sm"
+                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleApplyCoupon}
+                  disabled={couponLoading || !couponCode.trim()}
+                  className="shrink-0"
+                >
+                  {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
+                </Button>
+              </div>
+              {couponError && <p className="text-xs text-red-500">{couponError}</p>}
             </div>
-            {couponError && <p className="text-xs text-red-500">{couponError}</p>}
-          </div>
+          )
         )}
       </div>
+      )}
 
-      <div className="mb-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-        <Users className="h-4 w-4 text-green-500" />
-        {(enrollmentCount || 0).toLocaleString("en-BD")} জন ভর্তি হয়েছে
-      </div>
+      <div className="mb-4"></div>
 
       {/* Eye-catching bg box for the section heading above the checklist */}
       {Array.isArray((course as any).short_description_lines) &&
