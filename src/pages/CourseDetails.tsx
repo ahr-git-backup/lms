@@ -11,6 +11,7 @@ import Autoplay from "embla-carousel-autoplay";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { DemoContentItem } from "@/types/admin";
 import { useToast } from "@/hooks/use-toast";
+import { trackPixelEvent } from "@/lib/metaPixel";
 import PublicHeader from "@/components/PublicHeader";
 import SEO from "@/components/SEO";
 import ReactMarkdown from "react-markdown";
@@ -113,6 +114,18 @@ const CourseDetails = () => {
     enabled: !!courseId,
     staleTime: 3 * 60 * 1000,
   });
+
+  useEffect(() => {
+    if (course?.id) {
+      trackPixelEvent("ViewContent", {
+        content_ids: [course.id],
+        content_name: course.name,
+        content_type: "product",
+        value: course.price ?? undefined,
+        currency: "BDT",
+      });
+    }
+  }, [course?.id]);
 
   // Fetch mentors linked to this course
   const { data: courseMentors } = useQuery({

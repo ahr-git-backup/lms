@@ -20,6 +20,7 @@ import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
 import Reviews from "./pages/Reviews";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Tutorial from "./pages/public/Tutorial";
 import PublicLayout from "./layouts/PublicLayout";
 import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
@@ -111,6 +112,8 @@ import { useEffect } from "react";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "@/components/ScrollToTop";
+import MetaPixelRouteTracker from "@/components/MetaPixelRouteTracker";
+import CookieConsentBanner from "@/components/CookieConsentBanner";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -159,6 +162,8 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
+          <MetaPixelRouteTracker />
+          <CookieConsentBanner />
           <AuthProvider>
             <NotificationProvider>
             <ErrorBoundary label="PWALoginGate" fallback={null}>
@@ -182,6 +187,7 @@ const App = () => {
                 <Route path="/free-exam" element={<ErrorBoundary><FreeExam /></ErrorBoundary>} />
                 <Route path="/tutorial" element={<ErrorBoundary><Tutorial /></ErrorBoundary>} />
                 <Route path="/reviews" element={<ErrorBoundary><Reviews /></ErrorBoundary>} />
+                <Route path="/privacy-policy" element={<ErrorBoundary><PrivacyPolicy /></ErrorBoundary>} />
               </Route>
               <Route path="/quick-practice" element={<ErrorBoundary><QuickPractice /></ErrorBoundary>} />
               <Route path="/quick-practice/play" element={<ErrorBoundary><QuickPracticePlay /></ErrorBoundary>} />
