@@ -227,7 +227,12 @@ export const CourseSection = () => {
                 <div className="flex flex-col items-center justify-center text-center gap-2">
                     <div className="relative inline-flex items-center justify-center px-4 py-1.5 rounded-2xl bg-red-600 shadow-md">
                         <h2 className="text-3xl font-bold tracking-tight text-white relative inline-block min-h-[1.2em]">
-                            <TypewriterHeading text="চলমান কোর্স সমূহ" />
+                            {/* Invisible full-text placeholder reserves final width so the
+                                red box stays a fixed/static size while the visible text types out. */}
+                            <span className="invisible" aria-hidden="true">চলমান কোর্স সমূহ</span>
+                            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap">
+                                <TypewriterHeading text="চলমান কোর্স সমূহ" />
+                            </span>
                             <span className="absolute left-0 -bottom-2 w-full h-1 bg-white rounded-full"></span>
                         </h2>
                     </div>
