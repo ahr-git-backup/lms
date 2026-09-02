@@ -190,14 +190,19 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     const { data: chapterGrants } = useQuery({
         queryKey: ["course-archive-chapter-grants", enrolledIds.join(',')],
         queryFn: async () => {
-            if (enrolledIds.length === 0) return new Set<string>();
+            if (enrolledIds.length === 0) return { set: new Set<string>(), subjects: [] as string[] };
             const { data, error } = await supabase
                 .from("course_readymade_access")
                 .select("course_id, subject, chapter")
                 .eq("mode", "archive-class")
                 .in("course_id", enrolledIds);
             if (error) throw error;
-            return new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}`));
+            const set = new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}`));
+            // Distinct subjects granted via chapter-level access (not necessarily
+            // present in any class's archive_course_ids), so DB list queries below
+            // don't silently exclude classes only unlocked through this grant path.
+            const subjects = Array.from(new Set((data || []).map((g: any) => g.subject).filter(Boolean)));
+            return { set, subjects };
         },
         enabled: enrolledIds.length > 0,
         refetchOnWindowFocus: true,
@@ -205,17 +210,20 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
         refetchInterval: 60000,
         staleTime: 30000,
     });
+    const grantedSubjects: string[] = chapterGrants?.subjects || [];
 
     // Move all hooks to top level
     const { data: searchResults, isLoading: searching } = useQuery({
-        queryKey: ["archive-classes-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
+        queryKey: ["archive-classes-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page, grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
             const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`];
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const query = supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
@@ -234,11 +242,13 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     });
 
     const { data: subjects, isLoading: loadingSubjects } = useQuery({
-        queryKey: ["archive-classes-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-classes-subjects", enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`];
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const { data } = await supabase
                 .from("classes")
                 .select("subject")
@@ -267,11 +277,13 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     });
 
     const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-classes-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-classes-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`];
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const { data } = await supabase
                 .from("classes")
                 .select("chapter, sort_order")
@@ -319,11 +331,13 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     }, [chapters, setCurrentChaptersList]);
 
     const { data: classesData, isLoading: loadingClasses } = useQuery({
-        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-classes-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')})`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`];
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const { data, count, error } = await supabase
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
@@ -353,7 +367,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
-                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants);
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
@@ -491,7 +505,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
-                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants);
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
