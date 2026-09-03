@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ExamForm } from "@/components/admin/ExamForm";
-import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2, History, Loader2 } from "lucide-react";
+import { ArrowLeft, Trophy, Clock, CheckCircle, ChevronRight, Search, ChevronLeft, LayoutTemplate, X, Lock, Sparkles, FileDown, Plus, Pencil, Trash2, History, Loader2, Send } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { openSolvePdf } from "@/lib/solvePdf";
 import {
@@ -32,6 +32,12 @@ import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import ErrorBoundary from "@/components/ErrorBoundary";
 
 const PAGE_SIZE = 15;
+
+// QuizBot base URL and shared secret for the /api/lms-send-channel endpoint
+// (sends an exam's questions as Telegram polls via the bot's existing /csv
+// pipeline). The secret must match QuizBot's LMS_API_SECRET env var.
+const QUIZBOT_API_BASE = "https://test02-hf05-quizbot.hf.space";
+const QUIZBOT_API_SECRET = "";
 
 // Supabase/PostgREST caps a plain select() at 1000 rows. For aggregation queries
 // (distinct subjects/chapters/topics) that must see every row, paginate through
@@ -2132,6 +2138,95 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [splittingExam, setSplittingExam] = useState<any | null>(null);
 
+  // Send-to-Telegram-channel (via QuizBot /csv pipeline) dialog state.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [sendingExam, setSendingExam] = useState<any | null>(null);
+  const [sendChannelId, setSendChannelId] = useState("");
+  const [sendThreadId, setSendThreadId] = useState("");
+  const [sendTopic, setSendTopic] = useState("");
+  const [sendBusy, setSendBusy] = useState(false);
+  const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent?: number; total?: number; error?: string | null } | null>(null);
+
+  const openSendDialog = (e: React.MouseEvent, exam: any) => {
+    e.stopPropagation();
+    setSendingExam(exam);
+    setSendChannelId("");
+    setSendThreadId("");
+    setSendTopic(exam.title || "");
+    setSendJobStatus(null);
+  };
+
+  const handleSendToChannel = async () => {
+    if (!sendingExam || !sendChannelId.trim()) {
+      toast({ title: "Channel ID প্রয়োজন", variant: "destructive" });
+      return;
+    }
+    setSendBusy(true);
+    setSendJobStatus({ status: "queued" });
+    try {
+      const { data: questions, error } = await supabase
+        .from("exam_questions")
+        .select("*")
+        .eq("exam_id", sendingExam.id)
+        .order("question_index", { ascending: true });
+      if (error) throw error;
+      if (!questions || questions.length === 0) {
+        toast({ title: "কোনো প্রশ্ন নেই", variant: "destructive" });
+        setSendBusy(false);
+        return;
+      }
+
+      const mcqs = questions.map((q: any) => ({
+        question: q.question_text || "",
+        options: [q.option_a || "", q.option_b || "", q.option_c || "", q.option_d || ""],
+        answer: String(q.correct_option || "A").toUpperCase(),
+        explanation: q.explanation || "",
+      }));
+
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: QUIZBOT_API_SECRET,
+          channel_id: sendChannelId.trim(),
+          thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
+          topic: sendTopic.trim() || sendingExam.title,
+          mcqs,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Send request failed");
+      }
+
+      const jobId = json.job_id as string;
+      setSendJobStatus({ status: "running", sent: 0, total: mcqs.length });
+
+      const poll = setInterval(async () => {
+        try {
+          const sRes = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/status/${jobId}`);
+          const sJson = await sRes.json();
+          setSendJobStatus(sJson);
+          if (sJson.status === "done" || sJson.status === "error") {
+            clearInterval(poll);
+            setSendBusy(false);
+            if (sJson.status === "done") {
+              toast({ title: "পাঠানো হয়েছে", description: `${sJson.sent || mcqs.length} টি প্রশ্ন চ্যানেলে পাঠানো হয়েছে।` });
+            } else {
+              toast({ title: "ব্যর্থ হয়েছে", description: sJson.error || "Unknown error", variant: "destructive" });
+            }
+          }
+        } catch {
+          // transient poll failure — try again next tick
+        }
+      }, 3000);
+    } catch (err: any) {
+      toast({ title: "পাঠানো যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+      setSendBusy(false);
+      setSendJobStatus(null);
+    }
+  };
+
   const [sheetExam, setSheetExam] = useState<any | null>(null);
   const [sheetHasPattern, setSheetHasPattern] = useState<boolean>(true);
   const [sheetChecking, setSheetChecking] = useState(false);
@@ -2348,6 +2443,56 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
+    <Dialog open={!!sendingExam} onOpenChange={(v) => { if (!v && !sendBusy) setSendingExam(null); }}>
+      <DialogContent onClick={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Telegram চ্যানেলে পাঠান</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
+            <Input
+              placeholder="-100xxxxxxxxxx"
+              value={sendChannelId}
+              onChange={(e) => setSendChannelId(e.target.value)}
+              disabled={sendBusy}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (group-এর topic হলে, নাহলে খালি রাখো)</label>
+            <Input
+              placeholder="ঐচ্ছিক"
+              value={sendThreadId}
+              onChange={(e) => setSendThreadId(e.target.value)}
+              disabled={sendBusy}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Topic Name (poll গুলো এই নামে reply যাবে)</label>
+            <Input
+              value={sendTopic}
+              onChange={(e) => setSendTopic(e.target.value)}
+              disabled={sendBusy}
+            />
+          </div>
+          {sendJobStatus && (
+            <div className="text-xs text-muted-foreground">
+              {sendJobStatus.status === "error"
+                ? `ব্যর্থ: ${sendJobStatus.error || "Unknown error"}`
+                : sendJobStatus.status === "done"
+                ? `সম্পন্ন — ${sendJobStatus.sent ?? sendJobStatus.total ?? ""} টি প্রশ্ন পাঠানো হয়েছে।`
+                : `পাঠানো হচ্ছে... ${sendJobStatus.sent ?? 0}/${sendJobStatus.total ?? "?"}`}
+            </div>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" disabled={sendBusy} onClick={() => setSendingExam(null)}>বাতিল</Button>
+            <Button size="sm" disabled={sendBusy} onClick={handleSendToChannel}>
+              {sendBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "পাঠাও"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
     {isAdmin && exams.length > 0 && (
       <div className="col-span-1 lg:col-span-2 flex justify-end">
         <Button
@@ -2583,6 +2728,17 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                     onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
                   >
                     Topic Add
+                  </Button>
+                )}
+                {isAdmin && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-sky-600"
+                    onClick={(e) => openSendDialog(e, exam)}
+                    title="Telegram চ্যানেলে পাঠান"
+                  >
+                    <Send className="h-3.5 w-3.5" />
                   </Button>
                 )}
                 {isAdmin && (
