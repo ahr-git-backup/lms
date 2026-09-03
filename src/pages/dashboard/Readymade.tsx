@@ -2142,9 +2142,12 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   // Send-to-Telegram-channel (via QuizBot /csv pipeline) dialog state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [sendingExam, setSendingExam] = useState<any | null>(null);
-  const [sendSavedChannelId, setSendSavedChannelId] = useState<string>(""); // telegram_channels.id, or "custom"
+  const [sendSavedChannelId, setSendSavedChannelId] = useState<string>(""); // telegram_channels.id, or "custom" (legacy) or "__new__"
   const [sendChannelId, setSendChannelId] = useState("");
   const [sendThreadId, setSendThreadId] = useState("");
+  const [newChannelName, setNewChannelName] = useState("");
+  const [savingNewChannel, setSavingNewChannel] = useState(false);
+  const sendQueryClient = useQueryClient();
   const [sendSplitMode, setSendSplitMode] = useState<"auto" | "all" | "batch">("auto"); // auto = topic-wise if topics exist
   const [sendBatchSize, setSendBatchSize] = useState("25");
   const [sendBusy, setSendBusy] = useState(false);
@@ -2172,11 +2175,13 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     setSendSplitMode("auto");
     setSendBatchSize("25");
     setSendJobStatus(null);
+    setNewChannelName("");
   };
 
   const handleSelectSavedChannel = (id: string) => {
     setSendSavedChannelId(id);
-    if (id === "custom") {
+    setNewChannelName("");
+    if (id === "custom" || id === "__new__") {
       setSendChannelId("");
       setSendThreadId("");
       return;
@@ -2185,6 +2190,35 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     if (ch) {
       setSendChannelId(ch.chat_id || "");
       setSendThreadId(ch.thread_id || "");
+    }
+  };
+
+  const handleSaveNewChannel = async () => {
+    if (!newChannelName.trim() || !sendChannelId.trim()) {
+      toast({ title: "নাম ও Chat ID দুটোই দরকার", variant: "destructive" });
+      return;
+    }
+    setSavingNewChannel(true);
+    try {
+      const { data, error } = await supabase
+        .from("telegram_channels")
+        .insert({
+          name: newChannelName.trim(),
+          chat_id: sendChannelId.trim(),
+          thread_id: sendThreadId.trim() || null,
+          is_active: true,
+        })
+        .select("id, name, chat_id, thread_id")
+        .single();
+      if (error) throw error;
+      await sendQueryClient.invalidateQueries({ queryKey: ["telegram-channels-send-dialog"] });
+      setSendSavedChannelId(data.id);
+      setNewChannelName("");
+      toast({ title: "নতুন channel সেভ হয়েছে" });
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingNewChannel(false);
     }
   };
 
@@ -2251,7 +2285,15 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           batches,
         }),
       });
-      const json = await res.json();
+      const rawText = await res.text();
+      let json: any;
+      try {
+        json = JSON.parse(rawText);
+      } catch {
+        throw new Error(
+          `Bot server থেকে সাড়া মেলেনি (HTTP ${res.status}). হয়তো bot ঘুমিয়ে আছে বা রিস্টার্ট হচ্ছে — কিছুক্ষণ পর আবার চেষ্টা করুন।`
+        );
+      }
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "Send request failed");
       }
@@ -2262,7 +2304,13 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
       const poll = setInterval(async () => {
         try {
           const sRes = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/status/${jobId}`);
-          const sJson = await sRes.json();
+          const sText = await sRes.text();
+          let sJson: any;
+          try {
+            sJson = JSON.parse(sText);
+          } catch {
+            return; // non-JSON (space waking up) — try again next tick
+          }
           setSendJobStatus(sJson);
           if (sJson.status === "done" || sJson.status === "error") {
             clearInterval(poll);
@@ -2516,10 +2564,22 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                 {savedChannels?.map((ch: any) => (
                   <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>
                 ))}
-                <SelectItem value="custom">নতুন / সরাসরি ID লিখো</SelectItem>
+                <SelectItem value="__new__">+ নতুন channel যোগ করো</SelectItem>
+                <SelectItem value="custom">নতুন / সরাসরি ID লিখো (সেভ ছাড়া)</SelectItem>
               </SelectContent>
             </Select>
           </div>
+          {sendSavedChannelId === "__new__" && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">নতুন Channel-এর নাম</label>
+              <Input
+                placeholder="যেমন: HSC Batch 27 Group"
+                value={newChannelName}
+                onChange={(e) => setNewChannelName(e.target.value)}
+                disabled={sendBusy || savingNewChannel}
+              />
+            </div>
+          )}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
             <Input
@@ -2538,6 +2598,17 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               disabled={sendBusy}
             />
           </div>
+          {sendSavedChannelId === "__new__" && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleSaveNewChannel}
+              disabled={savingNewChannel || sendBusy || !newChannelName.trim() || !sendChannelId.trim()}
+            >
+              {savingNewChannel ? "সেভ হচ্ছে..." : "এই নামে সেভ করো"}
+            </Button>
+          )}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">ভাগ করার নিয়ম</label>
             <Select value={sendSplitMode} onValueChange={(v) => setSendSplitMode(v as any)} disabled={sendBusy}>
