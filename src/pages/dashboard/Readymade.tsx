@@ -2153,6 +2153,75 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
 
+  // Per-exam running-job tracking, keyed by exam.id — drives the inline
+  // progress bar + Stop button on each card. Survives page reload because
+  // on mount we ask the bot server (which owns the job, runs it in the
+  // background regardless of this tab) whether a job is still active for
+  // each visible exam.
+  type CardJob = { jobId: string; pct: number; sentTotal: number; total: number; status: string };
+  const [cardJobs, setCardJobs] = useState<Record<string, CardJob>>({});
+  const cardJobsRef = useRef<Record<string, CardJob>>({});
+  cardJobsRef.current = cardJobs;
+
+  const pollCardJob = (examId: string, jobId: string) => {
+    const tick = async () => {
+      try {
+        const r = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/status/${jobId}`);
+        const text = await r.text();
+        let j: any;
+        try { j = JSON.parse(text); } catch { return; }
+        if (!j || j.error) return;
+        setCardJobs((prev) => ({
+          ...prev,
+          [examId]: { jobId, pct: j.pct || 0, sentTotal: j.sent_total || 0, total: j.total || 0, status: j.status },
+        }));
+        if (j.status === "done" || j.status === "error" || j.status === "cancelled") {
+          clearInterval(timer);
+          setTimeout(() => {
+            setCardJobs((prev) => {
+              const next = { ...prev };
+              delete next[examId];
+              return next;
+            });
+          }, j.status === "done" ? 2500 : 5000);
+        }
+      } catch { /* transient network hiccup — keep polling */ }
+    };
+    const timer = setInterval(tick, 2000);
+    tick();
+  };
+
+  // On mount, check every visible exam for a still-running job (covers page
+  // reload / reopening the app while a send is in progress on the server).
+  useEffect(() => {
+    if (!isAdmin || !exams?.length) return;
+    let cancelled = false;
+    (async () => {
+      for (const exam of exams) {
+        if (cancelled) return;
+        try {
+          const r = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/active-by-exam/${exam.id}`);
+          const text = await r.text();
+          let j: any;
+          try { j = JSON.parse(text); } catch { continue; }
+          if (j?.job_id && !cardJobsRef.current[exam.id]) {
+            pollCardJob(exam.id, j.job_id);
+          }
+        } catch { /* ignore — proxy/bot may be briefly unreachable */ }
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, exams?.map((e: any) => e.id).join(",")]);
+
+  const handleStopCardJob = async (examId: string) => {
+    const job = cardJobsRef.current[examId];
+    if (!job) return;
+    try {
+      await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/cancel/${job.jobId}`, { method: "POST" });
+    } catch { /* best-effort */ }
+  };
+
   const { data: savedChannels } = useQuery({
     queryKey: ["telegram-channels-send-dialog"],
     queryFn: async () => {
@@ -2283,6 +2352,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           channel_id: sendChannelId.trim(),
           thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
           batches,
+          exam_id: sendingExam.id,
         }),
       });
       const rawText = await res.text();
@@ -2300,31 +2370,13 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
 
       const jobId = json.job_id as string;
       setSendJobStatus({ status: "running", sent_total: 0, total: questions.length, batches_done: 0, batches_total: batches.length });
-
-      const poll = setInterval(async () => {
-        try {
-          const sRes = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/status/${jobId}`);
-          const sText = await sRes.text();
-          let sJson: any;
-          try {
-            sJson = JSON.parse(sText);
-          } catch {
-            return; // non-JSON (space waking up) — try again next tick
-          }
-          setSendJobStatus(sJson);
-          if (sJson.status === "done" || sJson.status === "error") {
-            clearInterval(poll);
-            setSendBusy(false);
-            if (sJson.status === "done") {
-              toast({ title: "পাঠানো হয়েছে", description: `${sJson.sent_total ?? questions.length} টি প্রশ্ন চ্যানেলে পাঠানো হয়েছে (${batches.length} batch-এ)।` });
-            } else {
-              toast({ title: "ব্যর্থ হয়েছে", description: sJson.error || "Unknown error", variant: "destructive" });
-            }
-          }
-        } catch {
-          // transient poll failure — try again next tick
-        }
-      }, 3000);
+      pollCardJob(sendingExam.id, jobId);
+      // Dialog can close now — the job runs on the bot server independent of
+      // this tab; progress/stop continue on the exam card itself.
+      setSendBusy(false);
+      setSendJobStatus(null);
+      setSendingExam(null);
+      toast({ title: "পাঠানো শুরু হয়েছে", description: "কার্ডের নিচে প্রগ্রেস দেখা যাবে — ব্রাউজার বন্ধ করলেও পাঠানো চলতে থাকবে।" });
     } catch (err: any) {
       toast({ title: "পাঠানো যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
       setSendBusy(false);
@@ -2838,7 +2890,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                 )}
               </div>
             </div>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-3 mt-1 flex-wrap">
               <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                 <p className="text-[10px] font-mono uppercase">{exam.course?.name || "Public"}</p>
                 <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
@@ -2846,72 +2898,90 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
                 <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
                 {!unlocked && <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0 gap-0.5"><Lock className="h-2.5 w-2.5" />Premium</Badge>}
               </div>
-              <div className="shrink-0 flex items-center gap-1">
-                {unlocked && (
+              {unlocked && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] bg-blue-500 hover:bg-blue-600 text-white hover:text-white shrink-0"
+                  disabled={downloadingId === exam.id}
+                  onClick={(e) => openPracticeSheetPicker(e, exam)}
+                >
+                  {downloadingId === exam.id ? "..." : "Practice Sheet"}
+                </Button>
+              )}
+            </div>
+            {isAdmin && (
+              <div className="flex items-center gap-1 mt-1.5 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                  onClick={(e) => handleDownloadCsv(e, exam)}
+                  title="CSV ডাউনলোড করুন"
+                >
+                  <FileDown className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                  onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
+                >
+                  Split
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
+                  onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
+                >
+                  Topic Add
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 text-muted-foreground hover:text-sky-600"
+                  onClick={(e) => openSendDialog(e, exam)}
+                  title="Telegram চ্যানেলে পাঠান"
+                >
+                  <Send className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-[11px] text-violet-600 hover:text-violet-700 gap-1"
+                  onClick={(e) => handleAiTagSingle(e, exam)}
+                >
+                  <Sparkles className="h-3 w-3" /> AI Tag
+                </Button>
+              </div>
+            )}
+            {cardJobs[exam.id] && (
+              <div className="mt-1.5 flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${cardJobs[exam.id].status === "error" ? "bg-red-500" : cardJobs[exam.id].status === "cancelled" ? "bg-amber-500" : "bg-sky-500"}`}
+                    style={{ width: `${cardJobs[exam.id].pct}%` }}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  {cardJobs[exam.id].status === "done" ? "সম্পন্ন ✓"
+                    : cardJobs[exam.id].status === "error" ? "ব্যর্থ"
+                    : cardJobs[exam.id].status === "cancelled" ? "থামানো হয়েছে"
+                    : `পাঠানো হচ্ছে ${cardJobs[exam.id].sentTotal}/${cardJobs[exam.id].total}`}
+                </span>
+                {(cardJobs[exam.id].status === "queued" || cardJobs[exam.id].status === "running") && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 px-2 text-[11px] bg-blue-500 hover:bg-blue-600 text-white hover:text-white"
-                    disabled={downloadingId === exam.id}
-                    onClick={(e) => openPracticeSheetPicker(e, exam)}
+                    className="h-6 px-2 text-[10px] text-red-600 hover:text-red-700 shrink-0"
+                    onClick={() => handleStopCardJob(exam.id)}
                   >
-                    {downloadingId === exam.id ? "..." : "Practice Sheet"}
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
-                    onClick={(e) => handleDownloadCsv(e, exam)}
-                    title="CSV ডাউনলোড করুন"
-                  >
-                    <FileDown className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); setSplittingExam(exam); }}
-                  >
-                    Split
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-[11px] text-muted-foreground hover:text-primary"
-                    onClick={(e) => { e.stopPropagation(); setTopicAddExam(exam); }}
-                  >
-                    Topic Add
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-sky-600"
-                    onClick={(e) => openSendDialog(e, exam)}
-                    title="Telegram চ্যানেলে পাঠান"
-                  >
-                    <Send className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-                {isAdmin && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 px-2 text-[11px] text-violet-600 hover:text-violet-700 gap-1"
-                    onClick={(e) => handleAiTagSingle(e, exam)}
-                  >
-                    <Sparkles className="h-3 w-3" /> AI Tag
+                    Stop
                   </Button>
                 )}
               </div>
-            </div>
+            )}
           </CardContent>
           {unlocked && (
             <div className="px-4 pb-3 -mt-1 w-full" onClick={(e) => e.stopPropagation()}>
