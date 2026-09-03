@@ -37,7 +37,7 @@ const PAGE_SIZE = 15;
 // QuizBot base URL and shared secret for the /api/lms-send-channel endpoint
 // (sends an exam's questions as Telegram polls via the bot's existing /csv
 // pipeline). The secret must match QuizBot's LMS_API_SECRET env var.
-const QUIZBOT_API_BASE = "https://test02-hf05-quizbot.hf.space";
+const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
 const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
 
 // Supabase/PostgREST caps a plain select() at 1000 rows. For aggregation queries
