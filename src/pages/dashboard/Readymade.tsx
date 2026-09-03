@@ -2143,7 +2143,6 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const [sendingExam, setSendingExam] = useState<any | null>(null);
   const [sendChannelId, setSendChannelId] = useState("");
   const [sendThreadId, setSendThreadId] = useState("");
-  const [sendTopic, setSendTopic] = useState("");
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent?: number; total?: number; error?: string | null } | null>(null);
 
@@ -2152,7 +2151,6 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     setSendingExam(exam);
     setSendChannelId("");
     setSendThreadId("");
-    setSendTopic(exam.title || "");
     setSendJobStatus(null);
   };
 
@@ -2190,7 +2188,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           secret: QUIZBOT_API_SECRET,
           channel_id: sendChannelId.trim(),
           thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
-          topic: sendTopic.trim() || sendingExam.title,
+          topic: sendingExam.title,
           mcqs,
         }),
       });
@@ -2464,14 +2462,6 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               placeholder="ঐচ্ছিক"
               value={sendThreadId}
               onChange={(e) => setSendThreadId(e.target.value)}
-              disabled={sendBusy}
-            />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Topic Name (poll গুলো এই নামে reply যাবে)</label>
-            <Input
-              value={sendTopic}
-              onChange={(e) => setSendTopic(e.target.value)}
               disabled={sendBusy}
             />
           </div>
