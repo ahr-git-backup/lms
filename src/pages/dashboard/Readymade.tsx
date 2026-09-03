@@ -2258,7 +2258,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     const ch = savedChannels?.find((c: any) => c.id === id);
     if (ch) {
       setSendChannelId(ch.chat_id || "");
-      setSendThreadId(ch.thread_id || "");
+      setSendThreadId(""); // thread_id সেভ করা হয় না — প্রতিবার নতুন করে লিখতে হবে
     }
   };
 
@@ -2274,7 +2274,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         .insert({
           name: newChannelName.trim(),
           chat_id: sendChannelId.trim(),
-          thread_id: sendThreadId.trim() || null,
+          thread_id: null, // thread_id সেভ করা হয় না — পাঠানোর সময় প্রতিবার আলাদা করে লিখতে হয়
           is_active: true,
         })
         .select("id, name, chat_id, thread_id")
@@ -2643,7 +2643,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (group-এর topic হলে, নাহলে খালি রাখো)</label>
+            <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (group-এর topic হলে, নাহলে খালি রাখো — এটা সেভ হয় না, প্রতিবার লিখতে হবে)</label>
             <Input
               placeholder="ঐচ্ছিক"
               value={sendThreadId}
