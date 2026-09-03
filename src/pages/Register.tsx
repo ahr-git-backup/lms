@@ -286,9 +286,35 @@ const Register = () => {
 
     } catch (error: any) {
       console.error("Registration error:", error);
+
+      // Supabase Auth wraps our handle_new_user trigger's unique-constraint
+      // failures (duplicate phone/registration_id in profiles, or Auth's own
+      // duplicate-email check) into a generic "Database error saving new
+      // user" / "User already registered" message. Detect those cases and
+      // show the real reason in Bangla instead of the raw DB error.
+      const rawMsg: string = error?.message || "";
+      const lower = rawMsg.toLowerCase();
+      let title = "রেজিস্ট্রেশন ব্যর্থ হয়েছে";
+      let description = rawMsg || "একটা সমস্যা হয়েছে, আবার চেষ্টা করুন।";
+
+      if (lower.includes("already registered") || lower.includes("user already exists") || lower.includes("email") && lower.includes("exist")) {
+        title = "এই ইমেইল দিয়ে আগেই অ্যাকাউন্ট খোলা আছে";
+        description = "এই ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রেজিস্টার করা আছে। অন্য ইমেইল ব্যবহার করুন অথবা লগইন করুন।";
+      } else if (lower.includes("phone") && (lower.includes("duplicate") || lower.includes("unique") || lower.includes("already"))) {
+        title = "এই ফোন নম্বর দিয়ে আগেই অ্যাকাউন্ট খোলা আছে";
+        description = "এই ফোন নম্বর দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট রেজিস্টার করা আছে। অন্য ফোন নম্বর ব্যবহার করুন অথবা লগইন করুন।";
+      } else if (lower.includes("database error saving new user")) {
+        // Trigger-level failure with no specific field named in the message —
+        // by far the most common cause is a duplicate phone number (profiles.
+        // registration_id / phone unique constraint), since email duplicates
+        // are normally caught earlier by Auth itself with a clearer message.
+        title = "এই তথ্য দিয়ে আগেই অ্যাকাউন্ট খোলা আছে";
+        description = "সম্ভবত এই ফোন নম্বর বা ইমেইল দিয়ে ইতিমধ্যে একটি অ্যাকাউন্ট আছে। নতুন ফোন নম্বর/ইমেইল দিয়ে চেষ্টা করুন, অথবা লগইন করুন।";
+      }
+
       toast({
-        title: "Registration failed",
-        description: error.message || "An error occurred during registration",
+        title,
+        description,
         variant: "destructive",
       });
     } finally {
