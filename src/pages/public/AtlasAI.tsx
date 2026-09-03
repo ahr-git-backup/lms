@@ -552,7 +552,8 @@ async function askAIOnce(
   question: string,
   image: PendingImage | null,
   systemPrompt: string,
-  skipGroq: boolean
+  skipGroq: boolean,
+  geminiOnly: boolean = false
 ): Promise<{ answer: string; provider?: string } | null> {
   try {
     const controller = new AbortController();
@@ -566,6 +567,7 @@ async function askAIOnce(
         image: image ? { base64: image.base64, mimeType: image.mimeType } : null,
         systemPrompt,
         skipGroq,
+        geminiOnly,
       }),
     });
     clearTimeout(timeoutId);
@@ -600,7 +602,7 @@ export async function askAI(
   question: string,
   image: PendingImage | null,
   systemPromptOverride?: string,
-  opts?: { skipGroq?: boolean }
+  opts?: { skipGroq?: boolean; geminiOnly?: boolean }
 ): Promise<string> {
   const res = await askAIWithMeta(question, image, systemPromptOverride, opts);
   return res.answer;
@@ -612,16 +614,18 @@ export async function askAIWithMeta(
   question: string,
   image: PendingImage | null,
   systemPromptOverride?: string,
-  opts?: { skipGroq?: boolean }
+  opts?: { skipGroq?: boolean; geminiOnly?: boolean }
 ): Promise<{ answer: string; provider?: string }> {
   const systemPrompt = systemPromptOverride ?? getSystemPrompt(question || "ছবি বিশ্লেষণ করো");
+  const geminiOnly = !!opts?.geminiOnly;
   for (let attempt = 1; attempt <= MAX_CLIENT_RETRIES; attempt++) {
     // প্রথম attempt-এ যা caller চেয়েছে (opts.skipGroq) তাই মানা হয়; retry-গুলোতে
     // skipGroq সবসময় true (Groq প্রথম attempt-এ আগেই একবার চেষ্টা হয়ে থাকলে সেটা
     // পুনরায় চেষ্টা করে সময়/subrequest নষ্ট না করে সরাসরি Gemini/OpenRouter/Cerebras/CF-AI
-    // দিয়ে দ্রুত retry হয়)।
+    // দিয়ে দ্রুত retry হয়)। geminiOnly হলে skipGroq-এর মান কোনো effect রাখে না —
+    // worker Gemini ছাড়া অন্য কোনো provider-এ যাবেই না।
     const skipGroq = attempt === 1 ? !!opts?.skipGroq : true;
-    const result = await askAIOnce(question, image, systemPrompt, skipGroq);
+    const result = await askAIOnce(question, image, systemPrompt, skipGroq, geminiOnly);
     if (result !== null) return result;
     if (attempt < MAX_CLIENT_RETRIES) await sleep(RETRY_DELAY_MS * attempt);
   }

@@ -203,9 +203,12 @@ export async function generateAndCacheExplanation(q: McqLike, questionId?: strin
 }
 
 /** Same as generateAndCacheExplanation but also returns which AI provider generated it,
- *  for UI (like bulk "AI Tag" runs) that wants to show progress detail. */
-export async function generateAndCacheExplanationWithMeta(q: McqLike, questionId?: string): Promise<{ answer: string; provider?: string }> {
-  const { answer: raw, provider } = await askAIWithMeta(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT);
+ *  for UI (like bulk "AI Tag" runs) that wants to show progress detail.
+ *  geminiOnly: when true, the AI proxy is told to skip Groq/OpenRouter/Cerebras/CF
+ *  entirely and only ever answer via Gemini (used by admin "AI Tag" bulk-tagging,
+ *  where explanations must consistently come from Gemini). */
+export async function generateAndCacheExplanationWithMeta(q: McqLike, questionId?: string, geminiOnly = false): Promise<{ answer: string; provider?: string }> {
+  const { answer: raw, provider } = await askAIWithMeta(buildExplainPrompt(q), null, MCQ_SYSTEM_PROMPT, { geminiOnly });
   const answer = normalizeAiAnswer(raw);
   if (questionId && !isFailureResponse(answer)) {
     // Fire-and-forget: don't block the UI on the cache write.

@@ -2430,7 +2430,8 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
             option_d: q.option_d,
             correct_option: q.correct_option,
           },
-          q.id
+          q.id,
+          true // geminiOnly — AI Tag explanations must come from Gemini only
         );
         setAiRun((prev) => prev ? { ...prev, done: prev.done + 1, currentProvider: provider || prev.currentProvider } : prev);
       } catch {

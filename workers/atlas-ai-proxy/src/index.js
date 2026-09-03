@@ -85,6 +85,7 @@ var atlas_ai_proxy_worker_default = {
     const systemPrompt = body.systemPrompt || "\u09A4\u09C1\u09AE\u09BF \u098F\u0995\u099C\u09A8 \u09B8\u09B9\u09BE\u09AF\u09BC\u0995 AI\u0964";
     const skipGemini = !!body.skipGemini;
     const skipGroq = !!body.skipGroq;
+    const geminiOnly = !!body.geminiOnly; // when true, never fall through to Groq/OpenRouter/Cerebras/CF — used by AI Tag (explanations must be Gemini-only)
     if (!question && !image) {
       return jsonResponse({ success: false, error: "question \u09AC\u09BE image \u098F\u09B0 \u098F\u0995\u099F\u09BF \u09A6\u09BF\u09A4\u09C7 \u09B9\u09AC\u09C7" }, 400);
     }
@@ -109,7 +110,7 @@ var atlas_ai_proxy_worker_default = {
       }
     }
 
-    if (!result && !skipGroq) {
+    if (!result && !skipGroq && !geminiOnly) {
       try {
         const groqResult = await callGroq(env, question, systemPrompt, image, expectMcqArray, budget);
         if (groqResult && groqResult.answer && groqResult.answer.trim().length > 5) {
@@ -122,7 +123,7 @@ var atlas_ai_proxy_worker_default = {
       }
     }
 
-    if (!result) {
+    if (!result && !geminiOnly) {
       const remainingProviders = [
         { name: "openrouter", fn: () => callOpenRouter(env, question, systemPrompt, image, budget) },
         { name: "cerebras", fn: () => callCerebras(env, question, systemPrompt, image, budget) },
