@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
@@ -2141,17 +2142,50 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   // Send-to-Telegram-channel (via QuizBot /csv pipeline) dialog state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [sendingExam, setSendingExam] = useState<any | null>(null);
+  const [sendSavedChannelId, setSendSavedChannelId] = useState<string>(""); // telegram_channels.id, or "custom"
   const [sendChannelId, setSendChannelId] = useState("");
   const [sendThreadId, setSendThreadId] = useState("");
+  const [sendSplitMode, setSendSplitMode] = useState<"auto" | "all" | "batch">("auto"); // auto = topic-wise if topics exist
+  const [sendBatchSize, setSendBatchSize] = useState("25");
   const [sendBusy, setSendBusy] = useState(false);
-  const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent?: number; total?: number; error?: string | null } | null>(null);
+  const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
+
+  const { data: savedChannels } = useQuery({
+    queryKey: ["telegram-channels-send-dialog"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("telegram_channels")
+        .select("id, name, chat_id, thread_id")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: isAdmin,
+  });
 
   const openSendDialog = (e: React.MouseEvent, exam: any) => {
     e.stopPropagation();
     setSendingExam(exam);
+    setSendSavedChannelId("");
     setSendChannelId("");
     setSendThreadId("");
+    setSendSplitMode("auto");
+    setSendBatchSize("25");
     setSendJobStatus(null);
+  };
+
+  const handleSelectSavedChannel = (id: string) => {
+    setSendSavedChannelId(id);
+    if (id === "custom") {
+      setSendChannelId("");
+      setSendThreadId("");
+      return;
+    }
+    const ch = savedChannels?.find((c: any) => c.id === id);
+    if (ch) {
+      setSendChannelId(ch.chat_id || "");
+      setSendThreadId(ch.thread_id || "");
+    }
   };
 
   const handleSendToChannel = async () => {
@@ -2174,12 +2208,38 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         return;
       }
 
-      const mcqs = questions.map((q: any) => ({
+      const toMcq = (q: any) => ({
         question: q.question_text || "",
         options: [q.option_a || "", q.option_b || "", q.option_c || "", q.option_d || ""],
         answer: String(q.correct_option || "A").toUpperCase(),
         explanation: q.explanation || "",
-      }));
+      });
+
+      const hasTopics = questions.some((q: any) => (q.topic || "").trim());
+
+      // Build the topic/batch split — same shapes QuizBot's /topic (topic-wise)
+      // and /csvS (fixed batch-size) commands produce.
+      let batches: { topic: string; mcqs: any[] }[];
+      if (sendSplitMode === "auto" && hasTopics) {
+        const order: string[] = [];
+        const groups = new Map<string, any[]>();
+        for (const q of questions) {
+          const t = (q.topic || "").trim() || sendingExam.title;
+          if (!groups.has(t)) { groups.set(t, []); order.push(t); }
+          groups.get(t)!.push(toMcq(q));
+        }
+        batches = order.map((t) => ({ topic: t, mcqs: groups.get(t)! }));
+      } else if (sendSplitMode === "batch") {
+        const size = Math.max(1, parseInt(sendBatchSize, 10) || 25);
+        const all = questions.map(toMcq);
+        batches = [];
+        for (let i = 0; i < all.length; i += size) {
+          const partNo = Math.floor(i / size) + 1;
+          batches.push({ topic: `${sendingExam.title} (Part-${String(partNo).padStart(2, "0")})`, mcqs: all.slice(i, i + size) });
+        }
+      } else {
+        batches = [{ topic: sendingExam.title, mcqs: questions.map(toMcq) }];
+      }
 
       const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
         method: "POST",
@@ -2188,8 +2248,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           secret: QUIZBOT_API_SECRET,
           channel_id: sendChannelId.trim(),
           thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
-          topic: sendingExam.title,
-          mcqs,
+          batches,
         }),
       });
       const json = await res.json();
@@ -2198,7 +2257,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
       }
 
       const jobId = json.job_id as string;
-      setSendJobStatus({ status: "running", sent: 0, total: mcqs.length });
+      setSendJobStatus({ status: "running", sent_total: 0, total: questions.length, batches_done: 0, batches_total: batches.length });
 
       const poll = setInterval(async () => {
         try {
@@ -2209,7 +2268,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
             clearInterval(poll);
             setSendBusy(false);
             if (sJson.status === "done") {
-              toast({ title: "পাঠানো হয়েছে", description: `${sJson.sent || mcqs.length} টি প্রশ্ন চ্যানেলে পাঠানো হয়েছে।` });
+              toast({ title: "পাঠানো হয়েছে", description: `${sJson.sent_total ?? questions.length} টি প্রশ্ন চ্যানেলে পাঠানো হয়েছে (${batches.length} batch-এ)।` });
             } else {
               toast({ title: "ব্যর্থ হয়েছে", description: sJson.error || "Unknown error", variant: "destructive" });
             }
@@ -2448,6 +2507,20 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
+            <Select value={sendSavedChannelId} onValueChange={handleSelectSavedChannel} disabled={sendBusy}>
+              <SelectTrigger>
+                <SelectValue placeholder="একটা channel বেছে নাও অথবা নতুন লিখো" />
+              </SelectTrigger>
+              <SelectContent>
+                {savedChannels?.map((ch: any) => (
+                  <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>
+                ))}
+                <SelectItem value="custom">নতুন / সরাসরি ID লিখো</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
             <Input
               placeholder="-100xxxxxxxxxx"
@@ -2465,13 +2538,38 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               disabled={sendBusy}
             />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">ভাগ করার নিয়ম</label>
+            <Select value={sendSplitMode} onValueChange={(v) => setSendSplitMode(v as any)} disabled={sendBusy}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="auto">Auto (topic থাকলে topic-wise, নাহলে সব একসাথে)</SelectItem>
+                <SelectItem value="all">সব একসাথে (এক batch)</SelectItem>
+                <SelectItem value="batch">নির্দিষ্ট সংখ্যা দিয়ে ভাগ করো</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {sendSplitMode === "batch" && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">প্রতি batch-এ কয়টা প্রশ্ন</label>
+              <Input
+                type="number"
+                min={1}
+                value={sendBatchSize}
+                onChange={(e) => setSendBatchSize(e.target.value)}
+                disabled={sendBusy}
+              />
+            </div>
+          )}
           {sendJobStatus && (
             <div className="text-xs text-muted-foreground">
               {sendJobStatus.status === "error"
                 ? `ব্যর্থ: ${sendJobStatus.error || "Unknown error"}`
                 : sendJobStatus.status === "done"
-                ? `সম্পন্ন — ${sendJobStatus.sent ?? sendJobStatus.total ?? ""} টি প্রশ্ন পাঠানো হয়েছে।`
-                : `পাঠানো হচ্ছে... ${sendJobStatus.sent ?? 0}/${sendJobStatus.total ?? "?"}`}
+                ? `সম্পন্ন — ${sendJobStatus.sent_total ?? sendJobStatus.total ?? ""} টি প্রশ্ন পাঠানো হয়েছে (${sendJobStatus.batches_done ?? "?"}/${sendJobStatus.batches_total ?? "?"} batch)।`
+                : `পাঠানো হচ্ছে... batch ${sendJobStatus.batches_done ?? 0}/${sendJobStatus.batches_total ?? "?"}`}
             </div>
           )}
           <div className="flex justify-end gap-2 pt-1">

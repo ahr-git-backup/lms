@@ -13,6 +13,7 @@ interface TelegramChannel {
   id: string;
   name: string;
   chat_id: string;
+  thread_id: string | null;
   is_active: boolean;
 }
 
@@ -21,6 +22,7 @@ const AdminTelegramChannels = () => {
   const queryClient = useQueryClient();
   const [newName, setNewName] = useState("");
   const [newChatId, setNewChatId] = useState("");
+  const [newThreadId, setNewThreadId] = useState("");
 
   const { data: channels, isLoading } = useQuery({
     queryKey: ["telegram-channels"],
@@ -38,13 +40,14 @@ const AdminTelegramChannels = () => {
     mutationFn: async () => {
       const { error } = await supabase
         .from("telegram_channels")
-        .insert({ name: newName.trim(), chat_id: newChatId.trim(), is_active: true });
+        .insert({ name: newName.trim(), chat_id: newChatId.trim(), thread_id: newThreadId.trim() || null, is_active: true });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["telegram-channels"] });
       setNewName("");
       setNewChatId("");
+      setNewThreadId("");
       toast({ title: "Channel added" });
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -98,6 +101,12 @@ const AdminTelegramChannels = () => {
             onChange={(e) => setNewChatId(e.target.value)}
             className="max-w-xs"
           />
+          <Input
+            placeholder="Thread/Topic ID (ঐচ্ছিক, group topic হলে)"
+            value={newThreadId}
+            onChange={(e) => setNewThreadId(e.target.value)}
+            className="max-w-xs"
+          />
           <Button
             onClick={() => addMutation.mutate()}
             disabled={!newName.trim() || !newChatId.trim() || addMutation.isPending}
@@ -121,6 +130,7 @@ const AdminTelegramChannels = () => {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Chat ID</TableHead>
+                  <TableHead>Thread ID</TableHead>
                   <TableHead>Active</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
@@ -130,6 +140,7 @@ const AdminTelegramChannels = () => {
                   <TableRow key={ch.id}>
                     <TableCell>{ch.name}</TableCell>
                     <TableCell className="font-mono text-sm">{ch.chat_id}</TableCell>
+                    <TableCell className="font-mono text-sm">{ch.thread_id || "—"}</TableCell>
                     <TableCell>
                       <Switch
                         checked={ch.is_active}
