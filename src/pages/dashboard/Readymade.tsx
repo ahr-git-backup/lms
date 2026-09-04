@@ -2768,45 +2768,42 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           <>
           <div>
             <p className="text-sm font-semibold mb-2">Revision Style <span className="text-xs font-normal text-muted-foreground">[প্রশ্ন,উত্তর,ব্যাখ্যা একই সাথে]</span></p>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">ব্যাখ্যাসহ</p>
-                <div className="grid grid-cols-1 gap-2">
-                  {sheetHasPattern ? (
-                    <>
-                      <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true, false)}>
-                        উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
+            <div className="space-y-2">
+              {sheetHasPattern ? (
+                <>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">উদ্দীপক/চিত্র সহ <span className="text-muted-foreground">[Board/Varsity Pattern]</span></p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", true, false)}>
+                        ব্যাখ্যাসহ
                       </Button>
-                      <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", false, false)}>
-                        উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
+                      <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", true, true)}>
+                        ব্যাখ্যা ছাড়া
                       </Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true, false)}>
-                      Revision Style (ব্যাখ্যাসহ)
-                    </Button>
-                  )}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground mb-1">উদ্দীপক/চিত্র ছাড়া <span className="text-muted-foreground">[Medical Pattern]</span></p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", false, false)}>
+                        ব্যাখ্যাসহ
+                      </Button>
+                      <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", false, true)}>
+                        ব্যাখ্যা ছাড়া
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", true, false)}>
+                    ব্যাখ্যাসহ
+                  </Button>
+                  <Button variant="outline" className="justify-center h-auto py-2" onClick={() => handleDownloadPdf("style1", true, true)}>
+                    ব্যাখ্যা ছাড়া
+                  </Button>
                 </div>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1.5">ব্যাখ্যা ছাড়া <span className="text-[10px]">(শুধু প্রশ্ন, অপশন ও উত্তর)</span></p>
-                <div className="grid grid-cols-1 gap-2">
-                  {sheetHasPattern ? (
-                    <>
-                      <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true, true)}>
-                        উদ্দীপক/চিত্র সহ <span className="text-xs text-muted-foreground ml-1">[Board/Varsity Pattern]</span>
-                      </Button>
-                      <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", false, true)}>
-                        উদ্দীপক/চিত্র ছাড়া <span className="text-xs text-muted-foreground ml-1">[Medical Pattern]</span>
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="outline" className="justify-start h-auto py-2" onClick={() => handleDownloadPdf("style1", true, true)}>
-                      Revision Style (ব্যাখ্যা ছাড়া)
-                    </Button>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
           <div>
