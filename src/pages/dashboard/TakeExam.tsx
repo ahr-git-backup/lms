@@ -453,12 +453,12 @@ const TakeExam = () => {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_exam_questions_practice", {
         p_exam_id: examId,
-        p_user_id: user?.id,
+        p_user_id: user?.id ?? null,
       });
       if (error) throw error;
       return data;
     },
-    enabled: isQuickPracticeMode && showsReadymadeUI && !!user?.id,
+    enabled: isQuickPracticeMode && showsReadymadeUI && (!!user?.id || !!guestInfo),
     retry: 1,
   });
 
