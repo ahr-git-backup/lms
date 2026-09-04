@@ -94,20 +94,26 @@ const FreeExam = () => {
       enabled: !!debouncedSearch
   });
 
+  const OTHER_SUBJECT = "Other";
+
   // Helper to extract unique subjects (within the selected category)
   const getUniqueSubjects = () => {
     if (!exams) return [];
     const subjects = new Set<string>();
+    let hasUnassigned = false;
     exams
       .filter(exam => !selectedCategory || (exam.free_exam_category || "HSC") === selectedCategory)
       .forEach(exam => {
-        if (Array.isArray(exam.subject)) {
+        if (Array.isArray(exam.subject) && exam.subject.length > 0) {
           exam.subject.forEach(s => subjects.add(s));
         } else if (typeof exam.subject === 'string' && exam.subject) {
           subjects.add(exam.subject);
+        } else {
+          hasUnassigned = true;
         }
       });
-    return Array.from(subjects).sort();
+    const sorted = Array.from(subjects).sort();
+    return hasUnassigned ? [...sorted, OTHER_SUBJECT] : sorted;
   };
 
   const getUniqueChapters = () => {
@@ -264,6 +270,9 @@ const FreeExam = () => {
   const filteredExams = exams?.filter(exam => {
     if (selectedCategory && (exam.free_exam_category || "HSC") !== selectedCategory) return false;
     if (!selectedSubject) return true;
+    if (selectedSubject === OTHER_SUBJECT) {
+      return !Array.isArray(exam.subject) || exam.subject.length === 0;
+    }
     if (Array.isArray(exam.subject)) return exam.subject.includes(selectedSubject);
     return exam.subject === selectedSubject;
   }) || [];
@@ -354,6 +363,7 @@ const FreeExam = () => {
                             <div className="text-base sm:text-xl font-bold text-primary mb-0.5 leading-tight">{subject}</div>
                             <p className="text-[10px] sm:text-xs text-muted-foreground">
                                 {exams?.filter(e => {
+                                    if (subject === OTHER_SUBJECT) return !Array.isArray(e.subject) || e.subject.length === 0;
                                     if(Array.isArray(e.subject)) return e.subject.includes(subject);
                                     return e.subject === subject;
                                 }).length} exams
