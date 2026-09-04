@@ -1545,7 +1545,7 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
   );
 };
 
-const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navigate: any; isAdmin?: boolean }) => {
+const TopicPickerPanel = ({ examId, exam, navigate, isAdmin, openPracticeSheetPicker }: { examId: string; exam: any; navigate: any; isAdmin?: boolean; openPracticeSheetPicker: (e: React.MouseEvent, exam: any, topicFilter?: { topic: string; subtopic?: string }) => void }) => {
   // get_exam_topic_tree returns one row per (topic, subtopic) pair --
   // subtopic is null/"" for topics with no subtopics. Grouped client-side
   // into topic -> [subtopics] so a topic with subtopics expands into a
@@ -1613,6 +1613,14 @@ const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navig
                     <Pencil className="h-3 w-3" />
                   </Button>
                 )}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-1.5 text-[9px] bg-blue-500 hover:bg-blue-600 text-white"
+                  onClick={(e) => openPracticeSheetPicker(e, exam, { topic: g.topic })}
+                >
+                  Sheet
+                </Button>
                 {g.subtopics.length === 0 && (
                   <Button size="sm" className="h-6 px-2 text-[10px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
                 )}
@@ -1625,7 +1633,17 @@ const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navig
                   onClick={() => goTopic(g.topic)}
                 >
                   <span className="text-[11px]">সম্পূর্ণ {g.topic} <span className="text-[10px] text-muted-foreground">({g.mcq_count} Q)</span></span>
-                  <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-5 px-1.5 text-[9px] bg-blue-500 hover:bg-blue-600 text-white"
+                      onClick={(e) => openPracticeSheetPicker(e, exam, { topic: g.topic })}
+                    >
+                      Sheet
+                    </Button>
+                    <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                  </div>
                 </div>
                 {g.subtopics.map((s) => (
                   <div
@@ -1634,7 +1652,17 @@ const TopicPickerPanel = ({ examId, navigate, isAdmin }: { examId: string; navig
                     onClick={() => goTopic(g.topic, s.subtopic)}
                   >
                     <span className="text-[11px]">{s.subtopic} <span className="text-[10px] text-muted-foreground">({s.mcq_count} Q)</span></span>
-                    <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-5 px-1.5 text-[9px] bg-blue-500 hover:bg-blue-600 text-white"
+                        onClick={(e) => openPracticeSheetPicker(e, exam, { topic: g.topic, subtopic: s.subtopic })}
+                      >
+                        Sheet
+                      </Button>
+                      <Button size="sm" className="h-5 px-2 text-[9px] bg-blue-600 hover:bg-blue-700 text-white">Start</Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2387,6 +2415,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const [sheetExam, setSheetExam] = useState<any | null>(null);
   const [sheetHasPattern, setSheetHasPattern] = useState<boolean>(true);
   const [sheetChecking, setSheetChecking] = useState(false);
+  const [sheetTopicFilter, setSheetTopicFilter] = useState<{ topic: string; subtopic?: string } | null>(null);
 
   // AI Tag bulk explanation generation state.
   const [aiRun, setAiRun] = useState<{ scope: "single" | "all"; examTitle: string; total: number; done: number; skipped: number; failed: number; cancelled: boolean; currentProvider: string | null; startedAt: number } | null>(null);
@@ -2542,14 +2571,21 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     return false;
   };
 
-  const openPracticeSheetPicker = async (e: React.MouseEvent, exam: any) => {
+  const openPracticeSheetPicker = async (e: React.MouseEvent, exam: any, topicFilter?: { topic: string; subtopic?: string }) => {
     e.stopPropagation();
     setSheetExam(exam);
+    setSheetTopicFilter(topicFilter || null);
     setSheetChecking(true);
     try {
       const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
       if (error) throw error;
-      setSheetHasPattern((data || []).some((q: any) => isImageOrPatternQ(q)));
+      let rows = data || [];
+      if (topicFilter) {
+        rows = rows.filter((q: any) =>
+          q.topic === topicFilter.topic && (!topicFilter.subtopic || q.subtopic === topicFilter.subtopic)
+        );
+      }
+      setSheetHasPattern(rows.some((q: any) => isImageOrPatternQ(q)));
     } catch {
       setSheetHasPattern(true);
     } finally {
@@ -2560,22 +2596,30 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
   const handleDownloadPdf = async (style: "style1" | "style2" | "style3" | "style4", withPattern: boolean, hideExplanation = false) => {
     const exam = sheetExam;
     if (!exam || downloadingId) return;
+    const topicFilter = sheetTopicFilter;
     setSheetExam(null);
+    setSheetTopicFilter(null);
     setDownloadingId(exam.id);
     try {
       const { data, error } = await supabase.rpc("get_exam_questions_practice", { p_exam_id: exam.id });
       if (error) throw error;
-      if (!data || data.length === 0) {
+      let scoped = data || [];
+      if (topicFilter) {
+        scoped = scoped.filter((q: any) =>
+          q.topic === topicFilter.topic && (!topicFilter.subtopic || q.subtopic === topicFilter.subtopic)
+        );
+      }
+      if (scoped.length === 0) {
         toast({ title: "No questions found", description: "This exam has no questions to export.", variant: "destructive" });
         return;
       }
-      const filtered = withPattern ? data : data.filter((q: any) => !isImageOrPatternQ(q));
+      const filtered = withPattern ? scoped : scoped.filter((q: any) => !isImageOrPatternQ(q));
       if (filtered.length === 0) {
         toast({ title: "No questions found", description: "উদ্দীপক/চিত্র ছাড়া কোনো প্রশ্ন নেই।", variant: "destructive" });
         return;
       }
       openSolvePdf({
-        examName: exam.title,
+        examName: topicFilter ? `${exam.title} — ${topicFilter.subtopic || topicFilter.topic}` : exam.title,
         style,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         questions: filtered.map((q: any) => ({
@@ -2756,10 +2800,13 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         )}
       </DialogContent>
     </Dialog>
-    <Dialog open={!!sheetExam} onOpenChange={(o) => !o && setSheetExam(null)}>
+    <Dialog open={!!sheetExam} onOpenChange={(o) => { if (!o) { setSheetExam(null); setSheetTopicFilter(null); } }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Practice Sheet স্টাইল বেছে নিন</DialogTitle>
+          {sheetTopicFilter && (
+            <p className="text-xs text-muted-foreground">শুধু: {sheetTopicFilter.subtopic || sheetTopicFilter.topic}</p>
+          )}
         </DialogHeader>
         <div className="space-y-4">
           {sheetChecking ? (
@@ -3031,7 +3078,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               </div>
               {openPanelExamId === exam.id && openPanelType === "topic" && (
                 <div className="mt-1 w-full">
-                  <TopicPickerPanel examId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+                  <TopicPickerPanel examId={exam.id} exam={exam} navigate={navigate} isAdmin={isAdmin} openPracticeSheetPicker={openPracticeSheetPicker} />
                 </div>
               )}
               {openPanelExamId === exam.id && openPanelType === "split" && (
