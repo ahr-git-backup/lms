@@ -223,7 +223,7 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
-.topic-box{background-color:#F0FDF4;border:2px solid #16a34a;color:#166534;font-weight:700;font-size:11pt;padding:6px 14px;border-radius:6px;margin:10px auto 6px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:80%}
+.topic-box{background-color:#EFF6FF;border:2px solid #2563eb;color:#1e3a8a;font-weight:700;font-size:11pt;padding:6px 14px;border-radius:6px;margin:10px auto 6px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:80%}
 .subtopic-box{background-color:#FEF9C3;border:1.5px solid #ca8a04;color:#713f12;font-weight:600;font-size:9.5pt;padding:4px 12px;border-radius:6px;margin:0 auto 8px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:70%}
 @media screen{
 .a4-page{background:#fff;width:210mm;max-width:100%;box-sizing:border-box;margin:0 auto 16px;padding:10mm;box-shadow:0 1px 6px rgba(0,0,0,0.15);border:1px solid #e5e7eb;border-radius:2px}
