@@ -1033,15 +1033,14 @@ const TakeExam = () => {
       // @ts-ignore
       if (exam.allow_guest === true) return true;
 
-      // If course_id is null, it's potentially public, BUT we must check if hidden from free view
+      // is_visible_on_free makes the exam public regardless of whether it's
+      // also attached to a course (course_id set) or is a readymade exam.
+      // @ts-ignore
+      if (exam.is_visible_on_free === true) return true;
+
+      // If course_id is null and not explicitly hidden, it's public too.
       if (!exam.course_id) {
-          // @ts-ignore
-          if (exam.is_visible_on_free === false) {
-             // Not public. Check if user has access via Archive/Shared
-             // Fall through to enrollment checks
-          } else {
-             return true; // Strictly public/free
-          }
+          return true;
       }
 
       if (!user) return false; // guests only ever get access via is_visible_on_free/allow_guest above
