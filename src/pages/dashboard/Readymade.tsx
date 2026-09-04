@@ -2531,11 +2531,14 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
     }
   };
 
+  // NOTE: requires >=2 roman-numeral markers in sequence to avoid false-
+  // positives on ordinary text — same fix as TakeExam.tsx's isImageOrPatternQuestion.
   const isImageOrPatternQ = (q: any) => {
     const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
     const combined = fields.filter(Boolean).join(" ");
     if (/<img/i.test(combined)) return true;
-    if (/\(?\b(i|ii|iii|iv|v|vi)\)?[.)]/i.test(combined)) return true;
+    const romanMarkers = combined.match(/\((i{1,3}|iv|vi{0,1})\)|\b(i{1,3}|iv|vi{0,1})[.)]/gi) || [];
+    if (romanMarkers.length >= 2) return true;
     return false;
   };
 

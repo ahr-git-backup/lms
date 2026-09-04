@@ -464,13 +464,22 @@ const TakeExam = () => {
 
   // Detect questions with images or Roman-numeral/multi-part (উদ্দীপক-style) content.
   // Only checks question_text + options — explanation is intentionally excluded.
+  //
+  // NOTE: must require an actual *sequence* of roman-numeral list items
+  // (e.g. "i. ... ii. ... iii. ...") — matching a single "i)" or "v." false-
+  // positives on completely ordinary text (any word ending in a stray letter
+  // followed by a period/paren coincidentally matches i/ii/iii/iv/v/vi), which
+  // was incorrectly flagging normal (non-উদ্দীপক) exams as pattern-questions
+  // and showing/filtering by the চিত্র/উদ্দীপক toggle when it shouldn't.
   const isImageOrPatternQuestion = (q: any) => {
       if (!q) return false;
       const fields = [q.question_text, q.option_a, q.option_b, q.option_c, q.option_d, q.option_e];
       const combined = fields.filter(Boolean).join(" ");
       if (/<img/i.test(combined)) return true;
-      // Roman numeral list patterns: i. ii. iii. / (i) (ii) (iii) / i) ii) iii)
-      if (/\(?\b(i|ii|iii|iv|v|vi)\)?[.)]/i.test(combined)) return true;
+      // Require at least two roman-numeral markers in sequence — e.g.
+      // "i. ... ii." or "(i) ... (ii)" — not just one stray match.
+      const romanMarkers = combined.match(/\((i{1,3}|iv|vi{0,1})\)|\b(i{1,3}|iv|vi{0,1})[.)]/gi) || [];
+      if (romanMarkers.length >= 2) return true;
       return false;
   };
 
@@ -596,6 +605,17 @@ const TakeExam = () => {
           localStorage.removeItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`);
           localStorage.removeItem(QUESTIONS_STORAGE_KEY);
       } catch { /* ignore */ }
+  };
+
+  // "হ্যাঁ, বের হবো" ক্লিক করলে ব্যবহার করা হয়। শুধু browser back-button চাপলেই
+  // exit-confirm popup খোলে (নিচের popstate effect দেখুন), যেটা intercept করার
+  // জন্য আগে থেকেই history-তে একটা dummy entry pushState করে রাখা হয়েছিল।
+  // তাই এখান থেকে navigate(-1) করলে সেই dummy entry-টাই consume হয়ে ইউজার
+  // আবার এই exam পেজেই ফিরে আসতো (popup কাজ না করার মতো দেখাতো)। তাই এখানে
+  // দুই ধাপ পিছনে (-2) গিয়ে dummy entry + আসল exam পেজ দুটোই bypass করা হচ্ছে।
+  const confirmedExitExam = () => {
+      cleanupExamStorage();
+      navigate(-2);
   };
 
   const qpGoNext = () => {
@@ -1857,7 +1877,7 @@ const TakeExam = () => {
                         onClick={() => {
                             setShowExitConfirm(false);
                             qpCleanupStorage();
-                            navigate(-1);
+                            navigate(-2);
                         }}
                     >
                         হ্যাঁ, বের হবো
@@ -2075,8 +2095,7 @@ const TakeExam = () => {
                       variant="destructive"
                       onClick={() => {
                           setShowExitConfirm(false);
-                          cleanupExamStorage();
-                          navigate(-1);
+                          confirmedExitExam();
                       }}
                   >
                       হ্যাঁ, বের হবো
