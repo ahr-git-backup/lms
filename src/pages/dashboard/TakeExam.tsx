@@ -201,6 +201,7 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const fixedHeaderRef = useRef<HTMLDivElement | null>(null);
   const [fixedHeaderHeight, setFixedHeaderHeight] = useState(96);
+  const [navbarOffset, setNavbarOffset] = useState(56);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
@@ -946,6 +947,15 @@ const TakeExam = () => {
           if (fixedHeaderRef.current) {
               setFixedHeaderHeight(fixedHeaderRef.current.offsetHeight);
           }
+          // Measure the real dashboard sticky navbar height instead of assuming a
+          // fixed 56px (top-14) — mobile browsers resize the viewport (address bar
+          // show/hide) which can leave a stale gap/overlap if we hardcode the value.
+          if (user) {
+              const navHeader = document.querySelector("header.sticky.top-0") as HTMLElement | null;
+              setNavbarOffset(navHeader ? navHeader.offsetHeight : 56);
+          } else {
+              setNavbarOffset(0);
+          }
       };
       measure();
       window.addEventListener("resize", measure);
@@ -954,7 +964,7 @@ const TakeExam = () => {
           window.removeEventListener("resize", measure);
           clearInterval(interval);
       };
-  }, [violationCount]);
+  }, [violationCount, user]);
 
 
   const scrollToQuestion = (index: number) => {
@@ -2107,7 +2117,7 @@ const TakeExam = () => {
         {/* fixed (not sticky) so it stays visible no matter which ancestor actually
             scrolls on mobile. top offset clears the dashboard's own 56px header when
             logged in — guests hit this page standalone (no such header) so it sits at 0. */}
-        <div ref={fixedHeaderRef} className={cn("fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2", user ? "top-14" : "top-0")}>
+        <div ref={fixedHeaderRef} style={{ top: navbarOffset }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
           <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
