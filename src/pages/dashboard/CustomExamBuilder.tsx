@@ -66,9 +66,9 @@ const CustomExamBuilder = () => {
   const { user, isAdmin } = useAuth();
   const { data: enrollments } = useEnrollments();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
+  const enrolledIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id) || [];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
+  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue && e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
 
   const { data: subChapterGrants } = useQuery({
     queryKey: ["course-readymade-subchapter-grants", enrolledIds.join(',')],

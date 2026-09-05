@@ -570,8 +570,12 @@ const Readymade = () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, selectedBoardStep, setSelectedBoardStep, selectedSubChapter, setSelectedSubChapter, navigate, searchQuery, page, setPage, selectedParentTopics, selectedBoards, setCurrentChaptersList, setCurrentSubjectsList, setCurrentBoardsList, setCurrentSubChaptersList, userId, lockedExam, setLockedExam, isAdmin, loadingEnrollments }: any) => {
 
-  const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
-  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
+  // Overdue-due-payment students are excluded from enrolledIds here — they
+  // still see the exam card (course shows in the list normally) but the
+  // "Start" button/access checks (isExamUnlocked) treat them as not enrolled,
+  // same as PremiumLockDialog for an unpaid student.
+  const enrolledIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id) || [];
+  const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue && e.course?.readymade_full_access).map((e: any) => e.course_id) || [];
 
   const { data: subChapterGrants } = useQuery({
     queryKey: ["course-readymade-subchapter-grants", enrolledIds.join(',')],

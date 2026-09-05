@@ -1067,13 +1067,13 @@ const TakeExam = () => {
       if (!user) return false; // guests only ever get access via is_visible_on_free/allow_guest above
       if (!enrollments) return false;
 
-      const enrolledIds = enrollments.map((e: any) => e.course_id);
+      const enrolledIds = enrollments.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id);
       // Course-level bulk grant (Admin → Course → Readymade Access Manager →
       // "Full Access" toggle) — separate from per-exam readymade_course_ids
       // below. A student enrolled in a course with this flag on should reach
       // EVERY readymade exam, not just ones individually listed on the exam.
       const fullAccessCourseIds = enrollments
-        .filter((e: any) => e.course?.readymade_full_access)
+        .filter((e: any) => !e.is_payment_overdue && e.course?.readymade_full_access)
         .map((e: any) => e.course_id);
 
       // Check Primary Enrollment

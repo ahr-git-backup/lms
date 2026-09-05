@@ -40,7 +40,22 @@ const ClassPlayerPage = () => {
 
       if (!enrollments || enrollments.length === 0) return { hasAccess: false, viaArchive: false };
 
-      const enrolledCourseIds = enrollments.map(e => e.course_id);
+      // Overdue-due-payment check: an approved payment_request with
+      // due_amount > 0 and a passed due_date suspends content access for
+      // that course (still shows in listings elsewhere, just can't watch).
+      const today = new Date().toISOString().slice(0, 10);
+      const { data: overduePayments } = await supabase
+        .from("payment_requests")
+        .select("course_id")
+        .eq("profile_id", profile.id)
+        .eq("status", "approved")
+        .gt("due_amount", 0)
+        .lt("due_date", today);
+      const overdueCourseIds = new Set((overduePayments || []).map((p: any) => p.course_id));
+
+      const enrolledCourseIds = enrollments
+        .filter((e: any) => !overdueCourseIds.has(e.course_id))
+        .map(e => e.course_id);
 
       // 1. Check Primary Course
       if (classItem.course_id && enrolledCourseIds.includes(classItem.course_id)) {
@@ -55,7 +70,7 @@ const ClassPlayerPage = () => {
 
       if (classItem.is_archive) {
           // 3a. Course-level "Archive Full Access" toggle
-          const hasFullArchiveAccess = enrollments.some((e: any) => e.course?.archive_full_access);
+          const hasFullArchiveAccess = enrollments.some((e: any) => !overdueCourseIds.has(e.course_id) && e.course?.archive_full_access);
           if (hasFullArchiveAccess) return { hasAccess: true, viaArchive: true };
 
           // 3b. Check Archive Courses (explicit per-class mapping)

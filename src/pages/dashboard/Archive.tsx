@@ -184,8 +184,8 @@ const Archive = () => {
 const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin, setManageChapters, setManageSubjects }: any) => {
 
     const [lockedClassOpen, setLockedClassOpen] = useState(false);
-    const enrolledIds: string[] = enrollments?.map((e: any) => e.course_id) || [];
-    const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => e.course?.archive_full_access).map((e: any) => e.course_id) || [];
+    const enrolledIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id) || [];
+    const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue && e.course?.archive_full_access).map((e: any) => e.course_id) || [];
 
     const { data: chapterGrants } = useQuery({
         queryKey: ["course-archive-chapter-grants", enrolledIds.join(',')],

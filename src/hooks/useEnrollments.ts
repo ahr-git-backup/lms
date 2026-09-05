@@ -22,12 +22,35 @@ export const useEnrollments = () => {
 
       if (error) throw error;
 
+      // Overdue-due-payment check: an approved payment_request with due_amount > 0
+      // and a due_date that has already passed means the student promised to
+      // pay the rest by that date and didn't. Access to that course's exams/
+      // classes should be suspended (still visible, just locked) until the
+      // due is cleared or the due_date is pushed — same as an unpaid student,
+      // WITHOUT touching the enrollments row itself (admin can still see the
+      // student as "enrolled" everywhere else; only content access is gated).
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, compares correctly against a date column
+      const { data: overduePayments } = await supabase
+        .from("payment_requests")
+        .select("course_id, due_amount, due_date")
+        .eq("profile_id", user.id)
+        .eq("status", "approved")
+        .gt("due_amount", 0)
+        .lt("due_date", today);
+      const overdueCourseIds = new Set((overduePayments || []).map((p: any) => p.course_id));
+
       // Filter out expired enrollments
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activeEnrollments = (enrollments || []).filter((e: any) => {
         if (!e.expires_at) return true; // No expiry = always active
         return e.expires_at > now;      // Only active if not expired
-      });
+      }).map((e: any) => ({
+        ...e,
+        // Content access (exams/classes) is gated on this — see PremiumLockDialog
+        // callers, which should treat is_payment_overdue the same as "not
+        // enrolled" for the Start/Watch buttons while still showing the course.
+        is_payment_overdue: overdueCourseIds.has(e.course_id),
+      }));
 
       // Handle Linked/Extra Courses (bonus courses from linked_course_ids).
       // Resolved PER direct enrollment (not globally flattened) so "My Courses"
