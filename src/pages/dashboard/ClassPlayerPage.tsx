@@ -9,6 +9,24 @@ import { FileText, ArrowLeft, Calendar, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ClassComments from "@/components/ClassComments";
 
+// If the class would otherwise be accessible except that the relevant
+// course's payment is overdue, surface that reason instead of a generic
+// "not enrolled" message. Checks primary/shared/archive course ids against
+// the overdue set.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const getOverdueInfoForClass = (classItem: any, enrollments: any[], overduePayments: any[] | null) => {
+  if (!overduePayments || overduePayments.length === 0) return null;
+  const relevantCourseIds = new Set<string>([
+    classItem.course_id,
+    ...(Array.isArray(classItem.shared_course_ids) ? classItem.shared_course_ids : []),
+    ...(Array.isArray(classItem.archive_course_ids) ? classItem.archive_course_ids : []),
+  ].filter(Boolean));
+  const enrolledCourseIds = new Set(enrollments.map((e: any) => e.course_id));
+  const match = overduePayments.find((p: any) => relevantCourseIds.has(p.course_id) && enrolledCourseIds.has(p.course_id));
+  if (!match) return null;
+  return { dueAmount: match.due_amount, dueDate: match.due_date };
+};
+
 const ClassPlayerPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
@@ -29,7 +47,7 @@ const ClassPlayerPage = () => {
 
   const { data: accessInfo, isLoading: accessLoading } = useQuery({
     queryKey: ["check-class-access", classItem?.id, profile?.id],
-    queryFn: async (): Promise<{ hasAccess: boolean; viaArchive: boolean }> => {
+    queryFn: async (): Promise<{ hasAccess: boolean; viaArchive: boolean; overdueInfo?: { dueAmount: number; dueDate: string } | null }> => {
       if (!classItem || !profile?.id) return { hasAccess: false, viaArchive: false };
 
       // Fetch all enrollments for the user
@@ -46,7 +64,7 @@ const ClassPlayerPage = () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data: overduePayments } = await supabase
         .from("payment_requests")
-        .select("course_id")
+        .select("course_id, due_amount, due_date")
         .eq("profile_id", profile.id)
         .eq("status", "approved")
         .gt("due_amount", 0)
@@ -94,7 +112,7 @@ const ClassPlayerPage = () => {
           }
       }
 
-      return { hasAccess: false, viaArchive: false };
+      return { hasAccess: false, viaArchive: false, overdueInfo: getOverdueInfoForClass(classItem, enrollments, overduePayments) };
     },
     enabled: !!classItem && !!profile?.id
   });
@@ -169,6 +187,20 @@ const ClassPlayerPage = () => {
   }
 
   if (!hasAccess) {
+     const overdueInfo = accessInfo?.overdueInfo;
+     if (overdueInfo) {
+       return (
+          <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
+              <div className="p-6 border rounded-lg bg-red-50 dark:bg-red-950/20 border-red-300 text-red-700 dark:text-red-400 space-y-2">
+                  <h2 className="text-xl font-bold mb-2">বকেয়া পেমেন্টের কারণে অ্যাক্সেস বন্ধ</h2>
+                  <p>এই কোর্সের বাকি টাকা পরিশোধের নির্ধারিত তারিখ পার হয়ে গেছে।</p>
+                  <p className="flex justify-center gap-2"><span>বাকি টাকা:</span><strong>৳{overdueInfo.dueAmount}</strong></p>
+                  <p className="flex justify-center gap-2"><span>দেওয়ার শেষ তারিখ ছিল:</span><strong>{new Date(overdueInfo.dueDate).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}</strong></p>
+                  <p className="text-sm mt-2">বাকি টাকা পরিশোধ করলেই আবার এক্সেস চালু হয়ে যাবে।</p>
+              </div>
+          </div>
+       );
+     }
      return (
         <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
             <div className="p-6 border rounded-lg bg-destructive/5 text-destructive">

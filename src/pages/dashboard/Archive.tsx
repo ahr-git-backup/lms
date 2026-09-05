@@ -37,7 +37,30 @@ const isClassUnlocked = (classItem: any, enrolledIds: string[], fullAccessCourse
   return false;
 };
 
-const ArchiveLockDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => (
+const ArchiveLockDialog = ({ open, onClose, overdueInfo }: { open: boolean; onClose: () => void; overdueInfo?: { dueAmount: number; dueDate: string } | null }) => {
+  if (overdueInfo) {
+    return (
+      <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <div className="mx-auto mb-2 h-12 w-12 rounded-full bg-gradient-to-br from-red-400 to-red-600 flex items-center justify-center shadow-lg">
+              <Sparkles className="h-6 w-6 text-white" />
+            </div>
+            <DialogTitle className="text-center">বকেয়া পেমেন্টের কারণে অ্যাক্সেস বন্ধ</DialogTitle>
+            <DialogDescription className="text-center">
+              এই কোর্সের বাকি টাকা পরিশোধের নির্ধারিত তারিখ পার হয়ে গেছে।
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border border-red-500/30 bg-red-50/50 dark:bg-red-950/20 p-3 text-sm space-y-1.5">
+            <p className="flex justify-between"><span className="text-muted-foreground">বাকি টাকা:</span><span className="font-semibold text-red-700 dark:text-red-400">৳{overdueInfo.dueAmount}</span></p>
+            <p className="flex justify-between"><span className="text-muted-foreground">দেওয়ার শেষ তারিখ ছিল:</span><span className="font-semibold text-red-700 dark:text-red-400">{new Date(overdueInfo.dueDate).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}</span></p>
+          </div>
+          <p className="text-xs text-center text-muted-foreground">বাকি টাকা পরিশোধ করলেই আবার সব এক্সেস চালু হয়ে যাবে।</p>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+  return (
   <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
     <DialogContent className="max-w-sm">
       <DialogHeader>
@@ -51,7 +74,8 @@ const ArchiveLockDialog = ({ open, onClose }: { open: boolean; onClose: () => vo
       </DialogHeader>
     </DialogContent>
   </Dialog>
-);
+  );
+};
 
 const Archive = () => {
   const [activeTab, setActiveTab] = useState("classes");
@@ -183,9 +207,14 @@ const Archive = () => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin, setManageChapters, setManageSubjects }: any) => {
 
-    const [lockedClassOpen, setLockedClassOpen] = useState(false);
+    const [lockedClass, setLockedClass] = useState<any | null>(null);
     const enrolledIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id) || [];
     const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue && e.course?.archive_full_access).map((e: any) => e.course_id) || [];
+    const getOverdueInfo = (courseId: string | undefined) => {
+      if (!courseId) return null;
+      const e = enrollments?.find((en: any) => en.course_id === courseId && en.is_payment_overdue);
+      return e?.overdue_info || null;
+    };
 
     const { data: chapterGrants } = useQuery({
         queryKey: ["course-archive-chapter-grants", enrolledIds.join(',')],
@@ -393,7 +422,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                     Class
                                 </Button>
                                 ) : (
-                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClass(classItem)}>
                                     <Lock className="h-3 w-3 mr-1" /> Class
                                 </Button>
                                 )
@@ -406,7 +435,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                     </a>
                                 </Button>
                                 ) : (
-                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClass(classItem)}>
                                     <Lock className="h-3 w-3 mr-1" /> Note
                                 </Button>
                                 )
@@ -418,7 +447,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                     })}
                 </div>
                 <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
-                <ArchiveLockDialog open={lockedClassOpen} onClose={() => setLockedClassOpen(false)} />
+                <ArchiveLockDialog open={!!lockedClass} onClose={() => setLockedClass(null)} overdueInfo={getOverdueInfo(lockedClass?.course_id)} />
             </div>
         );
     }
@@ -531,7 +560,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                     Class
                                 </Button>
                                 ) : (
-                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClass(classItem)}>
                                     <Lock className="h-3 w-3 mr-1" /> Class
                                 </Button>
                                 )
@@ -544,7 +573,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                     </a>
                                 </Button>
                                 ) : (
-                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClassOpen(true)}>
+                                <Button size="sm" variant="outline" className="rounded-full" onClick={() => setLockedClass(classItem)}>
                                     <Lock className="h-3 w-3 mr-1" /> Note
                                 </Button>
                                 )
@@ -556,7 +585,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                     })}
                 </div>
                 <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
-                <ArchiveLockDialog open={lockedClassOpen} onClose={() => setLockedClassOpen(false)} />
+                <ArchiveLockDialog open={!!lockedClass} onClose={() => setLockedClass(null)} overdueInfo={getOverdueInfo(lockedClass?.course_id)} />
                 </>
             )}
         </div>

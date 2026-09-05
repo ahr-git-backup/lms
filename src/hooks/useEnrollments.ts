@@ -38,6 +38,7 @@ export const useEnrollments = () => {
         .gt("due_amount", 0)
         .lt("due_date", today);
       const overdueCourseIds = new Set((overduePayments || []).map((p: any) => p.course_id));
+      const overdueByCourseId = new Map((overduePayments || []).map((p: any) => [p.course_id, { dueAmount: p.due_amount, dueDate: p.due_date }]));
 
       // Filter out expired enrollments
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +51,7 @@ export const useEnrollments = () => {
         // callers, which should treat is_payment_overdue the same as "not
         // enrolled" for the Start/Watch buttons while still showing the course.
         is_payment_overdue: overdueCourseIds.has(e.course_id),
+        overdue_info: overdueByCourseId.get(e.course_id) || null,
       }));
 
       // Handle Linked/Extra Courses (bonus courses from linked_course_ids).
