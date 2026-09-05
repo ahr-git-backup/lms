@@ -959,9 +959,20 @@ const TakeExam = () => {
       };
       measure();
       window.addEventListener("resize", measure);
-      const interval = setInterval(measure, 500);
+      window.addEventListener("scroll", measure, { passive: true });
+      // visualViewport tracks the real visible viewport on mobile (Chrome's
+      // address-bar collapse/expand shifts this independently of window resize),
+      // so without it the fixed header can visibly lag/gap from the true top
+      // for a moment during scroll.
+      const vv = window.visualViewport;
+      vv?.addEventListener("resize", measure);
+      vv?.addEventListener("scroll", measure);
+      const interval = setInterval(measure, 300);
       return () => {
           window.removeEventListener("resize", measure);
+          window.removeEventListener("scroll", measure);
+          vv?.removeEventListener("resize", measure);
+          vv?.removeEventListener("scroll", measure);
           clearInterval(interval);
       };
   }, [violationCount, user]);
@@ -2117,7 +2128,7 @@ const TakeExam = () => {
         {/* fixed (not sticky) so it stays visible no matter which ancestor actually
             scrolls on mobile. top offset clears the dashboard's own 56px header when
             logged in — guests hit this page standalone (no such header) so it sits at 0. */}
-        <div ref={fixedHeaderRef} style={{ top: navbarOffset }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
+        <div ref={fixedHeaderRef} style={{ top: `max(${navbarOffset}px, env(safe-area-inset-top))` }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
           <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
