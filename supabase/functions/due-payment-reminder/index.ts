@@ -8,6 +8,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const PUSH_API_KEY = Deno.env.get("PUSH_API_KEY")!;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
@@ -27,8 +28,33 @@ function messageFor(daysLeft: number, dueAmount: number, courseName: string) {
   };
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
   try {
+    // No cron available on this project — this function is instead triggered
+    // client-side, once per day, the first time an admin opens the dashboard
+    // (see DashboardLayout.tsx). Since it has a real side effect (sends push
+    // notifications to students), require the caller to be a logged-in
+    // admin — a server-to-server apiKey path is also kept for flexibility
+    // (e.g. if a cron job is added later).
+    let authorized = !!PUSH_API_KEY && req.headers.get("x-api-key") === PUSH_API_KEY;
+    if (!authorized) {
+      const authHeader = req.headers.get("Authorization") || "";
+      const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user } } = await callerClient.auth.getUser();
+      if (user) {
+        const { data: isAdmin } = await callerClient.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        authorized = !!isAdmin;
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+        status: 401,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     const today = new Date();
     const todayIso = today.toISOString().slice(0, 10);
 

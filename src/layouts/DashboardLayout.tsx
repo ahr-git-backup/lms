@@ -114,6 +114,24 @@ export const DashboardLayout = () => {
     return () => clearInterval(adminInterval);
   }, [isAdmin, isMuted]);
 
+  // Due-payment-reminder trigger: no cron job available, so instead this
+  // fires the due-payment-reminder edge function once per calendar day the
+  // FIRST time an admin loads the dashboard that day (tracked via
+  // localStorage). The function itself is idempotent per bucket (7/3/1 days
+  // left) via payment_requests.due_reminders_sent, so calling it more than
+  // once a day (e.g. two admins both logging in) is harmless — it just
+  // re-checks and finds nothing new to send.
+  useEffect(() => {
+    if (!isAdmin) return;
+    const todayKey = new Date().toISOString().slice(0, 10);
+    const lastRunKey = "due_reminder_last_run";
+    if (localStorage.getItem(lastRunKey) === todayKey) return;
+    localStorage.setItem(lastRunKey, todayKey);
+    supabase.functions.invoke("due-payment-reminder", { body: {} }).catch((e) => {
+      console.error("due-payment-reminder trigger failed:", e);
+    });
+  }, [isAdmin]);
+
   // Check for reminders and announcements (ONCE on mount/profile load)
   useEffect(() => {
     // Only check if user is logged in
