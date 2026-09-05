@@ -2128,7 +2128,7 @@ const TakeExam = () => {
         {/* fixed (not sticky) so it stays visible no matter which ancestor actually
             scrolls on mobile. top offset clears the dashboard's own 56px header when
             logged in — guests hit this page standalone (no such header) so it sits at 0. */}
-        <div ref={fixedHeaderRef} style={{ top: navbarOffset }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
+        <div ref={fixedHeaderRef} style={{ top: user ? navbarOffset : 0 }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
           <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
