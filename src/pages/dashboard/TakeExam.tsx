@@ -201,7 +201,7 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const fixedHeaderRef = useRef<HTMLDivElement | null>(null);
   const [fixedHeaderHeight, setFixedHeaderHeight] = useState(96);
-  const [navbarOffset, setNavbarOffset] = useState(56);
+  const [navbarOffset, setNavbarOffset] = useState(0);
   const [isNavigatorOpen, setIsNavigatorOpen] = useState(false);
   const [violationCount, setViolationCount] = useState(0);
   const [hasStarted, setHasStarted] = useState(false);
