@@ -1025,7 +1025,8 @@ const AtlasAI = () => {
     const answer = await askAI(
       questionWithContext,
       imgToSend,
-      getSystemPrompt(question || "ছবি বিশ্লেষণ করো", userMemoryNote || undefined, userContext || undefined)
+      getSystemPrompt(question || "ছবি বিশ্লেষণ করো", userMemoryNote || undefined, userContext || undefined),
+      { geminiOnly: true }
     );
     setMessages((m) => {
       const next = [...m, { role: "assistant" as const, text: answer }];

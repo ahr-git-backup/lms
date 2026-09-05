@@ -198,7 +198,7 @@ function isFailureResponse(text: string) {
 
 /** Generate via AI then persist to the shared cache so every future viewer gets an instant read. */
 export async function generateAndCacheExplanation(q: McqLike, questionId?: string): Promise<string> {
-  const res = await generateAndCacheExplanationWithMeta(q, questionId);
+  const res = await generateAndCacheExplanationWithMeta(q, questionId, true);
   return res.answer;
 }
 
@@ -383,7 +383,7 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
     }
 
     const context = `নিচের সম্পূর্ণ MCQ-টি মাথায় রেখে ফলো-আপ প্রশ্নের বিস্তারিত উত্তর দাও:\n\n${buildFullMcqBlock(q)}\n\nফলো-আপ প্রশ্ন: ${msg}\n\n(উপরের প্রশ্ন/অপশনের প্রেক্ষাপট মাথায় রেখে পাঠ্যবই-ভিত্তিক জ্ঞান দিয়ে বিস্তারিতভাবে উত্তর দাও; কোনো নির্দিষ্ট তথ্য নিয়ে সত্যিই অনিশ্চিত হলে বলো। সাদা বাংলা টেক্সটে লিখবে, কখনো JSON/{}/[] ব্যবহার করবে না, উত্তর অসম্পূর্ণ রেখে থামবে না।)`;
-    const answer = normalizeAiAnswer(await askAI(context, null, MCQ_SYSTEM_PROMPT));
+    const answer = normalizeAiAnswer(await askAI(context, null, MCQ_SYSTEM_PROMPT, { geminiOnly: true }));
     setMessages([...nextMessages, { role: "assistant", content: answer }]);
     setLoading(false);
   };
