@@ -5,7 +5,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, FileImage, LayoutGrid, ChevronRight } from "lucide-react";
-import MathText from "@/components/MathText";
+import SafeRichText from "@/components/SafeRichText";
 
 const Routine = () => {
   const [view, setView] = useState<'courses' | 'list' | 'detail'>('courses');
@@ -221,7 +221,7 @@ const RoutineDetail = ({ routineId, onBack }: { routineId: string, onBack: () =>
 
                 {routine.content && (
                     <div className="prose dark:prose-invert max-w-none bg-card p-6 rounded-xl border shadow-sm">
-                        <MathText text={routine.content} />
+                        <SafeRichText html={routine.content} />
                     </div>
                 )}
 
