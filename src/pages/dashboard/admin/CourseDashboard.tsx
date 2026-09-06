@@ -132,9 +132,6 @@ export default function CourseDashboard() {
             school,
             college_name,
             hsc_batch,
-            is_second_timer,
-            father_name,
-            mother_name,
             ssc_gpa,
             hsc_gpa
           )
@@ -259,7 +256,6 @@ export default function CourseDashboard() {
         <TabsList className="flex flex-wrap h-auto bg-muted/50 p-1 w-full justify-start border-b rounded-none rounded-t-lg">
           <TabsTrigger value="classes" className="data-[state=active]:bg-background">Classes</TabsTrigger>
           <TabsTrigger value="exams" className="data-[state=active]:bg-background">Exams</TabsTrigger>
-          <TabsTrigger value="readymade-access" className="data-[state=active]:bg-background">Readymade Access</TabsTrigger>
           <TabsTrigger value="archive-access" className="data-[state=active]:bg-background">Archive Access</TabsTrigger>
           <TabsTrigger value="students" className="data-[state=active]:bg-background">Enrolled Students</TabsTrigger>
           <TabsTrigger value="mentors-reviews" className="data-[state=active]:bg-background">Mentors & Reviews</TabsTrigger>
@@ -360,14 +356,6 @@ export default function CourseDashboard() {
             )}
           </TabsContent>
 
-          <TabsContent value="readymade-access" className="mt-0 space-y-4">
-            <div className="mb-4">
-              <h3 className="font-semibold text-lg">Readymade Exam Access</h3>
-              <p className="text-sm text-muted-foreground mt-1">Select which subjects/chapters/sub-chapters of Readymade Exams students in this course can access. Unselected ones remain locked.</p>
-            </div>
-            {courseId && <ReadymadeAccessManager courseId={courseId} mode="readymade" />}
-          </TabsContent>
-
           <TabsContent value="archive-access" className="mt-0 space-y-4">
             <div className="mb-4">
               <h3 className="font-semibold text-lg">Archive Class Access</h3>
@@ -413,7 +401,6 @@ export default function CourseDashboard() {
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                             <div className="text-sm">Batch: {enrollment.profile?.hsc_batch || "N/A"}</div>
-                            {enrollment.profile?.is_second_timer && <span className="text-xs text-red-500 font-medium">2nd Timer</span>}
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{new Date(enrollment.created_at).toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-right">

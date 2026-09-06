@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
-import { PostEditor } from "@/components/PostEditor";
 import { ChecklistEditor, ChecklistLine } from "@/components/ChecklistEditor";
-import { DescriptionBlockEditor, DescriptionBlock } from "@/components/DescriptionBlockEditor";
+import { RichTextEditor } from "@/components/RichTextEditor";
 import { supabase } from "@/integrations/supabase/client";
 import { Course } from "@/types/admin";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
@@ -31,17 +29,19 @@ import { CoursePositionManagerDialog } from "@/components/admin/CoursePositionMa
 import { ImageUploader } from "@/components/ui/image-uploader";
 
 const demoContentSchema = z.object({
-  title: z.string().min(1, "Title required"),
+  title: z.string().trim().optional().or(z.literal("")),
   video_url: z.string().trim().optional().or(z.literal("")),
   note_url: z.string().trim().optional().or(z.literal("")),
   is_locked: z.boolean().default(false),
+  sub_course_name: z.string().trim().optional().or(z.literal("")),
+  lecture_number: z.string().trim().optional().or(z.literal("")),
 });
 
 const courseSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, "Name is required").max(200),
   short_description_lines: z.array(z.object({ text: z.string(), bold: z.boolean().optional() })).optional().default([]),
-  full_description_blocks: z.array(z.object({ heading: z.string(), body: z.string() })).optional().default([]),
+  full_description: z.string().trim().optional().or(z.literal("")),
   extra_links: z.array(z.object({ label: z.string(), url: z.string() })).optional().default([]),
   price: z
     .string()
@@ -71,6 +71,7 @@ const courseSchema = z.object({
   is_active: z.boolean().optional().default(true),
   is_public: z.boolean().optional().default(true),
   is_hidden: z.boolean().optional().default(false),
+  show_enrollment_count: z.boolean().optional().default(true),
   category: z.array(z.string()).default([]),
   sub_category: z.array(z.string()).default([]),
   priority: z.number().optional().default(0),
@@ -85,7 +86,7 @@ const AdminCourses = () => {
   const [form, setForm] = useState<z.infer<typeof courseSchema>>({
     name: "",
     short_description_lines: [],
-    full_description_blocks: [],
+    full_description: "",
     extra_links: [],
     price: "",
     original_price: "",
@@ -100,6 +101,7 @@ const AdminCourses = () => {
     is_active: true,
     is_public: true,
     is_hidden: false,
+    show_enrollment_count: true,
     category: [],
     sub_category: [],
     priority: 0,
@@ -240,7 +242,7 @@ const AdminCourses = () => {
     setForm({
       name: "",
       short_description_lines: [],
-      full_description_blocks: [],
+      full_description: "",
       extra_links: [],
       price: "",
       original_price: "",
@@ -253,6 +255,7 @@ const AdminCourses = () => {
       is_active: true,
       is_public: true,
       is_hidden: false,
+      show_enrollment_count: true,
       category: [],
       sub_category: [],
       priority: 0,
@@ -269,7 +272,7 @@ const AdminCourses = () => {
       const payload: any = {
         name: parsed.name,
         short_description_lines: parsed.short_description_lines || [],
-        full_description_blocks: parsed.full_description_blocks || [],
+        full_description: parsed.full_description || null,
         extra_links: parsed.extra_links || [],
         price: parsed.price ? Number(parsed.price) : null,
         original_price: parsed.original_price ? Number(parsed.original_price) : null,
@@ -286,6 +289,7 @@ const AdminCourses = () => {
         is_active: parsed.is_active ?? true,
         is_public: parsed.is_public ?? true,
         is_hidden: parsed.is_hidden ?? false,
+        show_enrollment_count: parsed.show_enrollment_count ?? true,
         category: parsed.category,
         sub_category: parsed.sub_category,
         priority: parsed.priority ?? 0,
@@ -309,6 +313,7 @@ const AdminCourses = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-courses"] });
       queryClient.invalidateQueries({ queryKey: ["admin-course-tags"] }); // Refresh tags
       resetForm();
+      setShowForm(false);
     },
     onError: (error: Error) => {
       toast({
@@ -352,7 +357,7 @@ const AdminCourses = () => {
       id: course.id,
       name: course.name ?? "",
       short_description_lines: (course as any).short_description_lines ?? [],
-      full_description_blocks: (course as any).full_description_blocks ?? [],
+      full_description: (course as any).full_description ?? "",
       extra_links: (course as any).extra_links ?? [],
       price: course.price != null ? String(course.price) : "",
       original_price: course.original_price != null ? String(course.original_price) : "",
@@ -368,6 +373,8 @@ const AdminCourses = () => {
       is_public: course.is_public ?? true,
       // @ts-ignore
       is_hidden: course.is_hidden ?? false,
+      // @ts-ignore
+      show_enrollment_count: course.show_enrollment_count ?? true,
       category: cats,
       sub_category: subs,
       priority: course.priority ?? 0,
@@ -514,7 +521,7 @@ const AdminCourses = () => {
                  setForm({
                     name: "",
                     short_description_lines: [],
-                    full_description_blocks: [],
+                    full_description: "",
                     extra_links: [],
                     price: "",
                     original_price: "",
@@ -525,6 +532,7 @@ const AdminCourses = () => {
                     is_active: false,
                     is_public: true,
                     is_hidden: false,
+                    show_enrollment_count: true,
                     priority: 0,
                     category: [],
                     sub_category: [],
@@ -644,8 +652,8 @@ const AdminCourses = () => {
                                 />
                             </div>
 
-                            <div className="space-y-2 border md:border-0 rounded p-3 md:p-0 bg-pink-50/50 md:bg-transparent dark:bg-pink-950/10 dark:md:bg-transparent border-pink-100 dark:border-pink-900 border-dashed md:border-solid">
-                                <Label htmlFor="bkash_number" className="text-sm font-semibold text-pink-700 dark:text-pink-400">bKash Number</Label>
+                            <div className="space-y-2 border md:border-0 rounded p-3 md:p-0 bg-blue-50/50 md:bg-transparent dark:bg-blue-950/10 dark:md:bg-transparent border-blue-100 dark:border-blue-900 border-dashed md:border-solid">
+                                <Label htmlFor="bkash_number" className="text-sm font-semibold text-blue-700 dark:text-blue-400">bKash Number</Label>
                                 <Input
                                 id="bkash_number"
                                 value={form.bkash_number}
@@ -779,15 +787,15 @@ const AdminCourses = () => {
                                     </div>
                                     <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
                                         <Switch
-                                        id="access_unlimited_practice"
-                                        checked={form.access_unlimited_practice}
+                                        id="show_enrollment_count"
+                                        checked={form.show_enrollment_count}
                                         onCheckedChange={(checked) =>
-                                            setForm((prev) => ({ ...prev, access_unlimited_practice: checked }))
+                                            setForm((prev) => ({ ...prev, show_enrollment_count: checked }))
                                         }
                                         />
                                         <div className="grid gap-0.5">
-                                            <Label htmlFor="access_unlimited_practice" className="text-sm font-semibold cursor-pointer">Unlimited Practice</Label>
-                                            <span className="text-[10px] leading-tight text-muted-foreground">Unlimited portal access</span>
+                                            <Label htmlFor="show_enrollment_count" className="text-sm font-semibold cursor-pointer">Enrollment Count</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">Show "X জন ভর্তি" publicly</span>
                                         </div>
                                     </div>
                                 </div>
@@ -809,9 +817,10 @@ const AdminCourses = () => {
 
                     <div className="space-y-2">
                         <Label>Full description</Label>
-                        <DescriptionBlockEditor
-                            value={form.full_description_blocks as DescriptionBlock[]}
-                            onChange={(blocks) => setForm((prev) => ({ ...prev, full_description_blocks: blocks }))}
+                        <RichTextEditor
+                            value={form.full_description || ""}
+                            onChange={(html) => setForm((prev) => ({ ...prev, full_description: html }))}
+                            placeholder="Course details লিখুন..."
                         />
                     </div>
 
@@ -881,6 +890,18 @@ const AdminCourses = () => {
                 </TabsContent>
 
                 <TabsContent value="demos" className="mt-0 space-y-4">
+                    <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+                        <Label htmlFor="video_url_demo_tab" className="text-sm font-semibold">🎬 কোর্সের প্রোমো ভিডিও (Intro Video)</Label>
+                        <Input
+                            id="video_url_demo_tab"
+                            value={form.video_url}
+                            onChange={(e) => setForm((prev) => ({ ...prev, video_url: e.target.value }))}
+                            placeholder="https://youtu.be/..."
+                            className="bg-background"
+                        />
+                        <p className="text-[11px] text-muted-foreground">এটি একটি মাত্র ভিডিও — কোর্স ডিটেইলস পেজের উপরে দেখাবে। নিচের "Add Class" দিয়ে যোগ করা সব ভিডিও Demo Class ট্যাবে যাবে।</p>
+                    </div>
+
                     <div className="flex justify-between items-center mb-4">
                         <div className="space-y-1">
                              <h4 className="text-sm font-semibold">Demo / Preview Content</h4>
@@ -892,7 +913,7 @@ const AdminCourses = () => {
                             onClick={() => {
                                 const newContent = [
                                     ...(form.demo_content || []),
-                                    { title: "", video_url: "", note_url: "", is_locked: false }
+                                    { title: "", video_url: "", note_url: "", is_locked: false, sub_course_name: "", lecture_number: "" }
                                 ];
                                 setForm({ ...form, demo_content: newContent });
                             }}
@@ -911,6 +932,34 @@ const AdminCourses = () => {
                         {form.demo_content?.map((item, idx) => (
                             <div key={idx} className="border rounded-md p-4 flex gap-4 flex-col md:flex-row md:items-start">
                                 <div className="flex-1 space-y-3">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Sub-Course Name</Label>
+                                            <Input
+                                                value={item.sub_course_name || ""}
+                                                onChange={(e) => {
+                                                    const updated = [...(form.demo_content || [])];
+                                                    updated[idx] = { ...updated[idx], sub_course_name: e.target.value };
+                                                    setForm({ ...form, demo_content: updated });
+                                                }}
+                                                className="h-8"
+                                                placeholder="e.g. ICT Basic To Pro HSC-28"
+                                            />
+                                        </div>
+                                        <div>
+                                            <Label className="text-xs text-muted-foreground mb-1 block">Lecture Number</Label>
+                                            <Input
+                                                value={item.lecture_number || ""}
+                                                onChange={(e) => {
+                                                    const updated = [...(form.demo_content || [])];
+                                                    updated[idx] = { ...updated[idx], lecture_number: e.target.value };
+                                                    setForm({ ...form, demo_content: updated });
+                                                }}
+                                                className="h-8"
+                                                placeholder="e.g. 3"
+                                            />
+                                        </div>
+                                    </div>
                                     <div>
                                         <Label className="text-xs text-muted-foreground mb-1 block">Title</Label>
                                         <Input
@@ -921,7 +970,7 @@ const AdminCourses = () => {
                                                 setForm({ ...form, demo_content: updated });
                                             }}
                                             className="h-8"
-                                            placeholder="e.g. Introduction Class"
+                                            placeholder="e.g. লেকচার ০৩"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">

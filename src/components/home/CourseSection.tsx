@@ -1,80 +1,47 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check, Tag } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Check, Tag, Users } from "lucide-react";
 
 // Configuration: Add category names here to restrict the buttons shown on the landing page.
 // Example: ["HSC 25", "HSC 26", "Engineering"]
 // If empty, all categories from active courses will be shown.
 const FEATURED_CATEGORIES: string[] = [];
 
-/** Types out `text` left-to-right, pauses, then erases and retypes on a loop.
- *  Advances by grapheme cluster (not raw UTF-16 code unit) so Bangla conjuncts
- *  (যুক্তাক্ষর — built from multiple codepoints/combining marks) never get cut
- *  mid-cluster, which is what caused the stuttery/broken-glyph look. */
-const TypewriterHeading = ({ text }: { text: string }) => {
-    const [displayed, setDisplayed] = useState("");
-
-    useEffect(() => {
-        const segmenter = typeof Intl !== "undefined" && (Intl as any).Segmenter
-            ? new (Intl as any).Segmenter(undefined, { granularity: "grapheme" })
-            : null;
-        const clusters: string[] = segmenter
-            ? Array.from(segmenter.segment(text), (s: any) => s.segment)
-            : Array.from(text); // fallback: still better than raw index slicing
-
-        let i = 0;
-        let timeoutId: ReturnType<typeof setTimeout>;
-        const TYPE_SPEED_MS = 70;
-        const PAUSE_AFTER_TYPED_MS = 1600;
-        const PAUSE_BEFORE_RETYPE_MS = 400;
-
-        const typeNext = () => {
-            i += 1;
-            setDisplayed(clusters.slice(0, i).join(""));
-            if (i < clusters.length) {
-                timeoutId = setTimeout(typeNext, TYPE_SPEED_MS);
-            } else {
-                timeoutId = setTimeout(() => {
-                    i = 0;
-                    setDisplayed("");
-                    timeoutId = setTimeout(typeNext, PAUSE_BEFORE_RETYPE_MS);
-                }, PAUSE_AFTER_TYPED_MS);
-            }
-        };
-
-        timeoutId = setTimeout(typeNext, TYPE_SPEED_MS);
-        return () => clearTimeout(timeoutId);
-    }, [text]);
-
-    return (
-        <>
-            {displayed}
-            <span className="inline-block w-[2px] h-[0.9em] bg-white ml-0.5 align-middle animate-[colon-blink_1s_step-end_infinite]" />
-        </>
-    );
-};
-
 export const CourseSection = () => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
-    const [searchQuery, setSearchQuery] = useState<string>("");
 
     const { data: courses, isLoading } = useQuery({
         queryKey: ["public-courses"],
         queryFn: async () => {
           const { data, error } = await supabase
             .from("courses")
-            .select("id, name, short_description, price, original_price, image_url, slug, is_active, category, sub_category, priority, sub_category_order")
+            .select("id, name, short_description, price, original_price, image_url, slug, is_active, category, sub_category, priority, sub_category_order, show_enrollment_count")
             .eq("is_public", true)
+            .eq("is_active", true)
             .order("priority", { ascending: true })
             .order("created_at", { ascending: false });
           if (error) throw error;
           return data || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
+    const { data: enrollmentCounts } = useQuery({
+        queryKey: ["course-enrollment-counts"],
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc("get_all_course_enrollment_counts");
+            if (error) {
+                console.error("Error fetching enrollment counts:", error);
+                return {} as Record<string, number>;
+            }
+            const counts: Record<string, number> = {};
+            (data || []).forEach((row: any) => {
+                counts[row.course_id] = row.enrollment_count;
+            });
+            return counts;
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -152,12 +119,6 @@ export const CourseSection = () => {
         if (selectedCategory !== "all" && !courseCats.includes(selectedCategory)) return false;
         if (selectedSubCategory !== "all" && !courseSubs.includes(selectedSubCategory)) return false;
 
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            const nameMatch = course.name?.toLowerCase().includes(query);
-            return nameMatch;
-        }
-
         return true;
     });
 
@@ -222,31 +183,13 @@ export const CourseSection = () => {
     }, [selectedCategory, courses]);
 
     return (
-        <section id="courses" className="space-y-6 w-[1px] min-w-full">
+        <section id="courses" className="space-y-6">
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center justify-center text-center gap-2">
-                    <div className="relative inline-flex items-center justify-center px-4 py-1.5 rounded-2xl bg-red-600 shadow-md">
-                        <h2 className="text-3xl font-bold tracking-tight text-white relative inline-block min-h-[1.2em]">
-                            {/* Invisible full-text placeholder reserves final width so the
-                                red box stays a fixed/static size while the visible text types out. */}
-                            <span className="invisible" aria-hidden="true">চলমান কোর্স সমূহ</span>
-                            <span className="absolute inset-0 flex items-center justify-center whitespace-nowrap">
-                                <TypewriterHeading text="চলমান কোর্স সমূহ" />
-                            </span>
-                            <span className="absolute left-0 -bottom-2 w-full h-1 bg-white rounded-full"></span>
-                        </h2>
-                    </div>
-
-                    {/* Search Input */}
-                    <div className="w-full max-w-2xl mt-4">
-                        <Input
-                            type="text"
-                            placeholder="কোর্স খুঁজুন..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="bg-white"
-                        />
-                    </div>
+                    <h2 className="text-3xl font-bold tracking-tight text-primary relative inline-block">
+                        All Courses
+                        <span className="absolute left-0 -bottom-2 w-full h-1 bg-primary rounded-full"></span>
+                    </h2>
                 </div>
 
                 {/* Filters using Visible Buttons */}
@@ -259,10 +202,10 @@ export const CourseSection = () => {
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`px-3 h-8 text-xs md:px-6 md:h-10 md:text-sm border transition-all ${
+                                    className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
                                         selectedCategory === "all"
-                                        ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
-                                        : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                        ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
+                                        : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
                                     }`}
                                 >
                                     সব
@@ -272,10 +215,10 @@ export const CourseSection = () => {
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`px-3 h-8 text-xs md:px-6 md:h-10 md:text-sm border transition-all ${
+                                        className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
                                             selectedCategory === cat
-                                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-md"
-                                            : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                            ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
+                                            : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
                                         }`}
                                     >
                                         {cat}
@@ -291,10 +234,10 @@ export const CourseSection = () => {
                                     <Button
                                         variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`px-3 h-8 text-xs md:px-6 md:h-10 md:text-sm border transition-all ${
+                                        className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
                                             selectedSubCategory === "all"
-                                            ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
-                                            : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                            ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
+                                            : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
                                         }`}
                                     >
                                         সব টাইপ
@@ -304,10 +247,10 @@ export const CourseSection = () => {
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`px-3 h-8 text-xs md:px-6 md:h-10 md:text-sm border transition-all ${
+                                            className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
                                                 selectedSubCategory === sub
-                                                ? "bg-green-600 hover:bg-green-700 text-white border-green-600 shadow-sm"
-                                                : "bg-transparent hover:bg-green-50 text-foreground border-border hover:border-green-200"
+                                                ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
+                                                : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
                                             }`}
                                         >
                                             {sub}
@@ -320,7 +263,7 @@ export const CourseSection = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 {isLoading ? (
                     <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
                 ) : !filteredCourses || filteredCourses.length === 0 ? (
@@ -330,87 +273,83 @@ export const CourseSection = () => {
                 ) : (
                     filteredCourses.map((course: any) => {
                         const image = course.image_url || "/placeholder.svg";
-                        const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
-
-                        // Handle array or string display
-                        const categoryBadges = Array.isArray(course.category)
-                            ? course.category
-                            : (course.category ? [course.category] : []);
+                        const enrollCount = enrollmentCounts?.[course.id] || 0;
 
                         return (
                             <article
                                 key={course.id}
-                                className="group relative w-full rounded-[24px] p-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.85),0_8px_25px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:-translate-y-[7px] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.95),0_15px_35px_rgba(237,60,124,0.16)]"
+                                className="group relative w-full rounded-[24px] p-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.85),0_8px_25px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:-translate-y-[7px] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.95),0_15px_35px_rgba(37,99,235,0.16)]"
                                 style={{
-                                    background: "linear-gradient(120deg, #111 0%, #ff3f78 25%, #111 50%, #ff6b8d 75%, #111 100%)",
+                                    background: "linear-gradient(120deg, #111 0%, #2563eb 25%, #111 50%, #60a5fa 75%, #111 100%)",
                                     backgroundSize: "350% 350%",
                                     animation: "phStrongBorderMove 5s linear infinite",
                                 }}
                             >
-                            <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
-                                {/* Course Image */}
-                                <div className="w-full aspect-video relative">
-                                    <img
-                                        src={image}
-                                        alt={`${course.name} cover`}
-                                        className="absolute inset-0 h-full w-full object-cover"
-                                    />
-                                    {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
-                                        <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
-                                            <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 text-center truncate rotate-[-45deg] flex items-center justify-center gap-1 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] border-y border-red-400">
-                                                <Tag className="w-3 h-3 fill-white" /> SALE
+                                <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[22px] bg-white shadow-[inset_0_0_0_1px_rgba(20,20,20,0.1)] dark:bg-slate-900">
+                                    {/* Thumbnail */}
+                                    <div className="relative w-full overflow-hidden bg-[#f1f2f4]" style={{ aspectRatio: "16/9" }}>
+                                        <img
+                                            src={image}
+                                            alt={course.name}
+                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.045]"
+                                        />
+                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[0.02] via-transparent to-black/[0.12]" />
+                                        {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
+                                            <div className="absolute top-0 left-0 z-20 h-24 w-24 overflow-hidden">
+                                                <div className="absolute top-4 -left-7 flex w-32 rotate-[-45deg] animate-pulse items-center justify-center gap-1 truncate border-y border-red-400 bg-red-600 py-1 text-center text-[10px] font-bold text-white shadow-lg">
+                                                    <Tag className="h-3 w-3 fill-white" /> SALE
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
-                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
-                                        {categoryBadges.map((cat: string) => (
-                                            <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
-                                                {cat}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
-                                {/* Content */}
-                                <div className="flex-1 p-5 flex flex-col justify-between gap-4">
-                                    <div>
-                                        <div className="flex justify-center items-start gap-2">
-                                             <h3 className="text-2xl font-extrabold mb-2 leading-tight text-center">{course.name}</h3>
-                                        </div>
-
-                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
-                                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> প্রিমিয়াম গাইডলাইন</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লিডারবোর্ড</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ইউনিক কন্টেন্ট</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ওয়ান টু ওয়ান মেন্টরিং</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> র‍্যাপিড ফায়ার</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
-                                        </div>
+                                        )}
                                     </div>
 
-                                    <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
-                                        <div className="flex flex-col items-start">
-                                            {course.original_price != null && Number(course.original_price) > Number(course.price) && (
-                                                <span className="text-[10px] text-muted-foreground line-through">
-                                                    ৳{Number(course.original_price).toLocaleString("en-BD")}
-                                                </span>
-                                            )}
-                                            <div className="text-base font-bold text-primary">
-                                                {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
+                                    {/* Body */}
+                                    <div className="flex flex-1 flex-col px-4 pb-4 pt-4">
+                                        <h3 className="mb-2.5 text-center text-[19px] font-extrabold leading-[1.35] tracking-[-0.15px] text-[#171b1c] line-clamp-2 dark:text-white">
+                                            {course.name}
+                                        </h3>
+
+                                        {/* Enrollment meta */}
+                                        {course.show_enrollment_count !== false && (
+                                            <div className="mb-2.5 flex w-full items-center">
+                                                <div className="inline-flex items-center gap-2 rounded-[11px] border border-[#dce4f5] bg-gradient-to-br from-[#f5f8ff] to-white py-1 pl-1 pr-3 shadow-[0_4px_14px_rgba(0,0,0,0.055)] dark:border-white/10 dark:from-slate-800 dark:to-slate-800">
+                                                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] border border-[#c7d7f7] bg-[#eef2ff]">
+                                                        <Users className="h-[14px] w-[14px] text-[#2563eb]" />
+                                                    </span>
+                                                    <span className="flex items-baseline gap-1 whitespace-nowrap">
+                                                        <span className="text-[14px] font-black leading-none text-[#2563eb]">{enrollCount.toLocaleString("en-BD")}</span>
+                                                        <span className="text-[11px] font-bold text-[#45484d] dark:text-slate-300">জন ভর্তি</span>
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="flex gap-2 w-full">
-                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
-                                                <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
-                                            </Button>
-                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
-                                                <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
-                                            </Button>
+                                        )}
+
+                                        {/* Divider */}
+                                        <div className="mb-2.5 h-px w-full bg-gradient-to-r from-[#eee] via-[#dce4f5] to-[#eee]" />
+
+                                        {/* Price + Button */}
+                                        <div className="mt-auto flex w-full items-center justify-between gap-3">
+                                            <div className="flex min-w-0 flex-col gap-0.5">
+                                                <p className="m-0 text-[10px] font-semibold text-[#858a91]">কোর্স ফি</p>
+                                                {course.original_price != null && Number(course.original_price) > Number(course.price) && (
+                                                    <del className="text-[12px] font-semibold leading-none text-[#a5a8ad]">৳{Number(course.original_price).toLocaleString("en-BD")}</del>
+                                                )}
+                                                <p className="m-0 text-[21px] font-black leading-[1.1] tracking-[-0.4px] text-[#2563eb]">
+                                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
+                                                </p>
+                                            </div>
+                                            <a
+                                                href={`/courses/${idOrSlug}`}
+                                                className="group/btn relative flex min-w-[110px] flex-shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-[12px] bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] px-4 py-2.5 text-[12px] font-extrabold text-white shadow-[0_8px_20px_rgba(37,99,235,0.22)] transition-all hover:-translate-y-[3px] hover:shadow-[0_12px_28px_rgba(37,99,235,0.32)]"
+                                            >
+                                                <span className="absolute -left-[120%] top-0 h-full w-4/5 -skew-x-[20deg] bg-gradient-to-r from-transparent via-white/35 to-transparent transition-all duration-500 group-hover/btn:left-[140%]" />
+                                                <span className="relative z-[1]">বিস্তারিত</span>
+                                                <span className="relative z-[1] text-base font-black transition-transform group-hover/btn:translate-x-1">→</span>
+                                            </a>
                                         </div>
                                     </div>
                                 </div>
-                            </Card>
                             </article>
                         );
                     })

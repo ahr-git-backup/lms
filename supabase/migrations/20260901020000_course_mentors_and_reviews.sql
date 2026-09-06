@@ -17,6 +17,9 @@ CREATE TABLE IF NOT EXISTS public.course_mentors (
 
 ALTER TABLE public.course_mentors ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public read access to course_mentors" ON public.course_mentors;
+DROP POLICY IF EXISTS "Admins can manage course_mentors" ON public.course_mentors;
+
 CREATE POLICY "Public read access to course_mentors" ON public.course_mentors
   FOR SELECT USING (true);
 
