@@ -2421,6 +2421,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           batches,
           exam_id: sendingExam.id,
           exam_title: sendingExam.title || "",
+          subject: Array.isArray(sendingExam.subject) ? (sendingExam.subject[0] || "") : (sendingExam.subject || ""),
         }),
       });
       const rawText = await res.text();
