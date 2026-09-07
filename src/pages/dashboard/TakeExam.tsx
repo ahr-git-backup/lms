@@ -933,9 +933,17 @@ const TakeExam = () => {
     const handlePopState = () => {
       // Re-push immediately so the URL doesn't actually change while the
       // confirmation is pending — the popup's own buttons drive navigation.
-      window.history.pushState(null, "", window.location.href);
-      pushedHistoryCount.current += 1;
-      setShowExitConfirm(true);
+      // Only re-push (and bump the count) if the popup isn't already open —
+      // repeated back-presses while it's showing must NOT stack up extra
+      // dummy entries, or the confirm button's fixed navigate(-2) undershoots
+      // and looks like it "does nothing".
+      setShowExitConfirm((already) => {
+        if (!already) {
+          window.history.pushState(null, "", window.location.href);
+          pushedHistoryCount.current += 1;
+        }
+        return true;
+      });
     };
 
     window.addEventListener("popstate", handlePopState);
