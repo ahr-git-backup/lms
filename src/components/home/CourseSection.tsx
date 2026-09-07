@@ -200,11 +200,11 @@ export const CourseSection = () => {
 
                         {/* Category Buttons */}
                         <div className="w-full">
-                            <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                            <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
+                                    className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
                                         selectedCategory === "all"
                                         ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
                                         : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
@@ -217,7 +217,7 @@ export const CourseSection = () => {
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
+                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
                                             selectedCategory === cat
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
                                             : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
@@ -232,11 +232,11 @@ export const CourseSection = () => {
                         {/* Sub Category Buttons (Secondary Filter) */}
                         {availableSubCategories.length > 0 && (
                             <div className="w-full">
-                                <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                                <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
+                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
                                             selectedSubCategory === "all"
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
                                             : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
@@ -249,7 +249,7 @@ export const CourseSection = () => {
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`px-4 h-10 text-sm md:px-8 md:h-12 md:text-base border transition-all ${
+                                            className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
                                                 selectedSubCategory === sub
                                                 ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
                                                 : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
