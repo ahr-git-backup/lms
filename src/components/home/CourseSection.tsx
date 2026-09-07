@@ -265,7 +265,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {isLoading ? (
                     <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
                 ) : !filteredCourses || filteredCourses.length === 0 ? (
@@ -296,7 +296,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                             >
                             <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
                                 {/* Course Image */}
-                                <div className="w-full aspect-video relative">
+                                <div className="w-full relative" style={{ aspectRatio: "16/8" }}>
                                     <img
                                         src={image}
                                         alt={`${course.name} cover`}
@@ -318,23 +318,23 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                     </div>
                                 </div>
                                 {/* Content */}
-                                <div className="flex-1 p-5 flex flex-col justify-between gap-4">
+                                <div className="flex-1 p-3 flex flex-col justify-between gap-2">
                                     <div>
                                         <div className="flex justify-center items-start gap-2">
-                                             <h3 className="text-2xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
+                                             <h3 className="text-2xl font-bold mb-1 leading-tight text-center">{course.name}</h3>
                                         </div>
 
-                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
+                                        <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{description}</p>
 
                                         {course.show_enrollment_count !== false && (
-                                            <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                            <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                                                 <Users className="h-3.5 w-3.5 text-green-500" />
                                                 {enrollCount.toLocaleString("en-BD")} জন ভর্তি হয়েছে
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
+                                    <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-dashed">
                                         <div className="flex flex-col items-start">
                                             {course.original_price != null && Number(course.original_price) > Number(course.price) && (
                                                 <span className="text-[10px] text-muted-foreground line-through">

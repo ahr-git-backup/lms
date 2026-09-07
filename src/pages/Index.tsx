@@ -173,7 +173,7 @@ const Index = () => {
           </div>
       </div>
 
-      <div className="mx-auto flex w-full max-w-7xl gap-4 px-2 pb-10 pt-6 sm:px-4 sm:pt-8">
+      <div className="mx-auto flex w-full max-w-[1600px] gap-4 px-2 pb-10 pt-6 sm:px-4 sm:pt-8">
         <FreeResourcesSidebar />
 
         <main className="flex flex-1 min-w-0 flex-col gap-6 flex-1">
