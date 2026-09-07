@@ -514,8 +514,7 @@ const DashboardHome = () => {
         <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
         <div className="grid grid-cols-3 gap-2">
           <Card
-            className="animate-border-chase cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(262 83% 58%)" }}
+            className="cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
             onClick={() => navigate("/quick-practice")}
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
@@ -524,8 +523,7 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="animate-border-chase cursor-pointer border-fuchsia-500/30 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
-            style={{ ["--border-chase-color" as any]: "hsl(292 84% 61%)" }}
+            className="cursor-pointer border-fuchsia-500/30 hover:border-fuchsia-500 transition-all bg-fuchsia-50/50 dark:bg-fuchsia-950/20"
             onClick={() => navigate("/mock-test")}
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
@@ -540,7 +538,7 @@ const DashboardHome = () => {
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <FileText className="h-6 w-6 text-pink-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Readymade Exam</p>
+              <p className="font-semibold text-sm leading-snug">Unlimited Readymade Exam</p>
             </CardContent>
           </Card>
         </div>
