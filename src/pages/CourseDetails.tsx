@@ -5,21 +5,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CheckCircle2, Star, Gift, PlayCircle, Sparkles, Check, Loader2, Copy, Download, Eye } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Users, CheckCircle2, Star, Gift, PlayCircle, Check, Loader2, Copy, Download, Eye } from "lucide-react";
+import PublicHeader from "@/components/PublicHeader";
+import SEO from "@/components/SEO";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { getEmbedUrl } from "@/lib/videoUtils";
 import { DemoContentItem } from "@/types/admin";
 import { useToast } from "@/hooks/use-toast";
 import { trackPixelEvent } from "@/lib/metaPixel";
-import PublicHeader from "@/components/PublicHeader";
-import SEO from "@/components/SEO";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
-import rehypeRaw from "rehype-raw";
-import "katex/dist/katex.min.css";
 
 // Live countdown timer, rendered as small premium digit boxes (H / M / S)
 const CountdownTimer = ({ deadline }: { deadline: string }) => {
@@ -104,7 +99,7 @@ const CourseDetails = () => {
       const { data, error } = await supabase
         .from("courses")
         .select(
-          "id, name, full_description, short_description, short_description_lines, full_description_blocks, extra_links, price, original_price, image_url, video_url, what_you_get, demo_content, linked_course_ids, is_active, is_public, routine_url"
+          "id, name, full_description, short_description, short_description_lines, extra_links, price, original_price, image_url, video_url, what_you_get, demo_content, linked_course_ids, is_active, is_public, routine_url, show_enrollment_count"
         )
         .or(`slug.eq.${courseId},id.eq.${courseId}`)
         .maybeSingle();
@@ -126,6 +121,19 @@ const CourseDetails = () => {
       });
     }
   }, [course?.id]);
+
+  const { data: enrollmentCount } = useQuery({
+    queryKey: ["course-enrollment-count", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return 0;
+      const { data, error } = await supabase.rpc("get_course_enrollment_count", {
+        p_course_id: course.id,
+      });
+      if (error) return 0;
+      return data || 0;
+    },
+    enabled: !!course?.id && (course as any)?.show_enrollment_count !== false,
+  });
 
   // Fetch mentors linked to this course
   const { data: courseMentors } = useQuery({
@@ -298,12 +306,9 @@ const CourseDetails = () => {
         <ArrowLeft className="h-4 w-4" /> ফিরে যান
       </Link>
 
-      {/* Auto-playing demo video takes priority over the static image */}
+      {/* Auto-playing intro video takes priority over the static image; demo class videos are never used here */}
       {(() => {
-        const demoItems: DemoContentItem[] = Array.isArray((course as any).demo_content)
-          ? ((course as any).demo_content as DemoContentItem[])
-          : [];
-        const firstVideo = demoItems.find((d) => d.video_url)?.video_url || course.video_url;
+        const firstVideo = course.video_url;
         if (firstVideo) {
           const embed = getEmbedUrl(firstVideo);
           if (embed) {
@@ -331,12 +336,11 @@ const CourseDetails = () => {
       <div className="mb-4 flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-extrabold sm:text-3xl">{course.name}</h1>
         {discountPct > 0 && (
-          <Badge className="bg-[#e93482] hover:bg-[#e93482]">{discountPct}% ছাড়</Badge>
+          <Badge className="bg-[#2563eb] hover:bg-[#2563eb]">{discountPct}% ছাড়</Badge>
         )}
       </div>
 
       {/* Premium coupon card: special-discount banner(s) + coupon input, merged into one card */}
-      {((specialDiscounts && specialDiscounts.length > 0) || appliedCoupon) && (
       <div className="mb-5 space-y-3 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-secondary/30 p-4 shadow-md">
         {specialDiscounts && specialDiscounts.length > 0 && specialDiscounts.map((discount: any, idx: number) => (
           <div
@@ -405,45 +409,66 @@ const CourseDetails = () => {
             </Button>
           </div>
         ) : (
-          specialDiscounts && specialDiscounts.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  value={couponCode}
-                  onChange={(e) => {
-                    setCouponCode(e.target.value);
-                    setCouponError("");
-                  }}
-                  placeholder="কুপন কোড লিখুন"
-                  className="text-sm"
-                  onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleApplyCoupon}
-                  disabled={couponLoading || !couponCode.trim()}
-                  className="shrink-0"
-                >
-                  {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
-                </Button>
-              </div>
-              {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+          <div className="space-y-2">
+            <div className="flex gap-2">
+              <Input
+                value={couponCode}
+                onChange={(e) => {
+                  setCouponCode(e.target.value);
+                  setCouponError("");
+                }}
+                placeholder="কুপন কোড লিখুন"
+                className="text-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleApplyCoupon()}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleApplyCoupon}
+                disabled={couponLoading || !couponCode.trim()}
+                className="shrink-0"
+              >
+                {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
+              </Button>
             </div>
-          )
+            {couponError && <p className="text-xs text-red-500">{couponError}</p>}
+          </div>
         )}
       </div>
+
+      {(course as any).show_enrollment_count !== false && (
+        <div className="mb-4 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+          <Users className="h-4 w-4 text-green-500" />
+          {(enrollmentCount || 0).toLocaleString("en-BD")} জন ভর্তি হয়েছে
+        </div>
       )}
 
-      <div className="mb-4"></div>
+      <Tabs defaultValue="features" className="mb-6">
+        <TabsList className="mb-4 flex h-auto w-full rounded-2xl bg-white p-0 shadow-lg border-b">
+          <TabsTrigger
+            value="features"
+            className="flex-1 flex-col gap-1 rounded-none border-b-2 border-transparent py-4 px-6 font-medium text-gray-600 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 hover:text-blue-600 hover:bg-gray-50"
+          >
+            Course Features
+          </TabsTrigger>
+          <TabsTrigger
+            value="demo"
+            className="flex-1 flex-col gap-1 rounded-none border-b-2 border-transparent py-4 px-6 font-medium text-gray-600 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 hover:text-blue-600 hover:bg-gray-50"
+          >
+            Demo Class
+          </TabsTrigger>
+        </TabsList>
 
+        <TabsContent value="features" className="mt-0 space-y-0">
       {/* Eye-catching bg box for the section heading above the checklist */}
       {Array.isArray((course as any).short_description_lines) &&
         (course as any).short_description_lines.length > 0 && (
-          <div className="mx-auto mb-3 max-w-[92%] rounded-xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 px-5 py-4 text-center shadow-md dark:from-amber-900/40 dark:via-yellow-900/20 dark:to-amber-900/40 dark:border-amber-700">
-            <h2 className="text-lg font-semibold underline underline-offset-4 sm:text-xl">
-              কোর্সের প্রধান ফিচার সমূহ
-            </h2>
+          <div className="mb-3 flex justify-center">
+            <div className="w-fit max-w-[92%] rounded-xl border-2 border-amber-400/60 bg-gradient-to-r from-amber-100 via-yellow-50 to-amber-100 px-4 py-2 text-center shadow-md dark:from-amber-900/40 dark:via-yellow-900/20 dark:to-amber-900/40 dark:border-amber-700">
+              <h2 className="text-2xl font-semibold sm:text-3xl">
+                কোর্সের প্রধান ফিচার সমূহ
+              </h2>
+            </div>
           </div>
         )}
 
@@ -465,93 +490,51 @@ const CourseDetails = () => {
           </div>
         )}
 
-      {/* Fallback for older courses without the new checklist format */}
-      {!(Array.isArray((course as any).short_description_lines) && (course as any).short_description_lines.length > 0) &&
-        course.short_description && (
-          <div className="mb-5 rounded-lg border bg-card p-3 text-sm text-muted-foreground">
-            {course.short_description}
-          </div>
-        )}
-
       {/* Class routine: view + download, right under short description */}
       {(course as any).routine_url && (
-        <div className="mb-6 grid grid-cols-2 gap-3">
-          <Button
-            asChild
-            variant="outline"
-            className="gap-2 rounded-xl border-primary/40 font-semibold"
-          >
-            <a href={(course as any).routine_url} target="_blank" rel="noopener noreferrer">
-              <Eye className="h-4 w-4" />
-              রুটিন দেখো
-            </a>
-          </Button>
-          <Button
-            asChild
-            className="gap-2 rounded-xl bg-gradient-to-br from-[#e52b80] to-[#f05463] font-semibold"
-          >
-            <a href={(course as any).routine_url} download target="_blank" rel="noopener noreferrer">
-              <Download className="h-4 w-4" />
-              Download করো
-            </a>
-          </Button>
+        <div className="mb-6 rounded-2xl border border-primary/20 bg-card p-3 shadow-md">
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              asChild
+              variant="outline"
+              className="gap-2 rounded-xl border-primary/40 font-semibold"
+            >
+              <a href={(course as any).routine_url} target="_blank" rel="noopener noreferrer">
+                <Eye className="h-4 w-4" />
+                রুটিন দেখো
+              </a>
+            </Button>
+            <Button
+              asChild
+              className="gap-2 rounded-xl bg-gradient-to-br from-[#2563eb] to-[#3b82f6] font-semibold"
+            >
+              <a href={(course as any).routine_url} download target="_blank" rel="noopener noreferrer">
+                <Download className="h-4 w-4" />
+                Download করো
+              </a>
+            </Button>
+          </div>
         </div>
       )}
 
-      {/* Full description: centered numbered special heading box + detail card below it */}      {Array.isArray((course as any).full_description_blocks) &&
-        (course as any).full_description_blocks.length > 0 && (
-          <div className="mb-6 space-y-6">
-            <div className="mx-auto mb-1 max-w-[92%] rounded-xl border-2 border-sky-400/60 bg-gradient-to-r from-sky-100 via-cyan-50 to-sky-100 px-5 py-4 text-center shadow-md dark:from-sky-900/40 dark:via-cyan-900/20 dark:to-sky-900/40 dark:border-sky-700">
-              <h2 className="text-lg font-semibold underline underline-offset-4 sm:text-xl">
-                প্রত্যেকটি ফিচারের বিস্তারিত:
+      {/* Full description: plain text set by admin */}
+      {(course as any).full_description && (
+        <div className="mb-6 space-y-3">
+          <div className="mb-1 flex justify-center">
+            <div className="w-fit max-w-[92%] rounded-xl border-2 border-sky-400/60 bg-gradient-to-r from-sky-100 via-cyan-50 to-sky-100 px-4 py-2 text-center shadow-md dark:from-sky-900/40 dark:via-cyan-900/20 dark:to-sky-900/40 dark:border-sky-700">
+              <h2 className="text-xl font-semibold sm:text-2xl">
+                বিস্তারিত
               </h2>
             </div>
-            {((course as any).full_description_blocks as { heading: string; body: string }[]).map(
-              (block, i) => (
-                <div
-                  key={i}
-                  className="mx-auto max-w-[95%] rounded-2xl border border-primary/20 bg-gradient-to-br from-secondary/60 to-secondary/30 p-3 shadow-sm"
-                >
-                  {block.heading && (
-                    <div className="mb-3 rounded-xl border bg-background/70 px-4 py-3 text-center">
-                      <div className="flex items-center justify-center gap-1.5 font-bold">
-                        <Sparkles className="h-4 w-4 shrink-0 text-amber-500 animate-pulse" />
-                        <span>
-                          {i + 1}. {block.heading}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                  {block.body && (
-                    <div className="rounded-xl border bg-card p-4 shadow-sm">
-                      <div
-                        className="text-sm leading-relaxed text-muted-foreground"
-                        dangerouslySetInnerHTML={{ __html: block.body }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )
-            )}
           </div>
-        )}
-
-      {/* Fallback for older courses without the new block format */}
-      {!(Array.isArray((course as any).full_description_blocks) && (course as any).full_description_blocks.length > 0) &&
-        course.full_description && (
-          <div className="mb-6 prose prose-stone dark:prose-invert max-w-none rounded-2xl border bg-card p-4 text-sm shadow-sm">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm, remarkMath]}
-              rehypePlugins={[rehypeKatex, rehypeRaw]}
-              components={{
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                img: ({ node, ...props }: any) => <img {...props} className="rounded-lg max-w-full" />,
-              }}
-            >
-              {course.full_description}
-            </ReactMarkdown>
+          <div className="mx-auto max-w-[95%] rounded-2xl border bg-card p-4 shadow-sm">
+            <div
+              className="space-y-2 text-sm leading-relaxed text-foreground [&_div]:min-h-[1em]"
+              dangerouslySetInnerHTML={{ __html: (course as any).full_description }}
+            />
           </div>
-        )}
+        </div>
+      )}
 
       {whatYouGet.length > 0 && (
         <div className="mb-6">
@@ -663,21 +646,6 @@ const CourseDetails = () => {
         </div>
       )}
 
-      {/* Demo content list */}
-      {Array.isArray((course as any).demo_content) && (course as any).demo_content.length > 0 && (
-        <div className="mb-6">
-          <h2 className="mb-3 text-lg font-bold">ডেমো কনটেন্ট</h2>
-          <div className="space-y-2">
-            {((course as any).demo_content as DemoContentItem[]).map((d, i) => (
-              <div key={i} className="flex items-center gap-2 rounded-xl border p-3">
-                <PlayCircle className="h-4 w-4 shrink-0 text-primary" />
-                <span className="truncate text-sm font-medium">{d.title}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* "এই কোর্স সম্পর্কে আরো" — admin-added Extra Links as premium full-width cards */}
       {Array.isArray((course as any).extra_links) &&
         (course as any).extra_links.length > 0 && (
@@ -706,7 +674,59 @@ const CourseDetails = () => {
           </div>
         )}
 
-      <div className="sticky bottom-3 mt-8 flex items-center justify-between gap-3 rounded-2xl border bg-background/95 p-4 shadow-lg backdrop-blur">
+        </TabsContent>
+
+        <TabsContent value="demo" className="mt-0">
+      {/* Demo content list — grouped by sub-course, matching reference layout */}
+      {Array.isArray((course as any).demo_content) && (course as any).demo_content.length > 0 && (() => {
+        const items = (course as any).demo_content as DemoContentItem[];
+        const groups = new Map<string, DemoContentItem[]>();
+        items.forEach((d) => {
+          const key = d.sub_course_name?.trim() || "ডেমো ক্লাস";
+          if (!groups.has(key)) groups.set(key, []);
+          groups.get(key)!.push(d);
+        });
+        return (
+          <div className="mb-6 space-y-6">
+            {Array.from(groups.entries()).map(([subName, list]) => (
+              <div key={subName}>
+                <h3 className="mb-3 text-lg font-bold text-gray-900">{subName}</h3>
+                {list.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No demo videos for this course.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {list.map((d, i) => (
+                      <a
+                        key={i}
+                        href={d.is_locked ? undefined : d.video_url || undefined}
+                        target={d.video_url ? "_blank" : undefined}
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-3 rounded-xl border p-3 ${d.is_locked ? "opacity-60 pointer-events-none" : "hover:border-blue-300 hover:shadow-sm transition"}`}
+                      >
+                        {d.lecture_number && (
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">
+                            {d.lecture_number}
+                          </span>
+                        )}
+                        <span className="flex-1 truncate text-sm font-semibold">{d.title}</span>
+                        <PlayCircle className="h-5 w-5 shrink-0 text-blue-600" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+        </TabsContent>
+      </Tabs>
+
+      {/* Spacer so fixed enroll bar doesn't cover the last content */}
+      <div className="h-24" />
+
+      <div className="fixed inset-x-0 bottom-0 z-[1000] border-t bg-background/95 p-4 shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur">
+        <div className="mx-auto flex w-full max-w-[900px] items-center justify-between gap-3 px-4">
         <div>
           {discountedPrice != null && appliedCoupon ? (
             <div className="flex items-baseline gap-2">
@@ -719,7 +739,7 @@ const CourseDetails = () => {
             </div>
           ) : (
             <div className="flex items-baseline gap-2">
-              <span className="text-xl font-extrabold text-[#e93482]">
+              <span className="text-xl font-extrabold text-[#2563eb]">
                 ৳{Number(course.price).toLocaleString("en-BD")}
               </span>
               {discountPct > 0 && (
@@ -732,10 +752,11 @@ const CourseDetails = () => {
         </div>
         <Button
           asChild
-          className="bg-gradient-to-br from-[#e52b80] to-[#f05463] font-bold"
+          className="bg-gradient-to-br from-[#2563eb] to-[#3b82f6] font-bold"
         >
           <Link to={getEnrollUrl()}>ভর্তি হন</Link>
         </Button>
+        </div>
       </div>
     </div>
     </div>
