@@ -332,15 +332,6 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                                 {enrollCount.toLocaleString("en-BD")} জন ভর্তি হয়েছে
                                             </div>
                                         )}
-
-                                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> প্রিমিয়াম গাইডলাইন</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লিডারবোর্ড</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ইউনিক কন্টেন্ট</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ওয়ান টু ওয়ান মেন্টরিং</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> র‍্যাপিড ফায়ার</div>
-                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
-                                        </div>
                                     </div>
 
                                     <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
