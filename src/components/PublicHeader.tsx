@@ -10,9 +10,11 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import InstallPWA from "@/components/InstallPWA";
+import { useAuth } from "@/contexts/AuthContext";
 
 export const PublicHeader = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   return (
     <header className="w-full border-b bg-background/80 backdrop-blur">
@@ -40,29 +42,49 @@ export const PublicHeader = () => {
           <a href="/tutorial" className="underline-offset-4 hover:underline">
             টিউটোরিয়াল
           </a>
-          <a href="/login" className="underline-offset-4 hover:underline">
-            Login
-          </a>
-          <a href="/register">
-            <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
-              Create Account
-            </Button>
-          </a>
+          {user ? (
+            <a href="/dashboard">
+              <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
+                Dashboard
+              </Button>
+            </a>
+          ) : (
+            <>
+              <a href="/login" className="underline-offset-4 hover:underline">
+                Login
+              </a>
+              <a href="/register">
+                <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
+                  Create Account
+                </Button>
+              </a>
+            </>
+          )}
         </nav>
 
         <div className="flex items-center gap-2">
           {/* Mobile Login + Create Account Buttons — same row */}
           <div className="sm:hidden flex items-center gap-1.5">
-            <a href="/login">
-              <Button size="sm" variant="default" className="h-8 px-3 text-xs">
-                Login
-              </Button>
-            </a>
-            <a href="/register">
-              <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
-                Create Account
-              </Button>
-            </a>
+            {user ? (
+              <a href="/dashboard">
+                <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
+                  Dashboard
+                </Button>
+              </a>
+            ) : (
+              <>
+                <a href="/login">
+                  <Button size="sm" variant="default" className="h-8 px-3 text-xs">
+                    Login
+                  </Button>
+                </a>
+                <a href="/register">
+                  <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
+                    Create Account
+                  </Button>
+                </a>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -93,12 +115,20 @@ export const PublicHeader = () => {
                   <a href="/tutorial" className="text-lg font-medium hover:text-primary">
                     টিউটোরিয়াল
                   </a>
-                  <a href="/login" className="text-lg font-medium hover:text-primary">
-                    Login
-                  </a>
-                  <a href="/register" className="text-lg font-medium hover:text-primary">
-                    Create Account
-                  </a>
+                  {user ? (
+                    <a href="/dashboard" className="text-lg font-medium hover:text-primary">
+                      Dashboard
+                    </a>
+                  ) : (
+                    <>
+                      <a href="/login" className="text-lg font-medium hover:text-primary">
+                        Login
+                      </a>
+                      <a href="/register" className="text-lg font-medium hover:text-primary">
+                        Create Account
+                      </a>
+                    </>
+                  )}
                 </nav>
               </SheetContent>
             </Sheet>
