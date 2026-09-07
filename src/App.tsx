@@ -68,7 +68,6 @@ import AdminPayments from "./pages/dashboard/admin/AdminPayments";
 import AdminPaymentHistory from "./pages/dashboard/admin/AdminPaymentHistory";
 import AdminNotes from "./pages/dashboard/admin/AdminNotes";
 import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
-import AdminExamCalendar from "./pages/dashboard/admin/AdminExamCalendar";
 import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
@@ -263,7 +262,6 @@ const App = () => {
                 <Route path="community" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminCommunity /></ProtectedRoute>} />
                 <Route path="notes" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminNotes /></ProtectedRoute>} />
                 <Route path="archive" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminArchiveManager /></ProtectedRoute>} />
-                <Route path="calendar" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminExamCalendar /></ProtectedRoute>} />
                 <Route path="free-content" element={<ProtectedRoute requireAdmin><AdminFreeContent /></ProtectedRoute>} />
                 <Route path="payments" element={<ProtectedRoute requireAdmin><ErrorBoundary><AdminPayments /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="payments/history" element={<ProtectedRoute requireAdmin><AdminPaymentHistory /></ProtectedRoute>} />
