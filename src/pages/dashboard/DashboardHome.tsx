@@ -519,7 +519,7 @@ const DashboardHome = () => {
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <Zap className="h-6 w-6 text-violet-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Quick Practice</p>
+              <p className="font-semibold text-sm leading-snug">Quick Practice Game</p>
             </CardContent>
           </Card>
           <Card
