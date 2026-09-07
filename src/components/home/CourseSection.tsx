@@ -321,7 +321,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                 <div className="flex-1 p-5 flex flex-col justify-between gap-4">
                                     <div>
                                         <div className="flex justify-center items-start gap-2">
-                                             <h3 className="text-xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
+                                             <h3 className="text-2xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
                                         </div>
 
                                         <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
