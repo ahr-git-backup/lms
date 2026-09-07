@@ -11,7 +11,7 @@ import { Check, Tag, Users } from "lucide-react";
 // If empty, all categories from active courses will be shown.
 const FEATURED_CATEGORIES: string[] = [];
 
-export const CourseSection = () => {
+export const CourseSection = ({ limit }: { limit?: number } = {}) => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
 
@@ -273,7 +273,7 @@ export const CourseSection = () => {
                         {courses && courses.length > 0 ? "এই ক্যাটাগরিতে কোনো কোর্স নেই।" : "বর্তমানে কোনো কোর্স চালু নেই।"}
                     </p>
                 ) : (
-                    filteredCourses.map((course: any) => {
+                    (limit ? filteredCourses.slice(0, limit) : filteredCourses).map((course: any) => {
                         const image = course.image_url || "/placeholder.svg";
                         const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
@@ -370,6 +370,14 @@ export const CourseSection = () => {
                     })
                 )}
             </div>
+
+            {limit && filteredCourses && filteredCourses.length > limit && (
+                <div className="flex justify-center">
+                    <Button asChild size="lg" className="px-8 bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8]">
+                        <a href="/courses">More Courses দেখুন</a>
+                    </Button>
+                </div>
+            )}
         </section>
     );
 };

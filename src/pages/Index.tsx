@@ -342,7 +342,7 @@ const Index = () => {
 
         {/* Paid Courses Section (Grid View) */}
         <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
-        <CourseSection />
+        <CourseSection limit={7} />
         </div>
 
         {/* Free Service/Courses Section */}
