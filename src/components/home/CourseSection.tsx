@@ -296,7 +296,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                             >
                             <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
                                 {/* Course Image */}
-                                <div className="w-full relative" style={{ aspectRatio: "16/8" }}>
+                                <div className="w-full aspect-video relative">
                                     <img
                                         src={image}
                                         alt={`${course.name} cover`}
