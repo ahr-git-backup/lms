@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 import { CourseSection } from "@/components/home/CourseSection";
 import { QuickActionsSection } from "@/components/home/QuickActionsSection";
+import { FreeResourcesSidebar } from "@/components/home/FreeResourcesSidebar";
 import HeroCarouselItem from "@/components/home/HeroCarouselItem";
 
 const FEATURES = [
@@ -172,7 +173,10 @@ const Index = () => {
           </div>
       </div>
 
-      <main className="mx-auto flex max-w-6xl flex-col gap-6 px-2 sm:px-4 pb-10 pt-6 sm:pt-8 flex-1">
+      <div className="mx-auto flex w-full max-w-7xl gap-4 px-2 pb-10 pt-6 sm:px-4 sm:pt-8">
+        <FreeResourcesSidebar />
+
+        <main className="flex flex-1 min-w-0 flex-col gap-6 flex-1">
 
         {/* Landing Exams (Free Exam category exams with "Allow Dashboard" toggle on) */}
         {landingExams && landingExams.length > 0 && (
@@ -425,6 +429,7 @@ const Index = () => {
         <StudentReviews reviews={reviews as any} id="reviews" />
 
       </main>
+      </div>
 
       {/* Founder & Teacher Panel (Footer Top) */}
       <section className="bg-card border-t py-12 px-4 mt-auto">
