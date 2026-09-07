@@ -2420,6 +2420,7 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
           thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
           batches,
           exam_id: sendingExam.id,
+          exam_title: sendingExam.title || "",
         }),
       });
       const rawText = await res.text();
