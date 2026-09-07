@@ -285,6 +285,9 @@ const CourseDetails = () => {
 
   const discountedPrice = getDiscountedPrice();
 
+  const hasDemoContent =
+    Array.isArray((course as any)?.demo_content) && (course as any).demo_content.length > 0;
+
   return (
     <div className="min-h-screen bg-background">
       <SEO
@@ -444,6 +447,7 @@ const CourseDetails = () => {
       )}
 
       <Tabs defaultValue="features" className="mb-6">
+        {hasDemoContent && (
         <TabsList className="mb-4 flex h-auto w-full rounded-2xl bg-white p-0 shadow-lg border-b">
           <TabsTrigger
             value="features"
@@ -458,6 +462,7 @@ const CourseDetails = () => {
             Demo Class
           </TabsTrigger>
         </TabsList>
+        )}
 
         <TabsContent value="features" className="mt-0 space-y-0">
       {/* Eye-catching bg box for the section heading above the checklist */}
@@ -676,6 +681,7 @@ const CourseDetails = () => {
 
         </TabsContent>
 
+        {hasDemoContent && (
         <TabsContent value="demo" className="mt-0">
       {/* Demo content list — grouped by sub-course, matching reference layout */}
       {Array.isArray((course as any).demo_content) && (course as any).demo_content.length > 0 && (() => {
@@ -720,6 +726,7 @@ const CourseDetails = () => {
         );
       })()}
         </TabsContent>
+        )}
       </Tabs>
 
       {/* Spacer so fixed enroll bar doesn't cover the last content */}
