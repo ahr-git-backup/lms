@@ -210,6 +210,13 @@ const TakeExam = () => {
   const [customTimeMinutes, setCustomTimeMinutes] = useState<number | null>(null);
   const [omrMode, setOmrMode] = useState(false);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  // Counts every dummy history entry pushed to intercept a back-press while
+  // the exit-confirm dialog can appear. Pressing back repeatedly (dialog
+  // already open or not) stacks up more than one dummy entry -- without
+  // tracking this, a fixed navigate(-2) undershoots and the "হ্যাঁ, বের হবো"
+  // button appears to do nothing (it lands back on another dummy entry
+  // instead of actually leaving).
+  const pushedHistoryCount = useRef(0);
   const [showOmrPopup, setShowOmrPopup] = useState(false);
   const [omrUploadFile, setOmrUploadFile] = useState<File | null>(null);
   const [omrSubmitting, setOmrSubmitting] = useState(false);
@@ -616,7 +623,8 @@ const TakeExam = () => {
   // দুই ধাপ পিছনে (-2) গিয়ে dummy entry + আসল exam পেজ দুটোই bypass করা হচ্ছে।
   const confirmedExitExam = () => {
       cleanupExamStorage();
-      navigate(-2);
+      navigate(-(pushedHistoryCount.current + 1));
+      pushedHistoryCount.current = 0;
   };
 
   const qpGoNext = () => {
@@ -920,11 +928,13 @@ const TakeExam = () => {
     // Push one extra history entry so the first back-press is intercepted
     // (it consumes our pushed entry) instead of immediately leaving the page.
     window.history.pushState(null, "", window.location.href);
+    pushedHistoryCount.current = 1;
 
     const handlePopState = () => {
       // Re-push immediately so the URL doesn't actually change while the
       // confirmation is pending — the popup's own buttons drive navigation.
       window.history.pushState(null, "", window.location.href);
+      pushedHistoryCount.current += 1;
       setShowExitConfirm(true);
     };
 
@@ -1897,7 +1907,8 @@ const TakeExam = () => {
                         onClick={() => {
                             setShowExitConfirm(false);
                             qpCleanupStorage();
-                            navigate(-2);
+                            navigate(-(pushedHistoryCount.current + 1));
+                            pushedHistoryCount.current = 0;
                         }}
                     >
                         হ্যাঁ, বের হবো
