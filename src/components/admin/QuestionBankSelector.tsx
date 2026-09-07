@@ -29,6 +29,11 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
     const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set());
     const [isAddingBulkExams, setIsAddingBulkExams] = useState(false);
     const [isAddingBulkChapters, setIsAddingBulkChapters] = useState(false);
+    // Topic filter inside the questions view -- lets the admin narrow an
+    // exam's question list down to one topic, or bulk-add every MCQ under
+    // that topic without hand-picking each one.
+    const [selectedTopicFilter, setSelectedTopicFilter] = useState<string>("");
+    const [isAddingTopicMcqs, setIsAddingTopicMcqs] = useState(false);
 
     // Navigation history stack -- back button pops this instead of guessing
     // the previous view from current data, so back always restores the exact
@@ -78,6 +83,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         setSelectedExamId(null);
         setSelectedIds(new Set());
         setSelectedExamIds(new Set());
+        setSelectedTopicFilter("");
     };
 
     const toggleExamSelect = (id: string) => {
@@ -257,9 +263,20 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         }
     });
 
+    // Topics present in the selected exam (for the topic-filter dropdown).
+    const { data: examTopics } = useQuery({
+        queryKey: ["qb-exam-topics", selectedExamId],
+        enabled: view === 'questions' && !!selectedExamId,
+        queryFn: async () => {
+            const { data, error } = await supabase.rpc("get_exam_topics", { p_exam_id: selectedExamId });
+            if (error) throw error;
+            return (data || []) as { topic: string; mcq_count: number }[];
+        }
+    });
+
     // Fetch questions for selected exam
     const { data: questionsData, isLoading: isLoadingQuestions } = useQuery({
-        queryKey: ["qb-questions", selectedExamId, page, search],
+        queryKey: ["qb-questions", selectedExamId, page, search, selectedTopicFilter],
         enabled: view === 'questions' && !!selectedExamId,
         queryFn: async () => {
             let query = supabase
@@ -269,6 +286,9 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
 
             if (search) {
                 query = query.ilike('question_text', `%${search}%`);
+            }
+            if (selectedTopicFilter) {
+                query = query.eq('topic', selectedTopicFilter);
             }
 
             const { data, error, count } = await query
@@ -323,6 +343,35 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
         };
 
         fetchSelected();
+    };
+
+    // Adds every MCQ under the currently-selected topic in one go, without
+    // hand-picking each question -- mirrors handleAddSelectedExams/
+    // handleAddAllExamsForChapters' bulk-add pattern.
+    const handleAddAllInTopic = async () => {
+        if (!selectedExamId || !selectedTopicFilter) return;
+        setIsAddingTopicMcqs(true);
+        try {
+            const { data, error } = await supabase
+                .from("exam_questions")
+                .select("*")
+                .eq("exam_id", selectedExamId)
+                .eq("topic", selectedTopicFilter)
+                .order("question_index", { ascending: true });
+            if (error) {
+                console.error(error);
+                return;
+            }
+            const mapped = (data || []).map((q: any) => ({
+                question: q.question_text,
+                options: { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d },
+                correct_answer: q.correct_option,
+                explanation: q.explanation || "",
+            }));
+            onSelect(mapped);
+        } finally {
+            setIsAddingTopicMcqs(false);
+        }
     };
 
     return (
@@ -639,6 +688,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                     setSelectedExamTitle(exam.title);
                                                     setPage(1);
                                                     setSearch("");
+                                                    setSelectedTopicFilter("");
                                                     goToView('questions');
                                                 }}
                                             >
@@ -655,6 +705,33 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 {/* View 4: Questions Selection */}
                 {view === 'questions' && (
                     <div className="h-full flex flex-col">
+                        {examTopics && examTopics.length > 0 && (
+                            <div className="flex items-center gap-2 mb-3 shrink-0 flex-wrap">
+                                <select
+                                    className="h-9 rounded-md border bg-background px-2 text-sm"
+                                    value={selectedTopicFilter}
+                                    onChange={(e) => { setSelectedTopicFilter(e.target.value); setPage(1); }}
+                                >
+                                    <option value="">সব টপিক</option>
+                                    {examTopics.map((t) => (
+                                        <option key={t.topic} value={t.topic}>
+                                            {t.topic} ({t.mcq_count})
+                                        </option>
+                                    ))}
+                                </select>
+                                {selectedTopicFilter && (
+                                    <Button
+                                        size="sm"
+                                        className="h-9 text-xs"
+                                        disabled={isAddingTopicMcqs}
+                                        onClick={handleAddAllInTopic}
+                                    >
+                                        {isAddingTopicMcqs ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                                        এই টপিকের সব MCQ যোগ করুন
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                         <div className="relative mb-4 shrink-0">
                             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                             <Input
