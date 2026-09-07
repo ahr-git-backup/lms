@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Check, Tag, Users } from "lucide-react";
 
 // Configuration: Add category names here to restrict the buttons shown on the landing page.
@@ -263,7 +265,7 @@ export const CourseSection = () => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {isLoading ? (
                     <p className="text-sm text-muted-foreground col-span-full">লোড হচ্ছে...</p>
                 ) : !filteredCourses || filteredCourses.length === 0 ? (
@@ -273,83 +275,96 @@ export const CourseSection = () => {
                 ) : (
                     filteredCourses.map((course: any) => {
                         const image = course.image_url || "/placeholder.svg";
+                        const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
                         const enrollCount = enrollmentCounts?.[course.id] || 0;
+
+                        // Handle array or string display
+                        const categoryBadges = Array.isArray(course.category)
+                            ? course.category
+                            : (course.category ? [course.category] : []);
 
                         return (
                             <article
                                 key={course.id}
-                                className="group relative w-full rounded-[24px] p-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.85),0_8px_25px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:-translate-y-[7px] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.95),0_15px_35px_rgba(37,99,235,0.16)]"
+                                className="group relative w-full rounded-[24px] p-[2px] shadow-[0_0_0_1px_rgba(0,0,0,0.85),0_8px_25px_rgba(0,0,0,0.1)] transition-transform duration-300 hover:-translate-y-[7px] hover:shadow-[0_0_0_1px_rgba(0,0,0,0.95),0_15px_35px_rgba(237,60,124,0.16)]"
                                 style={{
-                                    background: "linear-gradient(120deg, #111 0%, #2563eb 25%, #111 50%, #60a5fa 75%, #111 100%)",
+                                    background: "linear-gradient(120deg, #111 0%, #ff3f78 25%, #111 50%, #ff6b8d 75%, #111 100%)",
                                     backgroundSize: "350% 350%",
                                     animation: "phStrongBorderMove 5s linear infinite",
                                 }}
                             >
-                                <div className="relative flex h-full w-full flex-col overflow-hidden rounded-[22px] bg-white shadow-[inset_0_0_0_1px_rgba(20,20,20,0.1)] dark:bg-slate-900">
-                                    {/* Thumbnail */}
-                                    <div className="relative w-full overflow-hidden bg-[#f1f2f4]" style={{ aspectRatio: "16/9" }}>
-                                        <img
-                                            src={image}
-                                            alt={course.name}
-                                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.045]"
-                                        />
-                                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/[0.02] via-transparent to-black/[0.12]" />
-                                        {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
-                                            <div className="absolute top-0 left-0 z-20 h-24 w-24 overflow-hidden">
-                                                <div className="absolute top-4 -left-7 flex w-32 rotate-[-45deg] animate-pulse items-center justify-center gap-1 truncate border-y border-red-400 bg-red-600 py-1 text-center text-[10px] font-bold text-white shadow-lg">
-                                                    <Tag className="h-3 w-3 fill-white" /> SALE
-                                                </div>
+                            <Card className="overflow-hidden flex flex-col h-full min-w-0 w-full max-w-full rounded-[22px] border-0">
+                                {/* Course Image */}
+                                <div className="w-full aspect-video relative">
+                                    <img
+                                        src={image}
+                                        alt={`${course.name} cover`}
+                                        className="absolute inset-0 h-full w-full object-cover"
+                                    />
+                                    {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
+                                        <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
+                                            <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 text-center truncate rotate-[-45deg] flex items-center justify-center gap-1 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] border-y border-red-400">
+                                                <Tag className="w-3 h-3 fill-white" /> SALE
+                                            </div>
+                                        </div>
+                                    )}
+                                    <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                                        {categoryBadges.map((cat: string) => (
+                                            <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">
+                                                {cat}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                                {/* Content */}
+                                <div className="flex-1 p-5 flex flex-col justify-between gap-4">
+                                    <div>
+                                        <div className="flex justify-center items-start gap-2">
+                                             <h3 className="text-xl font-bold mb-2 leading-tight text-center">{course.name}</h3>
+                                        </div>
+
+                                        <p className="text-muted-foreground text-xs mb-4 line-clamp-3">{description}</p>
+
+                                        {course.show_enrollment_count !== false && (
+                                            <div className="mb-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                                                <Users className="h-3.5 w-3.5 text-green-500" />
+                                                {enrollCount.toLocaleString("en-BD")} জন ভর্তি হয়েছে
                                             </div>
                                         )}
+
+                                        <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> প্রিমিয়াম গাইডলাইন</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> লিডারবোর্ড</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ইউনিক কন্টেন্ট</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> ওয়ান টু ওয়ান মেন্টরিং</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> র‍্যাপিড ফায়ার</div>
+                                            <div className="flex items-center gap-1"><Check className="h-3 w-3 text-green-500" /> স্ট্যান্ডার্ড এক্সাম</div>
+                                        </div>
                                     </div>
 
-                                    {/* Body */}
-                                    <div className="flex flex-1 flex-col px-4 pb-4 pt-4">
-                                        <h3 className="mb-2.5 text-center text-[19px] font-extrabold leading-[1.35] tracking-[-0.15px] text-[#171b1c] line-clamp-2 dark:text-white">
-                                            {course.name}
-                                        </h3>
-
-                                        {/* Enrollment meta */}
-                                        {course.show_enrollment_count !== false && (
-                                            <div className="mb-2.5 flex w-full items-center">
-                                                <div className="inline-flex items-center gap-2 rounded-[11px] border border-[#dce4f5] bg-gradient-to-br from-[#f5f8ff] to-white py-1 pl-1 pr-3 shadow-[0_4px_14px_rgba(0,0,0,0.055)] dark:border-white/10 dark:from-slate-800 dark:to-slate-800">
-                                                    <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-[8px] border border-[#c7d7f7] bg-[#eef2ff]">
-                                                        <Users className="h-[14px] w-[14px] text-[#2563eb]" />
-                                                    </span>
-                                                    <span className="flex items-baseline gap-1 whitespace-nowrap">
-                                                        <span className="text-[14px] font-black leading-none text-[#2563eb]">{enrollCount.toLocaleString("en-BD")}</span>
-                                                        <span className="text-[11px] font-bold text-[#45484d] dark:text-slate-300">জন ভর্তি</span>
-                                                    </span>
-                                                </div>
+                                    <div className="flex flex-col gap-2 mt-auto pt-4 border-t border-dashed">
+                                        <div className="flex flex-col items-start">
+                                            {course.original_price != null && Number(course.original_price) > Number(course.price) && (
+                                                <span className="text-[10px] text-muted-foreground line-through">
+                                                    ৳{Number(course.original_price).toLocaleString("en-BD")}
+                                                </span>
+                                            )}
+                                            <div className="text-base font-bold text-primary">
+                                                {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                             </div>
-                                        )}
-
-                                        {/* Divider */}
-                                        <div className="mb-2.5 h-px w-full bg-gradient-to-r from-[#eee] via-[#dce4f5] to-[#eee]" />
-
-                                        {/* Price + Button */}
-                                        <div className="mt-auto flex w-full items-center justify-between gap-3">
-                                            <div className="flex min-w-0 flex-col gap-0.5">
-                                                <p className="m-0 text-[10px] font-semibold text-[#858a91]">কোর্স ফি</p>
-                                                {course.original_price != null && Number(course.original_price) > Number(course.price) && (
-                                                    <del className="text-[12px] font-semibold leading-none text-[#a5a8ad]">৳{Number(course.original_price).toLocaleString("en-BD")}</del>
-                                                )}
-                                                <p className="m-0 text-[21px] font-black leading-[1.1] tracking-[-0.4px] text-[#2563eb]">
-                                                    {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
-                                                </p>
-                                            </div>
-                                            <a
-                                                href={`/courses/${idOrSlug}`}
-                                                className="group/btn relative flex min-w-[110px] flex-shrink-0 items-center justify-center gap-1.5 overflow-hidden rounded-[12px] bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] px-4 py-2.5 text-[12px] font-extrabold text-white shadow-[0_8px_20px_rgba(37,99,235,0.22)] transition-all hover:-translate-y-[3px] hover:shadow-[0_12px_28px_rgba(37,99,235,0.32)]"
-                                            >
-                                                <span className="absolute -left-[120%] top-0 h-full w-4/5 -skew-x-[20deg] bg-gradient-to-r from-transparent via-white/35 to-transparent transition-all duration-500 group-hover/btn:left-[140%]" />
-                                                <span className="relative z-[1]">বিস্তারিত</span>
-                                                <span className="relative z-[1] text-base font-black transition-transform group-hover/btn:translate-x-1">→</span>
-                                            </a>
+                                        </div>
+                                        <div className="flex gap-2 w-full">
+                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
+                                                <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
+                                            </Button>
+                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
+                                                <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
+                            </Card>
                             </article>
                         );
                     })
