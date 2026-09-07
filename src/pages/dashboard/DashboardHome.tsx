@@ -528,7 +528,7 @@ const DashboardHome = () => {
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <Infinity className="h-6 w-6 text-fuchsia-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Unlimited Practice Exam</p>
+              <p className="font-semibold text-sm leading-snug">Random Practice Exam</p>
             </CardContent>
           </Card>
           <Card
