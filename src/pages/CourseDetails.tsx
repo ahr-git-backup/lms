@@ -309,14 +309,14 @@ const CourseDetails = () => {
         <ArrowLeft className="h-4 w-4" /> ফিরে যান
       </Link>
 
-      {/* Auto-playing intro video takes priority over the static image; demo class videos are never used here */}
-      {(() => {
-        const firstVideo = course.video_url;
-        if (firstVideo) {
-          const embed = getEmbedUrl(firstVideo);
-          if (embed) {
-            return (
-              <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+      {/* Merged card: intro video/image + course name + coupon segment */}
+      <div className="mb-5 space-y-4 rounded-2xl border-2 border-slate-300 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+        {(() => {
+          const firstVideo = course.video_url;
+          if (firstVideo) {
+            const embed = getEmbedUrl(firstVideo);
+            if (embed) {
+              return (
                 <div className="aspect-video w-full overflow-hidden rounded-xl">
                   <iframe
                     src={`${embed}&autoplay=1&mute=1`}
@@ -326,29 +326,26 @@ const CourseDetails = () => {
                     allowFullScreen
                   />
                 </div>
-              </div>
-            );
+              );
+            }
           }
-        }
-        return course.image_url ? (
-          <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+          return course.image_url ? (
             <div className="overflow-hidden rounded-xl">
               <img src={course.image_url} alt={course.name} className="w-full object-cover" />
             </div>
-          </div>
-        ) : null;
-      })()}
+          ) : null;
+        })()}
 
-      {/* Course name: bold, centered — directly under the image/video */}
-      <div className="mb-4 flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-extrabold sm:text-3xl">{course.name}</h1>
-        {discountPct > 0 && (
-          <Badge className="bg-[#2563eb] hover:bg-[#2563eb]">{discountPct}% ছাড়</Badge>
-        )}
-      </div>
+        {/* Course name: bold, centered — directly under the image/video */}
+        <div className="flex flex-col items-center gap-2 text-center">
+          <h1 className="text-2xl font-extrabold sm:text-3xl">{course.name}</h1>
+          {discountPct > 0 && (
+            <Badge className="bg-[#2563eb] hover:bg-[#2563eb]">{discountPct}% ছাড়</Badge>
+          )}
+        </div>
 
-      {/* Premium coupon card: special-discount banner(s) + coupon input, merged into one card */}
-      <div className="mb-5 space-y-3 rounded-2xl border-2 border-primary/20 bg-gradient-to-br from-card to-secondary/30 p-4 shadow-md">
+        {/* Special-discount banner(s) + coupon input */}
+        <div className="space-y-3 rounded-2xl border border-primary/20 bg-gradient-to-br from-card to-secondary/30 p-4">
         {specialDiscounts && specialDiscounts.length > 0 && specialDiscounts.map((discount: any, idx: number) => (
           <div
             key={idx}
@@ -441,6 +438,7 @@ const CourseDetails = () => {
             {couponError && <p className="text-xs text-red-500">{couponError}</p>}
           </div>
         )}
+        </div>
       </div>
 
       {(course as any).show_enrollment_count !== false && (
