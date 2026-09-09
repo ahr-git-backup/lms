@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Users, CheckCircle2, Star, Gift, PlayCircle, Check, Loader2, Copy, Download, Eye } from "lucide-react";
+import { ArrowLeft, Users, CheckCircle2, Star, Gift, PlayCircle, Check, Loader2, Copy, Download, Eye, FileText } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import SEO from "@/components/SEO";
 import useEmblaCarousel from "embla-carousel-react";
@@ -287,6 +287,23 @@ const CourseDetails = () => {
 
   const hasDemoContent =
     Array.isArray((course as any)?.demo_content) && (course as any).demo_content.length > 0;
+
+  const { data: demoExams } = useQuery({
+    queryKey: ["course-demo-exams", course?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, subject, chapter")
+        .eq("course_id", course!.id)
+        .eq("is_demo_exam", true)
+        .eq("is_published", true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
+  const hasDemoExams = !!demoExams && demoExams.length > 0;
 
   return (
     <div className="min-h-screen bg-background">
@@ -683,6 +700,33 @@ const CourseDetails = () => {
         </TabsContent>
 
         <TabsContent value="demo" className="mt-0">
+      {/* Demo exams — free/demo tests admins attach to this course */}
+      {hasDemoExams && (
+        <div className="mb-6 space-y-3">
+          <h3 className="mb-3 text-lg font-bold text-gray-900">ডেমো পরীক্ষা</h3>
+          {demoExams!.map((ex: any) => (
+            <Link
+              key={ex.id}
+              to={`/take-exam/${ex.id}`}
+              className="flex items-center gap-3 rounded-xl border p-3 hover:border-blue-300 hover:shadow-sm transition"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-600">
+                <FileText className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold">{ex.title}</p>
+                {(Array.isArray(ex.subject) && ex.subject.length > 0) || ex.chapter ? (
+                  <p className="truncate text-xs text-muted-foreground">
+                    {[...(Array.isArray(ex.subject) ? ex.subject : []), ex.chapter].filter(Boolean).join(" • ")}
+                  </p>
+                ) : null}
+              </div>
+              <Badge variant="outline" className="shrink-0 text-[10px] border-green-300 text-green-700">ফ্রি</Badge>
+            </Link>
+          ))}
+        </div>
+      )}
+
       {/* Demo content list — grouped by sub-course, matching reference layout */}
       {hasDemoContent ? (() => {
         const items = (course as any).demo_content as DemoContentItem[];
@@ -724,9 +768,9 @@ const CourseDetails = () => {
             ))}
           </div>
         );
-      })() : (
+      })() : !hasDemoExams ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Demo</p>
-      )}
+      ) : null}
         </TabsContent>
       </Tabs>
 

@@ -57,6 +57,7 @@ const examSchema = z.object({
   is_published: z.boolean().optional().default(false),
   is_visible_on_free: z.boolean().optional().default(false),
   allow_guest: z.boolean().optional().default(false),
+  is_demo_exam: z.boolean().optional().default(false),
   show_on_landing: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
@@ -142,6 +143,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         is_published: false,
         is_visible_on_free: false,
         allow_guest: false,
+        is_demo_exam: false,
         show_on_landing: false,
         free_exam_category: "HSC",
         restrict_solution: false,
@@ -209,6 +211,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 is_visible_on_free: exam.is_visible_on_free ?? false,
                 // @ts-ignore
                 allow_guest: exam.allow_guest ?? false,
+                is_demo_exam: (exam as any).is_demo_exam ?? false,
                 show_on_landing: exam.show_on_landing ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
@@ -400,6 +403,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             is_published: parsed.is_published ?? false,
             is_visible_on_free: parsed.is_visible_on_free ?? false,
             allow_guest: parsed.allow_guest ?? false,
+            is_demo_exam: parsed.is_demo_exam ?? false,
             show_on_landing: parsed.show_on_landing ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
@@ -720,6 +724,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 telegram_channel_ids: [],
                 is_published: false,
                 is_visible_on_free: false,
+                allow_guest: false,
+                is_demo_exam: false,
                 show_on_landing: false,
                 free_exam_category: "HSC",
                 restrict_solution: false,
@@ -1088,6 +1094,26 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       <span className="text-xs text-muted-foreground font-normal">Guests can take this exam without an account, without listing it on the Free Exams page.</span>
                   </Label>
               </div>
+
+              {form.course_id && (
+                  <div className="flex items-center gap-2 md:col-span-2">
+                      <Switch
+                          id="is_demo_exam"
+                          checked={form.is_demo_exam}
+                          onCheckedChange={(checked) =>
+                              setForm((prev) => ({
+                                  ...prev,
+                                  is_demo_exam: checked,
+                                  allow_guest: checked ? true : prev.allow_guest,
+                              }))
+                          }
+                      />
+                      <Label htmlFor="is_demo_exam" className="flex flex-col">
+                          <span>Show in Course's Demo Tab</span>
+                          <span className="text-xs text-muted-foreground font-normal">Appears alongside demo videos on this course's public page. Anyone can attempt it, even without buying the course or logging in.</span>
+                      </Label>
+                  </div>
+              )}
 
               {(isFreeMode || (!form.course_id)) && form.is_visible_on_free && (
                   <div className="flex items-center gap-2 md:col-span-2">

@@ -28,6 +28,7 @@ export interface Exam {
   time_window_end?: string | null;
   is_published: boolean;
   is_visible_on_free?: boolean;
+  is_demo_exam?: boolean;
   restrict_solution?: boolean;
   questions_json?: string;
   questions_csv?: string;
