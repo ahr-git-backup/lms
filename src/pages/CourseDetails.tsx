@@ -202,6 +202,21 @@ const CourseDetails = () => {
     enabled: !!course?.id,
   });
 
+  const { data: demoExams } = useQuery({
+    queryKey: ["course-demo-exams", course?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("exams")
+        .select("id, title, subject, chapter")
+        .eq("course_id", course!.id)
+        .eq("is_demo_exam", true)
+        .eq("is_published", true);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!course?.id,
+  });
+
   if (isLoading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
@@ -287,21 +302,6 @@ const CourseDetails = () => {
 
   const hasDemoContent =
     Array.isArray((course as any)?.demo_content) && (course as any).demo_content.length > 0;
-
-  const { data: demoExams } = useQuery({
-    queryKey: ["course-demo-exams", course?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exams")
-        .select("id, title, subject, chapter")
-        .eq("course_id", course!.id)
-        .eq("is_demo_exam", true)
-        .eq("is_published", true);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!course?.id,
-  });
 
   const hasDemoExams = !!demoExams && demoExams.length > 0;
 
