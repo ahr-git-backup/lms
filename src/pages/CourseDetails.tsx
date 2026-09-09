@@ -99,7 +99,7 @@ const CourseDetails = () => {
       const { data, error } = await supabase
         .from("courses")
         .select(
-          "id, name, full_description, short_description, short_description_lines, extra_links, price, original_price, image_url, video_url, what_you_get, demo_content, linked_course_ids, is_active, is_public, routine_url, show_enrollment_count"
+          "id, name, full_description, short_description, short_description_lines, extra_links, price, original_price, image_url, video_url, what_you_get, demo_content, demo_tab_label, linked_course_ids, is_active, is_public, routine_url, show_enrollment_count"
         )
         .or(`slug.eq.${courseId},id.eq.${courseId}`)
         .maybeSingle();
@@ -459,10 +459,11 @@ const CourseDetails = () => {
             value="demo"
             className="flex-1 flex-col gap-1 rounded-none border-b-2 border-transparent py-4 px-6 font-medium text-gray-600 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 hover:text-blue-600 hover:bg-gray-50"
           >
-            Demo Class
+            {(course as any).demo_tab_label?.trim() || "Demo Class"}
           </TabsTrigger>
         </TabsList>
         )}
+
 
         <TabsContent value="features" className="mt-0 space-y-0">
       {/* Eye-catching bg box for the section heading above the checklist */}

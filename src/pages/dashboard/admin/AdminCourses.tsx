@@ -62,6 +62,7 @@ const courseSchema = z.object({
     .optional()
     .or(z.literal("")),
   demo_content: z.array(demoContentSchema).optional().default([]),
+  demo_tab_label: z.string().trim().max(50).optional().or(z.literal("")),
   image_url: z.string().trim().max(500).optional().or(z.literal("")),
   video_url: z.string().trim().optional().or(z.literal("")),
   routine_url: z.string().trim().optional().or(z.literal("")),
@@ -92,6 +93,7 @@ const AdminCourses = () => {
     original_price: "",
     what_you_get: "",
     demo_content: [],
+    demo_tab_label: "",
     image_url: "",
     video_url: "",
     routine_url: "",
@@ -248,6 +250,7 @@ const AdminCourses = () => {
       original_price: "",
       what_you_get: "",
       demo_content: [],
+      demo_tab_label: "",
       image_url: "",
       bkash_number: "",
       nagad_number: "",
@@ -280,6 +283,7 @@ const AdminCourses = () => {
           ? [parsed.what_you_get]
           : null,
         demo_content: parsed.demo_content,
+        demo_tab_label: parsed.demo_tab_label || null,
         image_url: parsed.image_url || null,
         video_url: parsed.video_url || null,
         routine_url: parsed.routine_url || null,
@@ -363,6 +367,7 @@ const AdminCourses = () => {
       original_price: course.original_price != null ? String(course.original_price) : "",
       what_you_get: Array.isArray(course.what_you_get) ? course.what_you_get.join("\n") : "",
       demo_content: course.demo_content ?? [],
+      demo_tab_label: (course as any).demo_tab_label ?? "",
       image_url: course.image_url ?? "",
       video_url: course.video_url ?? "",
       routine_url: (course as any).routine_url ?? "",
@@ -900,6 +905,19 @@ const AdminCourses = () => {
                             className="bg-background"
                         />
                         <p className="text-[11px] text-muted-foreground">এটি একটি মাত্র ভিডিও — কোর্স ডিটেইলস পেজের উপরে দেখাবে। নিচের "Add Class" দিয়ে যোগ করা সব ভিডিও Demo Class ট্যাবে যাবে।</p>
+                    </div>
+
+                    <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
+                        <Label htmlFor="demo_tab_label" className="text-sm font-semibold">📑 দ্বিতীয় ট্যাবের নাম (Tab Label)</Label>
+                        <Input
+                            id="demo_tab_label"
+                            value={form.demo_tab_label || ""}
+                            onChange={(e) => setForm((prev) => ({ ...prev, demo_tab_label: e.target.value }))}
+                            placeholder="Demo Class"
+                            className="bg-background"
+                            maxLength={50}
+                        />
+                        <p className="text-[11px] text-muted-foreground">খালি রাখলে ডিফল্ট "Demo Class" দেখাবে। এখানে চাইলে অন্য কিছু (যেমন "Free Class", "Sample Lecture") লিখতে পারো — কোর্স ডিটেইলস পেজে "Course Features" এর পাশের ট্যাবে এই নামটা দেখাবে।</p>
                     </div>
 
                     <div className="flex justify-between items-center mb-4">
