@@ -447,7 +447,6 @@ const CourseDetails = () => {
       )}
 
       <Tabs defaultValue="features" className="mb-6">
-        {hasDemoContent && (
         <TabsList className="mb-4 flex h-auto w-full rounded-2xl bg-white p-0 shadow-lg border-b">
           <TabsTrigger
             value="features"
@@ -459,10 +458,9 @@ const CourseDetails = () => {
             value="demo"
             className="flex-1 flex-col gap-1 rounded-none border-b-2 border-transparent py-4 px-6 font-medium text-gray-600 data-[state=active]:border-blue-600 data-[state=active]:bg-blue-50 data-[state=active]:text-blue-600 hover:text-blue-600 hover:bg-gray-50"
           >
-            {(course as any).demo_tab_label?.trim() || "Demo Class"}
+            {(course as any).demo_tab_label?.trim() || "Demo"}
           </TabsTrigger>
         </TabsList>
-        )}
 
 
         <TabsContent value="features" className="mt-0 space-y-0">
@@ -682,10 +680,9 @@ const CourseDetails = () => {
 
         </TabsContent>
 
-        {hasDemoContent && (
         <TabsContent value="demo" className="mt-0">
       {/* Demo content list — grouped by sub-course, matching reference layout */}
-      {Array.isArray((course as any).demo_content) && (course as any).demo_content.length > 0 && (() => {
+      {hasDemoContent ? (() => {
         const items = (course as any).demo_content as DemoContentItem[];
         const groups = new Map<string, DemoContentItem[]>();
         items.forEach((d) => {
@@ -725,9 +722,10 @@ const CourseDetails = () => {
             ))}
           </div>
         );
-      })()}
+      })() : (
+        <p className="py-6 text-center text-sm text-muted-foreground">Demo</p>
+      )}
         </TabsContent>
-        )}
       </Tabs>
 
       {/* Spacer so fixed enroll bar doesn't cover the last content */}
