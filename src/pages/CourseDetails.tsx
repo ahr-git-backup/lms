@@ -316,21 +316,25 @@ const CourseDetails = () => {
           const embed = getEmbedUrl(firstVideo);
           if (embed) {
             return (
-              <div className="mb-5 aspect-video w-full overflow-hidden rounded-2xl border">
-                <iframe
-                  src={`${embed}&autoplay=1&mute=1`}
-                  title={course.name}
-                  className="h-full w-full"
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  allowFullScreen
-                />
+              <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+                <div className="aspect-video w-full overflow-hidden rounded-xl">
+                  <iframe
+                    src={`${embed}&autoplay=1&mute=1`}
+                    title={course.name}
+                    className="h-full w-full"
+                    allow="autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
               </div>
             );
           }
         }
         return course.image_url ? (
-          <div className="mb-5 overflow-hidden rounded-2xl border">
-            <img src={course.image_url} alt={course.name} className="w-full object-cover" />
+          <div className="mb-5 rounded-2xl border-2 border-slate-300 bg-white p-3 shadow-lg dark:border-slate-700 dark:bg-slate-900">
+            <div className="overflow-hidden rounded-xl">
+              <img src={course.image_url} alt={course.name} className="w-full object-cover" />
+            </div>
           </div>
         ) : null;
       })()}
