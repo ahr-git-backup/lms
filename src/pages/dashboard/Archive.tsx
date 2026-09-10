@@ -22,16 +22,23 @@ const PAGE_SIZE = 15;
 // (or is shared/archive-mapped to) an enrolled course, OR that course has
 // archive_full_access = true, OR the course has been granted this specific
 // subject/chapter via course_readymade_access (mode = 'archive-class').
-const isClassUnlocked = (classItem: any, enrolledIds: string[], fullAccessCourseIds: string[] = [], chapterGrants: Set<string> = new Set()): boolean => {
+const isClassUnlocked = (classItem: any, enrolledIds: string[], fullAccessCourseIds: string[] = [], chapterGrants: Set<string> = new Set(), grantedSubjectsByCourse: Map<string, Set<string>> = new Map()): boolean => {
   if (enrolledIds.length === 0) return false;
   if (fullAccessCourseIds.length > 0 && fullAccessCourseIds.some((id) => enrolledIds.includes(id))) return true;
   if (classItem.course_id && enrolledIds.includes(classItem.course_id)) return true;
   if (Array.isArray(classItem.archive_course_ids) && classItem.archive_course_ids.some((id: string) => enrolledIds.includes(id))) return true;
   const subs: string[] = Array.isArray(classItem.subject) ? classItem.subject : (typeof classItem.subject === "string" ? [classItem.subject] : []);
-  const chapter = classItem.chapter || "সাধারণ";
+  const chapter = (classItem.chapter || "সাধারণ").trim();
   for (const subject of subs) {
+    const normSubject = (subject || "").trim();
     for (const courseId of enrolledIds) {
-      if (chapterGrants.has(`${courseId}|||${subject}|||${chapter}`)) return true;
+      // Exact subject+chapter match (normal path).
+      if (chapterGrants.has(`${courseId}|||${normSubject}|||${chapter}`)) return true;
+      // Fallback: a manual grant exists for this course+subject at all (any
+      // chapter), even if the chapter key didn't match exactly (naming drift,
+      // whitespace, null vs default label, etc). A manually-granted subject
+      // must never be silently locked out over a formatting mismatch.
+      if (grantedSubjectsByCourse.get(courseId)?.has(normSubject)) return true;
     }
   }
   return false;
@@ -219,19 +226,27 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
     const { data: chapterGrants } = useQuery({
         queryKey: ["course-archive-chapter-grants", enrolledIds.join(',')],
         queryFn: async () => {
-            if (enrolledIds.length === 0) return { set: new Set<string>(), subjects: [] as string[] };
+            if (enrolledIds.length === 0) return { set: new Set<string>(), subjects: [] as string[], byCourse: new Map<string, Set<string>>() };
             const { data, error } = await supabase
                 .from("course_readymade_access")
                 .select("course_id, subject, chapter")
                 .eq("mode", "archive-class")
                 .in("course_id", enrolledIds);
             if (error) throw error;
-            const set = new Set((data || []).map((g: any) => `${g.course_id}|||${g.subject}|||${g.chapter}`));
+            const set = new Set((data || []).map((g: any) => `${g.course_id}|||${(g.subject || "").trim()}|||${(g.chapter || "সাধারণ").trim()}`));
             // Distinct subjects granted via chapter-level access (not necessarily
             // present in any class's archive_course_ids), so DB list queries below
             // don't silently exclude classes only unlocked through this grant path.
             const subjects = Array.from(new Set((data || []).map((g: any) => g.subject).filter(Boolean)));
-            return { set, subjects };
+            // Per-course subject grant map: used as a resilient fallback so a
+            // manually granted subject is never blocked by a chapter-key mismatch.
+            const byCourse = new Map<string, Set<string>>();
+            (data || []).forEach((g: any) => {
+                if (!g.subject) return;
+                if (!byCourse.has(g.course_id)) byCourse.set(g.course_id, new Set());
+                byCourse.get(g.course_id)!.add((g.subject || "").trim());
+            });
+            return { set, subjects, byCourse };
         },
         enabled: enrolledIds.length > 0,
         refetchOnWindowFocus: true,
@@ -396,7 +411,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
-                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set);
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
@@ -534,7 +549,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
-                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set);
+                        const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
