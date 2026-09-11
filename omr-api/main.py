@@ -387,19 +387,22 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
     reg_no = process_info_block(reg_block)
 
     # --- 2. Extract Questions ---
-    # Calibrated against the ACTUAL cv2.boundingRect() output of a real
-    # scanned OMR sheet (not the idealized PDF coordinates) — the detected
-    # contour box includes a few pixels of the outer table border, which
-    # made the PDF-derived ratios drift (worse toward option D and toward
-    # later rows) once applied to a real photo's slightly-larger box.
-    # Measured directly from HoughCircles bubble centers vs. the real
-    # detected block rect on a sample scan: A/B/C/D sit at 0.2820 / 0.4797 /
-    # 0.6890 / 0.8866 of block width; row 0 starts at 5.278% of block height,
-    # each row is 3.767% of block height tall.
-    Q_ROW0_TOP_RATIO = 0.05278
-    Q_ROW_H_RATIO = 0.037670
-    Q_NUM_COL_RATIO = 0.18121
-    OPT_SPACING_RATIO = 0.20155
+    # Calibrated by directly detecting bubble centers with HoughCircles on a
+    # real scanned OMR sheet (not just idealized PDF coordinates) and
+    # measuring their exact position as a fraction of the detected block's
+    # bounding rect, averaged/verified across all 4 question blocks and all
+    # 25 rows. This replaced an earlier calibration that was significantly
+    # off on Q_NUM_COL_RATIO (was 0.18121, real value ~0.2805 of block
+    # width) — a ~10% block-width horizontal offset that sampled left of
+    # option A entirely, and a row-height ratio that was slightly too large
+    # so error compounded through the sheet (early rows read fine, later
+    # rows increasingly landed between bubbles). Measured: A/B/C/D sit at
+    # 0.2805 / 0.4854 / 0.6902 / 0.8902 of block width; row 0 center is at
+    # 7.206% of block height, each row is 3.777% of block height tall.
+    Q_ROW0_TOP_RATIO = 0.07206
+    Q_ROW_H_RATIO = 0.03777
+    Q_NUM_COL_RATIO = 0.2805
+    OPT_SPACING_RATIO = 0.20325
     current_q = 1
     labels = ['A', 'B', 'C', 'D']
 
