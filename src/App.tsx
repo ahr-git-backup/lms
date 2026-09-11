@@ -118,9 +118,16 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutes (Reduce polling/refetching)
       gcTime: 30 * 60 * 1000, // 30 minutes
-      retry: 1,
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
       refetchOnWindowFocus: false, // Disable refetch on window focus to reduce load
-      refetchOnReconnect: false, // Disable refetch on reconnect
+      // PWA on mobile frequently drops the network connection when the app
+      // goes to background/foreground (OS suspends it, tab gets frozen).
+      // With this off, a request that failed during that gap stayed failed
+      // forever until the user manually refreshed — showing "Failed to load
+      // dashboard data" even after the connection was back. Re-enabled so a
+      // reconnect automatically retries anything that failed.
+      refetchOnReconnect: true,
     },
   },
 });

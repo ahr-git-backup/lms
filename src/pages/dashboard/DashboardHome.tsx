@@ -177,7 +177,7 @@ const DashboardHome = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const { data: dashboardData, isLoading: dashboardLoading, isError } = useQuery({
+  const { data: dashboardData, isLoading: dashboardLoading, isError, refetch: refetchDashboard } = useQuery({
     queryKey: ["dashboard-data", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -191,6 +191,12 @@ const DashboardHome = () => {
       return data as unknown as DashboardData;
     },
     enabled: !!user,
+    // This is the single most important query on the page (everything below
+    // depends on it), and PWA on mobile drops the connection often when the
+    // app is backgrounded/foregrounded — so retry harder here than the
+    // global default before giving up and showing the error screen.
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
   });
 
   const { data: pendingReportsCount } = useQuery({
@@ -254,7 +260,7 @@ const DashboardHome = () => {
               <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
               <h2 className="text-lg font-semibold text-destructive">Failed to load dashboard data.</h2>
               <p className="text-sm text-muted-foreground">Please check your connection and try again.</p>
-              <Button onClick={() => window.location.reload()} size="sm" className="mt-4">Retry</Button>
+              <Button onClick={() => refetchDashboard()} size="sm" className="mt-4">Retry</Button>
           </div>
       );
   }

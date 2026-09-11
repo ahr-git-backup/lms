@@ -250,10 +250,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const newSessionId = crypto.randomUUID();
             localStorage.setItem("app_session_id", newSessionId);
 
-            const { error: updateError } = await supabase
+            let updateError = (await supabase
                 .from("profiles")
                 .update({ current_session_id: newSessionId })
-                .eq("id", data.user.id);
+                .eq("id", data.user.id)).error;
+
+            // PWA on mobile can have a flaky connection right at login time
+            // (app just came to foreground, network still settling) — one
+            // quick retry avoids scaring the user with a sync-error toast
+            // over what was really just a one-off transient network blip.
+            if (updateError) {
+              await new Promise((r) => setTimeout(r, 800));
+              updateError = (await supabase
+                  .from("profiles")
+                  .update({ current_session_id: newSessionId })
+                  .eq("id", data.user.id)).error;
+            }
 
             if (updateError) {
               console.error("Failed to update session ID", updateError);
@@ -353,8 +365,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [user, session, signOut, isAdmin, isTeacher]);
 
   useEffect(() => {
+      let initialTimer: ReturnType<typeof setTimeout> | undefined;
       if (user) {
-          checkSessionValidity();
+          // Grace period on the very first check after user becomes
+          // available. On PWA especially, the app can regain foreground and
+          // fire this effect before the login flow's own localStorage write
+          // /DB update has fully settled — checking too early was reading a
+          // stale/missing local session id and forcing a logout right after
+          // a successful login. A short delay lets that settle first.
+          initialTimer = setTimeout(() => checkSessionValidity(), 1500);
       }
 
       const interval = setInterval(() => {
@@ -363,7 +382,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, 300000); // Increased to 5 minutes
 
-    return () => clearInterval(interval);
+    return () => {
+        if (initialTimer) clearTimeout(initialTimer);
+        clearInterval(interval);
+    };
+  }, [user, loading, checkSessionValidity]);
+
+  useEffect(() => {
+      // PWA on mobile suspends the app in the background and the OS can
+      // silently drop the network connection during that time. When the
+      // user brings it back to foreground, do a fresh session check
+      // (catches another device having logged in while this one was
+      // backgrounded) instead of waiting for the next 5-minute interval
+      // tick. Same short grace delay as the initial check, so a check
+      // doesn't race a login flow that's still settling right as the app
+      // resumes.
+      const handleVisibility = () => {
+          if (document.visibilityState === "visible" && user && !loading) {
+              setTimeout(() => checkSessionValidity(), 1000);
+          }
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+      return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, [user, loading, checkSessionValidity]);
   useEffect(() => {
       // Check for messages/errors in URL fragment (Supabase redirect standard)
