@@ -197,6 +197,10 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
       if (corners) {
         formData.append("corners", JSON.stringify(corners));
       }
+      // Admin answer-key scanning should accept any pen color (black, red,
+      // blue, etc), unlike the student exam scanner which only counts
+      // black/dark ink to prevent ambiguity/cheating.
+      formData.append("mode", "any_color");
 
       const response = await fetch(`${OMR_API_URL}/api/v1/scan-omr`, {
         method: "POST",

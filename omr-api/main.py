@@ -89,7 +89,7 @@ def detect_paper_edges(img):
     return cv2.warpPerspective(img, M, (dstWidth, dstHeight))
 
 
-def process_omr_logic(image_bytes, corners=None):
+def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
     np_arr = np.frombuffer(image_bytes, np.uint8)
     image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
     if image is None: 
@@ -243,6 +243,13 @@ def process_omr_logic(image_bytes, corners=None):
 
         _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
+        roi_bin_dark = int(np.count_nonzero(roi_bin > 0))
+
+        if color_mode == "any_color":
+            # Admin answer-key mode: any dark ink color counts (black, red,
+            # blue, green pen etc) — no color filtering.
+            return (roi_bin_dark / roi_bin.size) * 100.0
+
         roi_hsv = process_hsv[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
         hue = roi_hsv[:, :, 0]
         saturation = roi_hsv[:, :, 1]
@@ -385,7 +392,7 @@ def process_omr_logic(image_bytes, corners=None):
 
                 if best_raw_val < 8.0:
                     reason = "কোনো বৃত্ত ভরাট করা হয়নি (উত্তর মিস করা হয়েছে)।"
-                elif best_raw_val >= FILL_THRESHOLD and best_black['val'] < FILL_THRESHOLD:
+                elif color_mode != "any_color" and best_raw_val >= FILL_THRESHOLD and best_black['val'] < FILL_THRESHOLD:
                     reason = (
                         f"বৃত্ত ({labels[best_raw_idx]}) ভরাট করা হয়েছে কিন্তু কালো/গাঢ় কালিতে নয় (রঙিন কলম ব্যবহার হয়েছে) "
                         f"— শুধুমাত্র কালো বল/জেল পেন বা পেন্সিল দিয়ে ভরাট করলে সেটি গণনা হবে।"
@@ -449,7 +456,7 @@ def process_omr_logic(image_bytes, corners=None):
 
 
 @app.post("/api/v1/scan-omr", dependencies=[Depends(verify_api_key)])
-async def scan_omr(file: UploadFile = File(...), corners: str = Form(default=None)):
+async def scan_omr(file: UploadFile = File(...), corners: str = Form(default=None), mode: str = Form(default="strict")):
     parsed = None
     if corners:
         try: 
@@ -457,7 +464,8 @@ async def scan_omr(file: UploadFile = File(...), corners: str = Form(default=Non
         except: 
             pass
     contents = await file.read()
-    return process_omr_logic(contents, corners=parsed)
+    color_mode = "any_color" if mode == "any_color" else "strict"
+    return process_omr_logic(contents, corners=parsed, color_mode=color_mode)
 
 
 @app.get("/health")
