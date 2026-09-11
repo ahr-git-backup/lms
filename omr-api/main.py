@@ -181,6 +181,7 @@ def process_omr_logic(image_bytes, corners=None):
     # STEP 2: 6 MAIN BLOCKS EXTRACTION
     # ==========================================
     process_gray = cv2.cvtColor(processing_mat, cv2.COLOR_BGR2GRAY)
+    process_hsv = cv2.cvtColor(processing_mat, cv2.COLOR_BGR2HSV)
     block_thresh = cv2.adaptiveThreshold(process_gray, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY_INV, 25, 6)
 
     h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
@@ -225,10 +226,12 @@ def process_omr_logic(image_bytes, corners=None):
     SHRINK = 0.20
 
     def get_fill_percent(col_x, row_y, c_width, c_height):
-        """Returns the % of dark (ink) pixels inside a bubble's sampling
-        region, using Otsu auto-thresholding so it adapts to scan
-        lighting/contrast per-image instead of relying on a fixed gray
-        cutoff."""
+        """Returns the % of dark BLACK ink pixels inside a bubble's sampling
+        region. Uses Otsu auto-thresholding on grayscale darkness, then masks
+        out any pixel that is actually colored (red/blue/green pen etc, high
+        HSV saturation) so colored ink is never mistaken for a black-filled
+        bubble — grayscale alone can't tell the difference since colored ink
+        can still be dark enough to pass a plain darkness threshold."""
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
         roi_w = int(c_width * (1 - 2 * SHRINK))
@@ -239,8 +242,31 @@ def process_omr_logic(image_bytes, corners=None):
             return 0.0
 
         _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        dark_pixels = int(np.count_nonzero(roi_bin))
+
+        roi_hsv = process_hsv[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
+        saturation = roi_hsv[:, :, 1]
+        # Black/gray/graphite ink has low saturation. Colored pen ink (red,
+        # blue, green) has high saturation even when it reads dark in
+        # grayscale — exclude those pixels from the "black fill" count.
+        BLACK_SATURATION_MAX = 60
+        black_mask = saturation < BLACK_SATURATION_MAX
+
+        dark_pixels = int(np.count_nonzero((roi_bin > 0) & black_mask))
         return (dark_pixels / roi_bin.size) * 100.0
+
+    def get_raw_dark_percent(col_x, row_y, c_width, c_height):
+        """Same as get_fill_percent but WITHOUT the black-only color mask —
+        used only to tell apart 'truly empty bubble' from 'something dark
+        (possibly colored ink) was marked here', for accurate skip reasons."""
+        roi_x = int(col_x + c_width * SHRINK)
+        roi_y = int(row_y + c_height * SHRINK)
+        roi_w = int(c_width * (1 - 2 * SHRINK))
+        roi_h = int(c_height * (1 - 2 * SHRINK))
+        roi = process_gray[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
+        if roi.size == 0:
+            return 0.0
+        _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        return (int(np.count_nonzero(roi_bin)) / roi_bin.size) * 100.0
 
     def get_mean_darkness(col_x, row_y, c_width, c_height):
         roi_x = int(col_x + c_width * SHRINK)
@@ -342,16 +368,26 @@ def process_omr_logic(image_bytes, corners=None):
                 marked_opts = ", ".join(labels[m['opt']] for m in marked)
                 reason = f"একাধিক বৃত্ত ভরাট পাওয়া গেছে ({marked_opts}) — তাই এই প্রশ্নের উত্তর গণনা করা হয়নি।"
             else:
-                # No bubble reached the fill threshold. Distinguish "nothing
-                # marked at all" from "something marked but too light/not
-                # dark (black) enough" using the darkest bubble's fill %.
-                best = max(means, key=lambda m: m['val'])
-                if best['val'] < 8.0:
+                # No bubble reached the (black-only) fill threshold. Check
+                # raw darkness (ignoring color) to tell apart:
+                # 1) truly nothing marked, 2) something dark marked but not
+                # black (colored pen), 3) marked but too light/faint.
+                best_black = max(means, key=lambda m: m['val'])
+                raw_vals = [get_raw_dark_percent(opt_start_x + (opt * opt_w), row_y, opt_w, row_h) for opt in range(4)]
+                best_raw_idx = int(np.argmax(raw_vals))
+                best_raw_val = raw_vals[best_raw_idx]
+
+                if best_raw_val < 8.0:
                     reason = "কোনো বৃত্ত ভরাট করা হয়নি (উত্তর মিস করা হয়েছে)।"
+                elif best_raw_val >= FILL_THRESHOLD and best_black['val'] < FILL_THRESHOLD:
+                    reason = (
+                        f"বৃত্ত ({labels[best_raw_idx]}) ভরাট করা হয়েছে কিন্তু কালো/গাঢ় কালিতে নয় (রঙিন কলম ব্যবহার হয়েছে) "
+                        f"— শুধুমাত্র কালো বল/জেল পেন বা পেন্সিল দিয়ে ভরাট করলে সেটি গণনা হবে।"
+                    )
                 else:
                     reason = (
-                        f"বৃত্ত ({labels[best['opt']]}) ভরাট করার চেষ্টা করা হয়েছে কিন্তু কালি যথেষ্ট গাঢ়/কালো নয় "
-                        f"(মাত্র {best['val']:.0f}% ভরাট মনে হয়েছে) — তাই এটি গণনা করা হয়নি। বৃত্ত সম্পূর্ণ কালো কলম/পেন্সিল দিয়ে ভরাট করতে হবে।"
+                        f"বৃত্ত ({labels[best_black['opt']]}) ভরাট করার চেষ্টা করা হয়েছে কিন্তু কালি যথেষ্ট গাঢ়/কালো নয় "
+                        f"(মাত্র {best_black['val']:.0f}% কালো ভরাট মনে হয়েছে) — তাই এটি গণনা করা হয়নি। বৃত্ত সম্পূর্ণ কালো কলম/পেন্সিল দিয়ে ভরাট করতে হবে।"
                     )
 
             # Formatted per your strict JSON requirements
