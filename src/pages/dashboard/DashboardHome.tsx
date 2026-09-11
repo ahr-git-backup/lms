@@ -538,7 +538,7 @@ const DashboardHome = () => {
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <FileText className="h-6 w-6 text-pink-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Unlimited Readymade Exam</p>
+              <p className="font-semibold text-sm leading-snug">Unlimited Practice Exam</p>
             </CardContent>
           </Card>
         </div>
