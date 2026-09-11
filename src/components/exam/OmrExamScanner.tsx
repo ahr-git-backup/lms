@@ -94,6 +94,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   // Results
   const [apiData, setApiData] = useState<ApiData | null>(null);
   const [scannedAnswers, setScannedAnswers] = useState<Record<string, string>>({});
+  const [skipReasons, setSkipReasons] = useState<Record<string, string>>({});
+  const [showSkipReasons, setShowSkipReasons] = useState(false);
   const [historyArray, setHistoryArray] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
@@ -296,6 +298,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
       // Map scanned results to question IDs
       const mapped: Record<string, string> = {};
+      const reasons: Record<string, string> = {};
       data.extracted_nodes.forEach((r: OmrResult) => {
         const qNum = parseInt(r.question);
         if (qNum <= questionIds.length && r.correct_answer) {
@@ -305,9 +308,13 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
             mapped[questionIds[qNum - 1]] = firstAnswer;
           }
         }
+        if (qNum <= questionIds.length && r.skip_reason) {
+          reasons[questionIds[qNum - 1]] = r.skip_reason;
+        }
       });
 
       setScannedAnswers(mapped);
+      setSkipReasons(reasons);
       setHistoryArray([JSON.stringify(mapped)]);
       setHistoryIndex(0);
 
@@ -631,6 +638,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     setApiData(null);
     setBaseImage(null);
     setScannedAnswers({});
+    setSkipReasons({});
+    setShowSkipReasons(false);
     setHistoryArray([]);
     setHistoryIndex(-1);
     setScanError(null);
@@ -958,6 +967,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                   <div className="grid grid-cols-5 gap-1.5">
                     {questionIds.map((qId, idx) => {
                       const answer = scannedAnswers[qId];
+                      const reason = skipReasons[qId];
                       const qNum = idx + 1;
                       const isEditing = editingQNum === qNum;
                       return (
@@ -965,12 +975,18 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                           <button
                             type="button"
                             onClick={() => setEditingQNum(isEditing ? null : qNum)}
-                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors ${
+                            title={reason || undefined}
+                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors relative ${
                               answer
                                 ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
+                                : reason
+                                ? "bg-amber-50 dark:bg-amber-900/10 border-amber-300 dark:border-amber-800/40"
                                 : "bg-muted/30 border-border/30"
                             } ${isEditing ? "ring-2 ring-violet-400" : ""}`}
                           >
+                            {reason && !answer && (
+                              <AlertTriangle className="h-2.5 w-2.5 text-amber-500 absolute top-0.5 right-0.5" />
+                            )}
                             <span className="font-bold text-[9px] text-muted-foreground">Q{qNum}</span>
                             <span className={`font-bold ${answer ? "text-green-700 dark:text-green-400" : "text-muted-foreground/50"}`}>
                               {answer || "—"}
@@ -1015,6 +1031,37 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                 </div>
               </div>
             </div>
+
+            {/* Skipped Questions & Reasons */}
+            {Object.keys(skipReasons).length > 0 && (
+              <div className="rounded-xl border border-amber-300/60 dark:border-amber-800/40 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowSkipReasons((v) => !v)}
+                  className="w-full flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-900/10"
+                >
+                  <span className="text-xs font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    বাদ পড়া প্রশ্ন ও কারণ ({Object.keys(skipReasons).length})
+                  </span>
+                  {showSkipReasons ? <ChevronUp className="h-3.5 w-3.5 text-amber-600" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-600" />}
+                </button>
+                {showSkipReasons && (
+                  <div className="max-h-[240px] overflow-y-auto p-2.5 space-y-1.5 bg-background">
+                    {questionIds.map((qId, idx) => {
+                      const reason = skipReasons[qId];
+                      if (!reason) return null;
+                      return (
+                        <div key={qId} className="flex gap-2 text-xs p-2 rounded-lg bg-amber-50/60 dark:bg-amber-900/5 border border-amber-200/50 dark:border-amber-800/20">
+                          <span className="font-bold text-amber-700 dark:text-amber-400 shrink-0">Q{idx + 1}:</span>
+                          <span className="text-muted-foreground leading-snug">{reason}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
