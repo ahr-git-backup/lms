@@ -17,6 +17,7 @@ interface Exam {
   title: string;
   subject: string[] | string | null;
   chapter: string | null;
+  readymade_sub_chapter: string | null;
   exam_type: string;
   duration_minutes: number;
   free_exam_category: string | null;
@@ -40,6 +41,7 @@ const FreeExam = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
 
   // Search & Pagination State
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +62,7 @@ const FreeExam = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, readymade_sub_chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
         .eq("is_published", true)
         // @ts-ignore
         .eq("is_visible_on_free", true);
@@ -125,8 +127,19 @@ const FreeExam = () => {
       return Array.from(chapters).sort();
   };
 
+  const getUniqueSubChapters = () => {
+      if (!filteredExamsByChapter) return [];
+      const subChapters = new Set<string>();
+      filteredExamsByChapter.forEach(exam => {
+          if (exam.readymade_sub_chapter) subChapters.add(exam.readymade_sub_chapter);
+      });
+      return Array.from(subChapters).sort();
+  };
+
   const handleBack = () => {
-      if (selectedChapter) {
+      if (selectedSubChapter) {
+          setSelectedSubChapter(null);
+      } else if (selectedChapter) {
           setSelectedChapter(null);
       } else if (selectedSubject) {
           setSelectedSubject(null);
@@ -269,7 +282,14 @@ const FreeExam = () => {
 
   const filteredExamsByChapter = filteredExams.filter(exam => {
       if (!selectedChapter) return true;
+      if (selectedChapter === "General") return !exam.chapter;
       return exam.chapter === selectedChapter;
+  });
+
+  const filteredExamsBySubChapter = filteredExamsByChapter.filter(exam => {
+      if (!selectedSubChapter) return true;
+      if (selectedSubChapter === "General") return !exam.readymade_sub_chapter;
+      return exam.readymade_sub_chapter === selectedSubChapter;
   });
 
   // Level 0: Categories (HSC / Medical / Varsity / Onushilon)
@@ -430,9 +450,78 @@ const FreeExam = () => {
       }
   }
 
-  // Level 3: Exam List
-  const finalExams = selectedChapter === "General"
-      ? filteredExams.filter(e => !e.chapter)
+  // Level 3: Sub-Chapters (topic-wise breakdown within a chapter) — only
+  // shown when this chapter actually has any sub-chapter-tagged exams;
+  // chapters with no sub-chapters skip straight to the exam list, same as
+  // the paid Readymade page's behavior.
+  if (!selectedSubChapter) {
+      const subChaptersList = getUniqueSubChapters();
+      const hasSubChapters = subChaptersList.length > 0;
+
+      if (hasSubChapters) {
+          return (
+            <div className="min-h-screen bg-background text-foreground flex flex-col">
+                <PublicHeader />
+                <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
+                <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Chapters
+                </Button>
+
+                <div className="mb-8">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <span>{selectedSubject}</span>
+                        <ChevronRight className="h-3 w-3" />
+                        <span>{selectedChapter}</span>
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight text-primary">Select a Topic</h2>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
+                    {subChaptersList.map(subChapter => (
+                        <Card
+                            key={subChapter}
+                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group"
+                            onClick={() => setSelectedSubChapter(subChapter)}
+                        >
+                            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                        <Layers className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <span className="text-sm font-semibold leading-tight group-hover:text-primary transition-colors">{subChapter}</span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-[10px] sm:text-xs text-muted-foreground">
+                                        {filteredExamsByChapter.filter(e => e.readymade_sub_chapter === subChapter).length} exams
+                                    </p>
+                                    <ChevronRight className="h-3 w-3 text-primary" />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {filteredExamsByChapter.some(e => !e.readymade_sub_chapter) && (
+                         <Card
+                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group border-dashed"
+                            onClick={() => setSelectedSubChapter("General")}
+                        >
+                            <CardContent className="px-3 py-3 sm:px-4 sm:py-4">
+                                <span className="text-sm font-semibold">General / Other</span>
+                                <p className="text-[10px] sm:text-xs text-muted-foreground mt-1">
+                                    {filteredExamsByChapter.filter(e => !e.readymade_sub_chapter).length} exams
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+                </div>
+                </main>
+            </div>
+          );
+      }
+  }
+
+  // Level 4: Exam List
+  const finalExams = selectedSubChapter
+      ? filteredExamsBySubChapter
       : selectedChapter
           ? filteredExamsByChapter
           : filteredExams;
@@ -442,7 +531,7 @@ const FreeExam = () => {
         <PublicHeader />
         <main className="container mx-auto px-4 py-8 max-w-6xl flex-1">
         <Button variant="ghost" className="mb-6 pl-0 hover:bg-transparent" onClick={handleBack}>
-             <ArrowLeft className="mr-2 h-4 w-4" /> Back to {selectedChapter ? 'Chapters' : 'Subjects'}
+             <ArrowLeft className="mr-2 h-4 w-4" /> Back to {selectedSubChapter ? 'Topics' : selectedChapter ? 'Chapters' : 'Subjects'}
         </Button>
 
         <div className="mb-8">
@@ -454,6 +543,12 @@ const FreeExam = () => {
                     <>
                         <ChevronRight className="h-3 w-3" />
                         <span>{selectedChapter}</span>
+                    </>
+                )}
+                {selectedSubChapter && (
+                    <>
+                        <ChevronRight className="h-3 w-3" />
+                        <span>{selectedSubChapter}</span>
                     </>
                 )}
             </div>
