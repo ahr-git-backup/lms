@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress";
 import { useAntiCheat } from "@/hooks/useAntiCheat";
 import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { getExamSourceList } from "@/lib/examSourceTracker";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
@@ -1629,7 +1630,7 @@ const TakeExam = () => {
                       </div>
 
                       <div className="flex gap-2">
-                          <Button variant="outline" className="flex-1 h-10 text-sm rounded-xl" onClick={() => navigate(-1)}>
+                          <Button variant="outline" className="flex-1 h-10 text-sm rounded-xl" onClick={() => navigate(getExamSourceList(exam?.id))}>
                               Cancel
                           </Button>
                           <Button

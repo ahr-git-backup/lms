@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
 import ShareExamButton from "@/components/exam/ShareExamButton";
+import { setExamSourceList } from "@/lib/examSourceTracker";
 
 // Types
 interface Exam {
@@ -207,11 +208,7 @@ const FreeExam = () => {
                                   <Card
                                       key={exam.id}
                                       className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
-                                      onClick={() => navigate(`/take-exam/${exam.id}`)}
-                                  >
-                                      <CardContent className="px-4 py-2.5">
-                                          <div className="flex items-center gap-3">
-                                              <div className="flex-1 min-w-0">
+                                      onClick={() => { setExamSourceList(exam.id, "/free-exam"); navigate(`/take-exam/${exam.id}`); }}
                                                   <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
                                                       {exam.title}
                                                   </p>
@@ -563,14 +560,7 @@ const FreeExam = () => {
                     <Card
                         key={exam.id}
                         className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
-                        onClick={() => navigate(`/take-exam/${exam.id}`)}
-                    >
-                        <CardContent className="px-4 py-2.5">
-                            <div className="flex items-center gap-3">
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
-                                        {exam.title}
-                                    </p>
+                        onClick={() => { setExamSourceList(exam.id, "/free-exam"); navigate(`/take-exam/${exam.id}`); }}
                                 </div>
                                 <div className="shrink-0">
                                     <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
