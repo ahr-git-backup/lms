@@ -244,12 +244,18 @@ def process_omr_logic(image_bytes, corners=None):
         _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
         roi_hsv = process_hsv[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
+        hue = roi_hsv[:, :, 0]
         saturation = roi_hsv[:, :, 1]
-        # Black/gray/graphite ink has low saturation. Colored pen ink (red,
-        # blue, green) has high saturation even when it reads dark in
-        # grayscale — exclude those pixels from the "black fill" count.
-        BLACK_SATURATION_MAX = 60
-        black_mask = saturation < BLACK_SATURATION_MAX
+        # Black/gray/graphite ink has LOW saturation regardless of hue.
+        # Colored ink (red/blue/green pen) keeps enough saturation to be
+        # detectable even when photographed/compressed and washed out —
+        # EXCEPT red, which can wash out to unusually low saturation under
+        # poor lighting/JPEG compression. So: reject on saturation using a
+        # stricter cutoff for red hues (OpenCV hue wraps at 0/180, red sits
+        # at both ends) than for other colors.
+        is_red_hue = (hue <= 10) | (hue >= 170)
+        sat_cutoff = np.where(is_red_hue, 90, 45)
+        black_mask = saturation < sat_cutoff
 
         dark_pixels = int(np.count_nonzero((roi_bin > 0) & black_mask))
         return (dark_pixels / roi_bin.size) * 100.0
