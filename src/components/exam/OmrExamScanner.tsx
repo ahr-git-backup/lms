@@ -42,6 +42,8 @@ interface OmrResult {
   options: { A: string; B: string; C: string; D: string };
   correct_answer: string;
   explanation: string;
+  skip_reason?: string | null;
+  bubble_fills?: Record<string, number>;
 }
 
 interface BubbleData {

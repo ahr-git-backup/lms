@@ -320,31 +320,48 @@ def process_omr_logic(image_bytes, corners=None):
                 fill_pct = get_fill_percent(col_x, row_y, opt_w, row_h)
                 means.append({'opt': opt, 'val': fill_pct, 'x': col_x})
             
-            # Absolute rule: a bubble counts as marked if it's >=50% filled
-            # with ink, regardless of how the other 3 bubbles look. If more
-            # than one bubble in the same question is >=50% filled, the
-            # question is invalidated (no answer recorded) — matches how a
-            # real OMR scanner treats multi-marked rows as void.
+            # A bubble counts as marked only if it's >=50% filled with dark
+            # ink. If 2+ bubbles in the same question hit 50%+, the question
+            # is void (ambiguous double-mark) and no answer is recorded.
             FILL_THRESHOLD = 50.0
             marked = [m for m in means if m['val'] >= FILL_THRESHOLD]
             selected = marked if len(marked) == 1 else []
-            
+
             # Always record all 4 bubble positions for this question
             for m in means:
                 all_bubbles.append({"q": current_q, "opt": labels[m['opt']], "x": int(m['x'] + opt_w / 2.0), "y": int(row_y + row_h / 2.0)})
-            
+
             ans_str = ""
+            reason = None
             if selected:
                 for m in selected:
                     bubble_map.append({"q": current_q, "opt": labels[m['opt']], "x": int(m['x'] + opt_w / 2.0), "y": int(row_y + row_h / 2.0)})
                 ans_str = ",".join(labels[m['opt']] for m in selected)
-            
+            elif len(marked) >= 2:
+                # More than one bubble looks dark enough -> void, ambiguous.
+                marked_opts = ", ".join(labels[m['opt']] for m in marked)
+                reason = f"একাধিক বৃত্ত ভরাট পাওয়া গেছে ({marked_opts}) — তাই এই প্রশ্নের উত্তর গণনা করা হয়নি।"
+            else:
+                # No bubble reached the fill threshold. Distinguish "nothing
+                # marked at all" from "something marked but too light/not
+                # dark (black) enough" using the darkest bubble's fill %.
+                best = max(means, key=lambda m: m['val'])
+                if best['val'] < 8.0:
+                    reason = "কোনো বৃত্ত ভরাট করা হয়নি (উত্তর মিস করা হয়েছে)।"
+                else:
+                    reason = (
+                        f"বৃত্ত ({labels[best['opt']]}) ভরাট করার চেষ্টা করা হয়েছে কিন্তু কালি যথেষ্ট গাঢ়/কালো নয় "
+                        f"(মাত্র {best['val']:.0f}% ভরাট মনে হয়েছে) — তাই এটি গণনা করা হয়নি। বৃত্ত সম্পূর্ণ কালো কলম/পেন্সিল দিয়ে ভরাট করতে হবে।"
+                    )
+
             # Formatted per your strict JSON requirements
             quiz_data.append({
                 "question": str(current_q),
                 "options": { "A": "", "B": "", "C": "", "D": "" },
                 "correct_answer": ans_str,
-                "explanation": ""
+                "explanation": "",
+                "skip_reason": reason,
+                "bubble_fills": {labels[m['opt']]: round(m['val'], 1) for m in means},
             })
             current_q += 1
 
