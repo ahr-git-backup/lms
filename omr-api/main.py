@@ -224,6 +224,49 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
     quiz_data, bubble_map, all_bubbles = [], [], []
 
     SHRINK = 0.20
+    RECENTER_JITTER = 0.18  # search up to 18% of cell size around the expected position
+    _recenter_cache = {}
+
+    def _recenter(col_x, row_y, c_width, c_height):
+        """Small geometric misalignment (fixed ratio calibration vs a real
+        photo) can cause the sampling box to miss part of an actually-filled
+        bubble, undercounting a real >=50% mark as empty. Search a small
+        neighborhood around the expected position and snap to the offset
+        with the most raw ink coverage, so we sample the bubble the ink is
+        actually in rather than blindly trusting the fixed offset. Cached
+        per exact input position since get_fill_percent and
+        get_raw_dark_percent are both called for the same bubble."""
+        cache_key = (round(col_x, 2), round(row_y, 2), round(c_width, 2), round(c_height, 2))
+        if cache_key in _recenter_cache:
+            return _recenter_cache[cache_key]
+
+        step_x = c_width * 0.06
+        step_y = c_height * 0.06
+        max_off_x = c_width * RECENTER_JITTER
+        max_off_y = c_height * RECENTER_JITTER
+
+        best_val = -1.0
+        best_xy = (col_x, row_y)
+        dx = -max_off_x
+        while dx <= max_off_x + 1e-6:
+            dy = -max_off_y
+            while dy <= max_off_y + 1e-6:
+                rx = int(col_x + dx + c_width * SHRINK)
+                ry = int(row_y + dy + c_height * SHRINK)
+                rw = int(c_width * (1 - 2 * SHRINK))
+                rh = int(c_height * (1 - 2 * SHRINK))
+                roi = process_gray[ry:ry+rh, rx:rx+rw]
+                if roi.size > 0:
+                    _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+                    val = float(np.count_nonzero(roi_bin)) / roi_bin.size
+                    if val > best_val:
+                        best_val = val
+                        best_xy = (col_x + dx, row_y + dy)
+                dy += step_y
+            dx += step_x
+
+        _recenter_cache[cache_key] = best_xy
+        return best_xy
 
     def get_fill_percent(col_x, row_y, c_width, c_height):
         """Returns the % of dark BLACK ink pixels inside a bubble's sampling
@@ -232,6 +275,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         HSV saturation) so colored ink is never mistaken for a black-filled
         bubble — grayscale alone can't tell the difference since colored ink
         can still be dark enough to pass a plain darkness threshold."""
+        col_x, row_y = _recenter(col_x, row_y, c_width, c_height)
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
         roi_w = int(c_width * (1 - 2 * SHRINK))
@@ -271,6 +315,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         """Same as get_fill_percent but WITHOUT the black-only color mask —
         used only to tell apart 'truly empty bubble' from 'something dark
         (possibly colored ink) was marked here', for accurate skip reasons."""
+        col_x, row_y = _recenter(col_x, row_y, c_width, c_height)
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
         roi_w = int(c_width * (1 - 2 * SHRINK))
