@@ -1074,7 +1074,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                           id="is_visible_on_free"
                           checked={form.is_visible_on_free}
                           onCheckedChange={(checked) =>
-                              setForm((prev) => ({ ...prev, is_visible_on_free: checked, show_on_landing: checked ? true : prev.show_on_landing }))
+                              setForm((prev) => ({ ...prev, is_visible_on_free: checked }))
                           }
                       />
                       <Label htmlFor="is_visible_on_free">Show on "Free Exams" Page (Public)</Label>
