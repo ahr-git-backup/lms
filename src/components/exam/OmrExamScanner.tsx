@@ -681,7 +681,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   return (
     <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
+      <div className="flex items-center justify-between p-2.5 sm:p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
             <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -696,7 +696,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         </Button>
       </div>
 
-      <div className="p-4 space-y-4">
+      <div className="p-2 sm:p-4 space-y-4">
         {/* Warning */}
         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
@@ -963,7 +963,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                     {Object.keys(scannedAnswers).length}/{questionIds.length} detected
                   </span>
                 </div>
-                <div className="max-h-[360px] overflow-y-auto p-2.5">
+                <div className="max-h-[360px] overflow-y-auto overflow-x-hidden p-2.5 overscroll-contain">
                   <div className="grid grid-cols-5 gap-1.5">
                     {questionIds.map((qId, idx) => {
                       const answer = scannedAnswers[qId];
@@ -971,12 +971,13 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                       const qNum = idx + 1;
                       const isEditing = editingQNum === qNum;
                       return (
-                        <div key={qId} className="relative">
+                        <div key={qId} className="relative select-none">
                           <button
                             type="button"
+                            draggable={false}
                             onClick={() => setEditingQNum(isEditing ? null : qNum)}
                             title={reason || undefined}
-                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors relative ${
+                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors relative select-none touch-manipulation ${
                               answer
                                 ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
                                 : reason

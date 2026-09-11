@@ -1682,7 +1682,7 @@ const TakeExam = () => {
             </span>
             <span className="text-xs font-semibold flex-1 truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""}</span>
           </div>
-          <div className="max-w-5xl mx-auto px-3 pb-3">
+          <div className="max-w-5xl mx-auto px-1 pb-3">
             <OmrExamScanner
               questionIds={omrQuestionIds}
               answers={answers}
