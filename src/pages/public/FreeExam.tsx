@@ -211,7 +211,7 @@ const FreeExam = () => {
                                               <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                                                   <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
                                                   <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
-                                                  <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+                                                  <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Practice</Badge>
                                               </div>
                                               <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                   <ShareExamButton examId={exam.id} examTitle={exam.title} />
@@ -485,7 +485,7 @@ const FreeExam = () => {
                                 <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
                                     <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
                                     <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
-                                    <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+                                    <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Practice</Badge>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <ShareExamButton examId={exam.id} examTitle={exam.title} />
