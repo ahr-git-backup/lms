@@ -469,11 +469,32 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                 fill_pct = get_fill_percent(col_x, row_y, opt_w, row_h)
                 means.append({'opt': opt, 'val': fill_pct, 'x': col_x})
             
-            # A bubble counts as marked only if it's >=50% filled with dark
-            # ink. If 2+ bubbles in the same question hit 50%+, the question
-            # is void (ambiguous double-mark) and no answer is recorded.
-            FILL_THRESHOLD = 50.0
-            marked = [m for m in means if m['val'] >= FILL_THRESHOLD]
+            # A fixed absolute fill% threshold doesn't work across a real
+            # phone photo: per-ROI Otsu auto-thresholding produces a "blank
+            # bubble" baseline that shifts with lighting/shadow (can be
+            # ~30% in good light, ~40-45% in shadow) and a genuinely-marked
+            # bubble's fill% also varies with how fully the student filled
+            # it (a light/partial mark can read as low as ~55-60%, an
+            # emphatic one as ~95-100%). Comparing every bubble to one fixed
+            # cutoff either misses light real marks or false-triggers on
+            # shadowed blanks.
+            #
+            # What stays reliable regardless of lighting: a real mark is
+            # always MUCH darker than the other 3 (blank) options in the
+            # SAME row, because they share the same lighting conditions.
+            # So detect marks by relative gap within the row instead - same
+            # approach already used for roll/reg digit detection above.
+            min_v = min(m['val'] for m in means)
+            max_v = max(m['val'] for m in means)
+            marked = []
+            if max_v - min_v > 20:
+                # There's a meaningful gap between the darkest and lightest
+                # option - something stands out from the row's own blank
+                # baseline. Take every option that sits closer to the dark
+                # end of that gap (any real double-mark still surfaces here
+                # since both dark options would clear this line together).
+                gap_threshold = min_v + ((max_v - min_v) * 0.5)
+                marked = [m for m in means if m['val'] >= gap_threshold]
             selected = marked if len(marked) == 1 else []
 
             # Always record all 4 bubble positions for this question
@@ -491,18 +512,23 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                 marked_opts = ", ".join(labels[m['opt']] for m in marked)
                 reason = f"একাধিক বৃত্ত ভরাট পাওয়া গেছে ({marked_opts}) — তাই এই প্রশ্নের উত্তর গণনা করা হয়নি।"
             else:
-                # No bubble reached the (black-only) fill threshold. Check
-                # raw darkness (ignoring color) to tell apart:
-                # 1) truly nothing marked, 2) something dark marked but not
-                # black (colored pen), 3) marked but too light/faint.
+                # Nothing stood out from this row's own blank baseline via
+                # the relative-gap check above. Use the same relative logic
+                # on raw (color-inclusive) darkness to phrase the skip
+                # reason: was anything at all attempted here (even in a
+                # non-black color), or is the row genuinely untouched?
                 best_black = max(means, key=lambda m: m['val'])
                 raw_vals = [get_raw_dark_percent(opt_start_x + (opt * opt_w), row_y, opt_w, row_h) for opt in range(4)]
                 best_raw_idx = int(np.argmax(raw_vals))
                 best_raw_val = raw_vals[best_raw_idx]
+                raw_min = min(raw_vals)
+                raw_gap = best_raw_val - raw_min
 
-                if best_raw_val < 8.0:
+                if raw_gap <= 20:
+                    # No option's raw darkness stands out from the row's
+                    # baseline either - genuinely nothing was marked here.
                     reason = "কোনো বৃত্ত ভরাট করা হয়নি (উত্তর মিস করা হয়েছে)।"
-                elif color_mode != "any_color" and best_raw_val >= FILL_THRESHOLD and best_black['val'] < FILL_THRESHOLD:
+                elif color_mode != "any_color" and (best_black['val'] - min(m['val'] for m in means)) <= 20:
                     reason = (
                         f"বৃত্ত ({labels[best_raw_idx]}) ভরাট করা হয়েছে কিন্তু কালো/গাঢ় কালিতে নয় (রঙিন কলম ব্যবহার হয়েছে) "
                         f"— শুধুমাত্র কালো বল/জেল পেন বা পেন্সিল দিয়ে ভরাট করলে সেটি গণনা হবে।"
