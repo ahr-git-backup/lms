@@ -227,16 +227,23 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
     RECENTER_JITTER = 0.18  # search up to 18% of cell size around the expected position
     _recenter_cache = {}
 
-    def _recenter(col_x, row_y, c_width, c_height):
+    def _recenter(col_x, row_y, c_width, c_height, prefer_black=True):
         """Small geometric misalignment (fixed ratio calibration vs a real
         photo) can cause the sampling box to miss part of an actually-filled
         bubble, undercounting a real >=50% mark as empty. Search a small
         neighborhood around the expected position and snap to the offset
-        with the most raw ink coverage, so we sample the bubble the ink is
-        actually in rather than blindly trusting the fixed offset. Cached
-        per exact input position since get_fill_percent and
-        get_raw_dark_percent are both called for the same bubble."""
-        cache_key = (round(col_x, 2), round(row_y, 2), round(c_width, 2), round(c_height, 2))
+        with the most ink coverage, so we sample the bubble the ink is
+        actually in rather than blindly trusting the fixed offset.
+
+        prefer_black=True (student/strict mode) scores candidates using
+        ONLY black/gray ink, never colored ink — otherwise a red mark from
+        an adjacent bubble sitting inside the jitter range could pull the
+        sampling window off the intended black bubble entirely (mis-scoring
+        red as darker/better and snapping onto it), which was silently
+        corrupting results for any row near colored ink. Cached per exact
+        input position + mode since get_fill_percent and
+        get_raw_dark_percent both call this for the same bubble."""
+        cache_key = (round(col_x, 2), round(row_y, 2), round(c_width, 2), round(c_height, 2), prefer_black)
         if cache_key in _recenter_cache:
             return _recenter_cache[cache_key]
 
@@ -258,7 +265,15 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                 roi = process_gray[ry:ry+rh, rx:rx+rw]
                 if roi.size > 0:
                     _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-                    val = float(np.count_nonzero(roi_bin)) / roi_bin.size
+                    dark_mask = roi_bin > 0
+                    if prefer_black:
+                        roi_hsv = process_hsv[ry:ry+rh, rx:rx+rw]
+                        hue = roi_hsv[:, :, 0]
+                        sat = roi_hsv[:, :, 1]
+                        is_red_hue = (hue <= 10) | (hue >= 170)
+                        sat_cutoff = np.where(is_red_hue, 90, 45)
+                        dark_mask = dark_mask & (sat < sat_cutoff)
+                    val = float(np.count_nonzero(dark_mask)) / roi_bin.size
                     if val > best_val:
                         best_val = val
                         best_xy = (col_x + dx, row_y + dy)
@@ -275,7 +290,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         HSV saturation) so colored ink is never mistaken for a black-filled
         bubble — grayscale alone can't tell the difference since colored ink
         can still be dark enough to pass a plain darkness threshold."""
-        col_x, row_y = _recenter(col_x, row_y, c_width, c_height)
+        col_x, row_y = _recenter(col_x, row_y, c_width, c_height, prefer_black=(color_mode != "any_color"))
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
         roi_w = int(c_width * (1 - 2 * SHRINK))
@@ -315,7 +330,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         """Same as get_fill_percent but WITHOUT the black-only color mask —
         used only to tell apart 'truly empty bubble' from 'something dark
         (possibly colored ink) was marked here', for accurate skip reasons."""
-        col_x, row_y = _recenter(col_x, row_y, c_width, c_height)
+        col_x, row_y = _recenter(col_x, row_y, c_width, c_height, prefer_black=False)
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
         roi_w = int(c_width * (1 - 2 * SHRINK))
