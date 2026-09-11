@@ -971,7 +971,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                       const qNum = idx + 1;
                       const isEditing = editingQNum === qNum;
                       return (
-                        <div key={qId} className="relative select-none">
+                        <div key={qId} className="relative">
                           <button
                             type="button"
                             draggable={false}
