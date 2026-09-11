@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -189,45 +189,35 @@ const FreeExam = () => {
                       </div>
                   ) : (
                       <div className="space-y-6">
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                               {results.map((exam) => (
                                   <Card
                                       key={exam.id}
-                                      className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+                                      className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
                                       onClick={() => navigate(`/take-exam/${exam.id}`)}
                                   >
-                                      <CardHeader className="pb-2">
-                                          <div className="flex justify-between items-start gap-2">
-                                              <div className="space-y-1">
-                                                  <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                      <CardContent className="px-4 py-2.5">
+                                          <div className="flex items-center gap-3">
+                                              <div className="flex-1 min-w-0">
+                                                  <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
                                                       {exam.title}
-                                                  </CardTitle>
+                                                  </p>
                                               </div>
-                                              <div className="flex flex-col gap-1 items-end">
-                                                  <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                                      {exam.exam_type}
-                                                  </Badge>
+                                              <div className="shrink-0">
+                                                  <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
+                                              </div>
+                                          </div>
+                                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                              <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                                  <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
+                                                  <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
+                                                  <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+                                              </div>
+                                              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                                   <ShareExamButton examId={exam.id} examTitle={exam.title} />
                                               </div>
                                           </div>
-                                      </CardHeader>
-                                      <CardContent className="flex-1">
-                                          <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-                                              <div className="flex items-center gap-2">
-                                                  <Clock className="h-4 w-4" />
-                                                  <span>{exam.duration_minutes} min</span>
-                                              </div>
-                                              <div className="flex items-center gap-2">
-                                                  <CheckCircle className="h-4 w-4" />
-                                                  <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
-                                              </div>
-                                          </div>
                                       </CardContent>
-                                      <CardFooter className="pt-0 mt-auto border-t pt-4">
-                                          <Button className="w-full group-hover:bg-primary/90">
-                                              Start Exam
-                                          </Button>
-                                      </CardFooter>
                                   </Card>
                               ))}
                           </div>
@@ -473,58 +463,45 @@ const FreeExam = () => {
         {finalExams.length === 0 ? (
             <div className="text-center py-10">No exams found in this section.</div>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {finalExams.map((exam: any) => (
                     <Card
                         key={exam.id}
-                        className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
+                        className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
                         onClick={() => navigate(`/take-exam/${exam.id}`)}
                     >
-                        <CardHeader className="pb-2">
-                            <div className="flex justify-between items-start gap-2">
-                                <div className="space-y-1">
-                                    <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                        <CardContent className="px-4 py-2.5">
+                            <div className="flex items-center gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
                                         {exam.title}
-                                    </CardTitle>
+                                    </p>
                                 </div>
-                                <div className="flex flex-col gap-1 items-end">
-                                    <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
-                                        {exam.exam_type}
-                                    </Badge>
+                                <div className="shrink-0">
+                                    <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                                <div className="flex-1 min-w-0 flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                                    <div className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /><span>{exam.duration_minutes} min</span></div>
+                                    <div className="flex items-center gap-1"><CheckCircle className="h-3.5 w-3.5" /><span>{exam.questions_count?.[0]?.count || 0} Q</span></div>
+                                    <Badge variant="outline" className="text-blue-500 border-blue-200 text-[10px] px-1.5 py-0">Readymade</Badge>
+                                </div>
+                                <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
                                     <ShareExamButton examId={exam.id} examTitle={exam.title} />
                                     {isAdmin && (
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-6 w-6 p-0"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/admin/exams?editId=${exam.id}`);
-                                            }}
+                                            className="h-7 w-7 p-0 text-muted-foreground hover:text-primary"
+                                            onClick={() => navigate(`/admin/exams?editId=${exam.id}`)}
                                         >
-                                            <Edit className="h-4 w-4" />
+                                            <Edit className="h-3.5 w-3.5" />
                                         </Button>
                                     )}
                                 </div>
                             </div>
-                        </CardHeader>
-                        <CardContent className="flex-1">
-                            <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    <span>{exam.duration_minutes} min</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4" />
-                                    <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
-                                </div>
-                            </div>
                         </CardContent>
-                        <CardFooter className="pt-0 mt-auto border-t pt-4">
-                            <Button className="w-full group-hover:bg-primary/90">
-                                Start Exam
-                            </Button>
-                        </CardFooter>
                     </Card>
                 ))}
             </div>
