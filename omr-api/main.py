@@ -298,7 +298,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                         hue = roi_hsv[:, :, 0]
                         sat = roi_hsv[:, :, 1]
                         is_red_hue = (hue <= 10) | (hue >= 170)
-                        sat_cutoff = np.where(is_red_hue, 90, 45)
+                        sat_cutoff = np.where(is_red_hue, 90, 115)
                         dark_mask = dark_mask & (sat < sat_cutoff)
                     denom = int(np.count_nonzero(circ_mask))
                     val = float(np.count_nonzero(dark_mask)) / denom if denom > 0 else 0.0
@@ -354,7 +354,7 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         # stricter cutoff for red hues (OpenCV hue wraps at 0/180, red sits
         # at both ends) than for other colors.
         is_red_hue = (hue <= 10) | (hue >= 170)
-        sat_cutoff = np.where(is_red_hue, 90, 45)
+        sat_cutoff = np.where(is_red_hue, 90, 115)
         black_mask = saturation < sat_cutoff
 
         dark_pixels = int(np.count_nonzero((roi_bin > 0) & black_mask & circ_mask))
