@@ -448,10 +448,17 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
 
     for qb in q_blocks:
         bx, by, bw, bh = qb
-        start_y = by + (bh * Q_ROW0_TOP_RATIO)
+        # Q_ROW0_TOP_RATIO / Q_NUM_COL_RATIO / OPT_SPACING_RATIO are bubble
+        # CENTER ratios (see calibration note above). get_fill_percent's ROI
+        # math (col_x/row_y + c_width*SHRINK) expects a cell TOP-LEFT corner,
+        # so we must subtract half a cell size here to convert center->corner
+        # — without this, every sample lands half a row too low/right.
+        start_y_center = by + (bh * Q_ROW0_TOP_RATIO)
         row_h = bh * Q_ROW_H_RATIO
         opt_w = bw * OPT_SPACING_RATIO
-        opt_start_x = bx + (bw * Q_NUM_COL_RATIO)
+        opt_start_x_center = bx + (bw * Q_NUM_COL_RATIO)
+        start_y = start_y_center - (row_h / 2.0)
+        opt_start_x = opt_start_x_center - (opt_w / 2.0)
 
         for r in range(25):
             row_y = start_y + (r * row_h)
