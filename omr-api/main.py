@@ -227,13 +227,39 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
     RECENTER_JITTER = 0.18  # search up to 18% of cell size around the expected position
     _recenter_cache = {}
 
+    def _circle_mask(h, w):
+        """Boolean mask selecting only the pixels inside an inscribed circle
+        of an h x w box (radius = min(h, w) / 2, centered). Cached by shape
+        since every bubble ROI in a sheet uses the same cell size."""
+        key = (h, w)
+        cached = _circle_mask.cache.get(key)
+        if cached is not None:
+            return cached
+        yy, xx = np.ogrid[:h, :w]
+        cy, cx = h / 2.0, w / 2.0
+        r = min(h, w) / 2.0
+        mask = ((yy - cy) ** 2 + (xx - cx) ** 2) <= (r ** 2)
+        _circle_mask.cache[key] = mask
+        return mask
+    _circle_mask.cache = {}
+
     def _recenter(col_x, row_y, c_width, c_height, prefer_black=True):
         """Small geometric misalignment (fixed ratio calibration vs a real
         photo) can cause the sampling box to miss part of an actually-filled
         bubble, undercounting a real >=50% mark as empty. Search a small
         neighborhood around the expected position and snap to the offset
-        with the most ink coverage, so we sample the bubble the ink is
-        actually in rather than blindly trusting the fixed offset.
+        whose CIRCULAR window (an inscribed disc matching the actual bubble
+        shape, not the full rectangular cell) has the most ink coverage.
+
+        Using a circular mask instead of the raw rectangle matters because a
+        bubble is round: the corners of a rectangular sampling box sit
+        outside the real bubble outline and often fall inside a NEIGHBORING
+        bubble's ink once ink bleeds/smudges across the row. A rectangle
+        recenter can therefore drift onto (or be inflated by) an adjacent
+        bubble's mark. Masking to the inscribed circle before scoring keeps
+        every candidate score's ink strictly within the true circular bubble
+        footprint, so the search converges on the actual bubble the student
+        filled even when neighboring ink is present.
 
         prefer_black=True (student/strict mode) scores candidates using
         ONLY black/gray ink, never colored ink — otherwise a red mark from
@@ -264,8 +290,9 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                 rh = int(c_height * (1 - 2 * SHRINK))
                 roi = process_gray[ry:ry+rh, rx:rx+rw]
                 if roi.size > 0:
+                    circ_mask = _circle_mask(roi.shape[0], roi.shape[1])
                     _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-                    dark_mask = roi_bin > 0
+                    dark_mask = (roi_bin > 0) & circ_mask
                     if prefer_black:
                         roi_hsv = process_hsv[ry:ry+rh, rx:rx+rw]
                         hue = roi_hsv[:, :, 0]
@@ -273,7 +300,8 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
                         is_red_hue = (hue <= 10) | (hue >= 170)
                         sat_cutoff = np.where(is_red_hue, 90, 45)
                         dark_mask = dark_mask & (sat < sat_cutoff)
-                    val = float(np.count_nonzero(dark_mask)) / roi_bin.size
+                    denom = int(np.count_nonzero(circ_mask))
+                    val = float(np.count_nonzero(dark_mask)) / denom if denom > 0 else 0.0
                     if val > best_val:
                         best_val = val
                         best_xy = (col_x + dx, row_y + dy)
@@ -284,12 +312,14 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         return best_xy
 
     def get_fill_percent(col_x, row_y, c_width, c_height):
-        """Returns the % of dark BLACK ink pixels inside a bubble's sampling
-        region. Uses Otsu auto-thresholding on grayscale darkness, then masks
-        out any pixel that is actually colored (red/blue/green pen etc, high
-        HSV saturation) so colored ink is never mistaken for a black-filled
-        bubble — grayscale alone can't tell the difference since colored ink
-        can still be dark enough to pass a plain darkness threshold."""
+        """Returns the % of dark BLACK ink pixels inside the bubble's actual
+        CIRCULAR footprint (inscribed circle of the sampling cell), not the
+        full rectangle. Uses Otsu auto-thresholding on grayscale darkness,
+        masks to the circle so corner pixels (never part of a round bubble,
+        and the most likely place for a neighboring bubble's ink to bleed
+        in) can't count, then further masks out any pixel that is actually
+        colored (red/blue/green pen etc, high HSV saturation) so colored ink
+        is never mistaken for a black-filled bubble."""
         col_x, row_y = _recenter(col_x, row_y, c_width, c_height, prefer_black=(color_mode != "any_color"))
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
@@ -300,14 +330,18 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         if roi.size == 0:
             return 0.0
 
-        _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+        circ_mask = _circle_mask(roi.shape[0], roi.shape[1])
+        circ_count = int(np.count_nonzero(circ_mask))
+        if circ_count == 0:
+            return 0.0
 
-        roi_bin_dark = int(np.count_nonzero(roi_bin > 0))
+        _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
         if color_mode == "any_color":
             # Admin answer-key mode: any dark ink color counts (black, red,
-            # blue, green pen etc) — no color filtering.
-            return (roi_bin_dark / roi_bin.size) * 100.0
+            # blue, green pen etc) — no color filtering, circle-masked only.
+            dark_pixels = int(np.count_nonzero((roi_bin > 0) & circ_mask))
+            return (dark_pixels / circ_count) * 100.0
 
         roi_hsv = process_hsv[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
         hue = roi_hsv[:, :, 0]
@@ -323,13 +357,14 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         sat_cutoff = np.where(is_red_hue, 90, 45)
         black_mask = saturation < sat_cutoff
 
-        dark_pixels = int(np.count_nonzero((roi_bin > 0) & black_mask))
-        return (dark_pixels / roi_bin.size) * 100.0
+        dark_pixels = int(np.count_nonzero((roi_bin > 0) & black_mask & circ_mask))
+        return (dark_pixels / circ_count) * 100.0
 
     def get_raw_dark_percent(col_x, row_y, c_width, c_height):
         """Same as get_fill_percent but WITHOUT the black-only color mask —
         used only to tell apart 'truly empty bubble' from 'something dark
-        (possibly colored ink) was marked here', for accurate skip reasons."""
+        (possibly colored ink) was marked here', for accurate skip reasons.
+        Also circle-masked so it stays consistent with get_fill_percent."""
         col_x, row_y = _recenter(col_x, row_y, c_width, c_height, prefer_black=False)
         roi_x = int(col_x + c_width * SHRINK)
         roi_y = int(row_y + c_height * SHRINK)
@@ -338,8 +373,13 @@ def process_omr_logic(image_bytes, corners=None, color_mode="strict"):
         roi = process_gray[roi_y:roi_y+roi_h, roi_x:roi_x+roi_w]
         if roi.size == 0:
             return 0.0
+        circ_mask = _circle_mask(roi.shape[0], roi.shape[1])
+        circ_count = int(np.count_nonzero(circ_mask))
+        if circ_count == 0:
+            return 0.0
         _, roi_bin = cv2.threshold(roi, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-        return (int(np.count_nonzero(roi_bin)) / roi_bin.size) * 100.0
+        dark_pixels = int(np.count_nonzero((roi_bin > 0) & circ_mask))
+        return (dark_pixels / circ_count) * 100.0
 
     def get_mean_darkness(col_x, row_y, c_width, c_height):
         roi_x = int(col_x + c_width * SHRINK)
