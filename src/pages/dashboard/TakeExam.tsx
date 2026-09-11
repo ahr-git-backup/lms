@@ -218,6 +218,7 @@ const TakeExam = () => {
   // instead of actually leaving).
   const pushedHistoryCount = useRef(0);
   const [showOmrPopup, setShowOmrPopup] = useState(false);
+  const [showOmrPaidOnlyPopup, setShowOmrPaidOnlyPopup] = useState(false);
   const [omrUploadFile, setOmrUploadFile] = useState<File | null>(null);
   const [omrSubmitting, setOmrSubmitting] = useState(false);
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
@@ -317,7 +318,13 @@ const TakeExam = () => {
   // Exams with "Allow Dashboard" (show_on_landing) on always use the plain
   // Live-Exam-style pre-exam screen — no Quick Practice toggle, no MCQ Count
   // selector — regardless of whether is_readymade is true or false.
-  const showsReadymadeUI = !!(exam?.is_readymade && !exam?.external_exam_link && !exam?.show_on_landing);
+  // Any readymade exam gets the full readymade pre-start UI (question count
+  // selector, Quick Practice toggle, etc.) — whether or not it's ALSO
+  // featured on the dashboard/landing page (show_on_landing) or free
+  // (is_visible_on_free). A free exam should look and behave identically to
+  // a paid readymade exam's pre-start screen; being promoted on the
+  // dashboard isn't a reason to strip features.
+  const showsReadymadeUI = !!(exam?.is_readymade && !exam?.external_exam_link);
 
   // Direct Quick Practice deep-link: if ?qp=1 is present (from post-exam header button),
   // skip the pre-exam mode-select screen entirely and jump straight into the same
@@ -1125,6 +1132,12 @@ const TakeExam = () => {
       return false;
   })();
 
+  // Whether the student is enrolled in ANY paid batch/course — separate from
+  // hasAccess above, since a free/public exam grants hasAccess to everyone
+  // but some features (like OMR mode) are meant to stay exclusive to
+  // actual paid-batch students regardless of which exam they're taking.
+  const isPaidBatchEnrolled = !!user && !!enrollments && enrollments.some((e: any) => !e.is_payment_overdue);
+
   if (!hasAccess) {
       return (
           <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] gap-4">
@@ -1510,6 +1523,10 @@ const TakeExam = () => {
                           role="switch"
                           aria-checked={omrMode}
                           onClick={() => {
+                              if (!isPaidBatchEnrolled) {
+                                  setShowOmrPaidOnlyPopup(true);
+                                  return;
+                              }
                               const next = !omrMode;
                               setOmrMode(next);
                               if (next) setShowOmrPopup(true);
@@ -1578,6 +1595,18 @@ const TakeExam = () => {
                               OMR এ পরীক্ষা দিন
                           </Button>
                       </div>
+                  </DialogContent>
+              </Dialog>
+
+              {/* OMR is a paid-batch-only feature */}
+              <Dialog open={showOmrPaidOnlyPopup} onOpenChange={setShowOmrPaidOnlyPopup}>
+                  <DialogContent className="max-w-md">
+                      <DialogHeader>
+                          <DialogTitle className="flex items-center gap-2"><Lock className="h-4 w-4 text-amber-500" />OMR মোড লকড</DialogTitle>
+                          <DialogDescription>
+                              এটি শুধুমাত্র পেইড ব্যাচের স্টুডেন্টদের জন্য একটি ফিচার। কোনো পেইড কোর্সে ভর্তি হলে এই ফিচারটি ব্যবহার করতে পারবেন।
+                          </DialogDescription>
+                      </DialogHeader>
                   </DialogContent>
               </Dialog>
 
