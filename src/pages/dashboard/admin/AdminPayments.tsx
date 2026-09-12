@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import {
-  Loader2, Check, X, RefreshCw, Inbox, ChevronLeft, ChevronRight,
+  Loader2, Check, CheckCircle2, X, RefreshCw, Inbox, ChevronLeft, ChevronRight,
   Volume2, VolumeX, Search, AlertTriangle, Clock, DollarSign, Users,
   ExternalLink, TrendingDown, Calendar, Eye, Edit2, MessageCircle, Send
 } from "lucide-react";
