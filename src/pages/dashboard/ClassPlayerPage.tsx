@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { FileText, ArrowLeft, Calendar, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ClassComments from "@/components/ClassComments";
+import { WhatsAppSupportButton } from "@/components/WhatsAppSupportButton";
+import { PayDueDialog } from "@/components/PayDueDialog";
 
 // If the class would otherwise be accessible except that the relevant
 // course's payment is overdue, surface that reason instead of a generic
@@ -24,7 +26,7 @@ const getOverdueInfoForClass = (classItem: any, enrollments: any[], overduePayme
   const enrolledCourseIds = new Set(enrollments.map((e: any) => e.course_id));
   const match = overduePayments.find((p: any) => relevantCourseIds.has(p.course_id) && enrolledCourseIds.has(p.course_id));
   if (!match) return null;
-  return { dueAmount: match.due_amount, dueDate: match.due_date };
+  return { id: match.id, dueAmount: match.due_amount, dueDate: match.due_date, amountPaid: match.amount_paid || 0 };
 };
 
 const ClassPlayerPage = () => {
@@ -47,7 +49,7 @@ const ClassPlayerPage = () => {
 
   const { data: accessInfo, isLoading: accessLoading } = useQuery({
     queryKey: ["check-class-access", classItem?.id, profile?.id],
-    queryFn: async (): Promise<{ hasAccess: boolean; viaArchive: boolean; overdueInfo?: { dueAmount: number; dueDate: string } | null }> => {
+    queryFn: async (): Promise<{ hasAccess: boolean; viaArchive: boolean; overdueInfo?: { id: string; dueAmount: number; dueDate: string; amountPaid: number } | null }> => {
       if (!classItem || !profile?.id) return { hasAccess: false, viaArchive: false };
 
       // Fetch all enrollments for the user
@@ -64,7 +66,7 @@ const ClassPlayerPage = () => {
       const today = new Date().toISOString().slice(0, 10);
       const { data: overduePayments } = await supabase
         .from("payment_requests")
-        .select("course_id, due_amount, due_date")
+        .select("id, course_id, due_amount, due_date, amount_paid")
         .eq("profile_id", profile.id)
         .eq("status", "approved")
         .gt("due_amount", 0)
@@ -117,6 +119,7 @@ const ClassPlayerPage = () => {
     enabled: !!classItem && !!profile?.id
   });
   const hasAccess = accessInfo?.hasAccess ?? false;
+  const [payDueOpen, setPayDueOpen] = useState(false);
 
   const { data: viewCount } = useQuery({
     queryKey: ["class-view-count", classId],
@@ -198,6 +201,17 @@ const ClassPlayerPage = () => {
                   <p className="flex justify-center gap-2"><span>দেওয়ার শেষ তারিখ ছিল:</span><strong>{new Date(overdueInfo.dueDate).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}</strong></p>
                   <p className="text-sm mt-2">বাকি টাকা পরিশোধ করলেই আবার এক্সেস চালু হয়ে যাবে।</p>
               </div>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button onClick={() => setPayDueOpen(true)}>বাকি টাকা পরিশোধ করুন</Button>
+                <WhatsAppSupportButton message="আমার কোর্সের বাকি টাকা নিয়ে সমস্যা আছে।" />
+              </div>
+              <PayDueDialog
+                open={payDueOpen}
+                onClose={() => setPayDueOpen(false)}
+                paymentRequestId={overdueInfo.id}
+                remainingDue={overdueInfo.dueAmount - overdueInfo.amountPaid}
+                courseName={classItem.course?.name}
+              />
           </div>
        );
      }

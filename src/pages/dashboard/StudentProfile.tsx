@@ -23,6 +23,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Turnstile } from "@marsidev/react-turnstile";
 import { startOfWeek, startOfMonth, format, isPast } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
+import { PayDueDialog } from "@/components/PayDueDialog";
 import { Link, useSearchParams } from "react-router-dom";
 
 const profileSchema = z.object({
@@ -74,6 +75,7 @@ const StudentProfile = () => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [stats, setStats] = useState<any>(null);
   const [timeRange, setTimeRange] = useState("daily");
+  const [payDuePayment, setPayDuePayment] = useState<{ id: string; remaining: number; courseName?: string } | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [searchParams] = useSearchParams();
 
@@ -763,6 +765,17 @@ const StudentProfile = () => {
                       )}
                     </div>
 
+                    {payment.due_amount && remaining > 0 && (
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          onClick={() => setPayDuePayment({ id: payment.id, remaining, courseName: payment.courses?.name })}
+                        >
+                          বাকি টাকা পরিশোধ করুন
+                        </Button>
+                      </div>
+                    )}
+
                     {payment.admin_note && (
                       <div className="mt-3 text-xs text-muted-foreground bg-amber-50/50 p-2.5 rounded-md border border-amber-200 flex items-start gap-2">
                         <span className="text-base leading-none">📝</span>
@@ -800,6 +813,16 @@ const StudentProfile = () => {
           )}
         </div>
       </div>
+
+      {payDuePayment && (
+        <PayDueDialog
+          open={!!payDuePayment}
+          onClose={() => setPayDuePayment(null)}
+          paymentRequestId={payDuePayment.id}
+          remainingDue={payDuePayment.remaining}
+          courseName={payDuePayment.courseName}
+        />
+      )}
 
       {/* Right Column (Courses) */}
       <div className="space-y-8 flex flex-col">

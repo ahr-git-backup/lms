@@ -92,6 +92,31 @@ const AdminPayments = () => {
   const [adminNote, setAdminNote] = useState("");
   const [emiPage, setEmiPage] = useState(0);
   const [emiSearch, setEmiSearch] = useState("");
+  const [whatsappNumberInput, setWhatsappNumberInput] = useState("");
+
+  const { data: whatsappNumber } = useQuery({
+    queryKey: ["app-setting", "support_whatsapp_number"],
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", "support_whatsapp_number").maybeSingle();
+      return (data?.value as string) || "";
+    },
+  });
+
+  useEffect(() => {
+    if (whatsappNumber !== undefined) setWhatsappNumberInput(whatsappNumber || "");
+  }, [whatsappNumber]);
+
+  const saveWhatsappMutation = useMutation({
+    mutationFn: async (value: string) => {
+      const { error } = await (supabase.from as any)("app_settings").upsert({ key: "support_whatsapp_number", value }, { onConflict: "key" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("WhatsApp নম্বর আপডেট হয়েছে।");
+      queryClient.invalidateQueries({ queryKey: ["app-setting", "support_whatsapp_number"] });
+    },
+    onError: (error: any) => toast.error("আপডেট ব্যর্থ: " + error.message),
+  });
 
   useEffect(() => {
       const timer = setTimeout(() => {
@@ -378,6 +403,26 @@ const AdminPayments = () => {
                 </Button>
             </div>
         </div>
+      </div>
+
+      {/* Support WhatsApp number setting */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 bg-card p-3 rounded-lg border shadow-sm">
+        <Label htmlFor="whatsapp-number-input" className="text-xs text-muted-foreground whitespace-nowrap">Support WhatsApp Number:</Label>
+        <Input
+          id="whatsapp-number-input"
+          value={whatsappNumberInput}
+          onChange={(e) => setWhatsappNumberInput(e.target.value)}
+          placeholder="8801XXXXXXXXX"
+          className="h-8 max-w-[220px]"
+        />
+        <Button
+          size="sm"
+          className="h-8"
+          onClick={() => saveWhatsappMutation.mutate(whatsappNumberInput)}
+          disabled={saveWhatsappMutation.isPending}
+        >
+          Save
+        </Button>
       </div>
 
       {/* Stats Cards */}

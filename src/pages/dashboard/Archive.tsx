@@ -15,6 +15,8 @@ import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerD
 import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 import { SubjectSortDialog } from "@/components/admin/SubjectSortDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { WhatsAppSupportButton } from "@/components/WhatsAppSupportButton";
+import { PayDueDialog } from "@/components/PayDueDialog";
 
 const PAGE_SIZE = 15;
 
@@ -44,7 +46,8 @@ const isClassUnlocked = (classItem: any, enrolledIds: string[], fullAccessCourse
   return false;
 };
 
-const ArchiveLockDialog = ({ open, onClose, overdueInfo }: { open: boolean; onClose: () => void; overdueInfo?: { dueAmount: number; dueDate: string } | null }) => {
+const ArchiveLockDialog = ({ open, onClose, overdueInfo }: { open: boolean; onClose: () => void; overdueInfo?: { id: string; dueAmount: number; dueDate: string; amountPaid: number } | null }) => {
+  const [payDueOpen, setPayDueOpen] = useState(false);
   if (overdueInfo) {
     return (
       <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
@@ -59,10 +62,20 @@ const ArchiveLockDialog = ({ open, onClose, overdueInfo }: { open: boolean; onCl
             </DialogDescription>
           </DialogHeader>
           <div className="rounded-lg border border-red-500/30 bg-red-50/50 dark:bg-red-950/20 p-3 text-sm space-y-1.5">
-            <p className="flex justify-between"><span className="text-muted-foreground">বাকি টাকা:</span><span className="font-semibold text-red-700 dark:text-red-400">৳{overdueInfo.dueAmount}</span></p>
+            <p className="flex justify-between"><span className="text-muted-foreground">বাকি টাকা:</span><span className="font-semibold text-red-700 dark:text-red-400">৳{overdueInfo.dueAmount - overdueInfo.amountPaid}</span></p>
             <p className="flex justify-between"><span className="text-muted-foreground">দেওয়ার শেষ তারিখ ছিল:</span><span className="font-semibold text-red-700 dark:text-red-400">{new Date(overdueInfo.dueDate).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}</span></p>
           </div>
           <p className="text-xs text-center text-muted-foreground">বাকি টাকা পরিশোধ করলেই আবার সব এক্সেস চালু হয়ে যাবে।</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center pt-1">
+            <Button size="sm" onClick={() => setPayDueOpen(true)}>বাকি টাকা পরিশোধ করুন</Button>
+            <WhatsAppSupportButton message="আমার কোর্সের বাকি টাকা নিয়ে সমস্যা আছে।" className="h-9" />
+          </div>
+          <PayDueDialog
+            open={payDueOpen}
+            onClose={() => setPayDueOpen(false)}
+            paymentRequestId={overdueInfo.id}
+            remainingDue={overdueInfo.dueAmount - overdueInfo.amountPaid}
+          />
         </DialogContent>
       </Dialog>
     );

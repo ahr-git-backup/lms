@@ -32,13 +32,13 @@ export const useEnrollments = () => {
       const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD, compares correctly against a date column
       const { data: overduePayments } = await supabase
         .from("payment_requests")
-        .select("course_id, due_amount, due_date")
+        .select("id, course_id, due_amount, due_date, amount_paid")
         .eq("profile_id", user.id)
         .eq("status", "approved")
         .gt("due_amount", 0)
         .lt("due_date", today);
       const overdueCourseIds = new Set((overduePayments || []).map((p: any) => p.course_id));
-      const overdueByCourseId = new Map((overduePayments || []).map((p: any) => [p.course_id, { dueAmount: p.due_amount, dueDate: p.due_date }]));
+      const overdueByCourseId = new Map((overduePayments || []).map((p: any) => [p.course_id, { id: p.id, dueAmount: p.due_amount, dueDate: p.due_date, amountPaid: p.amount_paid || 0 }]));
 
       // Filter out expired enrollments
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
