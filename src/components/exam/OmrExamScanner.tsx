@@ -90,6 +90,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   // Scanning
   const [isScanning, setIsScanning] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
+  const [scanProgress, setScanProgress] = useState(0);
 
   // Results
   const [apiData, setApiData] = useState<ApiData | null>(null);
@@ -239,6 +240,15 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     setStep("scanning");
     setIsScanning(true);
     setScanError(null);
+    setScanProgress(0);
+
+    // Simulate progress while the single fetch is in flight — there are no
+    // real progress events from the API, so ease toward 90% over the
+    // typical ~2-4s scan time and only jump to 100% once the response
+    // actually arrives (or fails), so the bar never falsely claims "done".
+    const progressTimer = setInterval(() => {
+      setScanProgress(p => (p >= 90 ? p : p + (90 - p) * 0.15));
+    }, 200);
 
     try {
       const formData = new FormData();
@@ -351,6 +361,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       setStep(rawImage ? "crop" : "upload");
       toast({ title: "Scan Failed", description: msg, variant: "destructive" });
     } finally {
+      clearInterval(progressTimer);
+      setScanProgress(100);
       setIsScanning(false);
     }
   };
@@ -831,12 +843,19 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
         {/* Step: Scanning */}
         {step === "scanning" && (
-          <div className="flex flex-col items-center gap-3 py-8">
+          <div className="flex flex-col items-center gap-3 py-8 w-full">
             <Loader2 className="h-8 w-8 text-violet-500 animate-spin" />
             <div className="text-center">
               <p className="font-semibold text-sm">Scanning OMR Sheet...</p>
               <p className="text-xs text-muted-foreground mt-1">Detecting bubbles, reading Roll & Reg No</p>
             </div>
+            <div className="w-full max-w-[240px] h-1.5 bg-muted rounded-full overflow-hidden mt-1">
+              <div
+                className="h-full bg-violet-500 transition-all duration-200 ease-out rounded-full"
+                style={{ width: `${Math.round(scanProgress)}%` }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground">{Math.round(scanProgress)}%</p>
           </div>
         )}
 
