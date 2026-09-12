@@ -209,10 +209,12 @@ const FreeExam = () => {
                                       key={exam.id}
                                       className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
                                       onClick={() => { setExamSourceList(exam.id, "/free-exam"); navigate(`/take-exam/${exam.id}`); }}
-                                                  <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
-                                                      {exam.title}
-                                                  </p>
-                                              </div>
+                                  >
+                                      <CardContent className="px-4 py-4">
+                                          <div className="flex items-start justify-between gap-3">
+                                              <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
+                                                  {exam.title}
+                                              </p>
                                               <div className="shrink-0">
                                                   <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
                                               </div>
@@ -561,7 +563,12 @@ const FreeExam = () => {
                         key={exam.id}
                         className="relative cursor-pointer transition-all hover:shadow-md hover:border-primary/50 group"
                         onClick={() => { setExamSourceList(exam.id, "/free-exam"); navigate(`/take-exam/${exam.id}`); }}
-                                </div>
+                    >
+                        <CardContent className="px-4 py-4">
+                            <div className="flex items-start justify-between gap-3">
+                                <p className="text-base font-bold leading-tight transition-colors group-hover:text-primary line-clamp-2">
+                                    {exam.title}
+                                </p>
                                 <div className="shrink-0">
                                     <Button size="sm" className="group-hover:bg-primary/90">Start</Button>
                                 </div>
