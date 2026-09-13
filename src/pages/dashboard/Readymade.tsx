@@ -1166,13 +1166,13 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`grid ${zoneSubjects.length === 3 ? "grid-cols-3" : "grid-cols-2"} sm:grid-cols-3 lg:grid-cols-4 items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"}`}>
+              <div className={`grid ${zoneSubjects.length === 1 ? "grid-cols-1" : zoneSubjects.length === 3 ? "grid-cols-3" : "grid-cols-2"} sm:grid-cols-3 lg:grid-cols-4 items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"}`}>
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
                     className={
                       zoneSubjects.length === 1
-                        ? "col-span-2 sm:col-span-1 max-w-xs mx-auto w-full flex"
+                        ? "sm:col-span-1 max-w-xs mx-auto w-full flex"
                         : "flex"
                     }
                   >
