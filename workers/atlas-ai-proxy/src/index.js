@@ -498,6 +498,11 @@ async function handleD1Table(table, request, env, url, ctx) {
 __name(handleD1Table, "handleD1Table");
 function getGeminiKeys(env) {
   const keys = [];
+  for (const envName of Object.keys(env || {})) {
+    if (envName.startsWith("GEMINI_KEYS_ACC") && env[envName]) {
+      keys.push(...String(env[envName]).split(",").map((k) => k.trim()).filter(Boolean));
+    }
+  }
   if (env.GEMINI_KEYS)
     keys.push(...env.GEMINI_KEYS.split(",").map((k) => k.trim()).filter(Boolean));
   if (env.GEMINI_API_KEY)
