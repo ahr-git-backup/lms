@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   ListChecks,
-  Infinity,
   Video,
   BookOpen,
   History,
@@ -27,7 +26,6 @@ export interface QuickAccessItem {
 // this is just the base/default set and their destinations.
 export const quickAccessItems: QuickAccessItem[] = [
   { title: "Live Exam", icon: ListChecks, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950", url: "/dashboard/live-exam" },
-  { title: "Unlimited", icon: Infinity, color: "text-violet-500", bg: "bg-violet-50 dark:bg-violet-950", url: "https://unlimited.atlascourses.com", isExternal: true },
   { title: "Live Class", icon: Video, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950", url: "/dashboard/live-class" },
   { title: "My Courses", icon: BookOpen, color: "text-indigo-500", bg: "bg-indigo-50 dark:bg-indigo-950", url: "/dashboard/my-courses" },
   { title: "Record Class", icon: History, color: "text-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },

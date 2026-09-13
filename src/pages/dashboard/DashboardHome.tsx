@@ -485,7 +485,7 @@ const DashboardHome = () => {
       {/* Smart Tracking System */}
       <div className="border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0">
         <h2 className="text-base font-semibold tracking-tight text-center">Smart Tracking System</h2>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 max-w-xl mx-auto">
           <Card
             className="cursor-pointer border-blue-500/30 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
             onClick={() => navigate("/dashboard/my-progress")}
@@ -518,7 +518,7 @@ const DashboardHome = () => {
 
       <div className="border border-primary/30 rounded-lg px-3 sm:px-6 py-3 space-y-2 -mx-2 sm:mx-0">
         <h2 className="text-base font-semibold tracking-tight text-center">Best Practice Tool</h2>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-2 max-w-xl mx-auto">
           <Card
             className="cursor-pointer border-violet-500/30 hover:border-violet-500 transition-all bg-violet-50/50 dark:bg-violet-950/20"
             onClick={() => navigate("/quick-practice")}
@@ -825,7 +825,7 @@ const DashboardHome = () => {
                {orderedNavigationItems.map((item, index) => (
                    <Card
                         key={index}
-                        className={`group hover:shadow-md transition-all cursor-pointer ${
+                        className={`group hover:shadow-md transition-all cursor-pointer max-w-[220px] w-full mx-auto ${
                             item.isExternal
                                 ? 'border-violet-500/50 hover:border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.2)] dark:shadow-[0_0_15px_rgba(139,92,246,0.3)]'
                                 : 'border-muted-foreground/20 hover:border-primary/50'
