@@ -289,7 +289,7 @@ export const DashboardLayout = () => {
                 ) : (
                   <button
                     onClick={() => navigate("/dashboard")}
-                    className="text-sm font-semibold hover:underline"
+                    className="text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md px-3 py-1.5 transition-colors"
                   >
                     Dashboard
                   </button>
