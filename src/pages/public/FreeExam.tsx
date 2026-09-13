@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ChevronRight, ArrowLeft, Trophy, Flame, Layers, Plus, Search, ChevronLeft } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
 import { ExamGrid } from "@/pages/dashboard/Readymade";
@@ -32,16 +32,56 @@ const PAGE_SIZE = 12;
 const FreeExam = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     document.title = "Free Exams – Atlas";
   }, []);
 
-  // State
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
-  const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
+  // State (synced with URL query params so refresh keeps the same drill-down level)
+  const [selectedCategory, setSelectedCategoryState] = useState<string | null>(searchParams.get("cat"));
+  const [selectedSubject, setSelectedSubjectState] = useState<string | null>(searchParams.get("sub"));
+  const [selectedChapter, setSelectedChapterState] = useState<string | null>(searchParams.get("chap"));
+  const [selectedSubChapter, setSelectedSubChapterState] = useState<string | null>(searchParams.get("subchap"));
+
+  const updateParams = (next: { cat?: string | null; sub?: string | null; chap?: string | null; subchap?: string | null }) => {
+    const params = new URLSearchParams(searchParams);
+    const entries: [string, string | null | undefined][] = [
+      ["cat", next.cat],
+      ["sub", next.sub],
+      ["chap", next.chap],
+      ["subchap", next.subchap],
+    ];
+    entries.forEach(([key, value]) => {
+      if (value === undefined) return;
+      if (value === null) params.delete(key);
+      else params.set(key, value);
+    });
+    setSearchParams(params, { replace: true });
+  };
+
+  const setSelectedCategory = (val: string | null) => {
+    setSelectedCategoryState(val);
+    setSelectedSubjectState(null);
+    setSelectedChapterState(null);
+    setSelectedSubChapterState(null);
+    updateParams({ cat: val, sub: null, chap: null, subchap: null });
+  };
+  const setSelectedSubject = (val: string | null) => {
+    setSelectedSubjectState(val);
+    setSelectedChapterState(null);
+    setSelectedSubChapterState(null);
+    updateParams({ sub: val, chap: null, subchap: null });
+  };
+  const setSelectedChapter = (val: string | null) => {
+    setSelectedChapterState(val);
+    setSelectedSubChapterState(null);
+    updateParams({ chap: val, subchap: null });
+  };
+  const setSelectedSubChapter = (val: string | null) => {
+    setSelectedSubChapterState(val);
+    updateParams({ subchap: val });
+  };
 
   // Search & Pagination State
   const [searchQuery, setSearchQuery] = useState("");
