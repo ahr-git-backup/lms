@@ -1171,13 +1171,15 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div
                     key={s}
                     className={
-                      (zoneSubjects.length === 1
-                        ? "w-full max-w-[280px]"
-                        : zoneSubjects.length === 2
-                          ? "w-[calc(50%-0.25rem)] sm:w-[calc(50%-0.5rem)]"
-                          : zoneSubjects.length === 3
-                            ? "w-[calc(33.333%-0.5rem)] sm:w-[calc(33.333%-0.7rem)]"
-                            : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)] max-w-[280px]") + " flex"
+                      (compactGrid
+                        ? "w-full"
+                        : zoneSubjects.length === 1
+                          ? "w-full max-w-[280px]"
+                          : zoneSubjects.length === 2
+                            ? "w-[calc(50%-0.25rem)] sm:w-[calc(50%-0.5rem)]"
+                            : zoneSubjects.length === 3
+                              ? "w-[calc(33.333%-0.5rem)] sm:w-[calc(33.333%-0.7rem)]"
+                              : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)] max-w-[280px]") + " flex"
                     }
                   >
                     {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
