@@ -25,6 +25,7 @@ const InstallApp = () => {
   const [platform, setPlatform] = useState<Platform>("desktop");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installed, setInstalled] = useState(false);
+  const [installing, setInstalling] = useState(false);
 
   useEffect(() => {
     document.title = "অ্যাপ ইনস্টল করুন – Atlas";
@@ -36,7 +37,13 @@ const InstallApp = () => {
     };
     window.addEventListener("beforeinstallprompt", handler);
 
-    const installedHandler = () => setInstalled(true);
+    // Only the appinstalled event confirms the app was actually added —
+    // the prompt's "accepted" outcome fires as soon as the user taps the
+    // popup button, before installation actually completes.
+    const installedHandler = () => {
+      setInstalled(true);
+      setInstalling(false);
+    };
     window.addEventListener("appinstalled", installedHandler);
 
     return () => {
@@ -50,7 +57,7 @@ const InstallApp = () => {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
-      setInstalled(true);
+      setInstalling(true);
     }
     setDeferredPrompt(null);
   };
@@ -102,6 +109,16 @@ const InstallApp = () => {
               </div>
               <p className="font-bold text-lg">অ্যাপ ইতিমধ্যে ইনস্টল করা আছে!</p>
               <p className="text-sm text-muted-foreground">হোম স্ক্রিন থেকে Atlas আইকনে ট্যাপ করে খুলুন।</p>
+            </div>
+          </div>
+        ) : installing ? (
+          <div className="rounded-2xl border bg-card shadow-sm">
+            <div className="flex flex-col items-center gap-3 py-12 text-center px-6">
+              <div className="h-14 w-14 rounded-full bg-emerald-600/15 flex items-center justify-center animate-pulse">
+                <Download className="h-7 w-7 text-emerald-600" />
+              </div>
+              <p className="font-semibold">অ্যাপ ইনস্টল হচ্ছে...</p>
+              <p className="text-sm text-muted-foreground">কয়েক সেকেন্ড অপেক্ষা করুন, হোম স্ক্রিনে আইকন যোগ হবে।</p>
             </div>
           </div>
         ) : platform === "android" || (platform === "desktop" && deferredPrompt) ? (
