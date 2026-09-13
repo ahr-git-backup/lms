@@ -312,14 +312,16 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                         const courseDiscount = activeDiscounts?.find((d: any) => d.course_id === course.id);
                                         if (!courseDiscount) return null;
                                         return (
-                                            <div className="absolute top-2 left-2 right-2 z-20 overflow-hidden rounded-full bg-red-600 shadow-lg border border-red-400">
-                                                <div className="whitespace-nowrap py-1 animate-[marquee_12s_linear_infinite]">
-                                                    <span className="inline-flex items-center gap-1.5 px-3 text-white font-bold text-[11px]">
-                                                        <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
-                                                    </span>
-                                                    <span className="inline-flex items-center gap-1.5 px-3 text-white font-bold text-[11px]">
-                                                        <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
-                                                    </span>
+                                            <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
+                                                <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 rotate-[-45deg] border-y border-red-400 overflow-hidden">
+                                                    <div className="whitespace-nowrap animate-[marquee_8s_linear_infinite]">
+                                                        <span className="inline-flex items-center gap-1 px-2">
+                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                        </span>
+                                                        <span className="inline-flex items-center gap-1 px-2">
+                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
