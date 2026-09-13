@@ -30,6 +30,8 @@ import { StudentReviews } from "@/components/StudentReviews";
 import { QuickActionsSection } from "@/components/home/QuickActionsSection";
 import { FreeResourcesSidebar } from "@/components/home/FreeResourcesSidebar";
 import HeroCarouselItem from "@/components/home/HeroCarouselItem";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
+import PWAHome from "@/pages/PWAHome";
 
 const FEATURES = [
     { icon: Monitor, title: "অনলাইন প্রোগ্রাম", desc: "ঘরে বসেই সেরা প্রস্তুতি।" },
@@ -44,6 +46,8 @@ const FEATURES = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const isStandalone = usePWADisplayMode();
+
   useEffect(() => {
     document.title = "Atlas - Best Coaching & Exam Platform";
   }, []);
@@ -158,6 +162,12 @@ const Index = () => {
 
   const displayHeroes = heroes && heroes.length > 0 ? heroes : [defaultHero];
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [Autoplay({ delay: 5000 })]);
+
+  // Installed PWA gets a compact app-shortcut home instead of the marketing
+  // landing page. Browser website is unaffected.
+  if (isStandalone) {
+    return <PWAHome />;
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
