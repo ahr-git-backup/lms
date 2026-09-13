@@ -1,6 +1,6 @@
 import { Outlet, Link } from "react-router-dom";
 import {
-  ArrowLeft, Menu, Moon, Sun, Megaphone,
+  ArrowLeft, Menu, Moon, Sun, Megaphone, Home,
   LayoutDashboard, Video, PenTool, BookOpen,
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
@@ -285,19 +285,19 @@ export const DashboardLayout = () => {
                 variant="outline"
                 size="icon"
                 className="shrink-0 sm:hidden"
-                aria-label="Go back"
-                onClick={() => navigate(-1)}
+                aria-label="Go to homepage"
+                onClick={() => navigate("/")}
               >
-                <ArrowLeft className="h-4 w-4" />
+                <Home className="h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
                 size="icon"
                 className="shrink-0 hidden sm:inline-flex"
-                aria-label="Go back"
-                onClick={() => navigate(-1)}
+                aria-label="Go to homepage"
+                onClick={() => navigate("/")}
               >
-                <ArrowLeft className="h-4 w-4" />
+                <Home className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
                 {location.pathname === "/dashboard" ? (
