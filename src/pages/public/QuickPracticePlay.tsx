@@ -132,7 +132,7 @@ const QuickPracticePlay = () => {
   const [answered, setAnswered] = useState<Answered[]>([]);
   const [finished, setFinished] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [soundVol, setSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [soundVol, setSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "0"));
   const [rightPack, setRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [wrongPack, setWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [volMenuOpen, setVolMenuOpen] = useState(false);

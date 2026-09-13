@@ -225,7 +225,7 @@ const TakeExam = () => {
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
-  const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "0"));
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [qpVolMenuOpen, setQpVolMenuOpen] = useState(false);
