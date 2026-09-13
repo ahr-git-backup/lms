@@ -113,7 +113,6 @@ import { useAntiCheat } from "@/hooks/useAntiCheat";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import ScrollToTop from "@/components/ScrollToTop";
 import MetaPixelRouteTracker from "@/components/MetaPixelRouteTracker";
-import CookieConsentBanner from "@/components/CookieConsentBanner";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -170,7 +169,6 @@ const App = () => {
         <BrowserRouter>
           <ScrollToTop />
           <MetaPixelRouteTracker />
-          <CookieConsentBanner />
           <AuthProvider>
             <NotificationProvider>
             <ErrorBoundary label="PWALoginGate" fallback={null}>
