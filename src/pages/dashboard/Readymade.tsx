@@ -856,7 +856,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // RPC call above (chapterMcqCounts), no separate query needed.
 
   // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
-  const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
+  const { data: overallStats } = useQuery({
     queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
@@ -1053,39 +1053,26 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} overdueInfo={getOverdueInfo(lockedExam?.course_id)} />
-        {overallStats ? (
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
-                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
-              </CardContent>
-            </Card>
-            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount} টি</span>
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining} টি</span>
-              </CardContent>
-            </Card>
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
-                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
-              </CardContent>
-            </Card>
-          </div>
-        ) : loadingOverallStats ? (
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="border-muted">
-                <CardContent className="p-2 flex flex-col items-center gap-1">
-                  <div className="h-2.5 w-12 bg-muted animate-pulse rounded" />
-                  <div className="h-4 w-8 bg-muted animate-pulse rounded" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : null}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
+              <span className="text-base font-bold text-blue-600 leading-tight">{overallStats ? overallStats.totalExams : "—"}</span>
+            </CardContent>
+          </Card>
+          <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats ? overallStats.attemptedCount : "—"} টি</span>
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats ? overallStats.remaining : "—"} টি</span>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
+              <span className="text-base font-bold text-amber-600 leading-tight">{overallStats ? overallStats.totalMcqs : "—"}</span>
+            </CardContent>
+          </Card>
+        </div>
         {(() => {
           const renderSubjectCard = (subject: string, compact = false) => {
             const unlocked = isSubjectUnlocked(subject);
