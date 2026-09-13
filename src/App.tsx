@@ -22,6 +22,7 @@ import CourseBuy from "./pages/CourseBuy";
 import Reviews from "./pages/Reviews";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Tutorial from "./pages/public/Tutorial";
+import InstallApp from "./pages/public/InstallApp";
 import PublicLayout from "./layouts/PublicLayout";
 import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -192,6 +193,7 @@ const App = () => {
                 <Route path="/free-class" element={<ErrorBoundary><FreeClass /></ErrorBoundary>} />
                 <Route path="/free-exam" element={<ErrorBoundary><FreeExam /></ErrorBoundary>} />
                 <Route path="/tutorial" element={<ErrorBoundary><Tutorial /></ErrorBoundary>} />
+                <Route path="/install" element={<ErrorBoundary><InstallApp /></ErrorBoundary>} />
                 <Route path="/reviews" element={<ErrorBoundary><Reviews /></ErrorBoundary>} />
                 <Route path="/privacy-policy" element={<ErrorBoundary><PrivacyPolicy /></ErrorBoundary>} />
               </Route>
