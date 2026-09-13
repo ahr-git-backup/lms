@@ -1,6 +1,6 @@
 import { Outlet, Link } from "react-router-dom";
 import {
-  ArrowLeft, Menu, Moon, Sun, Megaphone, Home,
+  ArrowLeft, Menu, Moon, Sun, Megaphone,
   LayoutDashboard, Video, PenTool, BookOpen,
   History, StickyNote, Files, Calendar,
   User, BarChart, Bell, HelpCircle,
@@ -281,24 +281,6 @@ export const DashboardLayout = () => {
           <SidebarTrigger className="mr-3 hidden sm:inline-flex" />
           <div className="flex flex-1 items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 sm:hidden"
-                aria-label="Go to homepage"
-                onClick={() => navigate("/")}
-              >
-                <Home className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 hidden sm:inline-flex"
-                aria-label="Go to homepage"
-                onClick={() => navigate("/")}
-              >
-                <Home className="h-4 w-4" />
-              </Button>
               <div className="flex items-center gap-2">
                 {location.pathname === "/dashboard" ? (
                   <Link to="/" className="bg-white rounded p-1 shrink-0" aria-label="Go to homepage">
@@ -313,6 +295,13 @@ export const DashboardLayout = () => {
                   </button>
                 )}
               </div>
+              <button
+                onClick={() => navigate("/")}
+                aria-label="Go to homepage"
+                className="shrink-0 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-1.5 transition-colors"
+              >
+                Home
+              </button>
             </div>
             <div className="flex items-center gap-3">
               <Button
