@@ -2420,8 +2420,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         batches = [{ topic: sendingExam.title, mcqs: questions.map(toMcq) }];
       }
 
-      const endpoint = sendMode === "links_only" ? "/api/lms-send-links" : "/api/lms-send-channel";
-      const res = await fetch(`${QUIZBOT_API_BASE}${endpoint}`, {
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2432,6 +2431,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           exam_id: sendingExam.id,
           exam_title: sendingExam.title || "",
           subject: Array.isArray(sendingExam.subject) ? (sendingExam.subject[0] || "") : (sendingExam.subject || ""),
+          links_only: sendMode === "links_only",
         }),
       });
       const rawText = await res.text();
@@ -2447,15 +2447,10 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         throw new Error(json.error || "Send request failed");
       }
 
-      if (sendMode === "links_only") {
-        // Single quick post — no background job, responds immediately.
-        setSendBusy(false);
-        setSendJobStatus(null);
-        setSendingExam(null);
-        toast({ title: "পোস্ট করা হয়েছে", description: "চ্যানেলে একটা পোস্টে সব টপিকের লিংক পাঠানো হয়েছে।" });
-        return;
-      }
-
+      // Both modes now run as a background job on the same proven
+      // /api/lms-send-channel path — links_only just finishes fast (one
+      // message, no poll loop) but still goes through the same job
+      // status/progress/cancel machinery as the normal mode.
       const jobId = json.job_id as string;
       setSendJobStatus({ status: "running", sent_total: 0, total: questions.length, batches_done: 0, batches_total: batches.length });
       pollCardJob(sendingExam.id, jobId);
