@@ -225,7 +225,7 @@ const TakeExam = () => {
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
-  const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "0"));
+  const [qpSoundVol, setQpSoundVol] = useState(0); // always starts off; not persisted — user's on-choice lasts only this session
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [qpVolMenuOpen, setQpVolMenuOpen] = useState(false);
@@ -588,8 +588,7 @@ const TakeExam = () => {
   };
 
   const qpChangeVol = (v: number) => {
-    setQpSoundVol(v);
-    try { localStorage.setItem("atlas-sound-vol", String(v)); } catch { /* ignore */ }
+    setQpSoundVol(v); // session-only — not persisted, resets to off next time
   };
 
   const qpChooseSound = (which: "right" | "wrong", key: string) => {
