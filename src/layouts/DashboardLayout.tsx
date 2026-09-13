@@ -19,6 +19,8 @@ import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
+import { cn } from "@/lib/utils";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import FloatingAtlasAiButton from "@/components/dashboard/FloatingAtlasAiButton";
 import ProfileCompletionReminder from "@/components/ProfileCompletionReminder";
@@ -30,6 +32,7 @@ import { PushPermissionPrompt } from "@/components/PushPermissionPrompt";
 
 export const DashboardLayout = () => {
   const { profile, signOut, isAdmin, isTeacher, user } = useAuth();
+  const isStandalone = usePWADisplayMode();
   const { sendNotification, permission, requestPermission } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
@@ -551,7 +554,7 @@ export const DashboardLayout = () => {
           <div className="print:hidden">
             <AppSidebar hasPendingPayments={hasPendingPayments} />
           </div>
-          <main className="flex-1 bg-background px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto w-full print:overflow-visible print:h-auto print:w-full print:px-0 print:py-0">
+          <main className={cn("flex-1 bg-background px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto w-full print:overflow-visible print:h-auto print:w-full print:px-0 print:py-0", isStandalone && "pb-[calc(60px+env(safe-area-inset-bottom))]")}>
             <Outlet />
           </main>
         </div>

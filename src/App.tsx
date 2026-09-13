@@ -25,6 +25,7 @@ import Tutorial from "./pages/public/Tutorial";
 import InstallApp from "./pages/public/InstallApp";
 import PublicLayout from "./layouts/PublicLayout";
 import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
+import { AppBottomNav } from "./components/AppBottomNav";
 import AdminLayout from "./layouts/AdminLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
 import LiveClass from "./pages/dashboard/LiveClass";
@@ -301,6 +302,7 @@ const App = () => {
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<ErrorBoundary><NotFound /></ErrorBoundary>} />
             </Routes>
+            <AppBottomNav />
             </NotificationProvider>
           </AuthProvider>
         </BrowserRouter>
