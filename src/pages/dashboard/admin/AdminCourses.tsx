@@ -40,6 +40,13 @@ const demoContentSchema = z.object({
 const courseSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, "Name is required").max(200),
+  slug: z
+    .string()
+    .trim()
+    .max(200)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "শুধু ছোট হাতের অক্ষর, সংখ্যা ও হাইফেন ব্যবহার করুন")
+    .optional()
+    .or(z.literal("")),
   short_description_lines: z.array(z.object({ text: z.string(), bold: z.boolean().optional() })).optional().default([]),
   full_description: z.string().trim().optional().or(z.literal("")),
   extra_links: z.array(z.object({ label: z.string(), url: z.string() })).optional().default([]),
@@ -274,6 +281,7 @@ const AdminCourses = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         name: parsed.name,
+        slug: parsed.slug ? parsed.slug.trim() : null,
         short_description_lines: parsed.short_description_lines || [],
         full_description: parsed.full_description || null,
         extra_links: parsed.extra_links || [],
@@ -360,6 +368,8 @@ const AdminCourses = () => {
     setForm({
       id: course.id,
       name: course.name ?? "",
+      // @ts-ignore
+      slug: course.slug ?? "",
       short_description_lines: (course as any).short_description_lines ?? [],
       full_description: (course as any).full_description ?? "",
       extra_links: (course as any).extra_links ?? [],
@@ -585,6 +595,28 @@ const AdminCourses = () => {
                                 placeholder="e.g. Engineering Admission 2024"
                                 />
                             </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="slug" className="text-sm font-semibold">Course Link (slug)</Label>
+                                <Input
+                                id="slug"
+                                value={form.slug || ""}
+                                onChange={(e) => {
+                                    const v = e.target.value
+                                        .toLowerCase()
+                                        .replace(/[^a-z0-9\s-]/g, "")
+                                        .replace(/\s+/g, "-")
+                                        .replace(/-+/g, "-");
+                                    setForm((prev) => ({ ...prev, slug: v }));
+                                }}
+                                className="text-base h-11 bg-background font-mono"
+                                placeholder="e.g. engineering-admission-2024"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    atlascourses.com/courses/{form.slug || "(id will be used if blank)"}
+                                </p>
+                            </div>
+
 
                             <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
