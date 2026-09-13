@@ -1160,7 +1160,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
                   <div className="h-px flex-1 bg-border/60" />
-                  <span className="text-[11px] sm:text-xs font-semibold text-muted-foreground px-2.5 py-1 rounded-full bg-muted/50 border border-border/50 whitespace-nowrap">
+                  <span className="text-[11px] sm:text-xs font-semibold text-white px-2.5 py-1 rounded-full bg-red-600 border border-red-700 whitespace-nowrap">
                     {zone}
                   </span>
                   <div className="h-px flex-1 bg-border/60" />
