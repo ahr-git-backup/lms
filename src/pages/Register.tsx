@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import PublicHeader from "@/components/PublicHeader";
+import PostSignupChoiceDialog from "@/components/PostSignupChoiceDialog";
 import { Eye, EyeOff, AlertTriangle, PhoneCall, MessageCircle, Send, User, CheckCircle2 } from "lucide-react";
 import { Turnstile } from "@marsidev/react-turnstile";
 import { trackPixelEvent, generateEventId, getStoredUtmParams, getFacebookCookies } from "@/lib/metaPixel";
@@ -30,6 +31,8 @@ const Register = () => {
   const [duplicatePhone, setDuplicatePhone] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [showPostSignupChoice, setShowPostSignupChoice] = useState(false);
+  const [postSignupTarget, setPostSignupTarget] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     if (hscBatch === "2026" || hscBatch === "2027") {
@@ -279,7 +282,8 @@ const Register = () => {
       }).catch(() => { /* non-blocking: registration already succeeded */ });
 
       if (authData.session) {
-        navigate(location.state?.from || "/dashboard", { replace: true });
+        setPostSignupTarget(location.state?.from);
+        setShowPostSignupChoice(true);
       } else {
         navigate("/login", { state: { from: location.state?.from } });
       }
@@ -704,6 +708,12 @@ const Register = () => {
           </CardContent>
         </Card>
       </main>
+
+      <PostSignupChoiceDialog
+        open={showPostSignupChoice}
+        onDashboard={() => navigate(postSignupTarget || "/dashboard", { replace: true })}
+        onHomepage={() => navigate("/", { replace: true })}
+      />
     </div>
   );
 };
