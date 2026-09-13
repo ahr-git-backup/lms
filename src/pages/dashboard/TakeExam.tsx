@@ -2180,7 +2180,7 @@ const TakeExam = () => {
           <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
+              <h1 className="text-base sm:text-xl md:text-2xl font-bold leading-tight break-words">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
               <p className="text-sm text-muted-foreground">
                 Answered: {answeredCount} / {displayQuestions.length}
                 {displayQuestions.length > 0 && ` (${Math.round((answeredCount / displayQuestions.length) * 100)}%)`}
