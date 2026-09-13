@@ -4,8 +4,6 @@ import { NavLink } from "@/components/NavLink";
 import { studentItems, adminItems } from "@/config/sidebarNavItems";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import {
-  Sidebar,
-  SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -18,7 +16,7 @@ import {
 export { adminItems };
 
 export function AdminSidebar() {
-  const { state } = useSidebar();
+  const { open, setOpen } = useSidebar();
   const location = useLocation();
   const currentPath = location.pathname;
   const { isAdmin, isTeacher } = useAuth();
@@ -37,11 +35,9 @@ export function AdminSidebar() {
   });
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-sidebar-border bg-background text-sidebar-foreground w-56 data-[state=collapsed]:w-16 mt-14 h-[calc(100svh-3.5rem)] z-30"
-    >
-      <SidebarContent className="flex h-full flex-col group-data-[collapsible=icon]:!overflow-y-auto no-scrollbar bg-background">
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetContent side="right" className="w-56 p-0 bg-background text-sidebar-foreground flex flex-col gap-0 [&>button]:z-10">
+        <div className="flex h-full flex-col overflow-y-auto no-scrollbar bg-background pt-4">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/70">
               {isAdmin ? "Admin Navigation" : "Teacher Navigation"}
@@ -50,7 +46,7 @@ export function AdminSidebar() {
             <SidebarMenu>
               {visibleAdminItems.map((item) => (
                 <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title}>
+                  <SidebarMenuButton asChild isActive={isActive(item.url)} tooltip={item.title} onClick={() => setOpen(false)}>
                     <NavLink
                       to={item.url}
                       end
@@ -58,7 +54,7 @@ export function AdminSidebar() {
                       activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     >
                       <item.icon className={`h-5 w-5 shrink-0 ${item.color || ''}`} />
-                      {state === "expanded" && <span className="font-medium">{item.title}</span>}
+                      <span className="font-medium">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -66,8 +62,9 @@ export function AdminSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
