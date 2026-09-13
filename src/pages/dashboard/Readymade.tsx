@@ -1108,7 +1108,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       <Trophy className="h-3.5 w-3.5 text-primary shrink-0" />
                     )}
                   </div>
-                  <div className={`${compact ? "text-sm sm:text-xl" : "text-base sm:text-xl"} font-bold leading-tight whitespace-pre-line break-words ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
+                  <div className={`${compact ? "text-sm sm:text-xl" : "text-base sm:text-xl"} font-bold leading-tight whitespace-pre-line break-words ${unlocked ? "text-primary dark:text-white" : "text-muted-foreground"}`}>{subject}</div>
                   {isAdmin && isHidden && (
                     <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
                   )}
@@ -1196,10 +1196,10 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="flex flex-row items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border shadow-sm overflow-hidden">
+                  <div key={`row-${ci}`} className="grid grid-cols-2 items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border shadow-sm overflow-hidden">
                     {c.groups.map((g, gi) => (
-                      <div key={g.zone} className="flex-1 min-w-0 relative flex">
-                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none", true)}
+                      <div key={g.zone} className="min-w-0 relative flex">
+                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none h-full", true)}
                         {gi > 0 && (
                           <div className="absolute left-0 top-2 bottom-2 w-px bg-border" />
                         )}
