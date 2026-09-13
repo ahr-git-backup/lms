@@ -29,22 +29,7 @@ function isAllowedPath(pathname: string): boolean {
  * defensive: any internal error is a no-op, never blocks navigation.
  */
 export function PWALoginGate() {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    try {
-      if (!isStandaloneDisplay()) return;
-      if (loading) return;
-      if (user) return;
-      if (isAllowedPath(location.pathname)) return;
-
-      navigate("/login", { replace: true });
-    } catch {
-      // no-op — never block the app over this
-    }
-  }, [user, loading, location.pathname, navigate]);
-
+  // Disabled: PWA now allows browsing all pages without login, same as the
+  // website. Login is only prompted at the point an actual action needs it.
   return null;
 }

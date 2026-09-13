@@ -19,9 +19,13 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }: P
     );
   }
 
-  // If user is not logged in, redirect to login
+  // Not logged in: admin/teacher areas still require login. Everything else
+  // is browsable — the page/action itself prompts login when actually needed.
   if (!user) {
-    return <Navigate to="/login" replace />;
+    if (requireAdmin || allowedRoles.length > 0) {
+      return <Navigate to="/login" replace />;
+    }
+    return <>{children}</>;
   }
 
   // A Google sign-in creates a bare profile row (Google's metadata doesn't
