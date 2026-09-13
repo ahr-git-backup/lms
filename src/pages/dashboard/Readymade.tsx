@@ -368,10 +368,7 @@ const Readymade = () => {
       {!selectedSubject && !categoryName && (
         <div className="grid grid-cols-3 gap-2">
           {loadingEnrollments ? (
-            <div className="rounded-xl border-2 border-border p-3 text-center animate-pulse">
-              <div className="h-5 w-5 mx-auto mb-1 rounded-full bg-muted" />
-              <div className="h-3 w-16 mx-auto rounded bg-muted" />
-            </div>
+            <div className="rounded-xl border-2 border-transparent p-3" aria-hidden="true" />
           ) : (enrollments?.length || 0) > 0 && (
             <button
               type="button"
