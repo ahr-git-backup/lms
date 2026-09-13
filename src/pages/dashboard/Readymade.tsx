@@ -2223,6 +2223,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [savingNewChannel, setSavingNewChannel] = useState(false);
   const sendQueryClient = useQueryClient();
   const [sendSplitMode, setSendSplitMode] = useState<"auto" | "all" | "batch">("auto"); // auto = topic-wise if topics exist
+  const [sendMode, setSendMode] = useState<"all" | "links_only">("all"); // all = polls+PDF+summary (present system); links_only = single post, no polls sent, just per-topic Poll Practice/Quiz Solve/Website Exam links
   const [sendBatchSize, setSendBatchSize] = useState("25");
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
@@ -2316,6 +2317,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
     setSendChannelId("");
     setSendThreadId("");
     setSendSplitMode("auto");
+    setSendMode("all");
     setSendBatchSize("25");
     setSendJobStatus(null);
     setNewChannelName("");
@@ -2418,7 +2420,8 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         batches = [{ topic: sendingExam.title, mcqs: questions.map(toMcq) }];
       }
 
-      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
+      const endpoint = sendMode === "links_only" ? "/api/lms-send-links" : "/api/lms-send-channel";
+      const res = await fetch(`${QUIZBOT_API_BASE}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2442,6 +2445,15 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       }
       if (!res.ok || !json.ok) {
         throw new Error(json.error || "Send request failed");
+      }
+
+      if (sendMode === "links_only") {
+        // Single quick post — no background job, responds immediately.
+        setSendBusy(false);
+        setSendJobStatus(null);
+        setSendingExam(null);
+        toast({ title: "পোস্ট করা হয়েছে", description: "চ্যানেলে একটা পোস্টে সব টপিকের লিংক পাঠানো হয়েছে।" });
+        return;
       }
 
       const jobId = json.job_id as string;
@@ -2702,6 +2714,18 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           <DialogTitle>Telegram চ্যানেলে পাঠান</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">পাঠানোর ধরন</label>
+            <Select value={sendMode} onValueChange={(v) => setSendMode(v as any)} disabled={sendBusy}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">সব (Poll + PDF + Summary — বর্তমান পদ্ধতি)</SelectItem>
+                <SelectItem value="links_only">শুধু Poll Practice, Quiz Solve, Website Exam লিংক (এক পোস্টে)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
             <Select value={sendSavedChannelId} onValueChange={handleSelectSavedChannel} disabled={sendBusy}>
