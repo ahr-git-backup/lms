@@ -1166,20 +1166,14 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"} ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
+              <div className={`grid ${zoneSubjects.length === 3 ? "grid-cols-3" : "grid-cols-2"} sm:grid-cols-3 lg:grid-cols-4 items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"}`}>
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
                     className={
-                      (zoneSubjects.length === 1
-                        ? "w-full max-w-xs"
-                        : zoneSubjects.length === 3
-                          // Exactly 3 cards must sit evenly side-by-side even on mobile —
-                          // 2-per-row would wrap the 3rd card and look unbalanced/cut off.
-                          ? "w-[calc(33.333%-0.5rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]"
-                          : compactGrid
-                            ? "w-[calc(50%-0.25rem)]"
-                            : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)]") + " flex"
+                      zoneSubjects.length === 1
+                        ? "col-span-2 sm:col-span-1 max-w-xs mx-auto w-full flex"
+                        : "flex"
                     }
                   >
                     {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
