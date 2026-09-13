@@ -192,6 +192,10 @@ const Readymade = () => {
   // pressed/active highlight since these pills now scroll-to-zone instead
   // of toggling a filter.
   const [activeZonePill, setActiveZonePill] = useState<string | null>(null);
+  // Tracks the zone element + its removal timer currently mid-flash, so a
+  // second pill tap cancels the previous zone's blink immediately instead
+  // of two zones blinking at once.
+  const flashingZoneRef = useRef<{ el: HTMLElement; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   const [spFinalManagerOpen, setSpFinalManagerOpen] = useState(false);
@@ -473,9 +477,22 @@ const Readymade = () => {
                 // Scroll smoothly to this zone's section instead of hard-filtering.
                 const el = document.getElementById(`zone-${encodeURIComponent(topic.value)}`);
                 if (el) {
+                  // Only the most-recently-tapped zone should blink — cancel
+                  // any zone still mid-flash from an earlier tap first.
+                  if (flashingZoneRef.current) {
+                    clearTimeout(flashingZoneRef.current.timer);
+                    flashingZoneRef.current.el.classList.remove("zone-flash");
+                  }
                   el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  // Force reflow so re-clicking the same zone restarts the
+                  // animation instead of no-op'ing (class already present).
+                  void el.offsetWidth;
                   el.classList.add("zone-flash");
-                  setTimeout(() => el.classList.remove("zone-flash"), 5000);
+                  const timer = setTimeout(() => {
+                    el.classList.remove("zone-flash");
+                    if (flashingZoneRef.current?.el === el) flashingZoneRef.current = null;
+                  }, 5000);
+                  flashingZoneRef.current = { el, timer };
                 }
               }}
             >
