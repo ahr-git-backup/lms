@@ -27,7 +27,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
-import { CourseSection } from "@/components/home/CourseSection";
 import { QuickActionsSection } from "@/components/home/QuickActionsSection";
 import { FreeResourcesSidebar } from "@/components/home/FreeResourcesSidebar";
 import HeroCarouselItem from "@/components/home/HeroCarouselItem";
@@ -342,11 +341,6 @@ const Index = () => {
         {/* Quick Actions (All Courses / Free Class / Free Exam / Quick Practice / Focus Timer / Pomodoro) */}
         <div className="animate-border-chase rounded-2xl border py-1 px-1 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}>
         <QuickActionsSection />
-        </div>
-
-        {/* Paid Courses Section (Grid View) */}
-        <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
-        <CourseSection limit={7} />
         </div>
 
         {/* Free Service/Courses Section */}

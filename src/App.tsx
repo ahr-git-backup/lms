@@ -25,6 +25,7 @@ import Tutorial from "./pages/public/Tutorial";
 import InstallApp from "./pages/public/InstallApp";
 import Free from "./pages/public/Free";
 import StudyAid from "./pages/public/StudyAid";
+import AllCoursesList from "./pages/public/AllCoursesList";
 import PublicLayout from "./layouts/PublicLayout";
 import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
 import { AppBottomNav } from "./components/AppBottomNav";
@@ -187,6 +188,7 @@ const App = () => {
                 <Route path="/forgot-password" element={<ErrorBoundary><ForgotPassword /></ErrorBoundary>} />
                 <Route path="/reset-password" element={<ErrorBoundary><ResetPassword /></ErrorBoundary>} />
                 <Route path="/courses" element={<ErrorBoundary><Courses /></ErrorBoundary>} />
+                <Route path="/courses/all" element={<ErrorBoundary><AllCoursesList /></ErrorBoundary>} />
                 <Route path="/courses/:courseId" element={<ErrorBoundary><CourseDetails /></ErrorBoundary>} />
                 <Route path="/courses/:courseId/buy" element={<ErrorBoundary><CourseBuy /></ErrorBoundary>} />
                 <Route path="/courses/:courseId/demo/:demoIndex" element={<ErrorBoundary><DemoClassPlayerPage /></ErrorBoundary>} />

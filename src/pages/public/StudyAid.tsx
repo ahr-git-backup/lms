@@ -9,6 +9,10 @@ import {
   Zap,
   Infinity as InfinityIcon,
   Sparkles,
+  Star,
+  Timer,
+  Clock,
+  Send,
 } from "lucide-react";
 
 const TOOLS = [
@@ -24,8 +28,22 @@ const TOOLS = [
     group: "Best Practice Tool",
     items: [
       { label: "Quick Practice Game", to: "/quick-practice", icon: Zap, color: "violet" },
-      { label: "Random Practice Exam", to: "/mock-test", icon: InfinityIcon, color: "fuchsia" },
+      { label: "Unlimited Mock Test", to: "/mock-test", icon: InfinityIcon, color: "fuchsia" },
       { label: "Readymade Exams", to: "/dashboard/readymade", icon: Sparkles, color: "pink" },
+    ],
+  },
+  {
+    group: "Focus & Time Management",
+    items: [
+      { label: "Focus Timer", to: "/focus-timer", icon: Timer, color: "emerald" },
+      { label: "Pomodoro Timer", to: "/pomodoro", icon: Clock, color: "rose" },
+    ],
+  },
+  {
+    group: "More",
+    items: [
+      { label: "Course Review", to: "/reviews", icon: Star, color: "amber" },
+      { label: "Telegram Support", to: "/telegram-support", icon: Send, color: "cyan" },
     ],
   },
 ] as const;
@@ -37,13 +55,18 @@ const COLOR_CLASSES: Record<string, string> = {
   violet: "border-violet-500/30 hover:border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-violet-500",
   fuchsia: "border-fuchsia-500/30 hover:border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-950/20 text-fuchsia-500",
   pink: "border-pink-500/30 hover:border-pink-500 bg-pink-50/50 dark:bg-pink-950/20 text-pink-500",
+  emerald: "border-emerald-500/30 hover:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-500",
+  rose: "border-rose-500/30 hover:border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 text-rose-500",
+  amber: "border-amber-500/30 hover:border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 text-amber-500",
+  cyan: "border-cyan-500/30 hover:border-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/20 text-cyan-500",
 };
 
 /**
- * Public Study Aid hub — same quick action tools shown on the logged-in
- * dashboard home, but reachable without an account. Every card navigates
- * to the real tool route; ProtectedRoute at that destination is what
- * gates login when the tool actually needs an account.
+ * Public Study Aid hub — every study tool from the old landing-page quick
+ * actions, minus Free Class/Free Exam (now under the Free tab) and All
+ * Courses (now under the Course tab). Reachable without an account; each
+ * card navigates to the real tool route, and login (if required) is
+ * enforced only at that destination, never here.
  */
 const StudyAid = () => {
   const navigate = useNavigate();
