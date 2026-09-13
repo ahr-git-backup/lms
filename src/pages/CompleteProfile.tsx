@@ -125,6 +125,7 @@ const CompleteProfile = () => {
       const { error: updateError } = await supabase
         .from("profiles")
         .update({
+          registration_id: phone,
           full_name: fullName,
           father_name: fatherName,
           mother_name: motherName,
