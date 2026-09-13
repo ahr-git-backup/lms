@@ -60,7 +60,7 @@ const InstallApp = () => {
           <img
             src="/logo.png"
             alt="Atlas"
-            className="h-20 w-20 mx-auto mb-4 rounded-2xl shadow-md"
+            className="h-20 w-20 mx-auto mb-4 rounded-2xl shadow-md object-contain bg-white p-2"
           />
           <h1 className="text-2xl font-bold tracking-tight mb-2">Atlas অ্যাপ ইনস্টল করুন</h1>
           <p className="text-muted-foreground">
