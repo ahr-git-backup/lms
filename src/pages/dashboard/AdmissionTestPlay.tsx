@@ -568,7 +568,7 @@ export default function AdmissionTestPlay() {
             <div className="flex items-center gap-2 min-w-0">
               <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="shrink-0"><ArrowLeft className="h-5 w-5" /></Button>
               <div className="min-w-0">
-                <h1 className="text-xl md:text-2xl font-bold truncate">{test?.title || "Admission Test"}</h1>
+                <h1 className="text-base sm:text-xl md:text-2xl font-bold leading-tight break-words">{test?.title || "Admission Test"}</h1>
                 <p className="text-sm text-muted-foreground">Answered: {answeredCount} / {questions.length}</p>
               </div>
             </div>

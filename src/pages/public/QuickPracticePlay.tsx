@@ -132,7 +132,7 @@ const QuickPracticePlay = () => {
   const [answered, setAnswered] = useState<Answered[]>([]);
   const [finished, setFinished] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [soundVol, setSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [soundVol, setSoundVol] = useState(0); // always starts off; not persisted — user's on-choice lasts only this session
   const [rightPack, setRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [wrongPack, setWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [volMenuOpen, setVolMenuOpen] = useState(false);
@@ -372,8 +372,7 @@ const QuickPracticePlay = () => {
   };
 
   const changeVol = (v: number) => {
-    setSoundVol(v);
-    localStorage.setItem("atlas-sound-vol", String(v));
+    setSoundVol(v); // session-only — not persisted, resets to off next time
     if (v > 0) {
       try { playPack(RIGHT_PACKS, rightPack, 0.6 * v); } catch { /* ignore */ }
     }

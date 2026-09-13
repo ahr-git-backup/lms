@@ -225,7 +225,7 @@ const TakeExam = () => {
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
-  const [qpSoundVol, setQpSoundVol] = useState(() => parseFloat(localStorage.getItem("atlas-sound-vol") || "1"));
+  const [qpSoundVol, setQpSoundVol] = useState(0); // always starts off; not persisted — user's on-choice lasts only this session
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [qpVolMenuOpen, setQpVolMenuOpen] = useState(false);
@@ -588,8 +588,7 @@ const TakeExam = () => {
   };
 
   const qpChangeVol = (v: number) => {
-    setQpSoundVol(v);
-    try { localStorage.setItem("atlas-sound-vol", String(v)); } catch { /* ignore */ }
+    setQpSoundVol(v); // session-only — not persisted, resets to off next time
   };
 
   const qpChooseSound = (which: "right" | "wrong", key: string) => {
@@ -976,12 +975,12 @@ const TakeExam = () => {
           // Measure the real dashboard sticky navbar height instead of assuming a
           // fixed 56px (top-14) — mobile browsers resize the viewport (address bar
           // show/hide) which can leave a stale gap/overlap if we hardcode the value.
-          if (user) {
-              const navHeader = document.querySelector("header.sticky.top-0") as HTMLElement | null;
-              setNavbarOffset(navHeader ? navHeader.offsetHeight : 56);
-          } else {
-              setNavbarOffset(0);
-          }
+          // Only offset when a dashboard navbar is actually rendered above this page
+          // (e.g. /dashboard/take-exam) — standalone/public routes (like Free Exam's
+          // /take-exam/:examId with no DashboardLayout wrapper) have no such navbar,
+          // so falling back to a hardcoded 56 there left a blank gap at the top.
+          const navHeader = document.querySelector("header.sticky.top-0") as HTMLElement | null;
+          setNavbarOffset(navHeader ? navHeader.offsetHeight : 0);
       };
       measure();
       window.addEventListener("resize", measure);
@@ -2177,11 +2176,11 @@ const TakeExam = () => {
         {/* fixed (not sticky) so it stays visible no matter which ancestor actually
             scrolls on mobile. top offset clears the dashboard's own 56px header when
             logged in — guests hit this page standalone (no such header) so it sits at 0. */}
-        <div ref={fixedHeaderRef} style={{ top: user ? navbarOffset : 0 }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
+        <div ref={fixedHeaderRef} style={{ top: navbarOffset }} className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-b py-2 px-2 md:px-3 space-y-2">
           <div className="container max-w-full lg:max-w-[92rem] mx-auto px-0 md:px-0 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl md:text-2xl font-bold truncate">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
+              <h1 className="text-base sm:text-xl md:text-2xl font-bold leading-tight break-words">{exam.title}{selectedTopic ? ` (${selectedSubtopic || selectedTopic})` : ""} {retakeFromAttemptId && "(Mistakes Only)"}</h1>
               <p className="text-sm text-muted-foreground">
                 Answered: {answeredCount} / {displayQuestions.length}
                 {displayQuestions.length > 0 && ` (${Math.round((answeredCount / displayQuestions.length) * 100)}%)`}

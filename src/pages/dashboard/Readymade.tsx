@@ -192,6 +192,10 @@ const Readymade = () => {
   // pressed/active highlight since these pills now scroll-to-zone instead
   // of toggling a filter.
   const [activeZonePill, setActiveZonePill] = useState<string | null>(null);
+  // Tracks the zone element + its removal timer currently mid-flash, so a
+  // second pill tap cancels the previous zone's blink immediately instead
+  // of two zones blinking at once.
+  const flashingZoneRef = useRef<{ el: HTMLElement; timer: ReturnType<typeof setTimeout> } | null>(null);
   const [selectedBoards, setSelectedBoards] = useState<string[]>([]);
   const [addQuestionCategory, setAddQuestionCategory] = useState<string | null>(null);
   const [spFinalManagerOpen, setSpFinalManagerOpen] = useState(false);
@@ -363,16 +367,14 @@ const Readymade = () => {
 
       {!selectedSubject && !categoryName && (
         <div className="grid grid-cols-3 gap-2">
-          {(enrollments?.length || 0) > 0 && (
-            <button
-              type="button"
-              onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
-              className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
-            >
-              <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-xs font-semibold leading-tight">এক্সাম বানাও</p>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
+            className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
+          >
+            <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs font-semibold leading-tight">এক্সাম বানাও</p>
+          </button>
           <button
             type="button"
             onClick={() => { if (isAdmin) { setSpFinalManagerOpen(true); } else { navigate("/dashboard/readymade/subject-paper-final"); } }}
@@ -473,9 +475,22 @@ const Readymade = () => {
                 // Scroll smoothly to this zone's section instead of hard-filtering.
                 const el = document.getElementById(`zone-${encodeURIComponent(topic.value)}`);
                 if (el) {
+                  // Only the most-recently-tapped zone should blink — cancel
+                  // any zone still mid-flash from an earlier tap first.
+                  if (flashingZoneRef.current) {
+                    clearTimeout(flashingZoneRef.current.timer);
+                    flashingZoneRef.current.el.classList.remove("zone-flash");
+                  }
                   el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  // Force reflow so re-clicking the same zone restarts the
+                  // animation instead of no-op'ing (class already present).
+                  void el.offsetWidth;
                   el.classList.add("zone-flash");
-                  setTimeout(() => el.classList.remove("zone-flash"), 1200);
+                  const timer = setTimeout(() => {
+                    el.classList.remove("zone-flash");
+                    if (flashingZoneRef.current?.el === el) flashingZoneRef.current = null;
+                  }, 5000);
+                  flashingZoneRef.current = { el, timer };
                 }
               }}
             >
@@ -841,7 +856,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
   // RPC call above (chapterMcqCounts), no separate query needed.
 
   // --- OVERALL STATS (Total Exams / User Attempted / Total MCQs) ---
-  const { data: overallStats, isLoading: loadingOverallStats } = useQuery({
+  const { data: overallStats } = useQuery({
     queryKey: ["readymade-exams-overall-stats", enrolledIds.join(','), userId],
     placeholderData: (prev) => prev,
     queryFn: async () => {
@@ -1038,39 +1053,26 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     return (
       <div className="space-y-3">
         <PremiumLockDialog exam={lockedExam} onClose={() => setLockedExam(null)} navigate={navigate} overdueInfo={getOverdueInfo(lockedExam?.course_id)} />
-        {overallStats ? (
-          <div className="grid grid-cols-3 gap-2">
-            <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
-                <span className="text-base font-bold text-blue-600 leading-tight">{overallStats.totalExams}</span>
-              </CardContent>
-            </Card>
-            <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats.attemptedCount} টি</span>
-                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats.remaining} টি</span>
-              </CardContent>
-            </Card>
-            <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
-              <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
-                <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
-                <span className="text-base font-bold text-amber-600 leading-tight">{overallStats.totalMcqs}</span>
-              </CardContent>
-            </Card>
-          </div>
-        ) : loadingOverallStats ? (
-          <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(i => (
-              <Card key={i} className="border-muted">
-                <CardContent className="p-2 flex flex-col items-center gap-1">
-                  <div className="h-2.5 w-12 bg-muted animate-pulse rounded" />
-                  <div className="h-4 w-8 bg-muted animate-pulse rounded" />
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : null}
+        <div className="grid grid-cols-3 gap-2">
+          <Card className="border-blue-500/30 bg-blue-50/50 dark:bg-blue-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[10px] text-muted-foreground leading-tight">Total Exams</span>
+              <span className="text-base font-bold text-blue-600 leading-tight">{overallStats ? overallStats.totalExams : "—"}</span>
+            </CardContent>
+          </Card>
+          <Card className="border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">দিয়েছো: {overallStats ? overallStats.attemptedCount : "—"} টি</span>
+              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 leading-tight">বাকি: {overallStats ? overallStats.remaining : "—"} টি</span>
+            </CardContent>
+          </Card>
+          <Card className="border-amber-500/30 bg-amber-50/50 dark:bg-amber-950/20">
+            <CardContent className="p-2 flex flex-col items-center text-center gap-0.5">
+              <span className="text-[10px] text-muted-foreground leading-tight">Total MCQ</span>
+              <span className="text-base font-bold text-amber-600 leading-tight">{overallStats ? overallStats.totalMcqs : "—"}</span>
+            </CardContent>
+          </Card>
+        </div>
         {(() => {
           const renderSubjectCard = (subject: string, compact = false) => {
             const unlocked = isSubjectUnlocked(subject);
@@ -1078,7 +1080,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             return (
               <Card
                 key={subject}
-                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
                 onClick={() => setSelectedSubject(subject)}
               >
                 {!unlocked && (
@@ -1108,7 +1110,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       <Trophy className="h-3.5 w-3.5 text-primary shrink-0" />
                     )}
                   </div>
-                  <div className={`${compact ? "text-sm sm:text-xl" : "text-base sm:text-xl"} font-bold leading-tight whitespace-pre-line break-words ${unlocked ? "text-primary" : "text-muted-foreground"}`}>{subject}</div>
+                  <div className={`${compact ? "text-sm sm:text-xl" : "text-base sm:text-xl"} font-bold leading-tight whitespace-pre-line break-words ${unlocked ? "text-primary dark:text-white" : "text-muted-foreground"}`}>{subject}</div>
                   {isAdmin && isHidden && (
                     <div className="text-[9px] font-medium text-muted-foreground mt-0.5">Hidden from students</div>
                   )}
@@ -1155,7 +1157,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border/40 ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
+              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border shadow-sm ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
             >
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
@@ -1196,12 +1198,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="flex flex-row items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border/40 overflow-hidden">
+                  <div key={`row-${ci}`} className="grid grid-cols-2 items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border shadow-sm overflow-hidden">
                     {c.groups.map((g, gi) => (
-                      <div key={g.zone} className="flex-1 min-w-0 relative flex">
-                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none", true)}
+                      <div key={g.zone} className="min-w-0 relative flex">
+                        {renderZoneBox(g.zone, g.subjects, "border-none rounded-none h-full", true)}
                         {gi > 0 && (
-                          <div className="absolute left-0 top-2 bottom-2 w-px bg-border/60" />
+                          <div className="absolute left-0 top-2 bottom-2 w-px bg-border" />
                         )}
                       </div>
                     ))}
@@ -2221,6 +2223,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [savingNewChannel, setSavingNewChannel] = useState(false);
   const sendQueryClient = useQueryClient();
   const [sendSplitMode, setSendSplitMode] = useState<"auto" | "all" | "batch">("auto"); // auto = topic-wise if topics exist
+  const [sendMode, setSendMode] = useState<"all" | "links_only">("all"); // all = polls+PDF+summary (present system); links_only = single post, no polls sent, just per-topic Poll Practice/Quiz Solve/Website Exam links
   const [sendBatchSize, setSendBatchSize] = useState("25");
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
@@ -2314,6 +2317,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
     setSendChannelId("");
     setSendThreadId("");
     setSendSplitMode("auto");
+    setSendMode("all");
     setSendBatchSize("25");
     setSendJobStatus(null);
     setNewChannelName("");
@@ -2427,6 +2431,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           exam_id: sendingExam.id,
           exam_title: sendingExam.title || "",
           subject: Array.isArray(sendingExam.subject) ? (sendingExam.subject[0] || "") : (sendingExam.subject || ""),
+          links_only: sendMode === "links_only",
         }),
       });
       const rawText = await res.text();
@@ -2442,6 +2447,10 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         throw new Error(json.error || "Send request failed");
       }
 
+      // Both modes now run as a background job on the same proven
+      // /api/lms-send-channel path — links_only just finishes fast (one
+      // message, no poll loop) but still goes through the same job
+      // status/progress/cancel machinery as the normal mode.
       const jobId = json.job_id as string;
       setSendJobStatus({ status: "running", sent_total: 0, total: questions.length, batches_done: 0, batches_total: batches.length });
       pollCardJob(sendingExam.id, jobId);
@@ -2700,6 +2709,18 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           <DialogTitle>Telegram চ্যানেলে পাঠান</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">পাঠানোর ধরন</label>
+            <Select value={sendMode} onValueChange={(v) => setSendMode(v as any)} disabled={sendBusy}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">সব (Poll + PDF + Summary — বর্তমান পদ্ধতি)</SelectItem>
+                <SelectItem value="links_only">শুধু Poll Practice, Quiz Solve, Website Exam লিংক (এক পোস্টে)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
             <Select value={sendSavedChannelId} onValueChange={handleSelectSavedChannel} disabled={sendBusy}>
