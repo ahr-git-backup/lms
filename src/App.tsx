@@ -27,7 +27,8 @@ import Free from "./pages/public/Free";
 import StudyAid from "./pages/public/StudyAid";
 import AllCoursesList from "./pages/public/AllCoursesList";
 import PublicLayout from "./layouts/PublicLayout";
-import { PWALoginGate } from "./pwa/PWALoginGate";import DashboardLayout from "./layouts/DashboardLayout";
+import { PWALoginGate } from "./pwa/PWALoginGate";
+import { usePWACacheCleanup } from "./pwa/usePWACacheCleanup";import DashboardLayout from "./layouts/DashboardLayout";
 import { AppBottomNav } from "./components/AppBottomNav";
 import AdminLayout from "./layouts/AdminLayout";
 import DashboardHome from "./pages/dashboard/DashboardHome";
@@ -138,6 +139,7 @@ const queryClient = new QueryClient({
 
 const App = () => {
   useAntiCheat();
+  usePWACacheCleanup();
 
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
