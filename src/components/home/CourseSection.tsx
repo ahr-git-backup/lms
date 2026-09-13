@@ -52,7 +52,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
         queryKey: ["active-special-discounts-all"],
         queryFn: async () => {
              const { data, error } = await (supabase.from as any)("promo_codes")
-                 .select("course_id, course_ids")
+                 .select("course_id, course_ids, special_discount_text")
                  .eq("is_active", true)
                  .not("special_discount_text", "is", null)
                  .neq("special_discount_text", "")
@@ -65,15 +65,21 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
 
              // Flatten results since promo_codes can have either course_id (legacy) or course_ids (array)
              const discountMeta = data?.flatMap(d => {
-                 const ids = [];
+                 const ids: string[] = [];
                  if (d.course_id) ids.push(d.course_id);
                  if (d.course_ids && Array.isArray(d.course_ids)) {
                      ids.push(...d.course_ids);
                  }
-                 return ids;
+                 return ids.map((id) => ({ course_id: id, special_discount_text: d.special_discount_text as string }));
              }) || [];
 
-             return Array.from(new Set(discountMeta)).map(id => ({ course_id: id }));
+             // De-dupe by course_id, keeping the first matching discount text per course
+             const seen = new Set<string>();
+             return discountMeta.filter((d) => {
+                 if (seen.has(d.course_id)) return false;
+                 seen.add(d.course_id);
+                 return true;
+             });
         },
         staleTime: 5 * 60 * 1000,
     });
@@ -302,13 +308,22 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                         alt={`${course.name} cover`}
                                         className="absolute inset-0 h-full w-full object-cover"
                                     />
-                                    {activeDiscounts?.some((d: any) => d.course_id === course.id) && (
-                                        <div className="absolute top-0 left-0 w-24 h-24 overflow-hidden z-20">
-                                            <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 text-center truncate rotate-[-45deg] flex items-center justify-center gap-1 animate-[pulse_2s_cubic-bezier(0.4,0,0.6,1)_infinite] border-y border-red-400">
-                                                <Tag className="w-3 h-3 fill-white" /> SALE
+                                    {(() => {
+                                        const courseDiscount = activeDiscounts?.find((d: any) => d.course_id === course.id);
+                                        if (!courseDiscount) return null;
+                                        return (
+                                            <div className="absolute top-2 left-2 right-2 z-20 overflow-hidden rounded-full bg-red-600 shadow-lg border border-red-400">
+                                                <div className="whitespace-nowrap py-1 animate-[marquee_12s_linear_infinite]">
+                                                    <span className="inline-flex items-center gap-1.5 px-3 text-white font-bold text-[11px]">
+                                                        <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                    </span>
+                                                    <span className="inline-flex items-center gap-1.5 px-3 text-white font-bold text-[11px]">
+                                                        <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                    </span>
+                                                </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
                                     <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
                                         {categoryBadges.map((cat: string) => (
                                             <Badge key={cat} className="bg-black/50 hover:bg-black/70 backdrop-blur-sm text-white border-0">

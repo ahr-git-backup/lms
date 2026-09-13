@@ -430,3 +430,8 @@ mjx-container[display="true"] {
   0% { background-position: 0% 0%; }
   100% { background-position: 350% 350%; }
 }
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
