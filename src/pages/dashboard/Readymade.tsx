@@ -367,18 +367,14 @@ const Readymade = () => {
 
       {!selectedSubject && !categoryName && (
         <div className="grid grid-cols-3 gap-2">
-          {loadingEnrollments ? (
-            <div className="rounded-xl border-2 border-transparent p-3" aria-hidden="true" />
-          ) : (enrollments?.length || 0) > 0 && (
-            <button
-              type="button"
-              onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
-              className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
-            >
-              <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
-              <p className="text-xs font-semibold leading-tight">এক্সাম বানাও</p>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => { try { sessionStorage.removeItem("customExamBuilderState"); } catch { /* ignore */ } navigate("/dashboard/readymade/custom-exam"); }}
+            className="rounded-xl border-2 border-border hover:border-primary/40 p-3 text-center transition-all"
+          >
+            <Sparkles className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-xs font-semibold leading-tight">এক্সাম বানাও</p>
+          </button>
           <button
             type="button"
             onClick={() => { if (isAdmin) { setSpFinalManagerOpen(true); } else { navigate("/dashboard/readymade/subject-paper-final"); } }}
