@@ -1078,7 +1078,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             return (
               <Card
                 key={subject}
-                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
                 onClick={() => setSelectedSubject(subject)}
               >
                 {!unlocked && (
