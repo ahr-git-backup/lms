@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import PublicHeader from "@/components/PublicHeader";
 import {
   LayoutGrid,
   Video,
@@ -11,7 +12,6 @@ import {
   Bookmark,
   Trophy,
   Bell,
-  User,
   BookOpen,
   Send,
   Flame,
@@ -55,24 +55,16 @@ export default function PWAHome() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      {/* App bar */}
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur">
-        <div>
-          <p className="text-lg font-bold leading-tight">
-            {user ? `হ্যালো, ${greetingName || "শিক্ষার্থী"}` : "এটলাসে স্বাগতম"}
-          </p>
-          <p className="text-xs text-muted-foreground">আজকের প্রস্তুতি শুরু করুন</p>
-        </div>
-        <button
-          onClick={() => navigate(user ? "/dashboard/profile" : "/login")}
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary"
-          aria-label="Profile"
-        >
-          <User className="h-5 w-5" />
-        </button>
-      </header>
+      <PublicHeader />
 
-      <main className="flex-1 px-4 py-4 space-y-6">
+      <div className="px-4 py-3">
+        <p className="text-lg font-bold leading-tight">
+          {user ? `হ্যালো, ${greetingName || "শিক্ষার্থী"}` : "এটলাসে স্বাগতম"}
+        </p>
+        <p className="text-xs text-muted-foreground">আজকের প্রস্তুতি শুরু করুন</p>
+      </div>
+
+      <main className="flex-1 px-4 pb-4 space-y-6">
         {/* Primary shortcuts — big tiles, native app-icon feel */}
         <section className="grid grid-cols-2 gap-3">
           {PRIMARY_SHORTCUTS.map((item) => (
