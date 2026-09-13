@@ -1155,7 +1155,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border/40 ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
+              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border shadow-sm ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
             >
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
@@ -1196,12 +1196,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="flex flex-row items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border/40 overflow-hidden">
+                  <div key={`row-${ci}`} className="flex flex-row items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border shadow-sm overflow-hidden">
                     {c.groups.map((g, gi) => (
                       <div key={g.zone} className="flex-1 min-w-0 relative flex">
                         {renderZoneBox(g.zone, g.subjects, "border-none rounded-none", true)}
                         {gi > 0 && (
-                          <div className="absolute left-0 top-2 bottom-2 w-px bg-border/60" />
+                          <div className="absolute left-0 top-2 bottom-2 w-px bg-border" />
                         )}
                       </div>
                     ))}
