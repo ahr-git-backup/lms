@@ -316,10 +316,10 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                                 <div className="absolute top-4 -left-7 w-32 bg-red-600 shadow-lg text-white font-bold text-[10px] py-1 rotate-[-45deg] border-y border-red-400 overflow-hidden">
                                                     <div className="whitespace-nowrap animate-[marquee_8s_linear_infinite]">
                                                         <span className="inline-flex items-center gap-1 px-2">
-                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> বিশেষ ডিসকাউন্ট চলছে
                                                         </span>
                                                         <span className="inline-flex items-center gap-1 px-2">
-                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> {courseDiscount.special_discount_text}
+                                                            <Tag className="w-3 h-3 fill-white shrink-0" /> বিশেষ ডিসকাউন্ট চলছে
                                                         </span>
                                                     </div>
                                                 </div>
