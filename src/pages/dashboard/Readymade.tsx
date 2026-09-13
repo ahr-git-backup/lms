@@ -1488,7 +1488,7 @@ const SplitExamToggle = ({ parentId, isAdmin, open, setOpen }: { parentId: strin
   );
 };
 
-const SplitExamPanel = ({ parentId, navigate, isAdmin }: { parentId: string; navigate: any; isAdmin: boolean }) => {
+const SplitExamPanel = ({ parentId, navigate, isAdmin, listPath = "/dashboard/readymade", examPath = "/dashboard/take-exam" }: { parentId: string; navigate: any; isAdmin: boolean; listPath?: string; examPath?: string }) => {
   const { toast } = useToast();
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -1532,8 +1532,8 @@ const SplitExamPanel = ({ parentId, navigate, isAdmin }: { parentId: string; nav
             key={s.id}
             className="flex items-center justify-between gap-2 rounded-md bg-muted/50 px-2 py-1.5 cursor-pointer hover:bg-muted"
             onClick={() => {
-              setExamSourceList(s.id, "/dashboard/readymade");
-              navigate(`/dashboard/take-exam/${s.id}`);
+              setExamSourceList(s.id, listPath);
+              navigate(`${examPath}/${s.id}`);
             }}
           >
             <span className="text-xs font-medium">{s.title}</span>
@@ -1560,7 +1560,7 @@ const SplitExamPanel = ({ parentId, navigate, isAdmin }: { parentId: string; nav
 
 // Shows "পুরো এক্সাম" + each distinct question-topic for an exam; picking one
 // navigates to take-exam with ?topic= to restrict the question pool.
-const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: boolean; setOpen: (v: boolean) => void }) => {
+export const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: boolean; setOpen: (v: boolean) => void }) => {
   const { data: topics, isLoading } = useQuery({
     queryKey: ["exam-topics", examId],
     queryFn: async () => {
@@ -1589,7 +1589,7 @@ const TopicPickerToggle = ({ examId, open, setOpen }: { examId: string; open: bo
   );
 };
 
-const TopicPickerPanel = ({ examId, exam, navigate, isAdmin, openPracticeSheetPicker }: { examId: string; exam: any; navigate: any; isAdmin?: boolean; openPracticeSheetPicker: (e: React.MouseEvent, exam: any, topicFilter?: { topic: string; subtopic?: string }) => void }) => {
+export const TopicPickerPanel = ({ examId, exam, navigate, isAdmin, openPracticeSheetPicker, listPath = "/dashboard/readymade", examPath = "/dashboard/take-exam" }: { examId: string; exam: any; navigate: any; isAdmin?: boolean; openPracticeSheetPicker: (e: React.MouseEvent, exam: any, topicFilter?: { topic: string; subtopic?: string }) => void; listPath?: string; examPath?: string }) => {
   // get_exam_topic_tree returns one row per (topic, subtopic) pair --
   // subtopic is null/"" for topics with no subtopics. Grouped client-side
   // into topic -> [subtopics] so a topic with subtopics expands into a
@@ -1606,10 +1606,10 @@ const TopicPickerPanel = ({ examId, exam, navigate, isAdmin, openPracticeSheetPi
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
 
   const goTopic = (topic: string, subtopic?: string) => {
-    setExamSourceList(examId, "/dashboard/readymade");
+    setExamSourceList(examId, listPath);
     const params = new URLSearchParams({ topic });
     if (subtopic) params.set("subtopic", subtopic);
-    navigate(`/dashboard/take-exam/${examId}?${params.toString()}`);
+    navigate(`${examPath}/${examId}?${params.toString()}`);
   };
 
   // Group rows by topic, preserving first-appearance order (rows already
@@ -2199,7 +2199,7 @@ const TopicAddDialog = ({ exam, onClose }: { exam: any; onClose: () => void }) =
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean }) => {
+export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [], subChapterGrants = new Set<string>(), onLockedClick, isAdmin = false, listPath = "/dashboard/readymade", examPath = "/dashboard/take-exam" }: { exams: any[], navigate: any, enrolledIds?: string[], fullAccessCourseIds?: string[], subChapterGrants?: Set<string>, onLockedClick?: (exam: any) => void, isAdmin?: boolean, listPath?: string, examPath?: string }) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [topicAddExam, setTopicAddExam] = useState<any | null>(null);
   // Which exam has its split/topic panel open, and which of the two panels
@@ -2976,8 +2976,8 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
         <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
             if (!unlocked) { onLockedClick?.(exam); return; }
-            setExamSourceList(exam.id, "/dashboard/readymade");
-            navigate(`/dashboard/take-exam/${exam.id}`);
+            setExamSourceList(exam.id, listPath);
+            navigate(`${examPath}/${exam.id}`);
           }}>
           {!unlocked && (
             <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
@@ -3124,12 +3124,12 @@ const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseIds = [],
               </div>
               {openPanelExamId === exam.id && openPanelType === "topic" && (
                 <div className="mt-1 w-full">
-                  <TopicPickerPanel examId={exam.id} exam={exam} navigate={navigate} isAdmin={isAdmin} openPracticeSheetPicker={openPracticeSheetPicker} />
+                  <TopicPickerPanel examId={exam.id} exam={exam} navigate={navigate} isAdmin={isAdmin} openPracticeSheetPicker={openPracticeSheetPicker} listPath={listPath} examPath={examPath} />
                 </div>
               )}
               {openPanelExamId === exam.id && openPanelType === "split" && (
                 <div className="mt-1 w-full">
-                  <SplitExamPanel parentId={exam.id} navigate={navigate} isAdmin={isAdmin} />
+                  <SplitExamPanel parentId={exam.id} navigate={navigate} isAdmin={isAdmin} listPath={listPath} examPath={examPath} />
                 </div>
               )}
             </div>
