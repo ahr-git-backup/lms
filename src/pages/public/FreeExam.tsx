@@ -20,6 +20,7 @@ interface Exam {
   exam_type: string;
   duration_minutes: number;
   free_exam_category: string | null;
+  is_visible_on_free?: boolean;
   questions_count: { count: number }[];
 }
 
@@ -61,7 +62,7 @@ const FreeExam = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("exams")
-        .select("id, title, subject, chapter, readymade_sub_chapter, exam_type, duration_minutes, free_exam_category, questions_count:exam_questions(count)")
+        .select("id, title, subject, chapter, readymade_sub_chapter, exam_type, duration_minutes, free_exam_category, is_visible_on_free, questions_count:exam_questions(count)")
         .eq("is_published", true)
         // @ts-ignore
         .eq("is_visible_on_free", true);
@@ -80,7 +81,7 @@ const FreeExam = () => {
       queryFn: async () => {
           const query = supabase
               .from("exams")
-              .select("id, title, subject, chapter, exam_type, duration_minutes, questions_count:exam_questions(count)", { count: 'exact' })
+              .select("id, title, subject, chapter, exam_type, duration_minutes, is_visible_on_free, questions_count:exam_questions(count)", { count: 'exact' })
               .eq("is_published", true)
               // @ts-ignore
               .eq("is_visible_on_free", true)
