@@ -475,7 +475,7 @@ const Readymade = () => {
                 if (el) {
                   el.scrollIntoView({ behavior: "smooth", block: "center" });
                   el.classList.add("zone-flash");
-                  setTimeout(() => el.classList.remove("zone-flash"), 1200);
+                  setTimeout(() => el.classList.remove("zone-flash"), 5000);
                 }
               }}
             >

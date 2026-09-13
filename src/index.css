@@ -414,15 +414,17 @@ mjx-container[display="true"] {
   max-height: none;
 }
 
-/* Subtle highlight flash for a Readymade Exam zone section when the user
-   taps its Parent Topic pill and gets smooth-scrolled to it. The zone's
-   own boundary (border) lights up briefly, along with a faint fill. */
+/* Border-blink highlight for a Readymade Exam zone section when the user
+   taps its Parent Topic pill and gets smooth-scrolled to it. No glow/blur/
+   fill — just the zone's own border outline blinking on/off in place,
+   for 5 seconds. */
 @keyframes zoneFlash {
-  0% { background-color: hsl(var(--primary) / 0.06); border-color: hsl(var(--primary) / 0.5); }
-  100% { background-color: transparent; border-color: hsl(var(--border) / 0.4); }
+  0%, 100% { border-color: hsl(var(--border)); }
+  25%, 75% { border-color: hsl(var(--primary)); }
+  50% { border-color: hsl(var(--border)); }
 }
 .zone-flash {
-  animation: zoneFlash 1.4s ease-out;
+  animation: zoneFlash 1s steps(1, end) 5;
   border-radius: 0.75rem;
 }
 
