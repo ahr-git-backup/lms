@@ -8,11 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { ColorWheelPicker } from "@/components/admin/ColorWheelPicker";
 import { QuestionData } from "@/types/exam";
-import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, Trash2, ImagePlus, Eye } from "lucide-react";
+import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, ImagePlus, Eye } from "lucide-react";
 
 interface SlideQuestion {
   id: string;
@@ -20,6 +21,33 @@ interface SlideQuestion {
   options: { [key: string]: string };
   correct_answer: string;
 }
+
+/** One slot inside the header or footer strip (left / center / right).
+    Each slot independently carries text and/or an image, each with its
+    own size and x/y position controls. */
+interface BarSlot {
+  text: string;
+  imageUrl: string;
+  fontSize: number;
+  fontColor: string;
+  textOffsetX: number;
+  textOffsetY: number;
+  imageHeight: number;
+  imageOffsetX: number;
+  imageOffsetY: number;
+}
+
+const DEFAULT_SLOT = (): BarSlot => ({
+  text: "",
+  imageUrl: "",
+  fontSize: 18,
+  fontColor: "#ffffff",
+  textOffsetX: 0,
+  textOffsetY: 0,
+  imageHeight: 40,
+  imageOffsetX: 0,
+  imageOffsetY: 0,
+});
 
 interface SlideSettings {
   bgColor: string;
@@ -29,15 +57,20 @@ interface SlideSettings {
   optionBgColor: string;
   optionBorderColor: string;
   fontFamily: string;
-  headerLeftText: string;
-  headerRightText: string;
-  centerText: string;
-  headerFontSize: number;
-  headerFontColor: string;
+
+  headerLeft: BarSlot;
+  headerCenter: BarSlot;
+  headerRight: BarSlot;
   headerPosition: "top" | "middle" | "bottom";
-  headerOffsetX: number;
-  logoLeftUrl: string;
-  logoRightUrl: string;
+  headerSeparator: boolean;
+  headerSeparatorColor: string;
+
+  footerLeft: BarSlot;
+  footerCenter: BarSlot;
+  footerRight: BarSlot;
+  footerSeparator: boolean;
+  footerSeparatorColor: string;
+
   questionBgColor: string;
   questionBorderColor: string;
   questionBoxEnabled: boolean;
@@ -51,15 +84,20 @@ const DEFAULT_SETTINGS: SlideSettings = {
   optionBgColor: "#1e293b",
   optionBorderColor: "#38bdf8",
   fontFamily: "'Hind Siliguri', sans-serif",
-  headerLeftText: "",
-  headerRightText: "",
-  centerText: "",
-  headerFontSize: 18,
-  headerFontColor: "#ffffff",
+
+  headerLeft: DEFAULT_SLOT(),
+  headerCenter: DEFAULT_SLOT(),
+  headerRight: DEFAULT_SLOT(),
   headerPosition: "top",
-  headerOffsetX: 0,
-  logoLeftUrl: "",
-  logoRightUrl: "",
+  headerSeparator: false,
+  headerSeparatorColor: "#38bdf8",
+
+  footerLeft: DEFAULT_SLOT(),
+  footerCenter: DEFAULT_SLOT(),
+  footerRight: DEFAULT_SLOT(),
+  footerSeparator: false,
+  footerSeparatorColor: "#38bdf8",
+
   questionBgColor: "",
   questionBorderColor: "",
   questionBoxEnabled: false,
@@ -67,6 +105,7 @@ const DEFAULT_SETTINGS: SlideSettings = {
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
+const MAX_OPTION_HEIGHT = 140;
 
 const BANGLA_FONTS = [
   { label: "Hind Siliguri", value: "'Hind Siliguri', sans-serif" },
@@ -84,6 +123,35 @@ const BANGLA_FONTS = [
   { label: "Galada", value: "'Galada', cursive" },
 ];
 
+/** Renders one header/footer slot: image + text, each independently offset
+    by its own x/y so they can be nudged apart or overlapped freely. */
+const BarSlotView = ({ slot, align }: { slot: BarSlot; align: "flex-start" | "center" | "flex-end" }) => {
+  if (!slot.text && !slot.imageUrl) return <div />;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: align === "flex-start" ? "flex-start" : align === "flex-end" ? "flex-end" : "center", gap: 4 }}>
+      {slot.imageUrl && (
+        <img
+          src={slot.imageUrl}
+          style={{ height: slot.imageHeight, width: "auto", transform: `translate(${slot.imageOffsetX}px, ${slot.imageOffsetY}px)` }}
+        />
+      )}
+      {slot.text && (
+        <div
+          style={{
+            fontSize: slot.fontSize,
+            color: slot.fontColor,
+            fontWeight: align === "center" ? 700 : 400,
+            transform: `translate(${slot.textOffsetX}px, ${slot.textOffsetY}px)`,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {slot.text}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const SlideVisual = ({
   question,
   settings,
@@ -98,7 +166,8 @@ const SlideVisual = ({
   // Measure each option card's own natural (unconstrained) height and use
   // the tallest one as a shared min-height for all 4 — so cards stay small
   // when every option is short, but if one option is long, all cards match
-  // that same size instead of leaving the short ones tiny/uneven.
+  // that same size instead of leaving the short ones tiny/uneven. Capped so
+  // a large option font size can't blow the cards up indefinitely.
   const optionRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [optionMinHeight, setOptionMinHeight] = useState<number | undefined>(undefined);
 
@@ -107,31 +176,21 @@ const SlideVisual = ({
       const heights = Object.values(optionRefs.current)
         .filter((el): el is HTMLDivElement => !!el)
         .map((el) => {
-          // Temporarily clear any applied min-height to read the true
-          // natural content height before re-measuring.
           const prev = el.style.minHeight;
           el.style.minHeight = "0px";
           const h = el.scrollHeight;
           el.style.minHeight = prev;
           return h;
         });
-      // Add a bit of breathing room on top of the tallest option's natural
-      // content height, so the card never hugs the text exactly tight —
-      // this extra space becomes the shared size every option card uses.
       const EXTRA_BREATHING_ROOM = 24;
-      // Cap the shared card height so cranking the option font size can't
-      // blow up the cards indefinitely — text just wraps/scrolls within
-      // the capped card instead.
-      const MAX_OPTION_HEIGHT = 140;
       if (heights.length > 0) setOptionMinHeight(Math.min(Math.max(...heights) + EXTRA_BREATHING_ROOM, MAX_OPTION_HEIGHT));
     };
     measure();
-    // Re-measure on font load / resize, since web fonts can change text
-    // wrapping after the initial paint.
     const t = setTimeout(measure, 150);
     window.addEventListener("resize", measure);
     return () => { clearTimeout(t); window.removeEventListener("resize", measure); };
   }, [question, settings.optionFontSize, settings.fontFamily]);
+
   const makeEditable = (field: "question" | "A" | "B" | "C" | "D", value: string) =>
     editable
       ? {
@@ -143,6 +202,12 @@ const SlideVisual = ({
           },
         }
       : {};
+
+  const hasFooterContent =
+    settings.footerLeft.text || settings.footerLeft.imageUrl ||
+    settings.footerCenter.text || settings.footerCenter.imageUrl ||
+    settings.footerRight.text || settings.footerRight.imageUrl ||
+    settings.footerSeparator;
 
   return (
     <div
@@ -164,8 +229,8 @@ const SlideVisual = ({
       <div
         style={{
           position: "absolute",
-          left: 40 + settings.headerOffsetX,
-          right: 40 - settings.headerOffsetX,
+          left: 40,
+          right: 40,
           top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
           bottom: settings.headerPosition === "bottom" ? 20 : undefined,
           transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
@@ -173,18 +238,14 @@ const SlideVisual = ({
           justifyContent: "space-between",
           alignItems: "center",
           minHeight: 50,
+          paddingBottom: settings.headerSeparator ? 14 : 0,
+          borderBottom: settings.headerSeparator ? `2px solid ${settings.headerSeparatorColor}` : undefined,
           zIndex: 2,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
-          {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
-          {settings.headerLeftText}
-        </div>
-        {settings.centerText && <div style={{ fontSize: settings.headerFontSize + 2, fontWeight: 700, color: settings.headerFontColor }}>{settings.centerText}</div>}
-        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
-          {settings.headerRightText}
-          {settings.logoRightUrl && <img src={settings.logoRightUrl} style={{ height: 40, width: "auto" }} />}
-        </div>
+        <BarSlotView slot={settings.headerLeft} align="flex-start" />
+        <BarSlotView slot={settings.headerCenter} align="center" />
+        <BarSlotView slot={settings.headerRight} align="flex-end" />
       </div>
 
       <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
@@ -218,7 +279,7 @@ const SlideVisual = ({
       </div>
 
       {/* Options */}
-      <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
+      <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: hasFooterContent ? 90 : 70 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "min-content", gap: 20, width: "55%" }}>
           {Object.entries(question.options).map(([key, val]) => (
             <div
@@ -236,7 +297,7 @@ const SlideVisual = ({
                 gap: 14,
                 alignItems: "center",
                 minHeight: optionMinHeight ? `${optionMinHeight}px` : undefined,
-                maxHeight: 140,
+                maxHeight: MAX_OPTION_HEIGHT,
                 overflow: "hidden",
                 boxSizing: "border-box",
               }}
@@ -267,6 +328,139 @@ const SlideVisual = ({
           ))}
         </div>
       </div>
+
+      {/* Footer */}
+      {hasFooterContent && (
+        <div
+          style={{
+            position: "absolute",
+            left: 40,
+            right: 40,
+            bottom: 20,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            minHeight: 30,
+            paddingTop: settings.footerSeparator ? 14 : 0,
+            borderTop: settings.footerSeparator ? `2px solid ${settings.footerSeparatorColor}` : undefined,
+            zIndex: 2,
+          }}
+        >
+          <BarSlotView slot={settings.footerLeft} align="flex-start" />
+          <BarSlotView slot={settings.footerCenter} align="center" />
+          <BarSlotView slot={settings.footerRight} align="flex-end" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+/** A tiny +/- stepper row used for every numeric control below (font size,
+    image size, x/y position) so every value is nudgeable without a
+    fiddly slider on mobile. */
+const Stepper = ({
+  label,
+  value,
+  onChange,
+  step = 2,
+  suffix = "px",
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  step?: number;
+  suffix?: string;
+}) => (
+  <div className="space-y-1">
+    <Label className="text-[10px]">{label} ({value > 0 && suffix === "px" && label.startsWith("X") ? "+" : ""}{value}{suffix})</Label>
+    <div className="flex items-center gap-1">
+      <Button type="button" size="icon" variant="outline" className="h-7 w-7 shrink-0" onClick={() => onChange(value - step)}>
+        <ChevronLeft className="h-3.5 w-3.5" />
+      </Button>
+      <Button type="button" size="icon" variant="outline" className="h-7 w-7 shrink-0" onClick={() => onChange(value + step)}>
+        <ChevronRight className="h-3.5 w-3.5" />
+      </Button>
+    </div>
+  </div>
+);
+
+/** Full control block for one header/footer slot: text, image upload, font
+    size + color, text position, image size + position — everything
+    independently controllable. */
+const BarSlotEditor = ({
+  label,
+  slot,
+  onChange,
+  idPrefix,
+}: {
+  label: string;
+  slot: BarSlot;
+  onChange: (next: BarSlot) => void;
+  idPrefix: string;
+}) => {
+  const update = (patch: Partial<BarSlot>) => onChange({ ...slot, ...patch });
+  return (
+    <div className="space-y-2 border rounded-lg p-3">
+      <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+
+      {/* Text */}
+      <Input value={slot.text} onChange={(e) => update({ text: e.target.value })} placeholder="Text (optional)" className="h-8 text-sm" />
+      {slot.text && (
+        <div className="space-y-2 pl-2 border-l-2">
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] shrink-0 w-16">Font Size</Label>
+            <Input type="range" min={10} max={40} value={slot.fontSize} onChange={(e) => update({ fontSize: Number(e.target.value) })} className="h-7" />
+            <span className="text-[10px] w-8 text-right">{slot.fontSize}px</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] shrink-0 w-16">Color</Label>
+            <ColorWheelPicker color={slot.fontColor} onChange={(hex) => update({ fontColor: hex })} label={`${label} Font Color`} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Stepper label="Text X" value={slot.textOffsetX} onChange={(v) => update({ textOffsetX: v })} />
+            <Stepper label="Text Y" value={slot.textOffsetY} onChange={(v) => update({ textOffsetY: v })} />
+          </div>
+        </div>
+      )}
+
+      {/* Image */}
+      <div className="flex items-center gap-1.5 pt-1">
+        <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById(idPrefix)?.click()}>
+          <ImagePlus className="h-3.5 w-3.5 mr-1" /> Image
+        </Button>
+        <input
+          id={idPrefix}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => update({ imageUrl: ev.target?.result as string });
+            reader.readAsDataURL(file);
+            e.target.value = "";
+          }}
+        />
+        {slot.imageUrl && (
+          <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => update({ imageUrl: "" })}>
+            <X className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+      {slot.imageUrl && (
+        <div className="space-y-2 pl-2 border-l-2">
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] shrink-0 w-16">Img Size</Label>
+            <Input type="range" min={16} max={100} value={slot.imageHeight} onChange={(e) => update({ imageHeight: Number(e.target.value) })} className="h-7" />
+            <span className="text-[10px] w-8 text-right">{slot.imageHeight}px</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Stepper label="Img X" value={slot.imageOffsetX} onChange={(v) => update({ imageOffsetX: v })} />
+            <Stepper label="Img Y" value={slot.imageOffsetY} onChange={(v) => update({ imageOffsetY: v })} />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -281,7 +475,6 @@ const AdminSlideMaker = () => {
   const [settings, setSettings] = useState<SlideSettings>(DEFAULT_SETTINGS);
   const [isQbOpen, setIsQbOpen] = useState(false);
   const [isPreviewAllOpen, setIsPreviewAllOpen] = useState(false);
-  const [editingCell, setEditingCell] = useState<{ qId: string; field: "question" | "A" | "B" | "C" | "D" } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
@@ -362,15 +555,6 @@ const AdminSlideMaker = () => {
     );
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, side: "logoLeftUrl" | "logoRightUrl") => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setSettings((prev) => ({ ...prev, [side]: ev.target?.result as string }));
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
   const exportPdf = async () => {
     if (questions.length === 0) {
       toast({ title: "কোনো প্রশ্ন নেই", variant: "destructive" });
@@ -381,7 +565,6 @@ const AdminSlideMaker = () => {
       const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [SLIDE_W, SLIDE_H] });
       for (let i = 0; i < questions.length; i++) {
         setActiveIndex(i);
-        // wait for DOM paint
         await new Promise((r) => setTimeout(r, 60));
         if (!slideRef.current) continue;
         const canvas = await html2canvas(slideRef.current, {
@@ -390,11 +573,6 @@ const AdminSlideMaker = () => {
           scale: 2,
           useCORS: true,
           onclone: (clonedDoc) => {
-            // The scale transform lives on the wrapper div (slideRef itself,
-            // identified by data-slide-scale-wrap), not on the inner
-            // data-slide-capture slide content — reset it to full size so
-            // html2canvas captures crisp full-resolution output instead of
-            // the small scaled-down preview.
             const el = clonedDoc.body.querySelector('[data-slide-scale-wrap="true"]') as HTMLElement | null;
             if (el) el.style.transform = "scale(1)";
           },
@@ -467,160 +645,174 @@ const AdminSlideMaker = () => {
         </div>
       </div>
 
-      {/* Settings panel — below the preview now */}
+      {/* Settings panel — segmented into collapsible sections, one per
+          slide area, so everything is grouped with its own segment
+          instead of one long flat grid. */}
       <Card>
-        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="space-y-1">
-            <Label className="text-xs">Background Color</Label>
-            <ColorWheelPicker color={settings.bgColor} onChange={(hex) => setSettings((p) => ({ ...p, bgColor: hex }))} label="Background Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Font Color</Label>
-            <ColorWheelPicker color={settings.fontColor} onChange={(hex) => setSettings((p) => ({ ...p, fontColor: hex }))} label="Font Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Box Background</Label>
-            <ColorWheelPicker color={settings.optionBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBgColor: hex }))} label="Option Box Background" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Border (Neon)</Label>
-            <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Question Box</Label>
-              <button
-                type="button"
-                onClick={() => setSettings((p) => ({ ...p, questionBoxEnabled: !p.questionBoxEnabled }))}
-                className={`h-5 w-9 rounded-full transition-colors relative ${settings.questionBoxEnabled ? "bg-primary" : "bg-muted"}`}
-              >
-                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.questionBoxEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
-              </button>
-            </div>
-            <ColorWheelPicker
-              color={settings.questionBgColor || "#1e293b"}
-              onChange={(hex) => setSettings((p) => ({ ...p, questionBgColor: hex }))}
-              label="Question Box Background"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Question Border</Label>
-            <ColorWheelPicker
-              color={settings.questionBorderColor || "#38bdf8"}
-              onChange={(hex) => setSettings((p) => ({ ...p, questionBorderColor: hex }))}
-              label="Question Border"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
-            <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
-            <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">বাংলা ফন্ট</Label>
-            <Select value={settings.fontFamily} onValueChange={(v) => setSettings((p) => ({ ...p, fontFamily: v }))}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BANGLA_FONTS.map((f) => (
-                  <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                    {f.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Font Size ({settings.headerFontSize}px)</Label>
-            <Input type="range" min={12} max={36} value={settings.headerFontSize} onChange={(e) => setSettings((p) => ({ ...p, headerFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Font Color</Label>
-            <ColorWheelPicker color={settings.headerFontColor} onChange={(hex) => setSettings((p) => ({ ...p, headerFontColor: hex }))} label="Header Font Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Position</Label>
-            <Select value={settings.headerPosition} onValueChange={(v: "top" | "middle" | "bottom") => setSettings((p) => ({ ...p, headerPosition: v }))}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="top">উপরে</SelectItem>
-                <SelectItem value="middle">মাঝে</SelectItem>
-                <SelectItem value="bottom">নিচে</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Horizontal ({settings.headerOffsetX > 0 ? "+" : ""}{settings.headerOffsetX}px)</Label>
-            <div className="flex items-center gap-1">
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-9 w-9 shrink-0"
-                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: p.headerOffsetX - 10 }))}
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-9 flex-1 text-xs text-muted-foreground"
-                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: 0 }))}
-              >
-                রিসেট
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                className="h-9 w-9 shrink-0"
-                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: p.headerOffsetX + 10 }))}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Left (Corner)</Label>
-            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-left-input")?.click()}>
-                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
-              </Button>
-              <input id="slide-logo-left-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoLeftUrl")} className="hidden" />
-              {settings.logoLeftUrl && (
-                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoLeftUrl: "" }))}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Right (Corner)</Label>
-            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Text (optional)" />
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-right-input")?.click()}>
-                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
-              </Button>
-              <input id="slide-logo-right-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoRightUrl")} className="hidden" />
-              {settings.logoRightUrl && (
-                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoRightUrl: "" }))}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Center Text</Label>
-            <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
-          </div>
+        <CardContent className="p-2 sm:p-4">
+          <Accordion type="multiple" defaultValue={["general", "header", "question", "options"]} className="w-full">
+
+            {/* General / slide-wide */}
+            <AccordionItem value="general">
+              <AccordionTrigger className="text-sm font-semibold py-3">সাধারণ (Background &amp; Font)</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Slide Background</Label>
+                    <ColorWheelPicker color={settings.bgColor} onChange={(hex) => setSettings((p) => ({ ...p, bgColor: hex }))} label="Background Color" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Font Color</Label>
+                    <ColorWheelPicker color={settings.fontColor} onChange={(hex) => setSettings((p) => ({ ...p, fontColor: hex }))} label="Font Color" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">বাংলা ফন্ট</Label>
+                    <Select value={settings.fontFamily} onValueChange={(v) => setSettings((p) => ({ ...p, fontFamily: v }))}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANGLA_FONTS.map((f) => (
+                          <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                            {f.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Header */}
+            <AccordionItem value="header">
+              <AccordionTrigger className="text-sm font-semibold py-3">Header (Left / Center / Right)</AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Header Vertical Position</Label>
+                    <Select value={settings.headerPosition} onValueChange={(v: "top" | "middle" | "bottom") => setSettings((p) => ({ ...p, headerPosition: v }))}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="top">উপরে</SelectItem>
+                        <SelectItem value="middle">মাঝে</SelectItem>
+                        <SelectItem value="bottom">নিচে</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Separator Line (নিচে, Optional)</Label>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((p) => ({ ...p, headerSeparator: !p.headerSeparator }))}
+                        className={`h-5 w-9 rounded-full transition-colors relative ${settings.headerSeparator ? "bg-primary" : "bg-muted"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.headerSeparator ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                    {settings.headerSeparator && (
+                      <ColorWheelPicker color={settings.headerSeparatorColor} onChange={(hex) => setSettings((p) => ({ ...p, headerSeparatorColor: hex }))} label="Header Separator Color" />
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <BarSlotEditor label="Left" slot={settings.headerLeft} onChange={(v) => setSettings((p) => ({ ...p, headerLeft: v }))} idPrefix="header-left-logo" />
+                  <BarSlotEditor label="Center" slot={settings.headerCenter} onChange={(v) => setSettings((p) => ({ ...p, headerCenter: v }))} idPrefix="header-center-logo" />
+                  <BarSlotEditor label="Right" slot={settings.headerRight} onChange={(v) => setSettings((p) => ({ ...p, headerRight: v }))} idPrefix="header-right-logo" />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Footer */}
+            <AccordionItem value="footer">
+              <AccordionTrigger className="text-sm font-semibold py-3">Footer (Left / Center / Right)</AccordionTrigger>
+              <AccordionContent className="space-y-3">
+                <div className="space-y-1 max-w-xs">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs">Separator Line (উপরে, Optional)</Label>
+                    <button
+                      type="button"
+                      onClick={() => setSettings((p) => ({ ...p, footerSeparator: !p.footerSeparator }))}
+                      className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerSeparator ? "bg-primary" : "bg-muted"}`}
+                    >
+                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerSeparator ? "translate-x-4" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+                  {settings.footerSeparator && (
+                    <ColorWheelPicker color={settings.footerSeparatorColor} onChange={(hex) => setSettings((p) => ({ ...p, footerSeparatorColor: hex }))} label="Footer Separator Color" />
+                  )}
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <BarSlotEditor label="Left" slot={settings.footerLeft} onChange={(v) => setSettings((p) => ({ ...p, footerLeft: v }))} idPrefix="footer-left-logo" />
+                  <BarSlotEditor label="Center" slot={settings.footerCenter} onChange={(v) => setSettings((p) => ({ ...p, footerCenter: v }))} idPrefix="footer-center-logo" />
+                  <BarSlotEditor label="Right" slot={settings.footerRight} onChange={(v) => setSettings((p) => ({ ...p, footerRight: v }))} idPrefix="footer-right-logo" />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Question */}
+            <AccordionItem value="question">
+              <AccordionTrigger className="text-sm font-semibold py-3">প্রশ্ন (Question)</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Question Box</Label>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((p) => ({ ...p, questionBoxEnabled: !p.questionBoxEnabled }))}
+                        className={`h-5 w-9 rounded-full transition-colors relative ${settings.questionBoxEnabled ? "bg-primary" : "bg-muted"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.questionBoxEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                    <ColorWheelPicker
+                      color={settings.questionBgColor || "#1e293b"}
+                      onChange={(hex) => setSettings((p) => ({ ...p, questionBgColor: hex }))}
+                      label="Question Box Background"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Question Border</Label>
+                    <ColorWheelPicker
+                      color={settings.questionBorderColor || "#38bdf8"}
+                      onChange={(hex) => setSettings((p) => ({ ...p, questionBorderColor: hex }))}
+                      label="Question Border"
+                    />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
+                    <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            {/* Options */}
+            <AccordionItem value="options">
+              <AccordionTrigger className="text-sm font-semibold py-3">অপশন (Options)</AccordionTrigger>
+              <AccordionContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Option Box Background</Label>
+                    <ColorWheelPicker color={settings.optionBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBgColor: hex }))} label="Option Box Background" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Option Border (Neon)</Label>
+                    <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
+                    <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+          </Accordion>
         </CardContent>
       </Card>
 
@@ -723,9 +915,7 @@ const AdminSlideMaker = () => {
 };
 
 /** A single slide cell inside the "preview all" grid — scales SlideVisual
-    down to fit the grid cell width while keeping it editable. Uses a
-    ResizeObserver-free approach (fixed aspect-ratio box + measured width on
-    mount/resize) since the grid is responsive (1 or 2 columns). */
+    down to fit the grid cell width while keeping it editable. */
 const PreviewGridSlide = ({
   index,
   question,
