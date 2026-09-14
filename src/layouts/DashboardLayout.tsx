@@ -39,8 +39,7 @@ export const DashboardLayout = () => {
   const { theme, setTheme } = useTheme();
   const { data: enrollments } = useEnrollments();
   const [hasPendingPayments, setHasPendingPayments] = useState(false);
-  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") === "true");
-  const [isDevMode, setIsDevMode] = useState(() => localStorage.getItem("dev_mode") === "true");
+  const [isMuted, setIsMuted] = useState(() => localStorage.getItem("admin_sound_muted") !== "false");
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(() => {
     const stored = localStorage.getItem("unread_notification_count");
     return stored ? parseInt(stored, 10) || 0 : 0;
@@ -73,17 +72,6 @@ export const DashboardLayout = () => {
   useEffect(() => {
     localStorage.setItem("admin_sound_muted", String(isMuted));
   }, [isMuted]);
-
-  useEffect(() => {
-    localStorage.setItem("dev_mode", String(isDevMode));
-    if (isDevMode) {
-      // Reload to apply changes (disable anti-cheat) if turning ON
-      // Actually, we need to reload to disable the running anti-cheat hooks or just let the user reload.
-      // But toggling it OFF -> ON (enabling dev mode) requires reload to stop existing intervals?
-      // No, existing intervals are set on mount.
-      // Easiest is to force reload if user toggles.
-    }
-  }, [isDevMode]);
 
   // Polling for admin notifications
   useEffect(() => {
@@ -331,25 +319,6 @@ export const DashboardLayout = () => {
               </Button>
               {isAdmin && (
                 <>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="hidden sm:inline-flex"
-                    aria-label={isDevMode ? "Disable Dev Mode" : "Enable Dev Mode"}
-                    onClick={async () => {
-                        const newVal = !isDevMode;
-                        setIsDevMode(newVal);
-                        localStorage.setItem("dev_mode", String(newVal));
-
-                        // Update Global Setting in Database
-                        await supabase.rpc('toggle_anti_cheat', { p_enabled: !newVal }); // Logic inverted: if devMode ON, anti-cheat OFF.
-
-                        window.location.reload();
-                    }}
-                    title={isDevMode ? "Disable Developer Mode (Enable Anti-Cheat Global)" : "Enable Developer Mode (Disable Anti-Cheat Global)"}
-                  >
-                    <ShieldAlert className={`h-4 w-4 ${isDevMode ? 'text-red-500' : 'text-muted-foreground'}`} />
-                  </Button>
                   <Button
                     variant="outline"
                     size="icon"
