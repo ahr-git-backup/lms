@@ -363,8 +363,8 @@ const AdminSlideMaker = () => {
                   CSS grid with a single column makes every row match the tallest
                   cell's height, so a long option grows all option cards equally
                   instead of leaving short ones tiny. */}
-              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 70 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20 }}>
+              <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20, width: "55%" }}>
                   {Object.entries(activeQuestion.options).map(([key, val]) => (
                     <div
                       key={key}
