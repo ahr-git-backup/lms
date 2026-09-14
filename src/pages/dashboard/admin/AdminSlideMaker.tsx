@@ -79,6 +79,8 @@ interface SlideSettings {
   headerSeparatorColor: string;
   headerBgColor: string;
   headerBgEnabled: boolean;
+  headerBgFullWidth: boolean;
+  headerBgRounded: boolean;
 
   footerLeft: BarSlot;
   footerCenter: BarSlot;
@@ -87,6 +89,8 @@ interface SlideSettings {
   footerSeparatorColor: string;
   footerBgColor: string;
   footerBgEnabled: boolean;
+  footerBgFullWidth: boolean;
+  footerBgRounded: boolean;
 
   questionBgColor: string;
   questionBorderColor: string;
@@ -119,6 +123,8 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerSeparatorColor: "#38bdf8",
   headerBgColor: "#1e293b",
   headerBgEnabled: false,
+  headerBgFullWidth: false,
+  headerBgRounded: true,
 
   footerLeft: DEFAULT_SLOT(),
   footerCenter: DEFAULT_SLOT(),
@@ -127,6 +133,8 @@ const DEFAULT_SETTINGS: SlideSettings = {
   footerSeparatorColor: "#38bdf8",
   footerBgColor: "#1e293b",
   footerBgEnabled: false,
+  footerBgFullWidth: false,
+  footerBgRounded: true,
 
   questionBgColor: "",
   questionBorderColor: "",
@@ -232,6 +240,24 @@ const SlideVisual = ({
         position: "relative",
       }}
     >
+      {/* Header background — a separate layer so it can span the full
+          slide width (edge to edge) independent of the content div, which
+          stays inset at left/right:40 like the rest of the slide. */}
+      {settings.headerBgEnabled && (
+        <div
+          style={{
+            position: "absolute",
+            left: settings.headerBgFullWidth ? 0 : 40,
+            right: settings.headerBgFullWidth ? 0 : 40,
+            top: 20,
+            height: 70,
+            backgroundColor: settings.headerBgColor,
+            borderRadius: settings.headerBgRounded ? 12 : 0,
+            zIndex: 1,
+          }}
+        />
+      )}
+
       {/* Header — always anchored to the top of the slide; content within
           each slot (left/center/right) can only be nudged horizontally via
           textOffsetX/imageOffsetX, not moved to another vertical position.
@@ -249,8 +275,6 @@ const SlideVisual = ({
           alignItems: "center",
           padding: "0 20px",
           overflow: "hidden",
-          backgroundColor: settings.headerBgEnabled ? settings.headerBgColor : undefined,
-          borderRadius: settings.headerBgEnabled ? 12 : undefined,
           boxSizing: "border-box",
           zIndex: 2,
         }}
@@ -382,9 +406,25 @@ const SlideVisual = ({
 
       {/* Footer — fixed height, so growing content never shifts the
           separator line. Separator itself is a full-width line at a fixed
-          y position, independent of footer content size. */}
+          y position, independent of footer content size. Background is a
+          separate layer so it can span the full slide width independent
+          of the content div. */}
       {hasFooterContent && (
         <>
+          {settings.footerBgEnabled && (
+            <div
+              style={{
+                position: "absolute",
+                left: settings.footerBgFullWidth ? 0 : 40,
+                right: settings.footerBgFullWidth ? 0 : 40,
+                bottom: 20,
+                height: 50,
+                backgroundColor: settings.footerBgColor,
+                borderRadius: settings.footerBgRounded ? 12 : 0,
+                zIndex: 1,
+              }}
+            />
+          )}
           <div
             style={{
               position: "absolute",
@@ -397,8 +437,6 @@ const SlideVisual = ({
               alignItems: "center",
               padding: "0 20px",
               overflow: "hidden",
-              backgroundColor: settings.footerBgEnabled ? settings.footerBgColor : undefined,
-              borderRadius: settings.footerBgEnabled ? 12 : undefined,
               boxSizing: "border-box",
               zIndex: 2,
             }}
@@ -1015,7 +1053,29 @@ const AdminSlideMaker = () => {
                       </button>
                     </div>
                     {settings.headerBgEnabled && (
-                      <ColorWheelPicker color={settings.headerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, headerBgColor: hex }))} label="Header Background Color" />
+                      <div className="space-y-2">
+                        <ColorWheelPicker color={settings.headerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, headerBgColor: hex }))} label="Header Background Color" />
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">ফুল উইথ (Full Width)</Label>
+                          <button
+                            type="button"
+                            onClick={() => setSettings((p) => ({ ...p, headerBgFullWidth: !p.headerBgFullWidth }))}
+                            className={`h-5 w-9 rounded-full transition-colors relative ${settings.headerBgFullWidth ? "bg-primary" : "bg-muted"}`}
+                          >
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.headerBgFullWidth ? "translate-x-4" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">গোল কোণা (Rounded)</Label>
+                          <button
+                            type="button"
+                            onClick={() => setSettings((p) => ({ ...p, headerBgRounded: !p.headerBgRounded }))}
+                            className={`h-5 w-9 rounded-full transition-colors relative ${settings.headerBgRounded ? "bg-primary" : "bg-muted"}`}
+                          >
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.headerBgRounded ? "translate-x-4" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -1059,7 +1119,29 @@ const AdminSlideMaker = () => {
                       </button>
                     </div>
                     {settings.footerBgEnabled && (
-                      <ColorWheelPicker color={settings.footerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, footerBgColor: hex }))} label="Footer Background Color" />
+                      <div className="space-y-2">
+                        <ColorWheelPicker color={settings.footerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, footerBgColor: hex }))} label="Footer Background Color" />
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">ফুল উইথ (Full Width)</Label>
+                          <button
+                            type="button"
+                            onClick={() => setSettings((p) => ({ ...p, footerBgFullWidth: !p.footerBgFullWidth }))}
+                            className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerBgFullWidth ? "bg-primary" : "bg-muted"}`}
+                          >
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerBgFullWidth ? "translate-x-4" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">গোল কোণা (Rounded)</Label>
+                          <button
+                            type="button"
+                            onClick={() => setSettings((p) => ({ ...p, footerBgRounded: !p.footerBgRounded }))}
+                            className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerBgRounded ? "bg-primary" : "bg-muted"}`}
+                          >
+                            <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerBgRounded ? "translate-x-4" : "translate-x-0.5"}`} />
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
