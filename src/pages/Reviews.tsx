@@ -79,40 +79,57 @@ const CATEGORIES = [
   { value: "website", label: "অন্যান্য" },
 ];
 
-/** Auto-scrolling animated image marquee (Success Gallery style), built
- *  from this category's review images. Pauses on hover/drag; clicking
- *  an image opens the lightbox. */
-const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
-  const [lightbox, setLightbox] = useState<number | null>(null);
+/** A single auto-scrolling row: continuously slides via requestAnimationFrame,
+ *  loops seamlessly by duplicating items, pauses on hover/drag/lightbox-open,
+ *  and supports click-and-drag / touch-swipe scrolling. */
+const MarqueeRow = ({
+  items,
+  direction,
+  onOpenLightbox,
+  lightboxOpen,
+}: {
+  items: { img: string; caption: string; globalIndex: number }[];
+  direction: "left" | "right";
+  onOpenLightbox: (globalIndex: number) => void;
+  lightboxOpen: boolean;
+}) => {
   const [paused, setPaused] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
+  const initializedRef = useRef(false);
   const draggingRef = useRef(false);
   const startX = useRef(0);
   const startPos = useRef(0);
 
-  const items = reviews.flatMap((review) =>
-    reviewImages(review).map((img) => ({ img, caption: review.student_name || "" }))
-  );
   const loopItems = items.length > 0 ? [...items, ...items] : [];
-  const allImages = items.map((i) => i.img);
 
   useEffect(() => {
     if (items.length === 0) return;
     let raf: number;
     const step = () => {
       const track = trackRef.current;
-      if (track && !paused && !draggingRef.current && lightbox === null) {
-        posRef.current -= 0.5;
+      if (track) {
         const halfWidth = track.scrollWidth / 2;
-        if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
-        track.style.transform = `translateX(${posRef.current}px)`;
+        if (!initializedRef.current && halfWidth > 0) {
+          posRef.current = direction === "right" ? -halfWidth : 0;
+          initializedRef.current = true;
+        }
+        if (!paused && !draggingRef.current && !lightboxOpen) {
+          if (direction === "left") {
+            posRef.current -= 0.5;
+            if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
+          } else {
+            posRef.current += 0.5;
+            if (posRef.current >= 0) posRef.current = -halfWidth;
+          }
+          track.style.transform = `translateX(${posRef.current}px)`;
+        }
       }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [paused, items.length, lightbox]);
+  }, [paused, items.length, lightboxOpen, direction]);
 
   if (items.length === 0) return null;
 
@@ -128,15 +145,9 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
   };
   const onUp = () => { draggingRef.current = false; };
 
-  const closeLightbox = () => {
-    setLightbox(null);
-    draggingRef.current = false;
-    setPaused(false);
-  };
-
   return (
     <div
-      className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6"
+      className="relative w-full overflow-hidden"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => { setPaused(false); onUp(); }}
     >
@@ -153,7 +164,7 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
         {loopItems.map((item, idx) => (
           <button
             key={idx}
-            onClick={() => setLightbox(idx % items.length)}
+            onClick={() => onOpenLightbox(item.globalIndex)}
             className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
           >
             <img
@@ -170,6 +181,47 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
           </button>
         ))}
       </div>
+    </div>
+  );
+};
+
+/** Auto-scrolling animated image marquee (Success Gallery style), built
+ *  from this category's review images, split into two rows scrolling in
+ *  opposite directions. Pauses on hover/drag; clicking an image opens
+ *  the lightbox. */
+const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
+  const items = reviews.flatMap((review) =>
+    reviewImages(review).map((img) => ({ img, caption: review.student_name || "" }))
+  );
+  const allImages = items.map((i) => i.img);
+
+  if (items.length === 0) return null;
+
+  const indexed = items.map((item, globalIndex) => ({ ...item, globalIndex }));
+  const mid = Math.ceil(indexed.length / 2);
+  const rowOne = indexed.slice(0, mid);
+  const rowTwo = indexed.length > 3 ? indexed.slice(mid) : rowOne;
+
+  const closeLightbox = () => setLightbox(null);
+
+  return (
+    <div className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6 space-y-4">
+      <MarqueeRow
+        items={rowOne}
+        direction="left"
+        onOpenLightbox={setLightbox}
+        lightboxOpen={lightbox !== null}
+      />
+      {rowTwo.length > 0 && (
+        <MarqueeRow
+          items={rowTwo}
+          direction="right"
+          onOpenLightbox={setLightbox}
+          lightboxOpen={lightbox !== null}
+        />
+      )}
 
       {lightbox !== null && (
         <Lightbox images={allImages} index={lightbox} onClose={closeLightbox} onNav={setLightbox} />
