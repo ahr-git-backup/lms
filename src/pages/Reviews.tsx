@@ -103,11 +103,7 @@ export default function Reviews() {
           <div className="inline-flex items-center justify-center p-3 md:p-4 bg-yellow-500/10 rounded-full mb-2 md:mb-4">
             <Star className="h-6 w-6 md:h-8 md:w-8 text-yellow-500 fill-yellow-500" />
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Student Success Stories</h1>
-          <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-4">
-            Discover why thousands of students trust Atlas for their academic success.
-            Read authentic reviews across different categories.
-          </p>
+          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Student Review History</h1>
         </div>
 
         {isLoading ? (
