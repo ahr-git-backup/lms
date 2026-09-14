@@ -14,6 +14,7 @@ const FEATURED_CATEGORIES: string[] = [];
 export const CourseSection = ({ limit }: { limit?: number } = {}) => {
     const [selectedCategory, setSelectedCategory] = useState<string>("all");
     const [selectedSubCategory, setSelectedSubCategory] = useState<string>("all");
+    const [quickFilter, setQuickFilter] = useState<"none" | "coupon" | "mini">("none");
 
     const { data: courses, isLoading } = useQuery({
         queryKey: ["public-courses"],
@@ -126,6 +127,9 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
 
         if (selectedCategory !== "all" && !courseCats.includes(selectedCategory)) return false;
         if (selectedSubCategory !== "all" && !courseSubs.includes(selectedSubCategory)) return false;
+
+        if (quickFilter === "mini" && !(course.price != null && Number(course.price) <= 1000)) return false;
+        if (quickFilter === "coupon" && !activeDiscounts?.some((d: any) => d.course_id === course.id)) return false;
 
         return true;
     });
@@ -268,6 +272,29 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                             </div>
                         )}
                     </div>
+                </div>
+            </div>
+
+            {/* Separator + Quick-filter box (Coupon / Mini Courses) */}
+            <div className="w-full h-px bg-border" />
+            <div className="w-full max-w-md mx-auto rounded-xl border bg-card p-2">
+                <div className="grid grid-cols-2 gap-2">
+                    <Button
+                        variant={quickFilter === "coupon" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setQuickFilter(quickFilter === "coupon" ? "none" : "coupon")}
+                        className="h-8 text-xs"
+                    >
+                        <Tag className="h-3.5 w-3.5 mr-1" /> Coupon Available
+                    </Button>
+                    <Button
+                        variant={quickFilter === "mini" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setQuickFilter(quickFilter === "mini" ? "none" : "mini")}
+                        className="h-8 text-xs"
+                    >
+                        Mini Courses
+                    </Button>
                 </div>
             </div>
 
