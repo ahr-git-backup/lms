@@ -217,20 +217,21 @@ const SlideVisual = ({
     >
       {/* Header — always anchored to the top of the slide; content within
           each slot (left/center/right) can only be nudged horizontally via
-          textOffsetX/imageOffsetX, not moved to another vertical position. */}
+          textOffsetX/imageOffsetX, not moved to another vertical position.
+          Fixed height so growing font/image size never pushes the
+          separator line or the rest of the layout. */}
       <div
         style={{
           position: "absolute",
           left: 40,
           right: 40,
           top: 20,
+          height: 70,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          minHeight: 50,
-          padding: "10px 20px",
-          paddingBottom: settings.headerSeparator ? 14 : 10,
-          borderBottom: settings.headerSeparator ? `2px solid ${settings.headerSeparatorColor}` : undefined,
+          padding: "0 20px",
+          overflow: "hidden",
           backgroundColor: settings.headerBgEnabled ? settings.headerBgColor : undefined,
           borderRadius: settings.headerBgEnabled ? 12 : undefined,
           boxSizing: "border-box",
@@ -241,6 +242,23 @@ const SlideVisual = ({
         <BarSlotView slot={settings.headerCenter} align="center" />
         <BarSlotView slot={settings.headerRight} align="flex-end" />
       </div>
+
+      {/* Header separator — full slide width, at a fixed y position right
+          below the fixed-height header, so it never shifts even if header
+          text/image size changes. */}
+      {settings.headerSeparator && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: 20 + 70,
+            height: 2,
+            backgroundColor: settings.headerSeparatorColor,
+            zIndex: 2,
+          }}
+        />
+      )}
 
       <div style={{ minHeight: 70 }} />
 
@@ -336,31 +354,47 @@ const SlideVisual = ({
         </div>
       </div>
 
-      {/* Footer */}
+      {/* Footer — fixed height, so growing content never shifts the
+          separator line. Separator itself is a full-width line at a fixed
+          y position, independent of footer content size. */}
       {hasFooterContent && (
-        <div
-          style={{
-            position: "absolute",
-            left: 40,
-            right: 40,
-            bottom: 20,
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            minHeight: 30,
-            padding: "10px 20px",
-            paddingTop: settings.footerSeparator ? 14 : 10,
-            borderTop: settings.footerSeparator ? `2px solid ${settings.footerSeparatorColor}` : undefined,
-            backgroundColor: settings.footerBgEnabled ? settings.footerBgColor : undefined,
-            borderRadius: settings.footerBgEnabled ? 12 : undefined,
-            boxSizing: "border-box",
-            zIndex: 2,
-          }}
-        >
-          <BarSlotView slot={settings.footerLeft} align="flex-start" />
-          <BarSlotView slot={settings.footerCenter} align="center" />
-          <BarSlotView slot={settings.footerRight} align="flex-end" />
-        </div>
+        <>
+          <div
+            style={{
+              position: "absolute",
+              left: 40,
+              right: 40,
+              bottom: 20,
+              height: 50,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "0 20px",
+              overflow: "hidden",
+              backgroundColor: settings.footerBgEnabled ? settings.footerBgColor : undefined,
+              borderRadius: settings.footerBgEnabled ? 12 : undefined,
+              boxSizing: "border-box",
+              zIndex: 2,
+            }}
+          >
+            <BarSlotView slot={settings.footerLeft} align="flex-start" />
+            <BarSlotView slot={settings.footerCenter} align="center" />
+            <BarSlotView slot={settings.footerRight} align="flex-end" />
+          </div>
+          {settings.footerSeparator && (
+            <div
+              style={{
+                position: "absolute",
+                left: 0,
+                right: 0,
+                bottom: 20 + 50,
+                height: 2,
+                backgroundColor: settings.footerSeparatorColor,
+                zIndex: 2,
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );
