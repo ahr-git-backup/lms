@@ -215,94 +215,8 @@ const AdminSlideMaker = () => {
         <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
       </header>
 
-      {/* Settings panel — first, with live preview */}
-      <Card>
-        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="space-y-1">
-            <Label className="text-xs">Background Color</Label>
-            <ColorWheelPicker color={settings.bgColor} onChange={(hex) => setSettings((p) => ({ ...p, bgColor: hex }))} label="Background Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Font Color</Label>
-            <ColorWheelPicker color={settings.fontColor} onChange={(hex) => setSettings((p) => ({ ...p, fontColor: hex }))} label="Font Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Box Background</Label>
-            <ColorWheelPicker color={settings.optionBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBgColor: hex }))} label="Option Box Background" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Border (Neon)</Label>
-            <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
-            <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
-            <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">বাংলা ফন্ট</Label>
-            <Select value={settings.fontFamily} onValueChange={(v) => setSettings((p) => ({ ...p, fontFamily: v }))}>
-              <SelectTrigger className="h-9">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {BANGLA_FONTS.map((f) => (
-                  <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
-                    {f.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Font Size ({settings.headerFontSize}px)</Label>
-            <Input type="range" min={12} max={36} value={settings.headerFontSize} onChange={(e) => setSettings((p) => ({ ...p, headerFontSize: Number(e.target.value) }))} className="h-9" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Font Color</Label>
-            <ColorWheelPicker color={settings.headerFontColor} onChange={(hex) => setSettings((p) => ({ ...p, headerFontColor: hex }))} label="Header Font Color" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Left (Corner)</Label>
-            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-left-input")?.click()}>
-                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
-              </Button>
-              <input id="slide-logo-left-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoLeftUrl")} className="hidden" />
-              {settings.logoLeftUrl && (
-                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoLeftUrl: "" }))}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Header Right (Corner)</Label>
-            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Text (optional)" />
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-right-input")?.click()}>
-                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
-              </Button>
-              <input id="slide-logo-right-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoRightUrl")} className="hidden" />
-              {settings.logoRightUrl && (
-                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoRightUrl: "" }))}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Center Text</Label>
-            <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Live preview — always visible, uses sample question until real ones added */}
+      {/* Live preview — moved to the very top of the page, always visible,
+          uses sample question until real ones added */}
       <div>
         {questions.length > 0 && (
           <div className="flex items-center justify-center gap-2 mb-2">
@@ -391,6 +305,93 @@ const AdminSlideMaker = () => {
           </div>
         </div>
       </div>
+
+      {/* Settings panel — below the preview now */}
+      <Card>
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs">Background Color</Label>
+            <ColorWheelPicker color={settings.bgColor} onChange={(hex) => setSettings((p) => ({ ...p, bgColor: hex }))} label="Background Color" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Font Color</Label>
+            <ColorWheelPicker color={settings.fontColor} onChange={(hex) => setSettings((p) => ({ ...p, fontColor: hex }))} label="Font Color" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Box Background</Label>
+            <ColorWheelPicker color={settings.optionBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBgColor: hex }))} label="Option Box Background" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Border (Neon)</Label>
+            <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
+            <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
+            <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">বাংলা ফন্ট</Label>
+            <Select value={settings.fontFamily} onValueChange={(v) => setSettings((p) => ({ ...p, fontFamily: v }))}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BANGLA_FONTS.map((f) => (
+                  <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Font Size ({settings.headerFontSize}px)</Label>
+            <Input type="range" min={12} max={36} value={settings.headerFontSize} onChange={(e) => setSettings((p) => ({ ...p, headerFontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Font Color</Label>
+            <ColorWheelPicker color={settings.headerFontColor} onChange={(hex) => setSettings((p) => ({ ...p, headerFontColor: hex }))} label="Header Font Color" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Left (Corner)</Label>
+            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-left-input")?.click()}>
+                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
+              </Button>
+              <input id="slide-logo-left-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoLeftUrl")} className="hidden" />
+              {settings.logoLeftUrl && (
+                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoLeftUrl: "" }))}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Right (Corner)</Label>
+            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Text (optional)" />
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-right-input")?.click()}>
+                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
+              </Button>
+              <input id="slide-logo-right-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoRightUrl")} className="hidden" />
+              {settings.logoRightUrl && (
+                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoRightUrl: "" }))}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Center Text</Label>
+            <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Source cards — last step, same pattern as Exam form */}
       <div className="space-y-2">
