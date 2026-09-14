@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Star, MessageSquare, MonitorPlay, FileText, Loader2 } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Star, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PublicHeader from "@/components/PublicHeader";
 import { Helmet } from "react-helmet-async";
@@ -8,66 +7,149 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
-const ReviewCard = ({ review }: { review: any }) => {
-  const [expanded, setExpanded] = useState(false);
-  const isLong = review.review_text?.length > 150;
+const Lightbox = ({
+  images,
+  index,
+  onClose,
+  onNav,
+}: {
+  images: string[];
+  index: number;
+  onClose: () => void;
+  onNav: (i: number) => void;
+}) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onNav((index + 1) % images.length);
+      if (e.key === "ArrowLeft") onNav((index - 1 + images.length) % images.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, images.length, onClose, onNav]);
 
   return (
-    <Card className="hover:shadow-lg transition-all duration-300 border-primary/10 flex flex-col h-full bg-card/50 backdrop-blur-sm">
-      <CardContent className="p-6 flex flex-col flex-1">
-        <div className="flex justify-between items-start mb-4 gap-4">
-          <div className="flex gap-3 items-center min-w-0">
-             {review.image_url ? (
-                <img src={review.image_url} alt={review.student_name} className="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover shrink-0" />
-             ) : (
-                <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-secondary/80 flex items-center justify-center text-sm md:text-base font-bold shrink-0 text-foreground/70">
-                    {review.student_name?.charAt(0) || '?'}
-                </div>
-             )}
-            <div className="truncate">
-              <h4 className="font-bold text-sm md:text-base leading-tight truncate">{review.student_name}</h4>
-              <p className="text-[10px] md:text-xs text-muted-foreground truncate">{review.college_name}</p>
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+      >
+        <X className="h-6 w-6" />
+      </button>
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNav((index - 1 + images.length) % images.length); }}
+          className="absolute left-2 md:left-6 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
+      <img
+        src={images[index]}
+        alt="Review"
+        className="max-h-[85vh] max-w-[92vw] object-contain rounded-lg animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      />
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNav((index + 1) % images.length); }}
+          className="absolute right-2 md:right-6 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        >
+          <ChevronRight className="h-7 w-7" />
+        </button>
+      )}
+    </div>
+  );
+};
+
+const ReviewCard = ({ review }: { review: any }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const isLong = review.review_text?.length > 150;
+  const images: string[] = review.images && review.images.length > 0
+    ? review.images
+    : review.post_image_url
+      ? [review.post_image_url]
+      : [];
+
+  return (
+    <div className="group rounded-xl border border-primary/10 bg-card/50 backdrop-blur-sm p-6 flex flex-col h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30">
+      <div className="flex justify-between items-start mb-4 gap-4">
+        <div className="flex gap-3 items-center min-w-0">
+          {review.image_url ? (
+            <img src={review.image_url} alt={review.student_name || "Student"} className="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover shrink-0" />
+          ) : (
+            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-secondary/80 flex items-center justify-center text-sm md:text-base font-bold shrink-0 text-foreground/70">
+              {review.student_name?.charAt(0) || "?"}
             </div>
+          )}
+          <div className="truncate">
+            {review.student_name && (
+              <h4 className="font-bold text-sm md:text-base leading-tight truncate">{review.student_name}</h4>
+            )}
+            {review.college_name && (
+              <p className="text-[10px] md:text-xs text-muted-foreground truncate">{review.college_name}</p>
+            )}
           </div>
+        </div>
+        {!!review.rating && (
           <div className="flex bg-yellow-500/10 px-2 py-1 rounded-full shrink-0">
-            {[...Array(review.rating || 5)].map((_, i) => (
+            {[...Array(review.rating)].map((_, i) => (
               <Star key={i} className="h-3 w-3 md:h-3.5 md:w-3.5 text-yellow-500 fill-yellow-500" />
             ))}
           </div>
-        </div>
-        
-        <div className="mb-4 flex-1">
-            <p className={`text-sm leading-relaxed text-foreground/80 italic ${!expanded && isLong ? "line-clamp-3" : ""}`}>
-              "{review.review_text}"
-            </p>
-            {isLong && (
-                <button 
-                  onClick={() => setExpanded(!expanded)} 
-                  className="text-xs text-primary font-medium mt-1 hover:underline focus:outline-none"
-                >
-                  {expanded ? "Show less" : "Read more"}
-                </button>
-            )}
-        </div>
+        )}
+      </div>
 
-        {/* Album Gallery */}
-        {(review.images && review.images.length > 0) ? (
-            <div className={`grid gap-2 mb-4 ${review.images.length === 1 ? 'grid-cols-1' : review.images.length === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3'}`}>
-                {review.images.map((img: string, idx: number) => (
-                    <img key={idx} src={img} alt={`Review graphic ${idx}`} className="w-full h-32 md:h-40 object-cover rounded-md border border-border/50 shadow-sm" loading="lazy" />
-                ))}
-            </div>
-        ) : review.post_image_url ? (
-             <img src={review.post_image_url} alt="Review graphic" className="w-full h-auto max-h-56 md:max-h-64 object-contain rounded-md border border-border/50 mb-4 bg-muted/20 shadow-sm" loading="lazy" />
-        ) : null}
+      <div className="mb-4 flex-1">
+        <p className={`text-sm leading-relaxed text-foreground/80 italic ${!expanded && isLong ? "line-clamp-3" : ""}`}>
+          "{review.review_text}"
+        </p>
+        {isLong && (
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-xs text-primary font-medium mt-1 hover:underline focus:outline-none"
+          >
+            {expanded ? "Show less" : "Read more"}
+          </button>
+        )}
+      </div>
 
-        <div className="text-[10px] md:text-xs text-muted-foreground/60 text-right mt-auto pt-2 border-t border-border/30">
-            {review.created_at ? formatDistanceToNow(new Date(review.created_at), { addSuffix: true }) : ''}
+      {images.length > 0 && (
+        <div className={`grid gap-2 mb-2 ${images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}>
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setLightbox(idx)}
+              className="overflow-hidden rounded-md border border-border/50 shadow-sm transition-transform duration-300 hover:scale-[1.03] active:scale-95"
+            >
+              <img src={img} alt={`Review graphic ${idx}`} className="w-full h-32 md:h-40 object-cover" loading="lazy" />
+            </button>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      )}
+
+      <div className="text-[10px] md:text-xs text-muted-foreground/60 text-right mt-auto pt-2 border-t border-border/30">
+        {review.created_at ? formatDistanceToNow(new Date(review.created_at), { addSuffix: true }) : ""}
+      </div>
+
+      {lightbox !== null && (
+        <Lightbox images={images} index={lightbox} onClose={() => setLightbox(null)} onNav={setLightbox} />
+      )}
+    </div>
   );
 };
+
+const CATEGORIES = [
+  { value: "classes", label: "ক্লাস" },
+  { value: "exams", label: "এক্সাম" },
+  { value: "chance", label: "চান্সপ্রাপ্ত" },
+  { value: "mentoring", label: "মেন্টরিং" },
+  { value: "website", label: "অন্যান্য" },
+];
 
 export default function Reviews() {
   useEffect(() => {
@@ -85,9 +167,10 @@ export default function Reviews() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const classReviews = reviews?.filter(r => r.category === 'classes' || !r.category) || [];
-  const websiteReviews = reviews?.filter(r => r.category === 'website') || [];
-  const examReviews = reviews?.filter(r => r.category === 'exams') || [];
+  const grouped = CATEGORIES.reduce<Record<string, any[]>>((acc, c) => {
+    acc[c.value] = reviews?.filter((r) => r.category === c.value || (c.value === "classes" && !r.category)) || [];
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -95,78 +178,51 @@ export default function Reviews() {
         <title>Student Reviews | Atlas</title>
         <meta name="description" content="Read what our students have to say about our classes, exams, and platform." />
       </Helmet>
-      
+
       <PublicHeader />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-12 md:py-20 animate-in fade-in duration-700">
-        <div className="text-center space-y-4 mb-12 md:mb-16">
-          <div className="inline-flex items-center justify-center p-3 md:p-4 bg-yellow-500/10 rounded-full mb-2 md:mb-4">
-            <Star className="h-6 w-6 md:h-8 md:w-8 text-yellow-500 fill-yellow-500" />
-          </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight">Student Review History</h1>
-        </div>
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 py-4 md:py-8 animate-in fade-in duration-500">
+        <h1 className="text-lg md:text-2xl font-bold tracking-tight text-center mb-4">Student Review History</h1>
 
         {isLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-                <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                <p>Loading student stories...</p>
-            </div>
+          <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
+            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+            <p>Loading student stories...</p>
+          </div>
         ) : (!reviews || reviews.length === 0) ? (
-            <div className="text-center py-20 text-muted-foreground bg-secondary/20 rounded-xl border border-border/50">
-                No reviews available at the moment.
-            </div>
+          <div className="text-center py-20 text-muted-foreground bg-secondary/20 rounded-xl border border-border/50">
+            No reviews available at the moment.
+          </div>
         ) : (
-            <Tabs defaultValue="classes" className="w-full">
-            <div className="flex justify-center mb-8 md:mb-10">
-                <TabsList className="bg-muted/50 p-1 md:p-1.5 rounded-xl w-full sm:w-auto flex-wrap h-auto justify-center border shadow-sm gap-1 md:gap-2">
-                <TabsTrigger value="classes" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-                    <MonitorPlay className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" /> Classes
-                </TabsTrigger>
-                <TabsTrigger value="website" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-                    <MessageSquare className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" /> Platform
-                </TabsTrigger>
-                <TabsTrigger value="exams" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-4 md:px-6 py-2 md:py-2.5 text-xs md:text-sm">
-                    <FileText className="h-3 w-3 md:h-4 md:w-4 mr-1.5 md:mr-2" /> Exams
-                </TabsTrigger>
-                </TabsList>
+          <Tabs defaultValue="classes" className="w-full">
+            <div className="flex justify-center mb-6">
+              <TabsList className="bg-muted/50 p-1 md:p-1.5 rounded-xl w-full sm:w-auto flex-wrap h-auto justify-center border shadow-sm gap-1 md:gap-2">
+                {CATEGORIES.map((c) => (
+                  <TabsTrigger
+                    key={c.value}
+                    value={c.value}
+                    className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-3 md:px-5 py-2 text-xs md:text-sm"
+                  >
+                    {c.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
             </div>
 
-            <TabsContent value="classes" className="mt-0 outline-none">
-                {classReviews.length === 0 ? (
-                    <div className="text-center py-10 opacity-60">No class reviews found.</div>
+            {CATEGORIES.map((c) => (
+              <TabsContent key={c.value} value={c.value} className="mt-0 outline-none">
+                {grouped[c.value].length === 0 ? (
+                  <div className="text-center py-10 opacity-60">এই বিভাগে এখনো কোনো রিভিউ নেই।</div>
                 ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
-                    {classReviews.map((review) => (
-                        <ReviewCard key={`class-${review.id}`} review={review} />
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
+                    {grouped[c.value].map((review) => (
+                      <ReviewCard key={`${c.value}-${review.id}`} review={review} />
                     ))}
-                    </div>
+                  </div>
                 )}
-            </TabsContent>
-
-            <TabsContent value="website" className="mt-0 outline-none">
-                {websiteReviews.length === 0 ? (
-                    <div className="text-center py-10 opacity-60">No platform reviews found.</div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
-                    {websiteReviews.map((review) => (
-                        <ReviewCard key={`web-${review.id}`} review={review} />
-                    ))}
-                    </div>
-                )}
-            </TabsContent>
-
-            <TabsContent value="exams" className="mt-0 outline-none">
-                {examReviews.length === 0 ? (
-                    <div className="text-center py-10 opacity-60">No exam reviews found.</div>
-                ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
-                    {examReviews.map((review) => (
-                        <ReviewCard key={`exam-${review.id}`} review={review} />
-                    ))}
-                    </div>
-                )}
-            </TabsContent>
-            </Tabs>
+              </TabsContent>
+            ))}
+          </Tabs>
         )}
       </main>
     </div>

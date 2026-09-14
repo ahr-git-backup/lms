@@ -118,12 +118,12 @@ const AdminReviews = () => {
               <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                          <Label>Student Name</Label>
-                          <Input value={form.student_name} onChange={e => setForm({...form, student_name: e.target.value})} />
+                          <Label>Student Name (optional)</Label>
+                          <Input value={form.student_name || ""} onChange={e => setForm({...form, student_name: e.target.value})} />
                       </div>
                       <div className="space-y-2">
-                          <Label>College Name</Label>
-                          <Input value={form.college_name} onChange={e => setForm({...form, college_name: e.target.value})} />
+                          <Label>HSC Batch (optional)</Label>
+                          <Input value={form.college_name || ""} onChange={e => setForm({...form, college_name: e.target.value})} placeholder="e.g. HSC-26" />
                       </div>
                       <div className="space-y-2">
                           <Label>Gender</Label>
@@ -137,13 +137,13 @@ const AdminReviews = () => {
                           </select>
                       </div>
                       <div className="space-y-2">
-                          <Label>Rating (1-5)</Label>
+                          <Label>Rating 1-5 (optional)</Label>
                           <Input
                               type="number"
                               min="1"
                               max="5"
-                              value={form.rating}
-                              onChange={e => setForm({...form, rating: parseInt(e.target.value)})}
+                              value={form.rating ?? ""}
+                              onChange={e => setForm({...form, rating: e.target.value ? parseInt(e.target.value) : undefined})}
                           />
                       </div>
                       <div className="space-y-2">
@@ -161,9 +161,11 @@ const AdminReviews = () => {
                               value={form.category || "classes"}
                               onChange={e => setForm({...form, category: e.target.value})}
                           >
-                              <option value="classes">Class Reviews</option>
-                              <option value="website">Platform Experience</option>
-                              <option value="exams">Exam System</option>
+                              <option value="classes">ক্লাস</option>
+                              <option value="exams">এক্সাম</option>
+                              <option value="chance">চান্সপ্রাপ্ত</option>
+                              <option value="mentoring">মেন্টরিং</option>
+                              <option value="website">অন্যান্য</option>
                           </select>
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-2">
@@ -214,20 +216,20 @@ const AdminReviews = () => {
                           </div>
                           <div className="flex items-center gap-3 mb-2">
                               {review.image_url ? (
-                                  <img src={review.image_url} alt={review.student_name} className="h-10 w-10 rounded-full object-cover" />
+                                  <img src={review.image_url} alt={review.student_name || "Student"} className="h-10 w-10 rounded-full object-cover" />
                               ) : (
                                   <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center text-xs font-bold">
-                                      {review.student_name.charAt(0)}
+                                      {review.student_name?.charAt(0) || "?"}
                                   </div>
                               )}
                               <div>
-                                  <h4 className="font-bold text-sm">{review.student_name}</h4>
+                                  <h4 className="font-bold text-sm">{review.student_name || "নাম উল্লেখ নেই"}</h4>
                                   <p className="text-xs text-muted-foreground">{review.college_name}</p>
                               </div>
                           </div>
                           <div className="flex text-yellow-500 mb-2">
                               {[...Array(5)].map((_, i) => (
-                                  <Star key={i} className={`h-3 w-3 ${i < review.rating ? "fill-current" : "text-muted-foreground/30"}`} />
+                                  <Star key={i} className={`h-3 w-3 ${i < (review.rating || 0) ? "fill-current" : "text-muted-foreground/30"}`} />
                               ))}
                           </div>
                           <p className="text-sm text-muted-foreground line-clamp-3 mb-2">"{review.review_text}"</p>
