@@ -6,12 +6,8 @@ import {
   TrendingUp,
   BarChart3,
   Trophy,
-  Zap,
-  Infinity as InfinityIcon,
-  Star,
   Timer,
   Clock,
-  Send,
 } from "lucide-react";
 
 const TOOLS = [
@@ -24,24 +20,10 @@ const TOOLS = [
     ],
   },
   {
-    group: "Best Practice Tool",
-    items: [
-      { label: "Quick Practice Game", to: "/quick-practice", icon: Zap, color: "violet" },
-      { label: "Unlimited Mock Test", to: "/mock-test", icon: InfinityIcon, color: "fuchsia" },
-    ],
-  },
-  {
     group: "Focus & Time Management",
     items: [
       { label: "Focus Timer", to: "/focus-timer", icon: Timer, color: "emerald" },
       { label: "Pomodoro Timer", to: "/pomodoro", icon: Clock, color: "rose" },
-    ],
-  },
-  {
-    group: "More",
-    items: [
-      { label: "Course Review", to: "/reviews", icon: Star, color: "amber" },
-      { label: "Telegram Support", to: "/telegram-support", icon: Send, color: "cyan" },
     ],
   },
 ] as const;
@@ -50,13 +32,8 @@ const COLOR_CLASSES: Record<string, string> = {
   blue: "border-blue-500/30 hover:border-blue-500 bg-blue-50/50 dark:bg-blue-950/20 text-blue-500",
   sky: "border-sky-500/30 hover:border-sky-500 bg-sky-50/50 dark:bg-sky-950/20 text-sky-600",
   yellow: "border-yellow-500/30 hover:border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20 text-yellow-500",
-  violet: "border-violet-500/30 hover:border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-violet-500",
-  fuchsia: "border-fuchsia-500/30 hover:border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-950/20 text-fuchsia-500",
-  pink: "border-pink-500/30 hover:border-pink-500 bg-pink-50/50 dark:bg-pink-950/20 text-pink-500",
   emerald: "border-emerald-500/30 hover:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-500",
   rose: "border-rose-500/30 hover:border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 text-rose-500",
-  amber: "border-amber-500/30 hover:border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 text-amber-500",
-  cyan: "border-cyan-500/30 hover:border-cyan-500 bg-cyan-50/50 dark:bg-cyan-950/20 text-cyan-500",
 };
 
 /**

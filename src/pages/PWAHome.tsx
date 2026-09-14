@@ -8,7 +8,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   LayoutDashboard,
   LayoutGrid,
-  Zap,
   Timer,
   Send,
   Flame,
@@ -16,10 +15,11 @@ import {
   GraduationCap,
   Gift,
   Clock3,
+  Star,
 } from "lucide-react";
 
 interface Shortcut {
-  icon: typeof Zap;
+  icon: typeof Timer;
   label: string;
   path: string;
   color: string;
@@ -27,14 +27,15 @@ interface Shortcut {
 }
 
 // Only free / always-usable features live on the PWA home. Anything under a
-// course (Live Class, Live Exam, etc.) is reached via the course's own
-// Dashboard button instead. More study tools live under the Study Aid tab.
+// course (Live Class, Live Exam, Quick Practice, etc.) is reached via the
+// course's own Dashboard button instead. More study tools live under the
+// Study Aid tab.
 const FREE_SHORTCUTS: Shortcut[] = [
   { icon: Flame, label: "ফ্রি এক্সাম", path: "/free-exam", color: "hsl(24 95% 53%)" },
   { icon: InfinityIcon, label: "ফ্রি ক্লাস", path: "/free-class", color: "hsl(199 89% 48%)" },
-  { icon: Zap, label: "আনলিমিটেড মক টেস্ট", path: "/quick-practice", color: "hsl(45 93% 55%)" },
   { icon: Timer, label: "ফোকাস টাইমার", path: "/focus-timer", color: "hsl(330 81% 60%)" },
   { icon: Clock3, label: "পোমোডোরো", path: "/focus-timer?mode=pomodoro", color: "hsl(160 84% 39%)" },
+  { icon: Star, label: "কোর্স রিভিউ", path: "/reviews", color: "hsl(38 92% 50%)" },
   { icon: Send, label: "টেলিগ্রাম চ্যানেল", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
 ];
 
