@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
@@ -27,6 +28,7 @@ interface SlideSettings {
   optionFontSize: number;
   optionBgColor: string;
   optionBorderColor: string;
+  fontFamily: string;
   headerLeftText: string;
   headerRightText: string;
   centerText: string;
@@ -41,6 +43,7 @@ const DEFAULT_SETTINGS: SlideSettings = {
   optionFontSize: 20,
   optionBgColor: "#1e293b",
   optionBorderColor: "#38bdf8",
+  fontFamily: "'Hind Siliguri', sans-serif",
   headerLeftText: "",
   headerRightText: "",
   centerText: "",
@@ -50,6 +53,22 @@ const DEFAULT_SETTINGS: SlideSettings = {
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
+
+const BANGLA_FONTS = [
+  { label: "Hind Siliguri", value: "'Hind Siliguri', sans-serif" },
+  { label: "Noto Sans Bengali", value: "'Noto Sans Bengali', sans-serif" },
+  { label: "Kalpurush", value: "'Kalpurush', sans-serif" },
+  { label: "SolaimanLipi", value: "'SolaimanLipi', sans-serif" },
+  { label: "Siyam Rupali", value: "'Siyam Rupali', sans-serif" },
+  { label: "AponaLohit", value: "'AponaLohit', sans-serif" },
+  { label: "AdorshoLipi", value: "'AdorshoLipi', sans-serif" },
+  { label: "Baloo Da 2", value: "'Baloo Da 2', sans-serif" },
+  { label: "Tiro Bangla", value: "'Tiro Bangla', serif" },
+  { label: "Atma", value: "'Atma', cursive" },
+  { label: "Anek Bangla", value: "'Anek Bangla', sans-serif" },
+  { label: "Mina", value: "'Mina', sans-serif" },
+  { label: "Galada", value: "'Galada', cursive" },
+];
 
 const AdminSlideMaker = () => {
   const { toast } = useToast();
@@ -220,6 +239,21 @@ const AdminSlideMaker = () => {
             <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
           </div>
           <div className="space-y-1">
+            <Label className="text-xs">বাংলা ফন্ট</Label>
+            <Select value={settings.fontFamily} onValueChange={(v) => setSettings((p) => ({ ...p, fontFamily: v }))}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BANGLA_FONTS.map((f) => (
+                  <SelectItem key={f.value} value={f.value} style={{ fontFamily: f.value }}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Header Left (Corner)</Label>
             <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
             <div className="flex items-center gap-1.5">
@@ -288,7 +322,7 @@ const AdminSlideMaker = () => {
                 position: "absolute",
                 top: 0,
                 left: 0,
-                fontFamily: "inherit",
+                fontFamily: settings.fontFamily,
                 boxSizing: "border-box",
                 padding: 40,
                 display: "flex",
