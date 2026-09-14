@@ -119,7 +119,11 @@ const SlideVisual = ({
       // content height, so the card never hugs the text exactly tight —
       // this extra space becomes the shared size every option card uses.
       const EXTRA_BREATHING_ROOM = 24;
-      if (heights.length > 0) setOptionMinHeight(Math.max(...heights) + EXTRA_BREATHING_ROOM);
+      // Cap the shared card height so cranking the option font size can't
+      // blow up the cards indefinitely — text just wraps/scrolls within
+      // the capped card instead.
+      const MAX_OPTION_HEIGHT = 140;
+      if (heights.length > 0) setOptionMinHeight(Math.min(Math.max(...heights) + EXTRA_BREATHING_ROOM, MAX_OPTION_HEIGHT));
     };
     measure();
     // Re-measure on font load / resize, since web fonts can change text
@@ -232,6 +236,8 @@ const SlideVisual = ({
                 gap: 14,
                 alignItems: "center",
                 minHeight: optionMinHeight ? `${optionMinHeight}px` : undefined,
+                maxHeight: 140,
+                overflow: "hidden",
                 boxSizing: "border-box",
               }}
             >

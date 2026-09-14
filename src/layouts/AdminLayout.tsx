@@ -32,7 +32,7 @@ export const AdminLayout = () => {
   
   return (
     <SidebarProvider>
-      <div className="min-h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
+      <div className="h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
         <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-4 supports-[backdrop-filter]:bg-background/60 print:hidden">
           <div className="flex flex-1 items-center justify-between gap-3">
             <div className="flex items-center gap-3">
