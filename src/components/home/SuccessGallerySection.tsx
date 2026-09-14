@@ -74,9 +74,9 @@ export const SuccessGallerySection = () => {
   const rowTwo = photos.length > 3 ? photos.slice(mid) : rowOne;
 
   return (
-    <section className="relative w-full overflow-hidden bg-black py-[52px] pb-[60px] isolate">
+    <section className="relative w-full overflow-hidden bg-black py-8 isolate">
       {/* Heading */}
-      <div className="flex w-full items-center justify-center gap-[22px] px-5 pb-9 text-center">
+      <div className="flex w-full items-center justify-center gap-[22px] px-5 pb-6 text-center">
         <div className="hidden h-px w-[70px] flex-none bg-gradient-to-r from-transparent to-[#ff4081] sm:block" />
         <div className="max-w-[850px]">
           <h2 className="m-0 text-[clamp(24px,4vw,40px)] font-extrabold leading-[1.35] tracking-[-0.4px] text-white">
@@ -116,7 +116,7 @@ export const SuccessGallerySection = () => {
             <img
               src={photo.image_url}
               alt={photo.caption || "Success"}
-              className="h-full w-full select-none object-cover"
+              className="h-full w-full select-none object-cover hover:scale-105 transition-transform duration-500"
               draggable={false}
             />
             {photo.caption && (
@@ -145,7 +145,7 @@ export const SuccessGallerySection = () => {
               <img
                 src={photo.image_url}
                 alt={photo.caption || "Success"}
-                className="h-full w-full select-none object-cover"
+                className="h-full w-full select-none object-cover hover:scale-105 transition-transform duration-500"
                 draggable={false}
               />
               {photo.caption && (
