@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   LayoutDashboard,
+  LayoutGrid,
   Zap,
   Timer,
   Send,
@@ -69,19 +70,31 @@ export default function PWAHome() {
       </div>
 
       <main className="flex-1 px-4 pb-4 space-y-6">
-        {/* My courses — each card opens that course's full dashboard */}
+        {/* Top row: আমার কোর্স + সকল কোর্স, side by side */}
+        <section className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => navigate(user ? "/dashboard/my-courses" : "/login")}
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <GraduationCap className="h-6 w-6" />
+            </div>
+            <span className="text-sm font-semibold text-center">আমার কোর্স</span>
+          </button>
+          <button
+            onClick={() => navigate("/courses")}
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
+              <LayoutGrid className="h-6 w-6" />
+            </div>
+            <span className="text-sm font-semibold text-center">সকল কোর্স</span>
+          </button>
+        </section>
+
+        {/* My enrolled courses — each card opens that course's full dashboard */}
         {user && (
           <section className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <h2 className="text-sm font-semibold text-muted-foreground">আমার কোর্স</h2>
-              <button
-                onClick={() => navigate("/courses")}
-                className="text-xs font-semibold text-primary"
-              >
-                সকল কোর্স
-              </button>
-            </div>
-
             {enrollmentsLoading ? (
               <div className="text-sm text-muted-foreground py-4 text-center">লোড হচ্ছে...</div>
             ) : directCourses.length === 0 ? (
@@ -136,7 +149,7 @@ export default function PWAHome() {
         {/* Free / always-usable features */}
         <section>
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">ফ্রি ফিচার</h2>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             {FREE_SHORTCUTS.map((item) => (
               <button
                 key={item.label}
