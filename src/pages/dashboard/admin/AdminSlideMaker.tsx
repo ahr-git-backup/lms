@@ -31,7 +31,10 @@ interface BarSlot {
   fontSize: number;
   fontColor: string;
   fontBold: boolean;
+  fontItalic: boolean;
   fontUnderline: boolean;
+  highlightColor: string;
+  highlightEnabled: boolean;
   textOffsetX: number;
   textOffsetY: number;
   imageHeight: number;
@@ -45,7 +48,10 @@ const DEFAULT_SLOT = (): BarSlot => ({
   fontSize: 18,
   fontColor: "#ffffff",
   fontBold: false,
+  fontItalic: false,
   fontUnderline: false,
+  highlightColor: "#facc15",
+  highlightEnabled: false,
   textOffsetX: 0,
   textOffsetY: 0,
   imageHeight: 40,
@@ -178,7 +184,11 @@ const BarSlotView = ({ slot, align }: { slot: BarSlot; align: "flex-start" | "ce
             fontSize: slot.fontSize,
             color: slot.fontColor,
             fontWeight: slot.fontBold ? 700 : align === "center" ? 700 : 400,
+            fontStyle: slot.fontItalic ? "italic" : undefined,
             textDecoration: slot.fontUnderline ? "underline" : undefined,
+            backgroundColor: slot.highlightEnabled ? slot.highlightColor : undefined,
+            padding: slot.highlightEnabled ? "2px 8px" : undefined,
+            borderRadius: slot.highlightEnabled ? 6 : undefined,
             transform: `translate(${slot.textOffsetX}px, ${slot.textOffsetY}px)`,
             whiteSpace: "nowrap",
           }}
@@ -654,12 +664,33 @@ const BarSlotEditor = ({
             </button>
             <button
               type="button"
+              onClick={() => update({ fontItalic: !slot.fontItalic })}
+              className={`h-7 w-7 rounded border text-xs italic flex items-center justify-center ${slot.fontItalic ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}
+              aria-label="Italic"
+            >
+              I
+            </button>
+            <button
+              type="button"
               onClick={() => update({ fontUnderline: !slot.fontUnderline })}
               className={`h-7 w-7 rounded border text-xs underline flex items-center justify-center ${slot.fontUnderline ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}
               aria-label="Underline"
             >
               U
             </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <Label className="text-[10px] shrink-0 w-16">হাইলাইট</Label>
+            <button
+              type="button"
+              onClick={() => update({ highlightEnabled: !slot.highlightEnabled })}
+              className={`h-5 w-9 rounded-full transition-colors relative shrink-0 ${slot.highlightEnabled ? "bg-primary" : "bg-muted"}`}
+            >
+              <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${slot.highlightEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+            </button>
+            {slot.highlightEnabled && (
+              <ColorWheelPicker color={slot.highlightColor} onChange={(hex) => update({ highlightColor: hex })} label={`${label} Highlight Color`} />
+            )}
           </div>
           {/* Only horizontal movement — header/footer content stays on its
               own line, no vertical nudging. */}
