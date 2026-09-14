@@ -64,6 +64,12 @@ interface SlideSettings {
   optionBoxHeight: number;
   optionBgColor: string;
   optionBorderColor: string;
+  optionsLayout: "column" | "grid2x2";
+  optionLetterBgColor: string;
+  optionLetterTextColor: string;
+  optionLetterBorderColor: string;
+  optionLetterBorderWidth: number;
+  optionLetterFontSize: number;
   fontFamily: string;
 
   headerLeft: BarSlot;
@@ -98,6 +104,12 @@ const DEFAULT_SETTINGS: SlideSettings = {
   optionBoxHeight: 80,
   optionBgColor: "#1e293b",
   optionBorderColor: "#38bdf8",
+  optionsLayout: "column",
+  optionLetterBgColor: "#38bdf8",
+  optionLetterTextColor: "#1e293b",
+  optionLetterBorderColor: "#38bdf8",
+  optionLetterBorderWidth: 0,
+  optionLetterFontSize: 20,
   fontFamily: "'Hind Siliguri', sans-serif",
 
   headerLeft: DEFAULT_SLOT(),
@@ -175,11 +187,13 @@ const SlideVisual = ({
   settings,
   editable,
   onEditField,
+  onSelectionChange,
 }: {
   question: SlideQuestion;
   settings: SlideSettings;
   editable?: boolean;
   onEditField?: (field: "question" | "A" | "B" | "C" | "D", value: string) => void;
+  onSelectionChange?: (field: "question" | "A" | "B" | "C" | "D" | null) => void;
 }) => {
   const makeEditable = (field: "question" | "A" | "B" | "C" | "D", value: string) =>
     editable
@@ -187,9 +201,12 @@ const SlideVisual = ({
           contentEditable: true,
           suppressContentEditableWarning: true,
           onBlur: (e: React.FocusEvent<HTMLElement>) => {
-            const next = e.currentTarget.textContent ?? "";
+            const next = e.currentTarget.innerHTML ?? "";
             if (next !== value) onEditField?.(field, next);
           },
+          onFocus: () => onSelectionChange?.(field),
+          onMouseUp: () => onSelectionChange?.(field),
+          onKeyUp: () => onSelectionChange?.(field),
         }
       : {};
 
@@ -297,15 +314,22 @@ const SlideVisual = ({
               }
             : {}),
         }}
-      >
-        {question.question}
-      </div>
+        dangerouslySetInnerHTML={{ __html: question.question }}
+      />
 
       {/* Options — box size is fixed/manual (optionBoxWidth/Height);
           increasing option font size fills more of the fixed box instead
-          of growing it, clipped if the text would overflow. */}
+          of growing it, clipped if the text would overflow.
+          Layout switches between a single right-aligned column and a
+          2x2 grid depending on settings.optionsLayout. */}
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: hasFooterContent ? 90 : 70 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "55%", alignItems: "flex-end" }}>
+        <div
+          style={
+            settings.optionsLayout === "grid2x2"
+              ? { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20, width: "90%" }
+              : { display: "flex", flexDirection: "column", gap: 20, width: "55%", alignItems: "flex-end" }
+          }
+        >
           {Object.entries(question.options).map(([key, val]) => (
             <div
               key={key}
@@ -320,7 +344,7 @@ const SlideVisual = ({
                 display: "flex",
                 gap: 14,
                 alignItems: "center",
-                width: Math.min(settings.optionBoxWidth, 0.98 * SLIDE_W),
+                width: settings.optionsLayout === "grid2x2" ? "100%" : Math.min(settings.optionBoxWidth, 0.98 * SLIDE_W),
                 maxWidth: "100%",
                 height: settings.optionBoxHeight,
                 overflow: "hidden",
@@ -333,11 +357,14 @@ const SlideVisual = ({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  minWidth: settings.optionFontSize * 1.7,
-                  height: settings.optionFontSize * 1.7,
+                  minWidth: settings.optionLetterFontSize * 1.7,
+                  height: settings.optionLetterFontSize * 1.7,
+                  fontSize: settings.optionLetterFontSize,
                   borderRadius: "50%",
-                  backgroundColor: settings.optionBorderColor,
-                  color: settings.optionBgColor,
+                  backgroundColor: settings.optionLetterBgColor,
+                  color: settings.optionLetterTextColor,
+                  border: settings.optionLetterBorderWidth > 0 ? `${settings.optionLetterBorderWidth}px solid ${settings.optionLetterBorderColor}` : undefined,
+                  boxSizing: "border-box",
                   flexShrink: 0,
                 }}
               >
@@ -346,9 +373,8 @@ const SlideVisual = ({
               <span
                 {...makeEditable(key as "A" | "B" | "C" | "D", val)}
                 style={{ flex: 1, ...(editable ? { outline: "none", cursor: "text" } : {}) }}
-              >
-                {val}
-              </span>
+                dangerouslySetInnerHTML={{ __html: val }}
+              />
             </div>
           ))}
         </div>
@@ -396,6 +422,118 @@ const SlideVisual = ({
           )}
         </>
       )}
+    </div>
+  );
+};
+
+/** Floating rich-text toolbar shown above the editable slide grid. Acts on
+    whatever text is currently selected inside any contentEditable question/
+    option field — bold, italic, underline, text color, highlight color.
+    Uses document.execCommand, which still works for contentEditable in the
+    Chromium-based webviews this admin panel targets. Selection is restored
+    before each command so clicking a toolbar button (which would otherwise
+    blur/clear the selection) still applies to the text the admin picked. */
+const FormatToolbar = () => {
+  const savedRange = useRef<Range | null>(null);
+  const [textColorOpen, setTextColorOpen] = useState(false);
+  const [highlightOpen, setHighlightOpen] = useState(false);
+
+  const saveSelection = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) savedRange.current = sel.getRangeAt(0).cloneRange();
+  };
+
+  const restoreSelection = () => {
+    const sel = window.getSelection();
+    if (sel && savedRange.current) {
+      sel.removeAllRanges();
+      sel.addRange(savedRange.current);
+    }
+  };
+
+  const run = (command: string, value?: string) => {
+    restoreSelection();
+    document.execCommand(command, false, value);
+  };
+
+  // Track selection continuously so toolbar buttons always have the latest
+  // range to restore, even though clicking a button blurs the editable field.
+  useEffect(() => {
+    const handler = () => saveSelection();
+    document.addEventListener("selectionchange", handler);
+    return () => document.removeEventListener("selectionchange", handler);
+  }, []);
+
+  const TEXT_COLORS = ["#ffffff", "#000000", "#ef4444", "#eab308", "#22c55e", "#3b82f6", "#ec4899"];
+  const HIGHLIGHT_COLORS = ["#ffff00", "#00ffff", "#ff9900", "#22c55e", "#ec4899", "transparent"];
+
+  return (
+    <div className="flex items-center gap-1.5 flex-wrap bg-muted/40 rounded-lg p-1.5">
+      <Button type="button" size="icon" variant="outline" className="h-8 w-8 font-bold" onMouseDown={(e) => e.preventDefault()} onClick={() => run("bold")}>
+        B
+      </Button>
+      <Button type="button" size="icon" variant="outline" className="h-8 w-8 italic" onMouseDown={(e) => e.preventDefault()} onClick={() => run("italic")}>
+        I
+      </Button>
+      <Button type="button" size="icon" variant="outline" className="h-8 w-8 underline" onMouseDown={(e) => e.preventDefault()} onClick={() => run("underline")}>
+        U
+      </Button>
+
+      <div className="relative">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 px-2 text-xs"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => { setTextColorOpen((v) => !v); setHighlightOpen(false); }}
+        >
+          A রঙ
+        </Button>
+        {textColorOpen && (
+          <div className="absolute z-10 top-9 left-0 bg-popover border rounded-lg p-2 flex gap-1.5 shadow-md">
+            {TEXT_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="h-6 w-6 rounded-full border-2 border-border"
+                style={{ backgroundColor: c }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { run("foreColor", c); setTextColorOpen(false); }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="relative">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 px-2 text-xs"
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => { setHighlightOpen((v) => !v); setTextColorOpen(false); }}
+        >
+          হাইলাইট
+        </Button>
+        {highlightOpen && (
+          <div className="absolute z-10 top-9 left-0 bg-popover border rounded-lg p-2 flex gap-1.5 shadow-md">
+            {HIGHLIGHT_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className="h-6 w-6 rounded-full border-2 border-border"
+                style={{ backgroundColor: c === "transparent" ? "#fff" : c, backgroundImage: c === "transparent" ? "linear-gradient(45deg, transparent 45%, red 45%, red 55%, transparent 55%)" : undefined }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => { run("hiliteColor", c); setHighlightOpen(false); }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      <span className="text-[10px] text-muted-foreground pl-1">টেক্সট সিলেক্ট করে ফরম্যাট প্রয়োগ করুন</span>
     </div>
   );
 };
@@ -992,6 +1130,18 @@ const AdminSlideMaker = () => {
             <AccordionItem value="options">
               <AccordionTrigger className="text-sm font-semibold py-3">অপশন (Options)</AccordionTrigger>
               <AccordionContent>
+                <div className="space-y-1 mb-4">
+                  <Label className="text-xs">অপশন লেআউট (Layout)</Label>
+                  <Select value={settings.optionsLayout} onValueChange={(v: "column" | "grid2x2") => setSettings((p) => ({ ...p, optionsLayout: v }))}>
+                    <SelectTrigger className="h-9 w-full sm:w-56">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="column">১ কলাম (৪টি একের নিচে একটি)</SelectItem>
+                      <SelectItem value="grid2x2">২x২ গ্রিড (১ রো-তে ২টি করে)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs">Option Box Background</Label>
@@ -1016,11 +1166,46 @@ const AdminSlideMaker = () => {
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Box Width ({settings.optionBoxWidth}px)</Label>
-                    <Input type="range" min={200} max={1150} step={10} value={settings.optionBoxWidth} onChange={(e) => setSettings((p) => ({ ...p, optionBoxWidth: Number(e.target.value) }))} className="h-9" />
+                    <Input type="range" min={200} max={1150} step={10} value={settings.optionBoxWidth} onChange={(e) => setSettings((p) => ({ ...p, optionBoxWidth: Number(e.target.value) }))} className="h-9" disabled={settings.optionsLayout === "grid2x2"} />
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Box Height ({settings.optionBoxHeight}px)</Label>
                     <Input type="range" min={40} max={250} step={5} value={settings.optionBoxHeight} onChange={(e) => setSettings((p) => ({ ...p, optionBoxHeight: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                </div>
+
+                {/* A/B/C/D letter badge — independently styleable from the
+                    option box itself. */}
+                <p className="text-xs font-semibold text-muted-foreground mt-4 mb-2">অপশনের অক্ষর (A/B/C/D) স্টাইল</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <Label className="text-xs">অক্ষর ব্যাকগ্রাউন্ড</Label>
+                    <ColorWheelPicker color={settings.optionLetterBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionLetterBgColor: hex }))} label="Option Letter Background" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">অক্ষর রঙ (Text)</Label>
+                    <ColorWheelPicker color={settings.optionLetterTextColor} onChange={(hex) => setSettings((p) => ({ ...p, optionLetterTextColor: hex }))} label="Option Letter Text Color" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">অক্ষর বর্ডার রঙ</Label>
+                    <ColorWheelPicker color={settings.optionLetterBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionLetterBorderColor: hex }))} label="Option Letter Border Color" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">বর্ডার Width ({settings.optionLetterBorderWidth}px)</Label>
+                    <Input type="range" min={0} max={10} value={settings.optionLetterBorderWidth} onChange={(e) => setSettings((p) => ({ ...p, optionLetterBorderWidth: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                  <div className="space-y-1 col-span-2">
+                    <Label className="text-xs">অক্ষর Font Size ({settings.optionLetterFontSize}px)</Label>
+                    <div className="flex items-center gap-2">
+                      <Input type="range" min={8} max={100} value={settings.optionLetterFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionLetterFontSize: Number(e.target.value) }))} className="h-9 flex-1" />
+                      <Input
+                        type="number"
+                        min={1}
+                        value={settings.optionLetterFontSize}
+                        onChange={(e) => setSettings((p) => ({ ...p, optionLetterFontSize: Number(e.target.value) || 1 }))}
+                        className="h-9 w-16"
+                      />
+                    </div>
                   </div>
                 </div>
               </AccordionContent>
@@ -1126,8 +1311,12 @@ const AdminSlideMaker = () => {
 
       <Dialog open={isPreviewAllOpen} onOpenChange={setIsPreviewAllOpen}>
         <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden flex flex-col">
-          <DialogHeader className="p-4 pb-2 border-b">
+          <DialogHeader className="p-4 pb-2 border-b space-y-2">
             <DialogTitle>সব স্লাইড ({questions.length}) — টেক্সটে ক্লিক করে এডিট করুন</DialogTitle>
+            {/* Rich-text format bar — applies Bold/Italic/Underline/Color/
+                Highlight to whatever text is currently selected inside any
+                editable question/option field below. */}
+            <FormatToolbar />
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
