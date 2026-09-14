@@ -22,8 +22,19 @@ import {
   Send,
 } from "lucide-react";
 
+interface ActionCard {
+  key: string;
+  label: string;
+  icon: typeof Star;
+  from: string;
+  to: string;
+  ring: string;
+  onClick: () => void;
+}
+
 // Same buttons as website's QuickActionsSection, minus "All Courses"
-// (PWA home already has its own সকল কোর্স card). 2 per row for mobile.
+// (PWA home already has its own সকল কোর্স card). Every card shares one
+// premium style: gradient icon badge + matching gradient ring border.
 export const PWAQuickActionsGrid = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -51,102 +62,36 @@ export const PWAQuickActionsGrid = () => {
     navigate("/register");
   };
 
-  const handleTelegramSupport = () => {
-    window.location.href = "/telegram-support";
-  };
+  const cards: ActionCard[] = [
+    { key: "review", label: "Course Review", icon: Star, from: "from-amber-400", to: "to-orange-500", ring: "from-amber-400/60 to-orange-500/60", onClick: () => navigate("/reviews") },
+    { key: "class", label: "Free Class", icon: Video, from: "from-blue-500", to: "to-cyan-500", ring: "from-blue-500/60 to-cyan-500/60", onClick: () => navigate("/free-class") },
+    { key: "exam", label: "Free Exam", icon: FileQuestion, from: "from-red-500", to: "to-rose-500", ring: "from-red-500/60 to-rose-500/60", onClick: () => navigate("/free-exam") },
+    { key: "practice", label: "Quick Practice", icon: Zap, from: "from-violet-500", to: "to-indigo-500", ring: "from-violet-500/60 to-indigo-500/60", onClick: () => navigate("/quick-practice") },
+    { key: "focus", label: "Focus Timer", icon: Timer, from: "from-emerald-500", to: "to-teal-500", ring: "from-emerald-500/60 to-teal-500/60", onClick: () => navigate("/focus-timer") },
+    { key: "telegram", label: "Telegram Support", icon: Send, from: "from-sky-500", to: "to-blue-500", ring: "from-sky-500/60 to-blue-500/60", onClick: () => { window.location.href = "/telegram-support"; } },
+    { key: "pomodoro", label: "Pomodoro Timer", icon: Clock, from: "from-rose-500", to: "to-pink-500", ring: "from-rose-500/60 to-pink-500/60", onClick: () => navigate("/pomodoro") },
+    { key: "tracker", label: "Study Tracker", icon: BarChart3, from: "from-sky-500", to: "to-blue-600", ring: "from-sky-500/60 to-blue-600/60", onClick: handleStudyTrackerClick },
+    { key: "mock", label: "Unlimited Mock Test", icon: ClipboardCheck, from: "from-fuchsia-500", to: "to-pink-600", ring: "from-fuchsia-500/60 to-pink-600/60", onClick: () => navigate("/mock-test") },
+  ];
 
   return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2">
+    <div className="grid grid-cols-2 gap-3">
+      {cards.map((card) => (
         <button
-          onClick={() => navigate("/reviews")}
-          className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          key={card.key}
+          onClick={card.onClick}
+          className={`relative rounded-2xl p-[1.5px] bg-gradient-to-br ${card.ring} active:scale-95 transition-transform shadow-sm hover:shadow-md`}
         >
-          <Star className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Course Review</span>
-        </button>
-        <button
-          onClick={() => navigate("/free-class")}
-          className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
-        >
-          <Video className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Free Class</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => navigate("/free-exam")}
-          className="group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
-        >
-          <FileQuestion className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Free Exam</span>
-        </button>
-        <button
-          onClick={() => navigate("/quick-practice")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
-            <Zap className="h-4 w-4 text-white" />
+          <div className="flex flex-col items-center justify-center gap-2 rounded-[calc(1rem-1.5px)] bg-card py-4 px-2 h-full">
+            <div className={`h-11 w-11 rounded-2xl bg-gradient-to-br ${card.from} ${card.to} flex items-center justify-center shadow-md ring-1 ring-white/20`}>
+              <card.icon className="h-5 w-5 text-white" strokeWidth={2.25} />
+            </div>
+            <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5 text-foreground">
+              {card.label}
+            </span>
           </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Quick Practice</span>
         </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => navigate("/focus-timer")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
-            <Timer className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Focus Timer</span>
-        </button>
-        <button
-          onClick={handleTelegramSupport}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-sm">
-            <Send className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Telegram Support</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => navigate("/pomodoro")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
-            <Clock className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Pomodoro Timer</span>
-        </button>
-        <button
-          onClick={handleStudyTrackerClick}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-600/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
-            <BarChart3 className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Study Tracker</span>
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => navigate("/mock-test")}
-          className="group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-fuchsia-500/10 to-pink-600/10 border border-fuchsia-500/20 hover:border-fuchsia-500/50 hover:shadow-md transition-all"
-        >
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-sm">
-            <ClipboardCheck className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Unlimited Mock Test</span>
-        </button>
-        <div />
-      </div>
+      ))}
 
       <Dialog open={showAuthGate} onOpenChange={setShowAuthGate}>
         <DialogContent className="max-w-sm">

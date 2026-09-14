@@ -32,21 +32,25 @@ export default function PWAHome() {
         <section className="grid grid-cols-2 gap-3">
           <button
             onClick={() => navigate("/my-courses")}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
+            className="relative rounded-2xl p-[1.5px] bg-gradient-to-br from-blue-500/60 to-indigo-600/60 active:scale-95 transition-transform shadow-sm hover:shadow-md"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <GraduationCap className="h-6 w-6" />
+            <div className="flex flex-col items-center justify-center gap-2 rounded-[calc(1rem-1.5px)] bg-card py-5 h-full">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md ring-1 ring-white/20">
+                <GraduationCap className="h-6 w-6 text-white" strokeWidth={2.25} />
+              </div>
+              <span className="text-sm font-semibold text-center text-foreground">আমার কোর্স</span>
             </div>
-            <span className="text-sm font-semibold text-center">আমার কোর্স</span>
           </button>
           <button
             onClick={() => navigate("/courses")}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
+            className="relative rounded-2xl p-[1.5px] bg-gradient-to-br from-orange-400/60 to-red-500/60 active:scale-95 transition-transform shadow-sm hover:shadow-md"
           >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-500">
-              <LayoutGrid className="h-6 w-6" />
+            <div className="flex flex-col items-center justify-center gap-2 rounded-[calc(1rem-1.5px)] bg-card py-5 h-full">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 shadow-md ring-1 ring-white/20">
+                <LayoutGrid className="h-6 w-6 text-white" strokeWidth={2.25} />
+              </div>
+              <span className="text-sm font-semibold text-center text-foreground">সকল কোর্স</span>
             </div>
-            <span className="text-sm font-semibold text-center">সকল কোর্স</span>
           </button>
         </section>
 
