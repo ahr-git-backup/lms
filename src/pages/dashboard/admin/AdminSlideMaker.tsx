@@ -626,7 +626,7 @@ const AdminSlideMaker = () => {
       {/* Live preview — sticky to the top of the viewport so it stays
           visible on screen even after scrolling down past the settings
           panel and question list. */}
-      <div className="sticky top-2 z-20 bg-background/95 backdrop-blur-sm pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none">
+      <div className="sticky top-0 z-30 bg-background pb-2 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
         {questions.length > 0 && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
