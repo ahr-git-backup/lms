@@ -765,10 +765,9 @@ const AdminSlideMaker = () => {
         </div>
       )}
 
-      {/* Live preview — sticky to the very top of the viewport (z-50, top-0)
-          so on scroll it sits above any app header/nav instead of being
-          hidden underneath it. */}
-      <div className="sticky top-0 z-50 bg-background pb-2 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
+      {/* Preview label + slide navigation — scrolls away normally (not
+          sticky), so it never sits above the image once scrolled past. */}
+      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 pt-2">
         {questions.length > 0 && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
@@ -783,7 +782,11 @@ const AdminSlideMaker = () => {
         {questions.length === 0 && (
           <p className="text-center text-xs text-muted-foreground mb-2">প্রিভিউ (নমুনা প্রশ্ন) — নিচে থেকে আসল প্রশ্ন যোগ করুন</p>
         )}
+      </div>
 
+      {/* Live preview — only the image itself is sticky, pinned flush to
+          the very top of the viewport (top-0, no label/text above it). */}
+      <div className="sticky top-0 z-50 bg-background -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
         <div className="w-full">
           <div ref={previewWrapRef} className="w-full max-w-[640px] mx-auto" style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden" }}>
             <div
