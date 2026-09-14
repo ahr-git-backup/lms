@@ -63,17 +63,15 @@ const Lightbox = ({
   );
 };
 
-/** Auto-scrolling animated image marquee row: continuously slides via
- *  requestAnimationFrame between the two ends (no duplicated items, so
- *  every image appears exactly once), reversing direction at each end.
- *  Pauses on hover/drag/lightbox-open, and supports click-and-drag /
- *  touch-swipe scrolling. */
+/** Auto-scrolling animated image marquee row (same mechanism as the
+ *  Reviews page marquee): continuously slides left via requestAnimationFrame,
+ *  loops seamlessly by duplicating items, pauses on hover/drag, and
+ *  supports click-and-drag / touch-swipe scrolling while paused. */
 const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", lightboxOpen: boolean = false) => {
   const [paused, setPaused] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
-  const goingRightRef = useRef(direction === "right");
+  const initializedRef = useRef(false);
   const draggingRef = useRef(false);
   const startX = useRef(0);
   const startPos = useRef(0);
@@ -84,22 +82,21 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", 
     let raf: number;
     const step = () => {
       const track = trackRef.current;
-      const container = containerRef.current;
-      if (track && container) {
-        const maxScroll = Math.max(0, track.scrollWidth - container.clientWidth);
-        if (maxScroll > 0 && !paused && !draggingRef.current && !lightboxOpen) {
-          if (goingRightRef.current) {
-            posRef.current += 0.5;
-            if (posRef.current >= 0) {
-              posRef.current = 0;
-              goingRightRef.current = false;
-            }
-          } else {
+      if (track) {
+        const halfWidth = track.scrollWidth / 2;
+        if (!initializedRef.current && halfWidth > 0) {
+          // Start a right-moving row already scrolled to the left half,
+          // so it has room to travel rightward before looping.
+          posRef.current = direction === "right" ? -halfWidth : 0;
+          initializedRef.current = true;
+        }
+        if (!paused && !draggingRef.current && !lightboxOpen) {
+          if (direction === "left") {
             posRef.current -= 0.5;
-            if (posRef.current <= -maxScroll) {
-              posRef.current = -maxScroll;
-              goingRightRef.current = true;
-            }
+            if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
+          } else {
+            posRef.current += 0.5;
+            if (posRef.current >= 0) posRef.current = -halfWidth;
           }
           track.style.transform = `translateX(${posRef.current}px)`;
         }
@@ -108,7 +105,7 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", 
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [paused, itemCount, lightboxOpen]);
+  }, [paused, itemCount, direction, lightboxOpen]);
 
   const onDown = (clientX: number) => {
     draggingRef.current = true;
@@ -117,12 +114,9 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", 
     startPos.current = posRef.current;
   };
   const onMove = (clientX: number) => {
-    if (!draggingRef.current || !trackRef.current || !containerRef.current) return;
-    const maxScroll = Math.max(0, trackRef.current.scrollWidth - containerRef.current.clientWidth);
-    let next = startPos.current + (clientX - startX.current);
-    next = Math.min(0, Math.max(-maxScroll, next));
-    posRef.current = next;
-    trackRef.current.style.transform = `translateX(${next}px)`;
+    if (!draggingRef.current || !trackRef.current) return;
+    posRef.current = startPos.current + (clientX - startX.current);
+    trackRef.current.style.transform = `translateX(${posRef.current}px)`;
   };
   const onUp = () => {
     draggingRef.current = false;
@@ -130,7 +124,6 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", 
   };
 
   return {
-    containerRef,
     trackRef,
     dragging,
     containerHandlers: {
@@ -190,6 +183,8 @@ export const SuccessGallerySection = () => {
   const mid = showRowTwo ? Math.ceil(indexed.length / 2) : indexed.length;
   const rowOne = indexed.slice(0, mid);
   const rowTwo = showRowTwo ? indexed.slice(mid) : [];
+  const loopRowOne = [...rowOne, ...rowOne];
+  const loopRowTwo = [...rowTwo, ...rowTwo];
   const allImages = indexed.map((p) => p.image_url);
 
   const closeLightbox = () => setLightbox(null);
@@ -222,13 +217,13 @@ export const SuccessGallerySection = () => {
       </div>
 
       {/* Row 1 */}
-      <div className="overflow-hidden" ref={row1.containerRef} {...row1.containerHandlers}>
+      <div className="overflow-hidden" {...row1.containerHandlers}>
         <div
           ref={row1.trackRef}
           className={`flex gap-4 px-4 pb-3 w-max ${row1.dragging ? "cursor-grabbing" : "cursor-grab"}`}
           {...row1.trackHandlers}
         >
-          {rowOne.map((photo, idx) => (
+          {loopRowOne.map((photo, idx) => (
             <button
               key={`${photo.id}-${idx}`}
               onClick={() => setLightbox(photo.globalIndex)}
@@ -257,13 +252,13 @@ export const SuccessGallerySection = () => {
 
       {/* Row 2 */}
       {rowTwo.length > 0 && (
-        <div className="overflow-hidden mt-3" ref={row2.containerRef} {...row2.containerHandlers}>
+        <div className="overflow-hidden mt-3" {...row2.containerHandlers}>
           <div
             ref={row2.trackRef}
             className={`flex gap-4 px-4 w-max ${row2.dragging ? "cursor-grabbing" : "cursor-grab"}`}
             {...row2.trackHandlers}
           >
-            {rowTwo.map((photo, idx) => (
+            {loopRowTwo.map((photo, idx) => (
               <button
                 key={`${photo.id}-${idx}`}
                 onClick={() => setLightbox(photo.globalIndex)}
