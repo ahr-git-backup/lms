@@ -77,6 +77,7 @@ import AdminNotes from "./pages/dashboard/admin/AdminNotes";
 import AdminArchiveManager from "./pages/dashboard/admin/ArchiveManager";
 import AdminFreeContent from "./pages/dashboard/admin/AdminFreeContent";
 import AdminMentors from "./pages/dashboard/admin/AdminMentors";
+import AdminSuccessGallery from "./pages/dashboard/admin/AdminSuccessGallery";
 import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import AdminReviews from "./pages/dashboard/admin/AdminReviews";
@@ -284,6 +285,7 @@ const App = () => {
                 <Route path="payments" element={<ProtectedRoute requireAdmin><ErrorBoundary><AdminPayments /></ErrorBoundary></ProtectedRoute>} />
                 <Route path="payments/history" element={<ProtectedRoute requireAdmin><AdminPaymentHistory /></ProtectedRoute>} />
                 <Route path="mentors" element={<ProtectedRoute requireAdmin><AdminMentors /></ProtectedRoute>} />
+                <Route path="success-gallery" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSuccessGallery /></ProtectedRoute>} />
                 <Route path="promos" element={<ProtectedRoute requireAdmin><AdminPromoCodes /></ProtectedRoute>} />
                 <Route path="heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
                 <Route path="reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />

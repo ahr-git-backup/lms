@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { StudentReviews } from "@/components/StudentReviews";
 import { QuickActionsSection } from "@/components/home/QuickActionsSection";
 import { FreeResourcesSidebar } from "@/components/home/FreeResourcesSidebar";
+import { SuccessGallerySection } from "@/components/home/SuccessGallerySection";
 import HeroCarouselItem from "@/components/home/HeroCarouselItem";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import PWAHome from "@/pages/PWAHome";
@@ -427,6 +428,8 @@ const Index = () => {
             </div>
         </section>
         </div>
+
+        <SuccessGallerySection />
 
         {/* Student Reviews */}
         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}

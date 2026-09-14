@@ -755,6 +755,18 @@ export type Database = {
           },
         ]
       }
+      success_gallery: {
+        Row: { caption: string | null; created_at: string; display_order: number; id: string; image_url: string }
+        Insert: { caption?: string | null; created_at?: string; display_order?: number; id?: string; image_url: string }
+        Update: { caption?: string | null; created_at?: string; display_order?: number; id?: string; image_url?: string }
+        Relationships: []
+      }
+      success_gallery_settings: {
+        Row: { id: number; title: string | null; subtitle: string | null; updated_at: string }
+        Insert: { id?: number; title?: string | null; subtitle?: string | null; updated_at?: string }
+        Update: { id?: number; title?: string | null; subtitle?: string | null; updated_at?: string }
+        Relationships: []
+      }
       resources: {
         Row: {
           course_id: string | null

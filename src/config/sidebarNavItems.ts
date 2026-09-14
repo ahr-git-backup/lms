@@ -27,6 +27,7 @@ import {
   Infinity,
   Trophy,
   LayoutDashboard,
+  Images,
 } from "lucide-react";
 
 export interface SidebarNavItem {
@@ -86,6 +87,7 @@ export const adminItems: AdminSidebarNavItem[] = [
   { title: "Promo Codes", url: "/admin/promos", icon: Tag, roles: ["admin"], color: "text-cyan-600" },
   { title: "Site Heroes", url: "/admin/heroes", icon: LayoutTemplate, roles: ["admin"], color: "text-indigo-600" },
   { title: "Mentors/Founders", url: "/admin/mentors", icon: PenTool, roles: ["admin"], color: "text-violet-600" },
+  { title: "Success Gallery", url: "/admin/success-gallery", icon: Images, roles: ["admin", "teacher"], color: "text-pink-600" },
   { title: "Reviews", url: "/admin/reviews", icon: Megaphone, roles: ["admin"], color: "text-pink-600" },
   { title: "Quick Practice", url: "/admin/quick-practice", icon: Zap, roles: ["admin", "teacher"], color: "text-violet-500" },
   { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
