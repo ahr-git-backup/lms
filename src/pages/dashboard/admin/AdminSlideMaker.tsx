@@ -30,6 +30,8 @@ interface BarSlot {
   imageUrl: string;
   fontSize: number;
   fontColor: string;
+  fontBold: boolean;
+  fontUnderline: boolean;
   textOffsetX: number;
   textOffsetY: number;
   imageHeight: number;
@@ -42,6 +44,8 @@ const DEFAULT_SLOT = (): BarSlot => ({
   imageUrl: "",
   fontSize: 18,
   fontColor: "#ffffff",
+  fontBold: false,
+  fontUnderline: false,
   textOffsetX: 0,
   textOffsetY: 0,
   imageHeight: 40,
@@ -65,7 +69,6 @@ interface SlideSettings {
   headerLeft: BarSlot;
   headerCenter: BarSlot;
   headerRight: BarSlot;
-  headerPosition: "top" | "middle" | "bottom";
   headerSeparator: boolean;
   headerSeparatorColor: string;
   headerBgColor: string;
@@ -100,7 +103,6 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerLeft: DEFAULT_SLOT(),
   headerCenter: DEFAULT_SLOT(),
   headerRight: DEFAULT_SLOT(),
-  headerPosition: "top",
   headerSeparator: false,
   headerSeparatorColor: "#38bdf8",
   headerBgColor: "#1e293b",
@@ -155,7 +157,8 @@ const BarSlotView = ({ slot, align }: { slot: BarSlot; align: "flex-start" | "ce
           style={{
             fontSize: slot.fontSize,
             color: slot.fontColor,
-            fontWeight: align === "center" ? 700 : 400,
+            fontWeight: slot.fontBold ? 700 : align === "center" ? 700 : 400,
+            textDecoration: slot.fontUnderline ? "underline" : undefined,
             transform: `translate(${slot.textOffsetX}px, ${slot.textOffsetY}px)`,
             whiteSpace: "nowrap",
           }}
@@ -212,15 +215,15 @@ const SlideVisual = ({
         position: "relative",
       }}
     >
-      {/* Header */}
+      {/* Header — always anchored to the top of the slide; content within
+          each slot (left/center/right) can only be nudged horizontally via
+          textOffsetX/imageOffsetX, not moved to another vertical position. */}
       <div
         style={{
           position: "absolute",
           left: 40,
           right: 40,
-          top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
-          bottom: settings.headerPosition === "bottom" ? 20 : undefined,
-          transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
+          top: 20,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
@@ -239,7 +242,7 @@ const SlideVisual = ({
         <BarSlotView slot={settings.headerRight} align="flex-end" />
       </div>
 
-      <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
+      <div style={{ minHeight: 70 }} />
 
       {/* Question — always centered on the page. Box size is fixed/manual
           (questionBoxWidth/Height); increasing font size does not grow the
@@ -417,17 +420,40 @@ const BarSlotEditor = ({
         <div className="space-y-2 pl-2 border-l-2">
           <div className="flex items-center gap-2">
             <Label className="text-[10px] shrink-0 w-16">Font Size</Label>
-            <Input type="range" min={10} max={40} value={slot.fontSize} onChange={(e) => update({ fontSize: Number(e.target.value) })} className="h-7" />
-            <span className="text-[10px] w-8 text-right">{slot.fontSize}px</span>
+            <Input type="range" min={8} max={200} value={slot.fontSize} onChange={(e) => update({ fontSize: Number(e.target.value) })} className="h-7" />
+            <Input
+              type="number"
+              min={1}
+              value={slot.fontSize}
+              onChange={(e) => update({ fontSize: Number(e.target.value) || 1 })}
+              className="h-7 w-14 text-[10px] px-1"
+            />
           </div>
           <div className="flex items-center gap-2">
             <Label className="text-[10px] shrink-0 w-16">Color</Label>
             <ColorWheelPicker color={slot.fontColor} onChange={(hex) => update({ fontColor: hex })} label={`${label} Font Color`} />
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Stepper label="Text X" value={slot.textOffsetX} onChange={(v) => update({ textOffsetX: v })} />
-            <Stepper label="Text Y" value={slot.textOffsetY} onChange={(v) => update({ textOffsetY: v })} />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => update({ fontBold: !slot.fontBold })}
+              className={`h-7 w-7 rounded border text-xs font-bold flex items-center justify-center ${slot.fontBold ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}
+              aria-label="Bold"
+            >
+              B
+            </button>
+            <button
+              type="button"
+              onClick={() => update({ fontUnderline: !slot.fontUnderline })}
+              className={`h-7 w-7 rounded border text-xs underline flex items-center justify-center ${slot.fontUnderline ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground"}`}
+              aria-label="Underline"
+            >
+              U
+            </button>
           </div>
+          {/* Only horizontal movement — header/footer content stays on its
+              own line, no vertical nudging. */}
+          <Stepper label="Text X" value={slot.textOffsetX} onChange={(v) => update({ textOffsetX: v })} />
         </div>
       )}
 
@@ -463,10 +489,7 @@ const BarSlotEditor = ({
             <Input type="range" min={16} max={100} value={slot.imageHeight} onChange={(e) => update({ imageHeight: Number(e.target.value) })} className="h-7" />
             <span className="text-[10px] w-8 text-right">{slot.imageHeight}px</span>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Stepper label="Img X" value={slot.imageOffsetX} onChange={(v) => update({ imageOffsetX: v })} />
-            <Stepper label="Img Y" value={slot.imageOffsetY} onChange={(v) => update({ imageOffsetY: v })} />
-          </div>
+          <Stepper label="Img X" value={slot.imageOffsetX} onChange={(v) => update({ imageOffsetX: v })} />
         </div>
       )}
     </div>
@@ -615,10 +638,10 @@ const AdminSlideMaker = () => {
         <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
       </header>
 
-      {/* Live preview — sticky to the top of the viewport so it stays
-          visible on screen even after scrolling down past the settings
-          panel and question list. */}
-      <div className="sticky top-0 z-30 bg-background pb-2 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
+      {/* Live preview — sticky to the very top of the viewport (z-50, top-0)
+          so on scroll it sits above any app header/nav instead of being
+          hidden underneath it. */}
+      <div className="sticky top-0 z-50 bg-background pb-2 pt-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
         {questions.length > 0 && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
@@ -697,19 +720,6 @@ const AdminSlideMaker = () => {
               <AccordionTrigger className="text-sm font-semibold py-3">Header (Left / Center / Right)</AccordionTrigger>
               <AccordionContent className="space-y-3">
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <Label className="text-xs">Header Vertical Position</Label>
-                    <Select value={settings.headerPosition} onValueChange={(v: "top" | "middle" | "bottom") => setSettings((p) => ({ ...p, headerPosition: v }))}>
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="top">উপরে</SelectItem>
-                        <SelectItem value="middle">মাঝে</SelectItem>
-                        <SelectItem value="bottom">নিচে</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                   <div className="space-y-1">
                     <div className="flex items-center justify-between">
                       <Label className="text-xs">Separator Line (নিচে, Optional)</Label>
@@ -825,7 +835,16 @@ const AdminSlideMaker = () => {
                   </div>
                   <div className="space-y-1 col-span-2">
                     <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
-                    <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
+                    <div className="flex items-center gap-2">
+                      <Input type="range" min={12} max={200} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9 flex-1" />
+                      <Input
+                        type="number"
+                        min={1}
+                        value={settings.questionFontSize}
+                        onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) || 1 }))}
+                        className="h-9 w-16"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Box Width ({settings.questionBoxWidth}px)</Label>
@@ -854,7 +873,16 @@ const AdminSlideMaker = () => {
                   </div>
                   <div className="space-y-1 col-span-2">
                     <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
-                    <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
+                    <div className="flex items-center gap-2">
+                      <Input type="range" min={10} max={200} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9 flex-1" />
+                      <Input
+                        type="number"
+                        min={1}
+                        value={settings.optionFontSize}
+                        onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) || 1 }))}
+                        className="h-9 w-16"
+                      />
+                    </div>
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs">Box Width ({settings.optionBoxWidth}px)</Label>
