@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { ColorWheelPicker } from "@/components/admin/ColorWheelPicker";
 import { QuestionData } from "@/types/exam";
-import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, ImagePlus, Eye } from "lucide-react";
+import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, Trash2, ImagePlus, Eye, Save } from "lucide-react";
 
 interface SlideQuestion {
   id: string;
@@ -530,6 +530,26 @@ const BarSlotEditor = ({
   );
 };
 
+const FORMATS_STORAGE_KEY = "atlas-slide-maker-formats";
+
+interface SavedFormat {
+  id: string;
+  name: string;
+  settings: SlideSettings;
+  savedAt: number;
+}
+
+const loadSavedFormats = (): SavedFormat[] => {
+  try {
+    const raw = localStorage.getItem(FORMATS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
 const AdminSlideMaker = () => {
   const { toast } = useToast();
   useEffect(() => {
@@ -538,6 +558,9 @@ const AdminSlideMaker = () => {
 
   const [questions, setQuestions] = useState<SlideQuestion[]>([]);
   const [settings, setSettings] = useState<SlideSettings>(DEFAULT_SETTINGS);
+  const [savedFormats, setSavedFormats] = useState<SavedFormat[]>(() => loadSavedFormats());
+  const [isSaveFormatOpen, setIsSaveFormatOpen] = useState(false);
+  const [newFormatName, setNewFormatName] = useState("");
   const [isQbOpen, setIsQbOpen] = useState(false);
   const [isPreviewAllOpen, setIsPreviewAllOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -663,14 +686,84 @@ const AdminSlideMaker = () => {
     correct_answer: "A",
   };
 
+  const persistFormats = (next: SavedFormat[]) => {
+    setSavedFormats(next);
+    try {
+      localStorage.setItem(FORMATS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      toast({ title: "ফরম্যাট সেভ করতে সমস্যা হয়েছে", variant: "destructive" });
+    }
+  };
+
+  const saveCurrentFormat = () => {
+    const name = newFormatName.trim();
+    if (!name) {
+      toast({ title: "ফরম্যাটের নাম দিন", variant: "destructive" });
+      return;
+    }
+    const newFormat: SavedFormat = {
+      id: `fmt-${Date.now()}`,
+      name,
+      settings,
+      savedAt: Date.now(),
+    };
+    persistFormats([newFormat, ...savedFormats]);
+    setNewFormatName("");
+    setIsSaveFormatOpen(false);
+    toast({ title: "ফরম্যাট সেভ হয়েছে", description: name });
+  };
+
+  const applyFormat = (fmt: SavedFormat) => {
+    setSettings(fmt.settings);
+    toast({ title: "ফরম্যাট প্রয়োগ হয়েছে", description: fmt.name });
+  };
+
+  const deleteFormat = (id: string) => {
+    persistFormats(savedFormats.filter((f) => f.id !== id));
+  };
+
   const activeQuestion = questions.length > 0 ? questions[activeIndex] : SAMPLE_QUESTION;
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight">Slide Maker</h1>
-        <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
+      <header className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Slide Maker</h1>
+          <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => setIsSaveFormatOpen(true)}>
+          <Save className="h-4 w-4 mr-1.5" /> ফরম্যাট সেভ করুন
+        </Button>
       </header>
+
+      {/* Saved formats — pick one to reuse its full look (colors, fonts,
+          header/footer, box sizes) for the current slide set. */}
+      {savedFormats.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-sm font-semibold">সেভড ফরম্যাট</p>
+          <div className="flex flex-wrap gap-2">
+            {savedFormats.map((fmt) => (
+              <div key={fmt.id} className="flex items-center gap-1 border rounded-full pl-3 pr-1 py-1 bg-muted/40">
+                <button
+                  type="button"
+                  onClick={() => applyFormat(fmt)}
+                  className="text-xs font-medium hover:text-primary"
+                >
+                  {fmt.name}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => deleteFormat(fmt.id)}
+                  className="h-5 w-5 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  aria-label={`Delete ${fmt.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Live preview — sticky to the very top of the viewport (z-50, top-0)
           so on scroll it sits above any app header/nav instead of being
@@ -989,6 +1082,33 @@ const AdminSlideMaker = () => {
           </div>
         </>
       )}
+
+      <Dialog open={isSaveFormatOpen} onOpenChange={setIsSaveFormatOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>ফরম্যাট সেভ করুন</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">ফরম্যাটের নাম</Label>
+              <Input
+                value={newFormatName}
+                onChange={(e) => setNewFormatName(e.target.value)}
+                placeholder="যেমন: নীল থিম, পরীক্ষা স্লাইড"
+                onKeyDown={(e) => { if (e.key === "Enter") saveCurrentFormat(); }}
+                autoFocus
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              বর্তমান রঙ, ফন্ট, হেডার/ফুটার ও বক্সের সব সেটিং এই নামে সেভ হবে — পরে যেকোনো সময় এক ক্লিকে আবার ব্যবহার করতে পারবেন।
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setIsSaveFormatOpen(false)}>বাতিল</Button>
+              <Button size="sm" onClick={saveCurrentFormat}>সেভ করুন</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isQbOpen} onOpenChange={setIsQbOpen}>
         <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
