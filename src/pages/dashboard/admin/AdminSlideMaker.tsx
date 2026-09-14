@@ -35,6 +35,7 @@ interface SlideSettings {
   headerFontSize: number;
   headerFontColor: string;
   headerPosition: "top" | "middle" | "bottom";
+  headerOffsetX: number;
   logoLeftUrl: string;
   logoRightUrl: string;
   questionBgColor: string;
@@ -56,6 +57,7 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerFontSize: 18,
   headerFontColor: "#ffffff",
   headerPosition: "top",
+  headerOffsetX: 0,
   logoLeftUrl: "",
   logoRightUrl: "",
   questionBgColor: "",
@@ -125,8 +127,8 @@ const SlideVisual = ({
       <div
         style={{
           position: "absolute",
-          left: 40,
-          right: 40,
+          left: 40 + settings.headerOffsetX,
+          right: 40 - settings.headerOffsetX,
           top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
           bottom: settings.headerPosition === "bottom" ? 20 : undefined,
           transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
@@ -150,7 +152,7 @@ const SlideVisual = ({
 
       <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
 
-      {/* Question */}
+      {/* Question — always centered on the page */}
       <div
         {...makeEditable("question", question.question)}
         style={{
@@ -161,6 +163,7 @@ const SlideVisual = ({
           marginBottom: 20,
           width: "100%",
           lineHeight: 1.4,
+          textAlign: "center",
           ...(editable ? { outline: "none", cursor: "text" } : {}),
           ...(settings.questionBoxEnabled
             ? {
@@ -493,6 +496,38 @@ const AdminSlideMaker = () => {
                 <SelectItem value="bottom">নিচে</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Horizontal ({settings.headerOffsetX > 0 ? "+" : ""}{settings.headerOffsetX}px)</Label>
+            <div className="flex items-center gap-1">
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: p.headerOffsetX - 10 }))}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-9 flex-1 text-xs text-muted-foreground"
+                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: 0 }))}
+              >
+                রিসেট
+              </Button>
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                className="h-9 w-9 shrink-0"
+                onClick={() => setSettings((p) => ({ ...p, headerOffsetX: p.headerOffsetX + 10 }))}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Header Left (Corner)</Label>
