@@ -8,7 +8,6 @@ import {
   Trophy,
   Zap,
   Infinity as InfinityIcon,
-  Sparkles,
   Star,
   Timer,
   Clock,
@@ -29,7 +28,6 @@ const TOOLS = [
     items: [
       { label: "Quick Practice Game", to: "/quick-practice", icon: Zap, color: "violet" },
       { label: "Unlimited Mock Test", to: "/mock-test", icon: InfinityIcon, color: "fuchsia" },
-      { label: "Readymade Exams", to: "/dashboard/readymade", icon: Sparkles, color: "pink" },
     ],
   },
   {
