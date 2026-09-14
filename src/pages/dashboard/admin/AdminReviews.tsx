@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Star, Edit2 } from "lucide-react";
+import { ImageUploader, MultiImageUploader } from "@/components/ui/image-uploader";
 
 // Review Interface matching DB
 interface Review {
@@ -147,11 +148,11 @@ const AdminReviews = () => {
                           />
                       </div>
                       <div className="space-y-2">
-                          <Label>Profile Image URL (Avatar)</Label>
-                          <Input
+                          <Label>Profile Image (Avatar)</Label>
+                          <ImageUploader
                               value={form.image_url || ""}
-                              onChange={e => setForm({...form, image_url: e.target.value})}
-                              placeholder="https://..."
+                              onChange={url => setForm({...form, image_url: url})}
+                              placeholder="https://... or upload"
                           />
                       </div>
                       <div className="space-y-2">
@@ -169,17 +170,12 @@ const AdminReviews = () => {
                           </select>
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-2">
-                          <Label>Album Images (One URL per line)</Label>
-                          <Textarea
-                              className="h-24"
-                              value={form.images?.join('\n') || form.post_image_url || ""}
-                              onChange={e => {
-                                  const lines = e.target.value.split('\n').map(l => l.trim()).filter(Boolean);
-                                  setForm({...form, images: lines, post_image_url: lines.length > 0 ? lines[0] : ""});
-                              }}
-                              placeholder="https://image1.jpg&#10;https://image2.jpg"
+                          <Label>Album Images (Multiple)</Label>
+                          <MultiImageUploader
+                              values={form.images && form.images.length > 0 ? form.images : (form.post_image_url ? [form.post_image_url] : [])}
+                              onChange={urls => setForm({...form, images: urls, post_image_url: urls.length > 0 ? urls[0] : ""})}
                           />
-                          <p className="text-[10px] text-muted-foreground">Add multiple image URLs here to create an album. One on each line.</p>
+                          <p className="text-[10px] text-muted-foreground">Upload one or more images to create an album, or use the field above each image once added.</p>
                       </div>
                       <div className="col-span-1 md:col-span-2 space-y-2">
                           <Label>Review Text</Label>
