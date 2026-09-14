@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { ColorWheelPicker } from "@/components/admin/ColorWheelPicker";
 import { QuestionData } from "@/types/exam";
-import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, Trash2, ImagePlus } from "lucide-react";
+import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, Trash2, ImagePlus, Eye } from "lucide-react";
 
 interface SlideQuestion {
   id: string;
@@ -82,6 +82,135 @@ const BANGLA_FONTS = [
   { label: "Galada", value: "'Galada', cursive" },
 ];
 
+const SlideVisual = ({
+  question,
+  settings,
+  editable,
+  onEditField,
+}: {
+  question: SlideQuestion;
+  settings: SlideSettings;
+  editable?: boolean;
+  onEditField?: (field: "question" | "A" | "B" | "C" | "D", value: string) => void;
+}) => {
+  const makeEditable = (field: "question" | "A" | "B" | "C" | "D", value: string) =>
+    editable
+      ? {
+          contentEditable: true,
+          suppressContentEditableWarning: true,
+          onBlur: (e: React.FocusEvent<HTMLElement>) => {
+            const next = e.currentTarget.textContent ?? "";
+            if (next !== value) onEditField?.(field, next);
+          },
+        }
+      : {};
+
+  return (
+    <div
+      data-slide-capture="true"
+      style={{
+        width: SLIDE_W,
+        height: SLIDE_H,
+        backgroundColor: settings.bgColor,
+        color: settings.fontColor,
+        fontFamily: settings.fontFamily,
+        boxSizing: "border-box",
+        padding: 40,
+        display: "flex",
+        flexDirection: "column",
+        position: "relative",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          position: "absolute",
+          left: 40,
+          right: 40,
+          top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
+          bottom: settings.headerPosition === "bottom" ? 20 : undefined,
+          transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          minHeight: 50,
+          zIndex: 2,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
+          {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
+          {settings.headerLeftText}
+        </div>
+        {settings.centerText && <div style={{ fontSize: settings.headerFontSize + 2, fontWeight: 700, color: settings.headerFontColor }}>{settings.centerText}</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
+          {settings.headerRightText}
+          {settings.logoRightUrl && <img src={settings.logoRightUrl} style={{ height: 40, width: "auto" }} />}
+        </div>
+      </div>
+
+      <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
+
+      {/* Question */}
+      <div
+        {...makeEditable("question", question.question)}
+        style={{
+          fontSize: settings.questionFontSize,
+          fontFamily: settings.fontFamily,
+          fontWeight: 700,
+          marginTop: 20,
+          marginBottom: 20,
+          width: "100%",
+          lineHeight: 1.4,
+          ...(editable ? { outline: "none", cursor: "text" } : {}),
+          ...(settings.questionBoxEnabled
+            ? {
+                backgroundColor: settings.questionBgColor || "#1e293b",
+                border: `2px solid ${settings.questionBorderColor || "#38bdf8"}`,
+                borderRadius: 16,
+                padding: "20px 28px",
+                boxShadow: `0 0 14px ${settings.questionBorderColor || "#38bdf8"}`,
+                boxSizing: "border-box",
+              }
+            : {}),
+        }}
+      >
+        {question.question}
+      </div>
+
+      {/* Options */}
+      <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20, width: "55%" }}>
+          {Object.entries(question.options).map(([key, val]) => (
+            <div
+              key={key}
+              style={{
+                backgroundColor: settings.optionBgColor,
+                border: `2px solid ${settings.optionBorderColor}`,
+                borderRadius: 16,
+                padding: "20px 28px",
+                fontSize: settings.optionFontSize,
+                fontFamily: settings.fontFamily,
+                boxShadow: `0 0 14px ${settings.optionBorderColor}`,
+                display: "flex",
+                gap: 14,
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontWeight: 700 }}>{key}.</span>
+              <span
+                {...makeEditable(key as "A" | "B" | "C" | "D", val)}
+                style={{ flex: 1, ...(editable ? { outline: "none", cursor: "text" } : {}) }}
+              >
+                {val}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AdminSlideMaker = () => {
   const { toast } = useToast();
   useEffect(() => {
@@ -91,6 +220,8 @@ const AdminSlideMaker = () => {
   const [questions, setQuestions] = useState<SlideQuestion[]>([]);
   const [settings, setSettings] = useState<SlideSettings>(DEFAULT_SETTINGS);
   const [isQbOpen, setIsQbOpen] = useState(false);
+  const [isPreviewAllOpen, setIsPreviewAllOpen] = useState(false);
+  const [editingCell, setEditingCell] = useState<{ qId: string; field: "question" | "A" | "B" | "C" | "D" } | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
@@ -161,6 +292,16 @@ const AdminSlideMaker = () => {
     });
   };
 
+  const updateQuestionText = (qId: string, field: "question" | "A" | "B" | "C" | "D", value: string) => {
+    setQuestions((prev) =>
+      prev.map((q) => {
+        if (q.id !== qId) return q;
+        if (field === "question") return { ...q, question: value };
+        return { ...q, options: { ...q.options, [field]: value } };
+      })
+    );
+  };
+
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, side: "logoLeftUrl" | "logoRightUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -189,7 +330,12 @@ const AdminSlideMaker = () => {
           scale: 2,
           useCORS: true,
           onclone: (clonedDoc) => {
-            const el = clonedDoc.body.querySelector('[data-slide-capture="true"]') as HTMLElement | null;
+            // The scale transform lives on the wrapper div (slideRef itself,
+            // identified by data-slide-scale-wrap), not on the inner
+            // data-slide-capture slide content — reset it to full size so
+            // html2canvas captures crisp full-resolution output instead of
+            // the small scaled-down preview.
+            const el = clonedDoc.body.querySelector('[data-slide-scale-wrap="true"]') as HTMLElement | null;
             if (el) el.style.transform = "scale(1)";
           },
         });
@@ -245,112 +391,16 @@ const AdminSlideMaker = () => {
           <div ref={previewWrapRef} className="w-full max-w-[640px] mx-auto" style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden" }}>
             <div
               ref={slideRef}
-              data-slide-capture="true"
+              data-slide-scale-wrap="true"
               style={{
-                width: SLIDE_W,
-                height: SLIDE_H,
-                backgroundColor: settings.bgColor,
-                color: settings.fontColor,
                 transform: `scale(${previewScale})`,
                 transformOrigin: "top left",
                 position: "absolute",
                 top: 0,
                 left: 0,
-                fontFamily: settings.fontFamily,
-                boxSizing: "border-box",
-                padding: 40,
-                display: "flex",
-                flexDirection: "column",
               }}
             >
-              {/* Header — absolutely positioned so it can sit at the top,
-                  vertical middle, or bottom of the slide independent of the
-                  question/options flow below. */}
-              <div
-                style={{
-                  position: "absolute",
-                  left: 40,
-                  right: 40,
-                  top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
-                  bottom: settings.headerPosition === "bottom" ? 20 : undefined,
-                  transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  minHeight: 50,
-                  zIndex: 2,
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
-                  {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
-                  {settings.headerLeftText}
-                </div>
-                {settings.centerText && <div style={{ fontSize: settings.headerFontSize + 2, fontWeight: 700, color: settings.headerFontColor }}>{settings.centerText}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
-                  {settings.headerRightText}
-                  {settings.logoRightUrl && <img src={settings.logoRightUrl} style={{ height: 40, width: "auto" }} />}
-                </div>
-              </div>
-
-              {/* Spacer so question/options flow always clears the header's
-                  own row height when header sits at the top (default). */}
-              <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
-
-              {/* Question - full width, optional background box matching the
-                  option cards' style so question + options can share one
-                  consistent look when the box is turned on. */}
-              <div
-                style={{
-                  fontSize: settings.questionFontSize,
-                  fontFamily: settings.fontFamily,
-                  fontWeight: 700,
-                  marginTop: 20,
-                  marginBottom: 20,
-                  width: "100%",
-                  lineHeight: 1.4,
-                  ...(settings.questionBoxEnabled
-                    ? {
-                        backgroundColor: settings.questionBgColor || "#1e293b",
-                        border: `2px solid ${settings.questionBorderColor || "#38bdf8"}`,
-                        borderRadius: 16,
-                        padding: "20px 28px",
-                        boxShadow: `0 0 14px ${settings.questionBorderColor || "#38bdf8"}`,
-                        boxSizing: "border-box",
-                      }
-                    : {}),
-                }}
-              >
-                {activeQuestion.question}
-              </div>
-
-              {/* Options - fill remaining space, footer space reserved at bottom.
-                  CSS grid with a single column makes every row match the tallest
-                  cell's height, so a long option grows all option cards equally
-                  instead of leaving short ones tiny. */}
-              <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20, width: "55%" }}>
-                  {Object.entries(activeQuestion.options).map(([key, val]) => (
-                    <div
-                      key={key}
-                      style={{
-                        backgroundColor: settings.optionBgColor,
-                        border: `2px solid ${settings.optionBorderColor}`,
-                        borderRadius: 16,
-                        padding: "20px 28px",
-                        fontSize: settings.optionFontSize,
-                        fontFamily: settings.fontFamily,
-                        boxShadow: `0 0 14px ${settings.optionBorderColor}`,
-                        display: "flex",
-                        gap: 14,
-                        alignItems: "center",
-                      }}
-                    >
-                      <span style={{ fontWeight: 700 }}>{key}.</span>
-                      <span>{val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <SlideVisual question={activeQuestion} settings={settings} />
             </div>
           </div>
         </div>
@@ -524,7 +574,11 @@ const AdminSlideMaker = () => {
             ))}
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center gap-2">
+            <Button onClick={() => setIsPreviewAllOpen(true)} variant="outline" size="lg">
+              <Eye className="h-4 w-4 mr-2" />
+              সব দেখুন / Edit
+            </Button>
             <Button onClick={exportPdf} disabled={isExporting} size="lg">
               {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
               {isExporting ? "তৈরি হচ্ছে..." : "PDF Download"}
@@ -543,6 +597,74 @@ const AdminSlideMaker = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={isPreviewAllOpen} onOpenChange={setIsPreviewAllOpen}>
+        <DialogContent className="max-w-6xl h-[90vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-4 pb-2 border-b">
+            <DialogTitle>সব স্লাইড ({questions.length}) — টেক্সটে ক্লিক করে এডিট করুন</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {questions.map((q, idx) => (
+                <PreviewGridSlide
+                  key={q.id}
+                  index={idx}
+                  question={q}
+                  settings={settings}
+                  onEditField={(field, value) => updateQuestionText(q.id, field, value)}
+                />
+              ))}
+            </div>
+          </div>
+          <div className="p-4 border-t flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setIsPreviewAllOpen(false)}>বন্ধ করুন</Button>
+            <Button onClick={exportPdf} disabled={isExporting}>
+              {isExporting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
+              {isExporting ? "তৈরি হচ্ছে..." : "PDF Download"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+/** A single slide cell inside the "preview all" grid — scales SlideVisual
+    down to fit the grid cell width while keeping it editable. Uses a
+    ResizeObserver-free approach (fixed aspect-ratio box + measured width on
+    mount/resize) since the grid is responsive (1 or 2 columns). */
+const PreviewGridSlide = ({
+  index,
+  question,
+  settings,
+  onEditField,
+}: {
+  index: number;
+  question: SlideQuestion;
+  settings: SlideSettings;
+  onEditField: (field: "question" | "A" | "B" | "C" | "D", value: string) => void;
+}) => {
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.3);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setScale(el.offsetWidth / SLIDE_W);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div className="space-y-1">
+      <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
+      <div ref={wrapRef} className="w-full rounded-lg overflow-hidden border" style={{ aspectRatio: "16/9", position: "relative" }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: "top left", position: "absolute", top: 0, left: 0 }}>
+          <SlideVisual question={question} settings={settings} editable onEditField={onEditField} />
+        </div>
+      </div>
     </div>
   );
 };
