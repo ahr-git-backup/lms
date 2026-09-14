@@ -27,7 +27,8 @@ interface SlideSettings {
   headerLeftText: string;
   headerRightText: string;
   centerText: string;
-  logoUrl: string;
+  logoLeftUrl: string;
+  logoRightUrl: string;
 }
 
 const DEFAULT_SETTINGS: SlideSettings = {
@@ -38,7 +39,8 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerLeftText: "",
   headerRightText: "",
   centerText: "",
-  logoUrl: "",
+  logoLeftUrl: "",
+  logoRightUrl: "",
 };
 
 const SLIDE_W = 1280;
@@ -123,11 +125,11 @@ const AdminSlideMaker = () => {
     });
   };
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, side: "logoLeftUrl" | "logoRightUrl") => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => setSettings((prev) => ({ ...prev, logoUrl: ev.target?.result as string }));
+    reader.onload = (ev) => setSettings((prev) => ({ ...prev, [side]: ev.target?.result as string }));
     reader.readAsDataURL(file);
     e.target.value = "";
   };
@@ -205,29 +207,38 @@ const AdminSlideMaker = () => {
             <Input type="range" min={16} max={48} value={settings.fontSize} onChange={(e) => setSettings((p) => ({ ...p, fontSize: Number(e.target.value) }))} className="h-9" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Header Left Text</Label>
-            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Optional" />
+            <Label className="text-xs">Header Left (Corner)</Label>
+            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-left-input")?.click()}>
+                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
+              </Button>
+              <input id="slide-logo-left-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoLeftUrl")} className="hidden" />
+              {settings.logoLeftUrl && (
+                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoLeftUrl: "" }))}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Header Right Text</Label>
-            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Optional" />
+            <Label className="text-xs">Header Right (Corner)</Label>
+            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Text (optional)" />
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => document.getElementById("slide-logo-right-input")?.click()}>
+                <ImagePlus className="h-3.5 w-3.5 mr-1" /> Logo
+              </Button>
+              <input id="slide-logo-right-input" type="file" accept="image/*" onChange={(e) => handleLogoUpload(e, "logoRightUrl")} className="hidden" />
+              {settings.logoRightUrl && (
+                <Button type="button" size="sm" variant="ghost" className="h-8 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoRightUrl: "" }))}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Center Text</Label>
             <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
-          </div>
-          <div className="space-y-1">
-            <Label className="text-xs">Logo</Label>
-            <div className="flex items-center gap-1.5">
-              <Button type="button" size="sm" variant="outline" className="h-9 px-2" onClick={() => document.getElementById("slide-logo-input")?.click()}>
-                <ImagePlus className="h-3.5 w-3.5" />
-              </Button>
-              <input id="slide-logo-input" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-              {settings.logoUrl && (
-                <Button type="button" size="sm" variant="ghost" className="h-9 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoUrl: "" }))}>
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-              )}
             </div>
           </div>
         </CardContent>
@@ -274,11 +285,14 @@ const AdminSlideMaker = () => {
             >
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 50 }}>
-                <div style={{ fontSize: 18, opacity: 0.8 }}>{settings.headerLeftText}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
+                  {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
+                  {settings.headerLeftText}
+                </div>
                 {settings.centerText && <div style={{ fontSize: 20, fontWeight: 700 }}>{settings.centerText}</div>}
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
                   {settings.headerRightText}
-                  {settings.logoUrl && <img src={settings.logoUrl} style={{ height: 40, width: "auto" }} />}
+                  {settings.logoRightUrl && <img src={settings.logoRightUrl} style={{ height: 40, width: "auto" }} />}
                 </div>
               </div>
 
