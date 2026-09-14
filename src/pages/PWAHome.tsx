@@ -34,7 +34,7 @@ const FREE_SHORTCUTS: Shortcut[] = [
   { icon: Flame, label: "ফ্রি এক্সাম", path: "/free-exam", color: "hsl(24 95% 53%)" },
   { icon: InfinityIcon, label: "ফ্রি ক্লাস", path: "/free-class", color: "hsl(199 89% 48%)" },
   { icon: Timer, label: "ফোকাস টাইমার", path: "/focus-timer", color: "hsl(330 81% 60%)" },
-  { icon: Clock3, label: "পোমোডোরো", path: "/focus-timer?mode=pomodoro", color: "hsl(160 84% 39%)" },
+  { icon: Clock3, label: "পোমোডোরো", path: "/pomodoro", color: "hsl(160 84% 39%)" },
   { icon: Star, label: "কোর্স রিভিউ", path: "/reviews", color: "hsl(38 92% 50%)" },
   { icon: Send, label: "টেলিগ্রাম চ্যানেল", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
 ];
