@@ -16,10 +16,6 @@ import {
   GraduationCap,
   Gift,
   Clock3,
-  TrendingUp,
-  BarChart3,
-  Trophy,
-  Star,
 } from "lucide-react";
 
 interface Shortcut {
@@ -32,17 +28,13 @@ interface Shortcut {
 
 // Only free / always-usable features live on the PWA home. Anything under a
 // course (Live Class, Live Exam, etc.) is reached via the course's own
-// Dashboard button instead.
+// Dashboard button instead. More study tools live under the Study Aid tab.
 const FREE_SHORTCUTS: Shortcut[] = [
   { icon: Flame, label: "ফ্রি এক্সাম", path: "/free-exam", color: "hsl(24 95% 53%)" },
   { icon: InfinityIcon, label: "ফ্রি ক্লাস", path: "/free-class", color: "hsl(199 89% 48%)" },
   { icon: Zap, label: "আনলিমিটেড মক টেস্ট", path: "/quick-practice", color: "hsl(45 93% 55%)" },
   { icon: Timer, label: "ফোকাস টাইমার", path: "/focus-timer", color: "hsl(330 81% 60%)" },
   { icon: Clock3, label: "পোমোডোরো", path: "/focus-timer?mode=pomodoro", color: "hsl(160 84% 39%)" },
-  { icon: TrendingUp, label: "প্রোগ্রেস ও হিস্ট্রি", path: "/dashboard/my-progress", color: "hsl(217 91% 60%)" },
-  { icon: BarChart3, label: "স্টাডি ট্র্যাকার", path: "/syllabus-tracker", color: "hsl(199 89% 48%)" },
-  { icon: Trophy, label: "টপ পারফর্মার", path: "/dashboard/top-performer", color: "hsl(45 93% 55%)" },
-  { icon: Star, label: "কোর্স রিভিউ", path: "/reviews", color: "hsl(38 92% 50%)" },
   { icon: Send, label: "টেলিগ্রাম চ্যানেল", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
 ];
 
@@ -156,7 +148,7 @@ export default function PWAHome() {
 
         {/* Free / always-usable features */}
         <section>
-          <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">সব ফ্রি ফিচার</h2>
+          <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">ফ্রি ফিচার</h2>
           <div className="grid grid-cols-2 gap-3">
             {FREE_SHORTCUTS.map((item) => (
               <button
@@ -188,14 +180,22 @@ export default function PWAHome() {
         )}
 
         {/* Support */}
-        <section className="pt-1">
+        <section className="flex gap-3 pt-1">
           <a
             href="https://wa.me/8801999681290"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 rounded-xl border bg-[#25D366]/10 py-2.5 text-sm font-semibold text-[#25D366]"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border bg-[#25D366]/10 py-2.5 text-sm font-semibold text-[#25D366]"
           >
             <Send className="h-4 w-4" /> WhatsApp
+          </a>
+          <a
+            href="https://t.me/rafi_somc"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border bg-[#0088cc]/10 py-2.5 text-sm font-semibold text-[#0088cc]"
+          >
+            <Send className="h-4 w-4" /> Telegram
           </a>
         </section>
       </main>
