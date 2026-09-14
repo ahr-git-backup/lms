@@ -122,22 +122,34 @@ const CompleteProfile = () => {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          registration_id: phone,
-          full_name: fullName,
-          father_name: fatherName,
-          mother_name: motherName,
-          phone,
-          hsc_batch: hscBatchVal,
-          college_name: collegeName,
-          ssc_gpa: sscGpa,
-          hsc_gpa: hscGpaForm || null,
-          gender,
-          is_second_timer: isSecondTimer,
-        })
-        .eq("id", user.id);
+      const profileUpdatePayload = {
+        registration_id: phone,
+        full_name: fullName,
+        father_name: fatherName,
+        mother_name: motherName,
+        phone,
+        hsc_batch: hscBatchVal,
+        college_name: collegeName,
+        ssc_gpa: sscGpa,
+        hsc_gpa: hscGpaForm || null,
+        gender,
+        is_second_timer: isSecondTimer,
+      };
+
+      const isAbortError = (e: any) =>
+        e?.name === "AbortError" || /aborted/i.test(e?.message || "");
+
+      let updateError: any = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const { error } = await supabase
+          .from("profiles")
+          .update(profileUpdatePayload)
+          .eq("id", user.id);
+        updateError = error;
+        if (!error || !isAbortError(error)) break;
+        // Transient abort (e.g. app backgrounded mid-request) — retry once.
+        await new Promise((r) => setTimeout(r, 500));
+      }
 
       if (updateError) throw updateError;
 
@@ -162,7 +174,14 @@ const CompleteProfile = () => {
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
       console.error("Complete profile error:", error);
-      toast({ title: "Could not save", description: error.message || "An error occurred.", variant: "destructive" });
+      const isAbort = error?.name === "AbortError" || /aborted/i.test(error?.message || "");
+      toast({
+        title: "Could not save",
+        description: isAbort
+          ? "নেটওয়ার্ক সংযোগ বিচ্ছিন্ন হয়ে গেছে। আবার চেষ্টা করুন।"
+          : error.message || "An error occurred.",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
