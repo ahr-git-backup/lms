@@ -6,10 +6,11 @@ import { useEffect, useRef, useState } from "react";
  *  Reviews page marquee): continuously slides left via requestAnimationFrame,
  *  loops seamlessly by duplicating items, pauses on hover/drag, and
  *  supports click-and-drag / touch-swipe scrolling while paused. */
-const useMarqueeRow = (itemCount: number) => {
+const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left") => {
   const [paused, setPaused] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
+  const initializedRef = useRef(false);
   const draggingRef = useRef(false);
   const startX = useRef(0);
   const startPos = useRef(0);
@@ -20,17 +21,30 @@ const useMarqueeRow = (itemCount: number) => {
     let raf: number;
     const step = () => {
       const track = trackRef.current;
-      if (track && !paused && !draggingRef.current) {
-        posRef.current -= 0.5;
+      if (track) {
         const halfWidth = track.scrollWidth / 2;
-        if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
-        track.style.transform = `translateX(${posRef.current}px)`;
+        if (!initializedRef.current && halfWidth > 0) {
+          // Start a right-moving row already scrolled to the left half,
+          // so it has room to travel rightward before looping.
+          posRef.current = direction === "right" ? -halfWidth : 0;
+          initializedRef.current = true;
+        }
+        if (!paused && !draggingRef.current) {
+          if (direction === "left") {
+            posRef.current -= 0.5;
+            if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
+          } else {
+            posRef.current += 0.5;
+            if (posRef.current >= 0) posRef.current = -halfWidth;
+          }
+          track.style.transform = `translateX(${posRef.current}px)`;
+        }
       }
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [paused, itemCount]);
+  }, [paused, itemCount, direction]);
 
   const onDown = (clientX: number) => {
     draggingRef.current = true;
@@ -92,8 +106,8 @@ export const SuccessGallerySection = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const row1 = useMarqueeRow(photos?.length ?? 0);
-  const row2 = useMarqueeRow(photos?.length ?? 0);
+  const row1 = useMarqueeRow(photos?.length ?? 0, "left");
+  const row2 = useMarqueeRow(photos?.length ?? 0, "right");
 
   if (!photos || photos.length === 0) return null;
 
