@@ -61,6 +61,7 @@ const examSchema = z.object({
   show_on_landing: z.boolean().optional().default(false),
   free_exam_category: z.string().trim().default("HSC"),
   restrict_solution: z.boolean().optional().default(false),
+  allow_multiple_attempts: z.boolean().optional().default(false),
   questions_json: z.string().trim().optional().or(z.literal("")),
   questions_csv: z.string().trim().optional().or(z.literal("")),
   is_archive: z.boolean().optional().default(false),
@@ -147,6 +148,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         show_on_landing: false,
         free_exam_category: "HSC",
         restrict_solution: false,
+        allow_multiple_attempts: false,
         questions_json: "",
         questions_csv: "",
         readymade_topic: "",
@@ -215,6 +217,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 show_on_landing: exam.show_on_landing ?? false,
                 free_exam_category: exam.free_exam_category ?? "HSC",
                 restrict_solution: exam.restrict_solution ?? false,
+                allow_multiple_attempts: (exam as any).allow_multiple_attempts ?? false,
                 questions_json: "",
                 questions_csv: "",
             is_archive: exam.is_archive || isArchiveMode,
@@ -407,6 +410,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             show_on_landing: parsed.show_on_landing ?? false,
             free_exam_category: parsed.free_exam_category || "HSC",
             restrict_solution: parsed.restrict_solution ?? false,
+            allow_multiple_attempts: parsed.allow_multiple_attempts ?? false,
             is_archive: parsed.is_archive,
             is_readymade: parsed.is_readymade ?? false,
             readymade_topic: parsed.readymade_topic || null,
@@ -729,6 +733,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 show_on_landing: false,
                 free_exam_category: "HSC",
                 restrict_solution: false,
+                allow_multiple_attempts: false,
                 questions_json: "",
                 questions_csv: "",
                 readymade_topic: "",
@@ -1163,6 +1168,17 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                     }
                   />
                   <Label htmlFor="restrict_solution" className="text-[10px] font-semibold leading-tight">Restrict Solution</Label>
+                </div>
+
+                <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/10 border-emerald-200">
+                  <Switch
+                    id="allow_multiple_attempts"
+                    checked={form.allow_multiple_attempts}
+                    onCheckedChange={(checked) =>
+                      setForm((prev) => ({ ...prev, allow_multiple_attempts: checked }))
+                    }
+                  />
+                  <Label htmlFor="allow_multiple_attempts" className="text-[10px] font-semibold leading-tight">Allow 2nd Attempt</Label>
                 </div>
 
                 <div className="flex flex-col items-center text-center gap-1 border p-1.5 rounded-lg bg-red-50 dark:bg-red-900/10 border-red-200">

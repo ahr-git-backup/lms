@@ -1191,8 +1191,8 @@ const TakeExam = () => {
   // Handle External Exam Redirects *after* ensuring the exam has started
 
 
-  // 2. Check previous attempts logic (only if NOT retaking mistakes)
-  if (!isExpiredLive && existingAttempts && existingAttempts.length > 0 && !retakeFromAttemptId) {
+  // 2. Check previous attempts logic (only if NOT retaking mistakes, and exam doesn't allow multiple attempts)
+  if (!isExpiredLive && existingAttempts && existingAttempts.length > 0 && !retakeFromAttemptId && !exam.allow_multiple_attempts) {
       if (isLive) {
             return (
               <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto">
