@@ -749,6 +749,33 @@ const FocusTimer = () => {
   const meta = MOOD_META[mood];
   const Icon = meta.icon;
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <PublicHeader />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="h-16 w-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+            <Icon className="h-8 w-8 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">ফোকাস টাইমার ব্যবহার করতে লগইন করুন</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              আপনার স্টাডি সেশন ট্র্যাক রাখতে একটি একাউন্ট প্রয়োজন।
+            </p>
+          </div>
+          <div className="flex flex-col w-full max-w-xs gap-2">
+            <Button onClick={() => navigate("/login")} className="w-full">
+              লগইন করুন
+            </Button>
+            <Button onClick={() => navigate("/register")} variant="outline" className="w-full">
+              নতুন একাউন্ট খুলুন
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground pb-16">
       <PublicHeader />
