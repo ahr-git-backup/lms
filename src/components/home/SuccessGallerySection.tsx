@@ -1,35 +1,64 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-/** Enables click-and-drag / touch-swipe scrolling on a marquee row while
- *  the CSS auto-scroll animation is paused during interaction. */
-const useDragScroll = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
+/** Auto-scrolling animated image marquee row (same mechanism as the
+ *  Reviews page marquee): continuously slides left via requestAnimationFrame,
+ *  loops seamlessly by duplicating items, pauses on hover/drag, and
+ *  supports click-and-drag / touch-swipe scrolling while paused. */
+const useMarqueeRow = (itemCount: number) => {
+  const [paused, setPaused] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef(0);
+  const draggingRef = useRef(false);
   const startX = useRef(0);
-  const startScroll = useRef(0);
+  const startPos = useRef(0);
+  const [dragging, setDragging] = useState(false);
+
+  useEffect(() => {
+    if (itemCount === 0) return;
+    let raf: number;
+    const step = () => {
+      const track = trackRef.current;
+      if (track && !paused && !draggingRef.current) {
+        posRef.current -= 0.5;
+        const halfWidth = track.scrollWidth / 2;
+        if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
+        track.style.transform = `translateX(${posRef.current}px)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [paused, itemCount]);
 
   const onDown = (clientX: number) => {
-    if (!ref.current) return;
+    draggingRef.current = true;
     setDragging(true);
     startX.current = clientX;
-    startScroll.current = ref.current.scrollLeft;
+    startPos.current = posRef.current;
   };
   const onMove = (clientX: number) => {
-    if (!dragging || !ref.current) return;
-    ref.current.scrollLeft = startScroll.current - (clientX - startX.current);
+    if (!draggingRef.current || !trackRef.current) return;
+    posRef.current = startPos.current + (clientX - startX.current);
+    trackRef.current.style.transform = `translateX(${posRef.current}px)`;
   };
-  const onUp = () => setDragging(false);
+  const onUp = () => {
+    draggingRef.current = false;
+    setDragging(false);
+  };
 
   return {
-    ref,
+    trackRef,
     dragging,
-    handlers: {
+    containerHandlers: {
+      onMouseEnter: () => setPaused(true),
+      onMouseLeave: () => { setPaused(false); onUp(); },
+    },
+    trackHandlers: {
       onMouseDown: (e: React.MouseEvent) => onDown(e.clientX),
       onMouseMove: (e: React.MouseEvent) => onMove(e.clientX),
       onMouseUp: onUp,
-      onMouseLeave: onUp,
       onTouchStart: (e: React.TouchEvent) => onDown(e.touches[0].clientX),
       onTouchMove: (e: React.TouchEvent) => onMove(e.touches[0].clientX),
       onTouchEnd: onUp,
@@ -63,8 +92,8 @@ export const SuccessGallerySection = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const row1 = useDragScroll();
-  const row2 = useDragScroll();
+  const row1 = useMarqueeRow(photos?.length ?? 0);
+  const row2 = useMarqueeRow(photos?.length ?? 0);
 
   if (!photos || photos.length === 0) return null;
 
@@ -72,6 +101,8 @@ export const SuccessGallerySection = () => {
   const mid = Math.ceil(photos.length / 2);
   const rowOne = photos.slice(0, mid);
   const rowTwo = photos.length > 3 ? photos.slice(mid) : rowOne;
+  const loopRowOne = [...rowOne, ...rowOne];
+  const loopRowTwo = [...rowTwo, ...rowTwo];
 
   return (
     <section className="relative w-full overflow-hidden bg-black py-8 isolate">
@@ -101,45 +132,15 @@ export const SuccessGallerySection = () => {
       </div>
 
       {/* Row 1 */}
-      <div
-        ref={row1.ref}
-        className={`flex gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-          row1.dragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        {...row1.handlers}
-      >
-        {rowOne.map((photo) => (
-          <div
-            key={photo.id}
-            className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px]"
-          >
-            <img
-              src={photo.image_url}
-              alt={photo.caption || "Success"}
-              className="h-full w-full select-none object-cover hover:scale-105 transition-transform duration-500"
-              draggable={false}
-            />
-            {photo.caption && (
-              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
-                <p className="truncate text-xs font-semibold text-white">{photo.caption}</p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Row 2 */}
-      {rowTwo.length > 0 && (
+      <div className="overflow-hidden" {...row1.containerHandlers}>
         <div
-          ref={row2.ref}
-          className={`mt-4 flex gap-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-            row2.dragging ? "cursor-grabbing" : "cursor-grab"
-          }`}
-          {...row2.handlers}
+          ref={row1.trackRef}
+          className={`flex gap-4 px-4 pb-4 w-max ${row1.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+          {...row1.trackHandlers}
         >
-          {rowTwo.map((photo) => (
+          {loopRowOne.map((photo, idx) => (
             <div
-              key={photo.id}
+              key={`${photo.id}-${idx}`}
               className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px]"
             >
               <img
@@ -155,6 +156,36 @@ export const SuccessGallerySection = () => {
               )}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Row 2 */}
+      {rowTwo.length > 0 && (
+        <div className="overflow-hidden mt-4" {...row2.containerHandlers}>
+          <div
+            ref={row2.trackRef}
+            className={`flex gap-4 px-4 w-max ${row2.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+            {...row2.trackHandlers}
+          >
+            {loopRowTwo.map((photo, idx) => (
+              <div
+                key={`${photo.id}-${idx}`}
+                className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px]"
+              >
+                <img
+                  src={photo.image_url}
+                  alt={photo.caption || "Success"}
+                  className="h-full w-full select-none object-cover hover:scale-105 transition-transform duration-500"
+                  draggable={false}
+                />
+                {photo.caption && (
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
+                    <p className="truncate text-xs font-semibold text-white">{photo.caption}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </section>
