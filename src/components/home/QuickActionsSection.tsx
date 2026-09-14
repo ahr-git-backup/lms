@@ -23,6 +23,11 @@ import {
   Send,
 } from "lucide-react";
 
+const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
 export const QuickActionsSection = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -55,7 +60,7 @@ export const QuickActionsSection = () => {
       {/* Row 1: All Courses / Course Reviews */}
       <div className="grid grid-cols-2 gap-2">
         <Button
-          onClick={() => navigate("/courses/all")}
+          onClick={() => scrollToId("courses")}
           className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-primary to-primary/80 hover:opacity-90 shadow-sm hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(var(--primary))" }}
         >
