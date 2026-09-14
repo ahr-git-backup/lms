@@ -56,6 +56,18 @@ const AdminSlideMaker = () => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
+  const previewWrapRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(0.5);
+
+  useEffect(() => {
+    const el = previewWrapRef.current;
+    if (!el) return;
+    const update = () => setPreviewScale(el.offsetWidth / SLIDE_W);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const handleCsvUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -133,7 +145,16 @@ const AdminSlideMaker = () => {
         // wait for DOM paint
         await new Promise((r) => setTimeout(r, 60));
         if (!slideRef.current) continue;
-        const canvas = await html2canvas(slideRef.current, { width: SLIDE_W, height: SLIDE_H, scale: 2, useCORS: true });
+        const canvas = await html2canvas(slideRef.current, {
+          width: SLIDE_W,
+          height: SLIDE_H,
+          scale: 2,
+          useCORS: true,
+          onclone: (clonedDoc) => {
+            const el = clonedDoc.body.querySelector('[data-slide-capture="true"]') as HTMLElement | null;
+            if (el) el.style.transform = "scale(1)";
+          },
+        });
         const imgData = canvas.toDataURL("image/jpeg", 0.92);
         if (i > 0) pdf.addPage([SLIDE_W, SLIDE_H], "landscape");
         pdf.addImage(imgData, "JPEG", 0, 0, SLIDE_W, SLIDE_H);
@@ -229,18 +250,21 @@ const AdminSlideMaker = () => {
           <p className="text-center text-xs text-muted-foreground mb-2">প্রিভিউ (নমুনা প্রশ্ন) — নিচে থেকে আসল প্রশ্ন যোগ করুন</p>
         )}
 
-        <div className="w-full overflow-x-auto">
-          <div style={{ width: SLIDE_W / 2, aspectRatio: "16/9" }} className="mx-auto">
+        <div className="w-full">
+          <div ref={previewWrapRef} className="w-full max-w-[640px] mx-auto" style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden" }}>
             <div
               ref={slideRef}
+              data-slide-capture="true"
               style={{
                 width: SLIDE_W,
                 height: SLIDE_H,
                 backgroundColor: settings.bgColor,
                 color: settings.fontColor,
-                transform: "scale(0.5)",
+                transform: `scale(${previewScale})`,
                 transformOrigin: "top left",
-                position: "relative",
+                position: "absolute",
+                top: 0,
+                left: 0,
                 fontFamily: "inherit",
                 boxSizing: "border-box",
                 padding: 40,
