@@ -175,11 +175,14 @@ export const SuccessGallerySection = () => {
 
   if (!photos || photos.length === 0) return null;
 
-  // Split into two rows for the marquee effect
+  // Split into two rows for the marquee effect.
+  // Row 2 only appears when there are at least 3 images total; otherwise
+  // it stays hidden instead of duplicating Row 1's content.
   const indexed = photos.map((photo, globalIndex) => ({ ...photo, globalIndex }));
-  const mid = Math.ceil(indexed.length / 2);
+  const showRowTwo = indexed.length >= 3;
+  const mid = showRowTwo ? Math.ceil(indexed.length / 2) : indexed.length;
   const rowOne = indexed.slice(0, mid);
-  const rowTwo = indexed.length > 3 ? indexed.slice(mid) : rowOne;
+  const rowTwo = showRowTwo ? indexed.slice(mid) : [];
   const loopRowOne = [...rowOne, ...rowOne];
   const loopRowTwo = [...rowTwo, ...rowTwo];
   const allImages = indexed.map((p) => p.image_url);
@@ -187,9 +190,9 @@ export const SuccessGallerySection = () => {
   const closeLightbox = () => setLightbox(null);
 
   return (
-    <section className="relative w-full overflow-hidden bg-black py-8 isolate">
+    <section className="relative w-full overflow-hidden bg-black py-6 isolate">
       {/* Heading */}
-      <div className="flex w-full items-center justify-center gap-[22px] px-5 pb-6 text-center">
+      <div className="flex w-full items-center justify-center gap-[22px] px-5 pb-4 text-center">
         <div className="hidden h-px w-[70px] flex-none bg-gradient-to-r from-transparent to-[#ff4081] sm:block" />
         <div className="max-w-[850px]">
           <h2 className="m-0 text-[clamp(24px,4vw,40px)] font-extrabold leading-[1.35] tracking-[-0.4px] text-white">
@@ -217,7 +220,7 @@ export const SuccessGallerySection = () => {
       <div className="overflow-hidden" {...row1.containerHandlers}>
         <div
           ref={row1.trackRef}
-          className={`flex gap-4 px-4 pb-4 w-max ${row1.dragging ? "cursor-grabbing" : "cursor-grab"}`}
+          className={`flex gap-4 px-4 pb-3 w-max ${row1.dragging ? "cursor-grabbing" : "cursor-grab"}`}
           {...row1.trackHandlers}
         >
           {loopRowOne.map((photo, idx) => (
@@ -242,9 +245,14 @@ export const SuccessGallerySection = () => {
         </div>
       </div>
 
+      {/* Thin separator between the two rows */}
+      {rowTwo.length > 0 && (
+        <div className="mx-4 h-px bg-white/10" />
+      )}
+
       {/* Row 2 */}
       {rowTwo.length > 0 && (
-        <div className="overflow-hidden mt-4" {...row2.containerHandlers}>
+        <div className="overflow-hidden mt-3" {...row2.containerHandlers}>
           <div
             ref={row2.trackRef}
             className={`flex gap-4 px-4 w-max ${row2.dragging ? "cursor-grabbing" : "cursor-grab"}`}

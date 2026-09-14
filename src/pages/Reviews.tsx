@@ -200,14 +200,17 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
   if (items.length === 0) return null;
 
   const indexed = items.map((item, globalIndex) => ({ ...item, globalIndex }));
-  const mid = Math.ceil(indexed.length / 2);
+  // Row 2 only appears when there are at least 3 images total; otherwise
+  // it stays hidden instead of duplicating Row 1's content.
+  const showRowTwo = indexed.length >= 3;
+  const mid = showRowTwo ? Math.ceil(indexed.length / 2) : indexed.length;
   const rowOne = indexed.slice(0, mid);
-  const rowTwo = indexed.length > 3 ? indexed.slice(mid) : rowOne;
+  const rowTwo = showRowTwo ? indexed.slice(mid) : [];
 
   const closeLightbox = () => setLightbox(null);
 
   return (
-    <div className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6 space-y-4">
+    <div className="relative w-full overflow-hidden bg-black rounded-2xl py-5 mb-6 space-y-3">
       <MarqueeRow
         items={rowOne}
         direction="left"
@@ -215,12 +218,15 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
         lightboxOpen={lightbox !== null}
       />
       {rowTwo.length > 0 && (
-        <MarqueeRow
-          items={rowTwo}
-          direction="right"
-          onOpenLightbox={setLightbox}
-          lightboxOpen={lightbox !== null}
-        />
+        <>
+          <div className="mx-4 h-px bg-white/10" />
+          <MarqueeRow
+            items={rowTwo}
+            direction="right"
+            onOpenLightbox={setLightbox}
+            lightboxOpen={lightbox !== null}
+          />
+        </>
       )}
 
       {lightbox !== null && (
