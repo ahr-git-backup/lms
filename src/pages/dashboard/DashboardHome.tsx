@@ -11,12 +11,9 @@ import { useNavigate, Link } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { getEmbedUrl } from "@/lib/videoUtils";
 import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
 import { LiveCountdown } from "@/components/shared/LiveCountdown";
 import { trackPixelEvent } from "@/lib/metaPixel";
-
-const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
 // Define shape of dashboard data
 interface DashboardData {
@@ -59,19 +56,8 @@ const DashboardHome = () => {
   const queryClient = useQueryClient();
   const [expandedNotifIds, setExpandedNotifIds] = useState<string[]>([]);
   const [unreadNoticeCount, setUnreadNoticeCount] = useState(0);
-  const [showTutorialVideo, setShowTutorialVideo] = useState(false);
   const [showQuickAccessSort, setShowQuickAccessSort] = useState(false);
   const [showAdminQuickActions, setShowAdminQuickActions] = useState(false);
-
-  const { data: tutorialVideoUrl } = useQuery({
-    queryKey: ["dashboard-tutorial-video"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
-      if (error) throw error;
-      const v = data?.value;
-      return typeof v === "string" ? v : (v ? String(v) : null);
-    },
-  });
 
   useEffect(() => {
     const updateCount = () => {
@@ -311,38 +297,17 @@ const DashboardHome = () => {
       <Card className="w-full">
         <CardContent className="p-3 flex flex-col items-center gap-2">
           <h1 className="text-2xl font-extrabold tracking-tight whitespace-nowrap animate-text-fade-sweep">Welcome to Dashboard</h1>
-          {tutorialVideoUrl && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0 gap-1.5 h-7 px-3 text-xs"
-              onClick={() => setShowTutorialVideo(true)}
-            >
-              <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
-              Watch Tutorial
-            </Button>
-          )}
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0 gap-1.5 h-7 px-3 text-xs"
+            onClick={() => navigate("/dashboard/watch-tutorial")}
+          >
+            <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
+            Watch Tutorial
+          </Button>
         </CardContent>
       </Card>
-
-      <Dialog open={showTutorialVideo} onOpenChange={setShowTutorialVideo}>
-        <DialogContent className="max-w-2xl p-0 overflow-hidden">
-          <DialogHeader className="p-4 pb-0">
-            <DialogTitle>Dashboard Tutorial</DialogTitle>
-          </DialogHeader>
-          {tutorialVideoUrl && (
-            <div className="aspect-video w-full">
-              <iframe
-                src={getEmbedUrl(tutorialVideoUrl)}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title="Dashboard Tutorial"
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
 
       {/* 1. Live Activity Section (Priority 1) */}
       {hasLiveActivity && (

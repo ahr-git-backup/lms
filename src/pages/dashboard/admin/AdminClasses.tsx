@@ -21,13 +21,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 
 const PAGE_SIZE = 30;
-const TUTORIAL_VIDEO_KEY = "dashboard_tutorial_video_url";
 
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
   const [showTutorialDialog, setShowTutorialDialog] = useState(false);
-  const [tutorialVideoInput, setTutorialVideoInput] = useState("");
+  const [tutorialCaptionInput, setTutorialCaptionInput] = useState("");
+  const [tutorialUrlInput, setTutorialUrlInput] = useState("");
+  const [editingTutorialId, setEditingTutorialId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
   const [reorderCourseId, setReorderCourseId] = useState<string | null>(null);
@@ -108,32 +109,52 @@ const AdminClasses = () => {
     },
   });
 
-  const { data: tutorialVideoData } = useQuery({
-    queryKey: ["dashboard-tutorial-video"],
+  const { data: tutorialVideos } = useQuery({
+    queryKey: ["admin-tutorial-videos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("app_settings").select("value").eq("key", TUTORIAL_VIDEO_KEY).maybeSingle();
+      const { data, error } = await supabase.from("tutorial_videos").select("*").order("sort_order", { ascending: true }).order("created_at", { ascending: false });
       if (error) throw error;
-      const v = data?.value;
-      return typeof v === "string" ? v : (v ? String(v) : null);
+      return data || [];
+    },
+    enabled: showTutorialDialog,
+  });
+
+  const resetTutorialForm = () => {
+    setEditingTutorialId(null);
+    setTutorialCaptionInput("");
+    setTutorialUrlInput("");
+  };
+
+  const saveTutorialVideoMutation = useMutation({
+    mutationFn: async () => {
+      if (editingTutorialId) {
+        const { error } = await supabase.from("tutorial_videos").update({ caption: tutorialCaptionInput.trim(), video_url: tutorialUrlInput.trim() }).eq("id", editingTutorialId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("tutorial_videos").insert({ caption: tutorialCaptionInput.trim(), video_url: tutorialUrlInput.trim() });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast({ title: editingTutorialId ? "Tutorial video updated" : "Tutorial video added" });
+      queryClient.invalidateQueries({ queryKey: ["admin-tutorial-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["tutorial-videos"] });
+      resetTutorialForm();
+    },
+    onError: () => {
+      toast({ title: "Failed to save tutorial video", variant: "destructive" });
     },
   });
 
-  useEffect(() => {
-    if (showTutorialDialog) setTutorialVideoInput(tutorialVideoData || "");
-  }, [showTutorialDialog, tutorialVideoData]);
-
-  const saveTutorialVideoMutation = useMutation({
-    mutationFn: async (url: string) => {
-      const { error } = await supabase.from("app_settings").upsert({ key: TUTORIAL_VIDEO_KEY, value: JSON.stringify(url) }, { onConflict: "key" });
+  const deleteTutorialVideoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("tutorial_videos").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Tutorial video updated" });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-tutorial-video"] });
-      setShowTutorialDialog(false);
-    },
-    onError: () => {
-      toast({ title: "Failed to update tutorial video", variant: "destructive" });
+      toast({ title: "Tutorial video deleted" });
+      queryClient.invalidateQueries({ queryKey: ["admin-tutorial-videos"] });
+      queryClient.invalidateQueries({ queryKey: ["tutorial-videos"] });
     },
   });
 
@@ -159,30 +180,72 @@ const AdminClasses = () => {
               {showForm || editingClass ? "Close Form" : <><Plus className="h-4 w-4 mr-2" /> Add Class</>}
           </Button>
           <Button onClick={() => setShowTutorialDialog(true)} className="shrink-0" variant="outline">
-              <VideoIcon className="h-4 w-4 mr-2" /> Dashboard Tutorial Video
+              <VideoIcon className="h-4 w-4 mr-2" /> Watch Tutorial Videos
           </Button>
       </div>
 
-      <Dialog open={showTutorialDialog} onOpenChange={setShowTutorialDialog}>
-        <DialogContent>
+      <Dialog open={showTutorialDialog} onOpenChange={(open) => { setShowTutorialDialog(open); if (!open) resetTutorialForm(); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Dashboard Tutorial Video</DialogTitle>
+            <DialogTitle>Watch Tutorial Videos</DialogTitle>
           </DialogHeader>
-          <div className="space-y-2 py-2">
+          <div className="space-y-2 py-2 border-b pb-4">
+            <Label htmlFor="tutorial-caption">Caption</Label>
+            <Input
+              id="tutorial-caption"
+              placeholder="যেমন: কিভাবে Exam দিবেন"
+              value={tutorialCaptionInput}
+              onChange={(e) => setTutorialCaptionInput(e.target.value)}
+            />
             <Label htmlFor="tutorial-video-url">YouTube Video Link</Label>
             <Input
               id="tutorial-video-url"
               placeholder="https://www.youtube.com/watch?v=..."
-              value={tutorialVideoInput}
-              onChange={(e) => setTutorialVideoInput(e.target.value)}
+              value={tutorialUrlInput}
+              onChange={(e) => setTutorialUrlInput(e.target.value)}
             />
-            <p className="text-xs text-muted-foreground">Student dashboard-e "Watch Tutorial" button-e click korle ei video dekhabe.</p>
+            <div className="flex gap-2 justify-end">
+              {editingTutorialId && (
+                <Button variant="outline" size="sm" onClick={resetTutorialForm}>Cancel Edit</Button>
+              )}
+              <Button
+                size="sm"
+                disabled={saveTutorialVideoMutation.isPending || !tutorialCaptionInput.trim() || !tutorialUrlInput.trim()}
+                onClick={() => saveTutorialVideoMutation.mutate()}
+              >
+                {editingTutorialId ? "Update" : "Add Video"}
+              </Button>
+            </div>
+          </div>
+          <div className="space-y-2">
+            {tutorialVideos?.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">কোনো tutorial video নেই।</p>
+            )}
+            {tutorialVideos?.map((v) => (
+              <div key={v.id} className="flex items-center justify-between gap-2 border rounded-lg px-3 py-2">
+                <span className="text-sm truncate">{v.caption}</span>
+                <div className="flex gap-1 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setEditingTutorialId(v.id); setTutorialCaptionInput(v.caption); setTutorialUrlInput(v.video_url); }}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => deleteTutorialVideoMutation.mutate(v.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTutorialDialog(false)}>Cancel</Button>
-            <Button onClick={() => saveTutorialVideoMutation.mutate(tutorialVideoInput.trim())} disabled={saveTutorialVideoMutation.isPending}>
-              Save
-            </Button>
+            <Button variant="outline" onClick={() => setShowTutorialDialog(false)}>Close</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

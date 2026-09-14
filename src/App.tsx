@@ -64,6 +64,7 @@ import ExamCalendar from "./pages/dashboard/ExamCalendar";
 import MyCourses from "./pages/dashboard/MyCourses";
 import ExtraCourses from "./pages/dashboard/ExtraCourses";
 import CourseView from "./pages/dashboard/CourseView";
+import WatchTutorial from "./pages/dashboard/WatchTutorial";
 import AdminDashboardHome from "./pages/dashboard/admin/AdminDashboardHome";
 import AdminCourses from "./pages/dashboard/admin/AdminCourses";
 import AdminStudents from "./pages/dashboard/admin/AdminStudents";
@@ -265,6 +266,7 @@ const App = () => {
                 <Route path="my-courses" element={<ErrorBoundary><MyCourses /></ErrorBoundary>} />
                 <Route path="extra-courses" element={<ErrorBoundary><ExtraCourses /></ErrorBoundary>} />
                 <Route path="course/:courseId" element={<ErrorBoundary><CourseView /></ErrorBoundary>} />
+                <Route path="watch-tutorial" element={<ErrorBoundary><WatchTutorial /></ErrorBoundary>} />
 
 
               </Route>
