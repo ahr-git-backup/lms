@@ -1,12 +1,73 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useRef, useState } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
+
+/** Fullscreen image viewer with keyboard nav (Escape/Arrow keys) and
+ *  click-to-close backdrop. Matches the Reviews page lightbox. */
+const Lightbox = ({
+  images,
+  index,
+  onClose,
+  onNav,
+}: {
+  images: string[];
+  index: number;
+  onClose: () => void;
+  onNav: (i: number) => void;
+}) => {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowRight") onNav((index + 1) % images.length);
+      if (e.key === "ArrowLeft") onNav((index - 1 + images.length) % images.length);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [index, images.length, onClose, onNav]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <button
+        onClick={onClose}
+        className="absolute top-4 right-4 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+      >
+        <X className="h-6 w-6" />
+      </button>
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNav((index - 1 + images.length) % images.length); }}
+          className="absolute left-2 md:left-6 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        >
+          <ChevronLeft className="h-7 w-7" />
+        </button>
+      )}
+      <img
+        src={images[index]}
+        alt="Success"
+        className="max-h-[85vh] max-w-[92vw] object-contain rounded-lg animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      />
+      {images.length > 1 && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onNav((index + 1) % images.length); }}
+          className="absolute right-2 md:right-6 text-white/80 hover:text-white p-2 rounded-full hover:bg-white/10 transition-colors"
+        >
+          <ChevronRight className="h-7 w-7" />
+        </button>
+      )}
+    </div>
+  );
+};
 
 /** Auto-scrolling animated image marquee row (same mechanism as the
  *  Reviews page marquee): continuously slides left via requestAnimationFrame,
  *  loops seamlessly by duplicating items, pauses on hover/drag, and
  *  supports click-and-drag / touch-swipe scrolling while paused. */
-const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left") => {
+const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left", lightboxOpen: boolean = false) => {
   const [paused, setPaused] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
   const posRef = useRef(0);
@@ -29,7 +90,7 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left") 
           posRef.current = direction === "right" ? -halfWidth : 0;
           initializedRef.current = true;
         }
-        if (!paused && !draggingRef.current) {
+        if (!paused && !draggingRef.current && !lightboxOpen) {
           if (direction === "left") {
             posRef.current -= 0.5;
             if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
@@ -44,7 +105,7 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left") 
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [paused, itemCount, direction]);
+  }, [paused, itemCount, direction, lightboxOpen]);
 
   const onDown = (clientX: number) => {
     draggingRef.current = true;
@@ -81,6 +142,8 @@ const useMarqueeRow = (itemCount: number, direction: "left" | "right" = "left") 
 };
 
 export const SuccessGallerySection = () => {
+  const [lightbox, setLightbox] = useState<number | null>(null);
+
   const { data: photos } = useQuery({
     queryKey: ["success-gallery-public"],
     queryFn: async () => {
@@ -106,17 +169,22 @@ export const SuccessGallerySection = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const row1 = useMarqueeRow(photos?.length ?? 0, "left");
-  const row2 = useMarqueeRow(photos?.length ?? 0, "right");
+  const lightboxOpen = lightbox !== null;
+  const row1 = useMarqueeRow(photos?.length ?? 0, "left", lightboxOpen);
+  const row2 = useMarqueeRow(photos?.length ?? 0, "right", lightboxOpen);
 
   if (!photos || photos.length === 0) return null;
 
   // Split into two rows for the marquee effect
-  const mid = Math.ceil(photos.length / 2);
-  const rowOne = photos.slice(0, mid);
-  const rowTwo = photos.length > 3 ? photos.slice(mid) : rowOne;
+  const indexed = photos.map((photo, globalIndex) => ({ ...photo, globalIndex }));
+  const mid = Math.ceil(indexed.length / 2);
+  const rowOne = indexed.slice(0, mid);
+  const rowTwo = indexed.length > 3 ? indexed.slice(mid) : rowOne;
   const loopRowOne = [...rowOne, ...rowOne];
   const loopRowTwo = [...rowTwo, ...rowTwo];
+  const allImages = indexed.map((p) => p.image_url);
+
+  const closeLightbox = () => setLightbox(null);
 
   return (
     <section className="relative w-full overflow-hidden bg-black py-8 isolate">
@@ -153,8 +221,9 @@ export const SuccessGallerySection = () => {
           {...row1.trackHandlers}
         >
           {loopRowOne.map((photo, idx) => (
-            <div
+            <button
               key={`${photo.id}-${idx}`}
+              onClick={() => setLightbox(photo.globalIndex)}
               className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px]"
             >
               <img
@@ -168,7 +237,7 @@ export const SuccessGallerySection = () => {
                   <p className="truncate text-xs font-semibold text-white">{photo.caption}</p>
                 </div>
               )}
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -182,8 +251,9 @@ export const SuccessGallerySection = () => {
             {...row2.trackHandlers}
           >
             {loopRowTwo.map((photo, idx) => (
-              <div
+              <button
                 key={`${photo.id}-${idx}`}
+                onClick={() => setLightbox(photo.globalIndex)}
                 className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px]"
               >
                 <img
@@ -197,10 +267,14 @@ export const SuccessGallerySection = () => {
                     <p className="truncate text-xs font-semibold text-white">{photo.caption}</p>
                   </div>
                 )}
-              </div>
+              </button>
             ))}
           </div>
         </div>
+      )}
+
+      {lightbox !== null && (
+        <Lightbox images={allImages} index={lightbox} onClose={closeLightbox} onNav={setLightbox} />
       )}
     </section>
   );
