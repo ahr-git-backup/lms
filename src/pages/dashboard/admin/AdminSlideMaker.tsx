@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import { ColorWheelPicker } from "@/components/admin/ColorWheelPicker";
 import { QuestionData } from "@/types/exam";
 import { Upload, BookOpen, X, Download, Loader2, ChevronLeft, ChevronRight, Trash2, ImagePlus } from "lucide-react";
 
@@ -22,7 +23,9 @@ interface SlideQuestion {
 interface SlideSettings {
   bgColor: string;
   fontColor: string;
-  fontSize: number;
+  questionFontSize: number;
+  optionFontSize: number;
+  optionBgColor: string;
   optionBorderColor: string;
   headerLeftText: string;
   headerRightText: string;
@@ -34,7 +37,9 @@ interface SlideSettings {
 const DEFAULT_SETTINGS: SlideSettings = {
   bgColor: "#0f172a",
   fontColor: "#ffffff",
-  fontSize: 28,
+  questionFontSize: 28,
+  optionFontSize: 20,
+  optionBgColor: "#1e293b",
   optionBorderColor: "#38bdf8",
   headerLeftText: "",
   headerRightText: "",
@@ -189,22 +194,30 @@ const AdminSlideMaker = () => {
 
       {/* Settings panel — first, with live preview */}
       <Card>
-        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="space-y-1">
             <Label className="text-xs">Background Color</Label>
-            <Input type="color" value={settings.bgColor} onChange={(e) => setSettings((p) => ({ ...p, bgColor: e.target.value }))} className="h-9 p-1" />
+            <ColorWheelPicker color={settings.bgColor} onChange={(hex) => setSettings((p) => ({ ...p, bgColor: hex }))} label="Background Color" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Font Color</Label>
-            <Input type="color" value={settings.fontColor} onChange={(e) => setSettings((p) => ({ ...p, fontColor: e.target.value }))} className="h-9 p-1" />
+            <ColorWheelPicker color={settings.fontColor} onChange={(hex) => setSettings((p) => ({ ...p, fontColor: hex }))} label="Font Color" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Box Background</Label>
+            <ColorWheelPicker color={settings.optionBgColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBgColor: hex }))} label="Option Box Background" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Option Border (Neon)</Label>
-            <Input type="color" value={settings.optionBorderColor} onChange={(e) => setSettings((p) => ({ ...p, optionBorderColor: e.target.value }))} className="h-9 p-1" />
+            <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs">Font Size ({settings.fontSize}px)</Label>
-            <Input type="range" min={16} max={48} value={settings.fontSize} onChange={(e) => setSettings((p) => ({ ...p, fontSize: Number(e.target.value) }))} className="h-9" />
+            <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
+            <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
+            <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Header Left (Corner)</Label>
@@ -239,7 +252,6 @@ const AdminSlideMaker = () => {
           <div className="space-y-1">
             <Label className="text-xs">Center Text</Label>
             <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -296,25 +308,27 @@ const AdminSlideMaker = () => {
                 </div>
               </div>
 
-              {/* Question - full width */}
-              <div style={{ fontSize: settings.fontSize, fontWeight: 700, marginTop: 24, marginBottom: 24, width: "100%", lineHeight: 1.4 }}>
+              {/* Question - full width, image-style block */}
+              <div style={{ fontSize: settings.questionFontSize, fontWeight: 700, marginTop: 20, marginBottom: 20, width: "100%", lineHeight: 1.4 }}>
                 {activeQuestion.question}
               </div>
 
-              {/* Options - vertical, right side */}
-              <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "55%" }}>
+              {/* Options - fill remaining space, footer space reserved at bottom */}
+              <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 70 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                   {Object.entries(activeQuestion.options).map(([key, val]) => (
                     <div
                       key={key}
                       style={{
+                        backgroundColor: settings.optionBgColor,
                         border: `2px solid ${settings.optionBorderColor}`,
-                        borderRadius: 14,
-                        padding: "14px 20px",
-                        fontSize: settings.fontSize * 0.7,
-                        boxShadow: `0 0 12px ${settings.optionBorderColor}`,
+                        borderRadius: 16,
+                        padding: "20px 28px",
+                        fontSize: settings.optionFontSize,
+                        boxShadow: `0 0 14px ${settings.optionBorderColor}`,
                         display: "flex",
-                        gap: 12,
+                        gap: 14,
+                        alignItems: "center",
                       }}
                     >
                       <span style={{ fontWeight: 700 }}>{key}.</span>
