@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CompleteProfile from "./pages/CompleteProfile";
+import PWAProfile from "./pages/PWAProfile";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Courses from "./pages/Courses";
@@ -187,6 +188,7 @@ const App = () => {
                 <Route path="/login" element={<ErrorBoundary><Login /></ErrorBoundary>} />
                 <Route path="/register" element={<ErrorBoundary><Register /></ErrorBoundary>} />
                 <Route path="/complete-profile" element={<ErrorBoundary><CompleteProfile /></ErrorBoundary>} />
+                <Route path="/account" element={<ErrorBoundary><PWAProfile /></ErrorBoundary>} />
                 <Route path="/forgot-password" element={<ErrorBoundary><ForgotPassword /></ErrorBoundary>} />
                 <Route path="/reset-password" element={<ErrorBoundary><ResetPassword /></ErrorBoundary>} />
                 <Route path="/courses" element={<ErrorBoundary><Courses /></ErrorBoundary>} />

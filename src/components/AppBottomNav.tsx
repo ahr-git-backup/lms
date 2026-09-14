@@ -8,7 +8,7 @@ const NAV_ITEMS = [
   { label: "Course", to: "/courses", icon: GraduationCap, end: false },
   { label: "Free", to: "/free", icon: Gift, end: false },
   { label: "Study Aid", to: "/study-aid", icon: BookOpenCheck, end: false },
-  { label: "Profile", to: "/dashboard/profile", icon: User, end: false },
+  { label: "Profile", to: "/account", icon: User, end: false },
 ] as const;
 
 /**
