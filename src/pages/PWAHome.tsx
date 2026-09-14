@@ -101,8 +101,8 @@ export default function PWAHome() {
               <Card className="border-dashed">
                 <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2">
                   <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
-                  <p className="text-sm text-muted-foreground">কোনো কোর্সে ভর্তি নেই</p>
-                  <Button size="sm" onClick={() => navigate("/courses")}>কোর্স দেখুন</Button>
+                  <p className="text-sm text-muted-foreground">আপনি কোনো কোর্সে ভর্তি নেই</p>
+                  <Button size="sm" onClick={() => navigate("/courses")}>কোর্স কিনুন</Button>
                 </CardContent>
               </Card>
             ) : (
