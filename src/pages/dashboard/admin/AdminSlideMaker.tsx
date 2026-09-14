@@ -54,6 +54,10 @@ interface SlideSettings {
   fontColor: string;
   questionFontSize: number;
   optionFontSize: number;
+  questionBoxWidth: number;
+  questionBoxHeight: number;
+  optionBoxWidth: number;
+  optionBoxHeight: number;
   optionBgColor: string;
   optionBorderColor: string;
   fontFamily: string;
@@ -85,6 +89,10 @@ const DEFAULT_SETTINGS: SlideSettings = {
   fontColor: "#ffffff",
   questionFontSize: 28,
   optionFontSize: 20,
+  questionBoxWidth: 900,
+  questionBoxHeight: 100,
+  optionBoxWidth: 660,
+  optionBoxHeight: 80,
   optionBgColor: "#1e293b",
   optionBorderColor: "#38bdf8",
   fontFamily: "'Hind Siliguri', sans-serif",
@@ -113,7 +121,6 @@ const DEFAULT_SETTINGS: SlideSettings = {
 
 const SLIDE_W = 1280;
 const SLIDE_H = 720;
-const MAX_OPTION_HEIGHT = 140;
 
 const BANGLA_FONTS = [
   { label: "Hind Siliguri", value: "'Hind Siliguri', sans-serif" },
@@ -171,34 +178,6 @@ const SlideVisual = ({
   editable?: boolean;
   onEditField?: (field: "question" | "A" | "B" | "C" | "D", value: string) => void;
 }) => {
-  // Measure each option card's own natural (unconstrained) height and use
-  // the tallest one as a shared min-height for all 4 — so cards stay small
-  // when every option is short, but if one option is long, all cards match
-  // that same size instead of leaving the short ones tiny/uneven. Capped so
-  // a large option font size can't blow the cards up indefinitely.
-  const optionRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [optionMinHeight, setOptionMinHeight] = useState<number | undefined>(undefined);
-
-  useEffect(() => {
-    const measure = () => {
-      const heights = Object.values(optionRefs.current)
-        .filter((el): el is HTMLDivElement => !!el)
-        .map((el) => {
-          const prev = el.style.minHeight;
-          el.style.minHeight = "0px";
-          const h = el.scrollHeight;
-          el.style.minHeight = prev;
-          return h;
-        });
-      const EXTRA_BREATHING_ROOM = 24;
-      if (heights.length > 0) setOptionMinHeight(Math.min(Math.max(...heights) + EXTRA_BREATHING_ROOM, MAX_OPTION_HEIGHT));
-    };
-    measure();
-    const t = setTimeout(measure, 150);
-    window.addEventListener("resize", measure);
-    return () => { clearTimeout(t); window.removeEventListener("resize", measure); };
-  }, [question, settings.optionFontSize, settings.fontFamily]);
-
   const makeEditable = (field: "question" | "A" | "B" | "C" | "D", value: string) =>
     editable
       ? {
@@ -262,7 +241,10 @@ const SlideVisual = ({
 
       <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
 
-      {/* Question — always centered on the page */}
+      {/* Question — always centered on the page. Box size is fixed/manual
+          (questionBoxWidth/Height); increasing font size does not grow the
+          box — text just fills more of the fixed box, clipped if it would
+          overflow, so the box stays a stable, independently-sizeable shape. */}
       <div
         {...makeEditable("question", question.question)}
         style={{
@@ -271,9 +253,17 @@ const SlideVisual = ({
           fontWeight: 700,
           marginTop: 20,
           marginBottom: 20,
-          width: "100%",
+          width: settings.questionBoxWidth,
+          maxWidth: "100%",
+          height: settings.questionBoxEnabled ? settings.questionBoxHeight : undefined,
+          marginLeft: "auto",
+          marginRight: "auto",
           lineHeight: 1.4,
           textAlign: "center",
+          overflow: settings.questionBoxEnabled ? "hidden" : "visible",
+          display: settings.questionBoxEnabled ? "flex" : "block",
+          alignItems: "center",
+          justifyContent: "center",
           ...(editable ? { outline: "none", cursor: "text" } : {}),
           ...(settings.questionBoxEnabled
             ? {
@@ -290,13 +280,14 @@ const SlideVisual = ({
         {question.question}
       </div>
 
-      {/* Options */}
+      {/* Options — box size is fixed/manual (optionBoxWidth/Height);
+          increasing option font size fills more of the fixed box instead
+          of growing it, clipped if the text would overflow. */}
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: hasFooterContent ? 90 : 70 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "min-content", gap: 20, width: "55%" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20, width: "55%", alignItems: "flex-end" }}>
           {Object.entries(question.options).map(([key, val]) => (
             <div
               key={key}
-              ref={(el) => { optionRefs.current[key] = el; }}
               style={{
                 backgroundColor: settings.optionBgColor,
                 border: `2px solid ${settings.optionBorderColor}`,
@@ -308,8 +299,9 @@ const SlideVisual = ({
                 display: "flex",
                 gap: 14,
                 alignItems: "center",
-                minHeight: optionMinHeight ? `${optionMinHeight}px` : undefined,
-                maxHeight: MAX_OPTION_HEIGHT,
+                width: Math.min(settings.optionBoxWidth, 0.98 * SLIDE_W),
+                maxWidth: "100%",
+                height: settings.optionBoxHeight,
                 overflow: "hidden",
                 boxSizing: "border-box",
               }}
@@ -835,6 +827,14 @@ const AdminSlideMaker = () => {
                     <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
                     <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Box Width ({settings.questionBoxWidth}px)</Label>
+                    <Input type="range" min={300} max={1200} step={10} value={settings.questionBoxWidth} onChange={(e) => setSettings((p) => ({ ...p, questionBoxWidth: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Box Height ({settings.questionBoxHeight}px)</Label>
+                    <Input type="range" min={50} max={400} step={10} value={settings.questionBoxHeight} onChange={(e) => setSettings((p) => ({ ...p, questionBoxHeight: Number(e.target.value) }))} className="h-9" />
+                  </div>
                 </div>
               </AccordionContent>
             </AccordionItem>
@@ -855,6 +855,14 @@ const AdminSlideMaker = () => {
                   <div className="space-y-1 col-span-2">
                     <Label className="text-xs">Option Font Size ({settings.optionFontSize}px)</Label>
                     <Input type="range" min={14} max={40} value={settings.optionFontSize} onChange={(e) => setSettings((p) => ({ ...p, optionFontSize: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Box Width ({settings.optionBoxWidth}px)</Label>
+                    <Input type="range" min={200} max={1150} step={10} value={settings.optionBoxWidth} onChange={(e) => setSettings((p) => ({ ...p, optionBoxWidth: Number(e.target.value) }))} className="h-9" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Box Height ({settings.optionBoxHeight}px)</Label>
+                    <Input type="range" min={40} max={250} step={5} value={settings.optionBoxHeight} onChange={(e) => setSettings((p) => ({ ...p, optionBoxHeight: Number(e.target.value) }))} className="h-9" />
                   </div>
                 </div>
               </AccordionContent>
