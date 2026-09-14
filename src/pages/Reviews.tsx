@@ -102,7 +102,7 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
     let raf: number;
     const step = () => {
       const track = trackRef.current;
-      if (track && !paused && !draggingRef.current) {
+      if (track && !paused && !draggingRef.current && lightbox === null) {
         posRef.current -= 0.5;
         const halfWidth = track.scrollWidth / 2;
         if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
@@ -112,7 +112,7 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [paused, items.length]);
+  }, [paused, items.length, lightbox]);
 
   if (items.length === 0) return null;
 
@@ -127,6 +127,12 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
     trackRef.current.style.transform = `translateX(${posRef.current}px)`;
   };
   const onUp = () => { draggingRef.current = false; };
+
+  const closeLightbox = () => {
+    setLightbox(null);
+    draggingRef.current = false;
+    setPaused(false);
+  };
 
   return (
     <div
@@ -166,7 +172,7 @@ const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
       </div>
 
       {lightbox !== null && (
-        <Lightbox images={allImages} index={lightbox} onClose={() => setLightbox(null)} onNav={setLightbox} />
+        <Lightbox images={allImages} index={lightbox} onClose={closeLightbox} onNav={setLightbox} />
       )}
     </div>
   );
