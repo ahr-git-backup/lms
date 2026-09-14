@@ -408,9 +408,10 @@ const AdminSlideMaker = () => {
         <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
       </header>
 
-      {/* Live preview — moved to the very top of the page, always visible,
-          uses sample question until real ones added */}
-      <div>
+      {/* Live preview — sticky to the top of the viewport so it stays
+          visible on screen even after scrolling down past the settings
+          panel and question list. */}
+      <div className="sticky top-2 z-20 bg-background/95 backdrop-blur-sm pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent sm:backdrop-blur-none">
         {questions.length > 0 && (
           <div className="flex items-center justify-center gap-2 mb-2">
             <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
