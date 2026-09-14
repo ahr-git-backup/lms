@@ -300,7 +300,7 @@ const DashboardHome = () => {
           <Button
             size="sm"
             variant="outline"
-            className="shrink-0 gap-1.5 h-7 px-3 text-xs"
+            className="shrink-0 gap-1.5 h-7 px-3 text-xs bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
             onClick={() => navigate("/dashboard/watch-tutorial")}
           >
             <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
