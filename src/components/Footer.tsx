@@ -46,8 +46,8 @@ const Footer = () => {
                 <div className="border-l border-slate-700/60 pl-6">
                   <h4 className="text-lg font-semibold text-white mb-4">রিসোর্স</h4>
                   <ul className="space-y-2 text-sm">
-                    <li><a href="/#free-resources" className="hover:text-primary transition-colors">ফ্রি এক্সাম</a></li>
-                    <li><a href="/#free-resources" className="hover:text-primary transition-colors">ডেমো ক্লাস</a></li>
+                    <li><a href="/free-exam" className="hover:text-primary transition-colors">ফ্রি এক্সাম</a></li>
+                    <li><a href="/free-class" className="hover:text-primary transition-colors">ডেমো ক্লাস</a></li>
                     <li><a href="/#reviews" className="hover:text-primary transition-colors">শিক্ষার্থীদের মতামত</a></li>
                     <li><a href="/#reviews" className="hover:text-primary transition-colors">শিক্ষার্থীদের মতামত</a></li>
                   </ul>

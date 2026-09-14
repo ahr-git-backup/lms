@@ -16,8 +16,6 @@ import {
   MessageCircle,
   Smartphone,
   BarChart,
-  Flame,
-  Infinity as InfinityIcon,
   User,
   Send,
 } from "lucide-react";
@@ -359,59 +357,6 @@ const Index = () => {
         <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}>
         <CourseSection limit={7} />
         </div>
-
-        {/* Free Service/Courses Section */}
-        <section id="free-resources" className="space-y-4">
-            <div className="text-center md:text-left">
-                <h2 className="text-2xl font-semibold tracking-tight">ফ্রি লার্নিং রিসোর্স</h2>
-                <p className="text-sm text-muted-foreground">আজই শুরু করুন সম্পূর্ণ ফ্রিতে।</p>
-            </div>
-            <div className="grid gap-5 md:grid-cols-2">
-                <a
-                    href="/free-exam"
-                    className="group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
-                    style={{ background: "linear-gradient(135deg, #f97316 0%, #ef4444 100%)" }}
-                >
-                    <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
-                    <div className="absolute -bottom-8 -left-4 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
-                    <div className="relative flex flex-col gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                            <Flame className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-lg font-bold">ফ্রি এক্সাম</h3>
-                        <p className="text-sm text-white/85">
-                            আমাদের সাবজেক্ট এবং টপিক ভিত্তিক ফ্রি এক্সাম দিয়ে নিজেকে যাচাই করুন। কোনো কোর্স কেনার প্রয়োজন নেই।
-                        </p>
-                        <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold">
-                            ফ্রি এক্সাম দিন
-                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                        </span>
-                    </div>
-                </a>
-
-                <a
-                    href="/free-class"
-                    className="group relative overflow-hidden rounded-2xl p-6 text-white shadow-lg transition-transform duration-300 hover:-translate-y-1 hover:shadow-xl"
-                    style={{ background: "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)" }}
-                >
-                    <div className="absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
-                    <div className="absolute -bottom-8 -left-4 h-24 w-24 rounded-full bg-white/10 transition-transform duration-500 group-hover:scale-125" />
-                    <div className="relative flex flex-col gap-3">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 backdrop-blur-sm">
-                            <InfinityIcon className="h-6 w-6" />
-                        </div>
-                        <h3 className="text-lg font-bold">ফ্রি ক্লাস</h3>
-                        <p className="text-sm text-white/85">
-                            ক্লাস এবং নির্বাচিত টপিক আলোচনা দেখুন একদম ফ্রিতে। ভর্তির আগে পড়ানোর স্টাইল ও কনটেন্ট কোয়ালিটি যাচাই করুন।
-                        </p>
-                        <span className="mt-1 inline-flex items-center gap-1 text-sm font-semibold">
-                            ক্লাস সমূহ দেখুন
-                            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                        </span>
-                    </div>
-                </a>
-            </div>
-        </section>
 
         {/* Unique Services Section */}
         <div className="animate-border-chase rounded-2xl border p-2.5 sm:p-3" style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}>
