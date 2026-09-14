@@ -272,7 +272,9 @@ const SlideVisual = ({
           each slot (left/center/right) can only be nudged horizontally via
           textOffsetX/imageOffsetX, not moved to another vertical position.
           Fixed height so growing font/image size never pushes the
-          separator line or the rest of the layout. */}
+          separator line or the rest of the layout. overflow is visible so
+          a large negative/positive Text X offset can push content all the
+          way to the slide edge without being clipped. */}
       <div
         style={{
           position: "absolute",
@@ -283,8 +285,8 @@ const SlideVisual = ({
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "0 20px",
-          overflow: "hidden",
+          padding: "0 4px",
+          overflow: "visible",
           boxSizing: "border-box",
           zIndex: 2,
         }}
@@ -445,8 +447,8 @@ const SlideVisual = ({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              padding: "0 20px",
-              overflow: "hidden",
+              padding: "0 4px",
+              overflow: "visible",
               boxSizing: "border-box",
               zIndex: 2,
             }}
