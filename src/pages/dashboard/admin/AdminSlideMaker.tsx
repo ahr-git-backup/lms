@@ -148,31 +148,167 @@ const AdminSlideMaker = () => {
     }
   };
 
-  const activeQuestion = questions[activeIndex];
+  const SAMPLE_QUESTION: SlideQuestion = {
+    id: "sample",
+    question: "বাংলাদেশের রাজধানীর নাম কী?",
+    options: { A: "ঢাকা", B: "চট্টগ্রাম", C: "সিলেট", D: "রাজশাহী" },
+    correct_answer: "A",
+  };
+
+  const activeQuestion = questions.length > 0 ? questions[activeIndex] : SAMPLE_QUESTION;
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-xl font-semibold tracking-tight">Slide Maker</h1>
-        <p className="text-sm text-muted-foreground">MCQ থেকে 16:9 স্লাইড বানিয়ে PDF export করুন।</p>
+        <p className="text-sm text-muted-foreground">আগে ফরম্যাট ঠিক করুন, পরে প্রশ্ন যোগ করে PDF বানান।</p>
       </header>
 
-      {/* Source cards — same pattern as Exam form */}
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-        <div
-          className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center min-h-[100px]"
-          onClick={() => document.getElementById("slide-csv-input")?.click()}
-        >
-          <input id="slide-csv-input" type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
-          <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-          <p className="text-sm">CSV আপলোড করুন</p>
+      {/* Settings panel — first, with live preview */}
+      <Card>
+        <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-1">
+            <Label className="text-xs">Background Color</Label>
+            <Input type="color" value={settings.bgColor} onChange={(e) => setSettings((p) => ({ ...p, bgColor: e.target.value }))} className="h-9 p-1" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Font Color</Label>
+            <Input type="color" value={settings.fontColor} onChange={(e) => setSettings((p) => ({ ...p, fontColor: e.target.value }))} className="h-9 p-1" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Option Border (Neon)</Label>
+            <Input type="color" value={settings.optionBorderColor} onChange={(e) => setSettings((p) => ({ ...p, optionBorderColor: e.target.value }))} className="h-9 p-1" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Font Size ({settings.fontSize}px)</Label>
+            <Input type="range" min={16} max={48} value={settings.fontSize} onChange={(e) => setSettings((p) => ({ ...p, fontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Left Text</Label>
+            <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Optional" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Right Text</Label>
+            <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Optional" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Center Text</Label>
+            <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Logo</Label>
+            <div className="flex items-center gap-1.5">
+              <Button type="button" size="sm" variant="outline" className="h-9 px-2" onClick={() => document.getElementById("slide-logo-input")?.click()}>
+                <ImagePlus className="h-3.5 w-3.5" />
+              </Button>
+              <input id="slide-logo-input" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              {settings.logoUrl && (
+                <Button type="button" size="sm" variant="ghost" className="h-9 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoUrl: "" }))}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Live preview — always visible, uses sample question until real ones added */}
+      <div>
+        {questions.length > 0 && (
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">{activeIndex + 1} / {questions.length}</span>
+            <Button size="icon" variant="outline" disabled={activeIndex === questions.length - 1} onClick={() => setActiveIndex((i) => i + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        {questions.length === 0 && (
+          <p className="text-center text-xs text-muted-foreground mb-2">প্রিভিউ (নমুনা প্রশ্ন) — নিচে থেকে আসল প্রশ্ন যোগ করুন</p>
+        )}
+
+        <div className="w-full overflow-x-auto">
+          <div style={{ width: SLIDE_W / 2, aspectRatio: "16/9" }} className="mx-auto">
+            <div
+              ref={slideRef}
+              style={{
+                width: SLIDE_W,
+                height: SLIDE_H,
+                backgroundColor: settings.bgColor,
+                color: settings.fontColor,
+                transform: "scale(0.5)",
+                transformOrigin: "top left",
+                position: "relative",
+                fontFamily: "inherit",
+                boxSizing: "border-box",
+                padding: 40,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 50 }}>
+                <div style={{ fontSize: 18, opacity: 0.8 }}>{settings.headerLeftText}</div>
+                {settings.centerText && <div style={{ fontSize: 20, fontWeight: 700 }}>{settings.centerText}</div>}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
+                  {settings.headerRightText}
+                  {settings.logoUrl && <img src={settings.logoUrl} style={{ height: 40, width: "auto" }} />}
+                </div>
+              </div>
+
+              {/* Question - full width */}
+              <div style={{ fontSize: settings.fontSize, fontWeight: 700, marginTop: 24, marginBottom: 24, width: "100%", lineHeight: 1.4 }}>
+                {activeQuestion.question}
+              </div>
+
+              {/* Options - vertical, right side */}
+              <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "55%" }}>
+                  {Object.entries(activeQuestion.options).map(([key, val]) => (
+                    <div
+                      key={key}
+                      style={{
+                        border: `2px solid ${settings.optionBorderColor}`,
+                        borderRadius: 14,
+                        padding: "14px 20px",
+                        fontSize: settings.fontSize * 0.7,
+                        boxShadow: `0 0 12px ${settings.optionBorderColor}`,
+                        display: "flex",
+                        gap: 12,
+                      }}
+                    >
+                      <span style={{ fontWeight: 700 }}>{key}.</span>
+                      <span>{val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div
-          className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center min-h-[100px]"
-          onClick={() => setIsQbOpen(true)}
-        >
-          <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
-          <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+      </div>
+
+      {/* Source cards — last step, same pattern as Exam form */}
+      <div className="space-y-2">
+        <p className="text-sm font-semibold">এবার প্রশ্ন যোগ করুন</p>
+        <div className="grid grid-cols-2 gap-2 sm:gap-3">
+          <div
+            className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center min-h-[100px]"
+            onClick={() => document.getElementById("slide-csv-input")?.click()}
+          >
+            <input id="slide-csv-input" type="file" accept=".csv" onChange={handleCsvUpload} className="hidden" />
+            <Upload className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-sm">CSV আপলোড করুন</p>
+          </div>
+          <div
+            className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center min-h-[100px]"
+            onClick={() => setIsQbOpen(true)}
+          >
+            <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+            <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+          </div>
         </div>
       </div>
 
@@ -195,129 +331,6 @@ const AdminSlideMaker = () => {
                 />
               </button>
             ))}
-          </div>
-
-          {/* Settings panel */}
-          <Card>
-            <CardContent className="p-4 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">Background Color</Label>
-                <Input type="color" value={settings.bgColor} onChange={(e) => setSettings((p) => ({ ...p, bgColor: e.target.value }))} className="h-9 p-1" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Font Color</Label>
-                <Input type="color" value={settings.fontColor} onChange={(e) => setSettings((p) => ({ ...p, fontColor: e.target.value }))} className="h-9 p-1" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Option Border (Neon)</Label>
-                <Input type="color" value={settings.optionBorderColor} onChange={(e) => setSettings((p) => ({ ...p, optionBorderColor: e.target.value }))} className="h-9 p-1" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Font Size ({settings.fontSize}px)</Label>
-                <Input type="range" min={16} max={48} value={settings.fontSize} onChange={(e) => setSettings((p) => ({ ...p, fontSize: Number(e.target.value) }))} className="h-9" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Header Left Text</Label>
-                <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Optional" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Header Right Text</Label>
-                <Input value={settings.headerRightText} onChange={(e) => setSettings((p) => ({ ...p, headerRightText: e.target.value }))} placeholder="Optional" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Center Text</Label>
-                <Input value={settings.centerText} onChange={(e) => setSettings((p) => ({ ...p, centerText: e.target.value }))} placeholder="Optional" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Logo</Label>
-                <div className="flex items-center gap-1.5">
-                  <Button type="button" size="sm" variant="outline" className="h-9 px-2" onClick={() => document.getElementById("slide-logo-input")?.click()}>
-                    <ImagePlus className="h-3.5 w-3.5" />
-                  </Button>
-                  <input id="slide-logo-input" type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-                  {settings.logoUrl && (
-                    <Button type="button" size="sm" variant="ghost" className="h-9 px-2 text-destructive" onClick={() => setSettings((p) => ({ ...p, logoUrl: "" }))}>
-                      <X className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Slide preview */}
-          <div className="flex items-center justify-center gap-2">
-            <Button size="icon" variant="outline" disabled={activeIndex === 0} onClick={() => setActiveIndex((i) => i - 1)}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground">{activeIndex + 1} / {questions.length}</span>
-            <Button size="icon" variant="outline" disabled={activeIndex === questions.length - 1} onClick={() => setActiveIndex((i) => i + 1)}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="w-full overflow-x-auto">
-            <div style={{ width: SLIDE_W / 2, aspectRatio: "16/9" }} className="mx-auto">
-              <div
-                ref={slideRef}
-                style={{
-                  width: SLIDE_W,
-                  height: SLIDE_H,
-                  backgroundColor: settings.bgColor,
-                  color: settings.fontColor,
-                  transform: "scale(0.5)",
-                  transformOrigin: "top left",
-                  position: "relative",
-                  fontFamily: "inherit",
-                  boxSizing: "border-box",
-                  padding: 40,
-                  display: "flex",
-                  flexDirection: "column",
-                }}
-              >
-                {/* Header */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 50 }}>
-                  <div style={{ fontSize: 18, opacity: 0.8 }}>{settings.headerLeftText}</div>
-                  {settings.centerText && <div style={{ fontSize: 20, fontWeight: 700 }}>{settings.centerText}</div>}
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
-                    {settings.headerRightText}
-                    {settings.logoUrl && <img src={settings.logoUrl} style={{ height: 40, width: "auto" }} />}
-                  </div>
-                </div>
-
-                {/* Question - full width */}
-                {activeQuestion && (
-                  <>
-                    <div style={{ fontSize: settings.fontSize, fontWeight: 700, marginTop: 24, marginBottom: 24, width: "100%", lineHeight: 1.4 }}>
-                      {activeQuestion.question}
-                    </div>
-
-                    {/* Options - vertical, right side */}
-                    <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "55%" }}>
-                        {Object.entries(activeQuestion.options).map(([key, val]) => (
-                          <div
-                            key={key}
-                            style={{
-                              border: `2px solid ${settings.optionBorderColor}`,
-                              borderRadius: 14,
-                              padding: "14px 20px",
-                              fontSize: settings.fontSize * 0.7,
-                              boxShadow: `0 0 12px ${settings.optionBorderColor}`,
-                              display: "flex",
-                              gap: 12,
-                            }}
-                          >
-                            <span style={{ fontWeight: 700 }}>{key}.</span>
-                            <span>{val}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
           </div>
 
           <div className="flex justify-center">
