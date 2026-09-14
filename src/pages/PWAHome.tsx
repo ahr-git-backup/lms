@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
 import { PWAQuickActionsGrid } from "@/components/home/PWAQuickActionsGrid";
+import OwnerSectionPWA from "@/components/home/OwnerSectionPWA";
 import { LayoutGrid, Send, GraduationCap } from "lucide-react";
 
 export default function PWAHome() {
@@ -63,6 +64,9 @@ export default function PWAHome() {
             ফ্রি রেজিস্ট্রেশন করুন
           </button>
         )}
+
+        {/* Owner/Founder */}
+        <OwnerSectionPWA />
 
         {/* Support */}
         <section className="flex gap-3 pt-1">
