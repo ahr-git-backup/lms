@@ -64,12 +64,16 @@ interface SlideSettings {
   headerPosition: "top" | "middle" | "bottom";
   headerSeparator: boolean;
   headerSeparatorColor: string;
+  headerBgColor: string;
+  headerBgEnabled: boolean;
 
   footerLeft: BarSlot;
   footerCenter: BarSlot;
   footerRight: BarSlot;
   footerSeparator: boolean;
   footerSeparatorColor: string;
+  footerBgColor: string;
+  footerBgEnabled: boolean;
 
   questionBgColor: string;
   questionBorderColor: string;
@@ -91,12 +95,16 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerPosition: "top",
   headerSeparator: false,
   headerSeparatorColor: "#38bdf8",
+  headerBgColor: "#1e293b",
+  headerBgEnabled: false,
 
   footerLeft: DEFAULT_SLOT(),
   footerCenter: DEFAULT_SLOT(),
   footerRight: DEFAULT_SLOT(),
   footerSeparator: false,
   footerSeparatorColor: "#38bdf8",
+  footerBgColor: "#1e293b",
+  footerBgEnabled: false,
 
   questionBgColor: "",
   questionBorderColor: "",
@@ -207,7 +215,7 @@ const SlideVisual = ({
     settings.footerLeft.text || settings.footerLeft.imageUrl ||
     settings.footerCenter.text || settings.footerCenter.imageUrl ||
     settings.footerRight.text || settings.footerRight.imageUrl ||
-    settings.footerSeparator;
+    settings.footerSeparator || settings.footerBgEnabled;
 
   return (
     <div
@@ -238,8 +246,12 @@ const SlideVisual = ({
           justifyContent: "space-between",
           alignItems: "center",
           minHeight: 50,
-          paddingBottom: settings.headerSeparator ? 14 : 0,
+          padding: "10px 20px",
+          paddingBottom: settings.headerSeparator ? 14 : 10,
           borderBottom: settings.headerSeparator ? `2px solid ${settings.headerSeparatorColor}` : undefined,
+          backgroundColor: settings.headerBgEnabled ? settings.headerBgColor : undefined,
+          borderRadius: settings.headerBgEnabled ? 12 : undefined,
+          boxSizing: "border-box",
           zIndex: 2,
         }}
       >
@@ -341,8 +353,12 @@ const SlideVisual = ({
             justifyContent: "space-between",
             alignItems: "center",
             minHeight: 30,
-            paddingTop: settings.footerSeparator ? 14 : 0,
+            padding: "10px 20px",
+            paddingTop: settings.footerSeparator ? 14 : 10,
             borderTop: settings.footerSeparator ? `2px solid ${settings.footerSeparatorColor}` : undefined,
+            backgroundColor: settings.footerBgEnabled ? settings.footerBgColor : undefined,
+            borderRadius: settings.footerBgEnabled ? 12 : undefined,
+            boxSizing: "border-box",
             zIndex: 2,
           }}
         >
@@ -717,6 +733,21 @@ const AdminSlideMaker = () => {
                       <ColorWheelPicker color={settings.headerSeparatorColor} onChange={(hex) => setSettings((p) => ({ ...p, headerSeparatorColor: hex }))} label="Header Separator Color" />
                     )}
                   </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Header Background (Optional)</Label>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((p) => ({ ...p, headerBgEnabled: !p.headerBgEnabled }))}
+                        className={`h-5 w-9 rounded-full transition-colors relative ${settings.headerBgEnabled ? "bg-primary" : "bg-muted"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.headerBgEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                    {settings.headerBgEnabled && (
+                      <ColorWheelPicker color={settings.headerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, headerBgColor: hex }))} label="Header Background Color" />
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <BarSlotEditor label="Left" slot={settings.headerLeft} onChange={(v) => setSettings((p) => ({ ...p, headerLeft: v }))} idPrefix="header-left-logo" />
@@ -730,20 +761,37 @@ const AdminSlideMaker = () => {
             <AccordionItem value="footer">
               <AccordionTrigger className="text-sm font-semibold py-3">Footer (Left / Center / Right)</AccordionTrigger>
               <AccordionContent className="space-y-3">
-                <div className="space-y-1 max-w-xs">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-xs">Separator Line (উপরে, Optional)</Label>
-                    <button
-                      type="button"
-                      onClick={() => setSettings((p) => ({ ...p, footerSeparator: !p.footerSeparator }))}
-                      className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerSeparator ? "bg-primary" : "bg-muted"}`}
-                    >
-                      <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerSeparator ? "translate-x-4" : "translate-x-0.5"}`} />
-                    </button>
+                <div className="grid grid-cols-2 gap-4 max-w-xl">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Separator Line (উপরে, Optional)</Label>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((p) => ({ ...p, footerSeparator: !p.footerSeparator }))}
+                        className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerSeparator ? "bg-primary" : "bg-muted"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerSeparator ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                    {settings.footerSeparator && (
+                      <ColorWheelPicker color={settings.footerSeparatorColor} onChange={(hex) => setSettings((p) => ({ ...p, footerSeparatorColor: hex }))} label="Footer Separator Color" />
+                    )}
                   </div>
-                  {settings.footerSeparator && (
-                    <ColorWheelPicker color={settings.footerSeparatorColor} onChange={(hex) => setSettings((p) => ({ ...p, footerSeparatorColor: hex }))} label="Footer Separator Color" />
-                  )}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">Footer Background (Optional)</Label>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((p) => ({ ...p, footerBgEnabled: !p.footerBgEnabled }))}
+                        className={`h-5 w-9 rounded-full transition-colors relative ${settings.footerBgEnabled ? "bg-primary" : "bg-muted"}`}
+                      >
+                        <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.footerBgEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                      </button>
+                    </div>
+                    {settings.footerBgEnabled && (
+                      <ColorWheelPicker color={settings.footerBgColor} onChange={(hex) => setSettings((p) => ({ ...p, footerBgColor: hex }))} label="Footer Background Color" />
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <BarSlotEditor label="Left" slot={settings.footerLeft} onChange={(v) => setSettings((p) => ({ ...p, footerLeft: v }))} idPrefix="footer-left-logo" />
