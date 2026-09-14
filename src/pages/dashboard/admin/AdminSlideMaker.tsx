@@ -34,8 +34,12 @@ interface SlideSettings {
   centerText: string;
   headerFontSize: number;
   headerFontColor: string;
+  headerPosition: "top" | "middle" | "bottom";
   logoLeftUrl: string;
   logoRightUrl: string;
+  questionBgColor: string;
+  questionBorderColor: string;
+  questionBoxEnabled: boolean;
 }
 
 const DEFAULT_SETTINGS: SlideSettings = {
@@ -51,8 +55,12 @@ const DEFAULT_SETTINGS: SlideSettings = {
   centerText: "",
   headerFontSize: 18,
   headerFontColor: "#ffffff",
+  headerPosition: "top",
   logoLeftUrl: "",
   logoRightUrl: "",
+  questionBgColor: "",
+  questionBorderColor: "",
+  questionBoxEnabled: false,
 };
 
 const SLIDE_W = 1280;
@@ -255,8 +263,24 @@ const AdminSlideMaker = () => {
                 flexDirection: "column",
               }}
             >
-              {/* Header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 50 }}>
+              {/* Header — absolutely positioned so it can sit at the top,
+                  vertical middle, or bottom of the slide independent of the
+                  question/options flow below. */}
+              <div
+                style={{
+                  position: "absolute",
+                  left: 40,
+                  right: 40,
+                  top: settings.headerPosition === "top" ? 20 : settings.headerPosition === "middle" ? "50%" : undefined,
+                  bottom: settings.headerPosition === "bottom" ? 20 : undefined,
+                  transform: settings.headerPosition === "middle" ? "translateY(-50%)" : undefined,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  minHeight: 50,
+                  zIndex: 2,
+                }}
+              >
                 <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
                   {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
                   {settings.headerLeftText}
@@ -268,8 +292,34 @@ const AdminSlideMaker = () => {
                 </div>
               </div>
 
-              {/* Question - full width, image-style block */}
-              <div style={{ fontSize: settings.questionFontSize, fontFamily: settings.fontFamily, fontWeight: 700, marginTop: 20, marginBottom: 20, width: "100%", lineHeight: 1.4 }}>
+              {/* Spacer so question/options flow always clears the header's
+                  own row height when header sits at the top (default). */}
+              <div style={{ minHeight: settings.headerPosition === "top" ? 70 : 0 }} />
+
+              {/* Question - full width, optional background box matching the
+                  option cards' style so question + options can share one
+                  consistent look when the box is turned on. */}
+              <div
+                style={{
+                  fontSize: settings.questionFontSize,
+                  fontFamily: settings.fontFamily,
+                  fontWeight: 700,
+                  marginTop: 20,
+                  marginBottom: 20,
+                  width: "100%",
+                  lineHeight: 1.4,
+                  ...(settings.questionBoxEnabled
+                    ? {
+                        backgroundColor: settings.questionBgColor || "#1e293b",
+                        border: `2px solid ${settings.questionBorderColor || "#38bdf8"}`,
+                        borderRadius: 16,
+                        padding: "20px 28px",
+                        boxShadow: `0 0 14px ${settings.questionBorderColor || "#38bdf8"}`,
+                        boxSizing: "border-box",
+                      }
+                    : {}),
+                }}
+              >
                 {activeQuestion.question}
               </div>
 
@@ -326,6 +376,31 @@ const AdminSlideMaker = () => {
             <ColorWheelPicker color={settings.optionBorderColor} onChange={(hex) => setSettings((p) => ({ ...p, optionBorderColor: hex }))} label="Option Border" />
           </div>
           <div className="space-y-1">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Question Box</Label>
+              <button
+                type="button"
+                onClick={() => setSettings((p) => ({ ...p, questionBoxEnabled: !p.questionBoxEnabled }))}
+                className={`h-5 w-9 rounded-full transition-colors relative ${settings.questionBoxEnabled ? "bg-primary" : "bg-muted"}`}
+              >
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${settings.questionBoxEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+              </button>
+            </div>
+            <ColorWheelPicker
+              color={settings.questionBgColor || "#1e293b"}
+              onChange={(hex) => setSettings((p) => ({ ...p, questionBgColor: hex }))}
+              label="Question Box Background"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Question Border</Label>
+            <ColorWheelPicker
+              color={settings.questionBorderColor || "#38bdf8"}
+              onChange={(hex) => setSettings((p) => ({ ...p, questionBorderColor: hex }))}
+              label="Question Border"
+            />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Question Font Size ({settings.questionFontSize}px)</Label>
             <Input type="range" min={16} max={56} value={settings.questionFontSize} onChange={(e) => setSettings((p) => ({ ...p, questionFontSize: Number(e.target.value) }))} className="h-9" />
           </div>
@@ -355,6 +430,19 @@ const AdminSlideMaker = () => {
           <div className="space-y-1">
             <Label className="text-xs">Header Font Color</Label>
             <ColorWheelPicker color={settings.headerFontColor} onChange={(hex) => setSettings((p) => ({ ...p, headerFontColor: hex }))} label="Header Font Color" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Position</Label>
+            <Select value={settings.headerPosition} onValueChange={(v: "top" | "middle" | "bottom") => setSettings((p) => ({ ...p, headerPosition: v }))}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="top">উপরে</SelectItem>
+                <SelectItem value="middle">মাঝে</SelectItem>
+                <SelectItem value="bottom">নিচে</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="space-y-1">
             <Label className="text-xs">Header Left (Corner)</Label>
