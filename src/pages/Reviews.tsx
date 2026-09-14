@@ -1,46 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Star, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PublicHeader from "@/components/PublicHeader";
 import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
-
-/** Same click-and-drag / touch-swipe scrolling used by the homepage
- *  Success Gallery marquee rows. */
-const useDragScroll = () => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const startX = useRef(0);
-  const startScroll = useRef(0);
-
-  const onDown = (clientX: number) => {
-    if (!ref.current) return;
-    setDragging(true);
-    startX.current = clientX;
-    startScroll.current = ref.current.scrollLeft;
-  };
-  const onMove = (clientX: number) => {
-    if (!dragging || !ref.current) return;
-    ref.current.scrollLeft = startScroll.current - (clientX - startX.current);
-  };
-  const onUp = () => setDragging(false);
-
-  return {
-    ref,
-    dragging,
-    handlers: {
-      onMouseDown: (e: React.MouseEvent) => onDown(e.clientX),
-      onMouseMove: (e: React.MouseEvent) => onMove(e.clientX),
-      onMouseUp: onUp,
-      onMouseLeave: onUp,
-      onTouchStart: (e: React.TouchEvent) => onDown(e.touches[0].clientX),
-      onTouchMove: (e: React.TouchEvent) => onMove(e.touches[0].clientX),
-      onTouchEnd: onUp,
-    },
-  };
-};
 
 const Lightbox = ({
   images,
@@ -107,80 +71,6 @@ const reviewImages = (review: any): string[] =>
       ? [review.post_image_url]
       : [];
 
-const ReviewCard = ({ review }: { review: any }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [lightbox, setLightbox] = useState<number | null>(null);
-  const isLong = review.review_text?.length > 150;
-  const images: string[] = reviewImages(review);
-
-  return (
-    <div className="group rounded-xl border border-primary/10 bg-card/50 backdrop-blur-sm p-6 flex flex-col h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30">
-      <div className="flex justify-between items-start mb-4 gap-4">
-        <div className="flex gap-3 items-center min-w-0">
-          {review.image_url ? (
-            <img src={review.image_url} alt={review.student_name || "Student"} className="h-10 w-10 md:h-12 md:w-12 rounded-full object-cover shrink-0" />
-          ) : (
-            <div className="h-10 w-10 md:h-12 md:w-12 rounded-full bg-secondary/80 flex items-center justify-center text-sm md:text-base font-bold shrink-0 text-foreground/70">
-              {review.student_name?.charAt(0) || "?"}
-            </div>
-          )}
-          <div className="truncate">
-            {review.student_name && (
-              <h4 className="font-bold text-sm md:text-base leading-tight truncate">{review.student_name}</h4>
-            )}
-            {review.college_name && (
-              <p className="text-[10px] md:text-xs text-muted-foreground truncate">{review.college_name}</p>
-            )}
-          </div>
-        </div>
-        {!!review.rating && (
-          <div className="flex bg-yellow-500/10 px-2 py-1 rounded-full shrink-0">
-            {[...Array(review.rating)].map((_, i) => (
-              <Star key={i} className="h-3 w-3 md:h-3.5 md:w-3.5 text-yellow-500 fill-yellow-500" />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="mb-4 flex-1">
-        <p className={`text-sm leading-relaxed text-foreground/80 italic ${!expanded && isLong ? "line-clamp-3" : ""}`}>
-          "{review.review_text}"
-        </p>
-        {isLong && (
-          <button
-            onClick={() => setExpanded(!expanded)}
-            className="text-xs text-primary font-medium mt-1 hover:underline focus:outline-none"
-          >
-            {expanded ? "Show less" : "Read more"}
-          </button>
-        )}
-      </div>
-
-      {images.length > 0 && (
-        <div className={`grid gap-2 mb-2 ${images.length === 1 ? "grid-cols-1" : images.length === 2 ? "grid-cols-2" : "grid-cols-2 md:grid-cols-3"}`}>
-          {images.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setLightbox(idx)}
-              className="overflow-hidden rounded-md border border-border/50 shadow-sm transition-transform duration-300 hover:scale-[1.03] active:scale-95"
-            >
-              <img src={img} alt={`Review graphic ${idx}`} className="w-full h-32 md:h-40 object-cover" loading="lazy" />
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="text-[10px] md:text-xs text-muted-foreground/60 text-right mt-auto pt-2 border-t border-border/30">
-        {review.created_at ? formatDistanceToNow(new Date(review.created_at), { addSuffix: true }) : ""}
-      </div>
-
-      {lightbox !== null && (
-        <Lightbox images={images} index={lightbox} onClose={() => setLightbox(null)} onNav={setLightbox} />
-      )}
-    </div>
-  );
-};
-
 const CATEGORIES = [
   { value: "classes", label: "ক্লাস" },
   { value: "exams", label: "এক্সাম" },
@@ -189,32 +79,75 @@ const CATEGORIES = [
   { value: "website", label: "অন্যান্য" },
 ];
 
-/** Success-Gallery-style animated, drag-scrollable image row built from
- *  this category's review images. Clicking an image opens the lightbox. */
+/** Auto-scrolling animated image marquee (Success Gallery style), built
+ *  from this category's review images. Pauses on hover/drag; clicking
+ *  an image opens the lightbox. */
 const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
   const [lightbox, setLightbox] = useState<number | null>(null);
-  const drag = useDragScroll();
+  const [paused, setPaused] = useState(false);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const posRef = useRef(0);
+  const draggingRef = useRef(false);
+  const startX = useRef(0);
+  const startPos = useRef(0);
 
   const items = reviews.flatMap((review) =>
     reviewImages(review).map((img) => ({ img, caption: review.student_name || "" }))
   );
-
-  if (items.length === 0) return null;
+  const loopItems = items.length > 0 ? [...items, ...items] : [];
   const allImages = items.map((i) => i.img);
 
+  useEffect(() => {
+    if (items.length === 0) return;
+    let raf: number;
+    const step = () => {
+      const track = trackRef.current;
+      if (track && !paused && !draggingRef.current) {
+        posRef.current -= 0.5;
+        const halfWidth = track.scrollWidth / 2;
+        if (Math.abs(posRef.current) >= halfWidth) posRef.current = 0;
+        track.style.transform = `translateX(${posRef.current}px)`;
+      }
+      raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [paused, items.length]);
+
+  if (items.length === 0) return null;
+
+  const onDown = (clientX: number) => {
+    draggingRef.current = true;
+    startX.current = clientX;
+    startPos.current = posRef.current;
+  };
+  const onMove = (clientX: number) => {
+    if (!draggingRef.current || !trackRef.current) return;
+    posRef.current = startPos.current + (clientX - startX.current);
+    trackRef.current.style.transform = `translateX(${posRef.current}px)`;
+  };
+  const onUp = () => { draggingRef.current = false; };
+
   return (
-    <div className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6">
+    <div
+      className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => { setPaused(false); onUp(); }}
+    >
       <div
-        ref={drag.ref}
-        className={`flex gap-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
-          drag.dragging ? "cursor-grabbing" : "cursor-grab"
-        }`}
-        {...drag.handlers}
+        ref={trackRef}
+        className="flex gap-4 px-4 w-max cursor-grab active:cursor-grabbing"
+        onMouseDown={(e) => onDown(e.clientX)}
+        onMouseMove={(e) => onMove(e.clientX)}
+        onMouseUp={onUp}
+        onTouchStart={(e) => onDown(e.touches[0].clientX)}
+        onTouchMove={(e) => onMove(e.touches[0].clientX)}
+        onTouchEnd={onUp}
       >
-        {items.map((item, idx) => (
+        {loopItems.map((item, idx) => (
           <button
             key={idx}
-            onClick={() => setLightbox(idx)}
+            onClick={() => setLightbox(idx % items.length)}
             className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
           >
             <img
@@ -302,14 +235,7 @@ export default function Reviews() {
                 {grouped[c.value].length === 0 ? (
                   <div className="text-center py-10 opacity-60">এই বিভাগে এখনো কোনো রিভিউ নেই।</div>
                 ) : (
-                  <>
-                    <ReviewImageMarquee reviews={grouped[c.value]} />
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
-                      {grouped[c.value].map((review) => (
-                        <ReviewCard key={`${c.value}-${review.id}`} review={review} />
-                      ))}
-                    </div>
-                  </>
+                  <ReviewImageMarquee reviews={grouped[c.value]} />
                 )}
               </TabsContent>
             ))}
