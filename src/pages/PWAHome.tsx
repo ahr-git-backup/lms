@@ -74,7 +74,9 @@ export default function PWAHome() {
         {/* Top row: আমার কোর্স + সকল কোর্স, side by side */}
         <section className="grid grid-cols-2 gap-3">
           <button
-            onClick={() => navigate(user ? "/dashboard/my-courses" : "/login")}
+            onClick={() => {
+              document.getElementById("my-courses-section")?.scrollIntoView({ behavior: "smooth" });
+            }}
             className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -94,58 +96,64 @@ export default function PWAHome() {
         </section>
 
         {/* My enrolled courses — each card opens that course's full dashboard */}
-        {user && (
-          <section className="space-y-2">
-            {enrollmentsLoading ? (
-              <div className="text-sm text-muted-foreground py-4 text-center">লোড হচ্ছে...</div>
-            ) : directCourses.length === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2">
-                  <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
-                  <p className="text-sm text-muted-foreground">আপনি কোনো কোর্সে ভর্তি নেই</p>
-                  <Button size="sm" onClick={() => navigate("/courses")}>কোর্স কিনুন</Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="space-y-2.5">
-                {directCourses.map((enrollment: any) => (
-                  <Card key={enrollment.id} className="overflow-hidden">
-                    <CardContent className="p-3 flex items-center gap-3">
-                      <div className="h-11 w-11 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
-                        {enrollment.course?.image_url ? (
-                          <img
-                            src={enrollment.course.image_url}
-                            alt={enrollment.course.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <GraduationCap className="h-5 w-5 text-primary" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-sm leading-tight line-clamp-1">
-                          {enrollment.course?.name || "কোর্স"}
+        <section id="my-courses-section" className="space-y-2 scroll-mt-4">
+          {!user ? (
+            <Card className="border-dashed">
+              <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2">
+                <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
+                <p className="text-sm text-muted-foreground">আপনার কোর্স দেখতে লগইন করুন</p>
+                <Button size="sm" onClick={() => navigate("/login")}>লগইন করুন</Button>
+              </CardContent>
+            </Card>
+          ) : enrollmentsLoading ? (
+            <div className="text-sm text-muted-foreground py-4 text-center">লোড হচ্ছে...</div>
+          ) : directCourses.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2">
+                <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
+                <p className="text-sm text-muted-foreground">আপনি কোনো কোর্সে ভর্তি নেই</p>
+                <Button size="sm" onClick={() => navigate("/courses")}>কোর্স কিনুন</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2.5">
+              {directCourses.map((enrollment: any) => (
+                <Card key={enrollment.id} className="overflow-hidden">
+                  <CardContent className="p-3 flex items-center gap-3">
+                    <div className="h-11 w-11 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+                      {enrollment.course?.image_url ? (
+                        <img
+                          src={enrollment.course.image_url}
+                          alt={enrollment.course.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <GraduationCap className="h-5 w-5 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm leading-tight line-clamp-1">
+                        {enrollment.course?.name || "কোর্স"}
+                      </p>
+                      {enrollment.bonus_courses?.length > 0 && (
+                        <p className="text-[11px] text-purple-600 dark:text-purple-300 flex items-center gap-1 mt-0.5">
+                          <Gift className="h-3 w-3" /> +{enrollment.bonus_courses.length} বোনাস
                         </p>
-                        {enrollment.bonus_courses?.length > 0 && (
-                          <p className="text-[11px] text-purple-600 dark:text-purple-300 flex items-center gap-1 mt-0.5">
-                            <Gift className="h-3 w-3" /> +{enrollment.bonus_courses.length} বোনাস
-                          </p>
-                        )}
-                      </div>
-                      <Button
-                        size="sm"
-                        className="gap-1.5 shrink-0"
-                        onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}
-                      >
-                        <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      className="gap-1.5 shrink-0"
+                      onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}
+                    >
+                      <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </section>
 
         {/* Free / always-usable features */}
         <section>
