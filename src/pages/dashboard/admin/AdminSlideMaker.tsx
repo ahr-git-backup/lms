@@ -95,6 +95,35 @@ const SlideVisual = ({
   editable?: boolean;
   onEditField?: (field: "question" | "A" | "B" | "C" | "D", value: string) => void;
 }) => {
+  // Measure each option card's own natural (unconstrained) height and use
+  // the tallest one as a shared min-height for all 4 — so cards stay small
+  // when every option is short, but if one option is long, all cards match
+  // that same size instead of leaving the short ones tiny/uneven.
+  const optionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const [optionMinHeight, setOptionMinHeight] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const measure = () => {
+      const heights = Object.values(optionRefs.current)
+        .filter((el): el is HTMLDivElement => !!el)
+        .map((el) => {
+          // Temporarily clear any applied min-height to read the true
+          // natural content height before re-measuring.
+          const prev = el.style.minHeight;
+          el.style.minHeight = "0px";
+          const h = el.scrollHeight;
+          el.style.minHeight = prev;
+          return h;
+        });
+      if (heights.length > 0) setOptionMinHeight(Math.max(...heights));
+    };
+    measure();
+    // Re-measure on font load / resize, since web fonts can change text
+    // wrapping after the initial paint.
+    const t = setTimeout(measure, 150);
+    window.addEventListener("resize", measure);
+    return () => { clearTimeout(t); window.removeEventListener("resize", measure); };
+  }, [question, settings.optionFontSize, settings.fontFamily]);
   const makeEditable = (field: "question" | "A" | "B" | "C" | "D", value: string) =>
     editable
       ? {
@@ -182,10 +211,11 @@ const SlideVisual = ({
 
       {/* Options */}
       <div style={{ flex: 1, display: "flex", justifyContent: "flex-end", alignItems: "center", paddingBottom: 70 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20, width: "55%" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "min-content", gap: 20, width: "55%" }}>
           {Object.entries(question.options).map(([key, val]) => (
             <div
               key={key}
+              ref={(el) => { optionRefs.current[key] = el; }}
               style={{
                 backgroundColor: settings.optionBgColor,
                 border: `2px solid ${settings.optionBorderColor}`,
@@ -197,6 +227,8 @@ const SlideVisual = ({
                 display: "flex",
                 gap: 14,
                 alignItems: "center",
+                minHeight: optionMinHeight ? `${optionMinHeight}px` : undefined,
+                boxSizing: "border-box",
               }}
             >
               <span style={{ fontWeight: 700 }}>{key}.</span>
