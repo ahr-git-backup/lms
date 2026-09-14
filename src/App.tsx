@@ -21,6 +21,7 @@ import Courses from "./pages/Courses";
 import CourseDetails from "./pages/CourseDetails";
 import CourseBuy from "./pages/CourseBuy";
 import Reviews from "./pages/Reviews";
+import MyCoursesPWA from "./pages/MyCoursesPWA";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Tutorial from "./pages/public/Tutorial";
 import InstallApp from "./pages/public/InstallApp";
@@ -205,6 +206,7 @@ const App = () => {
                 <Route path="/tutorial" element={<ErrorBoundary><Tutorial /></ErrorBoundary>} />
                 <Route path="/install" element={<ErrorBoundary><InstallApp /></ErrorBoundary>} />
                 <Route path="/reviews" element={<ErrorBoundary><Reviews /></ErrorBoundary>} />
+                <Route path="/my-courses" element={<ErrorBoundary><MyCoursesPWA /></ErrorBoundary>} />
                 <Route path="/privacy-policy" element={<ErrorBoundary><PrivacyPolicy /></ErrorBoundary>} />
               </Route>
               <Route path="/quick-practice" element={<ErrorBoundary><QuickPractice /></ErrorBoundary>} />
