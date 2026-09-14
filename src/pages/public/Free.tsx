@@ -1,36 +1,47 @@
-import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import FreeClass from "./FreeClass";
-import FreeExam from "./FreeExam";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import PublicHeader from "@/components/PublicHeader";
+import { Video, FileQuestion } from "lucide-react";
 
 const Free = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = searchParams.get("tab") === "exams" ? "exams" : "class";
-  const [tab, setTab] = useState(initialTab);
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.title = "Free – Atlas";
   }, []);
 
-  const onTabChange = (value: string) => {
-    setTab(value);
-    setSearchParams(value === "exams" ? { tab: "exams" } : {}, { replace: true });
-  };
-
   return (
-    <Tabs value={tab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="fixed top-16 left-1/2 -translate-x-1/2 z-40 grid w-[min(92vw,360px)] grid-cols-2 shadow-md">
-        <TabsTrigger value="class">Free Class</TabsTrigger>
-        <TabsTrigger value="exams">Free Exams</TabsTrigger>
-      </TabsList>
-      <TabsContent value="class" className="mt-0">
-        <FreeClass />
-      </TabsContent>
-      <TabsContent value="exams" className="mt-0">
-        <FreeExam />
-      </TabsContent>
-    </Tabs>
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <PublicHeader />
+      <div className="px-4 py-3">
+        <p className="text-lg font-bold leading-tight">ফ্রি রিসোর্স</p>
+        <p className="text-xs text-muted-foreground">যেটা দরকার সেটাতে ক্লিক করুন</p>
+      </div>
+      <main className="flex-1 px-4 pb-6 grid grid-cols-2 gap-3">
+        <button
+          onClick={() => navigate("/free-class")}
+          className="relative rounded-2xl p-[1.5px] bg-gradient-to-br from-blue-500/60 to-cyan-500/60 active:scale-95 transition-transform shadow-sm hover:shadow-md"
+        >
+          <div className="flex flex-col items-center justify-center gap-3 rounded-[calc(1rem-1.5px)] bg-card py-8 h-full">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-md ring-1 ring-white/20">
+              <Video className="h-7 w-7 text-white" strokeWidth={2.25} />
+            </div>
+            <span className="text-sm font-bold text-center text-foreground">Free Class</span>
+          </div>
+        </button>
+        <button
+          onClick={() => navigate("/free-exam")}
+          className="relative rounded-2xl p-[1.5px] bg-gradient-to-br from-red-500/60 to-rose-500/60 active:scale-95 transition-transform shadow-sm hover:shadow-md"
+        >
+          <div className="flex flex-col items-center justify-center gap-3 rounded-[calc(1rem-1.5px)] bg-card py-8 h-full">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-rose-500 shadow-md ring-1 ring-white/20">
+              <FileQuestion className="h-7 w-7 text-white" strokeWidth={2.25} />
+            </div>
+            <span className="text-sm font-bold text-center text-foreground">Free Exam</span>
+          </div>
+        </button>
+      </main>
+    </div>
   );
 };
 
