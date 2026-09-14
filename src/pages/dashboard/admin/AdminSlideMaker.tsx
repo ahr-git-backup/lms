@@ -32,6 +32,8 @@ interface SlideSettings {
   headerLeftText: string;
   headerRightText: string;
   centerText: string;
+  headerFontSize: number;
+  headerFontColor: string;
   logoLeftUrl: string;
   logoRightUrl: string;
 }
@@ -47,6 +49,8 @@ const DEFAULT_SETTINGS: SlideSettings = {
   headerLeftText: "",
   headerRightText: "",
   centerText: "",
+  headerFontSize: 18,
+  headerFontColor: "#ffffff",
   logoLeftUrl: "",
   logoRightUrl: "",
 };
@@ -254,6 +258,14 @@ const AdminSlideMaker = () => {
             </Select>
           </div>
           <div className="space-y-1">
+            <Label className="text-xs">Header Font Size ({settings.headerFontSize}px)</Label>
+            <Input type="range" min={12} max={36} value={settings.headerFontSize} onChange={(e) => setSettings((p) => ({ ...p, headerFontSize: Number(e.target.value) }))} className="h-9" />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Header Font Color</Label>
+            <ColorWheelPicker color={settings.headerFontColor} onChange={(hex) => setSettings((p) => ({ ...p, headerFontColor: hex }))} label="Header Font Color" />
+          </div>
+          <div className="space-y-1">
             <Label className="text-xs">Header Left (Corner)</Label>
             <Input value={settings.headerLeftText} onChange={(e) => setSettings((p) => ({ ...p, headerLeftText: e.target.value }))} placeholder="Text (optional)" />
             <div className="flex items-center gap-1.5">
@@ -331,25 +343,28 @@ const AdminSlideMaker = () => {
             >
               {/* Header */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 50 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
                   {settings.logoLeftUrl && <img src={settings.logoLeftUrl} style={{ height: 40, width: "auto" }} />}
                   {settings.headerLeftText}
                 </div>
-                {settings.centerText && <div style={{ fontSize: 20, fontWeight: 700 }}>{settings.centerText}</div>}
-                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 18, opacity: 0.8 }}>
+                {settings.centerText && <div style={{ fontSize: settings.headerFontSize + 2, fontWeight: 700, color: settings.headerFontColor }}>{settings.centerText}</div>}
+                <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: settings.headerFontSize, color: settings.headerFontColor }}>
                   {settings.headerRightText}
                   {settings.logoRightUrl && <img src={settings.logoRightUrl} style={{ height: 40, width: "auto" }} />}
                 </div>
               </div>
 
               {/* Question - full width, image-style block */}
-              <div style={{ fontSize: settings.questionFontSize, fontWeight: 700, marginTop: 20, marginBottom: 20, width: "100%", lineHeight: 1.4 }}>
+              <div style={{ fontSize: settings.questionFontSize, fontFamily: settings.fontFamily, fontWeight: 700, marginTop: 20, marginBottom: 20, width: "100%", lineHeight: 1.4 }}>
                 {activeQuestion.question}
               </div>
 
-              {/* Options - fill remaining space, footer space reserved at bottom */}
+              {/* Options - fill remaining space, footer space reserved at bottom.
+                  CSS grid with a single column makes every row match the tallest
+                  cell's height, so a long option grows all option cards equally
+                  instead of leaving short ones tiny. */}
               <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", paddingBottom: 70 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr", gridAutoRows: "1fr", gap: 20 }}>
                   {Object.entries(activeQuestion.options).map(([key, val]) => (
                     <div
                       key={key}
@@ -359,6 +374,7 @@ const AdminSlideMaker = () => {
                         borderRadius: 16,
                         padding: "20px 28px",
                         fontSize: settings.optionFontSize,
+                        fontFamily: settings.fontFamily,
                         boxShadow: `0 0 14px ${settings.optionBorderColor}`,
                         display: "flex",
                         gap: 14,
