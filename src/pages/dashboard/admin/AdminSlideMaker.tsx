@@ -115,7 +115,11 @@ const SlideVisual = ({
           el.style.minHeight = prev;
           return h;
         });
-      if (heights.length > 0) setOptionMinHeight(Math.max(...heights));
+      // Add a bit of breathing room on top of the tallest option's natural
+      // content height, so the card never hugs the text exactly tight —
+      // this extra space becomes the shared size every option card uses.
+      const EXTRA_BREATHING_ROOM = 24;
+      if (heights.length > 0) setOptionMinHeight(Math.max(...heights) + EXTRA_BREATHING_ROOM);
     };
     measure();
     // Re-measure on font load / resize, since web fonts can change text
