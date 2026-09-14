@@ -2,37 +2,8 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
-import {
-  LayoutGrid,
-  Timer,
-  Send,
-  Flame,
-  Infinity as InfinityIcon,
-  GraduationCap,
-  Clock3,
-  Star,
-} from "lucide-react";
-
-interface Shortcut {
-  icon: typeof Timer;
-  label: string;
-  path: string;
-  color: string;
-  external?: boolean;
-}
-
-// Only free / always-usable features live on the PWA home. Anything under a
-// course (Live Class, Live Exam, Quick Practice, etc.) is reached via the
-// course's own Dashboard button instead. More study tools live under the
-// Study Aid tab.
-const FREE_SHORTCUTS: Shortcut[] = [
-  { icon: Flame, label: "ফ্রি এক্সাম", path: "/free-exam", color: "hsl(24 95% 53%)" },
-  { icon: InfinityIcon, label: "ফ্রি ক্লাস", path: "/free-class", color: "hsl(199 89% 48%)" },
-  { icon: Timer, label: "ফোকাস টাইমার", path: "/focus-timer", color: "hsl(330 81% 60%)" },
-  { icon: Clock3, label: "পোমোডোরো", path: "/pomodoro", color: "hsl(160 84% 39%)" },
-  { icon: Star, label: "কোর্স রিভিউ", path: "/reviews", color: "hsl(38 92% 50%)" },
-  { icon: Send, label: "টেলিগ্রাম সাপোর্ট", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
-];
+import { PWAQuickActionsGrid } from "@/components/home/PWAQuickActionsGrid";
+import { LayoutGrid, Send, GraduationCap } from "lucide-react";
 
 export default function PWAHome() {
   const navigate = useNavigate();
@@ -43,18 +14,6 @@ export default function PWAHome() {
   }, []);
 
   const greetingName = profile?.full_name?.split(" ")[0];
-
-  const openShortcut = (item: Shortcut) => {
-    if (item.external) {
-      // window.open(url, "_blank") renders a blank/black window inside an
-      // installed standalone PWA (no browser chrome to fall back to).
-      // Navigating the current window lets the OS hand off to the
-      // Telegram app or system browser correctly instead.
-      window.location.href = item.path;
-    } else {
-      navigate(item.path);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -90,28 +49,10 @@ export default function PWAHome() {
           </button>
         </section>
 
-        {/* Free / always-usable features */}
+        {/* Free / always-usable features (same icons/style as website Quick Actions) */}
         <section>
           <h2 className="mb-2 px-1 text-sm font-semibold text-muted-foreground">ফ্রি ফিচার</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {FREE_SHORTCUTS.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => openShortcut(item)}
-                className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-4 shadow-sm active:scale-95 transition-transform"
-              >
-                <div
-                  className="flex h-11 w-11 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: `${item.color}1a`, color: item.color }}
-                >
-                  <item.icon className="h-5 w-5" />
-                </div>
-                <span className="text-[11px] font-semibold text-center leading-tight px-1">
-                  {item.label}
-                </span>
-              </button>
-            ))}
-          </div>
+          <PWAQuickActionsGrid />
         </section>
 
         {!user && (
