@@ -15,6 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClassForm } from "@/components/admin/ClassForm";
 import { ClassSortableList } from "@/components/admin/ClassSortableList";
+import { TutorialSortableList } from "@/components/admin/TutorialSortableList";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
 import { ArrowUpDown, Plus, List, LayoutGrid, Video as VideoIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -29,6 +30,7 @@ const AdminClasses = () => {
   const [tutorialCaptionInput, setTutorialCaptionInput] = useState("");
   const [tutorialUrlInput, setTutorialUrlInput] = useState("");
   const [editingTutorialId, setEditingTutorialId] = useState<string | null>(null);
+  const [showTutorialReorder, setShowTutorialReorder] = useState(false);
   const [viewMode, setViewMode] = useState<"list" | "course">("list");
   const [isReordering, setIsReordering] = useState(false);
   const [reorderCourseId, setReorderCourseId] = useState<string | null>(null);
@@ -189,6 +191,10 @@ const AdminClasses = () => {
           <DialogHeader>
             <DialogTitle>Watch Tutorial Videos</DialogTitle>
           </DialogHeader>
+          {showTutorialReorder ? (
+            <TutorialSortableList videos={tutorialVideos || []} onClose={() => setShowTutorialReorder(false)} />
+          ) : (
+          <>
           <div className="space-y-2 py-2 border-b pb-4">
             <Label htmlFor="tutorial-caption">Caption</Label>
             <Input
@@ -218,6 +224,11 @@ const AdminClasses = () => {
             </div>
           </div>
           <div className="space-y-2">
+            {tutorialVideos && tutorialVideos.length > 1 && (
+              <Button size="sm" variant="outline" className="w-full" onClick={() => setShowTutorialReorder(true)}>
+                <ArrowUpDown className="h-3.5 w-3.5 mr-2" /> Manage Order
+              </Button>
+            )}
             {tutorialVideos?.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-4">কোনো tutorial video নেই।</p>
             )}
@@ -247,6 +258,8 @@ const AdminClasses = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowTutorialDialog(false)}>Close</Button>
           </DialogFooter>
+          </>
+          )}
         </DialogContent>
       </Dialog>
 

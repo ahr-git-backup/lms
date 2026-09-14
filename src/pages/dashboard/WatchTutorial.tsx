@@ -33,6 +33,12 @@ const WatchTutorial = () => {
         <p className="text-xs text-muted-foreground">Dashboard ব্যবহারের ভিডিও গাইড।</p>
       </header>
 
+      <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 p-3">
+        <p className="text-sm text-emerald-800 dark:text-emerald-200">
+          নিচের ভিডিওগুলো ক্রম অনুসারে (১, ২, ৩...) দেখুন, ভালোভাবে বুঝতে সুবিধা হবে।
+        </p>
+      </div>
+
       {isLoading ? (
         <div className="text-sm text-muted-foreground">Loading...</div>
       ) : !videos || videos.length === 0 ? (
@@ -42,16 +48,19 @@ const WatchTutorial = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-          {videos.map((v) => (
+        <div className="grid grid-cols-1 gap-3">
+          {videos.map((v, idx) => (
             <Card
               key={v.id}
-              className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer flex flex-col"
+              className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all cursor-pointer"
               onClick={() => setActiveVideo(v)}
             >
-              <CardContent className="p-4 flex flex-col items-center text-center gap-2 flex-1 justify-center">
-                <PlayCircle className="h-10 w-10 text-emerald-600" />
-                <CardTitle className="text-sm leading-snug">{v.caption}</CardTitle>
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="h-9 w-9 shrink-0 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-sm">
+                  {idx + 1}
+                </div>
+                <PlayCircle className="h-6 w-6 text-emerald-600 shrink-0" />
+                <CardTitle className="text-sm leading-snug flex-1">{v.caption}</CardTitle>
               </CardContent>
             </Card>
           ))}
