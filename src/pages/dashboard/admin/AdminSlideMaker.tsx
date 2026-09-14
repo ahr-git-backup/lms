@@ -235,7 +235,22 @@ const SlideVisual = ({
                 boxSizing: "border-box",
               }}
             >
-              <span style={{ fontWeight: 700 }}>{key}.</span>
+              <span
+                style={{
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minWidth: settings.optionFontSize * 1.7,
+                  height: settings.optionFontSize * 1.7,
+                  borderRadius: "50%",
+                  backgroundColor: settings.optionBorderColor,
+                  color: settings.optionBgColor,
+                  flexShrink: 0,
+                }}
+              >
+                {key}
+              </span>
               <span
                 {...makeEditable(key as "A" | "B" | "C" | "D", val)}
                 style={{ flex: 1, ...(editable ? { outline: "none", cursor: "text" } : {}) }}
