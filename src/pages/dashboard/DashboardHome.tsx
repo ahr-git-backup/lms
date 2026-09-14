@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck, Send } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck, Send, Image as ImageIcon } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { quickAccessItems } from "@/config/dashboardCardItems";
@@ -593,6 +593,21 @@ const DashboardHome = () => {
                     <div>
                       <p className="font-semibold text-sm sm:text-base leading-tight">Mock Test</p>
                       <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                <Card
+                  className="cursor-pointer border-blue-500/40 hover:border-blue-500 transition-all bg-blue-50/50 dark:bg-blue-950/20"
+                  onClick={() => navigate("/admin/slide-maker")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <ImageIcon className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Slide Maker</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">MCQ slides → PDF</p>
                     </div>
                   </CardContent>
                 </Card>

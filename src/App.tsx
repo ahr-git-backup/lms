@@ -86,6 +86,7 @@ import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
+import AdminSlideMaker from "./pages/dashboard/admin/AdminSlideMaker";
 import AdminAdmissionTest from "./pages/dashboard/admin/AdminAdmissionTest";
 import AdmissionTest from "./pages/dashboard/AdmissionTest";
 import AdmissionTestPlay from "./pages/dashboard/AdmissionTestPlay";
@@ -296,6 +297,7 @@ const App = () => {
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
                 <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockPool /></ProtectedRoute>} />
+                <Route path="slide-maker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSlideMaker /></ProtectedRoute>} />
                 <Route path="admission-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminAdmissionTest /></ProtectedRoute>} />
                 <Route path="syllabus-tracker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSyllabusTracker /></ProtectedRoute>} />
                 <Route path="telegram-channels" element={<ProtectedRoute requireAdmin><AdminTelegramChannels /></ProtectedRoute>} />
