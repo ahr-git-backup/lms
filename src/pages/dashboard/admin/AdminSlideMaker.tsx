@@ -776,12 +776,24 @@ const AdminSlideMaker = () => {
   const [isExporting, setIsExporting] = useState(false);
   const slideRef = useRef<HTMLDivElement>(null);
   const previewWrapRef = useRef<HTMLDivElement>(null);
+  const previewOuterRef = useRef<HTMLDivElement>(null);
   const [previewScale, setPreviewScale] = useState(0.5);
+  const [previewHeight, setPreviewHeight] = useState(0);
 
   useEffect(() => {
     const el = previewWrapRef.current;
     if (!el) return;
     const update = () => setPreviewScale(el.offsetWidth / SLIDE_W);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const el = previewOuterRef.current;
+    if (!el) return;
+    const update = () => setPreviewHeight(el.offsetHeight);
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
@@ -993,27 +1005,36 @@ const AdminSlideMaker = () => {
         )}
       </div>
 
-      {/* Live preview — only the image itself is sticky, pinned flush to
-          the very top of the viewport (top-0, no label/text above it). */}
-      <div className="sticky top-0 z-50 bg-background -mx-4 px-4 sm:mx-0 sm:px-0 sm:bg-transparent">
-        <div className="w-full">
-          <div ref={previewWrapRef} className="w-full max-w-[640px] mx-auto" style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden" }}>
-            <div
-              ref={slideRef}
-              data-slide-scale-wrap="true"
-              style={{
-                transform: `scale(${previewScale})`,
-                transformOrigin: "top left",
-                position: "absolute",
-                top: 0,
-                left: 0,
-              }}
-            >
-              <SlideVisual question={activeQuestion} settings={settings} />
-            </div>
+      {/* Live preview — fixed to the very top of the viewport (not just
+          sticky within the scroll container), so on scroll it stays
+          pinned above and covers the app's own "Dashboard" header bar
+          instead of appearing below it. A spacer of matching height keeps
+          the rest of the page from jumping up underneath it. */}
+      <div
+        ref={previewOuterRef}
+        className="fixed top-0 left-0 right-0 z-50 bg-background px-4 sm:sticky sm:px-0"
+      >
+        <div ref={previewWrapRef} className="w-full max-w-[640px] mx-auto" style={{ aspectRatio: "16/9", position: "relative", overflow: "hidden" }}>
+          <div
+            ref={slideRef}
+            data-slide-scale-wrap="true"
+            style={{
+              transform: `scale(${previewScale})`,
+              transformOrigin: "top left",
+              position: "absolute",
+              top: 0,
+              left: 0,
+            }}
+          >
+            <SlideVisual question={activeQuestion} settings={settings} />
           </div>
         </div>
       </div>
+      {/* Spacer reserving the same height as the fixed preview above (mobile
+          only — on sm+ the preview is sticky within flow so no spacer is
+          needed), so normal-flow content below doesn't slide underneath it. */}
+      <div className="sm:hidden" style={{ height: previewHeight }} />
+
 
       {/* Settings panel — segmented into collapsible sections, one per
           slide area, so everything is grouped with its own segment
