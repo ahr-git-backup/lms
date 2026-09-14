@@ -183,8 +183,8 @@ export const SuccessGallerySection = () => {
   const mid = showRowTwo ? Math.ceil(indexed.length / 2) : indexed.length;
   const rowOne = indexed.slice(0, mid);
   const rowTwo = showRowTwo ? indexed.slice(mid) : [];
-  const loopRowOne = [...rowOne, ...rowOne];
-  const loopRowTwo = [...rowTwo, ...rowTwo];
+  const loopRowOne = rowOne.length > 1 ? [...rowOne, ...rowOne] : rowOne;
+  const loopRowTwo = rowTwo.length > 1 ? [...rowTwo, ...rowTwo] : rowTwo;
   const allImages = indexed.map((p) => p.image_url);
 
   const closeLightbox = () => setLightbox(null);
