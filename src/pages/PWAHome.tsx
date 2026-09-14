@@ -36,7 +36,7 @@ const FREE_SHORTCUTS: Shortcut[] = [
   { icon: Timer, label: "ফোকাস টাইমার", path: "/focus-timer", color: "hsl(330 81% 60%)" },
   { icon: Clock3, label: "পোমোডোরো", path: "/pomodoro", color: "hsl(160 84% 39%)" },
   { icon: Star, label: "কোর্স রিভিউ", path: "/reviews", color: "hsl(38 92% 50%)" },
-  { icon: Send, label: "টেলিগ্রাম চ্যানেল", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
+  { icon: Send, label: "টেলিগ্রাম সাপোর্ট", path: "https://t.me/rafi_somc", color: "hsl(217 91% 60%)", external: true },
 ];
 
 export default function PWAHome() {
@@ -53,7 +53,11 @@ export default function PWAHome() {
 
   const openShortcut = (item: Shortcut) => {
     if (item.external) {
-      window.open(item.path, "_blank", "noopener,noreferrer");
+      // window.open(url, "_blank") renders a blank/black window inside an
+      // installed standalone PWA (no browser chrome to fall back to).
+      // Navigating the current window lets the OS hand off to the
+      // Telegram app or system browser correctly instead.
+      window.location.href = item.path;
     } else {
       navigate(item.path);
     }
