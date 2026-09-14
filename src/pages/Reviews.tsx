@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Star, Loader2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PublicHeader from "@/components/PublicHeader";
@@ -6,6 +6,41 @@ import { Helmet } from "react-helmet-async";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+
+/** Same click-and-drag / touch-swipe scrolling used by the homepage
+ *  Success Gallery marquee rows. */
+const useDragScroll = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const startX = useRef(0);
+  const startScroll = useRef(0);
+
+  const onDown = (clientX: number) => {
+    if (!ref.current) return;
+    setDragging(true);
+    startX.current = clientX;
+    startScroll.current = ref.current.scrollLeft;
+  };
+  const onMove = (clientX: number) => {
+    if (!dragging || !ref.current) return;
+    ref.current.scrollLeft = startScroll.current - (clientX - startX.current);
+  };
+  const onUp = () => setDragging(false);
+
+  return {
+    ref,
+    dragging,
+    handlers: {
+      onMouseDown: (e: React.MouseEvent) => onDown(e.clientX),
+      onMouseMove: (e: React.MouseEvent) => onMove(e.clientX),
+      onMouseUp: onUp,
+      onMouseLeave: onUp,
+      onTouchStart: (e: React.TouchEvent) => onDown(e.touches[0].clientX),
+      onTouchMove: (e: React.TouchEvent) => onMove(e.touches[0].clientX),
+      onTouchEnd: onUp,
+    },
+  };
+};
 
 const Lightbox = ({
   images,
@@ -65,15 +100,18 @@ const Lightbox = ({
   );
 };
 
-const ReviewCard = ({ review }: { review: any }) => {
-  const [expanded, setExpanded] = useState(false);
-  const [lightbox, setLightbox] = useState<number | null>(null);
-  const isLong = review.review_text?.length > 150;
-  const images: string[] = review.images && review.images.length > 0
+const reviewImages = (review: any): string[] =>
+  review.images && review.images.length > 0
     ? review.images
     : review.post_image_url
       ? [review.post_image_url]
       : [];
+
+const ReviewCard = ({ review }: { review: any }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const isLong = review.review_text?.length > 150;
+  const images: string[] = reviewImages(review);
 
   return (
     <div className="group rounded-xl border border-primary/10 bg-card/50 backdrop-blur-sm p-6 flex flex-col h-full transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/30">
@@ -151,6 +189,56 @@ const CATEGORIES = [
   { value: "website", label: "অন্যান্য" },
 ];
 
+/** Success-Gallery-style animated, drag-scrollable image row built from
+ *  this category's review images. Clicking an image opens the lightbox. */
+const ReviewImageMarquee = ({ reviews }: { reviews: any[] }) => {
+  const [lightbox, setLightbox] = useState<number | null>(null);
+  const drag = useDragScroll();
+
+  const items = reviews.flatMap((review) =>
+    reviewImages(review).map((img) => ({ img, caption: review.student_name || "" }))
+  );
+
+  if (items.length === 0) return null;
+  const allImages = items.map((i) => i.img);
+
+  return (
+    <div className="relative w-full overflow-hidden bg-black rounded-2xl py-6 mb-6">
+      <div
+        ref={drag.ref}
+        className={`flex gap-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+          drag.dragging ? "cursor-grabbing" : "cursor-grab"
+        }`}
+        {...drag.handlers}
+      >
+        {items.map((item, idx) => (
+          <button
+            key={idx}
+            onClick={() => setLightbox(idx)}
+            className="relative h-[180px] w-[280px] flex-none overflow-hidden rounded-2xl border border-white/10 sm:h-[220px] sm:w-[340px] transition-transform duration-300 hover:scale-[1.02] active:scale-95"
+          >
+            <img
+              src={item.img}
+              alt={item.caption || "Review"}
+              className="h-full w-full select-none object-cover"
+              draggable={false}
+            />
+            {item.caption && (
+              <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 py-2">
+                <p className="truncate text-xs font-semibold text-white text-left">{item.caption}</p>
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {lightbox !== null && (
+        <Lightbox images={allImages} index={lightbox} onClose={() => setLightbox(null)} onNav={setLightbox} />
+      )}
+    </div>
+  );
+};
+
 export default function Reviews() {
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -214,11 +302,14 @@ export default function Reviews() {
                 {grouped[c.value].length === 0 ? (
                   <div className="text-center py-10 opacity-60">এই বিভাগে এখনো কোনো রিভিউ নেই।</div>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
-                    {grouped[c.value].map((review) => (
-                      <ReviewCard key={`${c.value}-${review.id}`} review={review} />
-                    ))}
-                  </div>
+                  <>
+                    <ReviewImageMarquee reviews={grouped[c.value]} />
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 auto-rows-max gap-4 md:gap-6 items-start">
+                      {grouped[c.value].map((review) => (
+                        <ReviewCard key={`${c.value}-${review.id}`} review={review} />
+                      ))}
+                    </div>
+                  </>
                 )}
               </TabsContent>
             ))}
