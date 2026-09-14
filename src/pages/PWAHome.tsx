@@ -77,17 +77,27 @@ export default function PWAHome() {
       <main className="flex-1 px-4 pb-4 space-y-6">
         {/* Top row: আমার কোর্স + সকল কোর্স, side by side */}
         <section className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => {
-              document.getElementById("my-courses-section")?.scrollIntoView({ behavior: "smooth" });
-            }}
-            className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
-          >
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <GraduationCap className="h-6 w-6" />
-            </div>
-            <span className="text-sm font-semibold text-center">আমার কোর্স</span>
-          </button>
+          {!user ? (
+            <Card className="border-dashed">
+              <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2 h-full justify-center">
+                <GraduationCap className="h-8 w-8 text-muted-foreground opacity-40" />
+                <p className="text-xs text-muted-foreground leading-tight">আপনার কোর্স দেখতে লগইন করুন</p>
+                <Button size="sm" onClick={() => navigate("/login")}>লগইন করুন</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <button
+              onClick={() => {
+                document.getElementById("my-courses-section")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
+            >
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <GraduationCap className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-semibold text-center">আমার কোর্স</span>
+            </button>
+          )}
           <button
             onClick={() => navigate("/courses")}
             className="flex flex-col items-center justify-center gap-2 rounded-2xl border bg-card py-5 shadow-sm active:scale-95 transition-transform"
@@ -100,16 +110,9 @@ export default function PWAHome() {
         </section>
 
         {/* My enrolled courses — each card opens that course's full dashboard */}
+        {user && (
         <section id="my-courses-section" className="space-y-2 scroll-mt-4">
-          {!user ? (
-            <Card className="border-dashed">
-              <CardContent className="pt-5 pb-5 flex flex-col items-center text-center gap-2">
-                <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
-                <p className="text-sm text-muted-foreground">আপনার কোর্স দেখতে লগইন করুন</p>
-                <Button size="sm" onClick={() => navigate("/login")}>লগইন করুন</Button>
-              </CardContent>
-            </Card>
-          ) : enrollmentsLoading ? (
+          {enrollmentsLoading ? (
             <div className="text-sm text-muted-foreground py-4 text-center">লোড হচ্ছে...</div>
           ) : directCourses.length === 0 ? (
             <Card className="border-dashed">
@@ -158,6 +161,7 @@ export default function PWAHome() {
             </div>
           )}
         </section>
+        )}
 
         {/* Free / always-usable features */}
         <section>
