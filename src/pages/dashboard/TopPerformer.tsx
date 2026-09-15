@@ -31,6 +31,8 @@ type Performer = {
   profile_id: string;
   full_name: string;
   avatar_url: string | null;
+  college_name: string | null;
+  hsc_batch: string | null;
   exam_count: number;
   avg_score_pct: number;
   avg_seconds_per_question: number | null;
@@ -74,6 +76,16 @@ const PodiumItem = ({ student, rank, color, height, glowColor, zIndex, CrownIcon
         <div className="font-bold text-xs sm:text-sm text-foreground leading-tight break-words drop-shadow-sm" title={student.full_name}>
           {student.full_name || "Unknown"}
         </div>
+        {student.college_name && (
+          <div className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight truncate" title={student.college_name}>
+            {student.college_name}
+          </div>
+        )}
+        {student.hsc_batch && (
+          <div className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight">
+            HSC {student.hsc_batch}
+          </div>
+        )}
       </div>
       <div
         className={`w-16 sm:w-20 lg:w-24 rounded-t-lg relative flex items-start justify-center pt-2 sm:pt-3 transition-all duration-500 hover:brightness-110 overflow-hidden text-white shadow-[0_-5px_25px_-5px_rgba(0,0,0,0.1)] bg-gradient-to-b ${color}`}
@@ -294,6 +306,11 @@ const TopPerformer = () => {
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                    {(p.college_name || p.hsc_batch) && (
+                      <p className="text-[10px] text-muted-foreground truncate">
+                        {[p.college_name, p.hsc_batch ? `HSC ${p.hsc_batch}` : null].filter(Boolean).join(" • ")}
+                      </p>
+                    )}
                     <p className="text-[10px] text-muted-foreground">{p.exam_count} এক্সাম • গড় {p.avg_score_pct}% • {p.active_days} দিন একটিভ</p>
                   </div>
                   <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px] shrink-0">{p.composite_score.toFixed(0)} pts</Badge>
