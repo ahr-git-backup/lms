@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,7 +17,7 @@ const DEFAULT_STANDARDS = [
   { value: "varsity", label: "Varsity" },
   { value: "onushiloni", label: "Onushiloni" },
 ];
-const COUNTS = [25, 35, 50, 75, 100, 150, 200];
+const COUNTS = [25, 35, 50, 75, 100];
 
 type ChapterSel = { subject: string; chapter: string };
 type TopicSel = { subject: string; chapter: string; topic: string };
@@ -31,6 +32,7 @@ const UnlimitedMockTest = () => {
   const [customCount, setCustomCount] = useState("");
   const [starting, setStarting] = useState(false);
   const [openSubject, setOpenSubject] = useState(""); // which subject's accordion panel is expanded
+  const [setupOpen, setSetupOpen] = useState(false); // popup for standard + count before starting
 
   // Unified checkbox-based selection: user can check any chapters across any
   // subjects, mixed freely. Checking a chapter also selects it as "whole
@@ -498,91 +500,112 @@ const UnlimitedMockTest = () => {
               })}
             </Accordion>
           </div>
+        </CardContent>
+      </Card>
 
-          <div>
-            <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
-            <div className="flex gap-2 flex-wrap">
-              {STANDARDS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setStandard(s.value)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                    standard === s.value
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
+      <div className="h-16" />
 
-          <div>
-            <Label className="mb-2 block">
-              প্রশ্ন সংখ্যা
-              {availablePool != null && (
-                <span className="text-muted-foreground font-normal"> (available {availablePool})</span>
-              )}
-            </Label>
-            <div className="flex gap-2 flex-wrap">
-              {COUNTS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setCount(c)}
-                  className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
-                    count === c
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                  }`}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <Card className="bg-muted/40">
-            <CardContent className="pt-4 space-y-2">
-              <Label className="text-xs text-primary font-semibold">কাস্টম সেটিং</Label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  {!customCount && (
-                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-primary/60 pointer-events-none select-none animate-pulse">|</span>
-                  )}
-                  <Input
-                    type="number"
-                    min={5}
-                    max={200}
-                    placeholder=""
-                    value={customCount}
-                    onChange={(e) => setCustomCount(e.target.value)}
-                    className="flex-1 dark:text-white"
-                  />
-                </div>
-                <Button onClick={handleCustomStart} disabled={starting}>
-                  Start
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                প্রতি প্রশ্নে ৩০ সেকেন্ড করে সময় অটো ক্যালকুলেট হবে
-              </p>
-            </CardContent>
-          </Card>
-
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border p-3">
+        <div className="max-w-lg mx-auto">
           <Button
             className="w-full"
             size="lg"
-            onClick={() => buildAndStart(count)}
-            disabled={starting || selectedChapters.length === 0}
+            onClick={() => setSetupOpen(true)}
+            disabled={selectedChapters.length === 0}
           >
-            {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             এক্সাম শুরু করুন
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <Dialog open={setupOpen} onOpenChange={setSetupOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>টেস্ট সেটিং</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {STANDARDS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setStandard(s.value)}
+                    className={`px-2 py-2 rounded-lg text-xs font-semibold border-2 transition-colors text-center ${
+                      standard === s.value
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label className="mb-2 block">
+                প্রশ্ন সংখ্যা
+                {availablePool != null && (
+                  <span className="text-muted-foreground font-normal"> (available {availablePool})</span>
+                )}
+              </Label>
+              <div className="flex gap-2 flex-wrap mb-2">
+                {COUNTS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => {
+                      setCount(c);
+                      setCustomCount("");
+                    }}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold border-2 transition-colors ${
+                      count === c && !customCount
+                        ? "border-primary bg-primary/10 text-primary"
+                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={5}
+                  max={100}
+                  placeholder="নিজে সংখ্যা লিখুন (সর্বোচ্চ ১০০)"
+                  value={customCount}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setCustomCount(v);
+                    const n = parseInt(v);
+                    if (n) setCount(Math.min(n, 100));
+                  }}
+                  className="dark:text-white"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                প্রতি প্রশ্নে ৩০ সেকেন্ড করে সময় অটো ক্যালকুলেট হবে
+              </p>
+            </div>
+
+            <Button
+              className="w-full"
+              size="lg"
+              onClick={() => {
+                setSetupOpen(false);
+                buildAndStart(count);
+              }}
+              disabled={starting}
+            >
+              {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              এক্সাম শুরু করুন
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
