@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useEnrollments } from "@/hooks/useEnrollments";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Gift, Search } from "lucide-react";
+import { GraduationCap, Gift, Search, LayoutDashboard } from "lucide-react";
 
 const MyCourses = () => {
   const { data: enrollments, isLoading } = useEnrollments();
@@ -105,6 +105,18 @@ const MyCourses = () => {
                  </div>
                )}
             </CardContent>
+            <CardFooter className="pt-0 mt-auto pb-6 px-6">
+              <Button
+                variant="secondary"
+                className="w-full gap-2 rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/dashboard/course/${enrollment.course_id}`);
+                }}
+              >
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
+              </Button>
+            </CardFooter>
           </Card>
         ))}
       </div>
