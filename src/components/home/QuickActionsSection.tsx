@@ -68,8 +68,7 @@ export const QuickActionsSection = () => {
         </Button>
         <Button
           onClick={() => navigate("/reviews")}
-          variant="outline"
-          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 hover:bg-primary/5 transition-all"
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white hover:opacity-90 transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(45 93% 55%)" }}
         >
           <Star className="mr-2 h-4 w-4 animate-icon-float" style={{ animationDelay: "0.15s" }} /> Course Review
