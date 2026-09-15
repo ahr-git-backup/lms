@@ -661,7 +661,7 @@ const UnlimitedMockTest = () => {
                       "border-2 rounded-xl overflow-hidden transition-shadow duration-300",
                       s === openSubject || subjectSelectedCount > 0
                         ? "border-primary shadow-[0_0_10px_2px_rgba(34,197,235,0.55)]"
-                        : "border-border"
+                        : "border-border shadow-[0_0_6px_1px_rgba(34,197,235,0.3)]"
                     )}
                   >
                     <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-bold text-sm [&>svg]:hidden">
