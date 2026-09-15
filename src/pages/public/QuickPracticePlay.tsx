@@ -15,6 +15,46 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import MathText from "@/components/MathText";
 
+const BALLOON_COLORS = ["#f87171", "#fb923c", "#facc15", "#4ade80", "#38bdf8", "#a78bfa", "#f472b6"];
+
+const CorrectBalloonBurst = ({ burstKey, onDone }: { burstKey: number; onDone: () => void }) => {
+  useEffect(() => {
+    const t = setTimeout(onDone, 900);
+    return () => clearTimeout(t);
+  }, [burstKey, onDone]);
+
+  const balloons = useMemo(
+    () =>
+      Array.from({ length: 10 }, (_, i) => ({
+        id: i,
+        left: 8 + Math.random() * 84,
+        delay: Math.random() * 0.15,
+        color: BALLOON_COLORS[i % BALLOON_COLORS.length],
+        size: 20 + Math.random() * 14,
+      })),
+    [burstKey]
+  );
+
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-visible z-20">
+      {balloons.map((b) => (
+        <span
+          key={b.id}
+          className="absolute rounded-full balloon-pop"
+          style={{
+            left: `${b.left}%`,
+            bottom: "0px",
+            width: b.size,
+            height: b.size * 1.15,
+            background: b.color,
+            animationDelay: `${b.delay}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 const ReportMcqDialog = ({
   mcqId,
   questionText,
@@ -143,6 +183,7 @@ const QuickPracticePlay = () => {
   const [detailFilter, setDetailFilter] = useState<"all" | "right" | "wrong" | "skip">("all");
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<{ id: number; question: string } | null>(null);
+  const [celebrateKey, setCelebrateKey] = useState<number | null>(null);
 
   const sessionCorrect = useMemo(() => answered.filter((a) => a?.correct).length, [answered]);
   const sessionWrong = useMemo(
@@ -308,12 +349,16 @@ const QuickPracticePlay = () => {
     setAnswered(next);
     playSound(correct, soundVol, rightPack, wrongPack);
     saveState(getMode(), mcqs, current, next);
+    if (correct) {
+      setCelebrateKey(Date.now());
+    }
   };
 
   const goPrev = () => {
     if (current > 0) {
       const c = current - 1;
       setCurrent(c);
+      setCelebrateKey(null);
       saveState(getMode(), mcqs, c, answered);
     }
   };
@@ -326,6 +371,7 @@ const QuickPracticePlay = () => {
     if (current < mcqs.length - 1) {
       const c = current + 1;
       setCurrent(c);
+      setCelebrateKey(null);
       saveState(getMode(), mcqs, c, answered);
     } else {
       void finish();
@@ -709,7 +755,10 @@ const QuickPracticePlay = () => {
         </div>
         <p className="text-[16px] font-bold leading-relaxed mb-5"><MathText text={q.question} as="span" /></p>
 
-        <div className="flex flex-col gap-2.5">
+        <div className="relative flex flex-col gap-2.5">
+          {celebrateKey && (
+            <CorrectBalloonBurst burstKey={celebrateKey} onDone={() => setCelebrateKey(null)} />
+          )}
           {q.options.map((opt, i) => {
             let cls = "border-border bg-card hover:border-primary/40";
             if (ans) {
