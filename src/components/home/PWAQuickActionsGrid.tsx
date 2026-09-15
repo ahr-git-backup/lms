@@ -49,10 +49,6 @@ export const PWAQuickActionsGrid = () => {
   }, [user]);
 
   const handleStudyTrackerClick = () => {
-    if (!user) {
-      setShowAuthGate(true);
-      return;
-    }
     navigate("/syllabus-tracker");
   };
 
