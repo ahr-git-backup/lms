@@ -79,18 +79,22 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/free-class")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/60 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 border-2 border-blue-500/50 hover:border-blue-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
         >
-          <Video className="h-4 w-4 text-primary animate-icon-float" />
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shadow-sm">
+            <Video className="h-4 w-4 text-white animate-icon-float" />
+          </div>
           <span className="text-sm font-semibold">Free Class</span>
         </button>
         <button
           onClick={() => navigate("/free-exam")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/60 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-red-500/10 to-orange-500/10 border-2 border-red-500/50 hover:border-red-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
         >
-          <FileQuestion className="h-4 w-4 text-primary animate-icon-float" style={{ animationDelay: "0.3s" }} />
+          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-sm">
+            <FileQuestion className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.3s" }} />
+          </div>
           <span className="text-sm font-semibold">Free Exam</span>
         </button>
       </div>
