@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -625,13 +625,7 @@ const UnlimitedMockTest = () => {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
-          <p className="text-[11px] text-muted-foreground">
-            চেকবক্স দিয়ে যেকোনো সাবজেক্ট/চ্যাপ্টার/টপিক বেছে নিন — একটি হোক বা একাধিক মিশিয়ে, ইচ্ছেমতো
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
             <Label className="mb-1 flex items-center justify-between">
               <span>সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</span>
