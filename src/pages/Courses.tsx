@@ -6,7 +6,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Gift } from "lucide-react";
+import { LayoutDashboard, GraduationCap, Gift } from "lucide-react";
 
 const MyCoursesStrip = () => {
   const { user } = useAuth();
@@ -22,7 +22,7 @@ const MyCoursesStrip = () => {
       <h2 className="text-xl sm:text-2xl font-semibold tracking-tight">My Courses</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {directEnrollments.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50">
+          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50 cursor-pointer" onClick={() => navigate(`/dashboard`)}>
             <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-muted/20 relative">
               {enrollment.course?.image_url ? (
                 <img
@@ -53,10 +53,14 @@ const MyCoursesStrip = () => {
             </CardContent>
             <CardFooter className="pt-0 mt-auto pb-6 px-6">
               <Button
-                className="w-full gap-2 rounded-full shadow-lg shadow-primary/10 group-hover:shadow-primary/20 transition-all"
-                onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}
+                variant="secondary"
+                className="w-full gap-2 rounded-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  navigate(`/dashboard`);
+                }}
               >
-                <BookOpen className="h-4 w-4" /> Enter Course
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
               </Button>
             </CardFooter>
           </Card>
