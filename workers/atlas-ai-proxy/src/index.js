@@ -59,6 +59,9 @@ var atlas_ai_proxy_worker_default = {
     if (expImgMatch) {
       return handleExpImageStorage(expImgMatch[1], request, env);
     }
+    if (path === "/cache/mock-pool") {
+      return handleMockPoolCache(request, env, url, ctx);
+    }
     if (path === "/mcq-job/status") {
       return handleMcqJobStatus(url, env);
     }
@@ -234,6 +237,59 @@ function jsonResponse(obj, status = 200) {
   });
 }
 __name(jsonResponse, "jsonResponse");
+var MOCK_POOL_CACHE_TTL_SECONDS = 300;
+async function handleMockPoolCache(request, env, url, ctx) {
+  if (request.method !== "GET") {
+    return jsonResponse({ error: "Only GET allowed" }, 405);
+  }
+  if (!env.SUPABASE_URL || !env.SUPABASE_KEY) {
+    return jsonResponse({ error: "Supabase not configured on worker" }, 500);
+  }
+  const subjects = url.searchParams.getAll("subject");
+  const chapters = url.searchParams.getAll("chapter");
+  const standard = url.searchParams.get("standard");
+  if (!subjects.length || !chapters.length || !standard) {
+    return jsonResponse({ error: "subject, chapter and standard are required" }, 400);
+  }
+  const cacheKeyUrl = new URL(request.url);
+  cacheKeyUrl.searchParams.set("subject", [...subjects].sort().join(","));
+  cacheKeyUrl.searchParams.set("chapter", [...chapters].sort().join(","));
+  const cache = caches.default;
+  const cacheKeyRequest = new Request(cacheKeyUrl.toString(), { method: "GET" });
+  const cached = await cache.match(cacheKeyRequest);
+  if (cached) {
+    const res = new Response(cached.body, cached);
+    res.headers.set("X-Cache", "HIT");
+    return res;
+  }
+  const supabaseUrl = new URL(`${env.SUPABASE_URL}/rest/v1/mock_question_pool`);
+  supabaseUrl.searchParams.set("select", "subject,chapter,topic,questions_json");
+  supabaseUrl.searchParams.set("subject", `in.(${subjects.join(",")})`);
+  supabaseUrl.searchParams.set("chapter", `in.(${chapters.join(",")})`);
+  supabaseUrl.searchParams.set("standard", `eq.${standard}`);
+  const upstream = await fetch(supabaseUrl.toString(), {
+    headers: { apikey: env.SUPABASE_KEY, Authorization: `Bearer ${env.SUPABASE_KEY}` }
+  });
+  if (!upstream.ok) {
+    const text = await upstream.text();
+    return jsonResponse({ error: "Supabase fetch failed", detail: text }, upstream.status);
+  }
+  const data = await upstream.json();
+  const response = new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      ...CORS_HEADERS,
+      "Content-Type": "application/json",
+      "Cache-Control": `public, max-age=${MOCK_POOL_CACHE_TTL_SECONDS}`,
+      "X-Cache": "MISS"
+    }
+  });
+  if (ctx && ctx.waitUntil) {
+    ctx.waitUntil(cache.put(cacheKeyRequest, response.clone()));
+  }
+  return response;
+}
+__name(handleMockPoolCache, "handleMockPoolCache");
 async function handleD1Table(table, request, env, url, ctx) {
   const BACKUP_TABLES = /* @__PURE__ */ new Set(["users"]);
   function backupToSupabase(method, rows) {

@@ -463,13 +463,30 @@ const UnlimitedMockTest = () => {
       const chaptersInSel = Array.from(new Set(selectedChapters.map((s) => s.chapter)));
       const selSet = new Set(selectedChapters.map((s) => `${s.subject}||${s.chapter}`));
 
-      const { data: rows, error } = await supabase
-        .from("mock_question_pool")
-        .select("subject, chapter, topic, questions_json")
-        .in("subject", subjectsInSel)
-        .in("chapter", chaptersInSel)
-        .eq("standard", standard);
-      if (error) throw error;
+      let rows: any[] | null = null;
+      try {
+        const cacheUrl = new URL("https://atlas-ai-proxy.hamza818483.workers.dev/cache/mock-pool");
+        subjectsInSel.forEach((s) => cacheUrl.searchParams.append("subject", s));
+        chaptersInSel.forEach((c) => cacheUrl.searchParams.append("chapter", c));
+        cacheUrl.searchParams.set("standard", standard);
+        const res = await fetch(cacheUrl.toString());
+        if (res.ok) rows = await res.json();
+      } catch {
+        rows = null;
+      }
+
+      if (!rows) {
+        // Cache endpoint unavailable — fall back to a direct Supabase read
+        // so the exam still starts even if the worker is down.
+        const { data, error } = await supabase
+          .from("mock_question_pool")
+          .select("subject, chapter, topic, questions_json")
+          .in("subject", subjectsInSel)
+          .in("chapter", chaptersInSel)
+          .eq("standard", standard);
+        if (error) throw error;
+        rows = data;
+      }
 
       let data: any[] = (rows || []).filter((row: any) => {
         if (!selSet.has(`${row.subject}||${row.chapter}`)) return false;
