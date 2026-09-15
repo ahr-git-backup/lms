@@ -785,7 +785,23 @@ const PlayUnlimitedMock = () => {
                         {questionPositionMap.get(q.id)}/{questions.length}
                       </span>
                       <div className="flex items-center gap-0.5">
-                        <AiChatButton q={q} questionId={q.id} />
+                        {user ? (
+                          <AiChatButton q={q} questionId={q.id} />
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground"
+                            onClick={() =>
+                              toast({
+                                title: "এটি শুধুমাত্র পেইড ফিচার",
+                                description: "AI চ্যাট ব্যবহার করতে লগইন করে কোর্সে ভর্তি হোন।",
+                              })
+                            }
+                          >
+                            <Lock className="h-4 w-4" />
+                          </Button>
+                        )}
                         <ReportQuestionDialog questionText={q.question_text} />
                         <Button
                           variant="ghost"
@@ -873,7 +889,24 @@ const PlayUnlimitedMock = () => {
                     )}
 
                     <div className="print:hidden">
-                      <AiExplanationBox q={q} questionId={q.id} />
+                      {user ? (
+                        <AiExplanationBox q={q} questionId={q.id} />
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-2 text-muted-foreground"
+                          onClick={() =>
+                            toast({
+                              title: "এটি শুধুমাত্র পেইড ফিচার",
+                              description: "AI ব্যাখ্যা দেখতে লগইন করে কোর্সে ভর্তি হোন।",
+                            })
+                          }
+                        >
+                          <Lock className="h-3.5 w-3.5" />
+                          AI ব্যাখ্যা (পেইড ফিচার)
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
