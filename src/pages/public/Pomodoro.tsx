@@ -205,11 +205,7 @@ const Pomodoro = () => {
 
   const start = () => {
     const trimmedTask = task.trim();
-    if (!trimmedTask && !currentTask) {
-      alert("প্রথমে টাস্ক সেট করুন");
-      return;
-    }
-    const activeTask = trimmedTask || currentTask;
+    const activeTask = trimmedTask || currentTask || "টাস্ক";
 
     let secs = timeLeft;
     if (timeLeft <= 0 || timeLeft === totalTime) {
@@ -492,7 +488,7 @@ const Pomodoro = () => {
             <input
               value={task}
               onChange={(e) => setTask(e.target.value)}
-              placeholder="যেমন: পদার্থবিজ্ঞান চ্যাপ্টার ৩"
+              placeholder="যেমন: পদার্থবিজ্ঞান চ্যাপ্টার ৩ (ঐচ্ছিক)"
               className="w-full px-3 py-2 rounded-lg border bg-background text-sm"
             />
           </div>
