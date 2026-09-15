@@ -655,10 +655,10 @@ export default function AdmissionTestPlay() {
 
       </div>
 
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed left-0 right-0 bottom-3 z-40 px-4">
         <Button
-          size="default"
-          className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
+          size="lg"
+          className="w-full h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold"
           onClick={() => { if (confirm("Are you sure you want to submit the exam?")) submitMutation.mutate(); }}
           disabled={submitMutation.isPending}
         >

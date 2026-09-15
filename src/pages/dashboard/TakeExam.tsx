@@ -2405,14 +2405,14 @@ const TakeExam = () => {
 
       </div>
 
-      {/* Floating Submit Exam Button */}
+      {/* Sticky Full-Width Submit Exam Bar */}
       <div
-        className="fixed right-6 z-40"
-        style={{ bottom: isStandalone ? "calc(84px + env(safe-area-inset-bottom))" : "1.5rem" }}
+        className="fixed left-0 right-0 z-40 px-4"
+        style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : "0.75rem" }}
       >
         <Button
-             size="default"
-             className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
+             size="lg"
+             className="w-full h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold"
              onClick={() => {
                 if (confirm("Are you sure you want to submit the exam?")) submitExamMutation.mutate();
              }}
