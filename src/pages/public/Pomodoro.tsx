@@ -463,7 +463,8 @@ const Pomodoro = () => {
             <div className="absolute flex flex-col items-center px-3">
               <span
                 className={cn(
-                  "font-mono text-3xl font-bold tracking-wider",
+                  "font-mono font-bold tracking-wider",
+                  formatSeconds(timeLeft).length > 5 ? "text-xl" : "text-3xl",
                   warning ? "text-red-400" : "text-indigo-100"
                 )}
               >
