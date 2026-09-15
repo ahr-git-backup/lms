@@ -214,10 +214,10 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
                                     onClick={() => setSelectedCategory("all")}
-                                    className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
+                                    className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                         selectedCategory === "all"
                                         ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
-                                        : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
+                                        : "bg-transparent hover:bg-blue-50 text-foreground border-blue-300/60 hover:border-blue-400"
                                     }`}
                                 >
                                     সব
@@ -227,10 +227,10 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
+                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                             selectedCategory === cat
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
-                                            : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
+                                            : "bg-transparent hover:bg-blue-50 text-foreground border-blue-300/60 hover:border-blue-400"
                                         }`}
                                     >
                                         {cat}
@@ -246,10 +246,10 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                     <Button
                                         variant={selectedSubCategory === "all" ? "default" : "outline"}
                                         onClick={() => setSelectedSubCategory("all")}
-                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
+                                        className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                             selectedSubCategory === "all"
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
-                                            : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
+                                            : "bg-transparent hover:bg-blue-50 text-foreground border-blue-300/60 hover:border-blue-400"
                                         }`}
                                     >
                                         সব টাইপ
@@ -259,10 +259,10 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "default" : "outline"}
                                             onClick={() => setSelectedSubCategory(sub)}
-                                            className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border transition-all ${
+                                            className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                                 selectedSubCategory === sub
                                                 ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
-                                                : "bg-transparent hover:bg-blue-50 text-foreground border-border hover:border-blue-200"
+                                                : "bg-transparent hover:bg-blue-50 text-foreground border-blue-300/60 hover:border-blue-400"
                                             }`}
                                         >
                                             {sub}
