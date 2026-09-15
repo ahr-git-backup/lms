@@ -463,28 +463,24 @@ const Pomodoro = () => {
                   <stop offset="100%" stopColor="#818CF8" />
                 </linearGradient>
               </defs>
-              {/* Leading-edge flame: real flame-shaped icon, flickers, rides the progress arc */}
+              {/* Leading-edge flame: real flame-shaped icon, flickers, rides the progress arc, always points up */}
               {(() => {
                 const angle = elapsedProgress * 2 * Math.PI;
                 const dx = 90 + 80 * Math.cos(angle);
                 const dy = 90 + 80 * Math.sin(angle);
-                // Counter-rotate +90deg so the flame always points visually "up"
-                // regardless of the parent svg's -rotate-90 and the dot's position on the ring.
                 return (
-                  <g
-                    transform={`translate(${dx} ${dy}) rotate(90) scale(0.11)`}
-                    className="animate-flame-flicker"
-                    style={{ transformBox: "fill-box", transformOrigin: "center" }}
-                  >
-                    <path
-                      d="M32 2C22 14 16 24 16 34c0 10 7.2 18 16 18s16-8 16-18c0-6-3-11-6-15 1 6-2 10-5 10-4 0-6-4-5-9 1-5-1-10-3-13 0 5-1 9-4 12-2 2-3 5-3 8 0 4 3 7 6 7s5-3 5-6c0-2-1-3-2-5 2 1 4 4 4 8 0 6-5 11-11 11s-11-5-11-11c0-9 6-16 6-24C27-3 30 0 32 2z"
-                      fill="url(#flameGrad)"
-                    />
+                  <g transform={`translate(${dx} ${dy}) rotate(90) scale(0.5)`}>
+                    <g className="animate-flame-flicker" style={{ transformBox: "fill-box", transformOrigin: "center" }}>
+                      <path
+                        d="M0 -14C-5 -8 -8 -2 -8 3C-8 9 -4.5 13 0 13C4.5 13 8 9 8 3C8 0 6.5 -2.5 5 -4.5C5.5 -1.5 4 1 2 1C-0.5 1 -1.5 -1.5 -1 -4C-0.5 -6.5 -1.5 -9 -2.5 -10.5C-2.5 -8 -3 -6 -4.5 -4.5C-5.5 -3.5 -6 -2 -6 -0.5C-6 2 -4 4 -1.5 4C0.8 4 2.5 2 2.5 -0.3C2.5 -1.3 2 -2 1.5 -2.8C2.8 -2 4 -0.3 4 2C4 5 1.5 7.5 -1.5 7.5C-4.8 7.5 -7 5 -7 1.5C-7 -3.5 -3 -7.5 -3 -12C-3 -13 -2 -14 0 -14Z"
+                        fill="url(#flameGrad)"
+                      />
+                    </g>
                   </g>
                 );
               })()}
               <defs>
-                <radialGradient id="flameGrad" cx="50%" cy="70%" r="70%">
+                <radialGradient id="flameGrad" cx="50%" cy="65%" r="70%">
                   <stop offset="0%" stopColor="#FFF7ED" />
                   <stop offset="30%" stopColor="#FDE68A" />
                   <stop offset="60%" stopColor="#F97316" />
