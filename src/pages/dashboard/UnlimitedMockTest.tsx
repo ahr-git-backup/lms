@@ -415,6 +415,30 @@ const UnlimitedMockTest = () => {
         all = all.concat(qs);
       });
 
+      if (standard === "medical") {
+        const hasImageOrRoman = (qq: any) => {
+          const fields = [
+            qq.questions,
+            qq.question_text,
+            qq.option1,
+            qq.option2,
+            qq.option3,
+            qq.option4,
+            qq.option5,
+            qq.option_a,
+            qq.option_b,
+            qq.option_c,
+            qq.option_d,
+            qq.option_e,
+          ];
+          const combined = fields.filter(Boolean).join(" ");
+          if (/<img\b/i.test(combined)) return true;
+          if (/\b(i{1,3}|iv|v)\s*[.,)।]|\b(i{1,3}|iv|v)\s+(ও|এবং|o)\b/i.test(combined)) return true;
+          return false;
+        };
+        all = all.filter((qq) => !hasImageOrRoman(qq));
+      }
+
       if (all.length === 0) {
         toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
         setStarting(false);
