@@ -119,8 +119,9 @@ const QuickPracticeLeaderboard = () => {
         )}
 
         {!isLoading && (!ranked || ranked.length === 0) && (
-          <div className="text-center text-sm text-muted-foreground py-16">
-            এখনো কেউ Quick Practice খেলেনি। প্রথম হও! 🏆
+          <div className="text-center text-sm text-muted-foreground py-16 flex flex-col items-center gap-1.5">
+            <Trophy className="h-5 w-5" />
+            এখনো কেউ Quick Practice খেলেনি। প্রথম হও!
           </div>
         )}
 

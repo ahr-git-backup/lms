@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookmarkX, ChevronDown } from "lucide-react";
+import { ArrowLeft, BookmarkX, ChevronDown, BookOpen } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -134,8 +134,8 @@ const QuickPracticeBookmarks = () => {
                 onClick={() => setOpenSubject(openSubject === cat ? null : cat)}
                 className="w-full flex items-center justify-between px-4 py-3"
               >
-                <span className="font-extrabold text-sm">
-                  📘 {cat} <span className="text-muted-foreground font-semibold">({grouped[cat].length})</span>
+                <span className="font-extrabold text-sm inline-flex items-center gap-1.5">
+                  <BookOpen className="h-3.5 w-3.5" /> {cat} <span className="text-muted-foreground font-semibold">({grouped[cat].length})</span>
                 </span>
                 <ChevronDown className={cn("h-4 w-4 transition-transform", openSubject === cat && "rotate-180")} />
               </button>
