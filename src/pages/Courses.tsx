@@ -70,6 +70,26 @@ const MyCoursesStrip = () => {
   );
 };
 
+const NoCoursesNotice = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { data: enrollments, isLoading } = useEnrollments();
+
+  if (!user) return null;
+  const directEnrollments = (enrollments || []).filter((e: any) => !e.is_extra);
+  if (isLoading || directEnrollments.length > 0) return null;
+
+  return (
+    <div className="flex flex-col items-center text-center gap-3 border border-dashed rounded-xl py-8 px-4">
+      <GraduationCap className="h-10 w-10 text-muted-foreground opacity-40" />
+      <p className="text-sm text-muted-foreground">আপনার কোনো কোর্স কেনা নেই</p>
+      <Button size="sm" onClick={() => document.getElementById("courses")?.scrollIntoView({ behavior: "smooth" })}>
+        কিনতে ক্লিক করুন
+      </Button>
+    </div>
+  );
+};
+
 const Courses = () => {
   useEffect(() => {
     document.title = "Courses - Atlas";
@@ -80,6 +100,7 @@ const Courses = () => {
       <PublicHeader />
       <main className="mx-auto flex w-full max-w-[1400px] flex-col gap-16 px-4 pb-16 pt-10 sm:pt-14 flex-1">
         <MyCoursesStrip />
+        <NoCoursesNotice />
         <CourseSection />
       </main>
 
