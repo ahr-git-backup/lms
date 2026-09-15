@@ -629,7 +629,7 @@ export async function askAIWithMeta(
     if (result !== null) return result;
     if (attempt < MAX_CLIENT_RETRIES) await sleep(RETRY_DELAY_MS * attempt);
   }
-  return { answer: "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো। 🙏" };
+  return { answer: "❌ দুঃখিত! ATLAS AI এখন একটু busy আছে। কিছুক্ষণ পর আবার চেষ্টা করো।" };
 }
 
 // Converts "**bold**" markdown into real <strong> bold, no asterisks shown.
@@ -988,7 +988,7 @@ const AtlasAI = () => {
         ...m,
         {
           role: "assistant",
-          text: "দুঃখিত, এই ধরনের বিষয়ে আমি সাহায্য করতে পারবো না। পড়াশোনা সংক্রান্ত কোনো প্রশ্ন থাকলে নির্দ্বিধায় জিজ্ঞেস করো। 📚",
+          text: "দুঃখিত, এই ধরনের বিষয়ে আমি সাহায্য করতে পারবো না। পড়াশোনা সংক্রান্ত কোনো প্রশ্ন থাকলে নির্দ্বিধায় জিজ্ঞেস করো।",
         },
       ]);
       setBusy(false);
@@ -1346,7 +1346,7 @@ const AtlasAI = () => {
             onKeyDown={handleKeyDown}
             rows={1}
             maxLength={3000}
-            placeholder="প্রশ্ন লিখো... MCQ দিলে সঠিক উত্তর পাবে ✅"
+            placeholder="প্রশ্ন লিখো... MCQ দিলে সঠিক উত্তর পাবে"
             className="flex-1 resize-none rounded-2xl border bg-background px-4 py-2.5 text-sm max-h-32 focus:outline-none focus:ring-2 focus:ring-primary/40"
           />
           <button
