@@ -19,6 +19,7 @@ import PublicHeader from "@/components/PublicHeader";
 import GPACalculator from "@/components/study/GPACalculator";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type Mode = "hsc" | "medical";
@@ -71,6 +72,7 @@ function revKey(mode: Mode, subjectId: number, chapterId: number, topicId: numbe
 
 const SyllabusTracker = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { user } = useAuth();
 
   const [panel, setPanel] = useState<DashPanel>("none");
@@ -232,6 +234,18 @@ const SyllabusTracker = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subjects, progress, mode]);
 
+  const requireLoginForLeaderboard = (openView: () => void) => {
+    if (!user) {
+      toast({
+        title: "লগইন প্রয়োজন",
+        description: "লিডারবোর্ড দেখতে হলে লগইন বা অ্যাকাউন্ট খোলা লাগবে।",
+        variant: "destructive",
+      });
+      return;
+    }
+    openView();
+  };
+
   const dashSylPct = Math.round((overallPct("hsc") + overallPct("medical")) / 2);
   const dashRevPct = useMemo(() => {
     let t = 0, d = 0;
@@ -346,13 +360,13 @@ const SyllabusTracker = () => {
             >
               Dashboard
             </button>
-            <button onClick={() => setSylView("leaderboard")} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1", sylView === "leaderboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Trophy className="h-3 w-3" /> Leaderboard</button>
+            <button onClick={() => requireLoginForLeaderboard(() => setSylView("leaderboard"))} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1", sylView === "leaderboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Trophy className="h-3 w-3" /> Leaderboard</button>
           </div>
         )}
         {panel === "revision" && (
           <div className="flex gap-1.5 flex-shrink-0">
             <button onClick={() => setRevView("dashboard")} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full", revView === "dashboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>Dashboard</button>
-            <button onClick={() => setRevView("leaderboard")} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1", revView === "leaderboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Trophy className="h-3 w-3" /> Leaderboard</button>
+            <button onClick={() => requireLoginForLeaderboard(() => setRevView("leaderboard"))} className={cn("text-[11px] font-bold px-2.5 py-1.5 rounded-full flex items-center gap-1", revView === "leaderboard" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}><Trophy className="h-3 w-3" /> Leaderboard</button>
           </div>
         )}
         {panel === "none" && (
