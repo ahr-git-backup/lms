@@ -653,26 +653,16 @@ export default function AdmissionTestPlay() {
           </div>
         ))}
 
-        <div className="flex justify-center mt-8 pb-12">
-          <Button
-            size="lg"
-            onClick={() => { if (confirm("Finish and submit exam?")) submitMutation.mutate(); }}
-            disabled={submitMutation.isPending}
-            className="bg-green-600 hover:bg-green-700 w-full max-w-sm h-12 text-lg rounded-full"
-          >
-            {submitMutation.isPending ? "Submitting..." : "Finish Exam"}
-          </Button>
-        </div>
       </div>
 
       <div className="fixed bottom-6 right-6 z-40">
         <Button
           size="default"
           className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
-          onClick={() => { if (confirm("Are you sure you want to submit?")) submitMutation.mutate(); }}
+          onClick={() => { if (confirm("Are you sure you want to submit the exam?")) submitMutation.mutate(); }}
           disabled={submitMutation.isPending}
         >
-          {submitMutation.isPending ? "Submitting..." : "Submit"}
+          {submitMutation.isPending ? "Submitting..." : "Submit Exam"}
         </Button>
       </div>
 
