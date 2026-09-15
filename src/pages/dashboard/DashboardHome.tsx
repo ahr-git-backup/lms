@@ -44,6 +44,7 @@ const DashboardHome = () => {
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [showTrackerReady, setShowTrackerReady] = useState(false);
+  const [showTutorialGate, setShowTutorialGate] = useState(false);
 
   useEffect(() => {
     if (user && sessionStorage.getItem("study_tracker_pending") === "1") {
@@ -301,7 +302,13 @@ const DashboardHome = () => {
             size="sm"
             variant="outline"
             className="shrink-0 gap-1.5 h-7 px-3 text-xs bg-blue-600 text-white hover:bg-blue-700 border-blue-600"
-            onClick={() => navigate("/dashboard/watch-tutorial")}
+            onClick={() => {
+              if (!enrollmentsLoading && enrollments && enrollments.length === 0) {
+                setShowTutorialGate(true);
+              } else {
+                navigate("/dashboard/watch-tutorial");
+              }
+            }}
           >
             <Video className="h-3.5 w-3.5 animate-icon-float text-primary" />
             Watch Tutorial
@@ -854,6 +861,35 @@ const DashboardHome = () => {
           >
             Study Tracker চালু করুন
           </Button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showTutorialGate} onOpenChange={setShowTutorialGate}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>শুধুমাত্র ভর্তি হওয়া স্টুডেন্টদের জন্য</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Watch Tutorial ফিচারটি শুধুমাত্র যেকোনো একটি কোর্সে ভর্তি হওয়া স্টুডেন্টদের জন্য। আগে একটি কোর্সে ভর্তি হয়ে নিন।
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowTutorialGate(false)}
+              className="flex-1"
+            >
+              বুঝেছি
+            </Button>
+            <Button
+              onClick={() => {
+                setShowTutorialGate(false);
+                navigate("/courses");
+              }}
+              className="flex-1 font-bold"
+            >
+              কোর্স দেখুন
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
