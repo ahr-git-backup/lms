@@ -38,28 +38,28 @@ export default function MyCoursesPWA() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2.5">
+          <div className="grid grid-cols-2 gap-2.5">
             {directCourses.map((enrollment: any) => (
               <Card key={enrollment.id} className="overflow-hidden">
-                <CardContent className="p-3 flex items-center gap-3">
-                  <div className="h-11 w-11 shrink-0 rounded-xl bg-primary/10 flex items-center justify-center overflow-hidden">
+                <CardContent className="p-2.5 flex flex-col gap-2">
+                  <div className="h-20 w-full shrink-0 rounded-lg bg-primary/10 flex items-center justify-center overflow-hidden">
                     {enrollment.course?.image_url ? (
                       <img src={enrollment.course.image_url} alt={enrollment.course.name} className="h-full w-full object-cover" />
                     ) : (
-                      <GraduationCap className="h-5 w-5 text-primary" />
+                      <GraduationCap className="h-6 w-6 text-primary" />
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm leading-tight line-clamp-1">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-xs leading-tight line-clamp-2">
                       {enrollment.course?.name || "কোর্স"}
                     </p>
                     {enrollment.bonus_courses?.length > 0 && (
-                      <p className="text-[11px] text-purple-600 dark:text-purple-300 flex items-center gap-1 mt-0.5">
+                      <p className="text-[10px] text-purple-600 dark:text-purple-300 flex items-center gap-1 mt-0.5">
                         <Gift className="h-3 w-3" /> +{enrollment.bonus_courses.length} বোনাস
                       </p>
                     )}
                   </div>
-                  <Button size="sm" className="gap-1.5 shrink-0" onClick={() => navigate(`/dashboard`)}>
+                  <Button size="sm" className="gap-1.5 w-full text-xs" onClick={() => navigate(`/dashboard`)}>
                     <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
                   </Button>
                 </CardContent>
