@@ -134,7 +134,7 @@ const QuickPracticePlay = () => {
   const [answered, setAnswered] = useState<Answered[]>([]);
   const [finished, setFinished] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [soundVol, setSoundVol] = useState(0); // always starts off; not persisted — user's on-choice lasts only this session
+  const [soundVol, setSoundVol] = useState(1); // defaults on; not persisted — user's choice lasts only this session
   const [rightPack, setRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [wrongPack, setWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [volMenuOpen, setVolMenuOpen] = useState(false);
