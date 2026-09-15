@@ -17,7 +17,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   PenTool, BookOpen, PlusCircle, ArrowRight, RefreshCw, XCircle, 
   Fingerprint, Loader2, Copy, CreditCard, AlertTriangle, ExternalLink, 
-  Calendar, User, Mail, Hash, Phone, School, GraduationCap, Users, Binary, Info, Camera
+  Calendar, User, Mail, Hash, Phone, School, GraduationCap, Users, Binary, Info, Camera, CheckCircle2, FileText
 } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Turnstile } from "@marsidev/react-turnstile";
@@ -402,7 +402,7 @@ const StudentProfile = () => {
       setOmrRollNo(result.omr_roll_no);
       setOmrRegNo(result.omr_reg_no);
       toast({
-        title: result.already_generated ? "OMR Credentials" : "✅ Credentials Generated!",
+        title: result.already_generated ? "OMR Credentials" : <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4" /> Credentials Generated!</span>,
         description: result.already_generated
           ? "Your OMR credentials were already generated."
           : `Roll No: ${result.omr_roll_no} • Reg No: ${result.omr_reg_no}`,
@@ -677,7 +677,7 @@ const StudentProfile = () => {
                     </Button>
                   </div>
                 </div>
-                <p className="text-xs text-muted-foreground">✏️ Write these numbers on your OMR answer sheet by filling the corresponding bubbles. These are permanently assigned to your account.</p>
+                <p className="text-xs text-muted-foreground flex items-start gap-1"><PenTool className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" /> Write these numbers on your OMR answer sheet by filling the corresponding bubbles. These are permanently assigned to your account.</p>
               </div>
             ) : (
               <div className="text-center py-6 space-y-4">
@@ -778,7 +778,7 @@ const StudentProfile = () => {
 
                     {payment.admin_note && (
                       <div className="mt-3 text-xs text-muted-foreground bg-amber-50/50 p-2.5 rounded-md border border-amber-200 flex items-start gap-2">
-                        <span className="text-base leading-none">📝</span>
+                        <FileText className="h-4 w-4 flex-shrink-0 text-amber-700" />
                         <div>
                             <strong className="block text-amber-800 mb-0.5">Admin Note:</strong>
                             {payment.admin_note}
