@@ -440,7 +440,7 @@ const Pomodoro = () => {
                   <stop offset="100%" stopColor="#818CF8" />
                 </linearGradient>
               </defs>
-              {/* Leading-edge flame dot: flickers like fire, rides the progress arc */}
+              {/* Leading-edge flame dot: gentle flicker glow, fixed position on the ring */}
               {(() => {
                 const angle = elapsedProgress * 2 * Math.PI;
                 const dx = 90 + 80 * Math.cos(angle);
@@ -452,7 +452,11 @@ const Pomodoro = () => {
                     r="7"
                     fill="url(#flameGrad)"
                     className="transition-all duration-1000 animate-flame-flicker"
-                    style={{ filter: "drop-shadow(0 0 8px rgba(251,146,60,0.9)) drop-shadow(0 0 3px rgba(255,255,255,0.6))" }}
+                    style={{
+                      filter: "drop-shadow(0 0 8px rgba(251,146,60,0.9)) drop-shadow(0 0 3px rgba(255,255,255,0.6))",
+                      transformBox: "fill-box",
+                      transformOrigin: "center",
+                    }}
                   />
                 );
               })()}
