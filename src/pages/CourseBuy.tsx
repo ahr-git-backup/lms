@@ -95,6 +95,14 @@ const formSchema = z.object({
 }, {
   message: "বাকি টাকার পরিমাণ লিখুন",
   path: ["due_amount"],
+}).refine((data) => {
+  if (data.has_due === "yes" && !data.due_date) {
+    return false;
+  }
+  return true;
+}, {
+  message: "বাকি টাকা কবে পরিশোধ করবে সেই তারিখ অবশ্যই দিতে হবে",
+  path: ["due_date"],
 });
 
 const CourseBuy = () => {
@@ -734,11 +742,11 @@ const CourseBuy = () => {
                         {/* Q3: Due Date (only if has due) */}
                         {hasDue === "yes" && (
                           <div className="space-y-3 p-4 bg-muted/30 rounded-lg border border-border/50">
-                            <StepBadge number={3} label="বাকি টাকা কবের মধ্যে দিবেন? (আনুমানিক)" />
-                            <p className="text-xs text-muted-foreground pl-9 -mt-1">মাস ও তারিখ বেছে নিন।</p>
+                            <StepBadge number={3} label="বাকি টাকা কবের মধ্যে দিবেন? (আবশ্যক)" />
+                            <p className="text-xs text-muted-foreground pl-9 -mt-1">তারিখ অবশ্যই দিতে হবে — মাস ও তারিখ বেছে নিন।</p>
                             <div className="rounded-md bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/60 p-3 text-xs text-amber-800 dark:text-amber-300 flex gap-2">
                               <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                              <span>চেষ্টা করবেন নির্দিষ্ট সময়ের মাঝে দিয়ে দেওয়ার। না পারলে সাপোর্টে জানাবেন।</span>
+                              <span>দেওয়া তারিখের মধ্যে বাকি টাকা পরিশোধ করা বাধ্যতামূলক। তারিখ পার হয়ে গেলে বা তারিখ পরিবর্তনের প্রয়োজন হলে অবশ্যই Rafi ভাইয়ার অনুমতি নিতে হবে।</span>
                             </div>
                             <FormField
                               control={form.control}
@@ -773,8 +781,8 @@ const CourseBuy = () => {
                             />
 
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <SkipForward className="h-3.5 w-3.5 shrink-0" />
-                              <span>⚠️ টাকা বাকি না থাকলে Skip করেন।</span>
+                              <Info className="h-3.5 w-3.5 shrink-0" />
+                              <span>⚠️ তারিখ ছাড়া ফর্ম সাবমিট করা যাবে না।</span>
                             </div>
                           </div>
                         )}
