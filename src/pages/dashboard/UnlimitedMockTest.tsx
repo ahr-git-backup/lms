@@ -27,6 +27,41 @@ const UnlimitedMockTest = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const { data: dailyLimit } = useQuery({
+    queryKey: ["app-setting", "daily_free_exam_limit"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "daily_free_exam_limit")
+        .maybeSingle();
+      if (error) throw error;
+      const n = typeof data?.value === "number" ? data.value : parseInt(String(data?.value ?? "0"), 10);
+      return Number.isFinite(n) ? n : 0;
+    },
+  });
+
+  const { data: todaysMockCount, refetch: refetchTodaysMockCount } = useQuery({
+    queryKey: ["todays-mock-count", user?.id],
+    queryFn: async () => {
+      if (!user) return 0;
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      const { count, error } = await supabase
+        .from("mock_exam_attempts" as any)
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .gte("submitted_at", startOfDay.toISOString());
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!user,
+  });
+
+  const limitActive = !!dailyLimit && dailyLimit > 0;
+  const remaining = limitActive ? Math.max(0, dailyLimit - (todaysMockCount ?? 0)) : null;
+  const limitReached = limitActive && (todaysMockCount ?? 0) >= (dailyLimit as number);
+
   const [standard, setStandard] = useState("medical");
   const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
@@ -193,6 +228,15 @@ const UnlimitedMockTest = () => {
   });
 
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
+    if (!user) {
+      toast({ title: "লগইন প্রয়োজন", description: "এক্সাম শুরু করতে লগইন করুন।", variant: "destructive" });
+      navigate("/auth");
+      return;
+    }
+    if (limitReached) {
+      toast({ title: "দৈনিক সীমা শেষ", description: `আজকের জন্য আপনার ${dailyLimit} টি ফ্রি এক্সাম শেষ হয়ে গেছে।`, variant: "destructive" });
+      return;
+    }
     if (selectedChapters.length === 0) {
       toast({ title: "অন্তত একটি চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
       return;
@@ -319,6 +363,11 @@ const UnlimitedMockTest = () => {
                 <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
                   সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
                 </p>
+                {user && limitActive && (
+                  <p className="text-[11px] font-semibold mt-0.5 text-primary">
+                    আজকের বাকি আছে: {remaining}/{dailyLimit}
+                  </p>
+                )}
               </div>
             </div>
 

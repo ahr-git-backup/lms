@@ -360,6 +360,37 @@ const TakeExam = () => {
     enabled: !!user && !!examId && !retakeFromAttemptId, // Don't block if retaking mistakes
   });
 
+  const { data: dailyFreeExamLimit } = useQuery({
+    queryKey: ["app-setting", "daily_free_exam_limit"],
+    queryFn: async () => {
+        const { data, error } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "daily_free_exam_limit")
+            .maybeSingle();
+        if (error) throw error;
+        const n = typeof data?.value === "number" ? data.value : parseInt(String(data?.value ?? "0"), 10);
+        return Number.isFinite(n) ? n : 0;
+    },
+  });
+
+  const { data: todaysFreeExamCount } = useQuery({
+    queryKey: ["todays-free-exam-count", user?.id],
+    queryFn: async () => {
+        if (!user) return 0;
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+        const { count, error } = await supabase
+            .from("exam_attempts")
+            .select("id", { count: "exact", head: true })
+            .eq("profile_id", user.id)
+            .gte("created_at", startOfDay.toISOString());
+        if (error) throw error;
+        return count ?? 0;
+    },
+    enabled: !!user && !!dailyFreeExamLimit,
+  });
+
   const { data: questions, isLoading: questionsLoading } = useQuery({
     queryKey: ["exam-questions", examId, retakeFromAttemptId],
     queryFn: async () => {
@@ -1145,6 +1176,39 @@ const TakeExam = () => {
               <h2 className="text-xl font-bold">Access Denied</h2>
               <p className="text-muted-foreground">You are not enrolled in the course required for this exam.</p>
               <Button onClick={() => navigate("/courses")}>View Courses</Button>
+          </div>
+      );
+  }
+
+  // Daily free-exam limit: applies only to free-tier users (not enrolled in
+  // any paid batch) taking a free-visible exam, and only blocks starting a
+  // NEW attempt today — doesn't block resuming/reviewing one already taken.
+  const isFreeTierUser = !isPaidBatchEnrolled;
+  const isNewAttemptToday = !existingAttempts || existingAttempts.length === 0;
+  const limitReached =
+      isFreeTierUser &&
+      // @ts-ignore
+      exam?.is_visible_on_free === true &&
+      !!dailyFreeExamLimit &&
+      dailyFreeExamLimit > 0 &&
+      isNewAttemptToday &&
+      !retakeFromAttemptId &&
+      (todaysFreeExamCount ?? 0) >= dailyFreeExamLimit;
+
+  if (limitReached) {
+      return (
+          <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] max-w-lg mx-auto gap-4">
+              <div className="bg-primary/10 p-4 rounded-full">
+                  <Lock className="h-10 w-10 text-primary" />
+              </div>
+              <h2 className="text-xl font-bold">Daily Free Exam Limit Reached</h2>
+              <p className="text-muted-foreground">
+                  You've used all {dailyFreeExamLimit} free exam{dailyFreeExamLimit === 1 ? "" : "s"} for today.
+                  Come back tomorrow, or enroll in a course for unlimited access.
+              </p>
+              <Button onClick={() => navigate(-1)}>
+                  <ChevronLeft className="h-4 w-4 mr-2" /> Go Back
+              </Button>
           </div>
       );
   }
