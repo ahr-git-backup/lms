@@ -13,6 +13,10 @@ import {
   Trophy,
   Users,
   User,
+  X,
+  PartyPopper,
+  Crown,
+  Medal,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,6 +27,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 
 type Mood = "study" | "break" | "sleep";
+
+const MEDAL_COLORS = ["#F5B800", "#94A3B8", "#CD7C3A"];
 
 const MOOD_META: Record<Mood, { label: string; statLabel: string; icon: typeof BookOpen; color: string; bg: string }> = {
   study: { label: "Study", statLabel: "পড়ছে", icon: BookOpen, color: "text-emerald-500", bg: "from-emerald-500 to-teal-500" },
@@ -792,7 +798,7 @@ const FocusTimer = () => {
                 <p className="text-[11px] text-muted-foreground">মনোযোগী পড়াশোনার জন্য বাংলাদেশের সেরা টাইমার</p>
               </div>
               <button onClick={dismissIntro} className="text-xs font-bold text-muted-foreground hover:text-foreground">
-                ✕
+                <X className="h-4 w-4" />
               </button>
             </div>
 
@@ -1075,8 +1081,9 @@ const FocusTimer = () => {
           if (list.length === 0 || (list.length === 1 && selfInList)) {
             return (
               <div className="mx-0 mb-2 px-2.5 py-2 rounded-lg border bg-card flex items-center">
-                <span className="text-[11px] text-muted-foreground">
-                  {mood === "break" ? "🧃 এখন তুমি একাই বিরতিতে" : "🌙 এখন তুমি একাই ঘুমে"}
+                <span className="text-[11px] text-muted-foreground inline-flex items-center gap-1">
+                  {mood === "break" ? <Coffee className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                  {mood === "break" ? "এখন তুমি একাই বিরতিতে" : "এখন তুমি একাই ঘুমে"}
                 </span>
               </div>
             );
@@ -1094,7 +1101,7 @@ const FocusTimer = () => {
                       isMe && "font-black shadow-[0_0_0_1.5px_currentColor_inset]"
                     )}
                   >
-                    {mood === "break" ? "☕" : "😴"} {isMe ? "তুমি" : (r.full_name || "Student")}
+                    {mood === "break" ? <Coffee className="h-3 w-3" /> : <Moon className="h-3 w-3" />} {isMe ? "তুমি" : (r.full_name || "Student")}
                   </span>
                 );
               })}
@@ -1106,7 +1113,7 @@ const FocusTimer = () => {
         <div className="space-y-3">
           <div className="flex items-center justify-center gap-1.5 text-sm font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/25 rounded-lg px-3 py-2.5">
             <span className="h-[7px] w-[7px] rounded-full bg-emerald-500 animate-pulse" />
-            {mood === "break" ? "☕ বিরতিতে আছে" : mood === "sleep" ? "😴 ঘুমাচ্ছে" : "এখন Live পড়ছে"}
+            {mood === "break" ? <span className="inline-flex items-center gap-1"><Coffee className="h-4 w-4" /> বিরতিতে আছে</span> : mood === "sleep" ? <span className="inline-flex items-center gap-1"><Moon className="h-4 w-4" /> ঘুমাচ্ছে</span> : "এখন Live পড়ছে"}
           </div>
           <>
             {/* Batch filter chips — Atlas: batch-filter row, only shown when >1 batch present */}
@@ -1232,7 +1239,7 @@ const FocusTimer = () => {
                     >
                       {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
                       <div className="w-[26px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
-                        {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[11px]">#{i + 1}</span>}
+                        {i < 3 ? <Medal className="h-4 w-4 mx-auto" fill={MEDAL_COLORS[i]} color={MEDAL_COLORS[i]} strokeWidth={1} /> : <span className="text-[11px]">#{i + 1}</span>}
                       </div>
                       <div className="h-[42px] w-[42px] rounded-lg flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
                         {row.avatar_url ? (
@@ -1289,7 +1296,7 @@ const FocusTimer = () => {
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-5">
           <div className="bg-card border rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
             <CheckCircle2 className="h-10 w-10 text-emerald-500 mx-auto" />
-            <h3 className="text-base font-extrabold">সেশন শেষ হয়েছে 🎉</h3>
+            <h3 className="text-base font-extrabold flex items-center gap-1.5">সেশন শেষ হয়েছে <PartyPopper className="h-4 w-4 text-amber-500" /></h3>
             <div className="rounded-xl bg-primary/10 py-3">
               <div className="text-2xl font-black text-primary">
                 {formatHMS(stopStats.studySeconds).h}h {formatHMS(stopStats.studySeconds).m}m
@@ -1379,7 +1386,7 @@ const FocusTimer = () => {
                         {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
                         {isRankOne && <div className="absolute top-0 right-0 bottom-0 w-[50px] rounded-r-[10px] bg-gradient-to-l from-amber-400/5 to-transparent pointer-events-none" />}
                         <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
-                          {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
+                          {i < 3 ? <Medal className="h-5 w-5 mx-auto" fill={MEDAL_COLORS[i]} color={MEDAL_COLORS[i]} strokeWidth={1} /> : <span className="text-[13px]">#{i + 1}</span>}
                         </div>
                         <div className="h-[42px] w-[42px] rounded-lg -ml-1.5 flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
                           {row.avatar_url ? (
@@ -1449,7 +1456,7 @@ const FocusTimer = () => {
                       {isRankOne && <div className="absolute left-0 top-0 bottom-0 w-[2.5px] bg-gradient-to-b from-amber-300 via-amber-500 to-amber-600 rounded-l" />}
                         {isRankOne && <div className="absolute top-0 right-0 bottom-0 w-[50px] rounded-r-[10px] bg-gradient-to-l from-amber-400/5 to-transparent pointer-events-none" />}
                       <div className="w-[38px] text-center flex-shrink-0 font-mono font-black text-muted-foreground">
-                        {i < 3 ? ["🥇", "🥈", "🥉"][i] : <span className="text-[13px]">#{i + 1}</span>}
+                        {i < 3 ? <Medal className="h-5 w-5 mx-auto" fill={MEDAL_COLORS[i]} color={MEDAL_COLORS[i]} strokeWidth={1} /> : <span className="text-[13px]">#{i + 1}</span>}
                       </div>
                       <div className="h-[42px] w-[42px] rounded-lg -ml-1.5 flex-shrink-0 border border-white/10 bg-gradient-to-br from-indigo-500/20 to-emerald-500/15 flex items-center justify-center overflow-hidden">
                         {row.avatar_url ? (
@@ -1544,7 +1551,7 @@ const FocusTimer = () => {
             {leaderboard && leaderboard.length > 0 && (() => {
               const top3 = leaderboard.slice(0, 3);
               const maxSec = Math.max(1, ...top3.map((s: any) => Number(s.total_seconds)));
-              const crowns = ["👑", "🥈", "🥉"];
+              const crownColors = ["#F5B800", "#94A3B8", "#CD7C3A"];
               const rankLabels = ["১ম", "২য়", "৩য়"];
               const barColors = ["bg-amber-500", "bg-slate-400", "bg-amber-700"];
               const textColors = ["text-amber-500", "text-slate-400", "text-amber-700"];
@@ -1560,7 +1567,7 @@ const FocusTimer = () => {
                       const t = formatHMS(secs);
                       return (
                         <div key={s.user_id} className="flex flex-col items-center gap-0.5 flex-1 min-w-0">
-                          <div className="text-sm">{crowns[i]}</div>
+                          <div className="text-sm">{i === 0 ? <Crown className="h-4 w-4" fill={crownColors[0]} color={crownColors[0]} strokeWidth={1} /> : <Medal className="h-4 w-4" fill={crownColors[i]} color={crownColors[i]} strokeWidth={1} />}</div>
                           {s.avatar_url ? (
                             <img src={s.avatar_url} alt={s.full_name || "Student"} className="h-6 w-6 rounded-md object-cover border" />
                           ) : null}
@@ -1678,7 +1685,7 @@ const FocusTimer = () => {
                   onClick={() => setCompareTarget(null)}
                   className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted"
                 >
-                  ✕
+                  <X className="h-4 w-4 mx-auto" />
                 </button>
               </div>
 
