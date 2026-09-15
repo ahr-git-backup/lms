@@ -61,8 +61,8 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <Button
           onClick={() => scrollToId("courses")}
-          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-[#3b82f6] to-[#1d4ed8] text-white hover:opacity-90 shadow-sm hover:shadow-md transition-all"
-          style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
+          className="animate-border-chase w-full h-10 text-sm font-bold rounded-xl border-0 bg-gradient-to-r from-emerald-600 to-emerald-800 text-white hover:opacity-90 shadow-sm hover:shadow-md transition-all"
+          style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}
         >
           <LayoutGrid className="mr-2 h-4 w-4 animate-icon-float" /> All Courses
         </Button>
