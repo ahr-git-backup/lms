@@ -802,7 +802,7 @@ const PlayUnlimitedMock = () => {
                             <Lock className="h-4 w-4" />
                           </Button>
                         )}
-                        <ReportQuestionDialog questionText={q.question_text} />
+                        {user && <ReportQuestionDialog questionText={q.question_text} />}
                         <Button
                           variant="ghost"
                           size="icon"
