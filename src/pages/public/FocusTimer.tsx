@@ -125,6 +125,9 @@ const FocusTimer = () => {
   const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [nowTick, setNowTick] = useState(0);
+  // Per-row monotonic display clock: never let another student's live timer
+  // visually tick backward when a 3s refetch lags behind our 1s local clock.
+  const liveDisplaySecRef = useRef<Record<string, number>>({});
   const [sessionId, setSessionId] = useState<number | null>(null);
   const [leaderboardMood, setLeaderboardMood] = useState<Mood>("study");
   const [leaderboardDays, setLeaderboardDays] = useState(1);
@@ -1189,7 +1192,11 @@ const FocusTimer = () => {
                     return row.duration_seconds + ((!paused && mood === row.mood) ? elapsed : 0);
                   }
                   const extra = !row.is_paused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0;
-                  return row.duration_seconds + extra;
+                  const computed = row.duration_seconds + extra;
+                  const prev = liveDisplaySecRef.current[row.user_id] ?? 0;
+                  const next = row.is_paused ? computed : Math.max(prev, computed);
+                  liveDisplaySecRef.current[row.user_id] = next;
+                  return next;
                 };
                 return [...filtered]
                   .sort((a: any, b: any) => {
@@ -1205,7 +1212,13 @@ const FocusTimer = () => {
                   const liveExtra = isMe
                     ? ((!paused && mood === row.mood) ? elapsed : 0)
                     : (!isPaused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0);
-                  const t = formatHMS(row.duration_seconds + liveExtra);
+                  const rawComputed = row.duration_seconds + liveExtra;
+                  const prevDisplayed = liveDisplaySecRef.current[row.user_id] ?? 0;
+                  const displaySeconds = isMe
+                    ? rawComputed
+                    : (isPaused ? rawComputed : Math.max(prevDisplayed, rawComputed));
+                  if (!isMe) liveDisplaySecRef.current[row.user_id] = displaySeconds;
+                  const t = formatHMS(displaySeconds);
                   const isRankOne = i === 0;
                   return (
                     <div
