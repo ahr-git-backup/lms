@@ -15,6 +15,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { Trophy } from "lucide-react";
 
 const DAY_RANGES = [
   { key: "total", label: "Total", days: null },
@@ -195,7 +196,7 @@ const CompactTrendGraph = ({ data, title }: { data: { name: string; fullTitle: s
                   const isBest = d === data[bestIndex];
                   return (
                     <div className="bg-background border rounded-lg shadow-lg p-2 text-xs">
-                      <p className="font-bold mb-0.5">{d.fullTitle} {isBest && <span className="text-amber-500">🏆 Best</span>}</p>
+                      <p className="font-bold mb-0.5">{d.fullTitle} {isBest && <span className="text-amber-500 inline-flex items-center gap-0.5"><Trophy className="h-3 w-3" /> Best</span>}</p>
                       <p className="text-muted-foreground mb-1">{label}</p>
                       <p className="font-semibold text-primary">Score: {d.score} / {d.total}</p>
                     </div>

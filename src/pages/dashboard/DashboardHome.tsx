@@ -849,7 +849,7 @@ const DashboardHome = () => {
       <Dialog open={showTrackerReady} onOpenChange={setShowTrackerReady}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>অ্যাকাউন্ট তৈরি সম্পন্ন! 🎉</DialogTitle>
+            <DialogTitle className="flex items-center gap-1.5">অ্যাকাউন্ট তৈরি সম্পন্ন! <Sparkles className="h-4 w-4 text-amber-500" /></DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">এখন আপনি Study Tracker ব্যবহার করতে পারবেন।</p>
           <Button

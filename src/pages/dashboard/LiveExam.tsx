@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { SUBJECTS } from "@/lib/constants";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import ReactMarkdown from "react-markdown";
+import { AlertTriangle } from "lucide-react";
 
 const LiveExam = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
@@ -116,9 +117,10 @@ const LiveExam = () => {
                     </div>
                 )}
 
-                <div className="text-xs text-muted-foreground p-2 border border-yellow-500/20 bg-yellow-500/10 rounded-md">
-                     ⚠️ <strong>Warning:</strong> Ensure you have a stable internet connection.
-                     {selectedExamForPopup?.exam_type === 'live' && " This is a one-time attempt live exam."}
+                <div className="text-xs text-muted-foreground p-2 border border-yellow-500/20 bg-yellow-500/10 rounded-md flex items-start gap-1.5">
+                     <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                     <span><strong>Warning:</strong> Ensure you have a stable internet connection.
+                     {selectedExamForPopup?.exam_type === 'live' && " This is a one-time attempt live exam."}</span>
                 </div>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">

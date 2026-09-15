@@ -10,6 +10,7 @@ import {
   XCircle,
   Trash2,
   Flame,
+  PartyPopper,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
@@ -628,7 +629,7 @@ const Pomodoro = () => {
       {showCompletionModal && (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-5">
           <div className="bg-card border rounded-2xl p-6 max-w-sm w-full">
-            <h3 className="text-lg font-extrabold text-center mb-2">🎉 Pomodoro Complete!</h3>
+            <h3 className="text-lg font-extrabold text-center mb-2 flex items-center justify-center gap-1.5"><PartyPopper className="h-5 w-5 text-amber-500" /> Pomodoro Complete!</h3>
             <p className="text-sm text-muted-foreground text-center mb-5">
               আপনি কি কাজটি সফলভাবে complete করেছেন?
             </p>
