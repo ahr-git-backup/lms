@@ -367,11 +367,23 @@ const PlayUnlimitedMock = () => {
   const handleSubmit = async () => {
     if (submitted) return;
     setSubmitted(true);
-    if (user) {
+    const guestName = sessionStorage.getItem("unlimitedMockGuestName");
+    const guestHscBatch = sessionStorage.getItem("unlimitedMockGuestHscBatch");
+    const guestCollegeName = sessionStorage.getItem("unlimitedMockGuestCollegeName");
+    const guestPhone = sessionStorage.getItem("unlimitedMockGuestPhone");
+    if (user || guestPhone) {
       try {
         await supabase.from("mock_exam_attempts").insert({
           mock_exam_id: null,
-          user_id: user.id,
+          user_id: user ? user.id : null,
+          ...(!user && guestPhone
+            ? {
+                guest_name: guestName,
+                guest_hsc_batch: guestHscBatch,
+                guest_college_name: guestCollegeName,
+                guest_phone: guestPhone,
+              }
+            : {}),
           score: stats.finalScore,
           total_marks: questions.length,
           answers,

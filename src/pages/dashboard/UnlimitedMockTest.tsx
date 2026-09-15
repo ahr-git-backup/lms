@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
+import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -26,6 +28,9 @@ const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
+  const [pendingStart, setPendingStart] = useState<{ count: number; minutes?: number } | null>(null);
 
   const { data: dailyLimit } = useQuery({
     queryKey: ["app-setting", "daily_free_exam_limit"],
@@ -42,20 +47,26 @@ const UnlimitedMockTest = () => {
   });
 
   const { data: todaysMockCount, refetch: refetchTodaysMockCount } = useQuery({
-    queryKey: ["todays-mock-count", user?.id],
+    queryKey: ["todays-mock-count", user?.id, guestInfo?.phone],
     queryFn: async () => {
-      if (!user) return 0;
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
-      const { count, error } = await supabase
+      let q = supabase
         .from("mock_exam_attempts" as any)
         .select("id", { count: "exact", head: true })
-        .eq("user_id", user.id)
         .gte("submitted_at", startOfDay.toISOString());
+      if (user) {
+        q = q.eq("user_id", user.id);
+      } else if (guestInfo?.phone) {
+        q = q.eq("guest_phone", guestInfo.phone);
+      } else {
+        return 0;
+      }
+      const { count, error } = await q;
       if (error) throw error;
       return count ?? 0;
     },
-    enabled: !!user,
+    enabled: !!user || !!guestInfo?.phone,
   });
 
   const limitActive = !!dailyLimit && dailyLimit > 0;
@@ -228,17 +239,17 @@ const UnlimitedMockTest = () => {
   });
 
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
-    if (!user) {
-      toast({ title: "লগইন প্রয়োজন", description: "এক্সাম শুরু করতে লগইন করুন।", variant: "destructive" });
-      navigate("/auth");
+    if (selectedChapters.length === 0) {
+      toast({ title: "অন্তত একটি চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
+      return;
+    }
+    if (!user && !guestInfo) {
+      setPendingStart({ count: finalCount, minutes: finalMinutes });
+      setGuestDialogOpen(true);
       return;
     }
     if (limitReached) {
       toast({ title: "দৈনিক সীমা শেষ", description: `আজকের জন্য আপনার ${dailyLimit} টি ফ্রি এক্সাম শেষ হয়ে গেছে।`, variant: "destructive" });
-      return;
-    }
-    if (selectedChapters.length === 0) {
-      toast({ title: "অন্তত একটি চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
       return;
     }
     setStarting(true);
@@ -308,6 +319,12 @@ const UnlimitedMockTest = () => {
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
       sessionStorage.setItem("unlimitedMockSubject", subjectNames.join(", "));
+      if (!user && guestInfo) {
+        sessionStorage.setItem("unlimitedMockGuestName", guestInfo.name);
+        sessionStorage.setItem("unlimitedMockGuestHscBatch", guestInfo.hscBatch);
+        sessionStorage.setItem("unlimitedMockGuestCollegeName", guestInfo.collegeName);
+        sessionStorage.setItem("unlimitedMockGuestPhone", guestInfo.phone);
+      }
       sessionStorage.setItem(
         "unlimitedMockChapter",
         selectedChapters.length === 1 ? selectedChapters[0].chapter : ""
@@ -363,7 +380,7 @@ const UnlimitedMockTest = () => {
                 <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
                   সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
                 </p>
-                {user && limitActive && (
+                {(user || guestInfo) && limitActive && (
                   <p className="text-[11px] font-semibold mt-0.5 text-primary">
                     আজকের বাকি আছে: {remaining}/{dailyLimit}
                   </p>
@@ -658,6 +675,20 @@ const UnlimitedMockTest = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <GuestExamInfoDialog
+        open={guestDialogOpen}
+        onOpenChange={setGuestDialogOpen}
+        onConfirm={(info) => {
+          setGuestInfoState(info);
+          setGuestDialogOpen(false);
+          if (pendingStart) {
+            const { count: c, minutes: m } = pendingStart;
+            setPendingStart(null);
+            buildAndStart(c, m);
+          }
+        }}
+      />
     </div>
   );
 };
