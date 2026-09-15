@@ -213,7 +213,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                             <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                                 <Button
                                     variant={selectedCategory === "all" ? "default" : "outline"}
-                                    onClick={() => setSelectedCategory("all")}
+                                    onClick={() => { setSelectedCategory("all"); setQuickFilter("none"); }}
                                     className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                         selectedCategory === "all"
                                         ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
@@ -226,7 +226,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                     <Button
                                         key={cat}
                                         variant={selectedCategory === cat ? "default" : "outline"}
-                                        onClick={() => setSelectedCategory(cat)}
+                                        onClick={() => { setSelectedCategory(cat); setQuickFilter("none"); }}
                                         className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                             selectedCategory === cat
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-md"
@@ -245,7 +245,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                 <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                                     <Button
                                         variant={selectedSubCategory === "all" ? "default" : "outline"}
-                                        onClick={() => setSelectedSubCategory("all")}
+                                        onClick={() => { setSelectedSubCategory("all"); setQuickFilter("none"); }}
                                         className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                             selectedSubCategory === "all"
                                             ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
@@ -258,7 +258,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                         <Button
                                             key={sub}
                                             variant={selectedSubCategory === sub ? "default" : "outline"}
-                                            onClick={() => setSelectedSubCategory(sub)}
+                                            onClick={() => { setSelectedSubCategory(sub); setQuickFilter("none"); }}
                                             className={`px-2.5 h-7 text-xs md:px-4 md:h-9 md:text-sm border-2 border-blue-300/60 transition-all ${
                                                 selectedSubCategory === sub
                                                 ? "bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] text-white border-[#1d4ed8] shadow-sm"
@@ -282,7 +282,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                     <Button
                         variant={quickFilter === "coupon" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setQuickFilter(quickFilter === "coupon" ? "none" : "coupon")}
+                        onClick={() => { setQuickFilter(quickFilter === "coupon" ? "none" : "coupon"); setSelectedCategory("all"); setSelectedSubCategory("all"); }}
                         className="h-8 text-xs"
                     >
                         <Tag className="h-3.5 w-3.5 mr-1" /> Coupon Available
@@ -290,7 +290,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                     <Button
                         variant={quickFilter === "mini" ? "default" : "outline"}
                         size="sm"
-                        onClick={() => setQuickFilter(quickFilter === "mini" ? "none" : "mini")}
+                        onClick={() => { setQuickFilter(quickFilter === "mini" ? "none" : "mini"); setSelectedCategory("all"); setSelectedSubCategory("all"); }}
                         className="h-8 text-xs"
                     >
                         Mini Courses
