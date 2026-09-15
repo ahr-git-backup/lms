@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Sparkles, ShieldCheck, CheckCircle2, AlertTriangle } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -421,19 +422,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               // Professional, context-aware success messages
               if (decoded.toLowerCase().includes('confirmation') || decoded.toLowerCase().includes('confirmed')) {
                   toast({
-                      title: "Welcome Aboard! ✨",
+                      title: <span className="flex items-center gap-1.5"><Sparkles className="h-4 w-4" /> Welcome Aboard!</span>,
                       description: "Your account is now verified. Welcome to Atlas Courses.",
                       variant: "default",
                   });
               } else if (decoded.toLowerCase().includes('email')) {
                   toast({
-                      title: "Email Fully Updated! 🛡️",
+                      title: <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" /> Email Fully Updated!</span>,
                       description: "Your login address has been successfully changed to the new email.",
                       variant: "default",
                   });
               } else {
                   toast({
-                      title: "Action Successful ✅",
+                      title: <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4" /> Action Successful</span>,
                       description: decoded,
                       variant: "default",
                   });
@@ -444,7 +445,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           } else if (errorDesc) {
               const decodedErr = decodeURIComponent(errorDesc).replace(/\+/g, ' ');
               toast({
-                  title: "Verification Issue ⚠️",
+                  title: <span className="flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Verification Issue</span>,
                   description: decodedErr,
                   variant: "destructive",
               });
