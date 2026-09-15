@@ -637,7 +637,10 @@ const CustomExamBuilder = () => {
 
       {/* Sticky selection summary + count editor + submit */}
       {pickedList.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 sm:left-auto sm:right-4 sm:bottom-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl z-50 flex flex-col max-h-[30vh]">
+        <div
+          className="fixed left-0 right-0 sm:left-auto sm:right-4 sm:w-96 bg-background border rounded-t-xl sm:rounded-xl shadow-2xl z-[60] flex flex-col max-h-[30vh]"
+          style={{ bottom: "calc(60px + env(safe-area-inset-bottom))" }}
+        >
           <div className="flex items-center justify-between p-3 pb-2 shrink-0">
             <p className="text-sm font-semibold flex items-center gap-1.5">
               <ListChecks className="h-4 w-4 text-primary" /> নির্বাচিত: {pickedList.length}টি এক্সাম
