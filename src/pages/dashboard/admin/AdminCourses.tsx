@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink, Search } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2, Ticket, Copy, Plus, X, Eye, Edit2, ExternalLink, Search, Clapperboard, Files } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -928,7 +928,7 @@ const AdminCourses = () => {
 
                 <TabsContent value="demos" className="mt-0 space-y-4">
                     <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-                        <Label htmlFor="video_url_demo_tab" className="text-sm font-semibold">🎬 কোর্সের প্রোমো ভিডিও (Intro Video)</Label>
+                        <Label htmlFor="video_url_demo_tab" className="text-sm font-semibold flex items-center gap-1.5"><Clapperboard className="h-4 w-4" /> কোর্সের প্রোমো ভিডিও (Intro Video)</Label>
                         <Input
                             id="video_url_demo_tab"
                             value={form.video_url}
@@ -940,7 +940,7 @@ const AdminCourses = () => {
                     </div>
 
                     <div className="rounded-lg border-2 border-primary/30 bg-primary/5 p-4 space-y-2">
-                        <Label htmlFor="demo_tab_label" className="text-sm font-semibold">📑 দ্বিতীয় ট্যাবের নাম (Tab Label)</Label>
+                        <Label htmlFor="demo_tab_label" className="text-sm font-semibold flex items-center gap-1.5"><Files className="h-4 w-4" /> দ্বিতীয় ট্যাবের নাম (Tab Label)</Label>
                         <Input
                             id="demo_tab_label"
                             value={form.demo_tab_label || ""}

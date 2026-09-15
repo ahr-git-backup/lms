@@ -484,7 +484,7 @@ const AdminPayments = () => {
           <TabsTrigger value="due" className="gap-2">
             <TrendingDown className="h-4 w-4" />
             Due Payments
-            {stats?.criticalDue ? <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0.5 animate-pulse">{stats.criticalDue} ⚠️</Badge> : null}
+            {stats?.criticalDue ? <Badge variant="destructive" className="ml-1 text-xs px-1.5 py-0.5 animate-pulse inline-flex items-center gap-0.5">{stats.criticalDue} <AlertTriangle className="h-3 w-3" /></Badge> : null}
           </TabsTrigger>
           <TabsTrigger value="emi" className="gap-2">
             <Calendar className="h-4 w-4" />
@@ -864,14 +864,14 @@ const AdminPayments = () => {
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-muted-foreground">Due Date</p>
-                      <p className={`font-semibold ${isDueCritical(selectedRequest.due_date) ? 'text-red-600' : ''}`}>
+                      <p className={`font-semibold ${isDueCritical(selectedRequest.due_date) ? 'text-red-600' : ''} flex items-center gap-1`}>
                         {selectedRequest.due_date ? safeFormat(selectedRequest.due_date, "PPP") : "Not set"}
-                        {isDueCritical(selectedRequest.due_date) && " ⚠️ OVERDUE"}
+                        {isDueCritical(selectedRequest.due_date) && <span className="inline-flex items-center gap-0.5"><AlertTriangle className="h-3.5 w-3.5" /> OVERDUE</span>}
                       </p>
                     </div>
                   </>
                 ) : (
-                  <div className="col-span-2 text-green-600 font-medium text-xs">✅ No outstanding due</div>
+                  <div className="col-span-2 text-green-600 font-medium text-xs flex items-center gap-1"><CheckCircle2 className="h-3.5 w-3.5" /> No outstanding due</div>
                 )}
                 {selectedRequest.status === 'approved' && selectedRequest.updated_at && (
                   <div className="space-y-1 col-span-2 pt-2 border-t mt-2">
