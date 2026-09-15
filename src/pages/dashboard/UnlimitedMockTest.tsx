@@ -343,24 +343,31 @@ const UnlimitedMockTest = () => {
     queryKey: ["mock-pool-standard-available-counts", selectedChapters, selectedTopics],
     queryFn: async () => {
       const counts: Record<string, number> = {};
-      for (const sel of selectedChapters) {
+      if (selectedChapters.length === 0) return counts;
+
+      const subjectsInSel = Array.from(new Set(selectedChapters.map((s) => s.subject)));
+      const chaptersInSel = Array.from(new Set(selectedChapters.map((s) => s.chapter)));
+
+      // Single batched query instead of one round-trip per selected chapter —
+      // matters a lot when "select full subject" pulls in 10-15+ chapters at once.
+      let q = supabase
+        .from("mock_question_pool")
+        .select("subject, chapter, topic, standard, questions_json")
+        .in("subject", subjectsInSel)
+        .in("chapter", chaptersInSel);
+      const { data, error } = await q;
+      if (error) throw error;
+
+      const selSet = new Set(selectedChapters.map((s) => `${s.subject}||${s.chapter}`));
+      (data || []).forEach((row: any) => {
+        if (!selSet.has(`${row.subject}||${row.chapter}`) || !row.standard) return;
         const topicsForSel = selectedTopics
-          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .filter((t) => t.subject === row.subject && t.chapter === row.chapter)
           .map((t) => t.topic);
-        let q = supabase
-          .from("mock_question_pool")
-          .select("standard, questions_json")
-          .eq("subject", sel.subject)
-          .eq("chapter", sel.chapter);
-        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
-        const { data, error } = await q;
-        if (error) throw error;
-        (data || []).forEach((row: any) => {
-          if (!row.standard) return;
-          const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
-          counts[row.standard] = (counts[row.standard] || 0) + n;
-        });
-      }
+        if (topicsForSel.length > 0 && !topicsForSel.includes(row.topic)) return;
+        const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+        counts[row.standard] = (counts[row.standard] || 0) + n;
+      });
       return counts;
     },
     enabled: selectedChapters.length > 0,
@@ -376,25 +383,31 @@ const UnlimitedMockTest = () => {
   const { data: availablePool } = useQuery({
     queryKey: ["mock-pool-available-count", selectedChapters, selectedTopics, standard],
     queryFn: async () => {
+      if (selectedChapters.length === 0) return 0;
+
+      const subjectsInSel = Array.from(new Set(selectedChapters.map((s) => s.subject)));
+      const chaptersInSel = Array.from(new Set(selectedChapters.map((s) => s.chapter)));
+
+      // Single batched query instead of one round-trip per selected chapter.
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("subject, chapter, topic, questions_json")
+        .in("subject", subjectsInSel)
+        .in("chapter", chaptersInSel)
+        .eq("standard", standard);
+      if (error) throw error;
+
+      const selSet = new Set(selectedChapters.map((s) => `${s.subject}||${s.chapter}`));
       let total = 0;
-      for (const sel of selectedChapters) {
+      (data || []).forEach((row: any) => {
+        if (!selSet.has(`${row.subject}||${row.chapter}`)) return;
         const topicsForSel = selectedTopics
-          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .filter((t) => t.subject === row.subject && t.chapter === row.chapter)
           .map((t) => t.topic);
-        let q = supabase
-          .from("mock_question_pool")
-          .select("questions_json")
-          .eq("subject", sel.subject)
-          .eq("chapter", sel.chapter)
-          .eq("standard", standard);
-        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
-        const { data, error } = await q;
-        if (error) throw error;
-        (data || []).forEach((row: any) => {
-          const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-          total += qs.length;
-        });
-      }
+        if (topicsForSel.length > 0 && !topicsForSel.includes(row.topic)) return;
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        total += qs.length;
+      });
       return total;
     },
     enabled: selectedChapters.length > 0,
@@ -436,23 +449,26 @@ const UnlimitedMockTest = () => {
     }
     setStarting(true);
     try {
-      let data: any[] = [];
+      const subjectsInSel = Array.from(new Set(selectedChapters.map((s) => s.subject)));
+      const chaptersInSel = Array.from(new Set(selectedChapters.map((s) => s.chapter)));
+      const selSet = new Set(selectedChapters.map((s) => `${s.subject}||${s.chapter}`));
 
-      for (const sel of selectedChapters) {
+      const { data: rows, error } = await supabase
+        .from("mock_question_pool")
+        .select("*")
+        .in("subject", subjectsInSel)
+        .in("chapter", chaptersInSel)
+        .eq("standard", standard);
+      if (error) throw error;
+
+      let data: any[] = (rows || []).filter((row: any) => {
+        if (!selSet.has(`${row.subject}||${row.chapter}`)) return false;
         const topicsForSel = selectedTopics
-          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .filter((t) => t.subject === row.subject && t.chapter === row.chapter)
           .map((t) => t.topic);
-        let q = supabase
-          .from("mock_question_pool")
-          .select("*")
-          .eq("subject", sel.subject)
-          .eq("chapter", sel.chapter)
-          .eq("standard", standard);
-        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
-        const { data: rows, error } = await q;
-        if (error) throw error;
-        if (rows) data = data.concat(rows);
-      }
+        if (topicsForSel.length > 0 && !topicsForSel.includes(row.topic)) return false;
+        return true;
+      });
 
       if (!data || data.length === 0) {
         toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
