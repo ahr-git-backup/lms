@@ -17,3 +17,10 @@ create index if not exists idx_mock_exam_attempts_guest_phone_submitted
 -- Same daily-limit check for logged-in users filters by user_id AND submitted_at.
 -- idx_mock_exam_attempts_user_submitted already covers this exactly, so no
 -- new index needed there.
+
+-- FreeExam.tsx (public Free Exam list) filters public.exams by
+-- is_published + is_visible_on_free on every page load — no index existed
+-- for these columns, so every visit forced a full table scan.
+create index if not exists idx_exams_published_visible_free
+  on public.exams(is_published, is_visible_on_free);
+

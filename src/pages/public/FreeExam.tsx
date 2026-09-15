@@ -111,8 +111,7 @@ const FreeExam = () => {
       return data;
     },
     enabled: !debouncedSearch,
-    staleTime: 0,
-    refetchOnMount: "always",
+    staleTime: 5 * 60 * 1000, // cache 5 min — this list rarely changes; avoids refetch storms under concurrent traffic
   });
 
   // Fetch Search Results
