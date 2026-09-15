@@ -440,7 +440,7 @@ const Pomodoro = () => {
                   <stop offset="100%" stopColor="#818CF8" />
                 </linearGradient>
               </defs>
-              {/* Leading-edge glowing dot, like a clock hand tip, riding the progress arc */}
+              {/* Leading-edge flame dot: flickers like fire, rides the progress arc */}
               {(() => {
                 const angle = elapsedProgress * 2 * Math.PI;
                 const dx = 90 + 80 * Math.cos(angle);
@@ -449,16 +449,21 @@ const Pomodoro = () => {
                   <circle
                     cx={dx}
                     cy={dy}
-                    r="6"
-                    fill="#818CF8"
-                    className={cn(
-                      "transition-all duration-1000 animate-pulse",
-                      warning && "fill-red-400"
-                    )}
-                    style={{ filter: "drop-shadow(0 0 6px rgba(129,140,248,0.9))" }}
+                    r="7"
+                    fill="url(#flameGrad)"
+                    className="transition-all duration-1000 animate-flame-flicker"
+                    style={{ filter: "drop-shadow(0 0 8px rgba(251,146,60,0.9)) drop-shadow(0 0 3px rgba(255,255,255,0.6))" }}
                   />
                 );
               })()}
+              <defs>
+                <radialGradient id="flameGrad" cx="50%" cy="35%" r="65%">
+                  <stop offset="0%" stopColor="#FFF7ED" />
+                  <stop offset="35%" stopColor="#FDBA74" />
+                  <stop offset="70%" stopColor="#F97316" />
+                  <stop offset="100%" stopColor="#DC2626" />
+                </radialGradient>
+              </defs>
             </svg>
             <div className="absolute flex flex-col items-center px-3">
               <span
