@@ -60,7 +60,7 @@ const MyCourses = () => {
       ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEnrollments.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50 cursor-pointer" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
+          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50 cursor-pointer" onClick={() => navigate(`/dashboard`)}>
             <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-muted/20 relative">
                 {enrollment.course?.image_url ? (
                     <img
@@ -111,7 +111,7 @@ const MyCourses = () => {
                 className="w-full gap-2 rounded-full"
                 onClick={(e) => {
                   e.stopPropagation();
-                  navigate(`/dashboard/course/${enrollment.course_id}`);
+                  navigate(`/dashboard`);
                 }}
               >
                 <LayoutDashboard className="h-4 w-4" /> Dashboard
