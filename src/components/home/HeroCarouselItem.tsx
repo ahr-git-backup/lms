@@ -5,7 +5,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Clock, Calendar } from 'lucide-react';
+import { ArrowRight, Clock, Calendar, Megaphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface HeroCarouselItemProps {
@@ -137,7 +137,7 @@ const HeroCarouselItem: React.FC<HeroCarouselItemProps> = ({ hero }) => {
               )}
               {isAnnouncement && (
                 <div className="inline-flex items-center gap-1.5 bg-black/10 backdrop-blur-sm px-2 py-0.5 md:px-3 md:py-1 rounded-full border border-white/10 text-[8px] md:text-[10px] font-black tracking-widest uppercase">
-                    📢 বিজ্ঞপ্তি
+                    <Megaphone className="h-2.5 w-2.5 md:h-3 md:w-3" /> বিজ্ঞপ্তি
                 </div>
               )}
             </div>

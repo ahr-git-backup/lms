@@ -18,6 +18,8 @@ import {
   BarChart,
   User,
   Send,
+  Megaphone,
+  ClipboardList,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -268,7 +270,7 @@ const Index = () => {
                             <div className="flex flex-grow flex-col gap-3 p-5">
                               {/* Card badge */}
                               <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20">📢 বিজ্ঞপ্তি</span>
+                                <span className="text-xs font-bold uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full border border-violet-500/20 inline-flex items-center gap-1"><Megaphone className="h-3 w-3" /> বিজ্ঞপ্তি</span>
                               </div>
                               <h3 className="text-lg font-bold leading-tight text-foreground">{exam.title}</h3>
                               {exam.details && (
@@ -303,7 +305,7 @@ const Index = () => {
                             <div className="h-1.5 w-full bg-gradient-to-r from-primary/60 via-primary to-primary/60" />
                             <CardHeader className="pb-3">
                                 <div className="flex items-start gap-2">
-                                    <span className="text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 mt-0.5">📋 বিশেষ পরীক্ষা</span>
+                                    <span className="text-xs font-bold uppercase tracking-wider bg-primary/10 text-primary px-2 py-0.5 rounded-full border border-primary/20 mt-0.5 inline-flex items-center gap-1"><ClipboardList className="h-3 w-3" /> বিশেষ পরীক্ষা</span>
                                 </div>
                                 <CardTitle className="text-xl font-bold mt-2">{exam.title}</CardTitle>
                             </CardHeader>

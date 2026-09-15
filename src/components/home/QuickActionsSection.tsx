@@ -21,6 +21,7 @@ import {
   Star,
   ClipboardCheck,
   Send,
+  Sparkles,
 } from "lucide-react";
 
 const scrollToId = (id: string) => {
@@ -185,7 +186,7 @@ export const QuickActionsSection = () => {
       <Dialog open={showReady} onOpenChange={setShowReady}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>অ্যাকাউন্ট তৈরি সম্পন্ন! 🎉</DialogTitle>
+            <DialogTitle className="flex items-center gap-1.5">অ্যাকাউন্ট তৈরি সম্পন্ন! <Sparkles className="h-4 w-4 text-amber-500" /></DialogTitle>
             <DialogDescription>
               এখন আপনি Study Tracker ব্যবহার করতে পারবেন। নিচের বাটনে ক্লিক করে হোম পেজে গিয়ে Study Tracker চালু করুন।
             </DialogDescription>
