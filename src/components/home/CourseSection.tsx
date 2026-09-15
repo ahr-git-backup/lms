@@ -319,9 +319,7 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                 ) : (
                     (limit ? filteredCourses.slice(0, limit) : filteredCourses).map((course: any) => {
                         const image = course.image_url || "/placeholder.svg";
-                        const description = course.short_description || "";
                         const idOrSlug = course.slug || course.id;
-                        const enrollCount = enrollmentCounts?.[course.id] || 0;
 
                         // Handle array or string display
                         const categoryBadges = Array.isArray(course.category)
@@ -373,30 +371,19 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                     </div>
                                 </div>
                                 {/* Content */}
-                                <div className="flex-1 p-2.5 sm:p-3 flex flex-col justify-between gap-1.5 sm:gap-2">
-                                    <div>
-                                        <div className="flex justify-center items-start gap-2">
-                                             <h3 className="text-sm sm:text-2xl font-bold mb-1 leading-tight text-center line-clamp-2">{course.name}</h3>
-                                        </div>
-
-                                        <p className="text-muted-foreground text-[11px] sm:text-xs mb-1.5 sm:mb-2 line-clamp-2">{description}</p>
-
-                                        {course.show_enrollment_count !== false && (
-                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
-                                                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-500 shrink-0" />
-                                                {enrollCount.toLocaleString("en-BD")} জন ভর্তি হয়েছে
-                                            </div>
-                                        )}
+                                <div className="flex-1 p-2.5 sm:p-3 flex flex-col justify-between gap-1 sm:gap-1.5">
+                                    <div className="flex justify-center items-start gap-2">
+                                         <h3 className="text-sm sm:text-2xl font-bold leading-tight text-center line-clamp-2">{course.name}</h3>
                                     </div>
 
                                     <div className="flex flex-col gap-1.5 sm:gap-2 mt-auto pt-1.5 sm:pt-2 border-t border-dashed">
-                                        <div className="flex flex-col items-start">
+                                        <div className="flex items-center gap-2">
                                             {course.original_price != null && Number(course.original_price) > Number(course.price) && (
                                                 <span className="text-[10px] text-muted-foreground line-through">
                                                     ৳{Number(course.original_price).toLocaleString("en-BD")}
                                                 </span>
                                             )}
-                                            <div className="text-sm sm:text-base font-bold text-primary">
+                                            <div className="text-sm sm:text-base font-bold text-primary bg-primary/10 rounded-full px-2.5 py-0.5">
                                                 {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                             </div>
                                         </div>
