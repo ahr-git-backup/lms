@@ -361,10 +361,7 @@ const DashboardHome = () => {
                             LIVE EXAM
                         </span>
                       </div>
-                      <CardTitle
-                        className="font-extrabold text-center whitespace-nowrap overflow-hidden leading-tight"
-                        style={{ fontSize: `${Math.max(1.3, Math.min(2.5, 22 / Math.max((exam?.title || "Live Exam").length, 6)))}rem` }}
-                      >
+                      <CardTitle className="text-lg font-extrabold whitespace-nowrap overflow-hidden text-ellipsis text-center">
                         {exam?.title || "Live Exam"}
                       </CardTitle>
                       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
