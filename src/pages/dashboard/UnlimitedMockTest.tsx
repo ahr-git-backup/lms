@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueries } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
@@ -18,93 +18,44 @@ const DEFAULT_STANDARDS = [
 ];
 const COUNTS = [25, 35, 50, 75, 100, 150, 200];
 
+type ChapterSel = { subject: string; chapter: string };
+type TopicSel = { subject: string; chapter: string; topic: string };
+
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const [subject, setSubject] = useState("");
-  const [chapter, setChapter] = useState("");
-  const [topic, setTopic] = useState("");
   const [standard, setStandard] = useState("medical");
   const [count, setCount] = useState(50);
   const [customCount, setCustomCount] = useState("");
   const [starting, setStarting] = useState(false);
+  const [openSubject, setOpenSubject] = useState(""); // which subject's accordion panel is expanded
 
-  // Custom mood: drill-down multi-select (subject -> chapter -> topic), multi-pick at each level
-  const [multiMode, setMultiMode] = useState(false);
-  const [multiSubjects, setMultiSubjects] = useState<string[]>([]);
-  const [multiDrillSubject, setMultiDrillSubject] = useState(""); // which subject's chapters are shown
-  const [multiChapters, setMultiChapters] = useState<{ subject: string; chapter: string }[]>([]);
-  const [multiDrillChapter, setMultiDrillChapter] = useState<{ subject: string; chapter: string } | null>(null);
-  const [multiTopics, setMultiTopics] = useState<{ subject: string; chapter: string; topic: string }[]>([]);
+  // Unified checkbox-based selection: user can check any chapters across any
+  // subjects, mixed freely. Checking a chapter also selects it as "whole
+  // chapter"; optionally narrow further by checking specific topics under it.
+  const [selectedChapters, setSelectedChapters] = useState<ChapterSel[]>([]);
+  const [selectedTopics, setSelectedTopics] = useState<TopicSel[]>([]);
 
-  // Final selections used for building the exam = chapters chosen (topics further narrow within a chapter)
-  const multiSelections = multiChapters;
-
-  const toggleMultiSubject = (s: string) => {
-    setMultiSubjects((prev) => {
-      const exists = prev.includes(s);
-      if (exists) {
-        setMultiChapters((c) => c.filter((x) => x.subject !== s));
-        setMultiTopics((t) => t.filter((x) => x.subject !== s));
-        if (multiDrillSubject === s) setMultiDrillSubject("");
-        return prev.filter((x) => x !== s);
-      }
-      return [...prev, s];
-    });
-  };
-
-  const toggleMultiChapter = (s: string, c: string) => {
-    setMultiChapters((prev) => {
+  const toggleChapter = (s: string, c: string) => {
+    setSelectedChapters((prev) => {
       const exists = prev.some((x) => x.subject === s && x.chapter === c);
       if (exists) {
-        setMultiTopics((t) => t.filter((x) => !(x.subject === s && x.chapter === c)));
+        setSelectedTopics((t) => t.filter((x) => !(x.subject === s && x.chapter === c)));
         return prev.filter((x) => !(x.subject === s && x.chapter === c));
       }
       return [...prev, { subject: s, chapter: c }];
     });
   };
 
-  const toggleMultiTopic = (s: string, c: string, t: string) => {
-    setMultiTopics((prev) => {
+  const toggleTopic = (s: string, c: string, t: string) => {
+    setSelectedTopics((prev) => {
       const exists = prev.some((x) => x.subject === s && x.chapter === c && x.topic === t);
       if (exists) return prev.filter((x) => !(x.subject === s && x.chapter === c && x.topic === t));
       return [...prev, { subject: s, chapter: c, topic: t }];
     });
   };
-
-  const { data: subjectTotals } = useQuery({
-    queryKey: ["mock-pool-subject-totals"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
-      if (error) throw error;
-      const totals: Record<string, number> = {};
-      (data || []).forEach((row: any) => {
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        totals[row.subject] = (totals[row.subject] || 0) + qs.length;
-      });
-      return totals;
-    },
-  });
-
-  const { data: chapterTotals } = useQuery({
-    queryKey: ["mock-pool-chapter-totals", subject],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_question_pool")
-        .select("chapter, questions_json")
-        .eq("subject", subject);
-      if (error) throw error;
-      const totals: Record<string, number> = {};
-      (data || []).forEach((row: any) => {
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        totals[row.chapter] = (totals[row.chapter] || 0) + qs.length;
-      });
-      return totals;
-    },
-    enabled: !!subject,
-  });
 
   const { data: subjects } = useQuery({
     queryKey: ["mock-pool-subjects"],
@@ -133,85 +84,67 @@ const UnlimitedMockTest = () => {
     return Array.from(map.values());
   })();
 
-  const { data: chapters } = useQuery({
-    queryKey: ["mock-pool-chapters", subject],
+  const { data: subjectTotals } = useQuery({
+    queryKey: ["mock-pool-subject-totals"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_question_pool")
-        .select("chapter")
-        .eq("subject", subject);
+      const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
       if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.chapter))];
+      const totals: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        totals[row.subject] = (totals[row.subject] || 0) + qs.length;
+      });
+      return totals;
     },
-    enabled: !!subject,
   });
 
-  const { data: topics } = useQuery({
-    queryKey: ["mock-pool-topics", subject, chapter],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_question_pool")
-        .select("topic")
-        .eq("subject", subject)
-        .eq("chapter", chapter);
-      if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
-    },
-    enabled: !!subject && !!chapter,
-  });
-
-  const multiSubjectChapterQueries = useQueries({
-    queries: (multiSubjects || []).map((s) => ({
-      queryKey: ["mock-pool-multi-drill-chapters", s],
+  // Chapters + per-chapter totals for every subject (fetched once per subject expansion).
+  const chapterQueries = useQueries({
+    queries: (subjects || []).map((s) => ({
+      queryKey: ["mock-pool-chapters-totals", s],
       queryFn: async () => {
         const { data, error } = await supabase
           .from("mock_question_pool")
-          .select("chapter")
+          .select("chapter, questions_json")
           .eq("subject", s);
         if (error) throw error;
-        return [...new Set((data || []).map((d: any) => d.chapter))];
+        const totals: Record<string, number> = {};
+        (data || []).forEach((row: any) => {
+          const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+          totals[row.chapter] = (totals[row.chapter] || 0) + qs.length;
+        });
+        return totals;
       },
-      enabled: multiMode,
+      enabled: openSubject === s,
     })),
   });
-  const multiSubjectChapters: Record<string, string[]> = {};
-  multiSubjects.forEach((s, i) => {
-    multiSubjectChapters[s] = multiSubjectChapterQueries[i]?.data || [];
+  const chapterTotalsBySubject: Record<string, Record<string, number>> = {};
+  (subjects || []).forEach((s, i) => {
+    chapterTotalsBySubject[s] = chapterQueries[i]?.data || {};
   });
 
-  const { data: multiDrillChapters } = useQuery({
-    queryKey: ["mock-pool-multi-drill-chapters", multiDrillSubject],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("mock_question_pool")
-        .select("chapter")
-        .eq("subject", multiDrillSubject);
-      if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.chapter))];
-    },
-    enabled: multiMode && !!multiDrillSubject,
-  });
-
-  const { data: multiDrillTopics } = useQuery({
-    queryKey: ["mock-pool-multi-drill-topics", multiDrillChapter?.subject, multiDrillChapter?.chapter],
+  // Topics for whichever chapter is currently expanded for topic-narrowing.
+  const [openChapter, setOpenChapter] = useState<ChapterSel | null>(null);
+  const { data: openChapterTopics } = useQuery({
+    queryKey: ["mock-pool-topics", openChapter?.subject, openChapter?.chapter],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mock_question_pool")
         .select("topic")
-        .eq("subject", multiDrillChapter!.subject)
-        .eq("chapter", multiDrillChapter!.chapter);
+        .eq("subject", openChapter!.subject)
+        .eq("chapter", openChapter!.chapter);
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
     },
-    enabled: multiMode && !!multiDrillChapter,
+    enabled: !!openChapter,
   });
 
-  const { data: multiAvailablePool } = useQuery({
-    queryKey: ["mock-pool-multi-available-count", multiSelections, multiTopics, standard],
+  const { data: availablePool } = useQuery({
+    queryKey: ["mock-pool-available-count", selectedChapters, selectedTopics, standard],
     queryFn: async () => {
       let total = 0;
-      for (const sel of multiSelections) {
-        const topicsForSel = multiTopics
+      for (const sel of selectedChapters) {
+        const topicsForSel = selectedTopics
           .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
           .map((t) => t.topic);
         let q = supabase
@@ -230,29 +163,7 @@ const UnlimitedMockTest = () => {
       }
       return total;
     },
-    enabled: multiMode && multiSelections.length > 0,
-  });
-
-  const { data: availablePool } = useQuery({
-    queryKey: ["mock-pool-available-count", subject, chapter, topic, standard],
-    queryFn: async () => {
-      let q = supabase
-        .from("mock_question_pool")
-        .select("questions_json")
-        .eq("subject", subject)
-        .eq("chapter", chapter)
-        .eq("standard", standard);
-      if (topic) q = q.eq("topic", topic);
-      const { data, error } = await q;
-      if (error) throw error;
-      let total = 0;
-      (data || []).forEach((row: any) => {
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        total += qs.length;
-      });
-      return total;
-    },
-    enabled: !!subject && !!chapter,
+    enabled: selectedChapters.length > 0,
   });
 
   const { data: globalTotals } = useQuery({
@@ -276,47 +187,28 @@ const UnlimitedMockTest = () => {
   });
 
   const buildAndStart = async (finalCount: number, finalMinutes?: number) => {
-    if (multiMode) {
-      if (multiSelections.length === 0) {
-        toast({ title: "অন্তত একটি সাবজেক্ট/চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
-        return;
-      }
-    } else if (!subject || !chapter) {
-      toast({ title: "সাবজেক্ট ও চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
+    if (selectedChapters.length === 0) {
+      toast({ title: "অন্তত একটি চ্যাপ্টার নির্বাচন করুন", variant: "destructive" });
       return;
     }
     setStarting(true);
     try {
       let data: any[] = [];
 
-      if (multiMode) {
-        for (const sel of multiSelections) {
-          const topicsForSel = multiTopics
-            .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
-            .map((t) => t.topic);
-          let q = supabase
-            .from("mock_question_pool")
-            .select("*")
-            .eq("subject", sel.subject)
-            .eq("chapter", sel.chapter)
-            .eq("standard", standard);
-          if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
-          const { data: rows, error } = await q;
-          if (error) throw error;
-          if (rows) data = data.concat(rows);
-        }
-      } else {
+      for (const sel of selectedChapters) {
+        const topicsForSel = selectedTopics
+          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .map((t) => t.topic);
         let q = supabase
           .from("mock_question_pool")
           .select("*")
-          .eq("subject", subject)
-          .eq("chapter", chapter)
+          .eq("subject", sel.subject)
+          .eq("chapter", sel.chapter)
           .eq("standard", standard);
-        if (topic) q = q.eq("topic", topic);
-
+        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
         const { data: rows, error } = await q;
         if (error) throw error;
-        data = rows || [];
+        if (rows) data = data.concat(rows);
       }
 
       if (!data || data.length === 0) {
@@ -355,19 +247,30 @@ const UnlimitedMockTest = () => {
       const time = finalMinutes || Math.ceil((finalCount * 30) / 60);
       const sessionId = `mock_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      const title = multiMode
-        ? `${multiSelections.length} সাব-চ্যাপ্টার (Mixed Mock Test)`
-        : `${subject} - ${chapter} (Mock Test)`;
-
-      const multiSubjectNames = Array.from(new Set(multiSelections.map((s: any) => s.subject))).join(", ");
+      const subjectNames = Array.from(new Set(selectedChapters.map((s) => s.subject)));
+      const title =
+        selectedChapters.length === 1
+          ? `${selectedChapters[0].subject} - ${selectedChapters[0].chapter} (Mock Test)`
+          : `${selectedChapters.length} চ্যাপ্টার (Mixed Mock Test)`;
 
       sessionStorage.setItem("unlimitedMockQuestions", JSON.stringify(picked));
       sessionStorage.setItem("unlimitedMockTitle", title);
       sessionStorage.setItem("unlimitedMockTime", String(time));
       sessionStorage.setItem("unlimitedMockSessionId", sessionId);
-      sessionStorage.setItem("unlimitedMockSubject", multiMode ? multiSubjectNames : subject);
-      sessionStorage.setItem("unlimitedMockChapter", multiMode ? "" : chapter);
-      sessionStorage.setItem("unlimitedMockTopic", multiMode ? "" : (topic || ""));
+      sessionStorage.setItem("unlimitedMockSubject", subjectNames.join(", "));
+      sessionStorage.setItem(
+        "unlimitedMockChapter",
+        selectedChapters.length === 1 ? selectedChapters[0].chapter : ""
+      );
+      sessionStorage.setItem(
+        "unlimitedMockTopic",
+        selectedChapters.length === 1
+          ? selectedTopics
+              .filter((t) => t.subject === selectedChapters[0].subject && t.chapter === selectedChapters[0].chapter)
+              .map((t) => t.topic)
+              .join(", ")
+          : ""
+      );
 
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       navigate("/mock-test/play");
@@ -447,250 +350,154 @@ const UnlimitedMockTest = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-3">
-            <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
-            <button
-              type="button"
-              onClick={() => {
-                setMultiMode((v) => !v);
-                setMultiSubjects([]);
-                setMultiChapters([]);
-                setMultiTopics([]);
-                setMultiDrillSubject("");
-                setMultiDrillChapter(null);
-              }}
-              className="flex items-center gap-2 shrink-0 text-xs font-semibold text-muted-foreground border rounded-full px-3 py-1.5"
-            >
-              Multi Mood
-              <span
-                className={`h-5 w-9 rounded-full relative transition-colors shrink-0 ${
-                  multiMode ? "bg-primary" : "bg-muted-foreground/30"
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    multiMode ? "translate-x-4" : "translate-x-0"
-                  }`}
-                />
-              </span>
-            </button>
-          </div>
+          <CardTitle className="text-base">টেস্ট সেটআপ</CardTitle>
+          <p className="text-[11px] text-muted-foreground">
+            চেকবক্স দিয়ে যেকোনো সাবজেক্ট/চ্যাপ্টার/টপিক বেছে নিন — একটি হোক বা একাধিক মিশিয়ে, ইচ্ছেমতো
+          </p>
         </CardHeader>
         <CardContent className="space-y-4">
-          {multiMode ? (
-            <div className="space-y-4">
-              <div>
-                <Label className="mb-2 block">
-                  সাবজেক্ট নির্বাচন করুন
-                  {multiSelections.length > 0 && (
-                    <span className="text-muted-foreground font-normal">
-                      {" "}({multiSelections.length}টি চ্যাপ্টার নির্বাচিত
-                      {multiAvailablePool != null ? `, মোট MCQ ${multiAvailablePool}` : ""})
-                    </span>
-                  )}
-                </Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(subjects || []).map((s: string) => {
-                    const checked = multiSubjects.includes(s);
-                    return (
-                      <div key={s} className="relative">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            toggleMultiSubject(s);
-                          }}
-                          className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
-                            checked
-                              ? "border-primary bg-primary/10 text-primary dark:text-primary"
-                              : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          readOnly
-                          className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {multiSubjects.map((subj) => (
-                <div key={subj}>
-                  <Label className="mb-2 block">চ্যাপ্টার — {subj}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(multiSubjectChapters[subj] || []).map((c: string) => {
-                      const checked = multiChapters.some(
-                        (x) => x.subject === subj && x.chapter === c
-                      );
-                      return (
-                        <div key={c} className="relative">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              toggleMultiChapter(subj, c);
-                              setMultiDrillChapter(checked ? null : { subject: subj, chapter: c });
-                            }}
-                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
-                              checked
-                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
-                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                            }`}
-                          >
-                            {c}
-                          </button>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            readOnly
-                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
-                          />
-                        </div>
-                      );
-                    })}
-                    {!(multiSubjectChapters[subj] || []).length && (
-                      <p className="col-span-3 text-xs text-muted-foreground text-center py-3">লোড হচ্ছে...</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {multiDrillChapter && (
-                <div>
-                  <Label className="mb-2 block">টপিক — {multiDrillChapter.chapter}</Label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {(multiDrillTopics || []).map((t: string) => {
-                      const checked = multiTopics.some(
-                        (x) =>
-                          x.subject === multiDrillChapter.subject &&
-                          x.chapter === multiDrillChapter.chapter &&
-                          x.topic === t
-                      );
-                      return (
-                        <div key={t} className="relative">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              toggleMultiTopic(multiDrillChapter.subject, multiDrillChapter.chapter, t)
-                            }
-                            className={`w-full h-12 flex items-center justify-center rounded-lg border-2 px-2 text-xs font-semibold text-center truncate transition-all duration-150 active:scale-95 ${
-                              checked
-                                ? "border-primary bg-primary/10 text-primary dark:text-primary"
-                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                            }`}
-                          >
-                            {t}
-                          </button>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            readOnly
-                            className="absolute top-1 right-1 h-3.5 w-3.5 rounded border-2 border-border accent-primary pointer-events-none"
-                          />
-                        </div>
-                      );
-                    })}
-                    {!(multiDrillTopics || []).length && (
-                      <p className="col-span-3 text-xs text-muted-foreground text-center py-3">
-                        এই চ্যাপ্টারে কোনো টপিক নেই — পুরো চ্যাপ্টার থেকে প্রশ্ন আসবে
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
           <div className="space-y-2">
-            <Label className="mb-1 block">সাবজেক্ট</Label>
+            <Label className="mb-1 flex items-center justify-between">
+              <span>সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</span>
+              {selectedChapters.length > 0 && (
+                <span className="text-muted-foreground font-normal text-xs">
+                  {selectedChapters.length}টি চ্যাপ্টার নির্বাচিত
+                  {availablePool != null ? ` • মোট ${availablePool} MCQ` : ""}
+                </span>
+              )}
+            </Label>
             <Accordion
               type="single"
               collapsible
-              value={subject}
-              onValueChange={(v) => {
-                setSubject(v || "");
-                setChapter("");
-                setTopic("");
-              }}
+              value={openSubject}
+              onValueChange={(v) => setOpenSubject(v || "")}
               className="space-y-2"
             >
-              {(subjects || []).map((s: string) => (
-                <AccordionItem key={s} value={s} className="border-2 rounded-xl overflow-hidden border-border data-[state=open]:border-primary">
-                  <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-bold text-sm [&>svg]:hidden">
-                    <div className="flex items-center justify-between w-full gap-2">
-                      <span>{s}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-normal text-muted-foreground">
-                          {subjectTotals?.[s] ?? "-"} MCQ
+              {(subjects || []).map((s: string) => {
+                const chapterTotals = chapterTotalsBySubject[s] || {};
+                const chapterNames = Object.keys(chapterTotals);
+                const subjectSelectedCount = selectedChapters.filter((x) => x.subject === s).length;
+                return (
+                  <AccordionItem
+                    key={s}
+                    value={s}
+                    className="border-2 rounded-xl overflow-hidden border-border data-[state=open]:border-primary"
+                  >
+                    <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-bold text-sm [&>svg]:hidden">
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <span className="flex items-center gap-1.5">
+                          {s}
+                          {subjectSelectedCount > 0 && (
+                            <span className="text-[10px] font-bold text-primary bg-primary/10 rounded-full px-1.5 py-0.5">
+                              {subjectSelectedCount}
+                            </span>
+                          )}
                         </span>
-                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
-                      </div>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-3 pb-3 space-y-3">
-                    <div>
-                      <Label className="mb-2 block text-xs">চ্যাপ্টার</Label>
-                      <div className="grid grid-cols-2 gap-1">
-                        {(subject === s ? chapters : [])?.map((c: string) => (
-                          <button
-                            key={c}
-                            type="button"
-                            onClick={() => {
-                              setChapter(chapter === c ? "" : c);
-                              setTopic("");
-                            }}
-                            className={`w-full rounded-lg border-2 px-2 py-1.5 text-xs font-semibold text-left transition-colors flex items-center justify-between gap-1 ${
-                              chapter === c
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                            }`}
-                          >
-                            <span className="truncate">{c}</span>
-                            <span className="text-[9px] font-normal shrink-0">{chapterTotals?.[c] ?? "-"}</span>
-                          </button>
-                        ))}
-                        {subject === s && !(chapters || []).length && (
-                          <p className="col-span-2 text-xs text-muted-foreground text-center py-2">লোড হচ্ছে...</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {subject === s && chapter && !!(topics || []).length && (
-                      <div>
-                        <Label className="mb-2 block text-xs">টপিক (ঐচ্ছিক)</Label>
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {(topics || []).map((t: string) => (
-                            <button
-                              key={t}
-                              type="button"
-                              onClick={() => setTopic(topic === t ? "" : t)}
-                              className={`rounded-lg border-2 px-2 py-2 text-[11px] font-semibold text-center break-words transition-colors ${
-                                topic === t
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                              }`}
-                            >
-                              {t}
-                            </button>
-                          ))}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-[10px] font-normal text-muted-foreground">
+                            {subjectTotals?.[s] ?? "-"} MCQ
+                          </span>
+                          <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
                         </div>
                       </div>
-                    )}
+                    </AccordionTrigger>
+                    <AccordionContent className="px-3 pb-3 space-y-3">
+                      <div>
+                        <Label className="mb-2 block text-xs">চ্যাপ্টার (একাধিক বাছাই করা যাবে)</Label>
+                        <div className="grid grid-cols-1 gap-1.5">
+                          {chapterNames.map((c) => {
+                            const checked = selectedChapters.some((x) => x.subject === s && x.chapter === c);
+                            const isOpenForTopics = openChapter?.subject === s && openChapter?.chapter === c;
+                            return (
+                              <div key={c} className="space-y-1.5">
+                                <div
+                                  className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-colors ${
+                                    checked
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:border-primary/40"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleChapter(s, c)}
+                                    className="h-4 w-4 rounded border-2 border-border accent-primary shrink-0"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleChapter(s, c)}
+                                    className={`flex-1 min-w-0 text-left text-xs font-semibold truncate ${
+                                      checked ? "text-primary" : "text-muted-foreground dark:text-white"
+                                    }`}
+                                  >
+                                    {c}
+                                  </button>
+                                  <span className="text-[9px] text-muted-foreground shrink-0">
+                                    {chapterTotals[c] ?? "-"} MCQ
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setOpenChapter(isOpenForTopics ? null : { subject: s, chapter: c })}
+                                    className={`text-[9px] font-semibold shrink-0 underline ${
+                                      checked ? "text-primary" : "text-muted-foreground"
+                                    }`}
+                                  >
+                                    টপিক
+                                  </button>
+                                </div>
 
-                    {subject === s && chapter && (
-                      <p className="text-xs text-center text-muted-foreground bg-muted/50 rounded-lg py-1.5">
-                        নির্বাচিত অংশে মোট <b className="text-foreground">{availablePool ?? "-"}</b> টি MCQ আছে
-                      </p>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                                {isOpenForTopics && (
+                                  <div className="pl-6 pr-1">
+                                    {(openChapterTopics || []).length > 0 ? (
+                                      <div className="grid grid-cols-2 gap-1">
+                                        {(openChapterTopics || []).map((t: string) => {
+                                          const topicChecked = selectedTopics.some(
+                                            (x) => x.subject === s && x.chapter === c && x.topic === t
+                                          );
+                                          return (
+                                            <label
+                                              key={t}
+                                              className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium cursor-pointer ${
+                                                topicChecked
+                                                  ? "border-primary bg-primary/5 text-primary"
+                                                  : "border-border text-muted-foreground"
+                                              }`}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                checked={topicChecked}
+                                                onChange={() => {
+                                                  if (!checked) toggleChapter(s, c);
+                                                  toggleTopic(s, c, t);
+                                                }}
+                                                className="h-3 w-3 rounded border accent-primary shrink-0"
+                                              />
+                                              <span className="truncate">{t}</span>
+                                            </label>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <p className="text-[10px] text-muted-foreground py-1">
+                                        এই চ্যাপ্টারে আলাদা টপিক নেই — পুরো চ্যাপ্টার থেকে প্রশ্ন আসবে
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {chapterNames.length === 0 && (
+                            <p className="text-xs text-muted-foreground text-center py-2">লোড হচ্ছে...</p>
+                          )}
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
             </Accordion>
           </div>
-          )}
 
           <div>
             <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
@@ -715,11 +522,8 @@ const UnlimitedMockTest = () => {
           <div>
             <Label className="mb-2 block">
               প্রশ্ন সংখ্যা
-              {!multiMode && subject && chapter && availablePool != null && (
+              {availablePool != null && (
                 <span className="text-muted-foreground font-normal"> (available {availablePool})</span>
-              )}
-              {multiMode && multiAvailablePool != null && (
-                <span className="text-muted-foreground font-normal"> (available {multiAvailablePool})</span>
               )}
             </Label>
             <div className="flex gap-2 flex-wrap">
@@ -772,7 +576,7 @@ const UnlimitedMockTest = () => {
             className="w-full"
             size="lg"
             onClick={() => buildAndStart(count)}
-            disabled={starting || (multiMode && multiSelections.length === 0)}
+            disabled={starting || selectedChapters.length === 0}
           >
             {starting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
             এক্সাম শুরু করুন
