@@ -100,29 +100,33 @@ const UnlimitedMockTest = () => {
     },
   });
 
-  // Chapters + per-chapter totals for every subject (fetched once per subject expansion).
+  // Chapters + per-chapter totals + has-topic flag for every subject (fetched once per subject expansion).
   const chapterQueries = useQueries({
     queries: (subjects || []).map((s) => ({
       queryKey: ["mock-pool-chapters-totals", s],
       queryFn: async () => {
         const { data, error } = await supabase
           .from("mock_question_pool")
-          .select("chapter, questions_json")
+          .select("chapter, topic, questions_json")
           .eq("subject", s);
         if (error) throw error;
         const totals: Record<string, number> = {};
+        const hasTopic: Record<string, boolean> = {};
         (data || []).forEach((row: any) => {
           const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
           totals[row.chapter] = (totals[row.chapter] || 0) + qs.length;
+          if (row.topic) hasTopic[row.chapter] = true;
         });
-        return totals;
+        return { totals, hasTopic };
       },
       enabled: openSubject === s,
     })),
   });
   const chapterTotalsBySubject: Record<string, Record<string, number>> = {};
+  const chapterHasTopicBySubject: Record<string, Record<string, boolean>> = {};
   (subjects || []).forEach((s, i) => {
-    chapterTotalsBySubject[s] = chapterQueries[i]?.data || {};
+    chapterTotalsBySubject[s] = chapterQueries[i]?.data?.totals || {};
+    chapterHasTopicBySubject[s] = chapterQueries[i]?.data?.hasTopic || {};
   });
 
   // Topics for whichever chapter is currently expanded for topic-narrowing.
@@ -437,53 +441,52 @@ const UnlimitedMockTest = () => {
                                   <span className="text-[9px] text-muted-foreground shrink-0">
                                     {chapterTotals[c] ?? "-"} MCQ
                                   </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setOpenChapter(isOpenForTopics ? null : { subject: s, chapter: c })}
-                                    className={`text-[9px] font-semibold shrink-0 underline ${
-                                      checked ? "text-primary" : "text-muted-foreground"
-                                    }`}
-                                  >
-                                    টপিক
-                                  </button>
+                                  {chapterHasTopicBySubject[s]?.[c] && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setOpenChapter(isOpenForTopics ? null : { subject: s, chapter: c })}
+                                      className={`shrink-0 ${checked ? "text-primary" : "text-muted-foreground"}`}
+                                      aria-label="টপিক দেখুন"
+                                    >
+                                      <ChevronDown
+                                        className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                                          isOpenForTopics ? "rotate-180" : ""
+                                        }`}
+                                      />
+                                    </button>
+                                  )}
                                 </div>
 
                                 {isOpenForTopics && (
                                   <div className="pl-6 pr-1">
-                                    {(openChapterTopics || []).length > 0 ? (
-                                      <div className="grid grid-cols-2 gap-1">
-                                        {(openChapterTopics || []).map((t: string) => {
-                                          const topicChecked = selectedTopics.some(
-                                            (x) => x.subject === s && x.chapter === c && x.topic === t
-                                          );
-                                          return (
-                                            <label
-                                              key={t}
-                                              className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium cursor-pointer ${
-                                                topicChecked
-                                                  ? "border-primary bg-primary/5 text-primary"
-                                                  : "border-border text-muted-foreground"
-                                              }`}
-                                            >
-                                              <input
-                                                type="checkbox"
-                                                checked={topicChecked}
-                                                onChange={() => {
-                                                  if (!checked) toggleChapter(s, c);
-                                                  toggleTopic(s, c, t);
-                                                }}
-                                                className="h-3 w-3 rounded border accent-primary shrink-0"
-                                              />
-                                              <span className="truncate">{t}</span>
-                                            </label>
-                                          );
-                                        })}
-                                      </div>
-                                    ) : (
-                                      <p className="text-[10px] text-muted-foreground py-1">
-                                        এই চ্যাপ্টারে আলাদা টপিক নেই — পুরো চ্যাপ্টার থেকে প্রশ্ন আসবে
-                                      </p>
-                                    )}
+                                    <div className="grid grid-cols-2 gap-1">
+                                      {(openChapterTopics || []).map((t: string) => {
+                                        const topicChecked = selectedTopics.some(
+                                          (x) => x.subject === s && x.chapter === c && x.topic === t
+                                        );
+                                        return (
+                                          <label
+                                            key={t}
+                                            className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10px] font-medium cursor-pointer ${
+                                              topicChecked
+                                                ? "border-primary bg-primary/5 text-primary"
+                                                : "border-border text-muted-foreground"
+                                            }`}
+                                          >
+                                            <input
+                                              type="checkbox"
+                                              checked={topicChecked}
+                                              onChange={() => {
+                                                if (!checked) toggleChapter(s, c);
+                                                toggleTopic(s, c, t);
+                                              }}
+                                              className="h-3 w-3 rounded border accent-primary shrink-0"
+                                            />
+                                            <span className="truncate">{t}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
                                   </div>
                                 )}
                               </div>
