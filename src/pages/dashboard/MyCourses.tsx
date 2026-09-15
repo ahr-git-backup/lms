@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useEnrollments } from "@/hooks/useEnrollments";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, GraduationCap, Gift, Search } from "lucide-react";
+import { GraduationCap, Gift, Search } from "lucide-react";
 
 const MyCourses = () => {
   const { data: enrollments, isLoading } = useEnrollments();
@@ -60,7 +60,7 @@ const MyCourses = () => {
       ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEnrollments.map((enrollment: any) => (
-          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50">
+          <Card key={enrollment.id} className="flex flex-col h-full group transition-all duration-300 hover:shadow-md hover:border-primary/50 cursor-pointer" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
             <div className="aspect-video w-full overflow-hidden rounded-t-xl bg-muted/20 relative">
                 {enrollment.course?.image_url ? (
                     <img
@@ -105,11 +105,6 @@ const MyCourses = () => {
                  </div>
                )}
             </CardContent>
-            <CardFooter className="pt-0 mt-auto pb-6 px-6">
-              <Button className="w-full gap-2 rounded-full shadow-lg shadow-primary/10 group-hover:shadow-primary/20 transition-all" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
-                <BookOpen className="h-4 w-4" /> Enter Course
-              </Button>
-            </CardFooter>
           </Card>
         ))}
       </div>
