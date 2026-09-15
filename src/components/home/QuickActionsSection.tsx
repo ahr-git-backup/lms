@@ -80,7 +80,7 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate("/free-class")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/60 hover:border-primary hover:bg-primary/5 transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(217 91% 60%)" }}
         >
           <Video className="h-4 w-4 text-primary animate-icon-float" />
@@ -88,7 +88,7 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/free-exam")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/30 hover:border-primary hover:bg-primary/5 transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1 rounded-xl py-2.5 border-2 border-primary/60 hover:border-primary hover:bg-primary/5 transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(0 84% 60%)" }}
         >
           <FileQuestion className="h-4 w-4 text-primary animate-icon-float" style={{ animationDelay: "0.3s" }} />
@@ -100,7 +100,7 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => navigate("/quick-practice")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 hover:border-violet-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border-2 border-violet-500/50 hover:border-violet-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
@@ -110,7 +110,7 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/focus-timer")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-2 border-emerald-500/50 hover:border-emerald-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(160 84% 39%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-sm">
@@ -120,7 +120,7 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/telegram-support")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-500/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-500/10 border-2 border-sky-500/50 hover:border-sky-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-500 flex items-center justify-center shadow-sm">
@@ -134,7 +134,7 @@ export const QuickActionsSection = () => {
       <div className="grid grid-cols-3 gap-2">
         <button
           onClick={() => navigate("/pomodoro")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border border-rose-500/20 hover:border-rose-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 border-2 border-rose-500/50 hover:border-rose-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(330 81% 60%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-rose-500 to-pink-500 flex items-center justify-center shadow-sm">
@@ -144,7 +144,7 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={handleStudyTrackerClick}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-600/10 border border-sky-500/20 hover:border-sky-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-sky-500/10 to-blue-600/10 border-2 border-sky-500/50 hover:border-sky-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(199 89% 48%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-sm">
@@ -154,7 +154,7 @@ export const QuickActionsSection = () => {
         </button>
         <button
           onClick={() => navigate("/mock-test")}
-          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-fuchsia-500/10 to-pink-600/10 border border-fuchsia-500/20 hover:border-fuchsia-500/50 hover:shadow-md transition-all"
+          className="animate-border-chase group flex flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 bg-gradient-to-br from-fuchsia-500/10 to-pink-600/10 border-2 border-fuchsia-500/50 hover:border-fuchsia-500/80 hover:shadow-md transition-all"
           style={{ ["--border-chase-color" as any]: "hsl(271 81% 60%)" }}
         >
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-pink-600 flex items-center justify-center shadow-sm">
