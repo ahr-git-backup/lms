@@ -183,6 +183,21 @@ const UnlimitedMockTest = () => {
     },
   });
 
+  const { data: standardMcqCounts } = useQuery({
+    queryKey: ["mock-pool-standard-mcq-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mock_question_pool").select("standard, questions_json");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        if (!row.standard) return;
+        const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+        counts[row.standard] = (counts[row.standard] || 0) + n;
+      });
+      return counts;
+    },
+  });
+
   const STANDARDS = (() => {
     const map = new Map<string, { value: string; label: string }>();
     DEFAULT_STANDARDS.forEach((s) => map.set(s.value, s));
@@ -657,20 +672,34 @@ const UnlimitedMockTest = () => {
             <div>
               <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
               <div className="grid grid-cols-3 gap-2">
-                {STANDARDS.map((s) => (
-                  <button
-                    key={s.value}
-                    type="button"
-                    onClick={() => setStandard(s.value)}
-                    className={`px-2 py-2 rounded-lg text-xs font-semibold border-2 transition-colors text-center ${
-                      standard === s.value
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                    }`}
-                  >
-                    {s.label}
-                  </button>
-                ))}
+                {STANDARDS.map((s) => {
+                  const mcqCount = standardMcqCounts?.[s.value] ?? 0;
+                  const isEmpty = standardMcqCounts !== undefined && mcqCount === 0;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => {
+                        if (isEmpty) {
+                          toast({ title: "কোনো MCQ নেই", description: `${s.label} এ এখনো কোনো প্রশ্ন যোগ করা হয়নি।`, variant: "destructive" });
+                          return;
+                        }
+                        setStandard(s.value);
+                      }}
+                      disabled={isEmpty}
+                      aria-disabled={isEmpty}
+                      className={`px-2 py-2 rounded-lg text-xs font-semibold border-2 transition-colors text-center ${
+                        isEmpty
+                          ? "border-border text-muted-foreground/40 cursor-not-allowed opacity-50"
+                          : standard === s.value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
