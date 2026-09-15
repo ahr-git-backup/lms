@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -620,7 +621,12 @@ const UnlimitedMockTest = () => {
                   <AccordionItem
                     key={s}
                     value={s}
-                    className="border-2 rounded-xl overflow-hidden border-border data-[state=open]:border-primary"
+                    className={cn(
+                      "border-2 rounded-xl overflow-hidden transition-shadow duration-300",
+                      s === openSubject || subjectSelectedCount > 0
+                        ? "border-primary shadow-[0_0_8px_2px_hsl(var(--primary)/0.5)]"
+                        : "border-border"
+                    )}
                   >
                     <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-bold text-sm [&>svg]:hidden">
                       <div className="flex items-center justify-between w-full gap-2">
@@ -650,9 +656,9 @@ const UnlimitedMockTest = () => {
                             return (
                               <div key={c} className="space-y-1.5">
                                 <div
-                                  className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-colors ${
+                                  className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-all duration-300 ${
                                     checked
-                                      ? "border-primary bg-primary/10"
+                                      ? "border-primary bg-primary/10 shadow-[0_0_6px_1px_hsl(var(--primary)/0.45)]"
                                       : "border-border hover:border-primary/40"
                                   }`}
                                 >
