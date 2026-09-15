@@ -420,7 +420,30 @@ const Pomodoro = () => {
           </div>
           <div className="relative h-44 w-44 flex items-center justify-center">
             <svg viewBox="0 0 180 180" className="h-full w-full absolute inset-0 -rotate-90">
-              <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="8" />
+              {/* Watch-face tick marks — 12 major (hour) ticks, thin minute ticks between */}
+              {Array.from({ length: 60 }).map((_, i) => {
+                const isMajor = i % 5 === 0;
+                const tickAngle = (i / 60) * 2 * Math.PI;
+                const rOuter = 68;
+                const rInner = isMajor ? 62 : 65;
+                const x1 = 90 + rOuter * Math.cos(tickAngle);
+                const y1 = 90 + rOuter * Math.sin(tickAngle);
+                const x2 = 90 + rInner * Math.cos(tickAngle);
+                const y2 = 90 + rInner * Math.sin(tickAngle);
+                return (
+                  <line
+                    key={i}
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke={isMajor ? "rgba(165,180,252,0.45)" : "rgba(129,140,248,0.2)"}
+                    strokeWidth={isMajor ? 1.6 : 0.8}
+                    strokeLinecap="round"
+                  />
+                );
+              })}
+              <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="4" />
               {/* Clockwise fill: ring grows from 0 to full circumference as time elapses */}
               <circle
                 cx="90"
@@ -428,7 +451,7 @@ const Pomodoro = () => {
                 r="80"
                 fill="none"
                 stroke="url(#pomoGrad)"
-                strokeWidth="8"
+                strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray={CIRCUMFERENCE}
                 strokeDashoffset={offset}
