@@ -155,6 +155,15 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
         staleTime: 5 * 60 * 1000,
     });
 
+    const { data: hiddenSubCategories } = useQuery({
+        queryKey: ["sub-category-hidden-global"],
+        queryFn: async () => {
+            const { data } = await supabase.from("app_settings").select("value").eq("key", "sub_category_hidden_global").maybeSingle();
+            return (data?.value as string[]) || [];
+        },
+        staleTime: 5 * 60 * 1000,
+    });
+
     // Get subcategories for the selected category (or all if no category selected)
     const availableSubCategories = Array.from(new Set(
         courses
@@ -168,7 +177,9 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                 Array.isArray(c.sub_category) ? c.sub_category : (c.sub_category ? [c.sub_category] : [])
             )
             .filter(Boolean) || []
-    )).sort((a, b) => {
+    ))
+        .filter((s) => !(hiddenSubCategories || []).includes(s))
+        .sort((a, b) => {
         // Respect admin's custom drag-order (Manage Course Position →
         // Sub-Category Order) when set; unlisted names fall back to
         // alphabetical, appended after the ordered ones.

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronLeft, GripVertical, Save, Loader2, ChevronUp, ChevronDown, Eye, EyeOff } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -45,6 +45,8 @@ function SortableCourseItem({
   total,
   onMoveUp,
   onMoveDown,
+  hidden,
+  onToggleHidden,
 }: {
   id: string;
   name: string;
@@ -52,6 +54,8 @@ function SortableCourseItem({
   total: number;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  hidden?: boolean;
+  onToggleHidden?: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
   const style = {
@@ -77,8 +81,22 @@ function SortableCourseItem({
         {index + 1}
       </span>
       <div className="flex-1 min-w-0">
-        <h4 className="font-medium text-sm leading-snug break-words">{name}</h4>
+        <h4 className={cn("font-medium text-sm leading-snug break-words", hidden && "text-muted-foreground line-through")}>{name}</h4>
       </div>
+      {onToggleHidden && (
+        <button
+          type="button"
+          onClick={onToggleHidden}
+          className={cn(
+            "h-7 w-7 rounded flex items-center justify-center border flex-shrink-0",
+            hidden ? "bg-destructive/10 border-destructive/40 text-destructive" : "bg-background hover:bg-muted"
+          )}
+          aria-label={hidden ? "Unhide" : "Hide"}
+          title={hidden ? "ল্যান্ডিং পেজে দেখাও" : "ল্যান্ডিং পেজ থেকে হাইড করো"}
+        >
+          {hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+        </button>
+      )}
       <div className="flex flex-col gap-0.5 flex-shrink-0">
         <button
           type="button"
@@ -111,6 +129,7 @@ function SortableCourseItem({
 // sub_category has no override yet (see CourseSection.tsx on the landing page).
 const CATEGORY_ORDER_KEY = "category_order_global";
 const SUB_CATEGORY_ORDER_KEY = "sub_category_order_global";
+const SUB_CATEGORY_HIDDEN_KEY = "sub_category_hidden_global";
 
 // Drag/arrow reorder list for the TOP-LEVEL category filter buttons on the
 // landing page (batch/HSC-year-level grouping) — shown under the dialog's
@@ -233,10 +252,20 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
   const [items, setItems] = useState<string[]>([]);
   const [isModified, setIsModified] = useState(false);
 
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+
   const { data: savedOrder, isLoading } = useQuery({
     queryKey: ["sub-category-order-manager"],
     queryFn: async () => {
       const { data } = await supabase.from("app_settings").select("value").eq("key", SUB_CATEGORY_ORDER_KEY).maybeSingle();
+      return (data?.value as string[]) || [];
+    },
+  });
+
+  const { data: savedHidden, isLoading: isLoadingHidden } = useQuery({
+    queryKey: ["sub-category-hidden-manager"],
+    queryFn: async () => {
+      const { data } = await supabase.from("app_settings").select("value").eq("key", SUB_CATEGORY_HIDDEN_KEY).maybeSingle();
       return (data?.value as string[]) || [];
     },
   });
@@ -250,6 +279,21 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
     setIsModified(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [savedOrder, allSubCategories.join("|")]);
+
+  useEffect(() => {
+    if (savedHidden === undefined) return;
+    setHidden(new Set(savedHidden));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [savedHidden]);
+
+  const toggleHidden = (sub: string) => {
+    setHidden((prev) => {
+      const next = new Set(prev);
+      if (next.has(sub)) next.delete(sub); else next.add(sub);
+      return next;
+    });
+    setIsModified(true);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -280,14 +324,18 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("app_settings").upsert({ key: SUB_CATEGORY_ORDER_KEY, value: items }, { onConflict: "key" });
-      if (error) throw error;
+      const { error: e1 } = await supabase.from("app_settings").upsert({ key: SUB_CATEGORY_ORDER_KEY, value: items }, { onConflict: "key" });
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from("app_settings").upsert({ key: SUB_CATEGORY_HIDDEN_KEY, value: Array.from(hidden) }, { onConflict: "key" });
+      if (e2) throw e2;
     },
     onSuccess: () => {
-      toast({ title: "Sub-category বাটনের অর্ডার সেভ হয়েছে!" });
+      toast({ title: "Sub-category বাটনের অর্ডার/ভিজিবিলিটি সেভ হয়েছে!" });
       setIsModified(false);
       queryClient.invalidateQueries({ queryKey: ["sub-category-display-order"] });
       queryClient.invalidateQueries({ queryKey: ["sub-category-order-manager"] });
+      queryClient.invalidateQueries({ queryKey: ["sub-category-hidden-global"] });
+      queryClient.invalidateQueries({ queryKey: ["sub-category-hidden-manager"] });
     },
     onError: (err: any) => {
       toast({ title: "সেভ করা যায়নি", description: err.message, variant: "destructive" });
@@ -315,7 +363,7 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {isLoading || isLoadingHidden ? (
           <div className="text-center p-4 text-muted-foreground text-sm flex items-center justify-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" /> Loading...
           </div>
@@ -331,6 +379,8 @@ function SubCategoryOrderManager({ allSubCategories }: { allSubCategories: strin
                   total={items.length}
                   onMoveUp={() => moveItem(index, -1)}
                   onMoveDown={() => moveItem(index, 1)}
+                  hidden={hidden.has(sub)}
+                  onToggleHidden={() => toggleHidden(sub)}
                 />
               ))}
             </SortableContext>
