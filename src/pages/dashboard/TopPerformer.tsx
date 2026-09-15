@@ -67,17 +67,14 @@ const PodiumItem = ({ student, rank, color, height, glowColor, zIndex, CrownIcon
               {student.full_name?.slice(0, 2)?.toUpperCase() || "??"}
             </AvatarFallback>
           </Avatar>
-          <div className={`absolute -bottom-2 left-1/2 transform -translate-x-1/2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white shadow-md whitespace-nowrap bg-gradient-to-r ${color}`}>
-            {student.composite_score.toFixed(0)} pts
-          </div>
         </div>
       </div>
       <div className="text-center mb-1.5 max-w-[90px] sm:max-w-[120px]">
-        <div className="font-bold text-xs sm:text-sm text-foreground leading-tight break-words drop-shadow-sm" title={student.full_name}>
+        <div className="font-bold text-xs sm:text-sm text-foreground leading-tight break-words drop-shadow-sm">
           {student.full_name || "Unknown"}
         </div>
         {student.college_name && (
-          <div className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight truncate" title={student.college_name}>
+          <div className="text-[9px] sm:text-[10px] text-muted-foreground leading-tight break-words">
             {student.college_name}
           </div>
         )}
@@ -297,31 +294,31 @@ const TopPerformer = () => {
 
           <div className="space-y-2">
             {rest.map((p) => (
-              <Card key={p.profile_id} className={p.profile_id === user?.id ? "border-primary/50 bg-primary/5" : ""}>
-                <CardContent className="p-3 flex items-center gap-3">
-                  <span className="text-sm font-bold text-muted-foreground w-6 text-center">#{p.rank_position}</span>
-                  <Avatar className="h-9 w-9">
+              <Card key={p.profile_id} className={`relative ${p.profile_id === user?.id ? "border-primary/50 bg-primary/5" : ""}`}>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 absolute top-1.5 right-1.5 shrink-0"
+                  onClick={() => setCompareTarget(p)}
+                  title="তুলনা করো"
+                >
+                  <Scale className="h-3 w-3" />
+                </Button>
+                <CardContent className="p-3 pr-8 flex items-center gap-3">
+                  <span className="text-sm font-bold text-muted-foreground w-6 text-center shrink-0">#{p.rank_position}</span>
+                  <Avatar className="h-9 w-9 shrink-0">
                     <AvatarImage src={p.avatar_url || undefined} />
                     <AvatarFallback className="text-xs">{p.full_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate">{p.full_name}</p>
+                    <p className="text-sm font-semibold break-words">{p.full_name}</p>
                     {(p.college_name || p.hsc_batch) && (
-                      <p className="text-[10px] text-muted-foreground truncate">
+                      <p className="text-[10px] text-muted-foreground break-words">
                         {[p.college_name, p.hsc_batch ? `HSC ${p.hsc_batch}` : null].filter(Boolean).join(" • ")}
                       </p>
                     )}
                     <p className="text-[10px] text-muted-foreground">{p.exam_count} এক্সাম • গড় {p.avg_score_pct}% • {p.active_days} দিন একটিভ</p>
                   </div>
-                  <Badge className="bg-primary/10 text-primary border-primary/30 text-[10px] shrink-0">{p.composite_score.toFixed(0)} pts</Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-7 px-2 text-[10px] gap-1 shrink-0"
-                    onClick={() => setCompareTarget(p)}
-                  >
-                    <Scale className="h-3 w-3" /> তুলনা করো
-                  </Button>
                 </CardContent>
               </Card>
             ))}
