@@ -1,0 +1,15 @@
+name = "atlas-mongo-sync"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Runs every 15 minutes — this data (mock question pool, free exam metadata)
+# is admin-edited occasionally, not real-time, so a short lag is fine.
+[triggers]
+crons = ["*/15 * * * *"]
+
+# Set as secrets (not committed):
+#   wrangler secret put SUPABASE_URL
+#   wrangler secret put SUPABASE_SERVICE_KEY
+#   wrangler secret put MONGODB_DATA_API_URL
+#   wrangler secret put MONGODB_DATA_API_KEY
+#   wrangler secret put SYNC_TRIGGER_KEY   (for the manual /sync-now endpoint)
