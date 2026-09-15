@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -124,6 +125,7 @@ const QuickPracticePlay = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
+  const isStandalone = usePWADisplayMode();
 
   const [loading, setLoading] = useState(true);
   const [empty, setEmpty] = useState(false);
@@ -755,7 +757,10 @@ const QuickPracticePlay = () => {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t px-4 py-3">
+      <div
+        className="fixed left-0 right-0 z-30 bg-background border-t px-4 py-3"
+        style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
+      >
         <div className="max-w-2xl mx-auto flex gap-3">
           <button
             onClick={goPrev}

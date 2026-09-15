@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import MockPoolPositionManagerDialog from "@/components/admin/MockPoolPositionManagerDialog";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -89,6 +90,7 @@ const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const isStandalone = usePWADisplayMode();
   const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [pendingStart, setPendingStart] = useState<{ count: number; minutes?: number } | null>(null);
@@ -741,7 +743,10 @@ const UnlimitedMockTest = () => {
 
       <div className="h-16" />
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border p-3">
+      <div
+        className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border p-3"
+        style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
+      >
         <div className="max-w-lg mx-auto">
           <Button
             className="w-full"
