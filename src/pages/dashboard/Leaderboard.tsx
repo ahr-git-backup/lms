@@ -1084,11 +1084,11 @@ const Leaderboard = () => {
               {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {leaderboard.map((attempt: any, index: number) => {
                 const globalIndex = index;
-                let rankIcon = null;
+                let rankIcon: string | null = null;
                 let cardClass = "bg-card";
-                if (globalIndex === 0) { rankIcon = "🥇"; cardClass = "bg-yellow-100/50 dark:bg-yellow-900/20"; }
-                else if (globalIndex === 1) { rankIcon = "🥈"; cardClass = "bg-slate-100/50 dark:bg-slate-800/20"; }
-                else if (globalIndex === 2) { rankIcon = "🥉"; cardClass = "bg-orange-100/50 dark:bg-orange-900/20"; }
+                if (globalIndex === 0) { rankIcon = "#F5B800"; cardClass = "bg-yellow-100/50 dark:bg-yellow-900/20"; }
+                else if (globalIndex === 1) { rankIcon = "#94A3B8"; cardClass = "bg-slate-100/50 dark:bg-slate-800/20"; }
+                else if (globalIndex === 2) { rankIcon = "#CD7C3A"; cardClass = "bg-orange-100/50 dark:bg-orange-900/20"; }
 
                 const isSecondTimer = attempt.profile?.is_second_timer;
                 const isMe = myAttemptId === attempt.id;
@@ -1107,7 +1107,7 @@ const Leaderboard = () => {
                     )}
                     <div className="flex items-start gap-2">
                         <div className="font-bold whitespace-nowrap pt-0.5">
-                            {rankIcon ? <span className="text-xl">{rankIcon}</span> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
+                            {rankIcon ? <Trophy className="h-5 w-5" fill={rankIcon} color={rankIcon} strokeWidth={1} /> : <span className="text-muted-foreground text-sm">#{globalIndex + 1}</span>}
                         </div>
                         <Avatar className="h-9 w-9 rounded-sm shrink-0 border border-border">
                             <AvatarImage src={attempt.profile?.avatar_url} className="rounded-sm object-cover" />
@@ -1163,17 +1163,17 @@ const Leaderboard = () => {
                   {leaderboard.map((attempt: any, index: number) => {
                     // Calculate global rank
                     const globalIndex = index;
-                    let rankIcon = null;
+                    let rankIcon: string | null = null;
                     let rowClass = "";
 
                     if (globalIndex === 0) {
-                        rankIcon = "🥇";
+                        rankIcon = "#F5B800";
                         rowClass = "bg-yellow-100/50 hover:bg-yellow-100/60 dark:bg-yellow-900/20 dark:hover:bg-yellow-900/30";
                     } else if (globalIndex === 1) {
-                        rankIcon = "🥈";
+                        rankIcon = "#94A3B8";
                         rowClass = "bg-slate-100/50 hover:bg-slate-100/60 dark:bg-slate-800/20 dark:hover:bg-slate-800/30";
                     } else if (globalIndex === 2) {
-                        rankIcon = "🥉";
+                        rankIcon = "#CD7C3A";
                         rowClass = "bg-orange-100/50 hover:bg-orange-100/60 dark:bg-orange-900/20 dark:hover:bg-orange-900/30";
                     }
 
@@ -1198,7 +1198,7 @@ const Leaderboard = () => {
                     return (
                         <TableRow key={attempt.id} className={rowClass}>
                             <TableCell className="font-bold whitespace-nowrap">
-                                {rankIcon ? <span className="text-2xl mr-2">{rankIcon}</span> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
+                                {rankIcon ? <Trophy className="h-6 w-6 mr-2" fill={rankIcon} color={rankIcon} strokeWidth={1} /> : <span className="text-muted-foreground ml-2">#{globalIndex + 1}</span>}
                             </TableCell>
                             <TableCell className="font-medium whitespace-nowrap">
                                 <div className="flex items-center gap-2.5">

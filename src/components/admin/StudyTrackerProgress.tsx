@@ -18,7 +18,6 @@ const RANK_COLORS: Record<number, string> = {
   2: "#94A3B8",
   3: "#CD7C3A",
 };
-const MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 
 export function StudyTrackerProgress() {
   const [progMode, setProgMode] = useState<ProgMode>("hsc");
@@ -63,12 +62,11 @@ export function StudyTrackerProgress() {
               const batch = r.hsc_batch || "";
               const initial = (name[0] || "?").toUpperCase();
               const rankColor = rank <= 3 ? RANK_COLORS[rank] : "hsl(var(--muted-foreground))";
-              const medal = rank <= 3 ? MEDALS[rank] : rank;
               const pct = Number(r.pct || 0);
               return (
                 <div key={r.user_id} className="flex items-center gap-3 px-4 py-2.5">
                   <span className="w-6 text-center text-xs font-bold flex-shrink-0" style={{ color: rankColor }}>
-                    {medal}
+                    {rank <= 3 ? <Trophy className="h-4 w-4 mx-auto" fill={rankColor} strokeWidth={1} /> : rank}
                   </span>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-sky-400 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                     {initial}

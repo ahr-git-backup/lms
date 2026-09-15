@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle, BookOpen } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle, BookOpen, PartyPopper, ArrowRight } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { supabase } from "@/integrations/supabase/client";
@@ -439,7 +439,9 @@ const QuickPracticePlay = () => {
           <Trophy className="h-9 w-9 text-amber-950" />
         </div>
         <div>
-          <h1 className="text-xl font-extrabold">কুইজ শেষ! 🎉</h1>
+          <h1 className="text-xl font-extrabold flex items-center justify-center gap-1.5">
+            কুইজ শেষ! <PartyPopper className="h-5 w-5 text-amber-500" />
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             মোট {attempted}টি প্রশ্ন খেলেছেন {!saved && "· সেভ হচ্ছে..."}
           </p>
@@ -771,9 +773,9 @@ const QuickPracticePlay = () => {
           </button>
           <button
             onClick={goNext}
-            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity"
+            className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
           >
-            {current === total - 1 ? "শেষ করো" : "পরবর্তী →"}
+            {current === total - 1 ? "শেষ করো" : <>পরবর্তী <ArrowRight className="h-4 w-4" /></>}
           </button>
         </div>
       </div>

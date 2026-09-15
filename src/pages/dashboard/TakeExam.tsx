@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
-import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, ArrowLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag } from "lucide-react";
+import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, ArrowLeft, ArrowRight, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -132,7 +132,7 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
                                     onClick={() => { setImageFile(null); setImagePreview(null); }}
                                     className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
                                 >
-                                    ✕
+                                    <X className="h-4 w-4 mx-auto" />
                                 </button>
                             </div>
                         ) : (
@@ -261,7 +261,7 @@ const TakeExam = () => {
         if (document.visibilityState === 'hidden') {
             setViolationCount(prev => prev + 1);
             toast({
-                title: "⚠️ Warning: Tab Switch Detected",
+                title: <span className="flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Warning: Tab Switch Detected</span>,
                 description: "Leaving the exam tab is recorded. Multiple violations may disqualify you.",
                 variant: "destructive",
                 duration: 5000,
@@ -279,7 +279,7 @@ const TakeExam = () => {
             e.preventDefault();
             setViolationCount(prev => prev + 1);
             toast({
-                title: "⚠️ Warning: Screenshot Attempt Blocked",
+                title: <span className="flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Warning: Screenshot Attempt Blocked</span>,
                 description: "Screenshots are disabled during the exam. This attempt is recorded.",
                 variant: "destructive",
                 duration: 5000,
@@ -2165,9 +2165,9 @@ const TakeExam = () => {
             <button
               onClick={qpGoNext}
               disabled={!ans}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity"
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
             >
-              {qpCurrent === qpQuestions.length - 1 ? "শেষ করো" : "পরবর্তী →"}
+              {qpCurrent === qpQuestions.length - 1 ? "শেষ করো" : <>পরবর্তী <ArrowRight className="h-4 w-4" /></>}
             </button>
           </div>
         </div>

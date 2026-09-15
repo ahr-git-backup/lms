@@ -612,10 +612,10 @@ function LeaderboardView({ lbMode, setLbMode, leaderboard, currentUserId }: { lb
         {(!leaderboard || leaderboard.length === 0) && <p className="text-center text-xs text-muted-foreground py-8">এখনো কেউ এই মোডে অগ্রগতি রেকর্ড করেনি।</p>}
         {leaderboard?.map((row, i) => {
           const isMe = row.user_id === currentUserId;
-          const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+          const medalColor = i === 0 ? "#F5B800" : i === 1 ? "#94A3B8" : i === 2 ? "#CD7C3A" : null;
           return (
             <div key={row.user_id} className={cn("flex items-center gap-2.5 rounded-lg border px-2.5 py-2 bg-card/50", isMe && "border-primary/40 bg-primary/5")}>
-              <span className="w-6 text-center font-black text-xs text-muted-foreground">{medal || `#${i + 1}`}</span>
+              <span className="w-6 text-center font-black text-xs text-muted-foreground">{medalColor ? <Trophy className="h-4 w-4 mx-auto" fill={medalColor} strokeWidth={1} color={medalColor} /> : `#${i + 1}`}</span>
               <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-extrabold text-xs flex-shrink-0">{(row.full_name || "S").charAt(0).toUpperCase()}</div>
               <div className="flex-1 min-w-0"><div className="text-xs font-bold truncate">{row.full_name || "Student"}{isMe && " (তুমি)"}</div>{row.hsc_batch && <div className="text-[10px] text-muted-foreground">{row.hsc_batch}</div>}</div>
               <div className="text-xs font-black text-primary flex-shrink-0">{Number(row.pct).toFixed(1)}%</div>

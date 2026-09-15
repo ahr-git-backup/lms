@@ -166,7 +166,7 @@ const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
                   onClick={() => { setImageFile(null); setImagePreview(null); }}
                   className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center shadow"
                 >
-                  ✕
+                  <X className="h-4 w-4 mx-auto" />
                 </button>
               </div>
             ) : (
@@ -287,7 +287,7 @@ const PlayUnlimitedMock = () => {
       if (document.visibilityState === "hidden") {
         setViolationCount((prev) => prev + 1);
         toast({
-          title: "⚠️ Warning: Tab Switch Detected",
+          title: <span className="flex items-center gap-1.5"><AlertTriangle className="h-4 w-4" /> Warning: Tab Switch Detected</span>,
           description: "Leaving the test tab is recorded. Multiple violations may disqualify you.",
           variant: "destructive",
           duration: 5000,
