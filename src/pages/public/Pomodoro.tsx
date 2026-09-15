@@ -476,9 +476,6 @@ const Pomodoro = () => {
                     fill="url(#flameGrad)"
                     className="transition-all duration-1000 animate-flame-flicker"
                     style={{
-                      filter: warning
-                        ? "drop-shadow(0 0 8px rgba(239,68,68,0.9)) drop-shadow(0 0 3px rgba(255,255,255,0.6))"
-                        : "none",
                       transformBox: "fill-box",
                       transformOrigin: "center",
                     }}
