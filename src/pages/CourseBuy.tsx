@@ -17,7 +17,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag, Gift, Timer, CalendarIcon, Info, SkipForward } from "lucide-react";
+import { Loader2, CheckCircle2, Copy, AlertCircle, Sparkles, Tag, Gift, Timer, CalendarIcon, Info, SkipForward, XCircle, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { trackPixelEvent, generateEventId, getStoredUtmParams, getFacebookCookies } from "@/lib/metaPixel";
@@ -689,13 +689,17 @@ const CourseBuy = () => {
                                       <FormControl>
                                         <RadioGroupItem value="yes" />
                                       </FormControl>
-                                      <FormLabel className="font-normal">✅ হ্যাঁ, বাকি আছে</FormLabel>
+                                      <FormLabel className="font-normal inline-flex items-center gap-1.5">
+                                        <CheckCircle2 className="h-4 w-4 text-emerald-500" /> হ্যাঁ, বাকি আছে
+                                      </FormLabel>
                                     </FormItem>
                                     <FormItem className="flex items-center space-x-3 space-y-0">
                                       <FormControl>
                                         <RadioGroupItem value="no" />
                                       </FormControl>
-                                      <FormLabel className="font-normal">❌ না, বাকি নেই</FormLabel>
+                                      <FormLabel className="font-normal inline-flex items-center gap-1.5">
+                                        <XCircle className="h-4 w-4 text-rose-500" /> না, বাকি নেই
+                                      </FormLabel>
                                     </FormItem>
                                   </RadioGroup>
                                 </FormControl>
@@ -711,7 +715,9 @@ const CourseBuy = () => {
                                 name="due_amount"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel className="text-xs">✅ বাকি কত টাকা?</FormLabel>
+                                    <FormLabel className="text-xs inline-flex items-center gap-1.5">
+                                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> বাকি কত টাকা?
+                                    </FormLabel>
                                     <FormControl>
                                       <div className="relative">
                                         <span className="absolute left-3 top-2.5 text-muted-foreground font-bold">৳</span>
@@ -734,7 +740,7 @@ const CourseBuy = () => {
                           {hasDue === "no" && (
                             <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded p-2">
                               <SkipForward className="h-3.5 w-3.5 shrink-0" />
-                              <span>⚠️ বাকি না থাকলে Skip করে পরের প্রশ্নে যান।</span>
+                              <span>বাকি না থাকলে Skip করে পরের প্রশ্নে যান।</span>
                             </div>
                           )}
                         </div>
@@ -781,8 +787,8 @@ const CourseBuy = () => {
                             />
 
                             <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Info className="h-3.5 w-3.5 shrink-0" />
-                              <span>⚠️ তারিখ ছাড়া ফর্ম সাবমিট করা যাবে না।</span>
+                              <AlertTriangle className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                              <span>তারিখ ছাড়া ফর্ম সাবমিট করা যাবে না।</span>
                             </div>
                           </div>
                         )}
