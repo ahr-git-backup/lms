@@ -59,7 +59,7 @@ export default function MyCoursesPWA() {
                       </p>
                     )}
                   </div>
-                  <Button size="sm" className="gap-1.5 shrink-0" onClick={() => navigate(`/dashboard/course/${enrollment.course_id}`)}>
+                  <Button size="sm" className="gap-1.5 shrink-0" onClick={() => navigate(`/dashboard`)}>
                     <LayoutDashboard className="h-3.5 w-3.5" /> Dashboard
                   </Button>
                 </CardContent>
