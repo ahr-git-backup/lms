@@ -162,6 +162,20 @@ const UnlimitedMockTest = () => {
     });
   };
 
+  // Select/deselect every chapter under a subject at once (full-subject mock).
+  const toggleSubject = (s: string, allChapters: string[]) => {
+    setSelectedChapters((prev) => {
+      const currentlySelected = prev.filter((x) => x.subject === s).length;
+      const allSelected = allChapters.length > 0 && currentlySelected === allChapters.length;
+      if (allSelected) {
+        setSelectedTopics((t) => t.filter((x) => x.subject !== s));
+        return prev.filter((x) => x.subject !== s);
+      }
+      const withoutSubject = prev.filter((x) => x.subject !== s);
+      return [...withoutSubject, ...allChapters.map((c) => ({ subject: s, chapter: c }))];
+    });
+  };
+
   const toggleTopic = (s: string, c: string, t: string) => {
     setSelectedTopics((prev) => {
       const exists = prev.some((x) => x.subject === s && x.chapter === c && x.topic === t);
@@ -677,6 +691,31 @@ const UnlimitedMockTest = () => {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-3 pb-3 space-y-3">
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-all duration-300",
+                          subjectSelectedCount > 0 && subjectSelectedCount === chapterNames.length
+                            ? "border-primary bg-primary/10 shadow-[0_0_8px_2px_rgba(34,197,235,0.5)]"
+                            : "border-dashed border-border hover:border-primary/40"
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={chapterNames.length > 0 && subjectSelectedCount === chapterNames.length}
+                          onChange={() => toggleSubject(s, chapterNames)}
+                          className="h-4 w-4 rounded border-2 border-border accent-primary shrink-0"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => toggleSubject(s, chapterNames)}
+                          className="flex-1 min-w-0 text-left text-xs font-bold truncate"
+                        >
+                          পুরো {s} সাবজেক্ট নির্বাচন করুন (সব চ্যাপ্টার)
+                        </button>
+                        <span className="text-[9px] text-muted-foreground shrink-0">
+                          {subjectTotals?.[s] ?? "-"} MCQ
+                        </span>
+                      </div>
                       <div>
                         <Label className="mb-2 block text-xs">চ্যাপ্টার (একাধিক বাছাই করা যাবে)</Label>
                         <div className="grid grid-cols-1 gap-1.5">
