@@ -324,6 +324,40 @@ const UnlimitedMockTest = () => {
     enabled: !!openChapter,
   });
 
+  const { data: standardAvailableCounts } = useQuery({
+    queryKey: ["mock-pool-standard-available-counts", selectedChapters, selectedTopics],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      for (const sel of selectedChapters) {
+        const topicsForSel = selectedTopics
+          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .map((t) => t.topic);
+        let q = supabase
+          .from("mock_question_pool")
+          .select("standard, questions_json")
+          .eq("subject", sel.subject)
+          .eq("chapter", sel.chapter);
+        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
+        const { data, error } = await q;
+        if (error) throw error;
+        (data || []).forEach((row: any) => {
+          if (!row.standard) return;
+          const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+          counts[row.standard] = (counts[row.standard] || 0) + n;
+        });
+      }
+      return counts;
+    },
+    enabled: selectedChapters.length > 0,
+  });
+
+  useEffect(() => {
+    if (selectedChapters.length === 0 || !standardAvailableCounts) return;
+    if ((standardAvailableCounts[standard] ?? 0) > 0) return;
+    const firstNonEmpty = STANDARDS.find((s) => (standardAvailableCounts[s.value] ?? 0) > 0);
+    if (firstNonEmpty) setStandard(firstNonEmpty.value);
+  }, [standardAvailableCounts, selectedChapters.length]);
+
   const { data: availablePool } = useQuery({
     queryKey: ["mock-pool-available-count", selectedChapters, selectedTopics, standard],
     queryFn: async () => {
@@ -769,8 +803,9 @@ const UnlimitedMockTest = () => {
               <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
               <div className="grid grid-cols-3 gap-2">
                 {STANDARDS.map((s) => {
-                  const mcqCount = standardMcqCounts?.[s.value] ?? 0;
-                  const isEmpty = standardMcqCounts !== undefined && mcqCount === 0;
+                  const scoped = selectedChapters.length > 0 ? standardAvailableCounts : undefined;
+                  const mcqCount = scoped ? (scoped[s.value] ?? 0) : (standardMcqCounts?.[s.value] ?? 0);
+                  const isEmpty = scoped !== undefined ? mcqCount === 0 : standardMcqCounts !== undefined && mcqCount === 0;
                   return (
                     <button
                       key={s.value}
