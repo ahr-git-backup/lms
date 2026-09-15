@@ -395,7 +395,12 @@ const SyllabusTracker = () => {
                 <div className="text-[11px] text-muted-foreground leading-relaxed">HSC ও Medical<br />টপিক মার্ক করুন</div>
                 <div className="text-2xl font-black text-primary">{dashSylPct}%</div>
               </button>
-              <button onClick={() => setPanel("routine")} className="text-left rounded-2xl border bg-card p-4 space-y-2 hover:border-emerald-500/40 transition-colors">
+              <button
+                disabled
+                aria-disabled="true"
+                className="text-left rounded-2xl border bg-card p-4 space-y-2 opacity-50 cursor-not-allowed relative"
+              >
+                <span className="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">শীঘ্রই আসছে</span>
                 <div className="h-10 w-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center"><CalendarClock className="h-5 w-5" /></div>
                 <div className="text-sm font-bold">Routine Maker</div>
                 <div className="text-[11px] text-muted-foreground leading-relaxed">Daily ও Target<br />রুটিন তৈরি করুন</div>
@@ -407,7 +412,12 @@ const SyllabusTracker = () => {
                 <div className="text-[11px] text-muted-foreground leading-relaxed">ইতিহাস ও পরামর্শ<br />দুর্বল বিষয় বিশ্লেষণ</div>
                 <div className="text-2xl font-black text-amber-600">{dashSylPct}%</div>
               </button>
-              <button onClick={() => setPanel("revision")} className="text-left rounded-2xl border bg-card p-4 space-y-2 hover:border-violet-500/40 transition-colors">
+              <button
+                disabled
+                aria-disabled="true"
+                className="text-left rounded-2xl border bg-card p-4 space-y-2 opacity-50 cursor-not-allowed relative"
+              >
+                <span className="absolute top-2 right-2 text-[9px] font-bold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">শীঘ্রই আসছে</span>
                 <div className="h-10 w-10 rounded-xl bg-violet-500/10 text-violet-600 flex items-center justify-center"><RotateCcw className="h-5 w-5" /></div>
                 <div className="text-sm font-bold">Revision Planner</div>
                 <div className="text-[11px] text-muted-foreground leading-relaxed">HSC ও Medical<br />রিভিশন ট্র্যাক</div>
