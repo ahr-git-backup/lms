@@ -316,7 +316,7 @@ BEGIN
         )
     ) INTO v_active_live_exams
     FROM exams e
-    JOIN courses co ON e.course_id = co.id
+    LEFT JOIN courses co ON e.course_id = co.id
     WHERE (e.course_id = ANY(v_enrolled_course_ids) OR e.shared_course_ids && v_enrolled_course_ids)
       AND e.exam_type = 'live'
       AND e.is_published = true
