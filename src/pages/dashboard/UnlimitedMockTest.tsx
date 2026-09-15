@@ -1,11 +1,12 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueries } from "@tanstack/react-query";
-import { Target, Loader2, ArrowLeft, History } from "lucide-react";
+import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +16,7 @@ const DEFAULT_STANDARDS = [
   { value: "varsity", label: "Varsity" },
   { value: "onushiloni", label: "Onushiloni" },
 ];
-const COUNTS = [25, 35, 50, 75, 100];
+const COUNTS = [25, 35, 50, 75, 100, 150, 200];
 
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
@@ -72,6 +73,38 @@ const UnlimitedMockTest = () => {
       return [...prev, { subject: s, chapter: c, topic: t }];
     });
   };
+
+  const { data: subjectTotals } = useQuery({
+    queryKey: ["mock-pool-subject-totals"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
+      if (error) throw error;
+      const totals: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        totals[row.subject] = (totals[row.subject] || 0) + qs.length;
+      });
+      return totals;
+    },
+  });
+
+  const { data: chapterTotals } = useQuery({
+    queryKey: ["mock-pool-chapter-totals", subject],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_question_pool")
+        .select("chapter, questions_json")
+        .eq("subject", subject);
+      if (error) throw error;
+      const totals: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
+        totals[row.chapter] = (totals[row.chapter] || 0) + qs.length;
+      });
+      return totals;
+    },
+    enabled: !!subject,
+  });
 
   const { data: subjects } = useQuery({
     queryKey: ["mock-pool-subjects"],
@@ -571,86 +604,92 @@ const UnlimitedMockTest = () => {
               )}
             </div>
           ) : (
-          <div>
-            <Label className="mb-2 block">সাবজেক্ট</Label>
-            <div className="grid grid-cols-2 gap-1">
+          <div className="space-y-2">
+            <Label className="mb-1 block">সাবজেক্ট</Label>
+            <Accordion
+              type="single"
+              collapsible
+              value={subject}
+              onValueChange={(v) => {
+                setSubject(v || "");
+                setChapter("");
+                setTopic("");
+              }}
+              className="space-y-2"
+            >
               {(subjects || []).map((s: string) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => {
-                    if (subject === s) {
-                      setSubject("");
-                    } else {
-                      setSubject(s);
-                    }
-                    setChapter("");
-                    setTopic("");
-                  }}
-                  className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
-                    subject === s
-                      ? "border-primary bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                  }`}
-                  style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
-                >
-                  {s}
-                </button>
+                <AccordionItem key={s} value={s} className="border-2 rounded-xl overflow-hidden border-border data-[state=open]:border-primary">
+                  <AccordionTrigger className="px-3 py-2.5 hover:no-underline font-bold text-sm [&>svg]:hidden">
+                    <div className="flex items-center justify-between w-full gap-2">
+                      <span>{s}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-normal text-muted-foreground">
+                          {subjectTotals?.[s] ?? "-"} MCQ
+                        </span>
+                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-3 pb-3 space-y-3">
+                    <div>
+                      <Label className="mb-2 block text-xs">চ্যাপ্টার</Label>
+                      <div className="grid grid-cols-2 gap-1">
+                        {(subject === s ? chapters : [])?.map((c: string) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              setChapter(chapter === c ? "" : c);
+                              setTopic("");
+                            }}
+                            className={`w-full rounded-lg border-2 px-2 py-1.5 text-xs font-semibold text-left transition-colors flex items-center justify-between gap-1 ${
+                              chapter === c
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
+                            }`}
+                          >
+                            <span className="truncate">{c}</span>
+                            <span className="text-[9px] font-normal shrink-0">{chapterTotals?.[c] ?? "-"}</span>
+                          </button>
+                        ))}
+                        {subject === s && !(chapters || []).length && (
+                          <p className="col-span-2 text-xs text-muted-foreground text-center py-2">লোড হচ্ছে...</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {subject === s && chapter && !!(topics || []).length && (
+                      <div>
+                        <Label className="mb-2 block text-xs">টপিক (ঐচ্ছিক)</Label>
+                        <div className="grid grid-cols-3 gap-1.5">
+                          {(topics || []).map((t: string) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => setTopic(topic === t ? "" : t)}
+                              className={`rounded-lg border-2 px-2 py-2 text-[11px] font-semibold text-center break-words transition-colors ${
+                                topic === t
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
+                              }`}
+                            >
+                              {t}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {subject === s && chapter && (
+                      <p className="text-xs text-center text-muted-foreground bg-muted/50 rounded-lg py-1.5">
+                        নির্বাচিত অংশে মোট <b className="text-foreground">{availablePool ?? "-"}</b> টি MCQ আছে
+                      </p>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
               ))}
-            </div>
+            </Accordion>
           </div>
-          )}
-
-          {!multiMode && subject && (
-            <div>
-              <Label className="mb-2 block">চ্যাপ্টার</Label>
-              <div className="grid grid-cols-2 gap-1">
-                {(chapters || []).map((c: string) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => {
-                      if (chapter === c) {
-                        setChapter("");
-                      } else {
-                        setChapter(c);
-                      }
-                      setTopic("");
-                    }}
-                    className={`w-full rounded-xl border-2 px-0.5 py-1.5 font-bold text-center whitespace-nowrap overflow-hidden transition-colors ${
-                      chapter === c
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                    }`}
-                    style={{ fontSize: "clamp(0.55rem, 4.2vw, 1.25rem)" }}
-                  >
-                    {c}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!multiMode && subject && chapter && !!(topics || []).length && (
-            <div>
-              <Label className="mb-2 block">টপিক (ঐচ্ছিক)</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {(topics || []).map((t: string) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setTopic(topic === t ? "" : t)}
-                    className={`rounded-xl border-2 px-2 py-3 text-xs font-semibold text-center break-words transition-colors ${
-                      topic === t
-                        ? "border-primary bg-primary/10 text-primary"
-                        : "border-border text-muted-foreground dark:text-white hover:border-primary/40"
-                    }`}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
           )}
 
           <div>
