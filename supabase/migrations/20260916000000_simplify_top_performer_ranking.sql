@@ -1,10 +1,9 @@
--- Simplifies the Top Performer leaderboard per product decision:
--- Only show users who did NOT miss any daily live exam that occurred since
--- they enrolled (i.e. attempted every 'live' exam whose time_window_end
--- falls between their enrollment date and now, within the period).
--- Rank by average exam score % (desc); tie-break by average seconds per
--- question (asc — faster wins). No composite score, no class/focus/regularity
--- weighting anymore.
+-- Top Performer leaderboard: shows every enrolled user who was eligible for
+-- at least one live exam within the period (i.e. enrolled before that exam's
+-- time_window_end) — whether they attended it or missed it. Missed exams do
+-- not exclude a user; they just don't contribute a score for that exam.
+-- Rank by average exam score % across attempted exams only (desc); tie-break
+-- by average seconds per question (asc — faster wins).
 
 DROP FUNCTION IF EXISTS public.get_top_performers(integer);
 
@@ -13,6 +12,8 @@ RETURNS TABLE (
     profile_id uuid,
     full_name text,
     avatar_url text,
+    college_name text,
+    hsc_batch text,
     exam_count bigint,
     avg_score_pct numeric,
     avg_seconds_per_question numeric,
@@ -43,16 +44,14 @@ BEGIN
           AND e.time_window_end >= v_period_start
           AND e.time_window_end <= now()
     ),
-    -- Earliest enrollment date per user — a live exam before this date
-    -- shouldn't count against them as "missed".
     user_enrollment AS (
         SELECT e.profile_id, MIN(e.created_at) AS enrolled_at
         FROM public.enrollments e
         GROUP BY e.profile_id
     ),
-    -- Live exams each user was actually eligible for (occurred after they enrolled).
-    eligible_exams AS (
-        SELECT ue.profile_id, le.id AS exam_id
+    -- Every user eligible for at least one live exam in this period.
+    eligible_users AS (
+        SELECT DISTINCT ue.profile_id
         FROM user_enrollment ue
         JOIN live_exams le ON le.time_window_end >= ue.enrolled_at
     ),
@@ -62,19 +61,6 @@ BEGIN
         FROM public.exam_attempts a
         JOIN live_exams le ON le.id = a.exam_id
     ),
-    -- Only users who attempted every live exam they were eligible for
-    -- (and had at least one eligible exam in the period).
-    full_attendance AS (
-        SELECT ee.profile_id
-        FROM eligible_exams ee
-        GROUP BY ee.profile_id
-        HAVING COUNT(DISTINCT ee.exam_id) = (
-            SELECT COUNT(DISTINCT ee2.exam_id) FROM eligible_exams ee2 WHERE ee2.profile_id = ee.profile_id
-        )
-        AND COUNT(DISTINCT ee.exam_id) = (
-            SELECT COUNT(DISTINCT ap.exam_id) FROM attempts_in_period ap WHERE ap.profile_id = ee.profile_id
-        )
-    ),
     per_user AS (
         SELECT
             ap.profile_id,
@@ -83,26 +69,28 @@ BEGIN
             AVG(CASE WHEN ap.time_taken_seconds > 0 AND ap.q_count > 0
                      THEN ap.time_taken_seconds::numeric / ap.q_count ELSE NULL END) AS v_avg_seconds_per_question
         FROM attempts_in_period ap
-        JOIN full_attendance fa ON fa.profile_id = ap.profile_id
         GROUP BY ap.profile_id
     )
     SELECT
-        pu.profile_id,
+        eu.profile_id,
         p.full_name,
         p.avatar_url,
-        pu.v_exam_count,
-        ROUND(pu.v_avg_score_pct::numeric, 2),
-        ROUND(pu.v_avg_seconds_per_question::numeric, 1),
+        p.college_name,
+        p.hsc_batch,
+        COALESCE(pu.v_exam_count, 0) AS exam_count,
+        ROUND(COALESCE(pu.v_avg_score_pct, 0)::numeric, 2) AS avg_score_pct,
+        ROUND(pu.v_avg_seconds_per_question::numeric, 1) AS avg_seconds_per_question,
         0::bigint AS class_watch_seconds,
         0::bigint AS focus_seconds,
         0::bigint AS active_days,
-        ROUND(pu.v_avg_score_pct::numeric, 2) AS composite_score,
+        ROUND(COALESCE(pu.v_avg_score_pct, 0)::numeric, 2) AS composite_score,
         RANK() OVER (
-            ORDER BY pu.v_avg_score_pct DESC,
+            ORDER BY COALESCE(pu.v_avg_score_pct, 0) DESC,
                      pu.v_avg_seconds_per_question ASC NULLS LAST
         ) AS rank_position
-    FROM per_user pu
-    JOIN public.profiles p ON p.id = pu.profile_id
+    FROM eligible_users eu
+    JOIN public.profiles p ON p.id = eu.profile_id
+    LEFT JOIN per_user pu ON pu.profile_id = eu.profile_id
     ORDER BY rank_position ASC, p.full_name ASC;
 END;
 $$;
