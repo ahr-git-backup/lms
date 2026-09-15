@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2, ArrowLeft, Calendar, BookOpen, Presentation, FileText,
   CheckCircle2, User, Mail, Phone, CreditCard, AlertTriangle,
-  ExternalLink, TrendingDown, MessageCircle
+  ExternalLink, TrendingDown, MessageCircle, Ban, Hourglass
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
@@ -269,7 +269,7 @@ export default function StudentProfileView() {
                                                ? 'bg-red-100 text-red-700 border-red-200'
                                                : 'bg-amber-100 text-amber-700 border-amber-200'
                                            }`}>
-                                               {isPast(new Date(course.expiresAt)) ? '⛔ Expired' : '⏳ Expires'} {format(new Date(course.expiresAt), 'dd MMM yyyy')}
+                                               <span className="inline-flex items-center gap-0.5">{isPast(new Date(course.expiresAt)) ? <Ban className="h-3 w-3" /> : <Hourglass className="h-3 w-3" />} {isPast(new Date(course.expiresAt)) ? 'Expired' : 'Expires'} {format(new Date(course.expiresAt), 'dd MMM yyyy')}</span>
                                            </span>
                                        )}
                                        <span className="text-xs text-muted-foreground border px-1.5 rounded bg-muted/20">
@@ -489,8 +489,8 @@ export default function StudentProfileView() {
                           </a>
                         )}
                         {payment.admin_note && (
-                          <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded border">
-                            📝 {payment.admin_note}
+                          <div className="text-xs text-muted-foreground bg-muted/40 p-2 rounded border flex items-start gap-1.5">
+                            <FileText className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" /> {payment.admin_note}
                           </div>
                         )}
                         {payment.emi_logs && payment.emi_logs.length > 0 && (
