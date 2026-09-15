@@ -240,7 +240,7 @@ export function prewarmExplanations(qs: (McqLike & { id?: string })[]) {
 }
 
 /** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. Uses cached explanation when available. */
-export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: string }) {
+export function AiExplanationBox({ q, questionId, locked, onLockedClick }: { q: McqLike; questionId?: string; locked?: boolean; onLockedClick?: () => void }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState<string | null>(
@@ -271,6 +271,10 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
   };
 
   const handleToggle = () => {
+    if (locked) {
+      onLockedClick?.();
+      return;
+    }
     const next = !open;
     setOpen(next);
     if (next && answer === null && !loading) {
@@ -324,7 +328,7 @@ export function AiExplanationBox({ q, questionId }: { q: McqLike; questionId?: s
 }
 
 /** "AI Chat" button + near-fullscreen modal for follow-up Q&A on a specific MCQ. Cache-aware for instant open. */
-export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: string }) {
+export function AiChatButton({ q, questionId, locked, onLockedClick }: { q: McqLike; questionId?: string; locked?: boolean; onLockedClick?: () => void }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<
@@ -336,6 +340,10 @@ export function AiChatButton({ q, questionId }: { q: McqLike; questionId?: strin
   );
 
   const openChat = async () => {
+    if (locked) {
+      onLockedClick?.();
+      return;
+    }
     setModalOpen(true);
     if (initialAnswer !== null) {
       if (messages.length === 0) setMessages([{ role: "assistant", content: initialAnswer }]);
