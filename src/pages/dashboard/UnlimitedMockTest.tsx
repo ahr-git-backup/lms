@@ -691,33 +691,22 @@ const UnlimitedMockTest = () => {
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-3 pb-3 space-y-3">
-                      <div
-                        className={cn(
-                          "flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-all duration-300",
-                          subjectSelectedCount > 0 && subjectSelectedCount === chapterNames.length
-                            ? "border-primary bg-primary/10 shadow-[0_0_8px_2px_rgba(34,197,235,0.5)]"
-                            : "border-dashed border-border hover:border-primary/40"
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={chapterNames.length > 0 && subjectSelectedCount === chapterNames.length}
-                          onChange={() => toggleSubject(s, chapterNames)}
-                          className="h-4 w-4 rounded border-2 border-border accent-primary shrink-0"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => toggleSubject(s, chapterNames)}
-                          className="flex-1 min-w-0 text-left text-xs font-bold truncate"
-                        >
-                          পুরো {s} সাবজেক্ট নির্বাচন করুন (সব চ্যাপ্টার)
-                        </button>
-                        <span className="text-[9px] text-muted-foreground shrink-0">
-                          {subjectTotals?.[s] ?? "-"} MCQ
-                        </span>
-                      </div>
                       <div>
-                        <Label className="mb-2 block text-xs">চ্যাপ্টার (একাধিক বাছাই করা যাবে)</Label>
+                        <div className="mb-2 flex items-center justify-between">
+                          <Label className="text-xs">চ্যাপ্টার (একাধিক বাছাই করা যাবে)</Label>
+                          <button
+                            type="button"
+                            onClick={() => toggleSubject(s, chapterNames)}
+                            className={cn(
+                              "text-[10px] font-bold px-2 py-1 rounded-full border-2 transition-all duration-300 shrink-0",
+                              chapterNames.length > 0 && subjectSelectedCount === chapterNames.length
+                                ? "border-primary bg-primary/10 text-primary shadow-[0_0_6px_1px_rgba(34,197,235,0.5)]"
+                                : "border-border text-muted-foreground hover:border-primary/40"
+                            )}
+                          >
+                            {chapterNames.length > 0 && subjectSelectedCount === chapterNames.length ? "সব বাদ দিন" : "All"}
+                          </button>
+                        </div>
                         <div className="grid grid-cols-1 gap-1.5">
                           {chapterNames.map((c) => {
                             const checked = selectedChapters.some((x) => x.subject === s && x.chapter === c);
