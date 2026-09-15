@@ -58,7 +58,7 @@ const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undef
       toast({ title: "সেভ করা যায়নি", description: error.message, variant: "destructive" });
       return;
     }
-    queryClient.invalidateQueries({ queryKey: ["app-setting", DAILY_FREE_EXAM_LIMIT_KEY] });
+    queryClient.invalidateQueries({ queryKey: ["mock-exam-daily-status"] });
     toast({ title: "সেভ হয়েছে", description: "দৈনিক ফ্রি এক্সাম লিমিট আপডেট হয়েছে।" });
   };
 
@@ -98,42 +98,24 @@ const UnlimitedMockTest = () => {
   const [pendingStart, setPendingStart] = useState<{ count: number; minutes?: number } | null>(null);
   const [positionManagerOpen, setPositionManagerOpen] = useState(false);
 
-  const { data: dailyLimit } = useQuery({
-    queryKey: ["app-setting", "daily_free_exam_limit"],
+  const { data: dailyStatus } = useQuery({
+    queryKey: ["mock-exam-daily-status", user?.id, guestInfo?.phone],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("app_settings")
-        .select("value")
-        .eq("key", "daily_free_exam_limit")
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("mock_exam_daily_status" as any, {
+        p_user_id: user?.id ?? null,
+        p_guest_phone: user ? null : guestInfo?.phone ?? null,
+      });
       if (error) throw error;
-      const n = typeof data?.value === "number" ? data.value : parseInt(String(data?.value ?? "0"), 10);
-      return Number.isFinite(n) ? n : 0;
+      const row = Array.isArray(data) ? data[0] : data;
+      return {
+        dailyLimit: row?.daily_limit ?? 0,
+        todaysMockCount: row?.todays_count ?? 0,
+      };
     },
   });
 
-  const { data: todaysMockCount, refetch: refetchTodaysMockCount } = useQuery({
-    queryKey: ["todays-mock-count", user?.id, guestInfo?.phone],
-    queryFn: async () => {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
-      let q = supabase
-        .from("mock_exam_attempts" as any)
-        .select("id", { count: "exact", head: true })
-        .gte("submitted_at", startOfDay.toISOString());
-      if (user) {
-        q = q.eq("user_id", user.id);
-      } else if (guestInfo?.phone) {
-        q = q.eq("guest_phone", guestInfo.phone);
-      } else {
-        return 0;
-      }
-      const { count, error } = await q;
-      if (error) throw error;
-      return count ?? 0;
-    },
-    enabled: !!user || !!guestInfo?.phone,
-  });
+  const dailyLimit = dailyStatus?.dailyLimit ?? 0;
+  const todaysMockCount = dailyStatus?.todaysMockCount ?? 0;
 
   const limitActive = !!dailyLimit && dailyLimit > 0;
   const remaining = limitActive ? Math.max(0, dailyLimit - (todaysMockCount ?? 0)) : null;
