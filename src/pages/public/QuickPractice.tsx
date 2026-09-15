@@ -14,6 +14,7 @@ import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 
 interface QpSubject {
   id: number;
@@ -30,6 +31,7 @@ interface QpChapter {
 const QuickPractice = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isStandalone = usePWADisplayMode();
 
   const [openSubjectId, setOpenSubjectId] = useState<number | null>(null);
   const [chaptersBySubject, setChaptersBySubject] = useState<Record<number, QpChapter[]>>({});
@@ -361,7 +363,8 @@ const QuickPractice = () => {
       {selectedChapters.size > 0 && (
         <button
           onClick={startSelectedPractice}
-          className="fixed right-5 bottom-6 z-40 flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-extrabold text-sm px-5 py-3.5 rounded-full shadow-xl hover:shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-4"
+          className="fixed right-5 z-40 flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-extrabold text-sm px-5 py-3.5 rounded-full shadow-xl hover:shadow-2xl transition-all animate-in fade-in slide-in-from-bottom-4"
+          style={{ bottom: isStandalone ? "calc(84px + env(safe-area-inset-bottom))" : "1.5rem" }}
         >
           <Play className="h-4 w-4 fill-current" /> শুরু করো
         </button>
