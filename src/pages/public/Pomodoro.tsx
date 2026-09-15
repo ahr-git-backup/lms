@@ -599,30 +599,6 @@ const Pomodoro = () => {
           </button>
         </div>
 
-        {/* Success graph */}
-        {hasGraphData && (
-          <div className="rounded-2xl border bg-card p-4 space-y-3">
-            <h3 className="font-bold text-sm">সাফল্যের হার (গত ৩ দিন)</h3>
-            <div className="flex items-end gap-3 h-24">
-              {last3Days.map((d) => (
-                <div key={d.key} className="flex-1 flex flex-col items-center gap-1.5">
-                  <div className="flex-1 w-full flex items-end">
-                    <div
-                      className={cn(
-                        "w-full rounded-t-md",
-                        d.rate >= 80 ? "bg-emerald-500" : d.rate >= 50 ? "bg-amber-500" : "bg-destructive"
-                      )}
-                      style={{ height: `${Math.max(d.rate, 4)}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground">{d.label}</span>
-                  <span className="text-[10px] font-bold">{d.rate}%</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Session history */}
         <div className="rounded-2xl border bg-card p-4 space-y-2">
           <h3 className="font-bold text-sm mb-1">সেশন ইতিহাস</h3>
