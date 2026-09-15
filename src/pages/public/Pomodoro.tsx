@@ -483,15 +483,6 @@ const Pomodoro = () => {
         {/* Setup card */}
         <div className="rounded-2xl border bg-card p-4 space-y-3">
           <h3 className="font-bold text-sm">সেটআপ</h3>
-          <div>
-            <label className="text-[11px] text-muted-foreground mb-1 block">টাস্কের নাম</label>
-            <input
-              value={task}
-              onChange={(e) => setTask(e.target.value)}
-              placeholder="যেমন: পদার্থবিজ্ঞান চ্যাপ্টার ৩ (ঐচ্ছিক)"
-              className="w-full px-3 py-2 rounded-lg border bg-background text-sm"
-            />
-          </div>
           <div className="flex gap-1.5 flex-wrap">
             {PRESETS.map((p, i) => (
               <button
