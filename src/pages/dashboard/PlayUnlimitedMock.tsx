@@ -45,6 +45,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
 import { openSolvePdf } from "@/lib/solvePdf";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 
 interface PoolQuestion {
   id: string;
@@ -190,6 +191,7 @@ const PlayUnlimitedMock = () => {
   const navigate = useNavigate();
   const { user, profile } = useAuth() as any;
   const { toast } = useToast();
+  const isStandalone = usePWADisplayMode();
 
   // sessionId must be resolved before `questions`, since the fallback below reads it.
   const sessionId = sessionStorage.getItem("unlimitedMockSessionId") || "unlimited_mock_default";
@@ -1025,7 +1027,10 @@ const PlayUnlimitedMock = () => {
       </div>
 
       {/* Floating Submit Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div
+        className="fixed right-6 z-40"
+        style={{ bottom: isStandalone ? "calc(84px + env(safe-area-inset-bottom))" : "1.5rem" }}
+      >
         <Button
           size="default"
           className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"

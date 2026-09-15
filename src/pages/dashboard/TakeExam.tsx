@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, ArrowLeft, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -151,6 +152,7 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
 
 const TakeExam = () => {
   useAntiCheat();
+  const isStandalone = usePWADisplayMode();
   const { examId } = useParams();
   const [searchParams] = useSearchParams();
   const retakeFromAttemptId = searchParams.get('retake_from');
@@ -2155,7 +2157,10 @@ const TakeExam = () => {
           )}
         </div>
 
-        <div className="fixed bottom-0 left-0 right-0 z-30 bg-background border-t px-4 py-3">
+        <div
+          className="fixed left-0 right-0 z-30 bg-background border-t px-4 py-3"
+          style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
+        >
           <div className="max-w-2xl mx-auto">
             <button
               onClick={qpGoNext}
@@ -2401,7 +2406,10 @@ const TakeExam = () => {
       </div>
 
       {/* Floating Submit Exam Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div
+        className="fixed right-6 z-40"
+        style={{ bottom: isStandalone ? "calc(84px + env(safe-area-inset-bottom))" : "1.5rem" }}
+      >
         <Button
              size="default"
              className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"

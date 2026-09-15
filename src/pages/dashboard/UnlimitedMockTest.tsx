@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import MockPoolPositionManagerDialog from "@/components/admin/MockPoolPositionManagerDialog";
+import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -90,6 +91,7 @@ const UnlimitedMockTest = () => {
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const { toast } = useToast();
+  const isStandalone = usePWADisplayMode();
   const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [pendingStart, setPendingStart] = useState<{ count: number; minutes?: number } | null>(null);
@@ -322,6 +324,40 @@ const UnlimitedMockTest = () => {
     },
     enabled: !!openChapter,
   });
+
+  const { data: standardAvailableCounts } = useQuery({
+    queryKey: ["mock-pool-standard-available-counts", selectedChapters, selectedTopics],
+    queryFn: async () => {
+      const counts: Record<string, number> = {};
+      for (const sel of selectedChapters) {
+        const topicsForSel = selectedTopics
+          .filter((t) => t.subject === sel.subject && t.chapter === sel.chapter)
+          .map((t) => t.topic);
+        let q = supabase
+          .from("mock_question_pool")
+          .select("standard, questions_json")
+          .eq("subject", sel.subject)
+          .eq("chapter", sel.chapter);
+        if (topicsForSel.length > 0) q = q.in("topic", topicsForSel);
+        const { data, error } = await q;
+        if (error) throw error;
+        (data || []).forEach((row: any) => {
+          if (!row.standard) return;
+          const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+          counts[row.standard] = (counts[row.standard] || 0) + n;
+        });
+      }
+      return counts;
+    },
+    enabled: selectedChapters.length > 0,
+  });
+
+  useEffect(() => {
+    if (selectedChapters.length === 0 || !standardAvailableCounts) return;
+    if ((standardAvailableCounts[standard] ?? 0) > 0) return;
+    const firstNonEmpty = STANDARDS.find((s) => (standardAvailableCounts[s.value] ?? 0) > 0);
+    if (firstNonEmpty) setStandard(firstNonEmpty.value);
+  }, [standardAvailableCounts, selectedChapters.length]);
 
   const { data: availablePool } = useQuery({
     queryKey: ["mock-pool-available-count", selectedChapters, selectedTopics, standard],
@@ -747,7 +783,10 @@ const UnlimitedMockTest = () => {
 
       <div className="h-16" />
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border p-3">
+      <div
+        className="fixed left-0 right-0 z-40 bg-background/95 backdrop-blur border-t border-border p-3"
+        style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
+      >
         <div className="max-w-lg mx-auto">
           <Button
             className="w-full"
@@ -770,8 +809,9 @@ const UnlimitedMockTest = () => {
               <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
               <div className="grid grid-cols-3 gap-2">
                 {STANDARDS.map((s) => {
-                  const mcqCount = standardMcqCounts?.[s.value] ?? 0;
-                  const isEmpty = standardMcqCounts !== undefined && mcqCount === 0;
+                  const scoped = selectedChapters.length > 0 ? standardAvailableCounts : undefined;
+                  const mcqCount = scoped ? (scoped[s.value] ?? 0) : (standardMcqCounts?.[s.value] ?? 0);
+                  const isEmpty = scoped !== undefined ? mcqCount === 0 : standardMcqCounts !== undefined && mcqCount === 0;
                   return (
                     <button
                       key={s.value}
