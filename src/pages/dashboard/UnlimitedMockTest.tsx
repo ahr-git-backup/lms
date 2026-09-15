@@ -139,7 +139,7 @@ const UnlimitedMockTest = () => {
   const limitReached = limitActive && (todaysMockCount ?? 0) >= (dailyLimit as number);
 
   const [standard, setStandard] = useState("medical");
-  const [count, setCount] = useState(50);
+  const [count, setCount] = useState(25);
   const [customCount, setCustomCount] = useState("");
   const [starting, setStarting] = useState(false);
   const [openSubject, setOpenSubject] = useState(""); // which subject's accordion panel is expanded
