@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
+import MockPoolPositionManagerDialog from "@/components/admin/MockPoolPositionManagerDialog";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -91,6 +92,7 @@ const UnlimitedMockTest = () => {
   const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [pendingStart, setPendingStart] = useState<{ count: number; minutes?: number } | null>(null);
+  const [positionManagerOpen, setPositionManagerOpen] = useState(false);
 
   const { data: dailyLimit } = useQuery({
     queryKey: ["app-setting", "daily_free_exam_limit"],
@@ -173,6 +175,32 @@ const UnlimitedMockTest = () => {
       return [...new Set((data || []).map((d: any) => d.subject))];
     },
   });
+
+  const { data: subjectSortOrder } = useQuery({
+    queryKey: ["mock-pool-sort-order", "subject", ""],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_pool_sort_order" as any)
+        .select("item_key, sort_order")
+        .eq("item_type", "subject")
+        .eq("parent_key", "");
+      if (error) throw error;
+      return (data || []) as { item_key: string; sort_order: number }[];
+    },
+  });
+
+  const applySortOrder = (names: string[], saved: { item_key: string; sort_order: number }[] | undefined) => {
+    if (!saved || saved.length === 0) return names;
+    const orderMap = new Map(saved.map((s) => [s.item_key, s.sort_order]));
+    return [...names].sort((a, b) => {
+      const oa = orderMap.has(a) ? (orderMap.get(a) as number) : Number.MAX_SAFE_INTEGER;
+      const ob = orderMap.has(b) ? (orderMap.get(b) as number) : Number.MAX_SAFE_INTEGER;
+      if (oa !== ob) return oa - ob;
+      return a.localeCompare(b);
+    });
+  };
+
+  const orderedSubjects = applySortOrder(subjects || [], subjectSortOrder);
 
   const { data: standardsFromPool } = useQuery({
     queryKey: ["mock-pool-standards"],
@@ -262,6 +290,34 @@ const UnlimitedMockTest = () => {
         .eq("chapter", openChapter!.chapter);
       if (error) throw error;
       return [...new Set((data || []).map((d: any) => d.topic).filter(Boolean))];
+    },
+    enabled: !!openChapter,
+  });
+
+  const { data: chapterSortOrder } = useQuery({
+    queryKey: ["mock-pool-sort-order", "chapter", openSubject],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_pool_sort_order" as any)
+        .select("item_key, sort_order")
+        .eq("item_type", "chapter")
+        .eq("parent_key", openSubject);
+      if (error) throw error;
+      return (data || []) as { item_key: string; sort_order: number }[];
+    },
+    enabled: !!openSubject,
+  });
+
+  const { data: topicSortOrder } = useQuery({
+    queryKey: ["mock-pool-sort-order", "topic", openChapter?.subject, openChapter?.chapter],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("mock_pool_sort_order" as any)
+        .select("item_key, sort_order")
+        .eq("item_type", "topic")
+        .eq("parent_key", `${openChapter!.subject}||${openChapter!.chapter}`);
+      if (error) throw error;
+      return (data || []) as { item_key: string; sort_order: number }[];
     },
     enabled: !!openChapter,
   });
@@ -434,7 +490,18 @@ const UnlimitedMockTest = () => {
 
   return (
     <div className="space-y-2.5 max-w-lg mx-auto">
-      {isAdmin && <AdminDailyLimitControl currentLimit={dailyLimit} />}
+      {isAdmin && (
+        <div className="space-y-2">
+          <AdminDailyLimitControl currentLimit={dailyLimit} />
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => setPositionManagerOpen(true)}
+          >
+            Manage Position (সাবজেক্ট/চ্যাপ্টার/টপিক)
+          </Button>
+        </div>
+      )}
       <Card>
         <CardContent className="py-3">
           <div className="flex items-center justify-between gap-2">
@@ -521,9 +588,9 @@ const UnlimitedMockTest = () => {
               onValueChange={(v) => setOpenSubject(v || "")}
               className="space-y-2"
             >
-              {(subjects || []).map((s: string) => {
+              {(orderedSubjects || []).map((s: string) => {
                 const chapterTotals = chapterTotalsBySubject[s] || {};
-                const chapterNames = Object.keys(chapterTotals);
+                const chapterNames = applySortOrder(Object.keys(chapterTotals), s === openSubject ? chapterSortOrder : undefined);
                 const subjectSelectedCount = selectedChapters.filter((x) => x.subject === s).length;
                 return (
                   <AccordionItem
@@ -602,7 +669,7 @@ const UnlimitedMockTest = () => {
                                 {isOpenForTopics && (
                                   <div className="pl-6 pr-1">
                                     <div className="grid grid-cols-2 gap-1">
-                                      {(openChapterTopics || []).map((t: string) => {
+                                      {applySortOrder(openChapterTopics || [], topicSortOrder).map((t: string) => {
                                         const topicChecked = selectedTopics.some(
                                           (x) => x.subject === s && x.chapter === c && x.topic === t
                                         );
@@ -779,6 +846,10 @@ const UnlimitedMockTest = () => {
           }
         }}
       />
+
+      {isAdmin && (
+        <MockPoolPositionManagerDialog open={positionManagerOpen} onOpenChange={setPositionManagerOpen} />
+      )}
     </div>
   );
 };
