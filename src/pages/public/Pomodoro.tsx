@@ -465,18 +465,39 @@ const Pomodoro = () => {
                 </radialGradient>
               </defs>
             </svg>
-            <div className="absolute flex flex-col items-center px-3">
-              <span
-                className={cn(
-                  "font-mono font-bold tracking-wider",
-                  formatSeconds(timeLeft).length > 5 ? "text-xl" : "text-3xl",
-                  warning ? "text-red-400" : "text-indigo-100"
-                )}
-              >
-                {formatSeconds(timeLeft)}
-              </span>
-            </div>
           </div>
+
+          {/* Digit boxes — HRS / MIN / SEC, matching Focus Timer's style */}
+          {(() => {
+            const total = Math.max(0, Math.floor(timeLeft));
+            const h = String(Math.floor(total / 3600)).padStart(2, "0");
+            const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+            const s = String(total % 60).padStart(2, "0");
+            const boxClass = cn(
+              "flex flex-col items-center gap-1 rounded-xl px-3.5 py-2.5 border transition-colors duration-500 shadow-[0_2px_8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.07)]",
+              warning
+                ? "bg-gradient-to-br from-[#2a0d0d] to-[#3d0f0f] border-red-500/30"
+                : "bg-gradient-to-br from-[#0e0d2a] to-[#17163d] border-indigo-500/30"
+            );
+            return (
+              <div className="flex items-center gap-1.5 mt-1">
+                <div className={boxClass}>
+                  <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{h}</span>
+                  <span className="text-[9px] font-bold text-white/70 tracking-wide">HRS</span>
+                </div>
+                <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
+                <div className={boxClass}>
+                  <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{m}</span>
+                  <span className="text-[9px] font-bold text-white/70 tracking-wide">MIN</span>
+                </div>
+                <span className="pb-4 text-lg font-black text-muted-foreground animate-colon-blink">:</span>
+                <div className={boxClass}>
+                  <span className="font-mono text-3xl font-black tabular-nums tracking-wider text-white [text-shadow:0_0_4px_rgba(255,255,255,.18)]">{s}</span>
+                  <span className="text-[9px] font-bold text-white/70 tracking-wide">SEC</span>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Pause <-> Resume control, plus a Reset button that restarts fresh */}
           <div className="flex items-center gap-3 mt-4">
