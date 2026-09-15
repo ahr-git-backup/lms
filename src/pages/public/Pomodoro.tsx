@@ -440,6 +440,25 @@ const Pomodoro = () => {
                   <stop offset="100%" stopColor="#818CF8" />
                 </linearGradient>
               </defs>
+              {/* Leading-edge glowing dot, like a clock hand tip, riding the progress arc */}
+              {(() => {
+                const angle = elapsedProgress * 2 * Math.PI;
+                const dx = 90 + 80 * Math.cos(angle);
+                const dy = 90 + 80 * Math.sin(angle);
+                return (
+                  <circle
+                    cx={dx}
+                    cy={dy}
+                    r="6"
+                    fill="#818CF8"
+                    className={cn(
+                      "transition-all duration-1000 animate-pulse",
+                      warning && "fill-red-400"
+                    )}
+                    style={{ filter: "drop-shadow(0 0 6px rgba(129,140,248,0.9))" }}
+                  />
+                );
+              })()}
             </svg>
             <div className="absolute flex flex-col items-center px-3">
               <span
@@ -449,13 +468,6 @@ const Pomodoro = () => {
                 )}
               >
                 {formatSeconds(timeLeft)}
-              </span>
-              {/* Task name — premium pill look, crisp (no blur/opacity haze) */}
-              <span
-                className="mt-2 max-w-[150px] truncate rounded-full px-3 py-1 text-[10.5px] font-bold tracking-wide text-amber-200 bg-gradient-to-r from-amber-500/15 via-amber-400/10 to-amber-500/15 border border-amber-400/30 shadow-[0_0_10px_rgba(251,191,36,0.15)]"
-                title={currentTask || "টাস্ক নাম"}
-              >
-                {currentTask || "টাস্ক নাম"}
               </span>
             </div>
           </div>
