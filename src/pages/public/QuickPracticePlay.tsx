@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle } from "lucide-react";
+import { ArrowLeft, Check, X, Trophy, Volume2, Volume1, VolumeX, Volume, Bookmark, BookmarkCheck, ListChecks, Flag, MinusCircle, BookOpen } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { supabase } from "@/integrations/supabase/client";
@@ -681,7 +681,7 @@ const QuickPracticePlay = () => {
       <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-5 flex flex-col overflow-y-auto pb-24">
         <div className="flex items-center justify-between mb-4">
           <span className="inline-flex self-start items-center gap-1.5 bg-primary/10 text-primary text-[11px] font-bold px-3 py-1.5 rounded-full">
-            📘 {q.subjectName} · {q.chapterName}
+            <BookOpen className="h-3.5 w-3.5" /> {q.subjectName} · {q.chapterName}
           </span>
           <div className="flex items-center gap-2 flex-shrink-0">
             <button
