@@ -924,21 +924,13 @@ const PlayUnlimitedMock = () => {
         {questions.map((q, idx) => (
           <div key={q.id} ref={(el) => { questionRefs.current[q.id] = el; }} className="scroll-mt-20">
             <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
-              <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
-                {/* Question Row */}
-                <div className="flex items-start gap-4 max-w-full">
-                  <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                    <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
-                      <MathText
-                        text={q.question_text}
-                        className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex-shrink-0 flex items-center gap-1">
+              <CardContent className="p-4 md:p-5 space-y-2 max-w-full overflow-x-hidden">
+                {/* Top Row: N/total badge + icons */}
+                <div className="flex items-center justify-between gap-2 max-w-full">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                    {idx + 1}/{questions.length}
+                  </span>
+                  <div className="flex-shrink-0 flex items-center gap-0.5">
                     <ReportQuestionDialog questionText={q.question_text} />
                     <Button
                       variant="ghost"
@@ -948,6 +940,16 @@ const PlayUnlimitedMock = () => {
                     >
                       <Bookmark className={cn("h-5 w-5", bookmarked[q.id] && "fill-current text-amber-500")} />
                     </Button>
+                  </div>
+                </div>
+
+                {/* Question Row - full width */}
+                <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                  <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
+                    <MathText
+                      text={q.question_text}
+                      className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
+                    />
                   </div>
                 </div>
 
@@ -971,16 +973,16 @@ const PlayUnlimitedMock = () => {
                           }
                         }}
                         className={cn(
-                          "flex items-center gap-4 group max-w-full",
+                          "flex items-start gap-4 group max-w-full",
                           !isAnswered && "cursor-pointer",
                           isDisabled && "opacity-50 pointer-events-none"
                         )}
                       >
                         <div
                           className={cn(
-                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                            "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all mt-0.5",
                             isSelected
-                              ? "border-primary bg-primary text-primary-foreground scale-110"
+                              ? "bg-primary border-primary text-primary-foreground scale-110"
                               : "border-muted-foreground/30 text-muted-foreground",
                             !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
                             isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
@@ -990,19 +992,17 @@ const PlayUnlimitedMock = () => {
                         </div>
                         <div
                           className={cn(
-                            "flex-1 min-w-0 text-base whitespace-pre-line flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
-                            isSelected
-                              ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm"
-                              : "text-black dark:text-white border-border/60 hover:bg-muted/30 hover:border-primary/30"
+                            "flex-1 min-w-0 text-base whitespace-pre-line pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain flex items-start justify-between gap-2",
+                            isSelected ? "text-primary font-medium bg-primary/5 border-primary/40" : "text-black dark:text-white border-border/60"
                           )}
                         >
-                          <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                          <div className="flex-1 min-w-0">
                             <MathText
                               text={text}
                               className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white"
                             />
                           </div>
-                          {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
+                          {isSelected && <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                         </div>
                       </div>
                     );
@@ -1010,6 +1010,7 @@ const PlayUnlimitedMock = () => {
                 </div>
               </CardContent>
             </Card>
+
           </div>
         ))}
 
