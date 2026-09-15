@@ -660,7 +660,7 @@ const UnlimitedMockTest = () => {
                     className={cn(
                       "border-2 rounded-xl overflow-hidden transition-shadow duration-300",
                       s === openSubject || subjectSelectedCount > 0
-                        ? "border-primary shadow-[0_0_8px_2px_hsl(var(--primary)/0.5)]"
+                        ? "border-primary shadow-[0_0_10px_2px_rgba(34,197,235,0.55)]"
                         : "border-border"
                     )}
                   >
@@ -694,7 +694,7 @@ const UnlimitedMockTest = () => {
                                 <div
                                   className={`flex items-center gap-2 rounded-lg border-2 px-2.5 py-2 transition-all duration-300 ${
                                     checked
-                                      ? "border-primary bg-primary/10 shadow-[0_0_6px_1px_hsl(var(--primary)/0.45)]"
+                                      ? "border-primary bg-primary/10 shadow-[0_0_8px_2px_rgba(34,197,235,0.5)]"
                                       : "border-border hover:border-primary/40"
                                   }`}
                                 >
