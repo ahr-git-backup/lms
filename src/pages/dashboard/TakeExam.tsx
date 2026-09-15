@@ -2398,30 +2398,19 @@ const TakeExam = () => {
           </div>
         ))}
 
-        <div className="flex justify-center mt-8 pb-12">
-            <Button
-                size="lg"
-                onClick={() => {
-                        if (confirm("Finish and submit exam?")) submitExamMutation.mutate();
-                }}
-                className="bg-green-600 hover:bg-green-700 w-full max-w-sm h-12 text-lg rounded-full"
-            >
-                Finish Exam
-            </Button>
-        </div>
       </div>
 
-      {/* Floating Submit Button */}
+      {/* Floating Submit Exam Button */}
       <div className="fixed bottom-6 right-6 z-40">
         <Button
              size="default"
              className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
              onClick={() => {
-                if (confirm("Are you sure you want to submit?")) submitExamMutation.mutate();
+                if (confirm("Are you sure you want to submit the exam?")) submitExamMutation.mutate();
              }}
              disabled={submitExamMutation.isPending}
         >
-            {submitExamMutation.isPending ? "Submitting..." : "Submit"}
+            {submitExamMutation.isPending ? "Submitting..." : "Submit Exam"}
         </Button>
       </div>
 
