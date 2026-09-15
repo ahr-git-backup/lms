@@ -1,9 +1,12 @@
 -- Simplifies the Top Performer leaderboard per product decision:
--- Only show users who did NOT miss any daily live exam within the period
--- (i.e. attempted every 'live' exam whose time_window_end falls in range).
+-- Only show users who did NOT miss any daily live exam that occurred since
+-- they enrolled (i.e. attempted every 'live' exam whose time_window_end
+-- falls between their enrollment date and now, within the period).
 -- Rank by average exam score % (desc); tie-break by average seconds per
 -- question (asc — faster wins). No composite score, no class/focus/regularity
 -- weighting anymore.
+
+DROP FUNCTION IF EXISTS public.get_top_performers(integer);
 
 CREATE OR REPLACE FUNCTION public.get_top_performers(p_days integer DEFAULT 30)
 RETURNS TABLE (
@@ -25,33 +28,33 @@ SET search_path = public
 AS $$
 DECLARE
     v_period_start timestamptz;
-    v_live_exam_count integer;
 BEGIN
     v_period_start := CASE
         WHEN p_days <= 0 THEN date_trunc('day', now())
         ELSE now() - (p_days || ' days')::interval
     END;
 
-    -- All daily live exams that occurred within the period.
-    SELECT COUNT(*) INTO v_live_exam_count
-    FROM public.exams e
-    WHERE e.exam_type = 'live'
-      AND e.time_window_end IS NOT NULL
-      AND e.time_window_end >= v_period_start
-      AND e.time_window_end <= now();
-
-    IF v_live_exam_count = 0 THEN
-        RETURN;
-    END IF;
-
     RETURN QUERY
     WITH live_exams AS (
-        SELECT e.id
+        SELECT e.id, e.time_window_end
         FROM public.exams e
         WHERE e.exam_type = 'live'
           AND e.time_window_end IS NOT NULL
           AND e.time_window_end >= v_period_start
           AND e.time_window_end <= now()
+    ),
+    -- Earliest enrollment date per user — a live exam before this date
+    -- shouldn't count against them as "missed".
+    user_enrollment AS (
+        SELECT e.profile_id, MIN(e.created_at) AS enrolled_at
+        FROM public.enrollments e
+        GROUP BY e.profile_id
+    ),
+    -- Live exams each user was actually eligible for (occurred after they enrolled).
+    eligible_exams AS (
+        SELECT ue.profile_id, le.id AS exam_id
+        FROM user_enrollment ue
+        JOIN live_exams le ON le.time_window_end >= ue.enrolled_at
     ),
     attempts_in_period AS (
         SELECT a.profile_id, a.exam_id, a.score, a.total_marks, a.time_taken_seconds,
@@ -59,12 +62,18 @@ BEGIN
         FROM public.exam_attempts a
         JOIN live_exams le ON le.id = a.exam_id
     ),
-    -- Only users who attempted every single live exam in the period.
+    -- Only users who attempted every live exam they were eligible for
+    -- (and had at least one eligible exam in the period).
     full_attendance AS (
-        SELECT profile_id
-        FROM attempts_in_period
-        GROUP BY profile_id
-        HAVING COUNT(DISTINCT exam_id) = v_live_exam_count
+        SELECT ee.profile_id
+        FROM eligible_exams ee
+        GROUP BY ee.profile_id
+        HAVING COUNT(DISTINCT ee.exam_id) = (
+            SELECT COUNT(DISTINCT ee2.exam_id) FROM eligible_exams ee2 WHERE ee2.profile_id = ee.profile_id
+        )
+        AND COUNT(DISTINCT ee.exam_id) = (
+            SELECT COUNT(DISTINCT ap.exam_id) FROM attempts_in_period ap WHERE ap.profile_id = ee.profile_id
+        )
     ),
     per_user AS (
         SELECT
