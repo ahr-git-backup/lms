@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, BookOpen, Calendar, Coffee, Lightbulb, Moon } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Coffee, Lightbulb, Moon, CheckCircle2, Circle, Hourglass, BarChart3, Trophy, Flame, TrendingUp, Sprout, AlertTriangle, TrendingDown } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -9,6 +9,16 @@ import { cn } from "@/lib/utils";
 
 const BN_DAYS = ["রবি", "সোম", "মঙ্গল", "বুধ", "বৃহ", "শুক্র", "শনি"];
 const BN_MONTHS = ["জানু", "ফেব্রু", "মার্চ", "এপ্রিল", "মে", "জুন", "জুলাই", "আগস্ট", "সেপ্ট", "অক্টো", "নভে", "ডিসে"];
+
+const STATUS_ICON_MAP = {
+  lightbulb: Lightbulb,
+  sleep: Moon,
+  warning: AlertTriangle,
+  "trend-down": TrendingDown,
+  coffee: Coffee,
+  trophy: Trophy,
+  "trend-up": TrendingUp,
+} as const;
 
 function fmtHM(s: number) {
   s = Math.max(0, Math.round(s));
@@ -258,7 +268,7 @@ const StudyHistory = () => {
                           {dateLabel} <span className="text-[8.5px] font-bold text-muted-foreground">{dayLabel}</span>
                         </div>
                         <div className="text-[9px] text-muted-foreground mt-0.5">
-                          {g.is_ongoing ? "🟢 চলছে" : "✓ সম্পন্ন"} · {g.session_count}টি সেশন · {g.breaks_used}টি বিরতি
+                          {g.is_ongoing ? <span className="inline-flex items-center gap-0.5"><Circle className="h-2 w-2 fill-emerald-500 text-emerald-500" /> চলছে</span> : <span className="inline-flex items-center gap-0.5"><CheckCircle2 className="h-2.5 w-2.5" /> সম্পন্ন</span>} · {g.session_count}টি সেশন · {g.breaks_used}টি বিরতি
                         </div>
                       </div>
                       <div className="text-right">
@@ -312,7 +322,7 @@ const StudyHistory = () => {
                 {new Date(selectedDay.day + "T00:00:00").getFullYear()},{" "}
                 {BN_DAYS[new Date(selectedDay.day + "T00:00:00").getDay()]}
               </p>
-              <p className="text-sm font-black mt-1">{selectedDay.is_ongoing ? "⏳ চলছে..." : "📊 দিনের সারসংক্ষেপ"}</p>
+              <p className="text-sm font-black mt-1 flex items-center gap-1.5">{selectedDay.is_ongoing ? <><Hourglass className="h-4 w-4" /> চলছে...</> : <><BarChart3 className="h-4 w-4" /> দিনের সারসংক্ষেপ</>}</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="rounded-xl border p-3 text-center">
@@ -331,11 +341,11 @@ const StudyHistory = () => {
                 <div className="text-lg font-black text-muted-foreground">
                   {fmtHM(Math.max(0, 86400 - (selectedDay.study_seconds + selectedDay.break_seconds + selectedDay.sleep_seconds)))}
                 </div>
-                <div className="text-[9px] font-bold text-muted-foreground mt-0.5">⏳ বাকি সময়</div>
+                <div className="text-[9px] font-bold text-muted-foreground mt-0.5 flex items-center justify-center gap-0.5"><Hourglass className="h-2.5 w-2.5" /> বাকি সময়</div>
               </div>
             </div>
-            <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs">
-              {dayFeedback(selectedDay)}
+            <div className="rounded-xl border border-primary/25 bg-primary/5 p-3 text-xs flex items-start gap-1.5">
+              {(() => { const { text, Icon } = dayFeedback(selectedDay); return <><Icon className="h-4 w-4 flex-shrink-0 mt-0.5" /> <span>{text}</span></>; })()}
             </div>
           </div>
         </div>
@@ -350,7 +360,7 @@ const StudyHistory = () => {
           >
             <div className="w-9 h-1 rounded-full bg-border mx-auto mb-1" />
             <div className="text-sm font-black flex items-center gap-2" style={{ color: advice.statusColor }}>
-              <span className="text-xl">{advice.statusIcon}</span> {advice.headline}
+              {(() => { const Icon = STATUS_ICON_MAP[advice.statusIcon]; return <Icon className="h-5 w-5" />; })()} {advice.headline}
             </div>
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-xl border p-2.5 text-center">
@@ -380,16 +390,17 @@ const StudyHistory = () => {
   );
 };
 
-function dayFeedback(day: DayRow) {
+function dayFeedback(day: DayRow): { text: string; Icon: typeof Trophy } {
   const studyH = day.study_seconds / 3600;
   let feedback = "";
-  if (studyH >= 8) feedback = `অসাধারণ! ${fmtHM(day.study_seconds)} পড়েছো — এটা একটা অবিশ্বাস্য দিন! 🏆`;
-  else if (studyH >= 5) feedback = `দারুণ পারফরম্যান্স! ${fmtHM(day.study_seconds)} পড়েছো। ধারাবাহিকতা ধরে রাখো। 🔥`;
-  else if (studyH >= 3) feedback = `ভালো দিন! ${fmtHM(day.study_seconds)} পড়েছো। আরো একটু বাড়ালে আরো ভালো হবে। 📈`;
-  else if (studyH >= 1) feedback = `${fmtHM(day.study_seconds)} পড়েছো। ছোট শুরু থেকেই বড় লক্ষ্য — আরো সময় দেওয়ার চেষ্টা করো। 🌱`;
-  else feedback = "এই দিন পড়াশোনা কম হয়েছে। আগামীকাল আরো মনোযোগ দিতে পারবে! 💡";
+  let Icon = Lightbulb;
+  if (studyH >= 8) { feedback = `অসাধারণ! ${fmtHM(day.study_seconds)} পড়েছো — এটা একটা অবিশ্বাস্য দিন!`; Icon = Trophy; }
+  else if (studyH >= 5) { feedback = `দারুণ পারফরম্যান্স! ${fmtHM(day.study_seconds)} পড়েছো। ধারাবাহিকতা ধরে রাখো।`; Icon = Flame; }
+  else if (studyH >= 3) { feedback = `ভালো দিন! ${fmtHM(day.study_seconds)} পড়েছো। আরো একটু বাড়ালে আরো ভালো হবে।`; Icon = TrendingUp; }
+  else if (studyH >= 1) { feedback = `${fmtHM(day.study_seconds)} পড়েছো। ছোট শুরু থেকেই বড় লক্ষ্য — আরো সময় দেওয়ার চেষ্টা করো।`; Icon = Sprout; }
+  else { feedback = "এই দিন পড়াশোনা কম হয়েছে। আগামীকাল আরো মনোযোগ দিতে পারবে!"; Icon = Lightbulb; }
   if (day.breaks_used > 0) feedback += ` ${day.breaks_used}টি বিরতি নিয়েছো।`;
-  return feedback;
+  return { text: feedback, Icon };
 }
 
 function buildAdvice(rows: DayRow[], today: string) {
@@ -418,45 +429,45 @@ function buildAdvice(rows: DayRow[], today: string) {
   let headline = "";
   let tips: string[] = [];
   let statusColor = "#6366F1";
-  let statusIcon = "💡";
+  let statusIcon: "lightbulb" | "sleep" | "warning" | "trend-down" | "coffee" | "trophy" | "trend-up" = "lightbulb";
 
   if (totalStudy === 0) {
     statusColor = "#EF4444";
-    statusIcon = "😴";
+    statusIcon = "sleep";
     headline = "গত ৭ দিনে কোনো পড়াশোনার রেকর্ড নেই";
     tips.push("আজই Focus Timer চালু করে একটা ছোট ২৫ মিনিটের session দিয়ে শুরু করো।");
     tips.push("বড় লক্ষ্য না ভেবে প্রতিদিন মাত্র ৩০ মিনিট দিয়ে অভ্যাস তৈরি করো।");
   } else if (zeroDays >= 4) {
     statusColor = "#F59E0B";
-    statusIcon = "⚠️";
+    statusIcon = "warning";
     headline = `ধারাবাহিকতা অনেক কম — সপ্তাহে মাত্র ${activeDays} দিন পড়েছো`;
     tips.push("প্রতিদিন অল্প হলেও পড়ার অভ্যাস গড়ে তোলো — ধারাবাহিকতাই বড় ফলাফলের চাবিকাঠি।");
     tips.push("একটানা বেশি পড়ার চেয়ে প্রতিদিন নিয়মিত ১ ঘণ্টা পড়া বেশি কার্যকর।");
     if (bestDayName) tips.push(`${bestDayName}বার তুমি সবচেয়ে ভালো পড়েছিলে (${fmtHM(bestDay.studySecs)}) — সেই রুটিন বাকি দিনগুলোতেও রাখার চেষ্টা করো।`);
   } else if (trendDown) {
     statusColor = "#F59E0B";
-    statusIcon = "📉";
+    statusIcon = "trend-down";
     headline = "পড়াশোনার সময় কমে আসছে — মনোযোগ ধরে রাখতে হবে";
     tips.push(`সপ্তাহের শুরুর দিকে গড়ে ${fmtHM(firstHalf)} পড়তে, এখন তা কমে ${fmtHM(lastHalf)} হয়েছে।`);
     tips.push("Break Mode ব্যবহার করে ছোট ছোট বিরতি নিয়ে ক্লান্তি কমাও, যাতে দীর্ঘ সময় মনোযোগ ধরে রাখতে পারো।");
     tips.push("ঘুমের সময় ঠিক রাখো — পর্যাপ্ত ঘুম মনোযোগ ফিরিয়ে আনতে সাহায্য করে।");
   } else if (totalBreaks > activeDays * 4) {
     statusColor = "#F59E0B";
-    statusIcon = "☕";
+    statusIcon = "coffee";
     headline = "অতিরিক্ত বিরতি নিচ্ছো — একটানা পড়ার অভ্যাস দরকার";
     tips.push(`গড়ে দিনে প্রায় ${(totalBreaks / Math.max(activeDays, 1)).toFixed(1)}টি বিরতি নিচ্ছো — এটা মনোযোগ ভেঙে দিতে পারে।`);
     tips.push("Pomodoro পদ্ধতি ব্যবহার করো — ২৫ মিনিট একটানা পড়ে তারপর ৫ মিনিট বিরতি নাও।");
     tips.push("বিরতির সময় ফোন থেকে দূরে থেকো, যাতে দ্রুত আবার মনোযোগ ফিরে আসে।");
   } else if (avgStudy >= 14400) {
     statusColor = "#10B981";
-    statusIcon = "🏆";
+    statusIcon = "trophy";
     headline = `চমৎকার পারফরম্যান্স! গড়ে দৈনিক ${fmtHM(avgStudy)} পড়ছো`;
     tips.push("এই ধারাবাহিকতা বজায় রাখো — তুমি দারুণ পথে আছো!");
     if (totalSleepSecs / 7 < 18000) tips.push("তবে ঘুমের প্রতি একটু বেশি যত্ন নাও — পর্যাপ্ত বিশ্রাম দীর্ঘমেয়াদে পড়াশোনার মান বাড়ায়।");
     else tips.push("ঘুম ও পড়াশোনার ভারসাম্য ভালো আছে — এভাবেই চালিয়ে যাও।");
   } else if (trendUp) {
     statusColor = "#10B981";
-    statusIcon = "📈";
+    statusIcon = "trend-up";
     headline = "দারুণ! পড়াশোনার সময় বাড়ছে প্রতিদিন";
     tips.push(`সপ্তাহের শুরুতে গড়ে ${fmtHM(firstHalf)} ছিল, এখন ${fmtHM(lastHalf)} হয়েছে — চমৎকার উন্নতি!`);
     tips.push("এই গতি ধরে রাখলে সামনের সপ্তাহে আরও ভালো ফলাফল আসবে।");
