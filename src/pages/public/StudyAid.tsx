@@ -3,27 +3,26 @@ import { useNavigate } from "react-router-dom";
 import PublicHeader from "@/components/PublicHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  TrendingUp,
+  Star,
+  Zap,
+  Send,
   BarChart3,
-  Trophy,
   Timer,
   Clock,
+  ClipboardCheck,
 } from "lucide-react";
 
 const TOOLS = [
   {
-    group: "Smart Tracking System",
+    group: "Study Tools",
     items: [
-      { label: "My Progress & History", to: "/dashboard/my-progress", icon: TrendingUp, color: "blue" },
-      { label: "Study Tracker", to: "/syllabus-tracker", icon: BarChart3, color: "sky" },
-      { label: "Top Performer", to: "/dashboard/top-performer", icon: Trophy, color: "yellow" },
-    ],
-  },
-  {
-    group: "Focus & Time Management",
-    items: [
+      { label: "Course Review", to: "/reviews", icon: Star, color: "yellow" },
+      { label: "Quick Practice", to: "/quick-practice", icon: Zap, color: "violet" },
+      { label: "Telegram Support", to: "/telegram-support", icon: Send, color: "sky" },
+      { label: "Study Tracker", to: "/syllabus-tracker", icon: BarChart3, color: "blue" },
       { label: "Focus Timer", to: "/focus-timer", icon: Timer, color: "emerald" },
       { label: "Pomodoro Timer", to: "/pomodoro", icon: Clock, color: "rose" },
+      { label: "Unlimited Mock Test", to: "/mock-test", icon: ClipboardCheck, color: "fuchsia" },
     ],
   },
 ] as const;
@@ -34,14 +33,15 @@ const COLOR_CLASSES: Record<string, string> = {
   yellow: "border-yellow-500/30 hover:border-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20 text-yellow-500",
   emerald: "border-emerald-500/30 hover:border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-500",
   rose: "border-rose-500/30 hover:border-rose-500 bg-rose-50/50 dark:bg-rose-950/20 text-rose-500",
+  violet: "border-violet-500/30 hover:border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 text-violet-500",
+  fuchsia: "border-fuchsia-500/30 hover:border-fuchsia-500 bg-fuchsia-50/50 dark:bg-fuchsia-950/20 text-fuchsia-500",
 };
 
 /**
- * Public Study Aid hub — every study tool from the old landing-page quick
- * actions, minus Free Class/Free Exam (now under the Free tab) and All
- * Courses (now under the Course tab). Reachable without an account; each
- * card navigates to the real tool route, and login (if required) is
- * enforced only at that destination, never here.
+ * Public Study Aid hub — same 9 quick actions as the home page, minus
+ * Free Class/Free Exam (now under the Free tab). Reachable without an
+ * account; each card navigates to the real tool route, and login (if
+ * required) is enforced only at that destination, never here.
  */
 const StudyAid = () => {
   const navigate = useNavigate();
@@ -49,6 +49,14 @@ const StudyAid = () => {
   useEffect(() => {
     document.title = "Study Aid – Atlas";
   }, []);
+
+  const go = (to: string) => {
+    if (to === "/telegram-support") {
+      window.location.href = to;
+      return;
+    }
+    navigate(to);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -67,7 +75,7 @@ const StudyAid = () => {
                 <Card
                   key={label}
                   className={`cursor-pointer transition-all ${COLOR_CLASSES[color]}`}
-                  onClick={() => navigate(to)}
+                  onClick={() => go(to)}
                 >
                   <CardContent className="p-2.5 sm:p-4 flex flex-col items-center text-center gap-1.5">
                     <Icon className="h-6 w-6 flex-shrink-0" />
