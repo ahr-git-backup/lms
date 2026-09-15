@@ -463,31 +463,32 @@ const Pomodoro = () => {
                   <stop offset="100%" stopColor="#818CF8" />
                 </linearGradient>
               </defs>
-              {/* Leading-edge flame dot: gentle flicker glow, fixed position on the ring */}
+              {/* Leading-edge flame: real flame-shaped icon, flickers, rides the progress arc */}
               {(() => {
                 const angle = elapsedProgress * 2 * Math.PI;
                 const dx = 90 + 80 * Math.cos(angle);
                 const dy = 90 + 80 * Math.sin(angle);
+                // Counter-rotate +90deg so the flame always points visually "up"
+                // regardless of the parent svg's -rotate-90 and the dot's position on the ring.
                 return (
-                  <circle
-                    cx={dx}
-                    cy={dy}
-                    r="7"
-                    fill="url(#flameGrad)"
-                    className="transition-all duration-1000 animate-flame-flicker"
-                    style={{
-                      transformBox: "fill-box",
-                      transformOrigin: "center",
-                    }}
-                  />
+                  <g
+                    transform={`translate(${dx} ${dy}) rotate(90) scale(0.11)`}
+                    className="animate-flame-flicker"
+                    style={{ transformBox: "fill-box", transformOrigin: "center" }}
+                  >
+                    <path
+                      d="M32 2C22 14 16 24 16 34c0 10 7.2 18 16 18s16-8 16-18c0-6-3-11-6-15 1 6-2 10-5 10-4 0-6-4-5-9 1-5-1-10-3-13 0 5-1 9-4 12-2 2-3 5-3 8 0 4 3 7 6 7s5-3 5-6c0-2-1-3-2-5 2 1 4 4 4 8 0 6-5 11-11 11s-11-5-11-11c0-9 6-16 6-24C27-3 30 0 32 2z"
+                      fill="url(#flameGrad)"
+                    />
+                  </g>
                 );
               })()}
               <defs>
-                <radialGradient id="flameGrad" cx="50%" cy="35%" r="65%">
+                <radialGradient id="flameGrad" cx="50%" cy="70%" r="70%">
                   <stop offset="0%" stopColor="#FFF7ED" />
-                  <stop offset="35%" stopColor="#FDBA74" />
-                  <stop offset="70%" stopColor="#F97316" />
-                  <stop offset="100%" stopColor="#DC2626" />
+                  <stop offset="30%" stopColor="#FDE68A" />
+                  <stop offset="60%" stopColor="#F97316" />
+                  <stop offset="100%" stopColor="#B91C1C" />
                 </radialGradient>
               </defs>
             </svg>
