@@ -2,6 +2,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { get as idbGet, set as idbSet, del as idbDel } from "idb-keyval";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
@@ -142,6 +144,35 @@ const queryClient = new QueryClient({
   },
 });
 
+// Offline read-only support: previously-fetched query results (courses,
+// subjects, class lists, etc.) are persisted to IndexedDB so they remain
+// viewable with no network — exam-taking/mutations still require a live
+// connection and are untouched by this. Wrapped in try/catch so this can
+// never block app boot.
+const asyncIdbPersister = {
+  persistClient: async (client: unknown) => {
+    try {
+      await idbSet("atlas-rq-cache", client);
+    } catch {
+      // ignore — caching is a best-effort convenience, never fatal
+    }
+  },
+  restoreClient: async () => {
+    try {
+      return await idbGet("atlas-rq-cache");
+    } catch {
+      return undefined;
+    }
+  },
+  removeClient: async () => {
+    try {
+      await idbDel("atlas-rq-cache");
+    } catch {
+      // ignore
+    }
+  },
+};
+
 const App = () => {
   useAntiCheat();
   usePWACacheCleanup();
@@ -172,7 +203,20 @@ const App = () => {
 
   return (
     <HelmetProvider>
-    <QueryClientProvider client={queryClient}>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{
+        persister: asyncIdbPersister,
+        maxAge: 24 * 60 * 60 * 1000, // 24h — stale cache beyond this is dropped, not trusted forever
+        dehydrateOptions: {
+          // Only cache successful GET-style queries — never mutations, never
+          // errored/pending queries, and never queries explicitly opted out
+          // (meta: { noPersist: true }) such as exam-attempt/live data.
+          shouldDehydrateQuery: (query) =>
+            query.state.status === "success" && query.meta?.noPersist !== true,
+        },
+      }}
+    >
     <ThemeProvider>
       <TooltipProvider>
         <Toaster />
@@ -326,7 +370,7 @@ const App = () => {
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
-    </QueryClientProvider>
+    </PersistQueryClientProvider>
     </HelmetProvider>
   );
 };
