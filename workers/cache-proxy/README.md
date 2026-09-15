@@ -54,11 +54,15 @@ Only add routes here that are:
 Add a new entry to the `ROUTES` object in `src/index.js` following the
 existing pattern.
 
-## Frontend integration (not yet wired up)
+## Frontend integration (done, activates once deployed)
 
-This worker is deployed standalone. To actually reduce Supabase load,
-the frontend queries in `UnlimitedMockTest.tsx` (subjects list) and
-`FreeExam.tsx` (exams metadata) need to call this worker's URL instead
-of `supabase.from(...)` directly for those specific reads. That wiring
-was intentionally left for a follow-up step so it can be tested against
-the deployed worker URL first.
+The frontend already calls this worker via `src/lib/cacheProxy.ts`:
+
+- `UnlimitedMockTest.tsx` — subjects list (`/mock-pool-subjects`) and
+  subject MCQ totals (`/mock-pool-subject-totals`)
+- `FreeExam.tsx` — exams metadata (`/free-exams-metadata`)
+
+Set `VITE_CACHE_PROXY_URL` (see `.env.example`) to the deployed worker
+URL to activate caching. Until it's set (or if the worker is
+unreachable for any reason), the app automatically falls back to
+querying Supabase directly — nothing breaks either way.

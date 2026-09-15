@@ -40,7 +40,7 @@ const ROUTES = {
   "/free-exams-metadata": async (env) => {
     const res = await supabaseRest(
       env,
-      "exams?select=id,title,subject,chapter,readymade_sub_chapter,exam_type,duration_minutes,free_exam_category,is_visible_on_free,exam_questions(count)" +
+      "exams?select=id,title,subject,chapter,readymade_sub_chapter,exam_type,duration_minutes,free_exam_category,is_visible_on_free,questions_count:exam_questions(count)" +
         "&is_published=eq.true&is_visible_on_free=eq.true"
     );
     return res;

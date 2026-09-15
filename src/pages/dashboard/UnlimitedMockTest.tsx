@@ -4,6 +4,7 @@ import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { fetchCached } from "@/lib/cacheProxy";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -187,9 +188,12 @@ const UnlimitedMockTest = () => {
   const { data: subjects } = useQuery({
     queryKey: ["mock-pool-subjects"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("mock_question_pool").select("subject");
-      if (error) throw error;
-      return [...new Set((data || []).map((d: any) => d.subject))];
+      const rows = await fetchCached<{ subject: string }[]>("/mock-pool-subjects", async () => {
+        const { data, error } = await supabase.from("mock_question_pool").select("subject");
+        if (error) throw error;
+        return (data || []) as { subject: string }[];
+      });
+      return [...new Set(rows.map((d) => d.subject))];
     },
   });
 
@@ -255,10 +259,16 @@ const UnlimitedMockTest = () => {
   const { data: subjectTotals } = useQuery({
     queryKey: ["mock-pool-subject-totals"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
-      if (error) throw error;
+      const rows = await fetchCached<{ subject: string; questions_json: any }[]>(
+        "/mock-pool-subject-totals",
+        async () => {
+          const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
+          if (error) throw error;
+          return (data || []) as { subject: string; questions_json: any }[];
+        }
+      );
       const totals: Record<string, number> = {};
-      (data || []).forEach((row: any) => {
+      rows.forEach((row) => {
         const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
         totals[row.subject] = (totals[row.subject] || 0) + qs.length;
       });

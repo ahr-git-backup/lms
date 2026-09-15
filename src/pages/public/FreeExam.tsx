@@ -9,6 +9,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
 import { ExamGrid } from "@/pages/dashboard/Readymade";
+import { fetchCached } from "@/lib/cacheProxy";
 
 // Types
 interface Exam {
@@ -100,15 +101,17 @@ const FreeExam = () => {
   const { data: exams, isLoading: isLoadingMetadata } = useQuery({
     queryKey: ["public-free-exams-metadata"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("exams")
-        .select("id, title, subject, chapter, readymade_sub_chapter, exam_type, duration_minutes, free_exam_category, is_visible_on_free, questions_count:exam_questions(count)")
-        .eq("is_published", true)
-        // @ts-ignore
-        .eq("is_visible_on_free", true);
+      return fetchCached("/free-exams-metadata", async () => {
+        const { data, error } = await supabase
+          .from("exams")
+          .select("id, title, subject, chapter, readymade_sub_chapter, exam_type, duration_minutes, free_exam_category, is_visible_on_free, questions_count:exam_questions(count)")
+          .eq("is_published", true)
+          // @ts-ignore
+          .eq("is_visible_on_free", true);
 
-      if (error) throw error;
-      return data;
+        if (error) throw error;
+        return data;
+      });
     },
     enabled: !debouncedSearch,
     staleTime: 5 * 60 * 1000, // cache 5 min — this list rarely changes; avoids refetch storms under concurrent traffic
