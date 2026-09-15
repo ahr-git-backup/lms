@@ -455,7 +455,7 @@ const UnlimitedMockTest = () => {
 
       const { data: rows, error } = await supabase
         .from("mock_question_pool")
-        .select("*")
+        .select("subject, chapter, topic, questions_json")
         .in("subject", subjectsInSel)
         .in("chapter", chaptersInSel)
         .eq("standard", standard);
