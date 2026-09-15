@@ -254,7 +254,7 @@ function SortableZoneItem({ zone, index, inRow, onMoveUp, onMoveDown, onToggleRo
           inRow ? "bg-primary text-primary-foreground border-primary" : "bg-background text-muted-foreground"
         )}
       >
-        {inRow ? "একই সারিতে ✓" : "একই সারিতে রাখুন"}
+        {inRow ? <span className="inline-flex items-center gap-0.5">একই সারিতে <Check className="h-3 w-3" /></span> : "একই সারিতে রাখুন"}
       </button>
       <div className="flex flex-col gap-0.5 flex-shrink-0">
         <button type="button" onClick={onMoveUp} disabled={isFirst} className="h-4 w-6 flex items-center justify-center rounded border bg-background disabled:opacity-30">

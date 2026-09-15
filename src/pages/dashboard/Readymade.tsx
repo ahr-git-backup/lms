@@ -3103,8 +3103,8 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
                     style={{ width: `${cardJobs[exam.id].pct}%` }}
                   />
                 </div>
-                <span className="text-[10px] text-muted-foreground shrink-0">
-                  {cardJobs[exam.id].status === "done" ? "সম্পন্ন ✓"
+                <span className="text-[10px] text-muted-foreground shrink-0 inline-flex items-center gap-1">
+                  {cardJobs[exam.id].status === "done" ? <><CheckCircle className="h-3 w-3" /> সম্পন্ন</>
                     : cardJobs[exam.id].status === "error" ? "ব্যর্থ"
                     : cardJobs[exam.id].status === "cancelled" ? "থামানো হয়েছে"
                     : `পাঠানো হচ্ছে ${cardJobs[exam.id].sentTotal}/${cardJobs[exam.id].total}`}

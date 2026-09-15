@@ -54,7 +54,7 @@ export default function PushDebug() {
           const sub = await reg.pushManager.getSubscription();
           results.push({
             label: "Push Subscription (browser)",
-            value: sub ? "আছে ✓" : "নেই ✗",
+            value: sub ? "আছে" : "নেই",
             ok: !!sub,
           });
 
