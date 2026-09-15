@@ -373,38 +373,38 @@ export const CourseSection = ({ limit }: { limit?: number } = {}) => {
                                     </div>
                                 </div>
                                 {/* Content */}
-                                <div className="flex-1 p-3 flex flex-col justify-between gap-2">
+                                <div className="flex-1 p-2.5 sm:p-3 flex flex-col justify-between gap-1.5 sm:gap-2">
                                     <div>
                                         <div className="flex justify-center items-start gap-2">
-                                             <h3 className="text-2xl font-bold mb-1 leading-tight text-center">{course.name}</h3>
+                                             <h3 className="text-sm sm:text-2xl font-bold mb-1 leading-tight text-center line-clamp-2">{course.name}</h3>
                                         </div>
 
-                                        <p className="text-muted-foreground text-xs mb-2 line-clamp-2">{description}</p>
+                                        <p className="text-muted-foreground text-[11px] sm:text-xs mb-1.5 sm:mb-2 line-clamp-2">{description}</p>
 
                                         {course.show_enrollment_count !== false && (
-                                            <div className="mb-1 flex items-center gap-1.5 text-xs text-muted-foreground">
-                                                <Users className="h-3.5 w-3.5 text-green-500" />
+                                            <div className="mb-1 flex items-center gap-1.5 text-[10px] sm:text-xs text-muted-foreground">
+                                                <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-500 shrink-0" />
                                                 {enrollCount.toLocaleString("en-BD")} জন ভর্তি হয়েছে
                                             </div>
                                         )}
                                     </div>
 
-                                    <div className="flex flex-col gap-2 mt-auto pt-2 border-t border-dashed">
+                                    <div className="flex flex-col gap-1.5 sm:gap-2 mt-auto pt-1.5 sm:pt-2 border-t border-dashed">
                                         <div className="flex flex-col items-start">
                                             {course.original_price != null && Number(course.original_price) > Number(course.price) && (
                                                 <span className="text-[10px] text-muted-foreground line-through">
                                                     ৳{Number(course.original_price).toLocaleString("en-BD")}
                                                 </span>
                                             )}
-                                            <div className="text-base font-bold text-primary">
+                                            <div className="text-sm sm:text-base font-bold text-primary">
                                                 {course.price != null ? `৳${Number(course.price).toLocaleString("en-BD")}` : "যোগাযোগ করুন"}
                                             </div>
                                         </div>
-                                        <div className="flex gap-2 w-full">
-                                            <Button asChild variant="outline" size="sm" className="h-8 px-2 text-xs flex-1">
+                                        <div className="flex gap-1.5 sm:gap-2 w-full">
+                                            <Button asChild variant="outline" size="sm" className="h-7 sm:h-8 px-1.5 sm:px-2 text-[11px] sm:text-xs flex-1">
                                                 <a href={`/courses/${idOrSlug}`}>বিস্তারিত</a>
                                             </Button>
-                                            <Button asChild size="sm" className="h-8 px-2 text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
+                                            <Button asChild size="sm" className="h-7 sm:h-8 px-1.5 sm:px-2 text-[11px] sm:text-xs flex-1 animate-pulse hover:animate-none shadow-md hover:shadow-lg transition-shadow">
                                                 <a href={`/courses/${idOrSlug}/buy`}>ভর্তি হন</a>
                                             </Button>
                                         </div>
