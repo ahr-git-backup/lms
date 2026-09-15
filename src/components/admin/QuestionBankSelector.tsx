@@ -760,6 +760,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                         <div className="flex gap-3">
                                             <div className="pt-1">
                                                 <Checkbox
+                                                    tabIndex={-1}
                                                     checked={selectedIds.has(q.id)}
                                                     onCheckedChange={() => handleToggle(q.id)}
                                                     onClick={(e) => e.stopPropagation()}
