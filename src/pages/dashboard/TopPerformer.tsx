@@ -317,7 +317,6 @@ const TopPerformer = () => {
                         {[p.college_name, p.hsc_batch ? `HSC ${p.hsc_batch}` : null].filter(Boolean).join(" • ")}
                       </p>
                     )}
-                    <p className="text-[10px] text-muted-foreground">{p.exam_count} এক্সাম • গড় {p.avg_score_pct}% • {p.active_days} দিন একটিভ</p>
                   </div>
                 </CardContent>
               </Card>
