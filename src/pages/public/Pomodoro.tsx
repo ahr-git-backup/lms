@@ -469,7 +469,7 @@ const Pomodoro = () => {
                 const dx = 90 + 80 * Math.cos(angle);
                 const dy = 90 + 80 * Math.sin(angle);
                 return (
-                  <g transform={`translate(${dx} ${dy}) rotate(90) scale(0.5)`}>
+                  <g transform={`translate(${dx} ${dy}) rotate(90) scale(0.28)`}>
                     <g className="animate-flame-flicker" style={{ transformBox: "fill-box", transformOrigin: "center" }}>
                       <path
                         d="M0 -14C-5 -8 -8 -2 -8 3C-8 9 -4.5 13 0 13C4.5 13 8 9 8 3C8 0 6.5 -2.5 5 -4.5C5.5 -1.5 4 1 2 1C-0.5 1 -1.5 -1.5 -1 -4C-0.5 -6.5 -1.5 -9 -2.5 -10.5C-2.5 -8 -3 -6 -4.5 -4.5C-5.5 -3.5 -6 -2 -6 -0.5C-6 2 -4 4 -1.5 4C0.8 4 2.5 2 2.5 -0.3C2.5 -1.3 2 -2 1.5 -2.8C2.8 -2 4 -0.3 4 2C4 5 1.5 7.5 -1.5 7.5C-4.8 7.5 -7 5 -7 1.5C-7 -3.5 -3 -7.5 -3 -12C-3 -13 -2 -14 0 -14Z"
