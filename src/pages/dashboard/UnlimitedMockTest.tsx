@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useQueries } from "@tanstack/react-query";
+import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,69 @@ const COUNTS = [25, 35, 50, 75, 100];
 type ChapterSel = { subject: string; chapter: string };
 type TopicSel = { subject: string; chapter: string; topic: string };
 
+const DAILY_FREE_EXAM_LIMIT_KEY = "daily_free_exam_limit";
+
+const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undefined }) => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [value, setValue] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  useEffect(() => {
+    if (!touched && currentLimit !== undefined) {
+      setValue(String(currentLimit));
+    }
+  }, [currentLimit, touched]);
+
+  const handleSave = async () => {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      toast({ title: "ভুল মান", description: "শূন্য বা তার বেশি একটি সংখ্যা দিন (০ = আনলিমিটেড)।", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const { error } = await supabase
+      .from("app_settings")
+      .upsert({ key: DAILY_FREE_EXAM_LIMIT_KEY, value: parsed, updated_at: new Date().toISOString() });
+    setSaving(false);
+    if (error) {
+      toast({ title: "সেভ করা যায়নি", description: error.message, variant: "destructive" });
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ["app-setting", DAILY_FREE_EXAM_LIMIT_KEY] });
+    toast({ title: "সেভ হয়েছে", description: "দৈনিক ফ্রি এক্সাম লিমিট আপডেট হয়েছে।" });
+  };
+
+  return (
+    <Card className="border-primary/30">
+      <CardContent className="py-3 flex flex-wrap items-end gap-3">
+        <div className="space-y-1.5">
+          <Label htmlFor="daily_free_exam_limit" className="text-xs">Daily Free Exam Limit (Admin)</Label>
+          <Input
+            id="daily_free_exam_limit"
+            type="number"
+            min={0}
+            placeholder="0 = unlimited"
+            value={value}
+            onChange={(e) => {
+              setTouched(true);
+              setValue(e.target.value);
+            }}
+            className="w-32 h-9"
+          />
+        </div>
+        <Button size="sm" onClick={handleSave} disabled={saving}>
+          {saving ? "Saving..." : "Save"}
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
 const UnlimitedMockTest = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { toast } = useToast();
   const [guestInfo, setGuestInfoState] = useState<GuestExamInfo | null>(() => getGuestInfo());
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
@@ -359,6 +419,7 @@ const UnlimitedMockTest = () => {
 
   return (
     <div className="space-y-2.5 max-w-lg mx-auto">
+      {isAdmin && <AdminDailyLimitControl currentLimit={dailyLimit} />}
       <Card>
         <CardContent className="py-3">
           <div className="flex items-center justify-between gap-2">
