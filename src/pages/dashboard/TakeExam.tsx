@@ -228,7 +228,7 @@ const TakeExam = () => {
   const [contentMode, setContentMode] = useState<'with' | 'without' | null>(null);
   const [selectedOptionalSubjects, setSelectedOptionalSubjects] = useState<string[]>([]);
   const [isQuickPracticeMode, setIsQuickPracticeMode] = useState(false);
-  const [qpSoundVol, setQpSoundVol] = useState(0); // always starts off; not persisted — user's on-choice lasts only this session
+  const [qpSoundVol, setQpSoundVol] = useState(1); // defaults on; not persisted — user's choice lasts only this session
   const [qpRightPack, setQpRightPack] = useState(() => localStorage.getItem("qpp-right-pack") || "kahoot");
   const [qpWrongPack, setQpWrongPack] = useState(() => localStorage.getItem("qpp-wrong-pack") || "ayhay");
   const [qpVolMenuOpen, setQpVolMenuOpen] = useState(false);
