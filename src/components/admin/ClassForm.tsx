@@ -281,6 +281,15 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const isArchiveOnly = isArchiveMode || form.is_archive;
+        if (isArchiveOnly ? form.archive_course_ids.length === 0 : !form.course_id) {
+            toast({
+                title: "Course required",
+                description: isArchiveOnly ? "Please select at least one course to archive for." : "Please select a course.",
+                variant: "destructive",
+            });
+            return;
+        }
         upsertClassMutation.mutate(form);
     };
 
@@ -319,7 +328,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         <>
                             <div className="space-y-2 min-w-0">
                                 <div className="flex justify-between items-center">
-                                    <Label htmlFor="course">Primary Course (Optional)</Label>
+                                    <Label htmlFor="course">Primary Course</Label>
                                     {form.course_id && (
                                         <Button
                                             type="button"
@@ -337,7 +346,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                                     onValueChange={(val) => setForm((prev) => ({ ...prev, course_id: val }))}
                                 >
                                     <SelectTrigger id="course" className="w-full">
-                                        <SelectValue placeholder="Select course (or leave empty for Public)" />
+                                        <SelectValue placeholder="Select course (required)" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {courses?.map((c: Pick<Course, "id" | "name">) => (
@@ -347,7 +356,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                {!form.course_id && <p className="text-[10px] text-muted-foreground">This class will be public (no course restriction).</p>}
+                                {!form.course_id && <p className="text-[10px] text-destructive">Please select a course.</p>}
                             </div>
                         </>
                     )}

@@ -429,9 +429,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
                             <div className="flex justify-between items-start gap-2">
-                                <p className="text-xs font-mono uppercase text-muted-foreground">
-                                    {classItem.course?.name}
-                                </p>
+                                {classItem.course?.name && (
+                                    <Badge variant="outline" className="text-[10px] font-mono uppercase shrink-0">
+                                        {classItem.course.name}
+                                    </Badge>
+                                )}
                                 {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-base">{classItem.title}</CardTitle>
@@ -567,9 +569,11 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-1">
                             <div className="flex justify-between items-start gap-2">
-                                <p className="text-xs font-mono uppercase text-muted-foreground">
-                                    {classItem.course?.name}
-                                </p>
+                                {classItem.course?.name && (
+                                    <Badge variant="outline" className="text-[10px] font-mono uppercase shrink-0">
+                                        {classItem.course.name}
+                                    </Badge>
+                                )}
                                 {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-base">{classItem.title}</CardTitle>
@@ -781,9 +785,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                             <CardHeader className="pb-2">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="space-y-1">
-                                        <p className="text-xs font-mono uppercase text-muted-foreground">
-                                            {exam.course?.name}
-                                        </p>
+                                        {exam.course?.name && (
+                                            <Badge variant="outline" className="text-[10px] font-mono uppercase">
+                                                {exam.course.name}
+                                            </Badge>
+                                        )}
                                         <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
                                             {exam.title}
                                         </CardTitle>
@@ -910,9 +916,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start gap-2">
                                 <div className="space-y-1">
-                                    <p className="text-xs font-mono uppercase text-muted-foreground">
-                                        {exam.course?.name}
-                                    </p>
+                                    {exam.course?.name && (
+                                        <Badge variant="outline" className="text-[10px] font-mono uppercase">
+                                            {exam.course.name}
+                                        </Badge>
+                                    )}
                                     <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
                                         {exam.title}
                                     </CardTitle>

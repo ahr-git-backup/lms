@@ -759,6 +759,23 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        const isArchiveOnly = isArchiveMode || form.is_archive;
+        if (!isFreeMode && !isArchiveOnly && !form.course_id) {
+            toast({
+                title: "Course required",
+                description: "Please select a course.",
+                variant: "destructive",
+            });
+            return;
+        }
+        if (isArchiveOnly && form.archive_course_ids.length === 0) {
+            toast({
+                title: "Course required",
+                description: "Please select at least one course to archive for.",
+                variant: "destructive",
+            });
+            return;
+        }
         upsertExamMutation.mutate(form);
     };
 
@@ -778,7 +795,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isFreeMode && !isArchiveMode && (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label htmlFor="course">Course (Optional)</Label>
+                        <Label htmlFor="course">Course</Label>
                         {form.course_id && (
                             <Button
                                 type="button"
@@ -799,7 +816,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       onValueChange={(value) => setForm((prev) => ({ ...prev, course_id: value }))}
                     >
                       <SelectTrigger id="course">
-                        <SelectValue placeholder="Select course (or leave empty for Public)" />
+                        <SelectValue placeholder="Select course (required)" />
                       </SelectTrigger>
                       <SelectContent>
                         {form.course_id && !courses?.some((c: Pick<Course, "id" | "name">) => c.id === form.course_id) && (

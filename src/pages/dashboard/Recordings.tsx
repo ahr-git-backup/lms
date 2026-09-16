@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
@@ -161,9 +162,9 @@ const Recordings = () => {
             <Card key={classItem.id} className="border border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 rounded-2xl shadow-md hover:shadow-lg transition-all flex flex-col h-full">
               <CardHeader className="space-y-1">
                 <div className="flex justify-between items-start gap-2">
-                    <p className="text-xs font-mono uppercase text-muted-foreground">
+                    <Badge variant="outline" className="text-[10px] font-mono uppercase shrink-0">
                         {classItem.course?.name || "Public/Archive"}
-                    </p>
+                    </Badge>
                     {Array.isArray(classItem.subject) && (
                         <div className="flex flex-wrap gap-1 justify-end">
                             {classItem.subject.map((s: string) => (
