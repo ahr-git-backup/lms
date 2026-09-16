@@ -15,6 +15,8 @@ import { getEmbedUrl } from "@/lib/videoUtils";
 import { DemoContentItem } from "@/types/admin";
 import { useToast } from "@/hooks/use-toast";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { useAuth } from "@/contexts/AuthContext";
+import { useEnrollments } from "@/hooks/useEnrollments";
 
 // Live countdown timer, rendered as small premium digit boxes (H / M / S)
 const CountdownTimer = ({ deadline }: { deadline: string }) => {
@@ -81,6 +83,8 @@ const CountdownTimer = ({ deadline }: { deadline: string }) => {
 const CourseDetails = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: enrollments } = useEnrollments();
 
   const [couponCode, setCouponCode] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
@@ -109,6 +113,12 @@ const CourseDetails = () => {
     enabled: !!courseId,
     staleTime: 3 * 60 * 1000,
   });
+
+  const isEnrolled = !!(
+    user &&
+    course &&
+    enrollments?.some((e: any) => e.course_id === course.id)
+  );
 
   useEffect(() => {
     if (course?.id) {
@@ -804,9 +814,21 @@ const CourseDetails = () => {
         </div>
         <Button
           asChild
-          className="bg-gradient-to-br from-[#2563eb] to-[#3b82f6] font-bold"
+          className={
+            isEnrolled
+              ? "bg-green-600 font-bold text-white hover:bg-green-700"
+              : "bg-gradient-to-br from-[#2563eb] to-[#3b82f6] font-bold"
+          }
         >
-          <Link to={getEnrollUrl()}>ভর্তি হন</Link>
+          <Link to={isEnrolled ? "/dashboard" : getEnrollUrl()}>
+            {isEnrolled ? (
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-4 w-4" /> Enter Course
+              </span>
+            ) : (
+              "ভর্তি হন"
+            )}
+          </Link>
         </Button>
         </div>
       </div>
