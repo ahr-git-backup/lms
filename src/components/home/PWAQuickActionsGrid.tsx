@@ -83,7 +83,7 @@ export const PWAQuickActionsGrid = () => {
             <div className={`h-11 w-11 rounded-2xl bg-gradient-to-br ${card.from} ${card.to} flex items-center justify-center shadow-md ring-1 ring-white/20`}>
               <card.icon className="h-5 w-5 text-white" strokeWidth={2.25} />
             </div>
-            <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5 text-foreground">
+            <span className="text-sm sm:text-base font-bold text-center leading-tight px-0.5 text-foreground">
               {card.label}
             </span>
           </div>
