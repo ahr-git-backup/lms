@@ -23,6 +23,7 @@ import { getExamSourceList } from "@/lib/examSourceTracker";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
+import { CorrectBalloonBurst } from "@/components/CorrectBalloonBurst";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 
@@ -237,6 +238,7 @@ const TakeExam = () => {
   const [qpTimeLeft, setQpTimeLeft] = useState(30);
   const [qpFinished, setQpFinished] = useState(false);
   const [qpShowDetailResult, setQpShowDetailResult] = useState(false);
+  const [qpCelebrateKey, setQpCelebrateKey] = useState<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [qpQuestions, setQpQuestions] = useState<any[]>([]);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -618,6 +620,9 @@ const TakeExam = () => {
     const correct = optionKey.toUpperCase() === String(q.correct_option).toUpperCase();
     setQpAnswers((prev) => ({ ...prev, [qpCurrent]: { selected: optionKey, correct, skipped: false } }));
     playSound(correct, qpSoundVol, qpRightPack, qpWrongPack);
+    if (correct) {
+      setQpCelebrateKey(Date.now());
+    }
   };
 
   const qpChangeVol = (v: number) => {
@@ -675,6 +680,15 @@ const TakeExam = () => {
     }
     setQpCurrent((c) => c + 1);
     setQpTimeLeft(30);
+    setQpCelebrateKey(null);
+  };
+
+  const qpGoPrev = () => {
+    if (qpCurrent > 0) {
+      setQpCurrent((c) => c - 1);
+      setQpTimeLeft(30);
+      setQpCelebrateKey(null);
+    }
   };
 
   // Send the user back to the pre-exam screen (mode/count select) instead of
@@ -2116,7 +2130,10 @@ const TakeExam = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2.5">
+          <div className="relative flex flex-col gap-2.5">
+            {qpCelebrateKey && (
+              <CorrectBalloonBurst burstKey={qpCelebrateKey} onDone={() => setQpCelebrateKey(null)} />
+            )}
             {options.map((opt) => {
               let cls = "border-border bg-card hover:border-primary/40";
               if (ans) {
@@ -2161,11 +2178,18 @@ const TakeExam = () => {
           className="fixed left-0 right-0 z-30 bg-background border-t px-4 py-3"
           style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
         >
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto flex gap-3">
+            <button
+              onClick={qpGoPrev}
+              disabled={qpCurrent === 0}
+              className="flex-1 py-3 rounded-xl border font-bold text-sm disabled:opacity-40 hover:bg-muted transition-colors bg-card"
+            >
+              আগের
+            </button>
             <button
               onClick={qpGoNext}
               disabled={!ans}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
+              className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-bold text-sm disabled:opacity-40 hover:opacity-90 transition-opacity flex items-center justify-center gap-1.5"
             >
               {qpCurrent === qpQuestions.length - 1 ? "শেষ করো" : <>পরবর্তী <ArrowRight className="h-4 w-4" /></>}
             </button>
