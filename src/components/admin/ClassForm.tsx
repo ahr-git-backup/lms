@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { fromDhakaTimeToUTC, toDhakaTimeISO } from "@/lib/dateUtils";
@@ -32,6 +33,7 @@ const classSchema = z.object({
   button_text: z.string().trim().optional().or(z.literal("")),
   button_url: z.string().trim().optional().or(z.literal("")),
   is_archive: z.boolean().optional().default(false),
+  also_archive: z.boolean().optional().default(false),
   sort_order: z.number().optional().default(0),
 });
 
@@ -73,6 +75,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
         button_url: "",
         sort_order: 0,
         is_archive: isArchiveMode,
+        also_archive: false,
     });
 
     useEffect(() => {
@@ -103,6 +106,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: classItem.button_text || "",
                 button_url: classItem.button_url || "",
             is_archive: classItem.is_archive || isArchiveMode,
+            also_archive: classItem.also_archive || false,
             sort_order: classItem.sort_order ?? 0,
             });
         } else {
@@ -123,6 +127,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: "",
                 button_url: "",
                 is_archive: isArchiveMode,
+                also_archive: false,
                 sort_order: 0,
             }));
         }
@@ -228,6 +233,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 button_text: parsed.button_text || null,
                 button_url: parsed.button_url || null,
                 is_archive: parsed.is_archive,
+                also_archive: parsed.also_archive,
                 sort_order: parsed.sort_order,
             };
 
@@ -390,6 +396,19 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                                 onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
                                 placeholder="Select courses to archive for..."
                             />
+                        </div>
+                    )}
+
+                    {!(isArchiveMode || form.is_archive) && (
+                        <div className="flex items-center gap-2 min-w-0 md:col-span-2">
+                            <Checkbox
+                                id="also_archive"
+                                checked={form.also_archive}
+                                onCheckedChange={(checked) => setForm(prev => ({ ...prev, also_archive: !!checked }))}
+                            />
+                            <Label htmlFor="also_archive" className="font-normal cursor-pointer">
+                                Also show this class in the central Archive (keeps it in Record too)
+                            </Label>
                         </div>
                     )}
 

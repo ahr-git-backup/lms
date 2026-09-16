@@ -81,7 +81,7 @@ const AdminClasses = () => {
           query = query.eq("course_id", courseFilter);
       }
       if (categoryFilter === "archive") {
-          query = query.eq("is_archive", true);
+          query = query.or("is_archive.eq.true,also_archive.eq.true");
       } else if (categoryFilter === "live" || categoryFilter === "recorded") {
           query = query.eq("class_type", categoryFilter).not("is_archive", "is", true);
       }
