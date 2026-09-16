@@ -285,7 +285,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
                 .or(accessFilter)
-                .or("is_archive.eq.true,also_archive.eq.true")
+                .or(`is_archive.eq.true,also_archive.eq.true,and(class_type.eq.live,end_at.lt.${new Date().toISOString()})`)
                 .or(`title.ilike.%${safeQuery}%,topic.ilike.%${safeQuery}%`)
                 .order("sort_order", { ascending: false })
                 .order("start_at", { ascending: false })
@@ -310,7 +310,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .from("classes")
                 .select("subject")
                 .or(accessFilter)
-                .or("is_archive.eq.true,also_archive.eq.true");
+                .or(`is_archive.eq.true,also_archive.eq.true,and(class_type.eq.live,end_at.lt.${new Date().toISOString()})`);
 
             const unique = new Set<string>();
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -345,7 +345,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .from("classes")
                 .select("chapter, sort_order")
                 .or(accessFilter)
-                .or("is_archive.eq.true,also_archive.eq.true")
+                .or(`is_archive.eq.true,also_archive.eq.true,and(class_type.eq.live,end_at.lt.${new Date().toISOString()})`)
                 .contains("subject", [selectedSubject]);
 
             const unique = new Set<string>();
@@ -399,7 +399,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 .from("classes")
                 .select("*, course:courses(name)", { count: 'exact' })
                 .or(accessFilter)
-                .or("is_archive.eq.true,also_archive.eq.true")
+                .or(`is_archive.eq.true,also_archive.eq.true,and(class_type.eq.live,end_at.lt.${new Date().toISOString()})`)
                 .contains("subject", [selectedSubject])
                 .eq("chapter", selectedChapter)
                 .order("sort_order", { ascending: false })
