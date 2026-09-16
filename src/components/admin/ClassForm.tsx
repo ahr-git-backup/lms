@@ -352,27 +352,31 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         </>
                     )}
 
-                    <div className="space-y-2 min-w-0">
+                    <div className="space-y-2 min-w-0 md:col-span-2">
                         <Label htmlFor="class_type">Type</Label>
-                        <Select
-                            value={form.is_archive ? "archive" : form.class_type}
-                            onValueChange={(val) => {
-                                if (val === "archive") {
-                                    setForm((prev) => ({ ...prev, is_archive: true }));
-                                } else {
-                                    setForm((prev) => ({ ...prev, is_archive: false, class_type: val as "live" | "recorded" }));
-                                }
-                            }}
-                        >
-                            <SelectTrigger id="class_type" className="w-full">
-                                <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="live">Live Class</SelectItem>
-                                <SelectItem value="recorded">Recorded Class</SelectItem>
-                                <SelectItem value="archive">Archive Class</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <div className="grid grid-cols-3 gap-2">
+                            <Button
+                                type="button"
+                                variant={!form.is_archive && form.class_type === "live" ? "default" : "outline"}
+                                onClick={() => setForm((prev) => ({ ...prev, is_archive: false, class_type: "live" }))}
+                            >
+                                Live Class
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={!form.is_archive && form.class_type === "recorded" ? "default" : "outline"}
+                                onClick={() => setForm((prev) => ({ ...prev, is_archive: false, class_type: "recorded" }))}
+                            >
+                                Recorded Class
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={form.is_archive ? "default" : "outline"}
+                                onClick={() => setForm((prev) => ({ ...prev, is_archive: true }))}
+                            >
+                                Archive Class
+                            </Button>
+                        </div>
                     </div>
 
                     {!(isArchiveMode || form.is_archive) && form.course_id && (
