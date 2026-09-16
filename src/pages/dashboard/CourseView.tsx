@@ -16,6 +16,7 @@ import { ChapterSortDialog } from "@/components/admin/ChapterSortDialog";
 
 const SECTION_LABELS: Record<string, string> = {
     record: "Record Class",
+    past: "Past Class",
     "archive-class": "Archive Class",
     practice: "Past Exams",
     readymade: "Readymade Exam",
@@ -265,6 +266,7 @@ const CourseView = () => {
               {selectedCategory === "class" ? (
                   <>
                       <SelectItem value="record">Record Class</SelectItem>
+                      <SelectItem value="past">Past Class</SelectItem>
                       <SelectItem value="archive-class">Archive Class</SelectItem>
                   </>
               ) : (
@@ -357,6 +359,7 @@ const CourseView = () => {
 
 const CourseSectionContent = ({ courseId, section, subject, chapter, readymadeFullAccess }: { courseId: string, section: string, subject: string, chapter: string, readymadeFullAccess?: boolean }) => {
     if (section === "record") return <ClassList courseId={courseId} subject={subject} chapter={chapter} />;
+    if (section === "past") return <PastClassList courseId={courseId} subject={subject} chapter={chapter} />;
     if (section === "archive-class") return <ArchiveClassList courseId={courseId} subject={subject} chapter={chapter} />;
     if (section === "practice") return <ExamList courseId={courseId} subject={subject} chapter={chapter} />;
     if (section === "readymade") return <ReadymadeExamList courseId={courseId} subject={subject} chapter={chapter} readymadeFullAccess={readymadeFullAccess} />;
@@ -383,6 +386,50 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
 
     if (isLoading) return <div>Loading...</div>;
     if (!classes || classes.length === 0) return <div>No recordings found.</div>;
+
+    return (
+        <div className="grid gap-4 md:grid-cols-2">
+            {classes.map((cls: any) => (
+                <Card key={cls.id} className="flex flex-col">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
+                        <div className="text-xs text-muted-foreground flex items-center gap-2">
+                            <Clock className="h-3 w-3" />
+                            {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
+                        </div>
+                    </CardHeader>
+                    <CardFooter className="mt-auto pt-4">
+                        <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
+                            Watch Class
+                        </Button>
+                    </CardFooter>
+                </Card>
+            ))}
+        </div>
+    );
+}
+
+const PastClassList = ({ courseId, subject, chapter }: any) => {
+    const navigate = useNavigate();
+    const { data: classes, isLoading } = useQuery({
+        queryKey: ["course-past-classes", courseId, subject, chapter],
+        queryFn: async () => {
+            const { data } = await supabase
+                .from("classes")
+                .select("*")
+                .or(`course_id.eq.${courseId},shared_course_ids.ov.{${courseId}}`)
+                .not("is_archive", "is", true)
+                .eq("class_type", "live")
+                .lt("end_at", new Date().toISOString())
+                .contains("subject", [subject])
+                .eq("chapter", chapter)
+                .order("end_at", { ascending: false });
+            return data || [];
+        }
+    });
+
+    if (isLoading) return <div>Loading...</div>;
+    if (!classes || classes.length === 0) return <div>No past classes found.</div>;
 
     return (
         <div className="grid gap-4 md:grid-cols-2">
