@@ -134,25 +134,18 @@ const MyMistakes = () => {
 
             const uniqueExams = Array.from(uniqueExamsMap.values());
 
-            // Compute wrong/skip counts per exam using the correct-answer review RPC
-            await Promise.all(uniqueExams.map(async (exam: any) => {
-                const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
-                    p_attempt_id: exam.attemptId
-                });
-                if (!reviewData) return;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const userAnswers = (exam.answers as any[]) || [];
-                let wrong = 0, skip = 0;
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                reviewData.forEach((reviewQ: any) => {
-                    const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
-                    const selected = userAnswerObj?.selected_option;
-                    if (!selected) skip++;
-                    else if (selected !== reviewQ.correct_option) wrong++;
-                });
-                exam.wrongCount = wrong;
-                exam.skipCount = skip;
-            }));
+            // Compute wrong/skip counts for ALL exams in one bulk RPC call
+            // (previously made one RPC call per exam - very slow with many attempts)
+            const { data: summaryData } = await supabase.rpc("get_my_mistakes_summary");
+            const summaryByAttempt = new Map<string, { wrong_count: number; skip_count: number }>();
+            (summaryData || []).forEach((row: any) => {
+                summaryByAttempt.set(row.attempt_id, { wrong_count: row.wrong_count, skip_count: row.skip_count });
+            });
+            uniqueExams.forEach((exam: any) => {
+                const summary = summaryByAttempt.get(exam.attemptId);
+                exam.wrongCount = summary?.wrong_count || 0;
+                exam.skipCount = summary?.skip_count || 0;
+            });
 
             return uniqueExams;
         },
