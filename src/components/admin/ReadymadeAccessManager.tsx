@@ -58,7 +58,7 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
           .from(table)
           .select(mode === "archive-class" ? `id, subject, chapter, ${courseIdsField}` : `id, subject, chapter, readymade_sub_chapter, ${courseIdsField}`)
           .range(from, from + BATCH - 1);
-        if (mode === "archive-class") query = query.eq("is_archive", true);
+        if (mode === "archive-class") query = query.or("is_archive.eq.true,also_archive.eq.true");
         else query = query.eq("is_readymade", true);
         const { data, error } = await query;
         if (error) throw error;
