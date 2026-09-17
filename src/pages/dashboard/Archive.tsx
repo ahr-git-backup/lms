@@ -452,25 +452,25 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
-                          <CardHeader className="space-y-1">
+                          <CardHeader className="space-y-0.5 p-2.5 pb-1.5">
                             <div className="flex justify-between items-start gap-2">
                                 {classItem.course?.name && (
-                                    <Badge variant="outline" className="text-[10px] font-mono uppercase shrink-0">
+                                    <Badge variant="outline" className="text-[9px] font-mono uppercase shrink-0 px-1.5 py-0">
                                         {classItem.course.name}
                                     </Badge>
                                 )}
-                                {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                {!unlocked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                             </div>
-                            <CardTitle className="text-sm whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
+                            <CardDescription className="text-[10px]">
                               {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
                             </CardDescription>
                           </CardHeader>
-                          <CardContent className="space-y-4">
+                          <CardContent className="space-y-1.5 p-2.5 pt-0">
                             {classItem.topic && (
-                                <p className="text-sm text-muted-foreground line-clamp-2">{classItem.topic}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{classItem.topic}</p>
                             )}
-                            <div className="flex gap-2 flex-wrap mt-auto">
+                            <div className="flex gap-1.5 flex-wrap mt-auto">
                                 {classItem.video_url && (
                                 unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
@@ -592,25 +592,25 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
-                          <CardHeader className="space-y-1">
+                          <CardHeader className="space-y-0.5 p-2.5 pb-1.5">
                             <div className="flex justify-between items-start gap-2">
                                 {classItem.course?.name && (
-                                    <Badge variant="outline" className="text-[10px] font-mono uppercase shrink-0">
+                                    <Badge variant="outline" className="text-[9px] font-mono uppercase shrink-0 px-1.5 py-0">
                                         {classItem.course.name}
                                     </Badge>
                                 )}
-                                {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
+                                {!unlocked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                             </div>
-                            <CardTitle className="text-sm whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
-                            <CardDescription className="text-xs">
+                            <CardTitle className="text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
+                            <CardDescription className="text-[10px]">
                               {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
                             </CardDescription>
                           </CardHeader>
-                          <CardContent className="space-y-4">
+                          <CardContent className="space-y-1.5 p-2.5 pt-0">
                             {classItem.topic && (
-                                <p className="text-sm text-muted-foreground line-clamp-2">{classItem.topic}</p>
+                                <p className="text-xs text-muted-foreground line-clamp-2">{classItem.topic}</p>
                             )}
-                            <div className="flex gap-2 flex-wrap mt-auto">
+                            <div className="flex gap-1.5 flex-wrap mt-auto">
                                 {classItem.video_url && (
                                 unlocked ? (
                                 <Button size="sm" className="rounded-full bg-emerald-600 text-white hover:bg-emerald-700 border-none" onClick={() => navigate(`/dashboard/class/${classItem.id}`)}>
@@ -848,7 +848,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
 
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {exams.map((exam: any) => (
                         <Card
@@ -859,42 +859,42 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                 setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`);
                             }}
                         >
-                            <CardHeader className="pb-2">
+                            <CardHeader className="p-2.5 pb-1.5">
                                 <div className="flex justify-between items-start gap-2">
-                                    <div className="space-y-1">
+                                    <div className="space-y-0.5">
                                         {exam.course?.name && (
-                                            <Badge variant="outline" className="text-[10px] font-mono uppercase">
+                                            <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0">
                                                 {exam.course.name}
                                             </Badge>
                                         )}
-                                        <CardTitle className="text-sm leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
+                                        <CardTitle className="text-xs leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                             {exam.title}
                                         </CardTitle>
                                     </div>
                                     <div className="flex flex-col gap-1 items-end">
                                         {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) && (
-                                            <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                            <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                         )}
-                                        <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                        <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize text-[9px] px-1.5 py-0">
                                             {exam.exam_type}
                                         </Badge>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent className="flex-1">
-                                <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-                                    <div className="flex items-center gap-2">
-                                        <Clock className="h-4 w-4" />
+                            <CardContent className="flex-1 p-2.5 pt-0">
+                                <div className="grid grid-cols-2 gap-y-1 text-xs text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                        <Clock className="h-3.5 w-3.5" />
                                         <span>{exam.duration_minutes} min</span>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <CheckCircle className="h-4 w-4" />
+                                    <div className="flex items-center gap-1">
+                                        <CheckCircle className="h-3.5 w-3.5" />
                                         <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
                                     </div>
                                 </div>
                             </CardContent>
-                            <CardFooter className="pt-0 mt-auto border-t pt-4">
-                                <Button className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
+                            <CardFooter className="p-2.5 pt-0 mt-auto border-t">
+                                <Button size="sm" className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
                                     {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? <><Lock className="h-3 w-3 mr-1" /> Locked</> : "Start Exam"}
                                 </Button>
                             </CardFooter>
@@ -986,7 +986,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 <div className="text-muted-foreground">No exams found.</div>
             ) : (
                 <>
-                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {exams.map((exam: any) => (
                     <Card
@@ -997,42 +997,42 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                             setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`);
                         }}
                     >
-                        <CardHeader className="pb-2">
+                        <CardHeader className="p-2.5 pb-1.5">
                             <div className="flex justify-between items-start gap-2">
-                                <div className="space-y-1">
+                                <div className="space-y-0.5">
                                     {exam.course?.name && (
-                                        <Badge variant="outline" className="text-[10px] font-mono uppercase">
+                                        <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0">
                                             {exam.course.name}
                                         </Badge>
                                     )}
-                                    <CardTitle className="text-sm leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
+                                    <CardTitle className="text-xs leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                         {exam.title}
                                     </CardTitle>
                                 </div>
                                 <div className="flex flex-col gap-1 items-end">
                                     {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) && (
-                                        <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                     )}
-                                    <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
+                                    <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize text-[9px] px-1.5 py-0">
                                         {exam.exam_type}
                                     </Badge>
                                 </div>
                             </div>
                         </CardHeader>
-                        <CardContent className="flex-1">
-                            <div className="grid grid-cols-2 gap-y-2 text-sm text-muted-foreground mt-2">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
+                        <CardContent className="flex-1 p-2.5 pt-0">
+                            <div className="grid grid-cols-2 gap-y-1 text-xs text-muted-foreground">
+                                <div className="flex items-center gap-1">
+                                    <Clock className="h-3.5 w-3.5" />
                                     <span>{exam.duration_minutes} min</span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <CheckCircle className="h-4 w-4" />
+                                <div className="flex items-center gap-1">
+                                    <CheckCircle className="h-3.5 w-3.5" />
                                     <span>{exam.questions_count?.[0]?.count || 0} Questions</span>
                                 </div>
                             </div>
                         </CardContent>
-                        <CardFooter className="pt-0 mt-auto border-t pt-4">
-                            <Button className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
+                        <CardFooter className="p-2.5 pt-0 mt-auto border-t">
+                            <Button size="sm" className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
                                 {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? <><Lock className="h-3 w-3 mr-1" /> Locked</> : "Start Exam"}
                             </Button>
                         </CardFooter>
