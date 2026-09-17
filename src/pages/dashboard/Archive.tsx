@@ -652,20 +652,60 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, selectedChapter, setSelectedChapter, navigate, searchQuery, page, setPage, setCurrentChaptersList, isAdmin, setManageChapters, setManageSubjects }: any) => {
 
+    const [lockedExam, setLockedExam] = useState<any | null>(null);
+    const enrolledIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue).map((e: any) => e.course_id) || [];
+    const fullAccessCourseIds: string[] = enrollments?.filter((e: any) => !e.is_payment_overdue && e.course?.archive_exam_full_access).map((e: any) => e.course_id) || [];
+    const getOverdueInfo = (courseId: string | undefined) => {
+      if (!courseId) return null;
+      const e = enrollments?.find((en: any) => en.course_id === courseId && en.is_payment_overdue);
+      return e?.overdue_info || null;
+    };
+
+    const { data: chapterGrants } = useQuery({
+        queryKey: ["course-archive-exam-chapter-grants", enrolledIds.join(',')],
+        queryFn: async () => {
+            if (enrolledIds.length === 0) return { set: new Set<string>(), subjects: [] as string[], byCourse: new Map<string, Set<string>>() };
+            const { data, error } = await supabase
+                .from("course_readymade_access")
+                .select("course_id, subject, chapter")
+                .eq("mode", "archive-exam")
+                .in("course_id", enrolledIds);
+            if (error) throw error;
+            const set = new Set((data || []).map((g: any) => `${g.course_id}|||${(g.subject || "").trim()}|||${(g.chapter || "সাধারণ").trim()}`));
+            const subjects = Array.from(new Set((data || []).map((g: any) => g.subject).filter(Boolean)));
+            const byCourse = new Map<string, Set<string>>();
+            (data || []).forEach((g: any) => {
+                if (!g.subject) return;
+                if (!byCourse.has(g.course_id)) byCourse.set(g.course_id, new Set());
+                byCourse.get(g.course_id)!.add((g.subject || "").trim());
+            });
+            return { set, subjects, byCourse };
+        },
+        enabled: enrolledIds.length > 0,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
+        refetchInterval: 60000,
+        staleTime: 30000,
+    });
+    const grantedSubjects: string[] = chapterGrants?.subjects || [];
+
     const { data: searchResults, isLoading: searching } = useQuery({
-        queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page],
+        queryKey: ["archive-exams-search", enrollments?.map((e: any) => e.course_id).join(','), searchQuery, page, grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return { data: [], count: 0 };
             const safeQuery = searchQuery.replace(/[^\w\s\u0980-\u09FF]/g, "").trim();
             if (!safeQuery) return { data: [], count: 0 };
 
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`, `is_visible_on_free.eq.true`];
+            if (fullAccessCourseIds.length > 0) filters.push(`course_id.in.(${fullAccessCourseIds.join(',')})`);
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const query = supabase
                 .from("exams")
                 .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                 .or(accessFilter)
-                .eq("is_archive", true)
+                .or(`is_archive.eq.true,also_archive.eq.true,and(exam_type.eq.live,time_window_end.lt.${new Date().toISOString()})`)
                 .eq("is_published", true)
                 .ilike("title", `%${safeQuery}%`)
                 .order("sort_order", { ascending: false })
@@ -680,16 +720,19 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     });
 
     const { data: subjects, isLoading: loadingSubjects } = useQuery({
-        queryKey: ["archive-exams-subjects", enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-exams-subjects", enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`, `is_visible_on_free.eq.true`];
+            if (fullAccessCourseIds.length > 0) filters.push(`course_id.in.(${fullAccessCourseIds.join(',')})`);
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const { data } = await supabase
                 .from("exams")
                 .select("subject")
                 .or(accessFilter)
-                .eq("is_archive", true)
+                .or(`is_archive.eq.true,also_archive.eq.true,and(exam_type.eq.live,time_window_end.lt.${new Date().toISOString()})`)
                 .eq("is_published", true);
 
             const unique = new Set<string>();
@@ -714,16 +757,19 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     });
 
     const { data: chapters, isLoading: loadingChapters } = useQuery({
-        queryKey: ["archive-exams-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-exams-chapters", selectedSubject, enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
             if (!enrollments || enrollments.length === 0 || !selectedSubject) return [];
             const courseIds = enrollments.map((e: any) => e.course_id);
-            const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+            const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`, `is_visible_on_free.eq.true`];
+            if (fullAccessCourseIds.length > 0) filters.push(`course_id.in.(${fullAccessCourseIds.join(',')})`);
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
             const { data } = await supabase
                 .from("exams")
                 .select("chapter, sort_order")
                 .or(accessFilter)
-                .eq("is_archive", true)
+                .or(`is_archive.eq.true,also_archive.eq.true,and(exam_type.eq.live,time_window_end.lt.${new Date().toISOString()})`)
                 .contains("subject", [selectedSubject])
                 .eq("is_published", true);
 
@@ -767,16 +813,19 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
     }, [chapters, setCurrentChaptersList]);
 
     const { data: examsData, isLoading: loadingExams } = useQuery({
-        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(',')],
+        queryKey: ["archive-exams-list", selectedSubject, selectedChapter, page, enrollments?.map((e: any) => e.course_id).join(','), grantedSubjects.join(',')],
         queryFn: async () => {
              if (!enrollments || enrollments.length === 0 || !selectedSubject || !selectedChapter) return { data: [], count: 0 };
              const courseIds = enrollments.map((e: any) => e.course_id);
-             const accessFilter = `archive_course_ids.ov.{${courseIds.join(',')}},course_id.in.(${courseIds.join(',')}),is_visible_on_free.eq.true`;
+             const filters = [`archive_course_ids.ov.{${courseIds.join(',')}}`, `course_id.in.(${courseIds.join(',')})`, `is_visible_on_free.eq.true`];
+            if (fullAccessCourseIds.length > 0) filters.push(`course_id.in.(${fullAccessCourseIds.join(',')})`);
+            if (grantedSubjects.length > 0) filters.push(`subject.ov.{${grantedSubjects.join(',')}}`);
+            const accessFilter = filters.join(',');
              const { data, count, error } = await supabase
                  .from("exams")
                  .select("*, course:courses(name), questions_count:exam_questions(count)", { count: 'exact' })
                  .or(accessFilter)
-                 .eq("is_archive", true)
+                 .or(`is_archive.eq.true,also_archive.eq.true,and(exam_type.eq.live,time_window_end.lt.${new Date().toISOString()})`)
                  .contains("subject", [selectedSubject])
                  .eq("chapter", selectedChapter)
                  .eq("is_published", true)
@@ -804,8 +853,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                     {exams.map((exam: any) => (
                         <Card
                             key={exam.id}
-                            className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                            onClick={() => { setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`); }}
+                            className={`transition-all hover:shadow-md group flex flex-col ${isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? 'cursor-pointer hover:border-primary/50' : 'opacity-80'}`}
+                            onClick={() => {
+                                if (!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)) { setLockedExam(exam); return; }
+                                setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`);
+                            }}
                         >
                             <CardHeader className="pb-2">
                                 <div className="flex justify-between items-start gap-2">
@@ -820,6 +872,9 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                         </CardTitle>
                                     </div>
                                     <div className="flex flex-col gap-1 items-end">
+                                        {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) && (
+                                            <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                        )}
                                         <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
                                             {exam.exam_type}
                                         </Badge>
@@ -839,14 +894,15 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                 </div>
                             </CardContent>
                             <CardFooter className="pt-0 mt-auto border-t pt-4">
-                                <Button className="w-full group-hover:bg-primary/90">
-                                    Start Exam
+                                <Button className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
+                                    {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? <><Lock className="h-3 w-3 mr-1" /> Locked</> : "Start Exam"}
                                 </Button>
                             </CardFooter>
                         </Card>
                     ))}
                 </div>
                 <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+                <ArchiveLockDialog open={!!lockedExam} onClose={() => setLockedExam(null)} overdueInfo={getOverdueInfo(lockedExam?.course_id)} />
             </div>
         );
     }
@@ -935,8 +991,11 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 {exams.map((exam: any) => (
                     <Card
                         key={exam.id}
-                        className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md group flex flex-col"
-                        onClick={() => { setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`); }}
+                        className={`transition-all hover:shadow-md group flex flex-col ${isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? 'cursor-pointer hover:border-primary/50' : 'opacity-80'}`}
+                        onClick={() => {
+                            if (!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)) { setLockedExam(exam); return; }
+                            setExamSourceList(exam.id, "/dashboard/archive"); navigate(`/dashboard/take-exam/${exam.id}`);
+                        }}
                     >
                         <CardHeader className="pb-2">
                             <div className="flex justify-between items-start gap-2">
@@ -951,6 +1010,9 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                     </CardTitle>
                                 </div>
                                 <div className="flex flex-col gap-1 items-end">
+                                    {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) && (
+                                        <Lock className="h-4 w-4 text-muted-foreground shrink-0" />
+                                    )}
                                     <Badge variant={exam.exam_type === 'live' ? 'destructive' : 'secondary'} className="shrink-0 capitalize">
                                         {exam.exam_type}
                                     </Badge>
@@ -970,14 +1032,15 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                             </div>
                         </CardContent>
                         <CardFooter className="pt-0 mt-auto border-t pt-4">
-                            <Button className="w-full group-hover:bg-primary/90">
-                                Start Exam
+                            <Button className="w-full group-hover:bg-primary/90" disabled={!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse)}>
+                                {!isAdmin && !isClassUnlocked(exam, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse) ? <><Lock className="h-3 w-3 mr-1" /> Locked</> : "Start Exam"}
                             </Button>
                         </CardFooter>
                     </Card>
                 ))}
             </div>
             <PaginationControls page={page} setPage={setPage} totalPages={totalPages} />
+            <ArchiveLockDialog open={!!lockedExam} onClose={() => setLockedExam(null)} overdueInfo={getOverdueInfo(lockedExam?.course_id)} />
             </>
             )}
         </div>

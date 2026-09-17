@@ -135,6 +135,9 @@ export const useEnrollments = () => {
                   const inheritedArchiveFullAccess = rootIds.some(
                       (rid) => directCourseById.get(rid)?.archive_full_access
                   );
+                  const inheritedArchiveExamFullAccess = rootIds.some(
+                      (rid) => directCourseById.get(rid)?.archive_exam_full_access
+                  );
                   return {
                       id: `virtual-${c.id}`, // Virtual ID
                       course_id: c.id,
@@ -147,6 +150,7 @@ export const useEnrollments = () => {
                           // course that granted it has the flag on.
                           readymade_full_access: c.readymade_full_access || inheritedReadymadeFullAccess,
                           archive_full_access: c.archive_full_access || inheritedArchiveFullAccess,
+                          archive_exam_full_access: c.archive_exam_full_access || inheritedArchiveExamFullAccess,
                       },
                       is_extra: true,       // Mark as bonus/extra course
                       is_bonus: true,       // Explicit bonus flag

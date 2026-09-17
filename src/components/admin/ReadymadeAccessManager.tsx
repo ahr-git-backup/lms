@@ -9,7 +9,7 @@ import { ChevronDown, ChevronRight, Loader2 } from "lucide-react";
 
 interface ReadymadeAccessManagerProps {
   courseId: string;
-  mode?: "readymade" | "archive-class";
+  mode?: "readymade" | "archive-class" | "archive-exam";
 }
 
 // Tree node key format: `${subject}|||${chapter}|||${subChapter ?? ''}`
@@ -35,8 +35,8 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
   const [pendingSelection, setPendingSelection] = useState<Set<string> | null>(null);
 
   const table = mode === "archive-class" ? "classes" : "exams";
-  const courseIdsField = mode === "archive-class" ? "archive_course_ids" : "readymade_course_ids";
-  const fullAccessField = mode === "archive-class" ? "archive_full_access" : "readymade_full_access";
+  const courseIdsField = mode === "archive-class" || mode === "archive-exam" ? "archive_course_ids" : "readymade_course_ids";
+  const fullAccessField = mode === "archive-class" ? "archive_full_access" : mode === "archive-exam" ? "archive_exam_full_access" : "readymade_full_access";
 
   const { data: courseFullAccess, isLoading: loadingFullAccess } = useQuery({
     queryKey: ["course-full-access", courseId, mode],
@@ -56,9 +56,10 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
       while (true) {
         let query = supabase
           .from(table)
-          .select(mode === "archive-class" ? `id, subject, chapter, ${courseIdsField}` : `id, subject, chapter, readymade_sub_chapter, ${courseIdsField}`)
+          .select(mode === "archive-class" || mode === "archive-exam" ? `id, subject, chapter, ${courseIdsField}` : `id, subject, chapter, readymade_sub_chapter, ${courseIdsField}`)
           .range(from, from + BATCH - 1);
         if (mode === "archive-class") query = query.or("is_archive.eq.true,also_archive.eq.true");
+        else if (mode === "archive-exam") query = query.or(`is_archive.eq.true,also_archive.eq.true,and(exam_type.eq.live,time_window_end.lt.${new Date().toISOString()})`);
         else query = query.eq("is_readymade", true);
         const { data, error } = await query;
         if (error) throw error;
@@ -78,7 +79,7 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
     rows.forEach((row) => {
       const subs = Array.isArray(row.subject) ? row.subject : (typeof row.subject === "string" && row.subject ? [row.subject] : []);
       const chapter = row.chapter || "সাধারণ";
-      const subChapter = mode === "archive-class" ? "সাধারণ" : (row.readymade_sub_chapter || "সাধারণ");
+      const subChapter = mode === "archive-class" || mode === "archive-exam" ? "সাধারণ" : (row.readymade_sub_chapter || "সাধারণ");
       subs.forEach((subject) => {
         if (!subjects[subject]) subjects[subject] = {};
         if (!subjects[subject][chapter]) subjects[subject][chapter] = {};
@@ -206,7 +207,7 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
   });
 
   if (isLoading || loadingFullAccess || !tree) {
-    return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading {mode === "archive-class" ? "archive class" : "readymade exam"} structure...</div>;
+    return <div className="flex items-center justify-center py-12 text-muted-foreground gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Loading {mode === "archive-class" ? "archive class" : mode === "archive-exam" ? "archive exam" : "readymade exam"} structure...</div>;
   }
 
   const subjectEntries = Object.entries(tree);
@@ -222,7 +223,7 @@ export function ReadymadeAccessManager({ courseId, mode = "readymade" }: Readyma
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Checkbox checked={allSelected && fullAccessSelected} onCheckedChange={toggleAll} id={`access-all-${mode}`} />
-          <label htmlFor={`access-all-${mode}`} className="text-sm font-semibold cursor-pointer">{mode === "archive-class" ? "All Archive Classes" : "All Readymade Exams"}</label>
+          <label htmlFor={`access-all-${mode}`} className="text-sm font-semibold cursor-pointer">{mode === "archive-class" ? "All Archive Classes" : mode === "archive-exam" ? "All Archive Exams" : "All Readymade Exams"}</label>
           {fullAccessSelected && (
             <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">Auto-includes future {mode === "archive-class" ? "classes" : "exams"}</span>
           )}
