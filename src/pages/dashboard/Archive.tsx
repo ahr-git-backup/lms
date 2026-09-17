@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, BookOpen, Trophy, Clock, CheckCircle, Video, ChevronRight, Search, ChevronLeft, Lock, Sparkles } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
 import { useAuth } from "@/contexts/AuthContext";
 import { CourseItemsManagerDialog } from "@/components/admin/CourseItemsManagerDialog";
@@ -98,9 +98,10 @@ const ArchiveLockDialog = ({ open, onClose, overdueInfo }: { open: boolean; onCl
 };
 
 const Archive = () => {
-  const [activeTab, setActiveTab] = useState("classes");
-  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
-  const [selectedChapter, setSelectedChapter] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTabState] = useState(searchParams.get("tab") || "classes");
+  const [selectedSubject, setSelectedSubjectState] = useState<string | null>(searchParams.get("subject"));
+  const [selectedChapter, setSelectedChapterState] = useState<string | null>(searchParams.get("chapter"));
   const [manageType, setManageType] = useState<"classes" | "exams" | null>(null);
   const [manageChapters, setManageChapters] = useState(false);
   const [manageSubjects, setManageSubjects] = useState(false);
@@ -108,6 +109,30 @@ const Archive = () => {
   const { data: enrollments } = useEnrollments();
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
+
+  // Keep tab/subject/chapter in the URL so reloading or resuming the app
+  // (mobile "loading" screen) doesn't drop the user back to the top level.
+  const setActiveTab = (val: string) => {
+      setActiveTabState(val);
+      const params = new URLSearchParams();
+      params.set("tab", val);
+      setSearchParams(params, { replace: true });
+  };
+  const setSelectedSubject = (val: string | null) => {
+      setSelectedSubjectState(val);
+      const params = new URLSearchParams();
+      params.set("tab", activeTab);
+      if (val) params.set("subject", val);
+      setSearchParams(params, { replace: true });
+  };
+  const setSelectedChapter = (val: string | null) => {
+      setSelectedChapterState(val);
+      const params = new URLSearchParams();
+      params.set("tab", activeTab);
+      if (selectedSubject) params.set("subject", selectedSubject);
+      if (val) params.set("chapter", val);
+      setSearchParams(params, { replace: true });
+  };
 
   // Search & Pagination State (Global for this page context, reset when tab changes)
   const [searchQuery, setSearchQuery] = useState("");
@@ -127,8 +152,8 @@ const Archive = () => {
   }, [searchQuery]);
 
   const resetSelection = () => {
-      setSelectedSubject(null);
-      setSelectedChapter(null);
+      setSelectedSubjectState(null);
+      setSelectedChapterState(null);
       setSearchQuery("");
       setDebouncedSearch("");
       setPage(0);
@@ -142,7 +167,7 @@ const Archive = () => {
       </header>
 
       <div className="flex items-center justify-between gap-4">
-          <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); resetSelection(); }} className="shrink-0">
+          <Tabs value={activeTab} onValueChange={(val) => { setActiveTabState(val); resetSelection(); setSearchParams({ tab: val }, { replace: true }); }} className="shrink-0">
             <TabsList>
                 <TabsTrigger value="classes" className="gap-2 text-xs sm:text-sm px-2 sm:px-4"><Video className="h-4 w-4" /> Classes</TabsTrigger>
                 <TabsTrigger value="exams" className="gap-2 text-xs sm:text-sm px-2 sm:px-4"><Trophy className="h-4 w-4" /> Exams</TabsTrigger>
