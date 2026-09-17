@@ -446,7 +446,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
@@ -586,7 +586,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="text-muted-foreground">No classes found.</div>
             ) : (
                 <>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
@@ -848,7 +848,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
 
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {exams.map((exam: any) => (
                         <Card
@@ -986,7 +986,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 <div className="text-muted-foreground">No exams found.</div>
             ) : (
                 <>
-                <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {exams.map((exam: any) => (
                     <Card
