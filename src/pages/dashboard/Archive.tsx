@@ -171,7 +171,7 @@ const Archive = () => {
       {manageType ? (
         <CourseItemsManagerDialog
           courseId={enrollments?.[0]?.course_id}
-          courseName="Archive"
+          courseName={manageType === "classes" ? "Archive Classes" : "Archive Exams"}
           subjectFilter={selectedSubject}
           chapterFilter={selectedChapter}
           resourceType={manageType}

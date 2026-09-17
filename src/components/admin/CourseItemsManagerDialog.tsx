@@ -54,7 +54,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
     queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, subChapterFilter, courseName],
     queryFn: async () => {
       // Allow passing without courseId if we are managing global readymade/archive exams
-      if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return [];
+      if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes" && courseName !== "Archive Exams") return [];
       
       let query = supabase.from(resourceType).select("*");
 
@@ -62,7 +62,13 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
           query = query.is("split_start", null);
       }
 
-      if (courseId) {
+      if (courseName === "Archive Classes" && resourceType === "classes") {
+          // Central Archive: show ALL archived classes matching subject/chapter,
+          // regardless of which course they're primarily tied to.
+          query = query.or("is_archive.eq.true,also_archive.eq.true");
+      } else if (courseName === "Archive Exams" && resourceType === "exams") {
+          query = query.eq("is_archive", true);
+      } else if (courseId) {
           if (courseName === "Readymade Exams" && resourceType === "exams") {
               query = query.eq("is_readymade", true).or(`course_id.eq.${courseId},course_id.is.null,shared_course_ids.cs.{${courseId}},readymade_course_ids.cs.{${courseId}}`);
           } else {
@@ -76,8 +82,6 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
           // Fallback if courseId is null but we're in specific global views
           if (courseName === "Readymade Exams" && resourceType === "exams") {
               query = query.eq("is_readymade", true);
-          } else if (courseName === "Archive Classes" && resourceType === "classes") {
-              // Can't effectively fetch "all archives" efficiently without a flag, but usually courseId is provided.
           }
       }
 
@@ -112,7 +116,10 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
 
       // User instruction: shared/archive items should be at the bottom
       // So we will sort them first by primary (1) vs shared (0), then by sort_order
-      const finalSorted = sorted.sort((a, b) => {
+      // (Skip this grouping entirely in central Archive mode — there's no single
+      // "primary course" concept there, every item is equally archived.)
+      const isArchiveMode = courseName === "Archive Classes" || courseName === "Archive Exams";
+      const finalSorted = isArchiveMode ? sorted : sorted.sort((a, b) => {
           const aIsPrimary = a.course_id === courseId ? 1 : 0;
           const bIsPrimary = b.course_id === courseId ? 1 : 0;
           if (aIsPrimary !== bIsPrimary) {
@@ -125,7 +132,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
 
       return finalSorted;
     },
-    enabled: !!courseId || courseName === "Readymade Exams" || courseName === "Archive Classes",
+    enabled: !!courseId || courseName === "Readymade Exams" || courseName === "Archive Classes" || courseName === "Archive Exams",
   });
 
   useEffect(() => {
@@ -184,7 +191,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
     },
   });
 
-  if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes") return null;
+  if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes" && courseName !== "Archive Exams") return null;
 
   return (
     <Card className="animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -204,7 +211,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
         {isLoading ? (
             <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : items.length === 0 ? (
-            <div className="text-center p-8 text-muted-foreground">No {resourceType} found for this course.</div>
+            <div className="text-center p-8 text-muted-foreground">No {resourceType} found{courseName.startsWith("Archive") ? " in Archive for this subject/chapter." : " for this course."}</div>
         ) : (
             <DraggableSortList
                 items={items.map(i => ({ id: i.id, title: i.title, subtitle: `Priority: ${i.sort_order || 0}` }))}
