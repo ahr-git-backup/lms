@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import ClassPlayer from "@/components/ClassPlayer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { FileText, ArrowLeft, Calendar, Eye } from "lucide-react";
+import { FileText, ArrowLeft, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ClassComments from "@/components/ClassComments";
 import { WhatsAppSupportButton } from "@/components/WhatsAppSupportButton";
@@ -264,11 +264,6 @@ const ClassPlayerPage = () => {
             <h1 className="text-2xl font-bold font-kalpurush leading-tight">{classItem.title}</h1>
             <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                 <span className="font-semibold text-primary">{classItem.course?.name}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" />
-                    {classItem.start_at && new Date(classItem.start_at).toLocaleString()}
-                </span>
             </div>
           </div>
         </div>
