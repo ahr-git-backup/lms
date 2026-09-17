@@ -377,7 +377,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
     return (
         <div className="flex flex-col h-full bg-card border rounded-xl shadow-sm overflow-hidden">
             {/* Header / Breadcrumb */}
-            <div className="p-3 border-b bg-muted/20 flex items-center justify-between">
+            <div className="p-3 border-b bg-background flex items-center justify-between sticky top-0 z-20 shadow-sm">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground overflow-x-auto whitespace-nowrap scrollbar-hide">
                     {viewHistory.length > 0 && (
                         <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={goBack}>
@@ -754,7 +754,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 {questionsData?.data?.map((q: any) => (
                                     <div
                                         key={q.id}
-                                        className={`py-3 px-2 sm:px-3 rounded-lg border transition-all cursor-pointer ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
+                                        className={`py-3 px-2 sm:px-3 rounded-lg border transition-all cursor-pointer scroll-mt-16 ${selectedIds.has(q.id) ? 'bg-primary/5 border-primary/30 shadow-sm' : 'bg-card hover:border-primary/30'}`}
                                         onClick={() => handleToggle(q.id)}
                                     >
                                         <div className="flex gap-3">
