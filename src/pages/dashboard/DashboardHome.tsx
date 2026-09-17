@@ -465,21 +465,21 @@ const DashboardHome = () => {
             </CardContent>
           </Card>
           <Card
-            className="cursor-pointer border-sky-500/30 hover:border-sky-500 transition-all bg-sky-50/50 dark:bg-sky-950/20"
-            onClick={() => navigate("/syllabus-tracker")}
+            className="cursor-pointer border-red-500/30 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+            onClick={() => navigate("/dashboard/my-mistakes")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
-              <BarChart3 className="h-6 w-6 text-sky-600 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Study Tracker</p>
+              <AlertCircle className="h-6 w-6 text-red-600 flex-shrink-0" />
+              <p className="font-semibold text-sm leading-snug">My Mistakes</p>
             </CardContent>
           </Card>
           <Card
             className="cursor-pointer border-yellow-500/30 hover:border-yellow-500 transition-all bg-yellow-50/50 dark:bg-yellow-950/20"
-            onClick={() => navigate("/dashboard/top-performer")}
+            onClick={() => navigate("/dashboard/results")}
           >
             <CardContent className="p-2.5 flex flex-col items-center text-center gap-1">
               <Trophy className="h-6 w-6 text-yellow-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Top Performer</p>
+              <p className="font-semibold text-sm leading-snug">Class and Exam History</p>
             </CardContent>
           </Card>
         </div>
