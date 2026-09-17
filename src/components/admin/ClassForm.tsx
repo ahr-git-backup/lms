@@ -401,18 +401,6 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                     )}
 
                     {!(isArchiveMode || form.is_archive) && (
-                        <div className="space-y-2 min-w-0">
-                            <Label>Add to Archive of (Optional)</Label>
-                            <MultiSelect
-                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
-                                selected={form.archive_course_ids}
-                                onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
-                                placeholder="Select courses to archive for..."
-                            />
-                        </div>
-                    )}
-
-                    {!(isArchiveMode || form.is_archive) && (
                         <div className="flex items-center gap-2 min-w-0 md:col-span-2">
                             <Checkbox
                                 id="also_archive"
@@ -422,6 +410,21 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                             <Label htmlFor="also_archive" className="font-normal cursor-pointer">
                                 Also show this class in the central Archive (keeps it in Record too)
                             </Label>
+                        </div>
+                    )}
+
+                    {!(isArchiveMode || form.is_archive) && form.also_archive && (
+                        <div className="space-y-2 min-w-0 md:col-span-2">
+                            <Label>Show in Archive for which courses?</Label>
+                            <MultiSelect
+                                options={courses?.map((c: any) => ({ label: c.name, value: c.id })) || []}
+                                selected={form.archive_course_ids}
+                                onChange={(vals) => setForm(prev => ({ ...prev, archive_course_ids: vals }))}
+                                placeholder="Select courses..."
+                            />
+                            <p className="text-[10px] text-muted-foreground">
+                                Leave empty to use only the Primary Course above.
+                            </p>
                         </div>
                     )}
 
