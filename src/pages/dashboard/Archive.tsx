@@ -421,7 +421,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
 
         return (
             <div className="space-y-6">
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
@@ -492,7 +492,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subjects Order</Button>
                     </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                     {subjects.map(subject => (
                          <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -524,7 +524,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 ) : !chapters || chapters.length === 0 ? (
                     <div className="text-muted-foreground">No chapters found for this subject.</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
                         {chapters.map(chapter => (
                              <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
                                 <CardHeader className="pb-2">
@@ -561,7 +561,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                 <div className="text-muted-foreground">No classes found.</div>
             ) : (
                 <>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {classes.map((classItem: any) => {
                         const unlocked = isAdmin || isClassUnlocked(classItem, enrolledIds, fullAccessCourseIds, chapterGrants?.set, chapterGrants?.byCourse);
@@ -774,7 +774,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
 
         return (
             <div className="space-y-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     {exams.map((exam: any) => (
                         <Card
@@ -836,7 +836,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                         <Button variant="outline" size="sm" onClick={() => setManageSubjects(true)}>Manage Subjects Order</Button>
                     </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
                     {subjects.map(subject => (
                          <Card key={subject} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedSubject(subject)}>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -868,7 +868,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 ) : !chapters || chapters.length === 0 ? (
                     <div className="text-muted-foreground">No chapters found for this subject.</div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-3">
                         {chapters.map(chapter => (
                              <Card key={chapter} className="cursor-pointer hover:border-primary/50 transition-all hover:shadow-md" onClick={() => setSelectedChapter(chapter)}>
                                 <CardHeader className="pb-2">
@@ -905,7 +905,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                 <div className="text-muted-foreground">No exams found.</div>
             ) : (
                 <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-3">
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                 {exams.map((exam: any) => (
                     <Card
