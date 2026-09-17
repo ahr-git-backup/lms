@@ -461,7 +461,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                 )}
                                 {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
-                            <CardTitle className="text-base">{classItem.title}</CardTitle>
+                            <CardTitle className="text-sm whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
                             <CardDescription className="text-xs">
                               {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
                             </CardDescription>
@@ -601,7 +601,7 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                                 )}
                                 {!unlocked && <Lock className="h-4 w-4 text-muted-foreground shrink-0" />}
                             </div>
-                            <CardTitle className="text-base">{classItem.title}</CardTitle>
+                            <CardTitle className="text-sm whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
                             <CardDescription className="text-xs">
                               {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
                             </CardDescription>
@@ -867,7 +867,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                                 {exam.course.name}
                                             </Badge>
                                         )}
-                                        <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                        <CardTitle className="text-sm leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                             {exam.title}
                                         </CardTitle>
                                     </div>
@@ -1005,7 +1005,7 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                                             {exam.course.name}
                                         </Badge>
                                     )}
-                                    <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors line-clamp-2">
+                                    <CardTitle className="text-sm leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                         {exam.title}
                                     </CardTitle>
                                 </div>
