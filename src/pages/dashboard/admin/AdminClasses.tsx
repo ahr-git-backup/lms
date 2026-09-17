@@ -418,6 +418,11 @@ const AdminClasses = () => {
                                     <TableCell className="capitalize">{cls.class_type}</TableCell>
                                     <TableCell className="whitespace-nowrap text-xs">
                                         {new Date(cls.start_at).toLocaleString()}
+                                        {cls.created_at && (
+                                            <div className="text-muted-foreground mt-0.5">
+                                                Added: {new Date(cls.created_at).toLocaleString()}
+                                            </div>
+                                        )}
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
@@ -468,6 +473,11 @@ const AdminClasses = () => {
                                     <Calendar className="h-3 w-3" />
                                     {new Date(cls.start_at).toLocaleString()}
                                 </div>
+                                {cls.created_at && (
+                                    <div className="text-[10px] text-muted-foreground">
+                                        Added: {new Date(cls.created_at).toLocaleString()}
+                                    </div>
+                                )}
                                 <div className="flex justify-end gap-2 pt-2 border-t mt-2">
                                      <Button size="sm" variant="outline" className="h-8" onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                                         Edit
