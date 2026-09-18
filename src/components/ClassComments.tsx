@@ -44,6 +44,8 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
   const queryClient = useQueryClient();
   const [newComment, setNewComment] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyDraft, setReplyDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const shouldAutoScroll = useRef(true);
 
@@ -138,6 +140,22 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
     if (error) toast({ title: "ডিলিট করা যায়নি", description: error.message, variant: "destructive" });
   };
 
+  const sendReply = async (parentId: string) => {
+    if (!user || !replyDraft.trim()) return;
+    const text = replyDraft.trim();
+    setReplyDraft("");
+    setReplyingTo(null);
+    const { error } = await supabase.from("class_comments").insert({
+      class_id: classId,
+      user_id: user.id,
+      parent_id: parentId,
+      comment_text: text,
+    });
+    if (error) {
+      toast({ title: "রিপ্লাই পাঠানো যায়নি", description: error.message, variant: "destructive" });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full rounded-xl border bg-card overflow-hidden">
       <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
@@ -170,10 +188,11 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
           </p>
         ) : (
           comments.map((c) => {
-            const name = c.profiles?.full_name || "User";
+            const name = c.profiles?.full_name || (c.parent_id ? "Admin" : "User");
             const canDelete = user && (c.user_id === user.id || isAdmin);
+            const isReply = !!c.parent_id;
             return (
-              <div key={c.id} className="group flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200">
+              <div key={c.id} className={`group flex items-start gap-2 animate-in fade-in slide-in-from-bottom-1 duration-200 ${isReply ? "pl-6 border-l-2 border-primary/20" : ""}`}>
                 <div className={`h-6 w-6 rounded-full ${colorForName(name)} text-white flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5 overflow-hidden`}>
                   {c.profiles?.avatar_url ? (
                     <img src={c.profiles.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -182,9 +201,37 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
                   )}
                 </div>
                 <div className="flex-1 min-w-0 text-sm leading-snug">
-                  <span className="font-semibold mr-1.5">{name}</span>
+                  <span className={`font-semibold mr-1.5 ${isReply ? "text-primary" : ""}`}>{name}{isReply && !isAdmin ? " (Admin)" : ""}</span>
                   <span className="text-[10px] text-muted-foreground mr-1.5">{timeAgo(c.created_at)}</span>
                   <span className="break-words">{c.comment_text}</span>
+                  {isAdmin && !isReply && (
+                    <button
+                      className="block text-[10px] text-primary hover:underline mt-0.5"
+                      onClick={() => setReplyingTo(replyingTo === c.id ? null : c.id)}
+                    >
+                      Reply
+                    </button>
+                  )}
+                  {isAdmin && replyingTo === c.id && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <Input
+                        autoFocus
+                        value={replyDraft}
+                        onChange={(e) => setReplyDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            sendReply(c.id);
+                          }
+                        }}
+                        placeholder="Reply as admin..."
+                        className="h-7 text-xs rounded-full"
+                      />
+                      <Button size="icon" className="h-7 w-7 rounded-full shrink-0" disabled={!replyDraft.trim()} onClick={() => sendReply(c.id)}>
+                        <Send className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 {canDelete && (
                   <button

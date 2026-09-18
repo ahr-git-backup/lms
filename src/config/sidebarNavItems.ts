@@ -19,6 +19,7 @@ import {
   LayoutTemplate,
   Tag,
   AlertCircle,
+  MessageCircle,
   Archive,
   Database,
   Flag,
@@ -93,4 +94,5 @@ export const adminItems: AdminSidebarNavItem[] = [
   { title: "Syllabus Tracker", url: "/admin/syllabus-tracker", icon: BarChart3, roles: ["admin", "teacher"], color: "text-sky-600" },
   { title: "Telegram Channels", url: "/admin/telegram-channels", icon: Send, roles: ["admin"], color: "text-blue-500" },
   { title: "Reports", url: "/admin/reports", icon: Flag, roles: ["admin", "teacher"], color: "text-red-500" },
+  { title: "Class Comments", url: "/admin/class-comments", icon: MessageCircle, roles: ["admin", "teacher"], color: "text-blue-500" },
 ];

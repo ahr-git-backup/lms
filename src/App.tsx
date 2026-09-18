@@ -86,6 +86,7 @@ import AdminPromoCodes from "./pages/dashboard/admin/AdminPromoCodes";
 import AdminHeroes from "./pages/dashboard/admin/AdminHeroes";
 import AdminReviews from "./pages/dashboard/admin/AdminReviews";
 import AdminReports from "./pages/dashboard/admin/AdminReports";
+import AdminClassComments from "./pages/dashboard/admin/AdminClassComments";
 import AdminQuickPractice from "./pages/dashboard/admin/AdminQuickPractice";
 import AdminMockPool from "./pages/dashboard/admin/AdminMockPool";
 import AdminSlideMaker from "./pages/dashboard/admin/AdminSlideMaker";
@@ -339,6 +340,7 @@ const App = () => {
                 <Route path="heroes" element={<ProtectedRoute requireAdmin><AdminHeroes /></ProtectedRoute>} />
                 <Route path="reviews" element={<ProtectedRoute requireAdmin><AdminReviews /></ProtectedRoute>} />
                 <Route path="reports" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminReports /></ProtectedRoute>} />
+                <Route path="class-comments" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminClassComments /></ProtectedRoute>} />
                 <Route path="quick-practice" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminQuickPractice /></ProtectedRoute>} />
                 <Route path="mock-test" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminMockPool /></ProtectedRoute>} />
                 <Route path="slide-maker" element={<ProtectedRoute allowedRoles={['admin', 'teacher']}><AdminSlideMaker /></ProtectedRoute>} />
