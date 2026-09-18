@@ -288,30 +288,46 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
   if (style === "style3") {
     // Compact 3-column layout, 50 MCQs per printed page, answer table at end.
+    // Uses fixed pre-split columns (flex, like style4's omr-qcol) instead of
+    // CSS column-count auto-flow — auto-flow could split/overlap a question's
+    // options across the column boundary depending on content height.
     const PER_PAGE = 50;
     let body = "";
     const pages: SolvePdfQuestion[][] = [];
     for (let i = 0; i < questions.length; i += PER_PAGE) pages.push(questions.slice(i, i + PER_PAGE));
 
+    const renderQ3 = (q: SolvePdfQuestion, n: number) => {
+      const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+      const layout = getOptionLayout(opts);
+      const qNum = String(n).padStart(2, "0");
+      let h = `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
+      if (layout === "inline") {
+        h += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
+      } else if (layout === "table") {
+        h += `<table class="options-table-s3"><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">A</span><span class="opt-text-s3">${escapeHtmlClean(opts[0])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">B</span><span class="opt-text-s3">${escapeHtmlClean(opts[1])}</span></span></td></tr><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">C</span><span class="opt-text-s3">${escapeHtmlClean(opts[2])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">D</span><span class="opt-text-s3">${escapeHtmlClean(opts[3])}</span></span></td></tr></table>`;
+      } else {
+        h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
+      }
+      h += "</div>";
+      return h;
+    };
+
     pages.forEach((pageQs, pIdx) => {
       body += `<div class="a4-page s3-page"${pIdx > 0 ? ' style="page-break-before:always"' : ""}>`;
-      body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div><div class="content-columns-3">`;
-      pageQs.forEach((q, idx) => {
-        const n = pIdx * PER_PAGE + idx + 1;
-        const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-        const layout = getOptionLayout(opts);
-        const qNum = String(n).padStart(2, "0");
-        body += `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
-        if (layout === "inline") {
-          body += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
-        } else if (layout === "table") {
-          body += `<table class="options-table-s3"><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">A</span><span class="opt-text-s3">${escapeHtmlClean(opts[0])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">B</span><span class="opt-text-s3">${escapeHtmlClean(opts[1])}</span></span></td></tr><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">C</span><span class="opt-text-s3">${escapeHtmlClean(opts[2])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">D</span><span class="opt-text-s3">${escapeHtmlClean(opts[3])}</span></span></td></tr></table>`;
-        } else {
-          body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
-        }
-        body += "</div>";
-      });
-      body += "</div></div>";
+      body += `<div class="exam-header"><h1>${heading} - Practice Sheet</h1></div>`;
+
+      // Split this page's questions into exactly 3 fixed columns.
+      const total = pageQs.length;
+      const per = Math.ceil(total / 3);
+      const cols = [pageQs.slice(0, per), pageQs.slice(per, per * 2), pageQs.slice(per * 2)];
+      let num = pIdx * PER_PAGE + 1;
+      const colsHtml = cols.map((col) => {
+        const html = col.map((q) => renderQ3(q, num++)).join("");
+        return `<div class="omr-qcol">${html}</div>`;
+      }).join("");
+
+      body += `<div class="omr-grid-qcols-fixed">${colsHtml}</div>`;
+      body += "</div>";
     });
 
     body += `<div class="page-break"></div><div class="answers-section"><table class="answer-table"><thead><tr><th class="qno-col">Q.No.</th><th class="ans-col">Ans</th><th class="exp-col">Explanation</th></tr></thead><tbody>`;
