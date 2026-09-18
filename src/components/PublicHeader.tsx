@@ -138,7 +138,7 @@ export const PublicHeader = () => {
                   <div className="flex flex-col gap-3">
                     <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wide">Practice Tools</p>
                     <a href="/quick-practice" className="text-base font-semibold hover:text-primary flex items-center gap-2">
-                      <Zap className="h-4 w-4" /> Quick Practice
+                      <Zap className="h-4 w-4" /> Rapid Practice Game
                     </a>
                     <a href="/mock-test" className="text-base font-semibold hover:text-primary flex items-center gap-2">
                       <ClipboardCheck className="h-4 w-4" /> Unlimited Mock Test

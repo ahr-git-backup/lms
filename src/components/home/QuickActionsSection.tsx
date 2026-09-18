@@ -106,7 +106,7 @@ export const QuickActionsSection = () => {
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-sm">
             <Zap className="h-4 w-4 text-white animate-icon-float" style={{ animationDelay: "0.6s" }} />
           </div>
-          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Quick Practice</span>
+          <span className="text-xs sm:text-sm font-bold text-center leading-tight px-0.5">Rapid Practice Game</span>
         </button>
         <button
           onClick={() => navigate("/focus-timer")}

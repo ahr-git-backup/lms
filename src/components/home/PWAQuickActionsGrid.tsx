@@ -63,7 +63,7 @@ export const PWAQuickActionsGrid = () => {
     { key: "review", label: "Course Review", icon: Star, from: "from-amber-400", to: "to-orange-500", ring: "from-amber-400/60 to-orange-500/60", onClick: () => navigate("/reviews") },
     { key: "class", label: "Free Class", icon: Video, from: "from-blue-500", to: "to-cyan-500", ring: "from-blue-500/60 to-cyan-500/60", onClick: () => navigate("/free-class") },
     { key: "exam", label: "Free Exam", icon: FileQuestion, from: "from-red-500", to: "to-rose-500", ring: "from-red-500/60 to-rose-500/60", onClick: () => navigate("/free-exam") },
-    { key: "practice", label: "Quick Practice", icon: Zap, from: "from-violet-500", to: "to-indigo-500", ring: "from-violet-500/60 to-indigo-500/60", onClick: () => navigate("/quick-practice") },
+    { key: "practice", label: "Rapid Practice Game", icon: Zap, from: "from-violet-500", to: "to-indigo-500", ring: "from-violet-500/60 to-indigo-500/60", onClick: () => navigate("/quick-practice") },
     { key: "focus", label: "Focus Timer", icon: Timer, from: "from-emerald-500", to: "to-teal-500", ring: "from-emerald-500/60 to-teal-500/60", onClick: () => navigate("/focus-timer") },
     { key: "telegram", label: "Telegram Support", icon: Send, from: "from-sky-500", to: "to-blue-500", ring: "from-sky-500/60 to-blue-500/60", onClick: () => { window.location.href = "/telegram-support"; } },
     { key: "pomodoro", label: "Pomodoro Timer", icon: Clock, from: "from-rose-500", to: "to-pink-500", ring: "from-rose-500/60 to-pink-500/60", onClick: () => navigate("/pomodoro") },

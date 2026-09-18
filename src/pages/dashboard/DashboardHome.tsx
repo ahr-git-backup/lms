@@ -494,7 +494,7 @@ const DashboardHome = () => {
           >
             <CardContent className="px-2.5 py-1.5 flex flex-col items-center text-center gap-1">
               <Zap className="h-6 w-6 text-violet-500 flex-shrink-0" />
-              <p className="font-semibold text-sm leading-snug">Quick Practice Game</p>
+              <p className="font-semibold text-sm leading-snug">Rapid Practice Game</p>
             </CardContent>
           </Card>
           <Card
@@ -583,7 +583,7 @@ const DashboardHome = () => {
                   <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
                     <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-violet-600 flex-shrink-0 animate-icon-float" />
                     <div>
-                      <p className="font-semibold text-sm sm:text-base leading-tight">Quick Practice</p>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Rapid Practice Game</p>
                       <p className="hidden sm:block text-sm text-muted-foreground">Manage content</p>
                     </div>
                   </CardContent>
