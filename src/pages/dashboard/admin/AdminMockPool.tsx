@@ -22,7 +22,8 @@ const DEFAULT_STANDARDS = [
   { value: "onushiloni", label: "Onushiloni" },
 ];
 
-type QbSource = { id: string; label: string; examIds: string[]; questions: QuestionData[] };
+type QbSource = { id: string; label: string; examIds: string[]; questions: QuestionData[]; questionCount?: number };
+type PersistedSource = { label: string; examIds: string[]; questionCount: number };
 
 const AdminMockPool = () => {
   const { toast } = useToast();
@@ -150,7 +151,19 @@ const AdminMockPool = () => {
     setCsvData(null);
     setCsvFileName("");
     setQbQuestions(null);
-    setQbSources([]);
+    // Show the sources this entry was originally built from (display-only —
+    // no question text stored for these, so preview isn't available, but the
+    // labels are enough to see at a glance and avoid re-picking the same exam).
+    const persisted: PersistedSource[] = Array.isArray(p.qb_sources) ? p.qb_sources : [];
+    setQbSources(
+      persisted.map((s, i) => ({
+        id: `persisted_${i}`,
+        label: s.label,
+        examIds: s.examIds || [],
+        questions: [], // not stored — preview unavailable for pre-existing sources
+        questionCount: s.questionCount,
+      }))
+    );
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -188,6 +201,12 @@ const AdminMockPool = () => {
       if (!allRows.length) throw new Error("CSV আপলোড করুন, Question Bank থেকে সিলেক্ট করুন, অথবা প্রশ্ন যোগ করুন");
       if (!subject.trim() || !chapter.trim()) throw new Error("সাবজেক্ট ও চ্যাপ্টার দিন");
 
+      const persistedSources: PersistedSource[] = qbSources.map((s) => ({
+        label: s.label,
+        examIds: s.examIds,
+        questionCount: s.questions.length || s.questionCount || 0,
+      }));
+
       if (editingId) {
         const { error } = await supabase
           .from("mock_question_pool")
@@ -198,6 +217,7 @@ const AdminMockPool = () => {
             standard,
             question_count: allRows.length,
             questions_json: allRows,
+            qb_sources: persistedSources,
           })
           .eq("id", editingId);
         if (error) throw error;
@@ -209,6 +229,7 @@ const AdminMockPool = () => {
           standard,
           question_count: allRows.length,
           questions_json: allRows,
+          qb_sources: persistedSources,
           created_by: user?.id || null,
         });
         if (error) throw error;
@@ -373,23 +394,25 @@ const AdminMockPool = () => {
                   key={src.id}
                   className="flex items-center justify-between gap-2 border rounded-md px-2.5 py-1.5 bg-muted/30"
                 >
-                  <p className="text-xs truncate flex-1" title={src.label}>
-                    {src.label} <span className="text-muted-foreground">— {src.questions.length}টি</span>
+                  <p className="text-[11px] truncate flex-1" title={src.label}>
+                    {src.label} <span className="text-muted-foreground">— {src.questions.length || src.questionCount || 0}টি</span>
                   </p>
                   <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => setPreviewSourceId(src.id)}
-                      className="text-muted-foreground hover:text-primary p-1"
-                      title="MCQ দেখুন"
-                    >
-                      <Eye className="h-3.5 w-3.5" />
-                    </button>
+                    {src.questions.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setPreviewSourceId(src.id)}
+                        className="text-muted-foreground hover:text-primary p-1"
+                        title="MCQ দেখুন"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => removeQbSource(src.id)}
                       className="text-muted-foreground hover:text-destructive p-1"
-                      title="সরিয়ে ফেলুন"
+                      title={src.questions.length > 0 ? "সরিয়ে ফেলুন (প্রশ্নসহ)" : "শুধু লেবেল সরান (প্রশ্ন থাকবে)"}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
