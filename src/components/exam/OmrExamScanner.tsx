@@ -996,7 +996,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                             draggable={false}
                             onClick={() => setEditingQNum(isEditing ? null : qNum)}
                             title={reason || undefined}
-                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors relative select-none touch-manipulation ${
+                            className={`w-full flex flex-col items-center p-2 sm:p-1.5 min-h-[52px] sm:min-h-0 rounded-lg text-xs border transition-colors relative select-none touch-manipulation ${
                               answer
                                 ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
                                 : reason
@@ -1013,35 +1013,38 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                             </span>
                           </button>
                           {isEditing && (
-                            <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1 flex gap-1 bg-background border border-border rounded-lg shadow-lg p-1.5">
-                              {["A", "B", "C", "D"].map((opt) => (
+                            <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1.5 flex flex-col items-center gap-2 bg-background border-2 border-violet-300 dark:border-violet-700/50 rounded-2xl shadow-xl p-3">
+                              <span className="text-xs font-bold text-violet-600 dark:text-violet-400">Q{qNum} — Select Answer</span>
+                              <div className="flex gap-2">
+                                {["A", "B", "C", "D"].map((opt) => (
+                                  <button
+                                    key={opt}
+                                    type="button"
+                                    onClick={() => {
+                                      setAnswerForQuestion(qNum, opt === answer ? null : opt);
+                                      setEditingQNum(null);
+                                    }}
+                                    className={`h-11 w-11 sm:h-9 sm:w-9 rounded-full border-2 text-base sm:text-sm font-bold flex items-center justify-center transition-colors ${
+                                      answer === opt
+                                        ? "bg-green-500 border-green-500 text-white"
+                                        : "border-border hover:bg-muted"
+                                    }`}
+                                  >
+                                    {opt}
+                                  </button>
+                                ))}
                                 <button
-                                  key={opt}
                                   type="button"
                                   onClick={() => {
-                                    setAnswerForQuestion(qNum, opt === answer ? null : opt);
+                                    setAnswerForQuestion(qNum, null);
                                     setEditingQNum(null);
                                   }}
-                                  className={`h-7 w-7 rounded-full border text-[11px] font-bold flex items-center justify-center transition-colors ${
-                                    answer === opt
-                                      ? "bg-green-500 border-green-500 text-white"
-                                      : "border-border hover:bg-muted"
-                                  }`}
+                                  className="h-11 w-11 sm:h-9 sm:w-9 rounded-full border-2 border-border text-sm flex items-center justify-center hover:bg-muted"
+                                  aria-label="Clear answer"
                                 >
-                                  {opt}
+                                  <X className="h-4 w-4 sm:h-3 sm:w-3" />
                                 </button>
-                              ))}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setAnswerForQuestion(qNum, null);
-                                  setEditingQNum(null);
-                                }}
-                                className="h-7 w-7 rounded-full border border-border text-[11px] flex items-center justify-center hover:bg-muted"
-                                aria-label="Clear answer"
-                              >
-                                <X className="h-3 w-3" />
-                              </button>
+                              </div>
                             </div>
                           )}
                         </div>
