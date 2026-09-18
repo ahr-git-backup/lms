@@ -143,11 +143,11 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
       <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0">
         {isLive ? (
           <span className="flex items-center gap-1 text-xs font-bold text-red-600">
-            <Radio className="h-3.5 w-3.5 animate-pulse" /> LIVE CHAT
+            <Radio className="h-3.5 w-3.5 animate-pulse" /> {isAdmin ? "LIVE CHAT (Admin View)" : "MESSAGE ADMIN"}
           </span>
         ) : (
           <span className="flex items-center gap-1 text-sm font-semibold">
-            <MessageCircle className="h-4 w-4" /> Comments
+            <MessageCircle className="h-4 w-4" /> {isAdmin ? "Comments (Admin View)" : "Message Admin"}
           </span>
         )}
         {comments && comments.length > 0 && (
@@ -166,7 +166,7 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
           </div>
         ) : !comments || comments.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-6">
-            {isLive ? "লাইভ চ্যাট শুরু হয়নি — প্রথম কমেন্টটি করুন!" : "এখনো কোনো কমেন্ট নেই।"}
+            {isLive ? "এখনো কোনো মেসেজ নেই — প্রথম মেসেজটি করুন!" : "এখনো কোনো কমেন্ট নেই।"}
           </p>
         ) : (
           comments.map((c) => {
@@ -214,7 +214,7 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
                   sendComment();
                 }
               }}
-              placeholder={isLive ? "লাইভ চ্যাটে বার্তা লিখুন..." : "একটি কমেন্ট লিখুন..."}
+              placeholder={isLive ? "এডমিনকে মেসেজ লিখুন..." : "এডমিনকে একটি কমেন্ট লিখুন..."}
               className="h-9 rounded-full text-sm"
             />
             <Button
