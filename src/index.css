@@ -412,7 +412,8 @@ mjx-container[display="true"] {
    resized to fill the viewport so it behaves like true landscape fullscreen
    even though the OS/browser chrome itself stays in portrait. */
 .force-rotate-landscape:fullscreen,
-.force-rotate-landscape:-webkit-full-screen {
+.force-rotate-landscape:-webkit-full-screen,
+.force-rotate-landscape.manual-fake-fullscreen {
   position: fixed;
   top: 50%;
   left: 50%;
@@ -422,6 +423,20 @@ mjx-container[display="true"] {
   transform-origin: center center;
   max-width: none;
   max-height: none;
+  z-index: 9999;
+}
+
+/* Same manual fake-fullscreen fallback but for desktop/wide screens where no
+   rotation is needed — just fill the viewport as-is. */
+.manual-fake-fullscreen:not(.force-rotate-landscape) {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  z-index: 9999;
+  border-radius: 0 !important;
 }
 
 /* Border-blink highlight for a Readymade Exam zone section when the user

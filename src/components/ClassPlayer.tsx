@@ -337,41 +337,61 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
   const toggleFullscreen = async () => {
     if (!containerRef.current) return;
 
-    try {
-      if (!document.fullscreenElement) {
+    if (!document.fullscreenElement && !isFullscreen) {
+      let nativeFullscreenWorked = false;
+      try {
         if (containerRef.current.requestFullscreen) {
           await containerRef.current.requestFullscreen();
+          nativeFullscreenWorked = true;
         } else if ((containerRef.current as any).webkitRequestFullscreen) {
           await (containerRef.current as any).webkitRequestFullscreen();
+          nativeFullscreenWorked = true;
         }
+      } catch (err) {
+        // Native Fullscreen API rejected/unsupported (common on some Android
+        // browsers like Kiwi outside a PWA context). Fall through to the
+        // CSS-only fake-fullscreen below instead of doing nothing.
+        console.error("Fullscreen API error:", err);
+      }
 
-        // Attempt native orientation lock on mobile (works in some browsers).
-        // If it's unsupported or rejected (common on Chrome Android outside
-        // a PWA), fall back to a CSS rotation so landscape fullscreen still
-        // works everywhere.
-        if (window.innerWidth < 768) {
-          let lockedNatively = false;
-          if (screen.orientation && (screen.orientation as any).lock) {
-            try {
-              await (screen.orientation as any).lock('landscape');
-              lockedNatively = true;
-            } catch {
-              lockedNatively = false;
-            }
-          }
-          if (!lockedNatively) {
-            setForceRotate(true);
+      // Attempt native orientation lock on mobile (works in some browsers).
+      // If it's unsupported or rejected, or native fullscreen itself never
+      // engaged, fall back to a CSS rotation so landscape fullscreen still
+      // works everywhere.
+      if (window.innerWidth < 768) {
+        let lockedNatively = false;
+        if (nativeFullscreenWorked && screen.orientation && (screen.orientation as any).lock) {
+          try {
+            await (screen.orientation as any).lock('landscape');
+            lockedNatively = true;
+          } catch {
+            lockedNatively = false;
           }
         }
-      } else {
+        if (!lockedNatively) {
+          setForceRotate(true);
+        }
+      }
+      if (!nativeFullscreenWorked) {
+        // Manually mark as "fullscreen" for our own UI state (icon, exit
+        // button) since the browser's fullscreenchange event never fired.
+        setIsFullscreen(true);
+      }
+    } else {
+      try {
         if (document.exitFullscreen) {
           await document.exitFullscreen();
         } else if ((document as any).webkitExitFullscreen) {
           await (document as any).webkitExitFullscreen();
         }
+      } catch (err) {
+        console.error("Exit fullscreen error:", err);
       }
-    } catch (err) {
-      console.error("Fullscreen error:", err);
+      setForceRotate(false);
+      setIsFullscreen(false);
+      if (screen.orientation && screen.orientation.unlock) {
+        screen.orientation.unlock().catch(() => {});
+      }
     }
   };
 
@@ -383,13 +403,33 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
       const touch = e.touches[0];
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
-        const x = touch.clientX - rect.left;
-        if (x < rect.width / 3) {
-          skipBackward();
-          toast({ title: "Rewind 10s", duration: 1000 });
-        } else if (x > (rect.width * 2) / 3) {
-          skipForward();
-          toast({ title: "Forward 10s", duration: 1000 });
+        let x: number;
+        if (forceRotate) {
+          // Container is CSS-rotated 90deg via force-rotate-landscape, but
+          // touch coordinates are still reported in the real (unrotated)
+          // viewport space. rect (from getBoundingClientRect on a rotated
+          // element) already reflects the visual rotated box, but touch.clientY
+          // maps to the visual X-axis after a 90deg rotation, not touch.clientX.
+          // Map: visual-left/right (seek zones) correspond to the vertical
+          // axis of the real screen.
+          x = touch.clientY - rect.top;
+          const height = rect.height;
+          if (x < height / 3) {
+            skipBackward();
+            toast({ title: "Rewind 10s", duration: 1000 });
+          } else if (x > (height * 2) / 3) {
+            skipForward();
+            toast({ title: "Forward 10s", duration: 1000 });
+          }
+        } else {
+          x = touch.clientX - rect.left;
+          if (x < rect.width / 3) {
+            skipBackward();
+            toast({ title: "Rewind 10s", duration: 1000 });
+          } else if (x > (rect.width * 2) / 3) {
+            skipForward();
+            toast({ title: "Forward 10s", duration: 1000 });
+          }
         }
       }
     }
@@ -485,7 +525,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
     <TooltipProvider>
       <div
           ref={containerRef}
-          className={`relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none ${forceRotate ? 'force-rotate-landscape' : ''}`}
+          className={`relative group bg-black w-full aspect-video overflow-hidden rounded-lg shadow-xl select-none ${forceRotate ? 'force-rotate-landscape' : ''} ${isFullscreen && !document.fullscreenElement ? 'manual-fake-fullscreen' : ''}`}
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isPlaying && setShowControls(false)}
           onDoubleClick={toggleFullscreen}
