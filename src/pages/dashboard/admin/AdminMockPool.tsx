@@ -51,6 +51,7 @@ const AdminMockPool = () => {
   // preview it, instead of one flat merged list with no origin info.
   const [qbSources, setQbSources] = useState<QbSource[]>([]);
   const [previewSourceId, setPreviewSourceId] = useState<string | null>(null);
+  const [isExistingQOpen, setIsExistingQOpen] = useState(false);
 
   const { data: pools, isLoading } = useQuery({
     queryKey: ["admin-mock-pool"],
@@ -126,6 +127,22 @@ const AdminMockPool = () => {
 
   const allAddedExamIds = qbSources.flatMap((s) => s.examIds);
 
+  // Groups existingQuestions by their _source tag (set at import time) so
+  // the View popup can show them like readymade exams group MCQs by topic.
+  const groupedExistingQuestions = (() => {
+    const groups: { source: string; items: { q: any; idx: number }[] }[] = [];
+    const indexOf: Record<string, number> = {};
+    existingQuestions.forEach((q, idx) => {
+      const src = q._source || "ম্যানুয়াল / পুরনো এন্ট্রি";
+      if (!(src in indexOf)) {
+        indexOf[src] = groups.length;
+        groups.push({ source: src, items: [] });
+      }
+      groups[indexOf[src]].items.push({ q, idx });
+    });
+    return groups;
+  })();
+
   const clearForm = () => {
     setEditingId(null);
     setSubject("");
@@ -184,17 +201,28 @@ const AdminMockPool = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const importedRows = qbQuestions?.length
-        ? qbQuestions.map((q) => ({
-            question_text: q.question,
-            option_a: q.options?.A || "",
-            option_b: q.options?.B || "",
-            option_c: q.options?.C || "",
-            option_d: q.options?.D || "",
-            correct_option: q.correct_answer,
-            explanation: q.explanation || "",
-          }))
-        : csvData || [];
+      // Tag each newly imported question with which source it came from, so
+      // the "বিদ্যমান প্রশ্নসমূহ" view can group by source later (like
+      // readymade exams group MCQs by topic).
+      const qbRows = (qbQuestions || []).map((q, i) => {
+        // Find which qbSources entry this question belongs to, by identity.
+        const src = qbSources.find((s) => s.questions.includes(q));
+        return {
+          question_text: q.question,
+          option_a: q.options?.A || "",
+          option_b: q.options?.B || "",
+          option_c: q.options?.C || "",
+          option_d: q.options?.D || "",
+          correct_option: q.correct_answer,
+          explanation: q.explanation || "",
+          _source: src?.label || "Question Bank",
+        };
+      });
+      const csvRows = (csvData || []).map((r) => ({
+        ...r,
+        _source: "CSV আপলোড",
+      }));
+      const importedRows = [...qbRows, ...csvRows];
 
       const allRows = [...existingQuestions, ...importedRows];
 
@@ -423,77 +451,14 @@ const AdminMockPool = () => {
           )}
 
           {editingId && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border rounded-lg px-3 py-2 bg-muted/30">
+              <div>
                 <Label className="text-sm font-semibold">বিদ্যমান প্রশ্নসমূহ ({existingQuestions.length})</Label>
-                <Button size="sm" variant="outline" onClick={addBlankQuestion}>
-                  <Plus className="h-3.5 w-3.5 mr-1" /> নতুন প্রশ্ন
-                </Button>
+                <p className="text-[10px] text-muted-foreground">সোর্স অনুযায়ী ভাগ করে দেখতে View চাপুন</p>
               </div>
-              <div className="space-y-3">
-                {existingQuestions.map((q, idx) => (
-                  <div key={idx} className="border rounded-lg p-3 space-y-2 relative">
-                    <button
-                      type="button"
-                      onClick={() => removeExistingQuestion(idx)}
-                      className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                    <p className="text-xs text-muted-foreground">প্রশ্ন #{idx + 1}</p>
-                    <Textarea
-                      value={q.question_text || ""}
-                      onChange={(e) => updateExistingQuestion(idx, "question_text", e.target.value)}
-                      placeholder="প্রশ্ন"
-                      className="min-h-[60px]"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        value={q.option_a || ""}
-                        onChange={(e) => updateExistingQuestion(idx, "option_a", e.target.value)}
-                        placeholder="অপশন A"
-                      />
-                      <Input
-                        value={q.option_b || ""}
-                        onChange={(e) => updateExistingQuestion(idx, "option_b", e.target.value)}
-                        placeholder="অপশন B"
-                      />
-                      <Input
-                        value={q.option_c || ""}
-                        onChange={(e) => updateExistingQuestion(idx, "option_c", e.target.value)}
-                        placeholder="অপশন C"
-                      />
-                      <Input
-                        value={q.option_d || ""}
-                        onChange={(e) => updateExistingQuestion(idx, "option_d", e.target.value)}
-                        placeholder="অপশন D"
-                      />
-                    </div>
-                    <div>
-                      <Label className="text-xs">সঠিক উত্তর</Label>
-                      <select
-                        value={q.correct_option || "A"}
-                        onChange={(e) => updateExistingQuestion(idx, "correct_option", e.target.value)}
-                        className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
-                      >
-                        <option value="A">A</option>
-                        <option value="B">B</option>
-                        <option value="C">C</option>
-                        <option value="D">D</option>
-                      </select>
-                    </div>
-                    <Textarea
-                      value={q.explanation || ""}
-                      onChange={(e) => updateExistingQuestion(idx, "explanation", e.target.value)}
-                      placeholder="ব্যাখ্যা (ঐচ্ছিক)"
-                      className="min-h-[50px]"
-                    />
-                  </div>
-                ))}
-                {existingQuestions.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-4">কোনো প্রশ্ন নেই</p>
-                )}
-              </div>
+              <Button size="sm" variant="outline" onClick={() => setIsExistingQOpen(true)}>
+                <Eye className="h-3.5 w-3.5 mr-1" /> View
+              </Button>
             </div>
           )}
 
@@ -554,6 +519,97 @@ const AdminMockPool = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={isExistingQOpen} onOpenChange={setIsExistingQOpen}>
+        <DialogContent className="max-w-3xl h-[85vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-4 pb-0 shrink-0">
+            <div className="flex items-center justify-between">
+              <DialogTitle>বিদ্যমান প্রশ্নসমূহ ({existingQuestions.length}) — সোর্সওয়াইজ</DialogTitle>
+              <Button size="sm" variant="outline" onClick={addBlankQuestion}>
+                <Plus className="h-3.5 w-3.5 mr-1" /> নতুন প্রশ্ন
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-5">
+            {groupedExistingQuestions.map((group) => (
+              <div key={group.source} className="space-y-2">
+                <p className="text-xs font-semibold text-primary bg-primary/5 rounded-md px-2 py-1 inline-block">
+                  {group.source} ({group.items.length}টি)
+                </p>
+                <div className="space-y-3">
+                  {group.items.map(({ q, idx }) => (
+                    <div key={idx} className="border rounded-lg p-3 space-y-2 relative">
+                      <button
+                        type="button"
+                        onClick={() => removeExistingQuestion(idx)}
+                        className="absolute top-2 right-2 text-muted-foreground hover:text-destructive"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                      <p className="text-xs text-muted-foreground">প্রশ্ন #{idx + 1}</p>
+                      <Textarea
+                        value={q.question_text || ""}
+                        onChange={(e) => updateExistingQuestion(idx, "question_text", e.target.value)}
+                        placeholder="প্রশ্ন"
+                        className="min-h-[60px]"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          value={q.option_a || ""}
+                          onChange={(e) => updateExistingQuestion(idx, "option_a", e.target.value)}
+                          placeholder="অপশন A"
+                        />
+                        <Input
+                          value={q.option_b || ""}
+                          onChange={(e) => updateExistingQuestion(idx, "option_b", e.target.value)}
+                          placeholder="অপশন B"
+                        />
+                        <Input
+                          value={q.option_c || ""}
+                          onChange={(e) => updateExistingQuestion(idx, "option_c", e.target.value)}
+                          placeholder="অপশন C"
+                        />
+                        <Input
+                          value={q.option_d || ""}
+                          onChange={(e) => updateExistingQuestion(idx, "option_d", e.target.value)}
+                          placeholder="অপশন D"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">সঠিক উত্তর</Label>
+                        <select
+                          value={q.correct_option || "A"}
+                          onChange={(e) => updateExistingQuestion(idx, "correct_option", e.target.value)}
+                          className="w-full h-9 rounded-md border border-input bg-background px-3 text-sm"
+                        >
+                          <option value="A">A</option>
+                          <option value="B">B</option>
+                          <option value="C">C</option>
+                          <option value="D">D</option>
+                        </select>
+                      </div>
+                      <Textarea
+                        value={q.explanation || ""}
+                        onChange={(e) => updateExistingQuestion(idx, "explanation", e.target.value)}
+                        placeholder="ব্যাখ্যা (ঐচ্ছিক)"
+                        className="min-h-[50px]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+            {existingQuestions.length === 0 && (
+              <p className="text-sm text-muted-foreground text-center py-4">কোনো প্রশ্ন নেই</p>
+            )}
+          </div>
+          <div className="p-4 border-t shrink-0">
+            <Button className="w-full" onClick={() => setIsExistingQOpen(false)}>
+              বন্ধ করুন
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isQbOpen} onOpenChange={setIsQbOpen}>
         <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
