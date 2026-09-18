@@ -1,0 +1,30 @@
+name: Mongo Sync (Supabase -> MongoDB Atlas)
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub Actions cron can lag a few minutes under
+    # load — that's fine, this data doesn't need to be second-fresh.
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {} # lets you trigger it manually from the Actions tab
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: scripts/mongo-sync
+        run: npm install
+
+      - name: Run sync
+        working-directory: scripts/mongo-sync
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+        run: node sync.js
