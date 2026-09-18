@@ -88,6 +88,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
     };
 
     const toggleExamSelect = (id: string) => {
+        if (alreadyAddedExamIds.includes(id)) return; // already imported — block re-selecting
         setSelectedExamIds(prev => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id); else next.add(id);
@@ -171,7 +172,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                 console.error(examError);
                 return;
             }
-            const examIds = (examRows || []).map((e: any) => e.id);
+            const examIds = (examRows || []).map((e: any) => e.id).filter((id: string) => !alreadyAddedExamIds.includes(id));
             if (examIds.length === 0) return;
 
             const { data, error } = await supabase
@@ -661,23 +662,26 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                             <div className="text-center py-10 text-muted-foreground">No exams found for the selected subjects.</div>
                         ) : (
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {examsData?.map((exam: any) => (
+                                {examsData?.map((exam: any) => {
+                                    const isAdded = alreadyAddedExamIds.includes(exam.id);
+                                    return (
                                     <div
                                         key={exam.id}
-                                        className={`p-4 rounded-lg border bg-card transition-all flex flex-col gap-2 ${selectedExamIds.has(exam.id) ? 'border-primary/60 bg-primary/5' : ''} ${alreadyAddedExamIds.includes(exam.id) ? 'ring-1 ring-green-500/40' : ''}`}
+                                        className={`p-4 rounded-lg border bg-card transition-all flex flex-col gap-2 ${selectedExamIds.has(exam.id) ? 'border-primary/60 bg-primary/5' : ''} ${isAdded ? 'ring-1 ring-green-500/40 opacity-60' : ''}`}
                                     >
                                         <div
-                                            className="flex items-start gap-2 cursor-pointer"
-                                            onClick={() => toggleExamSelect(exam.id)}
+                                            className={`flex items-start gap-2 ${isAdded ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                            onClick={() => !isAdded && toggleExamSelect(exam.id)}
                                         >
                                             <Checkbox
                                                 checked={selectedExamIds.has(exam.id)}
-                                                onCheckedChange={() => toggleExamSelect(exam.id)}
+                                                onCheckedChange={() => !isAdded && toggleExamSelect(exam.id)}
                                                 onClick={(e) => e.stopPropagation()}
+                                                disabled={isAdded}
                                                 className="mt-0.5"
                                             />
                                             <div className="font-medium line-clamp-2 flex-1">{exam.title}</div>
-                                            {alreadyAddedExamIds.includes(exam.id) && (
+                                            {isAdded && (
                                                 <Badge className="bg-green-600 hover:bg-green-600 text-[9px] shrink-0">যোগ করা আছে</Badge>
                                             )}
                                         </div>
@@ -694,6 +698,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                                                 size="sm"
                                                 variant="ghost"
                                                 className="text-xs h-7 px-2"
+                                                disabled={isAdded}
                                                 onClick={() => {
                                                     setSelectedExamId(exam.id);
                                                     setSelectedExamTitle(exam.title);
@@ -703,11 +708,12 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                                                     goToView('questions');
                                                 }}
                                             >
-                                                প্রশ্ন বাছাই করে যোগ করুন
+                                                {isAdded ? "ইতিমধ্যে যোগ করা হয়েছে" : "প্রশ্ন বাছাই করে যোগ করুন"}
                                             </Button>
                                         </div>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
