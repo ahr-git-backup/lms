@@ -272,8 +272,12 @@ const App = () => {
               <Route path="/mock-test/play" element={<ErrorBoundary><PlayUnlimitedMock /></ErrorBoundary>} />
               {/* Public route so guest-allowed exams (allow_guest=true) can actually be taken
                   without login — /dashboard/take-exam is behind ProtectedRoute and would redirect
-                  guests to /login before TakeExam.tsx's own guest-info logic ever runs. */}
+                  guests to /login before TakeExam.tsx's own guest-info logic ever runs.
+                  Also serves /dashboard/take-exam/:examId directly (outside DashboardLayout)
+                  so the exam page never shows the site header while in progress, even though
+                  most of the app links to it with the /dashboard prefix. */}
               <Route path="/take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
+              <Route path="/dashboard/take-exam/:examId" element={<ProtectedRoute><ErrorBoundary><TakeExam /></ErrorBoundary></ProtectedRoute>} />
 
               <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                 <Route index element={<ErrorBoundary><DashboardHome /></ErrorBoundary>} />
@@ -281,7 +285,6 @@ const App = () => {
                 <Route path="class/:classId" element={<ErrorBoundary><ClassPlayerPage /></ErrorBoundary>} />
                 <Route path="recordings" element={<ErrorBoundary><Recordings /></ErrorBoundary>} />
                 <Route path="live-exam" element={<ErrorBoundary><LiveExam /></ErrorBoundary>} />
-                <Route path="take-exam/:examId" element={<ErrorBoundary><TakeExam /></ErrorBoundary>} />
                 <Route path="take-mistakes" element={<ErrorBoundary><TakeMistakeExam /></ErrorBoundary>} />
                 <Route path="past-exam" element={<ErrorBoundary><PastExamCatalog /></ErrorBoundary>} />
                 <Route path="results" element={<ErrorBoundary><ExamResults /></ErrorBoundary>} />
