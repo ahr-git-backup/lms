@@ -755,19 +755,19 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   }
 
   return (
-    <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden w-full">
+    <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 sm:h-9 sm:w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
             <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <h3 className="font-bold text-base sm:text-sm">📷 OMR Scanner</h3>
+            <h3 className="font-bold text-sm">📷 OMR Scanner</h3>
             <p className="text-xs text-muted-foreground">Upload or capture your filled OMR sheet • 100 Questions</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full h-9 w-9 sm:h-8 sm:w-8 shrink-0">
+        <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full h-8 w-8">
           <ChevronUp className="h-4 w-4" />
         </Button>
       </div>
@@ -1126,7 +1126,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                     </>
                   )}
                 </div>
-                <div className="max-h-[360px] overflow-y-auto overflow-x-hidden p-2.5 overscroll-contain">
+                <div className="max-h-[360px] overflow-y-auto p-2.5">
                   <div className="grid grid-cols-5 gap-1.5">
                     {questionIds.map((qId, idx) => {
                       const answer = scannedAnswers[qId];
@@ -1136,9 +1136,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                         <div key={qId} className="relative">
                           <button
                             type="button"
-                            draggable={false}
                             onClick={() => setEditingQNum(isEditing ? null : qNum)}
-                            className={`w-full flex flex-col items-center p-2 sm:p-1.5 min-h-[52px] sm:min-h-0 rounded-lg text-xs border transition-colors relative select-none touch-manipulation ${
+                            className={`w-full flex flex-col items-center p-1.5 rounded-lg text-xs border transition-colors ${
                               answer
                                 ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
                                 : "bg-muted/30 border-border/30"
@@ -1151,7 +1150,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                           </button>
                           {isEditing && (
                             <div
-                              className={`absolute z-30 top-full mt-1.5 flex flex-col items-center gap-2 bg-background border-2 border-violet-300 dark:border-violet-700/50 rounded-2xl shadow-xl p-3 ${
+                              className={`absolute z-30 top-full mt-1 flex gap-1 bg-background border border-border rounded-lg shadow-lg p-1.5 ${
                                 idx % 5 === 0
                                   ? "left-0"
                                   : idx % 5 === 4
@@ -1159,37 +1158,34 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                                   : "left-1/2 -translate-x-1/2"
                               }`}
                             >
-                              <span className="text-xs font-bold text-violet-600 dark:text-violet-400">Q{qNum} — Select Answer</span>
-                              <div className="flex gap-2">
-                                {["A", "B", "C", "D"].map((opt) => (
-                                  <button
-                                    key={opt}
-                                    type="button"
-                                    onClick={() => {
-                                      setAnswerForQuestion(qNum, opt === answer ? null : opt);
-                                      setEditingQNum(null);
-                                    }}
-                                    className={`h-11 w-11 sm:h-9 sm:w-9 rounded-full border-2 text-base sm:text-sm font-bold flex items-center justify-center transition-colors ${
-                                      answer === opt
-                                        ? "bg-green-500 border-green-500 text-white"
-                                        : "border-border hover:bg-muted"
-                                    }`}
-                                  >
-                                    {opt}
-                                  </button>
-                                ))}
+                              {["A", "B", "C", "D"].map((opt) => (
                                 <button
+                                  key={opt}
                                   type="button"
                                   onClick={() => {
-                                    setAnswerForQuestion(qNum, null);
+                                    setAnswerForQuestion(qNum, opt === answer ? null : opt);
                                     setEditingQNum(null);
                                   }}
-                                  className="h-11 w-11 sm:h-9 sm:w-9 rounded-full border-2 border-border text-sm flex items-center justify-center hover:bg-muted"
-                                  aria-label="Clear answer"
+                                  className={`h-7 w-7 rounded-full border text-[11px] font-bold flex items-center justify-center transition-colors ${
+                                    answer === opt
+                                      ? "bg-green-500 border-green-500 text-white"
+                                      : "border-border hover:bg-muted"
+                                  }`}
                                 >
-                                  <X className="h-4 w-4 sm:h-3 sm:w-3" />
+                                  {opt}
                                 </button>
-                              </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAnswerForQuestion(qNum, null);
+                                  setEditingQNum(null);
+                                }}
+                                className="h-7 w-7 rounded-full border border-border text-[11px] flex items-center justify-center hover:bg-muted"
+                                aria-label="Clear answer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
                             </div>
                           )}
                         </div>
