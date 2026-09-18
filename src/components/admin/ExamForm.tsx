@@ -760,7 +760,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const isArchiveOnly = isArchiveMode || form.is_archive;
-        if (!isFreeMode && !isArchiveOnly && !form.course_id) {
+        const courseRequired = form.exam_type === "live";
+        if (!isFreeMode && !isArchiveOnly && courseRequired && !form.course_id) {
             toast({
                 title: "Course required",
                 description: "Please select a course.",
@@ -795,7 +796,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {!isFreeMode && !isArchiveMode && (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center">
-                        <Label htmlFor="course">Course</Label>
+                        <Label htmlFor="course">Course{form.exam_type !== "live" ? " (Optional)" : ""}</Label>
                         {form.course_id && (
                             <Button
                                 type="button"
@@ -816,7 +817,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                       onValueChange={(value) => setForm((prev) => ({ ...prev, course_id: value }))}
                     >
                       <SelectTrigger id="course">
-                        <SelectValue placeholder="Select course (required)" />
+                        <SelectValue placeholder={form.exam_type === "live" ? "Select course (required)" : "Select course (optional)"} />
                       </SelectTrigger>
                       <SelectContent>
                         {form.course_id && !courses?.some((c: Pick<Course, "id" | "name">) => c.id === form.course_id) && (
@@ -886,23 +887,31 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </div>
               )}
 
-              <div className="space-y-2">
+              <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="exam_type">Exam type</Label>
-                <Select
-                  value={form.exam_type}
-                  onValueChange={(value) =>
-                    setForm((prev) => ({ ...prev, exam_type: value as "live" | "practice" | "special" }))
-                  }
-                >
-                  <SelectTrigger id="exam_type">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="live">Live exam</SelectItem>
-                    <SelectItem value="practice">Practice exam</SelectItem>
-                    <SelectItem value="special">Special exam (subject-wise segments)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="grid grid-cols-3 gap-2">
+                  <Button
+                    type="button"
+                    variant={form.exam_type === "live" ? "default" : "outline"}
+                    onClick={() => setForm((prev) => ({ ...prev, exam_type: "live" }))}
+                  >
+                    Live exam
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={form.exam_type === "practice" ? "default" : "outline"}
+                    onClick={() => setForm((prev) => ({ ...prev, exam_type: "practice" }))}
+                  >
+                    Practice exam
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={form.exam_type === "special" ? "default" : "outline"}
+                    onClick={() => setForm((prev) => ({ ...prev, exam_type: "special" }))}
+                  >
+                    Special exam
+                  </Button>
+                </div>
               </div>
 
               {form.exam_type === "special" && (
