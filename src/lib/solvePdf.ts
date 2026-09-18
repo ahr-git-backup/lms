@@ -297,10 +297,12 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       pageQs.forEach((q, idx) => {
         const n = pIdx * PER_PAGE + idx + 1;
         const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-        const isShort = checkShortOption(opts);
+        const layout = getOptionLayout(opts);
         const qNum = String(n).padStart(2, "0");
         body += `<div class="question-s3"><div class="question-header"><span class="question-num">${qNum}.</span><div class="question-text">${escapeHtmlClean(q.question_text)}</div></div>`;
-        if (isShort) {
+        if (layout === "inline") {
+          body += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
+        } else if (layout === "table") {
           body += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
         } else {
           body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
