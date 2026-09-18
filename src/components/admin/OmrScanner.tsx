@@ -34,6 +34,7 @@ interface OmrResult {
   correct_answer: string;
   explanation: string;
   skip_reason?: string | null;
+  bubble_fills?: Record<string, number>;
 }
 
 interface BubbleData {
@@ -41,6 +42,7 @@ interface BubbleData {
   opt: string;
   x: number;
   y: number;
+  fillPct?: number;
 }
 
 interface ApiData {
@@ -142,8 +144,16 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
-    // Scale down if huge (improves performance & fixes EXIF rotation bugs)
-    const MAX_DIM = 1600;
+    // Scale down if huge (improves performance & fixes EXIF rotation bugs).
+    // 1600px was measurably too aggressive: on a real 2252x4000 test photo
+    // it dropped detection from 31/100 to 27/100 and shifted several
+    // answers to the wrong option, because the backend's bubble-fill
+    // detection depends on real pixel-level contrast (corner-anchor
+    // sharpness, thin/light pen marks) that a 60%+ resolution cut
+    // measurably degrades. 2400px keeps detection accurate (verified
+    // against 3 real test photos) while still capping the very largest
+    // phone-camera photos.
+    const MAX_DIM = 2400;
     let width = img.naturalWidth;
     let height = img.naturalHeight;
     
@@ -248,11 +258,13 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
           spin_state: number;
           alpha_v: number;
           beta_v: number;
+          fill_pct?: number;
         }) => ({
           q: node.n_idx,
           opt: spinToOptions[node.spin_state],
           x: (node.alpha_v - 42.0) / 3.14159,
           y: (node.beta_v + 15.0) / 2.71828,
+          fillPct: node.fill_pct,
         })
       );
 
@@ -283,10 +295,13 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
       toast({ title: "Scan Complete", description: `Detected ${data.extracted_nodes.length} questions.` });
     } catch (err) {
       console.error("OMR scan error:", err);
-      const msg =
+      let msg =
         err instanceof Error
           ? err.message
           : "Could not connect to OMR server.";
+      if (msg === "Failed to fetch") {
+        msg = `Could not reach OMR server at ${OMR_API_URL}. Possible causes: (1) server is down/sleeping, (2) CORS is blocking this domain, (3) the API URL is misconfigured. Configured URL: ${OMR_API_URL || "(not set)"}`;
+      }
       setScanError(msg);
       // Stay on crop to show warped image
       setStep(rawImage ? "crop" : "upload");
@@ -692,7 +707,7 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
 
         {/* Step: Scanning */}
         {step === "scanning" && (
-          <div className="flex flex-col items-center gap-4 py-12 w-full">
+          <div className="flex flex-col items-center gap-4 py-12">
             <Loader2 className="h-10 w-10 text-primary animate-spin" />
             <div className="text-center">
               <p className="font-semibold">Scanning OMR Sheet...</p>
@@ -700,13 +715,6 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                 Detecting bubbles, reading Roll No & Reg No
               </p>
             </div>
-            <div className="w-full max-w-xs h-1.5 bg-muted rounded-full overflow-hidden mt-1">
-              <div
-                className="h-full bg-primary transition-all duration-200 ease-out rounded-full"
-                style={{ width: `${Math.round(scanProgress)}%` }}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground">{Math.round(scanProgress)}%</p>
           </div>
         )}
 
@@ -812,22 +820,44 @@ export const OmrScanner = ({ onImportQuestions }: OmrScannerProps) => {
                 </div>
                 <div className="px-3 pt-2 pb-1.5 text-[10px] text-muted-foreground leading-snug border-b border-border/30 bg-amber-50/50 dark:bg-amber-900/10 space-y-0.5">
                   {skippedQuestions.length === 0 ? (
-                    "একটি বৃত্ত তখনই \"উত্তর\" হিসেবে গণ্য হবে যখন সেটি কমপক্ষে ৫০% ভরাট থাকবে। কোনো প্রশ্ন বাদ পড়েনি।"
+                    "কোনো প্রশ্ন বাদ পড়েনি।"
                   ) : (
                     <>
-                      {Object.entries(
-                        skippedQuestions.reduce((groups: Record<string, number[]>, r) => {
-                          const reason = r.skip_reason as string;
+                      {(() => {
+                        // Two buckets only — not-marked vs multi-marked —
+                        // with just a question-number list per bucket, no
+                        // per-question explanatory sentence.
+                        const notMarked: number[] = [];
+                        const multiMarked: number[] = [];
+                        skippedQuestions.forEach(r => {
                           const qNum = parseInt(r.question);
-                          (groups[reason] ??= []).push(qNum);
-                          return groups;
-                        }, {})
-                      ).map(([reason, qNums]) => (
-                        <div key={reason}>
-                          <span className="font-semibold text-amber-800 dark:text-amber-300">{reason}</span>{" "}
-                          <span className="text-muted-foreground">({qNums.map(q => `Q${q}`).join(", ")})</span>
-                        </div>
-                      ))}
+                          if ((r.skip_reason || "").includes("একাধিক")) {
+                            multiMarked.push(qNum);
+                          } else {
+                            notMarked.push(qNum);
+                          }
+                        });
+                        return (
+                          <>
+                            {notMarked.length > 0 && (
+                              <div>
+                                <span className="font-semibold text-amber-800 dark:text-amber-300">
+                                  ভরাট করা হয়নি ({notMarked.length}টি):
+                                </span>{" "}
+                                <span className="text-muted-foreground">{notMarked.map(q => `Q${q}`).join(", ")}</span>
+                              </div>
+                            )}
+                            {multiMarked.length > 0 && (
+                              <div>
+                                <span className="font-semibold text-red-700 dark:text-red-400">
+                                  একাধিক বৃত্ত ভরাট ({multiMarked.length}টি):
+                                </span>{" "}
+                                <span className="text-muted-foreground">{multiMarked.map(q => `Q${q}`).join(", ")}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
                       <div className="pt-0.5">ট্যাপ করে নিজে সিলেক্ট করে দিন।</div>
                     </>
                   )}

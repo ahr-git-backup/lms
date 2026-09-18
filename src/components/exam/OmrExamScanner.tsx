@@ -51,6 +51,7 @@ interface BubbleData {
   opt: string;
   x: number;
   y: number;
+  fillPct?: number;
 }
 
 interface ApiData {
@@ -73,6 +74,8 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
   // Image & crop
   const [rawImage, setRawImage] = useState<string | null>(null);
+  const [cleanedPreview, setCleanedPreview] = useState<string | null>(null);
+  const [isCleaning, setIsCleaning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -89,14 +92,12 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
   // Scanning
   const [isScanning, setIsScanning] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
+  const [scanError, setScanError] = useState<string | null>(null);
 
   // Results
   const [apiData, setApiData] = useState<ApiData | null>(null);
   const [scannedAnswers, setScannedAnswers] = useState<Record<string, string>>({});
-  const [skipReasons, setSkipReasons] = useState<Record<string, string>>({});
-  const [showSkipReasons, setShowSkipReasons] = useState(false);
   const [historyArray, setHistoryArray] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
@@ -130,12 +131,58 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     const reader = new FileReader();
     reader.onload = () => {
       setRawImage(reader.result as string);
+      setCleanedPreview(null);
       setScanError(null);
       setStep("preview");
     };
     reader.readAsDataURL(file);
     e.target.value = "";
   };
+
+  // As soon as a photo is selected, auto-crop it to the sheet's own edges
+  // and clean up lighting/contrast (CamScanner-style) purely for a nicer
+  // preview — the actual OMR scan below always runs on the original
+  // photo, not this cleaned version (see enhance-scan's own docs: the
+  // cleanup step can wash out the corner anchors that scan-omr's sheet
+  // detection relies on, so the two must stay on separate images).
+  useEffect(() => {
+    if (step !== "preview" || !rawImage || !imageRef.current) return;
+    let cancelled = false;
+
+    const runClean = () => {
+      if (!imageRef.current) return;
+      setIsCleaning(true);
+      getNormalizedImageBlob(imageRef.current, async (blob) => {
+        try {
+          const formData = new FormData();
+          formData.append("file", blob, "omr.jpg");
+          const response = await fetch(`${OMR_API_URL}/api/v1/enhance-scan`, {
+            method: "POST",
+            headers: { "X-API-Key": OMR_API_KEY },
+            body: formData,
+          });
+          const data = await response.json();
+          if (!cancelled && data?.cleaned_image) {
+            setCleanedPreview(data.cleaned_image);
+          }
+        } catch {
+          // Silent fallback — if cleaning fails for any reason, the raw
+          // photo stays visible and "Scan করুন" still works normally.
+        } finally {
+          if (!cancelled) setIsCleaning(false);
+        }
+      });
+    };
+
+    if (imageRef.current.complete) {
+      runClean();
+    } else {
+      imageRef.current.onload = runClean;
+    }
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, rawImage]);
 
   // Pointer events for dragging SVG points
   const handlePointerDown = (index: number) => {
@@ -167,7 +214,16 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     
-    const MAX_DIM = 1600;
+    // 1600px was measurably too aggressive: on a real 2252x4000 test photo
+    // it dropped detection from 31/100 to 27/100 and shifted several
+    // answers to the wrong option, because the backend's bubble-fill
+    // detection depends on real pixel-level contrast (corner-anchor
+    // sharpness, thin/light pen marks) that a 60%+ resolution cut
+    // measurably degrades. 2400px keeps detection accurate (verified
+    // against 3 real test photos) while still capping upload size for
+    // typical phone-camera photos (which are usually wider than 2400px
+    // for photos above ~5MP, so this still caps the very largest photos).
+    const MAX_DIM = 2400;
     let width = img.naturalWidth;
     let height = img.naturalHeight;
     
@@ -286,11 +342,12 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       const spinToOptions: Record<number, string> = { 0: "A", 1: "B", 2: "C", 3: "D" };
 
       const decodedBubbleMap: BubbleData[] = tensorNodes.map(
-        (node: { n_idx: number; spin_state: number; alpha_v: number; beta_v: number }) => ({
+        (node: { n_idx: number; spin_state: number; alpha_v: number; beta_v: number; fill_pct?: number }) => ({
           q: node.n_idx,
           opt: spinToOptions[node.spin_state],
           x: (node.alpha_v - 42.0) / 3.14159,
           y: (node.beta_v + 15.0) / 2.71828,
+          fillPct: node.fill_pct,
         })
       );
 
@@ -308,7 +365,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
       // Map scanned results to question IDs
       const mapped: Record<string, string> = {};
-      const reasons: Record<string, string> = {};
       data.extracted_nodes.forEach((r: OmrResult) => {
         const qNum = parseInt(r.question);
         if (qNum <= questionIds.length && r.correct_answer) {
@@ -318,13 +374,9 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
             mapped[questionIds[qNum - 1]] = firstAnswer;
           }
         }
-        if (qNum <= questionIds.length && r.skip_reason) {
-          reasons[questionIds[qNum - 1]] = r.skip_reason;
-        }
       });
 
       setScannedAnswers(mapped);
-      setSkipReasons(reasons);
       setHistoryArray([JSON.stringify(mapped)]);
       setHistoryIndex(0);
 
@@ -356,7 +408,13 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
       }
     } catch (err) {
       console.error("OMR scan error:", err);
-      const msg = err instanceof Error ? err.message : "Could not connect to OMR server.";
+      let msg = err instanceof Error ? err.message : "Could not connect to OMR server.";
+      // "Failed to fetch" is a generic browser-level network error with no
+      // status code — surface the URL being called and likely causes so a
+      // screenshot of the popup is actually diagnosable.
+      if (msg === "Failed to fetch") {
+        msg = `Could not reach OMR server at ${OMR_API_URL}. Possible causes: (1) server is down/sleeping, (2) CORS is blocking this domain, (3) the API URL is misconfigured. Configured URL: ${OMR_API_URL || "(not set)"}`;
+      }
       setScanError(msg);
       setStep(rawImage ? "crop" : "upload");
       toast({ title: "Scan Failed", description: msg, variant: "destructive" });
@@ -650,8 +708,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
     setApiData(null);
     setBaseImage(null);
     setScannedAnswers({});
-    setSkipReasons({});
-    setShowSkipReasons(false);
     setHistoryArray([]);
     setHistoryIndex(-1);
     setScanError(null);
@@ -666,6 +722,14 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
 
   // Compute verification status
   const verificationResult = apiData ? verifyCredentials(apiData.roll_no, apiData.reg_no) : null;
+
+  // Backend now returns a precise, ready-to-show Bengali skip_reason string
+  // per question (blank / too-light / colored-ink / multi-marked) — just
+  // collect the ones with a non-empty answer-less result, no need to
+  // re-derive the reason from raw fill percentages on the frontend.
+  const skippedQuestions = apiData
+    ? apiData.results.filter(r => r.correct_answer === "" && r.skip_reason)
+    : [];
 
   // Collapsed view
   if (!isExpanded) {
@@ -693,7 +757,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   return (
     <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden w-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 sm:p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
+      <div className="flex items-center justify-between p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 sm:h-9 sm:w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
             <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
@@ -708,7 +772,7 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
         </Button>
       </div>
 
-      <div className="p-4 sm:p-4 space-y-4">
+      <div className="p-4 space-y-4">
         {/* Warning */}
         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
@@ -755,15 +819,33 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
           </div>
         )}
 
-        {/* Step: Preview — image auto-normalized already, just needs a
-            single confirm tap before it's sent for scanning. */}
+        {/* Step: Preview — auto-crop + clean the photo (CamScanner-style)
+            as soon as it's selected, so the person sees a tidy version of
+            their sheet before confirming. The actual scan below always
+            runs on the original photo regardless of what's shown here. */}
         {step === "preview" && rawImage && (
           <div className="space-y-3">
-            <div className="rounded-xl border border-border/60 bg-black/5 overflow-hidden flex justify-center items-center p-3">
-              <img ref={imageRef} src={rawImage} alt="Selected OMR sheet" className="max-h-[420px] w-auto rounded-lg" />
+            <div className="rounded-xl border border-border/60 bg-black/5 overflow-hidden flex justify-center items-center p-3 relative">
+              <img
+                ref={imageRef}
+                src={rawImage}
+                alt="Selected OMR sheet"
+                className={`max-h-[420px] w-auto rounded-lg ${cleanedPreview ? "hidden" : ""}`}
+              />
+              {cleanedPreview && (
+                <img src={cleanedPreview} alt="Auto-cropped & cleaned OMR sheet" className="max-h-[420px] w-auto rounded-lg" />
+              )}
+              {isCleaning && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[1px]">
+                  <div className="flex flex-col items-center gap-2 text-white">
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                    <p className="text-xs">শিট পরিষ্কার করা হচ্ছে...</p>
+                  </div>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => { setRawImage(null); setStep("upload"); }} className="text-xs">
+              <Button variant="ghost" size="sm" onClick={() => { setRawImage(null); setCleanedPreview(null); setStep("upload"); }} className="text-xs">
                 <X className="h-3.5 w-3.5 mr-1" /> বাতিল
               </Button>
               <Button size="sm" onClick={handleSkipCrop} className="rounded-full px-6 text-xs bg-emerald-600 hover:bg-emerald-700">
@@ -982,11 +1064,59 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                     {Object.keys(scannedAnswers).length}/{questionIds.length} detected
                   </span>
                 </div>
+                <div className="px-2.5 pt-2 pb-1.5 text-[10px] text-muted-foreground leading-snug border-b border-border/30 bg-amber-50/50 dark:bg-amber-900/10 space-y-0.5">
+                  {skippedQuestions.length === 0 ? (
+                    "কোনো প্রশ্ন বাদ পড়েনি।"
+                  ) : (
+                    <>
+                      {(() => {
+                        // Group into just two buckets the person actually
+                        // asked for — not-marked-at-all vs multi-marked —
+                        // with only a question-number list per bucket. The
+                        // backend's full explanatory sentence per question
+                        // is useful for debugging but is not wanted here;
+                        // only the "একাধিক" (multiple bubbles) wording
+                        // reliably identifies that bucket across every
+                        // skip_reason variant, so that's what's matched on.
+                        const notMarked: number[] = [];
+                        const multiMarked: number[] = [];
+                        skippedQuestions.forEach(r => {
+                          const qNum = parseInt(r.question);
+                          if ((r.skip_reason || "").includes("একাধিক")) {
+                            multiMarked.push(qNum);
+                          } else {
+                            notMarked.push(qNum);
+                          }
+                        });
+                        return (
+                          <>
+                            {notMarked.length > 0 && (
+                              <div>
+                                <span className="font-semibold text-amber-800 dark:text-amber-300">
+                                  ভরাট করা হয়নি ({notMarked.length}টি):
+                                </span>{" "}
+                                <span className="text-muted-foreground">{notMarked.map(q => `Q${q}`).join(", ")}</span>
+                              </div>
+                            )}
+                            {multiMarked.length > 0 && (
+                              <div>
+                                <span className="font-semibold text-red-700 dark:text-red-400">
+                                  একাধিক বৃত্ত ভরাট ({multiMarked.length}টি):
+                                </span>{" "}
+                                <span className="text-muted-foreground">{multiMarked.map(q => `Q${q}`).join(", ")}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      <div className="pt-0.5">ট্যাপ করে নিজে সিলেক্ট করে দিন।</div>
+                    </>
+                  )}
+                </div>
                 <div className="max-h-[360px] overflow-y-auto overflow-x-hidden p-2.5 overscroll-contain">
                   <div className="grid grid-cols-5 gap-1.5">
                     {questionIds.map((qId, idx) => {
                       const answer = scannedAnswers[qId];
-                      const reason = skipReasons[qId];
                       const qNum = idx + 1;
                       const isEditing = editingQNum === qNum;
                       return (
@@ -995,25 +1125,27 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                             type="button"
                             draggable={false}
                             onClick={() => setEditingQNum(isEditing ? null : qNum)}
-                            title={reason || undefined}
                             className={`w-full flex flex-col items-center p-2 sm:p-1.5 min-h-[52px] sm:min-h-0 rounded-lg text-xs border transition-colors relative select-none touch-manipulation ${
                               answer
                                 ? "bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800/30"
-                                : reason
-                                ? "bg-amber-50 dark:bg-amber-900/10 border-amber-300 dark:border-amber-800/40"
                                 : "bg-muted/30 border-border/30"
                             } ${isEditing ? "ring-2 ring-violet-400" : ""}`}
                           >
-                            {reason && !answer && (
-                              <AlertTriangle className="h-2.5 w-2.5 text-amber-500 absolute top-0.5 right-0.5" />
-                            )}
                             <span className="font-bold text-[9px] text-muted-foreground">Q{qNum}</span>
                             <span className={`font-bold ${answer ? "text-green-700 dark:text-green-400" : "text-muted-foreground/50"}`}>
                               {answer || "—"}
                             </span>
                           </button>
                           {isEditing && (
-                            <div className="absolute z-30 top-full left-1/2 -translate-x-1/2 mt-1.5 flex flex-col items-center gap-2 bg-background border-2 border-violet-300 dark:border-violet-700/50 rounded-2xl shadow-xl p-3">
+                            <div
+                              className={`absolute z-30 top-full mt-1.5 flex flex-col items-center gap-2 bg-background border-2 border-violet-300 dark:border-violet-700/50 rounded-2xl shadow-xl p-3 ${
+                                idx % 5 === 0
+                                  ? "left-0"
+                                  : idx % 5 === 4
+                                  ? "right-0"
+                                  : "left-1/2 -translate-x-1/2"
+                              }`}
+                            >
                               <span className="text-xs font-bold text-violet-600 dark:text-violet-400">Q{qNum} — Select Answer</span>
                               <div className="flex gap-2">
                                 {["A", "B", "C", "D"].map((opt) => (
@@ -1054,37 +1186,6 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
                 </div>
               </div>
             </div>
-
-            {/* Skipped Questions & Reasons */}
-            {Object.keys(skipReasons).length > 0 && (
-              <div className="rounded-xl border border-amber-300/60 dark:border-amber-800/40 overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowSkipReasons((v) => !v)}
-                  className="w-full flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-900/10"
-                >
-                  <span className="text-xs font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    বাদ পড়া প্রশ্ন ও কারণ ({Object.keys(skipReasons).length})
-                  </span>
-                  {showSkipReasons ? <ChevronUp className="h-3.5 w-3.5 text-amber-600" /> : <ChevronDown className="h-3.5 w-3.5 text-amber-600" />}
-                </button>
-                {showSkipReasons && (
-                  <div className="max-h-[240px] overflow-y-auto p-2.5 space-y-1.5 bg-background">
-                    {questionIds.map((qId, idx) => {
-                      const reason = skipReasons[qId];
-                      if (!reason) return null;
-                      return (
-                        <div key={qId} className="flex gap-2 text-xs p-2 rounded-lg bg-amber-50/60 dark:bg-amber-900/5 border border-amber-200/50 dark:border-amber-800/20">
-                          <span className="font-bold text-amber-700 dark:text-amber-400 shrink-0">Q{idx + 1}:</span>
-                          <span className="text-muted-foreground leading-snug">{reason}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
         )}
       </div>
