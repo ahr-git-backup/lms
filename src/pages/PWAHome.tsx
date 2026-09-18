@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
 import { PWAQuickActionsGrid } from "@/components/home/PWAQuickActionsGrid";
 import OwnerSectionPWA from "@/components/home/OwnerSectionPWA";
+import SuccessGallerySection from "@/components/home/SuccessGallerySection";
 import { LayoutGrid, Send, GraduationCap } from "lucide-react";
 
 export default function PWAHome() {
@@ -68,6 +69,11 @@ export default function PWAHome() {
             ফ্রি রেজিস্ট্রেশন করুন
           </button>
         )}
+
+        {/* Success Gallery (full-bleed, above Owner/Founder) */}
+        <div className="-mx-4">
+          <SuccessGallerySection />
+        </div>
 
         {/* Owner/Founder */}
         <OwnerSectionPWA />
