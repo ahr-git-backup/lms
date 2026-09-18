@@ -2941,6 +2941,25 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         >
           📤 {bulkSelectMode ? "বাছাই বাতিল" : "একাধিক এক্সাম পাঠাও"}
         </Button>
+        {bulkSelectMode && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 px-2 text-[11px] gap-1"
+            onClick={() => {
+              // Same order the cards render in — unlocked exams first, same as the list below.
+              const ordered = [...exams].sort((a: any, b: any) => {
+                const uA = isExamUnlocked(a, enrolledIds, fullAccessCourseIds, subChapterGrants);
+                const uB = isExamUnlocked(b, enrolledIds, fullAccessCourseIds, subChapterGrants);
+                if (uA === uB) return 0;
+                return uA ? -1 : 1;
+              });
+              setBulkSelectedExamIds(new Set(ordered.map((e: any) => e.id)));
+            }}
+          >
+            ✅ সব বাছাই করো ({exams.length})
+          </Button>
+        )}
         <Button
           size="sm"
           variant="outline"
@@ -2957,7 +2976,13 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         <Button
           size="sm"
           onClick={() => {
-            const selected = exams.filter((e: any) => bulkSelectedExamIds.has(e.id));
+            const orderedAll = [...exams].sort((a: any, b: any) => {
+              const uA = isExamUnlocked(a, enrolledIds, fullAccessCourseIds, subChapterGrants);
+              const uB = isExamUnlocked(b, enrolledIds, fullAccessCourseIds, subChapterGrants);
+              if (uA === uB) return 0;
+              return uA ? -1 : 1;
+            });
+            const selected = orderedAll.filter((e: any) => bulkSelectedExamIds.has(e.id));
             setBulkSendExams(selected);
             setSendingExam(selected[0]);
             setSendSavedChannelId("");
