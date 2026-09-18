@@ -691,24 +691,24 @@ export const OmrExamScanner = ({ questionIds, answers, onFillAnswers }: OmrExamS
   }
 
   return (
-    <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden">
+    <Card className="border-2 border-violet-300 dark:border-violet-700/50 bg-card shadow-md overflow-hidden w-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-2.5 sm:p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
+      <div className="flex items-center justify-between p-4 sm:p-4 border-b border-violet-200 dark:border-violet-800/40 bg-violet-50/50 dark:bg-violet-900/10">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+          <div className="h-10 w-10 sm:h-9 sm:w-9 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
             <ScanLine className="h-5 w-5 text-violet-600 dark:text-violet-400" />
           </div>
           <div>
-            <h3 className="font-bold text-sm">📷 OMR Scanner</h3>
+            <h3 className="font-bold text-base sm:text-sm">📷 OMR Scanner</h3>
             <p className="text-xs text-muted-foreground">Upload or capture your filled OMR sheet • 100 Questions</p>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full h-8 w-8">
+        <Button variant="ghost" size="icon" onClick={() => setIsExpanded(false)} className="rounded-full h-9 w-9 sm:h-8 sm:w-8 shrink-0">
           <ChevronUp className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="p-2 sm:p-4 space-y-4">
+      <div className="p-4 sm:p-4 space-y-4">
         {/* Warning */}
         <div className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30">
           <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
