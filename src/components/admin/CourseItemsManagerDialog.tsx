@@ -168,6 +168,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
       queryClient.invalidateQueries({ queryKey: ["admin-course-items", courseId, resourceType] });
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-list"] });
       setIsModified(false);
     },
     onError: (err) => {
@@ -185,6 +186,7 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
       queryClient.invalidateQueries({ queryKey: ["admin-course-items", courseId, resourceType] });
       queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-list"] });
     },
     onError: (err: any) => {
       toast({ title: "Failed to rename", description: err.message, variant: "destructive" });
