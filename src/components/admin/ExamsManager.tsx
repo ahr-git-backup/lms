@@ -129,7 +129,6 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         .is("split_start", null)
         .not("category", "cs", '{"Custom Exam"}')
         .not("category", "cs", '{"Model Test"}')
-        .order(isFreeMode ? "free_sort_order" : "sort_order", { ascending: false, nullsFirst: false })
         .order("created_at", { ascending: false });
 
       if (isFreeMode) {
