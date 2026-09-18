@@ -34,8 +34,8 @@ const examSchema = z.object({
   duration_minutes: z
     .string()
     .trim()
-    .min(1, "Duration is required")
-    .refine((val) => !isNaN(Number(val)), { message: "Duration must be a number" }),
+    .optional()
+    .refine((val) => !val || !isNaN(Number(val)), { message: "Duration must be a number" }),
   total_marks: z
     .string()
     .trim()
@@ -392,7 +392,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             subject: parsed.subject,
             chapter: parsed.chapter || null,
             exam_type: parsed.exam_type,
-            duration_minutes: Number(parsed.duration_minutes),
+            duration_minutes: parsed.duration_minutes ? Number(parsed.duration_minutes) : null,
             total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
             negative_mark_per_question: parsed.negative_mark_per_question
               ? Number(parsed.negative_mark_per_question)

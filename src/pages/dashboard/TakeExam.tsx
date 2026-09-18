@@ -1332,7 +1332,7 @@ const TakeExam = () => {
                               <span className="text-base font-bold text-primary">
                                   {showsReadymadeUI && (selectedQuestionCount || selectedTopic)
                                       ? Math.ceil(((selectedQuestionCount || effectiveQuestions?.length || 0) * 30) / 60)
-                                      : exam.duration_minutes}
+                                      : (exam.duration_minutes ?? "∞")}
                               </span>
                               <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Minutes</span>
                           </div>
