@@ -221,6 +221,8 @@ img{max-width:35%!important;height:auto!important;vertical-align:middle}
 .opt-letter-s3{display:inline-flex;align-items:center;justify-content:center;width:7pt;height:7pt;border-radius:50%;border:0.6px solid #000;font-size:5pt;font-weight:600;margin-right:3px;flex-shrink:0}
 .options-table-s3{width:100%;border-collapse:collapse;margin:1px 0 2px 10px;table-layout:fixed}
 .options-table-s3 td{border:none;padding:0 4px 0 0;vertical-align:top;font-size:8.5pt;color:#000;width:50%}
+.opt-cell-s3{display:flex;align-items:center}
+.opt-text-s3{flex:1;min-width:0}
 @page s3{size:A4 portrait;margin:8mm 8mm}
 .s3-page{page:s3}
 .topic-box{background-color:#EFF6FF;border:2px solid #2563eb;color:#1e3a8a;font-weight:700;font-size:11pt;padding:6px 14px;border-radius:6px;margin:10px auto 6px;break-after:avoid;break-inside:avoid;text-align:center;width:fit-content;max-width:80%}
@@ -303,7 +305,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
         if (layout === "inline") {
           body += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
         } else if (layout === "table") {
-          body += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
+          body += `<table class="options-table-s3"><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">A</span><span class="opt-text-s3">${escapeHtmlClean(opts[0])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">B</span><span class="opt-text-s3">${escapeHtmlClean(opts[1])}</span></span></td></tr><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">C</span><span class="opt-text-s3">${escapeHtmlClean(opts[2])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">D</span><span class="opt-text-s3">${escapeHtmlClean(opts[3])}</span></span></td></tr></table>`;
         } else {
           body += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
         }
@@ -338,7 +340,7 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
       if (layout === "inline") {
         h += `<div class="options-inline-s3"><span class="opt-item-s3"><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</span><span class="opt-item-s3"><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</span><span class="opt-item-s3"><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</span><span class="opt-item-s3"><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</span></div>`;
       } else if (layout === "table") {
-        h += `<table class="options-table-s3"><tr><td><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</td><td><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</td></tr><tr><td><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</td><td><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</td></tr></table>`;
+        h += `<table class="options-table-s3"><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">A</span><span class="opt-text-s3">${escapeHtmlClean(opts[0])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">B</span><span class="opt-text-s3">${escapeHtmlClean(opts[1])}</span></span></td></tr><tr><td><span class="opt-cell-s3"><span class="opt-letter-s3">C</span><span class="opt-text-s3">${escapeHtmlClean(opts[2])}</span></span></td><td><span class="opt-cell-s3"><span class="opt-letter-s3">D</span><span class="opt-text-s3">${escapeHtmlClean(opts[3])}</span></span></td></tr></table>`;
       } else {
         h += `<ul class="options-list-s3"><li><span class="opt-letter-s3">A</span>${escapeHtmlClean(opts[0])}</li><li><span class="opt-letter-s3">B</span>${escapeHtmlClean(opts[1])}</li><li><span class="opt-letter-s3">C</span>${escapeHtmlClean(opts[2])}</li><li><span class="opt-letter-s3">D</span>${escapeHtmlClean(opts[3])}</li></ul>`;
       }
