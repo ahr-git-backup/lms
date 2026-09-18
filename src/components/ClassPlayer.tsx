@@ -11,8 +11,7 @@ import {
   VolumeX,
   Settings,
   Maximize,
-  Minimize,
-  MonitorPlay
+  Minimize
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -76,19 +75,24 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
   const actualVideoId = extractVideoId(videoId);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const forceMaxQuality = (target: any) => {
+    if (typeof target.getAvailableQualityLevels === 'function' && typeof target.setPlaybackQuality === 'function') {
+      const levels = target.getAvailableQualityLevels();
+      if (levels && levels.length > 0) {
+        target.setPlaybackQuality(levels[0]);
+        setCurrentQuality(levels[0]);
+      } else {
+        target.setPlaybackQuality('hd1080');
+      }
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onPlayerReady = (event: any) => {
     setDuration(event.target.getDuration());
     setVolume(event.target.getVolume());
     updateQualityLevels();
-
-    // Force best available quality (YouTube lists qualities highest-first)
-    if (typeof event.target.getAvailableQualityLevels === 'function' && typeof event.target.setPlaybackQuality === 'function') {
-      const levels = event.target.getAvailableQualityLevels();
-      if (levels && levels.length > 0) {
-        event.target.setPlaybackQuality(levels[0]);
-        setCurrentQuality(levels[0]);
-      }
-    }
+    forceMaxQuality(event.target);
 
     if (isLive && startTime) {
         const start = new Date(startTime).getTime();
@@ -208,6 +212,9 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onPlayerStateChange = (event: any) => {
     setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
+    if (event.data === window.YT.PlayerState.PLAYING) {
+      forceMaxQuality(event.target);
+    }
     if (event.data === window.YT.PlayerState.ENDED && onEnded) {
       onEnded();
     }
@@ -309,13 +316,6 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
     if (!playerRef.current || typeof playerRef.current.setPlaybackRate !== 'function') return;
     setPlaybackRate(rate);
     playerRef.current.setPlaybackRate(rate);
-  };
-
-  const handleQualityChange = (quality: string) => {
-      if (playerRef.current && typeof playerRef.current.setPlaybackQuality === 'function') {
-          playerRef.current.setPlaybackQuality(quality);
-          setCurrentQuality(quality);
-      }
   };
 
   const skipForward = () => {
@@ -605,28 +605,6 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2">
-              {availableQualities.length > 0 && (
-                  <DropdownMenu>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="text-white hover:bg-white/20 hover:text-white gap-1 min-w-[2rem] sm:min-w-[3rem] h-8 px-1 sm:px-2">
-                                  <MonitorPlay className="h-4 w-4" />
-                                  <span className="text-xs font-bold uppercase hidden sm:inline">{currentQuality}</span>
-                              </Button>
-                          </DropdownMenuTrigger>
-                        </TooltipTrigger>
-                        <TooltipContent>Quality</TooltipContent>
-                      </Tooltip>
-                      <DropdownMenuContent container={containerRef.current} align="end" side="top" className="max-h-60 overflow-y-auto bg-black/90 border-white/20 text-white backdrop-blur-md">
-                          {availableQualities.map((q) => (
-                              <DropdownMenuItem key={q} onClick={() => handleQualityChange(q)} className="focus:bg-white/20 focus:text-white cursor-pointer justify-center font-mono text-xs">
-                                  {q.toUpperCase()}
-                              </DropdownMenuItem>
-                          ))}
-                      </DropdownMenuContent>
-                  </DropdownMenu>
-              )}
 
               <DropdownMenu>
                 <Tooltip>
