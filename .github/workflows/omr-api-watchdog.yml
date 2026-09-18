@@ -16,4 +16,4 @@ jobs:
     steps:
       - name: Ping OMR API health endpoint
         run: |
-          curl -fsS --max-time 20 https://atlas-omr.onrender.com/health || echo "Ping failed (service may be cold-starting) — not treated as a failure."
+          curl -fsS --max-time 20 https://beshijoss-omr-api.onrender.com/health || echo "Ping failed (service may be cold-starting) — not treated as a failure."
