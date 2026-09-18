@@ -47,6 +47,14 @@ const ROUTES = {
   },
 };
 
+// Free Exam gets priority: shorter TTL than the default, so it's more likely
+// to reflect a recent admin edit and less likely to ever serve stale data,
+// even though this means slightly more Supabase hits for this route than
+// for Mock Test's routes.
+const ROUTE_TTL_OVERRIDES = {
+  "/free-exams-metadata": 120, // 2 min, vs the 300s (5 min) default
+};
+
 async function supabaseRest(env, pathAndQuery) {
   const url = `${env.SUPABASE_URL}/rest/v1/${pathAndQuery}`;
   const res = await fetch(url, {
@@ -75,7 +83,7 @@ export default {
       return new Response("Not found", { status: 404 });
     }
 
-    const ttl = parseInt(env.CACHE_TTL_SECONDS || "300", 10);
+    const ttl = ROUTE_TTL_OVERRIDES[url.pathname] ?? parseInt(env.CACHE_TTL_SECONDS || "300", 10);
     const cacheKey = `route:${url.pathname}`;
 
     // 1. Try KV cache first — this is the fast path that absorbs 2000

@@ -25,18 +25,21 @@
  * testing or forcing a sync right after an admin edits questions.
  */
 
+// Order matters: Free Exam gets priority — it syncs first on every run,
+// so if a run gets cut short or one collection fails, Free Exam's data
+// is always the freshest / least likely to be stale.
 const COLLECTIONS = {
-  mock_question_pool: {
-    supabaseTable: "mock_question_pool",
-    supabaseSelect: "id,subject,paper,chapter,topic,standard,question_count,questions_json,updated_at",
-    mongoCollection: "mock_question_pool",
-  },
   free_exams_metadata: {
     supabaseTable: "exams",
     supabaseSelect:
       "id,title,subject,chapter,readymade_sub_chapter,exam_type,duration_minutes,free_exam_category,is_visible_on_free,is_published,updated_at",
     supabaseFilter: "&is_published=eq.true&is_visible_on_free=eq.true",
     mongoCollection: "free_exams_metadata",
+  },
+  mock_question_pool: {
+    supabaseTable: "mock_question_pool",
+    supabaseSelect: "id,subject,paper,chapter,topic,standard,question_count,questions_json,updated_at",
+    mongoCollection: "mock_question_pool",
   },
 };
 
