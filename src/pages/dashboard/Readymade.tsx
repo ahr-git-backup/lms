@@ -2216,6 +2216,11 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   // Send-to-Telegram-channel (via QuizBot /csv pipeline) dialog state.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [sendingExam, setSendingExam] = useState<any | null>(null);
+  const [bulkSelectMode, setBulkSelectMode] = useState(false);
+  const [bulkSelectedExamIds, setBulkSelectedExamIds] = useState<Set<string>>(new Set());
+  const [bulkSending, setBulkSending] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; examTitle: string } | null>(null);
+  const [bulkSendExams, setBulkSendExams] = useState<any[] | null>(null);
   const [sendSavedChannelId, setSendSavedChannelId] = useState<string>(""); // telegram_channels.id, or "custom" (legacy) or "__new__"
   const [sendChannelId, setSendChannelId] = useState("");
   const [sendThreadId, setSendThreadId] = useState("");
@@ -2312,6 +2317,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
 
   const openSendDialog = (e: React.MouseEvent, exam: any) => {
     e.stopPropagation();
+    setBulkSendExams(null);
     setSendingExam(exam);
     setSendSavedChannelId("");
     setSendChannelId("");
@@ -2465,6 +2471,102 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       setSendBusy(false);
       setSendJobStatus(null);
     }
+  };
+
+  const buildBatchesForExam = (exam: any, questions: any[]) => {
+    const toMcq = (q: any) => ({
+      question: q.question_text || "",
+      options: [q.option_a || "", q.option_b || "", q.option_c || "", q.option_d || ""],
+      answer: String(q.correct_option || "A").toUpperCase(),
+      explanation: q.explanation || "",
+    });
+    const hasTopics = questions.some((q: any) => (q.topic || "").trim());
+    let batches: { topic: string; mcqs: any[] }[];
+    if (sendSplitMode === "auto" && hasTopics) {
+      const order: string[] = [];
+      const groups = new Map<string, any[]>();
+      for (const q of questions) {
+        const t = (q.topic || "").trim() || exam.title;
+        if (!groups.has(t)) { groups.set(t, []); order.push(t); }
+        groups.get(t)!.push(toMcq(q));
+      }
+      batches = order.map((t) => ({ topic: t, mcqs: groups.get(t)! }));
+    } else if (sendSplitMode === "batch") {
+      const size = Math.max(1, parseInt(sendBatchSize, 10) || 25);
+      const all = questions.map(toMcq);
+      batches = [];
+      for (let i = 0; i < all.length; i += size) {
+        const partNo = Math.floor(i / size) + 1;
+        batches.push({ topic: `${exam.title} (Part-${String(partNo).padStart(2, "0")})`, mcqs: all.slice(i, i + size) });
+      }
+    } else {
+      batches = [{ topic: exam.title, mcqs: questions.map(toMcq) }];
+    }
+    return batches;
+  };
+
+  // Send several exams to the same channel/thread in one go — same
+  // /api/lms-send-channel job system as the single-exam send, just looped.
+  // Each exam gets its own background job and its own card progress bar
+  // (via pollCardJob), so they all send in parallel independent of each
+  // other; only the request-firing loop itself runs sequentially so we
+  // don't hammer the bot with N simultaneous Supabase+Telegram calls.
+  const handleSendMultipleToChannel = async (exams: any[]) => {
+    if (!exams.length || !sendChannelId.trim()) {
+      toast({ title: "Channel ID প্রয়োজন", variant: "destructive" });
+      return;
+    }
+    setBulkSending(true);
+    let okCount = 0, failCount = 0;
+    for (let i = 0; i < exams.length; i++) {
+      const exam = exams[i];
+      setBulkProgress({ current: i + 1, total: exams.length, examTitle: exam.title || "" });
+      try {
+        const { data: questions, error } = await supabase
+          .from("exam_questions")
+          .select("*")
+          .eq("exam_id", exam.id)
+          .order("question_index", { ascending: true });
+        if (error) throw error;
+        if (!questions || questions.length === 0) { failCount++; continue; }
+
+        const batches = buildBatchesForExam(exam, questions);
+        const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            secret: QUIZBOT_API_SECRET,
+            channel_id: sendChannelId.trim(),
+            thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
+            batches,
+            exam_id: exam.id,
+            exam_title: exam.title || "",
+            subject: Array.isArray(exam.subject) ? (exam.subject[0] || "") : (exam.subject || ""),
+            links_only: sendMode === "links_only",
+          }),
+        });
+        const rawText = await res.text();
+        let json: any;
+        try { json = JSON.parse(rawText); } catch {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        if (!res.ok || !json.ok) throw new Error(json.error || "failed");
+        pollCardJob(exam.id, json.job_id as string);
+        okCount++;
+      } catch (err) {
+        failCount++;
+      }
+    }
+    setBulkSending(false);
+    setBulkProgress(null);
+    setBulkSelectMode(false);
+    setBulkSelectedExamIds(new Set());
+    setBulkSendExams(null);
+    setSendingExam(null);
+    toast({
+      title: "বাল্ক পাঠানো শুরু হয়েছে",
+      description: `${okCount}টি এক্সাম পাঠানো শুরু হয়েছে${failCount ? `, ${failCount}টি ব্যর্থ` : ""} — প্রতিটার প্রগ্রেস তার নিজের কার্ডে দেখা যাবে।`,
+    });
   };
 
   const [sheetExam, setSheetExam] = useState<any | null>(null);
@@ -2810,17 +2912,35 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
                 : `পাঠানো হচ্ছে... batch ${sendJobStatus.batches_done ?? 0}/${sendJobStatus.batches_total ?? "?"}`}
             </div>
           )}
+          {bulkSendExams && bulkSendExams.length > 1 && (
+            <p className="text-xs text-muted-foreground">{bulkSendExams.length}টি এক্সাম একসাথে এই চ্যানেল/থ্রেডে পাঠানো হবে, প্রতিটির প্রগ্রেস তার নিজের কার্ডে দেখা যাবে।</p>
+          )}
+          {bulkProgress && (
+            <p className="text-xs text-muted-foreground">পাঠানো হচ্ছে: {bulkProgress.current}/{bulkProgress.total} — {bulkProgress.examTitle}</p>
+          )}
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" size="sm" disabled={sendBusy} onClick={() => setSendingExam(null)}>বাতিল</Button>
-            <Button size="sm" disabled={sendBusy} onClick={handleSendToChannel}>
-              {sendBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "পাঠাও"}
+            <Button variant="outline" size="sm" disabled={sendBusy || bulkSending} onClick={() => { setSendingExam(null); setBulkSendExams(null); }}>বাতিল</Button>
+            <Button
+              size="sm"
+              disabled={sendBusy || bulkSending}
+              onClick={() => bulkSendExams ? handleSendMultipleToChannel(bulkSendExams) : handleSendToChannel()}
+            >
+              {(sendBusy || bulkSending) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (bulkSendExams ? `${bulkSendExams.length}টি পাঠাও` : "পাঠাও")}
             </Button>
           </div>
         </div>
       </DialogContent>
     </Dialog>
     {isAdmin && exams.length > 0 && (
-      <div className="col-span-1 lg:col-span-2 flex justify-end">
+      <div className="col-span-1 lg:col-span-2 flex justify-end gap-2">
+        <Button
+          size="sm"
+          variant={bulkSelectMode ? "default" : "outline"}
+          className="h-7 px-2 text-[11px] gap-1"
+          onClick={() => { setBulkSelectMode((v) => !v); setBulkSelectedExamIds(new Set()); }}
+        >
+          📤 {bulkSelectMode ? "বাছাই বাতিল" : "একাধিক এক্সাম পাঠাও"}
+        </Button>
         <Button
           size="sm"
           variant="outline"
@@ -2828,6 +2948,29 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           onClick={handleAiTagAll}
         >
           <Sparkles className="h-3 w-3" /> AI Tag — All ({exams.length}টি Exam)
+        </Button>
+      </div>
+    )}
+    {isAdmin && bulkSelectMode && bulkSelectedExamIds.size > 0 && (
+      <div className="col-span-1 lg:col-span-2 sticky bottom-2 z-20 flex items-center justify-between gap-2 rounded-lg border bg-background/95 backdrop-blur px-3 py-2 shadow-md">
+        <span className="text-xs font-medium">{bulkSelectedExamIds.size}টি এক্সাম বাছাই করা হয়েছে</span>
+        <Button
+          size="sm"
+          onClick={() => {
+            const selected = exams.filter((e: any) => bulkSelectedExamIds.has(e.id));
+            setBulkSendExams(selected);
+            setSendingExam(selected[0]);
+            setSendSavedChannelId("");
+            setSendChannelId("");
+            setSendThreadId("");
+            setSendSplitMode("auto");
+            setSendMode("all");
+            setSendBatchSize("25");
+            setSendJobStatus(null);
+            setNewChannelName("");
+          }}
+        >
+          চ্যানেলে পাঠাও
         </Button>
       </div>
     )}
@@ -2996,10 +3139,29 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       return (
         <Card key={exam.id} className={`relative cursor-pointer transition-all hover:shadow-md group ${unlocked ? "hover:border-primary/50" : "border-amber-500/30 bg-amber-50/30 dark:bg-amber-950/10"}`}
           onClick={() => {
+            if (isAdmin && bulkSelectMode) {
+              setBulkSelectedExamIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(exam.id)) next.delete(exam.id); else next.add(exam.id);
+                return next;
+              });
+              return;
+            }
             if (!unlocked) { onLockedClick?.(exam); return; }
             setExamSourceList(exam.id, listPath);
             navigate(`${examPath}/${exam.id}`);
           }}>
+          {isAdmin && bulkSelectMode && (
+            <div className="absolute top-1.5 left-1.5 z-10">
+              <input
+                type="checkbox"
+                className="h-4 w-4 accent-primary"
+                checked={bulkSelectedExamIds.has(exam.id)}
+                onChange={() => {}}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          )}
           {!unlocked && (
             <div className="absolute inset-0 z-[1] flex items-center justify-center overflow-hidden pointer-events-none select-none">
               <span className="text-xl sm:text-2xl font-black text-muted-foreground/10 rotate-[-20deg] tracking-widest whitespace-nowrap">LOCKED</span>
