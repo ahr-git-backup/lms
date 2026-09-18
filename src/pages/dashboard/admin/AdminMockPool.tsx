@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Papa from "papaparse";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Target, Trash2, FileUp, BookOpen, X, Pencil, Plus } from "lucide-react";
+import { Target, Trash2, FileUp, BookOpen, X, Pencil, Plus, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,11 @@ const AdminMockPool = () => {
   const [csvFileName, setCsvFileName] = useState("");
   const [qbQuestions, setQbQuestions] = useState<QuestionData[] | null>(null);
   const [isQbOpen, setIsQbOpen] = useState(false);
+  // Tracks each Question Bank import as a separate "source" row — shown
+  // compactly below so the admin can see exactly what was pulled in and
+  // preview it, instead of one flat merged list with no origin info.
+  const [qbSources, setQbSources] = useState<{ id: string; label: string; examIds: string[]; questions: QuestionData[] }[]>([]);
+  const [previewSourceId, setPreviewSourceId] = useState<string | null>(null);
 
   // Edit-existing-entry dialog state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -91,15 +96,38 @@ const AdminMockPool = () => {
     });
   };
 
-  const handleQbSelect = (questions: QuestionData[]) => {
+  const handleQbSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
     // Merge into whatever's already picked from the Question Bank (subject may
     // be selected across multiple exams / individually-picked MCQs).
     setCsvData(null);
     setCsvFileName("");
     setQbQuestions((prev) => [...(prev || []), ...questions]);
+    setQbSources((prev) => [
+      ...prev,
+      {
+        id: `src_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        label: source?.label || `${questions.length}টি প্রশ্ন`,
+        examIds: source?.examIds || [],
+        questions,
+      },
+    ]);
     setIsQbOpen(false);
     toast({ title: `${questions.length}টি প্রশ্ন যোগ হয়েছে`, description: "নিচে সেভ করুন" });
   };
+
+  const removeQbSource = (id: string) => {
+    const src = qbSources.find((s) => s.id === id);
+    if (!src) return;
+    // Remove exactly this source's questions from the merged qbQuestions list.
+    setQbQuestions((prev) => {
+      if (!prev) return prev;
+      const toRemove = new Set(src.questions);
+      return prev.filter((q) => !toRemove.has(q));
+    });
+    setQbSources((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const allAddedExamIds = qbSources.flatMap((s) => s.examIds);
 
   const clearForm = () => {
     setSubject("");
@@ -109,6 +137,7 @@ const AdminMockPool = () => {
     setCsvData(null);
     setCsvFileName("");
     setQbQuestions(null);
+    setQbSources([]);
   };
 
   const saveMutation = useMutation({
@@ -332,23 +361,42 @@ const AdminMockPool = () => {
               <p className="text-[10px] text-muted-foreground mt-1">
                 রেডিমেড Exam থেকে পুরো এক্সাম বা আলাদা MCQ যোগ করুন
               </p>
-              {!!qbQuestions?.length && (
-                <div className="mt-2 flex items-center gap-2">
-                  <p className="text-xs text-primary">{qbQuestions.length}টি প্রশ্ন সিলেক্ট করা হয়েছে</p>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setQbQuestions(null);
-                    }}
-                    className="text-muted-foreground hover:text-destructive"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
+
+          {qbSources.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">সিলেক্ট করা সোর্স ({qbQuestions?.length || 0}টি প্রশ্ন)</Label>
+              {qbSources.map((src) => (
+                <div
+                  key={src.id}
+                  className="flex items-center justify-between gap-2 border rounded-md px-2.5 py-1.5 bg-muted/30"
+                >
+                  <p className="text-xs truncate flex-1" title={src.label}>
+                    {src.label} <span className="text-muted-foreground">— {src.questions.length}টি</span>
+                  </p>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewSourceId(src.id)}
+                      className="text-muted-foreground hover:text-primary p-1"
+                      title="MCQ দেখুন"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeQbSource(src.id)}
+                      className="text-muted-foreground hover:text-destructive p-1"
+                      title="সরিয়ে ফেলুন"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="flex gap-2">
             <Button
@@ -535,7 +583,42 @@ const AdminMockPool = () => {
             <DialogTitle>Question Bank থেকে প্রশ্ন সিলেক্ট করুন</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-hidden p-4 pt-2 h-[calc(85vh-60px)]">
-            <QuestionBankSelector onSelect={handleQbSelect} />
+            <QuestionBankSelector onSelect={handleQbSelect} alreadyAddedExamIds={allAddedExamIds} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!previewSourceId} onOpenChange={(open) => !open && setPreviewSourceId(null)}>
+        <DialogContent className="max-w-2xl h-[80vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-4 pb-0 shrink-0">
+            <DialogTitle>
+              {qbSources.find((s) => s.id === previewSourceId)?.label || "প্রশ্নসমূহ"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {(qbSources.find((s) => s.id === previewSourceId)?.questions || []).map((q, i) => (
+              <div key={i} className="border rounded-lg p-3 space-y-1.5 text-sm">
+                <p className="font-medium">
+                  <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                  {q.question}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                  {(["A", "B", "C", "D"] as const).map((k) => (
+                    <div
+                      key={k}
+                      className={`p-1.5 rounded border ${
+                        q.correct_answer === k
+                          ? "bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                          : "bg-muted/30"
+                      }`}
+                    >
+                      <span className="font-semibold mr-1.5">{k}.</span>
+                      {q.options?.[k]}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>

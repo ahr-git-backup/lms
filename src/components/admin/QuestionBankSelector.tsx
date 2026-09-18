@@ -12,10 +12,11 @@ import { useGlobalMetadata } from "@/hooks/useGlobalMetadata";
 import { Card } from "@/components/ui/card";
 
 interface QuestionBankSelectorProps {
-    onSelect: (questions: QuestionData[]) => void;
+    onSelect: (questions: QuestionData[], source?: { label: string; examIds: string[] }) => void;
+    alreadyAddedExamIds?: string[];
 }
 
-export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) => {
+export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: QuestionBankSelectorProps) => {
     const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>('category');
 
     // Selection state
@@ -113,7 +114,8 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 correct_answer: q.correct_option,
                 explanation: q.explanation || "",
             }));
-            onSelect(mapped);
+            const examIds = Array.from(selectedExamIds);
+            onSelect(mapped, { label: `${examIds.length}টি এক্সাম (বাছাইকৃত)`, examIds });
             setSelectedExamIds(new Set());
         } finally {
             setIsAddingBulkExams(false);
@@ -187,7 +189,10 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 correct_answer: q.correct_option,
                 explanation: q.explanation || "",
             }));
-            onSelect(mapped);
+            onSelect(mapped, {
+                label: `${selectedSubjects.join(", ")} › ${selectedChapters.join(", ")} (সব এক্সাম)`,
+                examIds,
+            });
         } finally {
             setIsAddingBulkChapters(false);
         }
@@ -337,7 +342,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 explanation: q.explanation || ""
             }));
 
-            onSelect(mapped);
+            onSelect(mapped, { label: `${selectedExamTitle} (নির্বাচিত প্রশ্ন)`, examIds: selectedExamId ? [selectedExamId] : [] });
             // Don't reset selected IDs immediately, let them continue or we can clear
             setSelectedIds(new Set());
         };
@@ -368,7 +373,10 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                 correct_answer: q.correct_option,
                 explanation: q.explanation || "",
             }));
-            onSelect(mapped);
+            onSelect(mapped, {
+                label: `${selectedExamTitle} › ${selectedTopicFilter} (টপিক)`,
+                examIds: selectedExamId ? [selectedExamId] : [],
+            });
         } finally {
             setIsAddingTopicMcqs(false);
         }
@@ -656,7 +664,7 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                 {examsData?.map((exam: any) => (
                                     <div
                                         key={exam.id}
-                                        className={`p-4 rounded-lg border bg-card transition-all flex flex-col gap-2 ${selectedExamIds.has(exam.id) ? 'border-primary/60 bg-primary/5' : ''}`}
+                                        className={`p-4 rounded-lg border bg-card transition-all flex flex-col gap-2 ${selectedExamIds.has(exam.id) ? 'border-primary/60 bg-primary/5' : ''} ${alreadyAddedExamIds.includes(exam.id) ? 'ring-1 ring-green-500/40' : ''}`}
                                     >
                                         <div
                                             className="flex items-start gap-2 cursor-pointer"
@@ -669,6 +677,9 @@ export const QuestionBankSelector = ({ onSelect }: QuestionBankSelectorProps) =>
                                                 className="mt-0.5"
                                             />
                                             <div className="font-medium line-clamp-2 flex-1">{exam.title}</div>
+                                            {alreadyAddedExamIds.includes(exam.id) && (
+                                                <Badge className="bg-green-600 hover:bg-green-600 text-[9px] shrink-0">যোগ করা আছে</Badge>
+                                            )}
                                         </div>
                                         <div className="flex flex-wrap gap-1 mt-auto pl-6">
                                             {exam.subject?.slice(0, 3).map((sub: string) => (
