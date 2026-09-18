@@ -21,14 +21,14 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
     onGeneratePdf: (exam: any, mode: "all" | "wrong" | "both") => void;
 }) => {
     return (
-        <div className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none">
+        <div className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none overflow-hidden">
             <Checkbox
                 id={exam.id}
                 checked={checked}
                 onCheckedChange={() => onToggle(exam.id)}
             />
             <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => onToggle(exam.id)}>
-                <div className="flex justify-between items-start gap-2">
+                <div className="flex justify-between items-start gap-2 min-w-0">
                     <label
                         htmlFor={exam.id}
                         className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer truncate min-w-0"
@@ -36,21 +36,21 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
                         {exam.title}
                     </label>
                     {exam.subject && (
-                        <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
+                        <Badge variant="outline" className="text-[10px] shrink-0 max-w-[45%] truncate block">{exam.subject}</Badge>
                     )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                     Last attempt: {format(new Date(exam.lastAttempt), "PP")}
                 </p>
-                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
-                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
+                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap min-w-0">
+                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900 shrink-0">Wrong: {exam.wrongCount}</Badge>
+                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900 shrink-0">Skip: {exam.skipCount}</Badge>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
                                 size="sm"
                                 variant="outline"
-                                className="h-6 text-[10px] px-2 ml-auto"
+                                className="h-6 text-[10px] px-2 shrink-0"
                                 disabled={singlePdfLoadingId === exam.id}
                                 onClick={(e) => e.stopPropagation()}
                             >
