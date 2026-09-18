@@ -48,6 +48,11 @@ const AdminMockPool = () => {
   const [editTopic, setEditTopic] = useState("");
   const [editStandard, setEditStandard] = useState("medical");
   const [editQuestions, setEditQuestions] = useState<any[]>([]);
+  const [editCsvData, setEditCsvData] = useState<any[] | null>(null);
+  const [editCsvFileName, setEditCsvFileName] = useState("");
+  const [isEditQbOpen, setIsEditQbOpen] = useState(false);
+  const [editQbSources, setEditQbSources] = useState<{ id: string; label: string; examIds: string[]; questions: QuestionData[] }[]>([]);
+  const [editPreviewSourceId, setEditPreviewSourceId] = useState<string | null>(null);
 
   const { data: pools, isLoading } = useQuery({
     queryKey: ["admin-mock-pool"],
@@ -96,6 +101,36 @@ const AdminMockPool = () => {
     });
   };
 
+  const handleEditCSV = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setEditCsvFileName(file.name);
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      encoding: "UTF-8",
+      complete: (result) => {
+        const rows = (result.data as any[]).filter((r) => r["questions"] || r["question_text"]);
+        setEditCsvData(rows);
+        // Auto-append CSV rows into the editable question list right away —
+        // matches the "questions" shape already used by editQuestions.
+        const mapped = rows.map((r: any) => ({
+          question_text: r["question_text"] || r["questions"] || "",
+          option_a: r["option_a"] || r["option1"] || "",
+          option_b: r["option_b"] || r["option2"] || "",
+          option_c: r["option_c"] || r["option3"] || "",
+          option_d: r["option_d"] || r["option4"] || "",
+          correct_option:
+            r["correct_option"] ||
+            (["A", "B", "C", "D", "E"][(Number(r["answer"]) || 1) - 1] ?? "A"),
+          explanation: r["explanation"] || "",
+        }));
+        setEditQuestions((prev) => [...prev, ...mapped]);
+        toast({ title: `${mapped.length}টি প্রশ্ন যোগ হয়েছে`, description: "নিচে আপডেট সেভ করুন" });
+      },
+    });
+  };
+
   const handleQbSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
     // Merge into whatever's already picked from the Question Bank (subject may
     // be selected across multiple exams / individually-picked MCQs).
@@ -114,6 +149,38 @@ const AdminMockPool = () => {
     setIsQbOpen(false);
     toast({ title: `${questions.length}টি প্রশ্ন যোগ হয়েছে`, description: "নিচে সেভ করুন" });
   };
+
+  const handleEditQbSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
+    setEditQbSources((prev) => [
+      ...prev,
+      {
+        id: `esrc_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+        label: source?.label || `${questions.length}টি প্রশ্ন`,
+        examIds: source?.examIds || [],
+        questions,
+      },
+    ]);
+    const mapped = questions.map((q) => ({
+      question_text: q.question,
+      option_a: q.options?.A || "",
+      option_b: q.options?.B || "",
+      option_c: q.options?.C || "",
+      option_d: q.options?.D || "",
+      correct_option: q.correct_answer,
+      explanation: q.explanation || "",
+    }));
+    setEditQuestions((prev) => [...prev, ...mapped]);
+    setIsEditQbOpen(false);
+    toast({ title: `${questions.length}টি প্রশ্ন যোগ হয়েছে`, description: "নিচে আপডেট সেভ করুন" });
+  };
+
+  const removeEditQbSource = (id: string) => {
+    setEditQbSources((prev) => prev.filter((s) => s.id !== id));
+    // Note: doesn't auto-remove already-merged questions from editQuestions —
+    // admin can remove individual questions below with the per-question X.
+  };
+
+  const allEditAddedExamIds = editQbSources.flatMap((s) => s.examIds);
 
   const removeQbSource = (id: string) => {
     const src = qbSources.find((s) => s.id === id);
@@ -196,9 +263,17 @@ const AdminMockPool = () => {
     setEditTopic(p.topic || "");
     setEditStandard(p.standard || "medical");
     setEditQuestions(Array.isArray(p.questions_json) ? JSON.parse(JSON.stringify(p.questions_json)) : []);
+    setEditCsvData(null);
+    setEditCsvFileName("");
+    setEditQbSources([]);
   };
 
-  const closeEdit = () => setEditingId(null);
+  const closeEdit = () => {
+    setEditingId(null);
+    setEditCsvData(null);
+    setEditCsvFileName("");
+    setEditQbSources([]);
+  };
 
   const updateEditQuestion = (idx: number, field: string, value: string) => {
     setEditQuestions((prev) => prev.map((q, i) => (i === idx ? { ...q, [field]: value } : q)));
@@ -464,15 +539,50 @@ const AdminMockPool = () => {
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             <div>
               <Label>সাবজেক্ট</Label>
-              <Input value={editSubject} onChange={(e) => setEditSubject(e.target.value)} />
+              <CreatableSelect
+                options={globalMeta?.mock_subject || []}
+                value={editSubject}
+                onChange={(val) => {
+                  setEditSubject(val);
+                }}
+                onCreate={(val) => {
+                  addMeta.mutate({ type: "mock_subject", value: val });
+                  setEditSubject(val);
+                }}
+                onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_subject", oldValue: oldVal, newValue: newVal })}
+                onDelete={(val) => deleteMeta.mutate({ type: "mock_subject", value: val })}
+                placeholder="সাবজেক্ট বাছাই বা তৈরি করুন"
+              />
             </div>
             <div>
               <Label>চ্যাপ্টার</Label>
-              <Input value={editChapter} onChange={(e) => setEditChapter(e.target.value)} />
+              <CreatableSelect
+                options={globalMeta?.mock_chapter || []}
+                value={editChapter}
+                onChange={setEditChapter}
+                onCreate={(val) => {
+                  addMeta.mutate({ type: "mock_chapter", value: val });
+                  setEditChapter(val);
+                }}
+                onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_chapter", oldValue: oldVal, newValue: newVal })}
+                onDelete={(val) => deleteMeta.mutate({ type: "mock_chapter", value: val })}
+                placeholder="চ্যাপ্টার বাছাই বা তৈরি করুন"
+              />
             </div>
             <div>
               <Label>টপিক (ঐচ্ছিক)</Label>
-              <Input value={editTopic} onChange={(e) => setEditTopic(e.target.value)} />
+              <CreatableSelect
+                options={globalMeta?.mock_topic || []}
+                value={editTopic}
+                onChange={setEditTopic}
+                onCreate={(val) => {
+                  addMeta.mutate({ type: "mock_topic", value: val });
+                  setEditTopic(val);
+                }}
+                onRename={(oldVal, newVal) => renameMeta.mutate({ type: "mock_topic", oldValue: oldVal, newValue: newVal })}
+                onDelete={(val) => deleteMeta.mutate({ type: "mock_topic", value: val })}
+                placeholder="টপিক বাছাই বা তৈরি করুন"
+              />
             </div>
             <div>
               <Label className="mb-2 block">স্ট্যান্ডার্ড</Label>
@@ -484,9 +594,84 @@ const AdminMockPool = () => {
                   addMeta.mutate({ type: "mock_standard", value: val });
                   setEditStandard(val);
                 }}
-                placeholder="স্ট্যান্ডার্ড বাছাই করুন"
+                onRename={(oldVal, newVal) => {
+                  renameMeta.mutate({ type: "mock_standard", oldValue: oldVal, newValue: newVal });
+                  if (editStandard === oldVal) setEditStandard(newVal);
+                }}
+                onDelete={(val) => deleteMeta.mutate({ type: "mock_standard", value: val })}
+                placeholder="স্ট্যান্ডার্ড বাছাই বা তৈরি করুন"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50"
+                onClick={() => document.getElementById("editMockPoolCSV")?.click()}
+              >
+                <FileUp className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">CSV আপলোড করুন</p>
+                <input
+                  id="editMockPoolCSV"
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  onChange={handleEditCSV}
+                />
+                {editCsvFileName && (
+                  <p className="text-xs text-primary mt-1">
+                    {editCsvFileName} — {editCsvData?.length || 0} প্রশ্ন যোগ হয়েছে
+                  </p>
+                )}
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Header: questions, option1, option2, option3, option4, answer, explanation
+                </p>
+              </div>
+
+              <div
+                className="border-2 border-dashed rounded-lg p-2 sm:p-4 text-center cursor-pointer hover:border-primary/50 flex flex-col items-center justify-center"
+                onClick={() => setIsEditQbOpen(true)}
+              >
+                <BookOpen className="h-5 w-5 mx-auto mb-1 text-muted-foreground" />
+                <p className="text-sm">Question Bank থেকে সিলেক্ট করুন</p>
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  রেডিমেড Exam থেকে পুরো এক্সাম বা আলাদা MCQ যোগ করুন
+                </p>
+              </div>
+            </div>
+
+            {editQbSources.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">সিলেক্ট করা সোর্স</Label>
+                {editQbSources.map((src) => (
+                  <div
+                    key={src.id}
+                    className="flex items-center justify-between gap-2 border rounded-md px-2.5 py-1.5 bg-muted/30"
+                  >
+                    <p className="text-xs truncate flex-1" title={src.label}>
+                      {src.label} <span className="text-muted-foreground">— {src.questions.length}টি</span>
+                    </p>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => setEditPreviewSourceId(src.id)}
+                        className="text-muted-foreground hover:text-primary p-1"
+                        title="MCQ দেখুন"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeEditQbSource(src.id)}
+                        className="text-muted-foreground hover:text-destructive p-1"
+                        title="সরিয়ে ফেলুন"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             <div className="flex items-center justify-between">
               <Label className="text-sm font-semibold">প্রশ্নসমূহ ({editQuestions.length})</Label>
@@ -597,6 +782,51 @@ const AdminMockPool = () => {
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {(qbSources.find((s) => s.id === previewSourceId)?.questions || []).map((q, i) => (
+              <div key={i} className="border rounded-lg p-3 space-y-1.5 text-sm">
+                <p className="font-medium">
+                  <span className="text-muted-foreground mr-1">{i + 1}.</span>
+                  {q.question}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                  {(["A", "B", "C", "D"] as const).map((k) => (
+                    <div
+                      key={k}
+                      className={`p-1.5 rounded border ${
+                        q.correct_answer === k
+                          ? "bg-green-100/50 border-green-200 dark:bg-green-900/20 dark:border-green-800"
+                          : "bg-muted/30"
+                      }`}
+                    >
+                      <span className="font-semibold mr-1.5">{k}.</span>
+                      {q.options?.[k]}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={isEditQbOpen} onOpenChange={setIsEditQbOpen}>
+        <DialogContent className="max-w-5xl h-[85vh] p-0 overflow-hidden">
+          <DialogHeader className="p-4 pb-0">
+            <DialogTitle>Question Bank থেকে প্রশ্ন সিলেক্ট করুন</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden p-4 pt-2 h-[calc(85vh-60px)]">
+            <QuestionBankSelector onSelect={handleEditQbSelect} alreadyAddedExamIds={allEditAddedExamIds} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editPreviewSourceId} onOpenChange={(open) => !open && setEditPreviewSourceId(null)}>
+        <DialogContent className="max-w-2xl h-[80vh] p-0 overflow-hidden flex flex-col">
+          <DialogHeader className="p-4 pb-0 shrink-0">
+            <DialogTitle>
+              {editQbSources.find((s) => s.id === editPreviewSourceId)?.label || "প্রশ্নসমূহ"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {(editQbSources.find((s) => s.id === editPreviewSourceId)?.questions || []).map((q, i) => (
               <div key={i} className="border rounded-lg p-3 space-y-1.5 text-sm">
                 <p className="font-medium">
                   <span className="text-muted-foreground mr-1">{i + 1}.</span>
