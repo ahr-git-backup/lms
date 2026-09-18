@@ -409,7 +409,7 @@ const ContentArchiveManager = ({ type }: { type: "classes" | "exams" }) => {
             </div>
 
             <Dialog open={!!editingItem} onOpenChange={(open) => !open && setEditingItem(null)}>
-                <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0">
+                <DialogContent className="max-w-3xl max-h-[95vh] overflow-y-auto p-0 [transform:translateZ(0)] [-webkit-overflow-scrolling:touch]">
                     <div className="p-2 sm:p-4 bg-muted/20 border-b flex justify-between items-center">
                         <div>
                             <DialogTitle className="text-lg font-bold">Edit Content</DialogTitle>
