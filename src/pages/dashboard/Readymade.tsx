@@ -2221,6 +2221,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [bulkSending, setBulkSending] = useState(false);
   const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number; examTitle: string } | null>(null);
   const [bulkSendExams, setBulkSendExams] = useState<any[] | null>(null);
+  const [bulkPostMode, setBulkPostMode] = useState<"single" | "separate">("single");
   const [sendSavedChannelId, setSendSavedChannelId] = useState<string>(""); // telegram_channels.id, or "custom" (legacy) or "__new__"
   const [sendChannelId, setSendChannelId] = useState("");
   const [sendThreadId, setSendThreadId] = useState("");
@@ -2517,6 +2518,62 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       return;
     }
     setBulkSending(true);
+
+    if (bulkPostMode === "single") {
+      // One combined Telegram message for every selected exam.
+      try {
+        setBulkProgress({ current: 1, total: exams.length, examTitle: "সব এক্সামের প্রশ্ন লোড হচ্ছে..." });
+        const examGroups: { exam_title: string; subject: string; batches: any[] }[] = [];
+        for (let i = 0; i < exams.length; i++) {
+          const exam = exams[i];
+          setBulkProgress({ current: i + 1, total: exams.length, examTitle: exam.title || "" });
+          const { data: questions, error } = await supabase
+            .from("exam_questions")
+            .select("*")
+            .eq("exam_id", exam.id)
+            .order("question_index", { ascending: true });
+          if (error) throw error;
+          if (!questions || questions.length === 0) continue;
+          examGroups.push({
+            exam_title: exam.title || "",
+            subject: Array.isArray(exam.subject) ? (exam.subject[0] || "") : (exam.subject || ""),
+            batches: buildBatchesForExam(exam, questions),
+          });
+        }
+        if (!examGroups.length) throw new Error("কোনো প্রশ্ন পাওয়া যায়নি");
+
+        const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            secret: QUIZBOT_API_SECRET,
+            channel_id: sendChannelId.trim(),
+            thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
+            exam_groups: examGroups,
+            links_only: true, // single-post mode is links-only by nature
+          }),
+        });
+        const rawText = await res.text();
+        let json: any;
+        try { json = JSON.parse(rawText); } catch { throw new Error(`HTTP ${res.status}`); }
+        if (!res.ok || !json.ok) throw new Error(json.error || "failed");
+        // No single card to attach progress to (spans several exams) —
+        // just confirm it was queued; it finishes in a couple seconds since
+        // it's one message send, not a poll loop.
+        toast({ title: "পাঠানো হয়েছে", description: `${examGroups.length}টি এক্সাম এক পোস্টে পাঠানো হয়েছে।` });
+      } catch (err: any) {
+        toast({ title: "পাঠানো যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+      }
+      setBulkSending(false);
+      setBulkProgress(null);
+      setBulkSelectMode(false);
+      setBulkSelectedExamIds(new Set());
+      setBulkSendExams(null);
+      setSendingExam(null);
+      return;
+    }
+
+    // Separate post per exam (previous behaviour).
     let okCount = 0, failCount = 0;
     for (let i = 0; i < exams.length; i++) {
       const exam = exams[i];
@@ -2913,7 +2970,21 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
             </div>
           )}
           {bulkSendExams && bulkSendExams.length > 1 && (
-            <p className="text-xs text-muted-foreground">{bulkSendExams.length}টি এক্সাম একসাথে এই চ্যানেল/থ্রেডে পাঠানো হবে, প্রতিটির প্রগ্রেস তার নিজের কার্ডে দেখা যাবে।</p>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">পোস্ট করার ধরন</label>
+              <Select value={bulkPostMode} onValueChange={(v) => setBulkPostMode(v as any)} disabled={bulkSending}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="single">এক পোস্টে (সব {bulkSendExams.length}টি এক্সাম একসাথে)</SelectItem>
+                  <SelectItem value="separate">আলাদা পোস্টে (প্রতিটি এক্সাম আলাদা মেসেজ)</SelectItem>
+                </SelectContent>
+              </Select>
+              {bulkPostMode === "separate" && (
+                <p className="text-xs text-muted-foreground">প্রতিটির প্রগ্রেস তার নিজের কার্ডে দেখা যাবে।</p>
+              )}
+            </div>
           )}
           {bulkProgress && (
             <p className="text-xs text-muted-foreground">পাঠানো হচ্ছে: {bulkProgress.current}/{bulkProgress.total} — {bulkProgress.examTitle}</p>
@@ -2984,6 +3055,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
             });
             const selected = orderedAll.filter((e: any) => bulkSelectedExamIds.has(e.id));
             setBulkSendExams(selected);
+            setBulkPostMode("single");
             setSendingExam(selected[0]);
             setSendSavedChannelId("");
             setSendChannelId("");
