@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +12,64 @@ import { Badge } from "@/components/ui/badge";
 import { openSolvePdf } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+
+const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGeneratePdf }: {
+    exam: any;
+    checked: boolean;
+    onToggle: (id: string) => void;
+    singlePdfLoadingId: string | null;
+    onGeneratePdf: (exam: any, mode: "all" | "wrong" | "both") => void;
+}) => {
+    return (
+        <div className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none">
+            <Checkbox
+                id={exam.id}
+                checked={checked}
+                onCheckedChange={() => onToggle(exam.id)}
+            />
+            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => onToggle(exam.id)}>
+                <div className="flex justify-between items-start gap-2">
+                    <label
+                        htmlFor={exam.id}
+                        className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer truncate min-w-0"
+                    >
+                        {exam.title}
+                    </label>
+                    {exam.subject && (
+                        <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
+                    )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                    Last attempt: {format(new Date(exam.lastAttempt), "PP")}
+                </p>
+                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
+                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
+                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-6 text-[10px] px-2 ml-auto"
+                                disabled={singlePdfLoadingId === exam.id}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {singlePdfLoadingId === exam.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
+                                Practice Sheet
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                            <DropdownMenuItem onClick={() => onGeneratePdf(exam, "all")}>All Questions</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onGeneratePdf(exam, "wrong")}>Only Wrong</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => onGeneratePdf(exam, "both")}>Wrong + Skip</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
+            </div>
+        </div>
+    );
+});
+ExamRow.displayName = "ExamRow";
 
 const MyMistakes = () => {
     const { user } = useAuth();
@@ -396,57 +454,16 @@ const MyMistakes = () => {
                     <CardContent className="px-3 pb-3">
                         {categoryFilteredExams.length > 0 ? (
                             <div className="space-y-3">
-                                <div className="space-y-1.5 max-h-[70vh] overflow-y-auto pr-1" style={{ touchAction: 'pan-y' }}>
+                                <div className="space-y-1.5">
                                     {categoryFilteredExams.map((exam: any) => (
-                                        <div
+                                        <ExamRow
                                             key={exam.id}
-                                            className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none"
-                                        >
-                                            <Checkbox
-                                                id={exam.id}
-                                                checked={selectedExamIds.includes(exam.id)}
-                                                onCheckedChange={() => toggleExam(exam.id)}
-                                            />
-                                            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => toggleExam(exam.id)}>
-                                                <div className="flex justify-between items-start gap-2">
-                                                    <label
-                                                        htmlFor={exam.id}
-                                                        className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer truncate min-w-0"
-                                                    >
-                                                        {exam.title}
-                                                    </label>
-                                                    {exam.subject && (
-                                                        <Badge variant="outline" className="text-[10px] shrink-0">{exam.subject}</Badge>
-                                                    )}
-                                                </div>
-                                                <p className="text-[10px] text-muted-foreground">
-                                                    Last attempt: {format(new Date(exam.lastAttempt), "PP")}
-                                                </p>
-                                                <div className="flex items-center gap-1.5 pt-0.5 flex-wrap">
-                                                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900">Wrong: {exam.wrongCount}</Badge>
-                                                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900">Skip: {exam.skipCount}</Badge>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                className="h-6 text-[10px] px-2 ml-auto"
-                                                                disabled={singlePdfLoadingId === exam.id}
-                                                                onClick={(e) => e.stopPropagation()}
-                                                            >
-                                                                {singlePdfLoadingId === exam.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
-                                                                Practice Sheet
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
-                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "all")}>All Questions</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "wrong")}>Only Wrong</DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => generateSingleExamPdf(exam, "both")}>Wrong + Skip</DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </div>
-                                        </div>
+                                            exam={exam}
+                                            checked={selectedExamIds.includes(exam.id)}
+                                            onToggle={toggleExam}
+                                            singlePdfLoadingId={singlePdfLoadingId}
+                                            onGeneratePdf={generateSingleExamPdf}
+                                        />
                                     ))}
                                 </div>
 
