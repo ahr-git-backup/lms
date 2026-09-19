@@ -193,20 +193,39 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const deleteExamMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Note: If ON DELETE CASCADE is set on foreign keys in DB, deleting exam is enough.
-      // If not, we should manually delete questions/attempts.
-      // Assuming CASCADE is set or we do best effort cleanup here.
-      // First, delete questions to be safe (if no cascade)
-      await supabase.from("exam_questions").delete().eq("exam_id", id);
-      await supabase.from("exam_attempts").delete().eq("exam_id", id);
+      // Clean up every table that references this exam via exam_id first,
+      // in case DB-level ON DELETE CASCADE isn't set on all of them —
+      // otherwise the exams.delete() below can silently no-op or fail on
+      // a foreign-key constraint, leaving the exam still visible.
+      const { error: questionsError } = await supabase.from("exam_questions").delete().eq("exam_id", id);
+      if (questionsError) throw questionsError;
+
+      const { error: attemptsError } = await supabase.from("exam_attempts").delete().eq("exam_id", id);
+      if (attemptsError) throw attemptsError;
+
+      const { error: leaderboardError } = await supabase.from("leaderboard_exam_attempts").delete().eq("exam_id", id);
+      if (leaderboardError) throw leaderboardError;
 
       const { error } = await supabase.from("exams").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Exam deleted" });
+      // Every place an exam list is fetched needs to drop the deleted
+      // exam immediately, not just the admin table and the free-exams
+      // page — otherwise it keeps showing up on the landing page, course
+      // pages, calendars, etc. until those caches separately expire.
       queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
       queryClient.invalidateQueries({ queryKey: ["public-free-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["public-special-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["public-landing-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["course-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["course-demo-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-special-exams"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-exam-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["public-exam-schedules"] });
+      queryClient.invalidateQueries({ queryKey: ["readymade-exams-list"] });
+      queryClient.invalidateQueries({ queryKey: ["split-exams"] });
     },
     onError: (error: Error) => {
       toast({
