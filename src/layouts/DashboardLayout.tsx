@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
+import InstallPWA from "@/components/InstallPWA";
 import { cn } from "@/lib/utils";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import FloatingAtlasAiButton from "@/components/dashboard/FloatingAtlasAiButton";
@@ -294,6 +295,7 @@ export const DashboardLayout = () => {
               </button>
             </div>
             <div className="flex items-center gap-3">
+              <InstallPWA />
               <Button
                 variant="outline"
                 size="icon"
