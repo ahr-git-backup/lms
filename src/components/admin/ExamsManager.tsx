@@ -59,7 +59,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
 
   const [subjectFilter, setSubjectFilter] = useState<string>("all");
   const [courseFilter, setCourseFilter] = useState<string>("all");
-  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade" | "free">("all");
+  const [mainCategory, setMainCategory] = useState<"all" | "live" | "practice" | "readymade" | "free" | "deleted">("all");
   const [readymadeSubCategory, setReadymadeSubCategory] = useState<string>("all");
   const [page, setPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -131,6 +131,12 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         .not("category", "cs", '{"Model Test"}')
         .order("created_at", { ascending: false });
 
+      if (mainCategory === "deleted") {
+          query = query.not("deleted_at", "is", null).order("deleted_at", { ascending: false });
+      } else {
+          query = query.is("deleted_at", null);
+      }
+
       if (isFreeMode) {
           query = query.is("course_id", null);
       } else {
@@ -191,26 +197,27 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
   const totalCount = examsData?.count || 0;
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-  const deleteExamMutation = useMutation({
+  const restoreExamMutation = useMutation({
     mutationFn: async (id: string) => {
-      // Clean up every table that references this exam via exam_id first,
-      // in case DB-level ON DELETE CASCADE isn't set on all of them —
-      // otherwise the exams.delete() below can silently no-op or fail on
-      // a foreign-key constraint, leaving the exam still visible.
-      const { error: questionsError } = await supabase.from("exam_questions").delete().eq("exam_id", id);
-      if (questionsError) throw questionsError;
-
-      const { error: attemptsError } = await supabase.from("exam_attempts").delete().eq("exam_id", id);
-      if (attemptsError) throw attemptsError;
-
-      const { error: leaderboardError } = await supabase.from("leaderboard_exam_attempts").delete().eq("exam_id", id);
-      if (leaderboardError) throw leaderboardError;
-
-      const { error } = await supabase.from("exams").delete().eq("id", id);
+      const { error } = await (supabase as any).rpc("restore_exam", { p_exam_id: id });
       if (error) throw error;
     },
     onSuccess: () => {
-      toast({ title: "Exam deleted" });
+      toast({ title: "Exam restored" });
+      ["admin-exams","public-free-exams","public-special-exams","public-landing-exams","course-exams","course-demo-exams","admin-special-exams","admin-exam-schedules","public-exam-schedules","readymade-exams-list","split-exams"].forEach((k) => queryClient.invalidateQueries({ queryKey: [k] }));
+    },
+    onError: (error: Error) => {
+      toast({ title: "Restore failed", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteExamMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).rpc("soft_delete_exam", { p_exam_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Exam deleted (History te ache, restore kora jabe)" });
       // Every place an exam list is fetched needs to drop the deleted
       // exam immediately, not just the admin table and the free-exams
       // page — otherwise it keeps showing up on the landing page, course
@@ -583,6 +590,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                     { key: "practice", label: "Practice" },
                     { key: "readymade", label: "Readymade" },
                     { key: "free", label: "Free" },
+                    { key: "deleted", label: "History" },
                 ] as const).map((c) => (
                     <button
                         key={c.key}
@@ -765,14 +773,26 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                         <RotateCw className="h-4 w-4" />
                                     </Button>
                                 )}
-                                {isAdmin && (
+                                {isAdmin && mainCategory === "deleted" && (
+                                  <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      className="h-8 text-green-600"
+                                      disabled={restoreExamMutation.isPending}
+                                      onClick={() => restoreExamMutation.mutate(exam.id)}
+                                  >
+                                      <RotateCw className="h-4 w-4 mr-1" /> Restore
+                                  </Button>
+                                )}
+                                {isAdmin && mainCategory !== "deleted" && (
                                   <Button
                                       type="button"
                                       size="icon"
                                       variant="ghost"
                                       className="h-8 w-8 text-destructive"
                                       onClick={() => {
-                                      if (window.confirm("Delete this exam? This cannot be undone. Questions and results will be deleted.")) {
+                                      if (window.confirm("Delete this exam? History tab theke restore korte parben.")) {
                                           deleteExamMutation.mutate(exam.id);
                                       }
                                       }}
@@ -911,7 +931,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
                                                   <>
                                                     <DropdownMenuSeparator />
                                                     <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => {
-                                                        if (window.confirm("Delete this exam?")) deleteExamMutation.mutate(exam.id);
+                                                        if (mainCategory !== "deleted" && window.confirm("Delete this exam?")) deleteExamMutation.mutate(exam.id);
                                                     }}>
                                                         <Trash2 className="mr-2 h-4 w-4" /> Delete
                                                     </DropdownMenuItem>

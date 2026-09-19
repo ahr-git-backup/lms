@@ -484,6 +484,8 @@ export type Database = {
       }
       exams: {
         Row: {
+          deleted_at: string | null
+          deleted_prev_published: boolean | null
           course_id: string
           created_at: string
           duration_minutes: number
@@ -504,6 +506,8 @@ export type Database = {
           free_exam_category: string
         }
         Insert: {
+          deleted_at?: string | null
+          deleted_prev_published?: boolean | null
           course_id: string
           created_at?: string
           duration_minutes: number
