@@ -1083,7 +1083,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             return (
               <Card
                 key={subject}
-                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full w-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                className={`relative overflow-hidden transition-all cursor-pointer border-2 border-primary/60 hover:border-primary shadow-sm hover:shadow-md h-full w-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
                 onClick={() => setSelectedSubject(subject)}
               >
                 {!unlocked && (
@@ -1160,7 +1160,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             <div
               key={zone || "__none__"}
               id={zone ? `zone-${encodeURIComponent(zone)}` : undefined}
-              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-border shadow-sm ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
+              className={`rounded-xl border transition-colors duration-300 h-full flex flex-col w-full ${zone ? `border-2 border-red-500/50 shadow-sm ${compactGrid ? "p-1 sm:p-3" : "p-1.5 sm:p-3"}` : "border-transparent"} ${extraClass}`}
             >
               {zone && (
                 <div className="flex items-center gap-3 mb-3">
@@ -1199,7 +1199,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   return renderZoneBox(c.group.zone, c.group.subjects);
                 }
                 return (
-                  <div key={`row-${ci}`} className="grid grid-cols-2 items-stretch gap-0.5 sm:gap-2 rounded-xl border border-border shadow-sm overflow-hidden">
+                  <div key={`row-${ci}`} className="grid grid-cols-2 items-stretch gap-0.5 sm:gap-2 rounded-xl border-2 border-red-500/50 shadow-sm overflow-hidden">
                     {c.groups.map((g, gi) => (
                       <div key={g.zone} className="min-w-0 relative flex">
                         {renderZoneBox(g.zone, g.subjects, "border-none rounded-none h-full", true)}
