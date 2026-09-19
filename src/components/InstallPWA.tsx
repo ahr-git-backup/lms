@@ -69,7 +69,7 @@ const InstallPWA = () => {
         size="sm"
         className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
     >
-      {isInstalled ? "Installed" : "Install App"}
+      Install App
     </Button>
   );
 };
