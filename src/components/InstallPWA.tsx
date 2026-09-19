@@ -3,20 +3,46 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
+// `beforeinstallprompt` fires at most once per page load, and only while
+// *some* listener is attached at that moment. This component is mounted
+// in multiple places (landing header, dashboard header, mobile sheet
+// menus) as independent instances — if the event fires while only one
+// instance existed (e.g. on the landing page) and the user then
+// navigates to a page where a *different* instance mounts, that new
+// instance would otherwise never see the event and would incorrectly
+// think the browser doesn't support installing. Capturing the event in
+// a module-level variable (outside React state) means every instance,
+// mounted at any time, can reuse the same captured prompt.
+let sharedDeferredPrompt: any = null;
+let sharedListenerAttached = false;
+const promptListeners = new Set<(e: any) => void>();
+
+const ensureGlobalListener = () => {
+  if (sharedListenerAttached) return;
+  sharedListenerAttached = true;
+  window.addEventListener("beforeinstallprompt", (e: any) => {
+    e.preventDefault();
+    sharedDeferredPrompt = e;
+    promptListeners.forEach((cb) => cb(e));
+  });
+  window.addEventListener("appinstalled", () => {
+    sharedDeferredPrompt = null;
+  });
+};
+
 const InstallPWA = () => {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(sharedDeferredPrompt);
   const [isInstalled, setIsInstalled] = useState(false);
   const [showManualInstructions, setShowManualInstructions] = useState(false);
 
   useEffect(() => {
-    const handler = (e: any) => {
-      // Prevent the mini-infobar from appearing on mobile
-      e.preventDefault();
-      // Stash the event so it can be triggered later.
-      setDeferredPrompt(e);
-    };
+    ensureGlobalListener();
 
-    window.addEventListener("beforeinstallprompt", handler);
+    const onPrompt = (e: any) => setDeferredPrompt(e);
+    promptListeners.add(onPrompt);
+
+    // In case the event already fired before this instance mounted.
+    if (sharedDeferredPrompt) setDeferredPrompt(sharedDeferredPrompt);
 
     // Check if already installed/running as a standalone PWA
     const standalone =
@@ -31,7 +57,7 @@ const InstallPWA = () => {
     window.addEventListener("appinstalled", appInstalledHandler);
 
     return () => {
-      window.removeEventListener("beforeinstallprompt", handler);
+      promptListeners.delete(onPrompt);
       window.removeEventListener("appinstalled", appInstalledHandler);
     };
   }, []);
@@ -55,6 +81,7 @@ const InstallPWA = () => {
 
     if (outcome === "accepted") {
       toast.success("Thank you for installing the app!");
+      sharedDeferredPrompt = null;
       setDeferredPrompt(null);
       setIsInstalled(true);
     } else {
