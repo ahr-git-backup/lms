@@ -1083,7 +1083,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
             return (
               <Card
                 key={subject}
-                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
+                className={`relative overflow-hidden transition-all cursor-pointer hover:border-primary/50 hover:shadow-md h-full w-full flex flex-col bg-secondary ${!unlocked ? "opacity-80" : ""} ${isHidden ? "opacity-50 border-dashed" : ""}`}
                 onClick={() => setSelectedSubject(subject)}
               >
                 {!unlocked && (
@@ -1171,25 +1171,23 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"} `}>
-                {zoneSubjects.map((s) => (
-                  <div
-                    key={s}
-                    className={
-                      (compactGrid
-                        ? "w-full"
-                        : zoneSubjects.length === 1
-                          ? "w-full"
-                          : zoneSubjects.length === 2
-                            ? "flex-1 min-w-0"
-                            : zoneSubjects.length === 3
-                              ? "flex-1 min-w-0"
-                              : "grow basis-[calc(50%-0.25rem)] sm:basis-[calc(33.333%-0.7rem)] lg:basis-[calc(25%-0.75rem)] min-w-0") + " flex"
-                    }
-                  >
-                    {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
-                  </div>
-                ))}
+              <div className={`grid items-stretch flex-1 gap-1 sm:gap-4 ${
+                compactGrid || zoneSubjects.length === 1
+                  ? "grid-cols-1"
+                  : zoneSubjects.length === 3
+                    ? "grid-cols-3"
+                    : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4"
+              } ${!compactGrid && zoneSubjects.length === 2 ? "!grid-cols-2" : ""}`}>
+                {zoneSubjects.map((s, si) => {
+                  const n = zoneSubjects.length;
+                  const cols = 2; // mobile columns for 4+
+                  const lastAlone = !compactGrid && n > 3 && n % cols === 1 && si === n - 1;
+                  return (
+                    <div key={s} className={`flex min-w-0 ${lastAlone ? "col-span-2 sm:col-span-1" : ""}`}>
+                      {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );
