@@ -5,7 +5,7 @@ import { toast } from "sonner";
 
 const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -13,22 +13,40 @@ const InstallPWA = () => {
       e.preventDefault();
       // Stash the event so it can be triggered later.
       setDeferredPrompt(e);
-      setIsInstallable(true);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
 
-    // Check if already installed
-    const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
-    if (isInstalled) {
-        setIsInstallable(false);
-    }
+    // Check if already installed/running as a standalone PWA
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true; // iOS Safari
+    setIsInstalled(standalone);
 
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    const appInstalledHandler = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+    window.addEventListener("appinstalled", appInstalledHandler);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+      window.removeEventListener("appinstalled", appInstalledHandler);
+    };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (isInstalled) {
+      toast.info("App is already installed!");
+      return;
+    }
+
+    if (!deferredPrompt) {
+      toast.info(
+        "To install: use your browser's menu and choose \"Add to Home Screen\" or \"Install App\"."
+      );
+      return;
+    }
 
     // Show the install prompt
     deferredPrompt.prompt();
@@ -36,26 +54,24 @@ const InstallPWA = () => {
     // Wait for the user to respond to the prompt
     const { outcome } = await deferredPrompt.userChoice;
 
-    if (outcome === 'accepted') {
+    if (outcome === "accepted") {
       toast.success("Thank you for installing the app!");
       setDeferredPrompt(null);
-      setIsInstallable(false);
+      setIsInstalled(true);
     } else {
       toast.info("Installation cancelled");
     }
   };
-
-  if (!isInstallable) return null;
 
   return (
     <Button
         onClick={handleInstallClick}
         variant="outline"
         size="sm"
-        className="gap-2 border-primary text-primary hover:bg-primary hover:text-white transition-all animate-pulse font-bold shrink-0"
+        className={`gap-2 border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
     >
       <Download className="h-4 w-4" />
-      <span className="hidden xs:inline">Install App</span>
+      <span className="hidden xs:inline">{isInstalled ? "Installed" : "Install App"}</span>
     </Button>
   );
 };
