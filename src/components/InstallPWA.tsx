@@ -44,10 +44,16 @@ const InstallPWA = () => {
     // In case the event already fired before this instance mounted.
     if (sharedDeferredPrompt) setDeferredPrompt(sharedDeferredPrompt);
 
-    // Check if already installed/running as a standalone PWA
+    // Check if already installed/running as a standalone PWA. Different
+    // platforms/browsers report this under slightly different display
+    // modes, so check all of them rather than just "standalone".
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
-      (window.navigator as any).standalone === true; // iOS Safari
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+      (window.navigator as any).standalone === true || // iOS Safari
+      document.referrer.startsWith("android-app://"); // Android TWA
     setIsInstalled(standalone);
 
     const appInstalledHandler = () => {
@@ -63,7 +69,19 @@ const InstallPWA = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (isInstalled) {
+    // Re-check display mode live at click time too, as an extra safety
+    // net in case the mount-time check ran before the browser fully
+    // reported the PWA's display mode.
+    const currentlyStandalone =
+      isInstalled ||
+      window.matchMedia("(display-mode: standalone)").matches ||
+      window.matchMedia("(display-mode: fullscreen)").matches ||
+      window.matchMedia("(display-mode: minimal-ui)").matches ||
+      window.matchMedia("(display-mode: window-controls-overlay)").matches ||
+      (window.navigator as any).standalone === true;
+
+    if (currentlyStandalone) {
+      if (!isInstalled) setIsInstalled(true);
       toast.info("App is already installed!");
       return;
     }
