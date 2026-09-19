@@ -86,38 +86,38 @@
   }
 
   .dark {
-    --background: 252 45% 6%;
+    --background: 222 47% 8%;
     --foreground: 210 20% 96%;
-    --card: 250 35% 10%;
+    --card: 222 40% 12%;
     --card-foreground: 210 20% 96%;
-    --popover: 250 35% 10%;
+    --popover: 222 40% 12%;
     --popover-foreground: 210 20% 96%;
-    --primary: 187 85% 45%; /* Medihour Teal (glow-enhanced) */
+    --primary: 217.2 91.2% 55%; /* PWA blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 250 28% 16%;
+    --secondary: 222 30% 17%;
     --secondary-foreground: 210 20% 96%;
-    --muted: 250 25% 14%;
+    --muted: 222 28% 15%;
     --muted-foreground: 240 15% 65%;
-    --accent: 262 70% 22%;
-    --accent-foreground: 262 90% 82%;
+    --accent: 217.2 60% 20%;
+    --accent-foreground: 217.2 91.2% 80%;
     --destructive: 0 84% 65%;
     --destructive-foreground: 0 0% 100%;
-    --border: 250 25% 20%;
-    --input: 250 25% 18%;
-    --ring: 187 85% 50%;
-    --chart-1: 187 85% 50%;
+    --border: 217 45% 30%;
+    --input: 217 35% 22%;
+    --ring: 217.2 91.2% 60%;
+    --chart-1: 217.2 91.2% 60%;
     --chart-2: 262 83% 66%;
     --chart-3: 38 92% 62%;
     --chart-4: 0 84% 65%;
     --chart-5: 0 0% 62.7451%;
-    --sidebar: 252 48% 5%;
+    --sidebar: 222 47% 7%;
     --sidebar-foreground: 210 20% 96%;
-    --sidebar-primary: 187 85% 45%;
+    --sidebar-primary: 217.2 91.2% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 250 28% 16%;
-    --sidebar-accent-foreground: 187 85% 65%;
-    --sidebar-border: 250 25% 20%;
-    --sidebar-ring: 187 85% 45%;
+    --sidebar-accent: 222 30% 17%;
+    --sidebar-accent-foreground: 217.2 91.2% 80%;
+    --sidebar-border: 217 45% 30%;
+    --sidebar-ring: 217.2 91.2% 60%;
     --font-sans: "Plus Jakarta Sans", sans-serif;
     --font-serif: "Lora", serif;
     --font-mono: "IBM Plex Mono", monospace;
@@ -146,7 +146,7 @@
     --card: 0 0% 0%;
     --card-foreground: 0 0% 100%;
     --muted-foreground: 0 0% 100%;
-    --border: 0 0% 20%;
+    --border: 217 55% 38%;
   }
 }
 
@@ -168,8 +168,8 @@
   /* Dark-mode premium hero glow (inspired by dark-coaching-platform aesthetic) */
   .dark .hero-glow {
     background-image:
-      radial-gradient(60% 80% at 20% 0%, hsl(187 85% 45% / 0.22) 0%, transparent 70%),
-      radial-gradient(50% 70% at 85% 10%, hsl(262 83% 60% / 0.18) 0%, transparent 70%);
+      radial-gradient(60% 80% at 20% 0%, hsl(217 91% 55% / 0.22) 0%, transparent 70%),
+      radial-gradient(50% 70% at 85% 10%, hsl(217 91% 60% / 0.14) 0%, transparent 70%);
   }
   .dark .glow-border-primary {
     box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 0 24px hsl(var(--primary) / 0.15);
