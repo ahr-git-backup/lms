@@ -47,6 +47,7 @@ export const PublicHeader = () => {
           <a href="/tutorial" className="underline-offset-4 hover:underline">
             টিউটোরিয়াল
           </a>
+          <InstallPWA />
           {user ? (
             <a href="/dashboard">
               <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">
@@ -70,6 +71,7 @@ export const PublicHeader = () => {
         <div className="flex items-center gap-2">
           {/* Mobile Login + Create Account Buttons — same row */}
           <div className="sm:hidden flex items-center gap-1.5">
+            <InstallPWA />
             {user ? (
               <a href="/dashboard">
                 <Button size="sm" variant="outline" className="h-8 px-3 text-xs bg-green-600 hover:bg-green-700 text-white border-green-600 hover:text-white">

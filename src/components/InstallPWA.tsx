@@ -52,10 +52,10 @@ const InstallPWA = () => {
         onClick={handleInstallClick}
         variant="outline"
         size="sm"
-        className="gap-2 border-primary text-primary hover:bg-primary hover:text-white transition-all animate-pulse font-bold"
+        className="gap-2 border-primary text-primary hover:bg-primary hover:text-white transition-all animate-pulse font-bold shrink-0"
     >
       <Download className="h-4 w-4" />
-      Install App
+      <span className="hidden xs:inline">Install App</span>
     </Button>
   );
 };
