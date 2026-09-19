@@ -736,7 +736,7 @@ const DashboardHome = () => {
         <div className="space-y-3">
           <div className="rounded-lg border p-4">
             <h2 className="text-lg font-semibold tracking-tight text-center">Telegram Support</h2>
-            <hr className="mt-3 border-border" />
+            <hr className="mt-3 border-primary/40" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {telegramSupportCards.map((card: any) => (
@@ -776,9 +776,9 @@ const DashboardHome = () => {
 
       {/* 3. Navigation Cards Section */}
       <div className="space-y-4">
-           <div className="rounded-lg border p-4">
+           <div className="rounded-lg border-2 border-primary bg-primary/5 shadow-sm p-4">
              <div className="flex items-center justify-center relative">
-               <h2 className="text-lg font-semibold tracking-tight text-center">Quick Access</h2>
+               <h2 className="text-lg font-bold tracking-tight text-center text-primary">Quick Access</h2>
                {isAdmin && !showQuickAccessSort && (
                  <Button
                    size="sm"
@@ -801,7 +801,7 @@ const DashboardHome = () => {
            <>
            <Link
              to="/dashboard/routine"
-             className="flex items-center justify-center gap-2 w-full rounded-lg border bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
+             className="flex items-center justify-center gap-2 w-full rounded-lg border-2 border-indigo-400 bg-indigo-50 dark:bg-indigo-950 hover:bg-indigo-100 dark:hover:bg-indigo-900 transition-colors py-3 font-medium text-indigo-600 dark:text-indigo-300"
            >
              <Calendar className="h-4 w-4" /> Routine
            </Link>
@@ -811,8 +811,8 @@ const DashboardHome = () => {
                         key={index}
                         className={`group hover:shadow-md transition-all cursor-pointer max-w-[220px] w-full mx-auto ${
                             item.isExternal
-                                ? 'border-violet-500/50 hover:border-violet-500 shadow-[0_0_10px_rgba(139,92,246,0.2)] dark:shadow-[0_0_15px_rgba(139,92,246,0.3)]'
-                                : 'border-muted-foreground/20 hover:border-primary/50'
+                                ? 'border-2 border-violet-500 hover:border-violet-600 shadow-[0_0_10px_rgba(139,92,246,0.2)] dark:shadow-[0_0_15px_rgba(139,92,246,0.3)]'
+                                : `border-2 ${item.border || 'border-slate-400'} shadow-sm hover:shadow-lg hover:brightness-95`
                         }`}
                         onClick={() => {
                             if (item.isExternal) {
