@@ -30,6 +30,9 @@ interface CourseItemsManagerDialogProps {
   subjectFilter?: string | null;
   chapterFilter?: string | null;
   subChapterFilter?: string | null;
+  boardFilter?: string | null;
+  parentTopicsFilter?: string[];
+  boardsFilter?: string[];
   onClose: () => void;
 }
 
@@ -44,14 +47,14 @@ interface ItemBase {
 
 import { DraggableSortList } from "./DraggableSortList";
 
-export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, subChapterFilter, onClose }: CourseItemsManagerDialogProps) {
+export function CourseItemsManagerDialog({ courseId, courseName, resourceType, subjectFilter, chapterFilter, subChapterFilter, boardFilter, parentTopicsFilter, boardsFilter, onClose }: CourseItemsManagerDialogProps) {
   const [items, setItems] = useState<ItemBase[]>([]);
   const [isModified, setIsModified] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const { data: fetchedItems, isLoading, isError } = useQuery({
-    queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, subChapterFilter, courseName],
+    queryKey: ["admin-course-items", courseId, resourceType, subjectFilter, chapterFilter, subChapterFilter, boardFilter, parentTopicsFilter, boardsFilter, courseName],
     queryFn: async () => {
       // Allow passing without courseId if we are managing global readymade/archive exams
       if (!courseId && courseName !== "Readymade Exams" && courseName !== "Archive Classes" && courseName !== "Archive Exams") return [];
@@ -89,7 +92,13 @@ export function CourseItemsManagerDialog({ courseId, courseName, resourceType, s
           query = query.contains("subject", [subjectFilter]);
       }
       if (chapterFilter) {
-          query = query.eq("chapter", chapterFilter);
+          query = chapterFilter === "__NO_CHAPTER__" ? query.is("chapter", null) : query.eq("chapter", chapterFilter);
+      }
+      if (courseName === "Readymade Exams" && resourceType === "exams") {
+          query = query.eq("is_published", true).is("parent_exam_id", null).is("deleted_at", null);
+          if (parentTopicsFilter && parentTopicsFilter.length > 0) query = query.in("readymade_topic", parentTopicsFilter);
+          if (boardsFilter && boardsFilter.length > 0) query = query.in("readymade_category", boardsFilter);
+          if (boardFilter) query = query.eq("readymade_category", boardFilter);
       }
       if (subChapterFilter) {
           if (courseName === "Readymade Exams") {

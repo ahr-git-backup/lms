@@ -546,6 +546,9 @@ const Readymade = () => {
           subjectFilter={selectedSubject}
           chapterFilter={selectedChapter}
           subChapterFilter={selectedSubChapter}
+          boardFilter={selectedBoardStep}
+          parentTopicsFilter={selectedParentTopics}
+          boardsFilter={selectedBoards}
           resourceType={manageType}
           onClose={() => setManageType(null)}
         />
