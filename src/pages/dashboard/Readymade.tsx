@@ -1171,7 +1171,7 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                   <div className="h-px flex-1 bg-border/60" />
                 </div>
               )}
-              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"} ${zoneSubjects.length === 1 ? "justify-center" : ""}`}>
+              <div className={`flex flex-wrap items-stretch flex-1 ${compactGrid ? "gap-1 sm:gap-4" : "gap-1 sm:gap-4"} `}>
                 {zoneSubjects.map((s) => (
                   <div
                     key={s}
@@ -1179,12 +1179,12 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
                       (compactGrid
                         ? "w-full"
                         : zoneSubjects.length === 1
-                          ? "w-full max-w-[280px]"
+                          ? "w-full"
                           : zoneSubjects.length === 2
-                            ? "w-[calc(50%-0.25rem)] sm:w-[calc(50%-0.5rem)]"
+                            ? "flex-1 min-w-0"
                             : zoneSubjects.length === 3
-                              ? "w-[calc(33.333%-0.5rem)] sm:w-[calc(33.333%-0.7rem)]"
-                              : "w-[calc(50%-0.25rem)] sm:w-[calc(33.333%-0.7rem)] lg:w-[calc(25%-0.75rem)] max-w-[280px]") + " flex"
+                              ? "flex-1 min-w-0"
+                              : "grow basis-[calc(50%-0.25rem)] sm:basis-[calc(33.333%-0.7rem)] lg:basis-[calc(25%-0.75rem)] min-w-0") + " flex"
                     }
                   >
                     {renderSubjectCard(s, zoneSubjects.length === 3 || compactGrid)}
