@@ -68,7 +68,7 @@ const InstallPWA = () => {
           onClick={handleInstallClick}
           variant="outline"
           size="sm"
-          className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
+          className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 whitespace-nowrap text-[11px] sm:text-sm h-8 sm:h-9 px-2 sm:px-3 ${!isInstalled ? "animate-pulse" : ""}`}
       >
         Install App
       </Button>

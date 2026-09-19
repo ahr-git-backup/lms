@@ -269,18 +269,18 @@ export const DashboardLayout = () => {
     <SidebarProvider defaultOpen={false}>
       <div className="min-h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
         <PushPermissionPrompt />
-        <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-4 supports-[backdrop-filter]:bg-background/60 print:hidden">
-          <div className="flex flex-1 items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
+        <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-2 sm:px-4 supports-[backdrop-filter]:bg-background/60 print:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex flex-1 items-center justify-between gap-1.5 sm:gap-3 min-w-max">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 {location.pathname === "/dashboard" ? (
                   <Link to="/" className="bg-white rounded p-1 shrink-0" aria-label="Go to homepage">
-                    <img src="/logo.png" alt="Atlas Logo" className="h-8 w-auto object-contain" />
+                    <img src="/logo.png" alt="Atlas Logo" className="h-7 sm:h-8 w-auto object-contain" />
                   </Link>
                 ) : (
                   <button
                     onClick={() => navigate("/dashboard")}
-                    className="text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md px-3 py-1.5 transition-colors"
+                    className="text-xs sm:text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-md px-2 sm:px-3 py-1.5 transition-colors shrink-0"
                   >
                     Dashboard
                   </button>
@@ -289,17 +289,17 @@ export const DashboardLayout = () => {
               <button
                 onClick={() => navigate("/")}
                 aria-label="Go to homepage"
-                className="shrink-0 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-3 py-1.5 transition-colors"
+                className="shrink-0 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-semibold px-2 sm:px-3 py-1.5 transition-colors"
               >
                 Home
               </button>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <InstallPWA />
               <Button
                 variant="outline"
                 size="icon"
-                className="shrink-0"
+                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
                 aria-label="Toggle theme"
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               >
@@ -308,7 +308,7 @@ export const DashboardLayout = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="relative shrink-0"
+                className="relative shrink-0 h-8 w-8 sm:h-9 sm:w-9"
                 aria-label="Notifications"
                 onClick={() => navigate("/dashboard/announcements")}
               >
