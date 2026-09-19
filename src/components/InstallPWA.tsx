@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 const InstallPWA = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showManualInstructions, setShowManualInstructions] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -41,9 +43,7 @@ const InstallPWA = () => {
     }
 
     if (!deferredPrompt) {
-      toast.info(
-        "To install: use your browser's menu and choose \"Add to Home Screen\" or \"Install App\"."
-      );
+      setShowManualInstructions(true);
       return;
     }
 
@@ -63,14 +63,41 @@ const InstallPWA = () => {
   };
 
   return (
-    <Button
-        onClick={handleInstallClick}
-        variant="outline"
-        size="sm"
-        className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
-    >
-      Install App
-    </Button>
+    <>
+      <Button
+          onClick={handleInstallClick}
+          variant="outline"
+          size="sm"
+          className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
+      >
+        Install App
+      </Button>
+
+      <Dialog open={showManualInstructions} onOpenChange={setShowManualInstructions}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>অ্যাপ ইনস্টল করুন</DialogTitle>
+            <DialogDescription>
+              আপনার ব্রাউজার থেকে সরাসরি ইনস্টল করা যাচ্ছে না। নিচের ধাপ অনুসরণ করুন:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <div className="flex gap-3 items-start rounded-lg border bg-muted/40 p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+              <p>ব্রাউজারের উপরে ডানদিকে <strong>মেনু (⋮)</strong> বাটনে ট্যাপ করুন।</p>
+            </div>
+            <div className="flex gap-3 items-start rounded-lg border bg-muted/40 p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+              <p><strong>"Add to Home Screen"</strong> বা <strong>"Install App"</strong> অপশনটি খুঁজে বের করুন।</p>
+            </div>
+            <div className="flex gap-3 items-start rounded-lg border bg-muted/40 p-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+              <p>নিশ্চিত করতে <strong>"Add"</strong> বা <strong>"Install"</strong>-এ ট্যাপ করুন — অ্যাপটি হোম স্ক্রিনে যুক্ত হয়ে যাবে।</p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
