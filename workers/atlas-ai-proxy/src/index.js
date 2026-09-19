@@ -580,7 +580,39 @@ async function callGeminiOnce(key, model, parts, maxOutputTokens, signal) {
   return res;
 }
 __name(callGeminiOnce, "callGeminiOnce");
+async function callGeminiViaQuizBot(env, parts, budget) {
+  // Shared key pool: QuizBot (HF Space) holds ALL Gemini keys. Set QUIZBOT_API_URL
+  // (e.g. https://hamza-02-quizbot.hf.space) + LMS_API_SECRET on this worker.
+  const base = String(env.QUIZBOT_API_URL || "").replace(/\/+$/, "");
+  if (!base || !env.LMS_API_SECRET)
+    return null;
+  const outcome = await attemptWithStatus((signal) => fetch(`${base}/api/gemini-proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    signal,
+    body: JSON.stringify({ secret: env.LMS_API_SECRET, parts, max_tokens: 16384, temperature: 0.7 })
+  }), budget);
+  if (outcome.__exception)
+    return { error: `QuizBot-proxy exception: ${outcome.message}`, budgetExhausted: !!outcome.__budgetExhausted };
+  if (!outcome.ok)
+    return { error: `QuizBot-proxy HTTP ${outcome.status}` };
+  const data = await outcome.json().catch(() => null);
+  if (data?.answer)
+    return { answer: data.answer, provider: `gemini:${data.model || "quizbot"}` };
+  return { error: "QuizBot-proxy: empty response" };
+}
+__name(callGeminiViaQuizBot, "callGeminiViaQuizBot");
 async function callGemini(env, question, systemPrompt, image, budget) {
+  {
+    const _parts = [];
+    if (image)
+      _parts.push({ inline_data: { mime_type: image.mimeType, data: image.base64 } });
+    _parts.push({ text: systemPrompt + "\n\n\u09AA\u09CD\u09B0\u09B6\u09CD\u09A8: " + (question || "\u098F\u0987 \u099B\u09AC\u09BF\u099F\u09BF \u09AC\u09BF\u09B6\u09CD\u09B2\u09C7\u09B7\u09A3 \u0995\u09B0\u09CB\u0964") });
+    const _r = await callGeminiViaQuizBot(env, _parts, budget);
+    if (_r && _r.answer)
+      return _r;
+    // proxy not configured or failed -> fall through to any local keys (if present)
+  }
   const keys = getGeminiKeys(env);
   if (!keys.length)
     return { error: "GEMINI_API_KEY not set" };
