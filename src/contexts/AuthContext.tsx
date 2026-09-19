@@ -147,6 +147,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Watchdog: if auth/profile loading gets stuck (stale/corrupted
+    // session token, a hung network request, etc.) the app would
+    // otherwise sit on a blank/loading screen forever — the only fix
+    // being the user manually clearing site data, which isn't even
+    // possible from inside an installed PWA. Instead, if loading is
+    // still true after a few seconds, clear the (likely stale) Supabase
+    // auth token from storage and reload once automatically.
+    if (!loading) return;
+
+    const RELOAD_GUARD_KEY = "auth_stuck_reload_attempted";
+    const timeoutId = window.setTimeout(() => {
+      const alreadyTriedThisLoad = sessionStorage.getItem(RELOAD_GUARD_KEY);
+      if (alreadyTriedThisLoad) {
+        // Already tried an automatic recovery this session and it's
+        // still stuck — don't loop forever, let the user see the app
+        // in whatever state it's in (or a manual "still stuck?" prompt
+        // elsewhere can take over).
+        return;
+      }
+
+      console.warn("Auth loading timed out — clearing stale session data and reloading.");
+      try {
+        Object.keys(localStorage)
+          .filter((key) => key.startsWith("sb-"))
+          .forEach((key) => localStorage.removeItem(key));
+      } catch (e) {
+        console.error("Failed to clear stale auth storage:", e);
+      }
+
+      sessionStorage.setItem(RELOAD_GUARD_KEY, "1");
+      window.location.reload();
+    }, 8000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loading]);
+
+  useEffect(() => {
+    // Loading finished normally (not stuck) — clear the guard so a
+    // future stuck-loading episode can trigger the auto-recovery again.
+    if (!loading) {
+      sessionStorage.removeItem("auth_stuck_reload_attempted");
+    }
+  }, [loading]);
+
+  useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
