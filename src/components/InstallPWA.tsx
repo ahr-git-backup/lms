@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 const InstallPWA = () => {
@@ -68,10 +67,9 @@ const InstallPWA = () => {
         onClick={handleInstallClick}
         variant="outline"
         size="sm"
-        className={`gap-2 border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
+        className={`border-primary text-primary hover:bg-primary hover:text-white transition-all font-bold shrink-0 ${!isInstalled ? "animate-pulse" : ""}`}
     >
-      <Download className="h-4 w-4" />
-      <span className="hidden xs:inline">{isInstalled ? "Installed" : "Install App"}</span>
+      {isInstalled ? "Installed" : "Install App"}
     </Button>
   );
 };
