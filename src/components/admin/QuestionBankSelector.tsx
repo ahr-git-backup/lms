@@ -237,12 +237,18 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
     // Auto-skip subchapters view straight to exams once we know none exist
     // for this chapter, or when multiple chapters are selected at once.
     useEffect(() => {
-        if (view === 'subchapters' && selectedChapters.length > 1) {
+        // Auto-skipped 'subchapters' must not stay in history, otherwise Back
+        // lands on it and this effect bounces the user straight to 'exams' again.
+        const skipToExams = () => {
+            setViewHistory(prev => prev.filter(v => v !== 'subchapters'));
             setView('exams');
+        };
+        if (view === 'subchapters' && selectedChapters.length > 1) {
+            skipToExams();
             return;
         }
         if (view === 'subchapters' && !isLoadingSubChapters && subChaptersData && subChaptersData.length === 0) {
-            setView('exams');
+            skipToExams();
         }
     }, [view, isLoadingSubChapters, subChaptersData, selectedChapters]);
 
