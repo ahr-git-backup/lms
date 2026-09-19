@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import InstallPWA from "@/components/InstallPWA";
+import { ThemeBrightnessControl } from "@/components/ThemeBrightnessControl";
 import { cn } from "@/lib/utils";
 import FloatingStudyTools from "@/components/study/FloatingStudyTools";
 import FloatingAtlasAiButton from "@/components/dashboard/FloatingAtlasAiButton";
@@ -296,15 +297,7 @@ export const DashboardLayout = () => {
             </div>
             <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               <InstallPWA />
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 h-8 w-8 sm:h-9 sm:w-9"
-                aria-label="Toggle theme"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
+              <ThemeBrightnessControl />
               <Button
                 variant="outline"
                 size="icon"
@@ -502,14 +495,7 @@ export const DashboardLayout = () => {
                   <div className="mt-auto flex flex-col gap-4">
                     <div className="flex items-center justify-between gap-2 px-2">
                       <span className="text-sm">Theme</span>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        aria-label="Toggle theme"
-                        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                      >
-                        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                      </Button>
+                      <ThemeBrightnessControl />
                     </div>
                     <Button variant="destructive" size="sm" onClick={() => signOut()} className="w-full">
                       Logout
