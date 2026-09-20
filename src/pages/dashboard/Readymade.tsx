@@ -654,8 +654,9 @@ const ReadymadeExamView = ({ enrollments, selectedSubject, setSelectedSubject, s
     // without requiring a manual page reload.
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    staleTime: 2 * 60 * 1000,
   });
 
   // --- SEARCH ---

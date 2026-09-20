@@ -168,8 +168,9 @@ export const useEnrollments = () => {
     // reflects without requiring a manual reload.
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
-    refetchInterval: 60000,
-    staleTime: 30000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
+    staleTime: 2 * 60 * 1000,
   });
 };
 

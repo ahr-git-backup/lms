@@ -65,7 +65,7 @@ const StudyHistory = () => {
     enabled: !!user,
     refetchInterval: (query) => {
       const data = query.state.data as DayRow[] | undefined;
-      return data?.some((r) => r.is_ongoing) ? 6000 : false;
+      return data?.some((r) => r.is_ongoing) ? 15000 : false;
     },
     refetchOnWindowFocus: true,
   });

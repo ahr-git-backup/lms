@@ -233,7 +233,8 @@ const FocusTimer = () => {
       if (error) throw error;
       return data || [];
     },
-    refetchInterval: 15000,
+    refetchInterval: 60000,
+    refetchIntervalInBackground: false,
   });
 
   const queryClient = useQueryClient();
@@ -246,7 +247,8 @@ const FocusTimer = () => {
       liveNowFetchedAtRef.current = Date.now();
       return data || [];
     },
-    refetchInterval: 3000,
+    refetchInterval: 20000,
+    refetchIntervalInBackground: false, // stop polling when the tab/PWA is hidden
     enabled: !!user,
   });
 
