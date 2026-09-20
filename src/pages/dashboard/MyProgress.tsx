@@ -30,6 +30,17 @@ const MyProgress = () => {
     document.title = "My Progress & History – Atlas";
   }, []);
 
+  // Surface RPC failures: the tabs only render an empty state on error, so a failing report
+  // looked like "no data". Show the real reason here.
+  const queryClient = useQueryClient();
+  useIsFetching(); // re-render while queries settle
+  const failed = queryClient
+    .getQueryCache()
+    .getAll()
+    .filter((q) => q.state.status === "error" && /analytics|class-report|weakness|activity|my-class|readymade-exam/i.test(JSON.stringify(q.queryKey)));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const firstError: any = failed[0]?.state.error;
+
   return (
     <div className="space-y-4 pb-20">
       <header className="space-y-0.5">
