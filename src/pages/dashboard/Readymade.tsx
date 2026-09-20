@@ -20,6 +20,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { useNavigate, useNavigationType, useParams } from "react-router-dom";
 import { setExamSourceList } from "@/lib/examSourceTracker";
@@ -2211,6 +2212,28 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [openPanelType, setOpenPanelType] = useState<"split" | "topic" | null>(null);
   const { toast } = useToast();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  // Admin: delete a whole exam (confirm dialog); deleted ids are hidden immediately.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [deleteExamTarget, setDeleteExamTarget] = useState<any | null>(null);
+  const [deletingExam, setDeletingExam] = useState(false);
+  const [deletedExamIds, setDeletedExamIds] = useState<Set<string>>(new Set());
+  const deleteQueryClient = useQueryClient();
+  const confirmDeleteExam = async () => {
+    if (!isAdmin || !deleteExamTarget) return;
+    setDeletingExam(true);
+    try {
+      const { error } = await supabase.from("exams").delete().eq("id", deleteExamTarget.id);
+      if (error) throw error;
+      setDeletedExamIds((prev) => new Set(prev).add(deleteExamTarget.id));
+      deleteQueryClient.invalidateQueries();
+      toast({ title: "Exam ডিলিট হয়েছে" });
+      setDeleteExamTarget(null);
+    } catch (err: any) {
+      toast({ title: "Delete ব্যর্থ", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setDeletingExam(false);
+    }
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [splittingExam, setSplittingExam] = useState<any | null>(null);
 
@@ -2863,6 +2886,26 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
 
   return (
   <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+    <AlertDialog open={!!deleteExamTarget} onOpenChange={(v) => { if (!v && !deletingExam) setDeleteExamTarget(null); }}>
+      <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+        <AlertDialogHeader>
+          <AlertDialogTitle>এই Exam ডিলিট করবেন?</AlertDialogTitle>
+          <AlertDialogDescription>
+            "{deleteExamTarget?.title}" স্থায়ীভাবে মুছে যাবে। এটি আর ফেরানো যাবে না।
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deletingExam}>বাতিল</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={deletingExam}
+            className="bg-red-600 hover:bg-red-700"
+            onClick={(e) => { e.preventDefault(); void confirmDeleteExam(); }}
+          >
+            {deletingExam ? "ডিলিট হচ্ছে..." : "ডিলিট"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
     <Dialog open={!!sendingExam} onOpenChange={(v) => { if (!v && !sendBusy) setSendingExam(null); }}>
@@ -3230,7 +3273,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         </div>
       </DialogContent>
     </Dialog>
-    {[...exams].sort((a, b) => {
+    {[...exams].filter((x) => !deletedExamIds.has(x.id)).sort((a, b) => {
       const uA = isExamUnlocked(a, enrolledIds, fullAccessCourseIds, subChapterGrants);
       const uB = isExamUnlocked(b, enrolledIds, fullAccessCourseIds, subChapterGrants);
       if (uA === uB) return 0;
@@ -3355,6 +3398,15 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
                   onClick={(e) => handleAiTagSingle(e, exam)}
                 >
                   <Sparkles className="h-3 w-3" /> AI Tag
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 w-7 p-0 ml-auto text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                  onClick={(e) => { e.stopPropagation(); setDeleteExamTarget(exam); }}
+                  title="Delete exam"
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             )}
