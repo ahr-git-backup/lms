@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import MathText from "@/components/MathText";
-import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { LayoutGrid, Clock, AlertTriangle, RotateCw, CheckCircle2, ChevronLeft, ArrowLeft, ArrowRight, Loader2, Lock, Plus, Minus, Zap, Volume2, Volume1, VolumeX, Volume, Bookmark, Flag, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -153,7 +152,6 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
 
 const TakeExam = () => {
   useAntiCheat();
-  const isStandalone = usePWADisplayMode();
   const { examId } = useParams();
   const [searchParams] = useSearchParams();
   const retakeFromAttemptId = searchParams.get('retake_from');
@@ -2176,7 +2174,7 @@ const TakeExam = () => {
 
         <div
           className="fixed left-0 right-0 z-30 bg-background border-t px-4 py-3"
-          style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : 0 }}
+          style={{ bottom: 0 }}
         >
           <div className="max-w-2xl mx-auto flex gap-3">
             <button
@@ -2432,7 +2430,7 @@ const TakeExam = () => {
       {/* Sticky Full-Width Submit Exam Bar */}
       <div
         className="fixed left-0 right-0 z-40 px-4"
-        style={{ bottom: isStandalone ? "calc(60px + env(safe-area-inset-bottom))" : "0.75rem" }}
+        style={{ bottom: "0.75rem" }}
       >
         <Button
              size="lg"

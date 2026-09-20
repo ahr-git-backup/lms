@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { Home, GraduationCap, Gift, BookOpenCheck, User } from "lucide-react";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,11 @@ const NAV_ITEMS = [
  */
 export const AppBottomNav = () => {
   const isStandalone = usePWADisplayMode();
+  const { pathname } = useLocation();
   if (!isStandalone) return null;
+  // Hide while an exam is running so only the Submit controls are visible.
+  // (Result / review pages live on other routes, so the nav stays there.)
+  if (/^(\/dashboard)?\/take-exam\//.test(pathname)) return null;
 
   return (
     <nav
