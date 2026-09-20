@@ -61,15 +61,35 @@ export const useEnrollments = () => {
       const allLinkedIds = new Set<string>();
       const bonusIdsByRoot = new Map<string, Set<string>>(); // root course_id -> set of bonus course ids it unlocked
 
+      // One fetch per course id for this whole run (roots share courses, and each root's
+      // recursion previously re-requested the same rows) — same result, far fewer requests.
+      const linkedCache = new Map<string, { id: string; linked_course_ids: string[] | null }>();
+      const inFlight = new Map<string, Promise<void>>();
+      const fetchLinked = async (ids: string[]) => {
+          const missing = ids.filter((id) => !linkedCache.has(id));
+          if (missing.length === 0) return;
+          const key = missing.slice().sort().join(",");
+          let pending = inFlight.get(key);
+          if (!pending) {
+              pending = (async () => {
+                  const { data } = await supabase.from("courses").select("id, linked_course_ids").in("id", missing);
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  (data || []).forEach((c: any) => linkedCache.set(c.id, c));
+                  // A course that returned no row (deleted/hidden) is cached as empty so it is not re-requested.
+                  missing.forEach((id) => { if (!linkedCache.has(id)) linkedCache.set(id, { id, linked_course_ids: null }); });
+              })();
+              inFlight.set(key, pending);
+          }
+          await pending;
+      };
+
       const resolveLinkedForRoot = async (rootId: string, idsToResolve: string[], seen: Set<string>) => {
           if (idsToResolve.length === 0) return;
 
-          const { data: courses } = await supabase
-              .from("courses")
-              .select("id, linked_course_ids")
-              .in("id", idsToResolve);
+          await fetchLinked(idsToResolve);
+          const courses = idsToResolve.map((id) => linkedCache.get(id)).filter(Boolean) as { id: string; linked_course_ids: string[] | null }[];
 
-          if (!courses) return;
+          if (courses.length === 0) return;
 
           const nextIds: string[] = [];
           courses.forEach((c: any) => {
