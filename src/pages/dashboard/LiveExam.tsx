@@ -70,7 +70,13 @@ const LiveExam = () => {
   const { preferences } = useReminderPreferences();
 
   const enrolledCourseIds = enrollments?.map((e) => e.course_id) || [];
-  const filteredExams = exams?.filter((e) => enrolledCourseIds.includes(e.course_id)) || [];
+  // Visible when the exam belongs to an enrolled course OR is shared into one (shared_course_ids).
+  const filteredExams =
+    exams?.filter(
+      (e: any) =>
+        enrolledCourseIds.includes(e.course_id) ||
+        (Array.isArray(e.shared_course_ids) && e.shared_course_ids.some((cid: string) => enrolledCourseIds.includes(cid)))
+    ) || [];
 
   const [selectedExamForPopup, setSelectedExamForPopup] = useState<any>(null);
 
