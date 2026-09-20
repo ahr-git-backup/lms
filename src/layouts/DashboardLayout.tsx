@@ -202,16 +202,14 @@ export const DashboardLayout = () => {
 
         const audioEl = document.getElementById("notification-sound-loop") as HTMLAudioElement;
 
+        // Students never hear the looping beep (sound is only for Quick/Rapid Practice games);
+        // just make sure any stray audio is stopped.
+        if (audioEl && !audioEl.paused) {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+        }
         if (hasCriticalNotification) {
-            if (audioEl && audioEl.paused) {
-                audioEl.play().catch(e => console.log("Audio play prevented:", e));
-            }
             sendNotification("New Notification", { body: "You have important updates regarding your enrollment." });
-        } else {
-            if (audioEl && !audioEl.paused) {
-                audioEl.pause();
-                audioEl.currentTime = 0;
-            }
         }
 
         // Check Announcements (General) — count only those NOT yet read by this user (server-truth via announcement_reads)
@@ -338,7 +336,7 @@ export const DashboardLayout = () => {
               <SidebarTrigger className="hidden sm:inline-flex" />
 
               {/* Notification Audio Element */}
-              <audio id="notification-sound-loop" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" loop className="hidden" />
+              <audio id="notification-sound-loop" src={isAdmin ? "https://actions.google.com/sounds/v1/alarms/beep_short.ogg" : undefined} loop preload="none" className="hidden" />
 
               {/* Mobile hamburger */}
               <Sheet>
