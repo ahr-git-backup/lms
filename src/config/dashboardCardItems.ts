@@ -32,7 +32,7 @@ export const quickAccessItems: QuickAccessItem[] = [
   { title: "Record Class", icon: History, color: "text-purple-500", border: "border-purple-500", bg: "bg-purple-50 dark:bg-purple-950", url: "/dashboard/recordings" },
   { title: "Past Exams", icon: BookOpen, color: "text-orange-500", border: "border-orange-500", bg: "bg-orange-50 dark:bg-orange-950", url: "/dashboard/past-exam" },
   { title: "Archive Class & Exam", icon: History, color: "text-gray-500", border: "border-gray-500", bg: "bg-gray-50 dark:bg-gray-950", url: "/dashboard/archive" },
-  { title: "Class & Exam History", icon: Trophy, color: "text-yellow-500", border: "border-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/results" },
+  { title: "Top Performer", icon: Trophy, color: "text-yellow-500", border: "border-yellow-500", bg: "bg-yellow-50 dark:bg-yellow-950", url: "/dashboard/top-performer" },
   { title: "Study Tracker", icon: BarChart3, color: "text-sky-600", border: "border-sky-600", bg: "bg-sky-50 dark:bg-sky-950", url: "/syllabus-tracker" },
   { title: "FB & Telegram Group", icon: Files, color: "text-cyan-500", border: "border-cyan-500", bg: "bg-cyan-50 dark:bg-cyan-950", url: "/dashboard/community" },
   { title: "Bookmarks", icon: Bookmark, color: "text-emerald-500", border: "border-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-950", url: "/dashboard/bookmarks" },

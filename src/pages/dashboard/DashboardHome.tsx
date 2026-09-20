@@ -266,8 +266,11 @@ const DashboardHome = () => {
   const orderedNavigationItems = (() => {
     if (!quickAccessOrder || quickAccessOrder.length === 0) return navigationItems;
     const byTitle = new Map(navigationItems.map((item) => [item.title, item]));
-    const ordered = quickAccessOrder.map((t) => byTitle.get(t)).filter(Boolean) as typeof navigationItems;
-    const remaining = navigationItems.filter((item) => !quickAccessOrder.includes(item.title));
+    // Saved admin order may still hold old titles; map them to the cards that replaced them (same position).
+    const renamed: Record<string, string> = { "My Mistakes": "Study Tracker", "Class & Exam History": "Top Performer", "Exam History": "Top Performer" };
+    const savedOrder = quickAccessOrder.map((t) => (byTitle.has(t) ? t : renamed[t] ?? t));
+    const ordered = savedOrder.map((t) => byTitle.get(t)).filter(Boolean) as typeof navigationItems;
+    const remaining = navigationItems.filter((item) => !savedOrder.includes(item.title));
     return [...ordered, ...remaining];
   })();
 
