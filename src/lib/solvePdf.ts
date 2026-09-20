@@ -234,7 +234,7 @@ body{background:#e5e7eb;padding:16px 0}
 @media print{.a4-page{width:auto;margin:0;padding:0;box-shadow:none;border:none}}
 </style>`;
 
-export function generateSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
+function buildSolvePdfHtml({ examName, questions, style = "style2", hideAnswers = false }: SolvePdfParams): string {
   const heading = escapeHtml(examName) || "Exam";
 
   if (style === "style1") {
@@ -490,6 +490,55 @@ export function generateSolvePdfHtml({ examName, questions, style = "style2", hi
 
   return `<!DOCTYPE html><html lang="bn"><head><meta charset="UTF-8">${GOOGLE_FONTS_LINK}${PRINT_CSS}<title>${heading}</title></head><body>${body}</body></html>`;
 }
+
+const SEARCH_UI = `<style>
+.sx-btn{position:fixed;top:12px;right:12px;z-index:10000;width:44px;height:44px;border-radius:50%;border:2px solid #5A5FE0;background:#fff;color:#5A5FE0;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(0,0,0,.25);cursor:pointer;padding:0}
+.sx-btn svg{width:22px;height:22px}
+.sx-panel{position:fixed;top:0;left:0;right:0;z-index:10001;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,.3);padding:10px 12px;display:none;font-family:system-ui,sans-serif}
+.sx-panel.open{display:block}
+.sx-row{display:flex;gap:8px;align-items:center}
+.sx-row input{flex:1;min-width:0;font-size:16px;padding:9px 12px;border:2px solid #5A5FE0;border-radius:10px;outline:none}
+.sx-row button{border:0;background:#eef;color:#3730a3;border-radius:8px;padding:8px 11px;font-size:15px;font-weight:700;cursor:pointer}
+.sx-info{font-size:13px;color:#444;margin:6px 2px 4px}
+.sx-list{max-height:38vh;overflow:auto;border-top:1px solid #ddd}
+.sx-item{padding:8px 4px;border-bottom:1px solid #eee;font-size:14px;cursor:pointer;line-height:1.35}
+.sx-item b{color:#5A5FE0}
+.sx-item.cur{background:#eef}
+mark.sx-hit{background:#fde047;color:#000;padding:0;border-radius:2px}
+mark.sx-hit.sx-cur{background:#fb923c}
+@media print{.sx-btn,.sx-panel{display:none!important}mark.sx-hit{background:none}}
+</style>
+<button class="sx-btn" id="sxOpen" aria-label="Search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button>
+<div class="sx-panel" id="sxPanel">
+<div class="sx-row"><input id="sxIn" type="search" placeholder="Search word..." autocomplete="off"><button id="sxPrev">&#8593;</button><button id="sxNext">&#8595;</button><button id="sxClose">&#10005;</button></div>
+<div class="sx-info" id="sxInfo"></div><div class="sx-list" id="sxList"></div></div>
+<script>(function(){
+var op=document.getElementById('sxOpen'),pn=document.getElementById('sxPanel'),inp=document.getElementById('sxIn'),info=document.getElementById('sxInfo'),list=document.getElementById('sxList');
+var hits=[],cur=-1;
+function clear(){document.querySelectorAll('mark.sx-hit').forEach(function(m){var p=m.parentNode;p.replaceChild(document.createTextNode(m.textContent),m);p.normalize()});hits=[];cur=-1;list.innerHTML='';info.textContent=''}
+function qNo(el){var n=el;while(n&&n!==document.body){var t=(n.className||'')+'';if(/q-?(item|block|card|box)|question/i.test(t)){var m=(n.textContent||'').match(/^\\s*(\\d+)\\s*[.\\u0964)]/);if(m)return m[1]}n=n.parentElement}return ''}
+function run(){clear();var q=inp.value.trim();if(!q)return;var lo=q.toLowerCase();
+var w=document.createTreeWalker(document.body,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentElement;if(!p||/^(SCRIPT|STYLE|BUTTON|INPUT)$/.test(p.tagName)||p.closest('.sx-panel,.sx-btn'))return NodeFilter.FILTER_REJECT;return n.nodeValue.toLowerCase().indexOf(lo)>-1?NodeFilter.FILTER_ACCEPT:NodeFilter.FILTER_REJECT}});
+var nodes=[];while(w.nextNode())nodes.push(w.currentNode);
+nodes.forEach(function(n){var txt=n.nodeValue,l=txt.toLowerCase(),i=0,f=document.createDocumentFragment(),k;
+while((k=l.indexOf(lo,i))>-1){if(k>i)f.appendChild(document.createTextNode(txt.slice(i,k)));var m=document.createElement('mark');m.className='sx-hit';m.textContent=txt.slice(k,k+q.length);f.appendChild(m);hits.push(m);i=k+q.length}
+if(i<txt.length)f.appendChild(document.createTextNode(txt.slice(i)));n.parentNode.replaceChild(f,n)});
+info.textContent=hits.length?hits.length+' match':'No match';
+hits.forEach(function(m,ix){var c=(m.parentElement.textContent||'').replace(/\\s+/g,' ').trim(),pos=c.toLowerCase().indexOf(lo),s=c.slice(Math.max(0,pos-35),pos+q.length+45);var d=document.createElement('div');d.className='sx-item';var no=qNo(m);d.innerHTML=(no?'<b>Q'+no+'</b> \\u00b7 ':'<b>#'+(ix+1)+'</b> \\u00b7 ')+s.replace(/[&<>]/g,function(x){return{'&':'&amp;','<':'&lt;','>':'&gt;'}[x]});d.onclick=function(){go(ix)};list.appendChild(d)});
+if(hits.length)go(0)}
+function go(i){if(!hits.length)return;if(cur>-1){hits[cur].classList.remove('sx-cur');list.children[cur]&&list.children[cur].classList.remove('cur')}
+cur=(i+hits.length)%hits.length;hits[cur].classList.add('sx-cur');list.children[cur].classList.add('cur');hits[cur].scrollIntoView({block:'center',behavior:'smooth'});info.textContent=(cur+1)+' / '+hits.length+' match'}
+op.onclick=function(){pn.classList.add('open');op.style.display='none';inp.focus()};
+document.getElementById('sxClose').onclick=function(){pn.classList.remove('open');op.style.display='flex';clear();inp.value=''};
+document.getElementById('sxNext').onclick=function(){go(cur+1)};document.getElementById('sxPrev').onclick=function(){go(cur-1)};
+var t;inp.addEventListener('input',function(){clearTimeout(t);t=setTimeout(run,250)});inp.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();hits.length?go(cur+1):run()}});
+})();</script>`;
+
+export function generateSolvePdfHtml(params: SolvePdfParams): string {
+  const html = buildSolvePdfHtml(params);
+  return html.includes("</body>") ? html.replace("</body>", SEARCH_UI + "</body>") : html + SEARCH_UI;
+}
+
 
 export function openSolvePdf(params: SolvePdfParams) {
   const html = generateSolvePdfHtml(params);
