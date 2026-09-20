@@ -279,7 +279,7 @@ const ExamResults = () => {
 
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("*, exam:exams(*, course:courses(*))")
+        .select("id, exam_id, score, answers, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, readymade_topic, total_marks, course_id, course:courses(id, name))")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
 

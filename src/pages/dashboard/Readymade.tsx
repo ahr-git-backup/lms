@@ -2226,7 +2226,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       const { error } = await (supabase as any).rpc("soft_delete_exam", { p_exam_id: deleteExamTarget.id });
       if (error) throw error;
       setDeletedExamIds((prev) => new Set(prev).add(deleteExamTarget.id));
-      deleteQueryClient.invalidateQueries();
+      deleteQueryClient.invalidateQueries({ predicate: (q) => String(q.queryKey?.[0] ?? "").startsWith("readymade-") });
       toast({ title: "Exam ডিলিট হয়েছে" });
       setDeleteExamTarget(null);
     } catch (err: any) {

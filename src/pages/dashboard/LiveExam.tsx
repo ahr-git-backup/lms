@@ -59,7 +59,7 @@ const LiveExam = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("*")
+        .select("exam_id")
         .eq("profile_id", user.id);
       if (error) throw error;
       return data || [];

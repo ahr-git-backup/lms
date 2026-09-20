@@ -49,7 +49,7 @@ const ReadymadeHistory = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("*, exam:exams(*)")
+        .select("id, exam_id, score, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, category, total_marks)")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
@@ -66,7 +66,7 @@ const ReadymadeHistory = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("*, exam:exams(*)")
+        .select("id, exam_id, score, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, category, total_marks)")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
@@ -83,7 +83,7 @@ const ReadymadeHistory = () => {
       if (!user) return [];
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("*, exam:exams(*)")
+        .select("id, exam_id, score, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, category, total_marks)")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
       if (error) throw error;
