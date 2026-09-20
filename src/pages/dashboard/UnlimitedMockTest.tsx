@@ -159,6 +159,11 @@ const UnlimitedMockTest = () => {
     });
   };
 
+  // Count of MCQs in a pool row. Uses the small `question_count` column instead of downloading the whole
+// `questions_json` array just to take its length (that array is hundreds of KB per row).
+const rowCount = (row: any): number =>
+  typeof row?.question_count === "number" ? row.question_count : Array.isArray(row?.questions_json) ? row.questions_json.length : 0;
+
   const toggleTopic = (s: string, c: string, t: string) => {
     setSelectedTopics((prev) => {
       const exists = prev.some((x) => x.subject === s && x.chapter === c && x.topic === t);
@@ -217,12 +222,12 @@ const UnlimitedMockTest = () => {
   const { data: standardMcqCounts } = useQuery({
     queryKey: ["mock-pool-standard-mcq-counts"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("mock_question_pool").select("standard, questions_json");
+      const { data, error } = await supabase.from("mock_question_pool").select("standard, question_count");
       if (error) throw error;
       const counts: Record<string, number> = {};
       (data || []).forEach((row: any) => {
         if (!row.standard) return;
-        const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+        const n = rowCount(row);
         counts[row.standard] = (counts[row.standard] || 0) + n;
       });
       return counts;
@@ -241,18 +246,17 @@ const UnlimitedMockTest = () => {
   const { data: subjectTotals } = useQuery({
     queryKey: ["mock-pool-subject-totals"],
     queryFn: async () => {
-      const rows = await fetchCached<{ subject: string; questions_json: any }[]>(
+      const rows = await fetchCached<{ subject: string; questions_json?: any; question_count?: number }[]>(
         "/mock-pool-subject-totals",
         async () => {
-          const { data, error } = await supabase.from("mock_question_pool").select("subject, questions_json");
+          const { data, error } = await supabase.from("mock_question_pool").select("subject, question_count");
           if (error) throw error;
-          return (data || []) as { subject: string; questions_json: any }[];
+          return (data || []) as { subject: string; questions_json?: any; question_count?: number }[];
         }
       );
       const totals: Record<string, number> = {};
       rows.forEach((row) => {
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        totals[row.subject] = (totals[row.subject] || 0) + qs.length;
+        totals[row.subject] = (totals[row.subject] || 0) + rowCount(row);
       });
       return totals;
     },
@@ -265,14 +269,13 @@ const UnlimitedMockTest = () => {
       queryFn: async () => {
         const { data, error } = await supabase
           .from("mock_question_pool")
-          .select("chapter, topic, questions_json")
+          .select("chapter, topic, question_count")
           .eq("subject", s);
         if (error) throw error;
         const totals: Record<string, number> = {};
         const hasTopic: Record<string, boolean> = {};
         (data || []).forEach((row: any) => {
-          const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-          totals[row.chapter] = (totals[row.chapter] || 0) + qs.length;
+          totals[row.chapter] = (totals[row.chapter] || 0) + rowCount(row);
           if (row.topic) hasTopic[row.chapter] = true;
         });
         return { totals, hasTopic };
@@ -344,7 +347,7 @@ const UnlimitedMockTest = () => {
       // matters a lot when "select full subject" pulls in 10-15+ chapters at once.
       let q = supabase
         .from("mock_question_pool")
-        .select("subject, chapter, topic, standard, questions_json")
+        .select("subject, chapter, topic, standard, question_count")
         .in("subject", subjectsInSel)
         .in("chapter", chaptersInSel);
       const { data, error } = await q;
@@ -357,7 +360,7 @@ const UnlimitedMockTest = () => {
           .filter((t) => t.subject === row.subject && t.chapter === row.chapter)
           .map((t) => t.topic);
         if (topicsForSel.length > 0 && !topicsForSel.includes(row.topic)) return;
-        const n = Array.isArray(row.questions_json) ? row.questions_json.length : 0;
+        const n = rowCount(row);
         counts[row.standard] = (counts[row.standard] || 0) + n;
       });
       return counts;
@@ -383,7 +386,7 @@ const UnlimitedMockTest = () => {
       // Single batched query instead of one round-trip per selected chapter.
       const { data, error } = await supabase
         .from("mock_question_pool")
-        .select("subject, chapter, topic, questions_json")
+        .select("subject, chapter, topic, question_count")
         .in("subject", subjectsInSel)
         .in("chapter", chaptersInSel)
         .eq("standard", standard);
@@ -397,8 +400,7 @@ const UnlimitedMockTest = () => {
           .filter((t) => t.subject === row.subject && t.chapter === row.chapter)
           .map((t) => t.topic);
         if (topicsForSel.length > 0 && !topicsForSel.includes(row.topic)) return;
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        total += qs.length;
+        total += rowCount(row);
       });
       return total;
     },
@@ -410,7 +412,7 @@ const UnlimitedMockTest = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("mock_question_pool")
-        .select("subject, chapter, questions_json");
+        .select("subject, chapter, question_count");
       if (error) throw error;
       const subjectsSet = new Set<string>();
       const chaptersSet = new Set<string>();
@@ -418,8 +420,7 @@ const UnlimitedMockTest = () => {
       (data || []).forEach((row: any) => {
         subjectsSet.add(row.subject);
         chaptersSet.add(`${row.subject}__${row.chapter}`);
-        const qs = Array.isArray(row.questions_json) ? row.questions_json : [];
-        totalMcq += qs.length;
+        totalMcq += rowCount(row);
       });
       return { subjects: subjectsSet.size, chapters: chaptersSet.size, mcq: totalMcq };
     },
