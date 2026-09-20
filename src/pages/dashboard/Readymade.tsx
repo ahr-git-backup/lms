@@ -2222,7 +2222,8 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
     if (!isAdmin || !deleteExamTarget) return;
     setDeletingExam(true);
     try {
-      const { error } = await supabase.from("exams").delete().eq("id", deleteExamTarget.id);
+      // Soft delete (hides from students, keeps attempts/history). Hard delete would cascade-wipe every user's attempts.
+      const { error } = await (supabase as any).rpc("soft_delete_exam", { p_exam_id: deleteExamTarget.id });
       if (error) throw error;
       setDeletedExamIds((prev) => new Set(prev).add(deleteExamTarget.id));
       deleteQueryClient.invalidateQueries();
@@ -2891,7 +2892,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         <AlertDialogHeader>
           <AlertDialogTitle>এই Exam ডিলিট করবেন?</AlertDialogTitle>
           <AlertDialogDescription>
-            "{deleteExamTarget?.title}" স্থায়ীভাবে মুছে যাবে। এটি আর ফেরানো যাবে না।
+            "{deleteExamTarget?.title}" ইউজারদের কাছ থেকে লুকিয়ে যাবে (Exams Manager → History থেকে Restore করা যাবে)। ইউজারদের attempt/history মুছবে না।
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
