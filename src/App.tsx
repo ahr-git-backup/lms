@@ -107,7 +107,6 @@ import FreeClass from "./pages/public/FreeClass";
 import FreeExam from "./pages/public/FreeExam";
 import FocusTimer from "./pages/public/FocusTimer";
 import StudyHistory from "./pages/public/StudyHistory";
-import StudyHistory from "./pages/public/StudyHistory";
 import AtlasAI from "./pages/public/AtlasAI";
 import TelegramSupportPage from "./pages/public/TelegramSupport";
 import Pomodoro from "./pages/public/Pomodoro";

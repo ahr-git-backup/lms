@@ -59,8 +59,6 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
-
 const ProfileDetailItem = ({ label, value }: { label: string, value: string | number | undefined | null }) => (
     <div className="flex items-center justify-between py-2.5 border-b border-border/50 last:border-0">
         <span className="text-muted-foreground text-xs font-medium">{label}</span>

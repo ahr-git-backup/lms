@@ -1200,7 +1200,7 @@ const FocusTimer = () => {
                   if (row.user_id === user?.id) {
                     return row.duration_seconds + ((!paused && mood === row.mood) ? elapsed : 0);
                   }
-                  const extra = !row.is_paused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0;
+                  const extra = !row.is_paused ? (void nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0;
                   const computed = row.duration_seconds + extra;
                   const prev = liveDisplaySecRef.current[row.user_id] ?? 0;
                   const next = row.is_paused ? computed : Math.max(prev, computed);
@@ -1220,7 +1220,7 @@ const FocusTimer = () => {
                   const isPaused = !!row.is_paused;
                   const liveExtra = isMe
                     ? ((!paused && mood === row.mood) ? elapsed : 0)
-                    : (!isPaused ? (nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0);
+                    : (!isPaused ? (void nowTick, Math.floor((Date.now() - liveNowFetchedAtRef.current) / 1000)) : 0);
                   const rawComputed = row.duration_seconds + liveExtra;
                   const prevDisplayed = liveDisplaySecRef.current[row.user_id] ?? 0;
                   const displaySeconds = isMe
