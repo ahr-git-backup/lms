@@ -5,6 +5,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { compressAvatar } from "@/lib/compressAvatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -119,12 +120,13 @@ const StudentProfile = () => {
 
     setUploadingAvatar(true);
     try {
-      const ext = file.name.split(".").pop() || "jpg";
+      const small = await compressAvatar(file);
+      const ext = small.name.split(".").pop() || "jpg";
       const filePath = `${user.id}/avatar.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(filePath, file, { upsert: true, cacheControl: "3600" });
+        .upload(filePath, small, { upsert: true, cacheControl: "31536000" });
 
       if (uploadError) throw uploadError;
 

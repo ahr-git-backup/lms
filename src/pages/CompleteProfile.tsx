@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { compressAvatar } from "@/lib/compressAvatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -155,11 +156,12 @@ const CompleteProfile = () => {
 
       if (photoFile) {
         try {
-          const ext = photoFile.name.split(".").pop() || "jpg";
+          const small = await compressAvatar(photoFile);
+          const ext = small.name.split(".").pop() || "jpg";
           const filePath = `${user.id}/avatar.${ext}`;
           const { error: uploadError } = await supabase.storage
             .from("avatars")
-            .upload(filePath, photoFile, { upsert: true, cacheControl: "3600" });
+            .upload(filePath, small, { upsert: true, cacheControl: "31536000" });
           if (!uploadError) {
             const { data: publicUrlData } = supabase.storage.from("avatars").getPublicUrl(filePath);
             await supabase.from("profiles").update({ avatar_url: `${publicUrlData.publicUrl}?t=${Date.now()}` }).eq("id", user.id);
