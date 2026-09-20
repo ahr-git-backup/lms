@@ -284,7 +284,9 @@ const ExamResults = () => {
         .order("submitted_at", { ascending: false });
 
       if (error) throw error;
-      return data || [];
+      // Attempts of exams the student can no longer see (deleted/unpublished => joined exam is null via RLS)
+      // must be skipped, otherwise a.exam.xxx throws and the whole history renders empty.
+      return (data || []).filter((a: any) => !!a.exam);
     },
     enabled: !!user,
   });
