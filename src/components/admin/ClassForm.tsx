@@ -282,10 +282,11 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const isArchiveOnly = isArchiveMode || form.is_archive;
-        if (isArchiveOnly ? form.archive_course_ids.length === 0 : !form.course_id) {
+        // Archive course pick is optional: an ended live class archives under its own course automatically.
+        if (!isArchiveOnly && !form.course_id) {
             toast({
                 title: "Course required",
-                description: isArchiveOnly ? "Please select at least one course to archive for." : "Please select a course.",
+                description: "Please select a course.",
                 variant: "destructive",
             });
             return;

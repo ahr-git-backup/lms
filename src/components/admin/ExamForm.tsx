@@ -769,14 +769,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             });
             return;
         }
-        if (isArchiveOnly && form.archive_course_ids.length === 0) {
-            toast({
-                title: "Course required",
-                description: "Please select at least one course to archive for.",
-                variant: "destructive",
-            });
-            return;
-        }
+        // Archive course pick is optional: an ended live exam/class archives under its own course automatically.
         upsertExamMutation.mutate(form);
     };
 
