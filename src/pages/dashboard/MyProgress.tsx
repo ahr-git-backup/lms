@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useIsFetching, useQueryClient } from "@tanstack/react-query";
 import { History, Video, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "react-router-dom";
@@ -57,6 +58,20 @@ const MyProgress = () => {
           </button>
         ))}
       </div>
+
+      {firstError && (
+        <div className="rounded-lg border-2 border-red-500 bg-red-50 dark:bg-red-950 p-3 text-xs text-red-700 dark:text-red-300 space-y-1">
+          <p className="font-semibold">রিপোর্ট লোড করতে সমস্যা হয়েছে</p>
+          <p className="break-words">{firstError?.message || String(firstError)}</p>
+          <button
+            type="button"
+            className="underline font-semibold"
+            onClick={() => { failed.forEach((q) => queryClient.resetQueries({ queryKey: q.queryKey })); }}
+          >
+            আবার চেষ্টা করুন
+          </button>
+        </div>
+      )}
 
       {activeTab === "exam" ? (
         <ExamAnalytics />
