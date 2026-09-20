@@ -203,7 +203,7 @@ html, body {
   /* Prevent Chrome/Android's pull-to-refresh gesture — dragging up past the
      top of a scrollable form (like the Exam edit form's date pickers) was
      triggering a blank draggable overscroll sheet instead of just scrolling. */
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
 }
 
 body {

@@ -268,7 +268,7 @@ export const DashboardLayout = () => {
   return (
     <StudyToolsProvider>
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-screen w-full bg-background text-foreground flex flex-col print:block print:h-auto print:overflow-visible">
+      <div className="h-[100dvh] max-h-[100dvh] w-full bg-background text-foreground flex flex-col overflow-hidden print:block print:h-auto print:max-h-none print:overflow-visible">
         <PushPermissionPrompt />
         <header className="sticky top-0 z-10 flex h-14 items-center border-b bg-background/95 backdrop-blur px-2 sm:px-4 supports-[backdrop-filter]:bg-background/60 print:hidden overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="flex flex-1 items-center justify-between gap-1.5 sm:gap-3 min-w-max">
@@ -507,11 +507,11 @@ export const DashboardLayout = () => {
           </div>
         </header>
 
-        <div className="flex flex-1 w-full overflow-hidden pt-[1px] print:overflow-visible print:h-auto print:block">
+        <div className="flex flex-1 min-h-0 w-full overflow-hidden pt-[1px] print:overflow-visible print:h-auto print:block">
           <div className="print:hidden">
             <AppSidebar hasPendingPayments={hasPendingPayments} />
           </div>
-          <main className={cn("flex-1 bg-background px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto w-full print:overflow-visible print:h-auto print:w-full print:px-0 print:py-0", isStandalone && "pb-[calc(60px+env(safe-area-inset-bottom))]")}>
+          <main className={cn("flex-1 bg-background px-4 py-4 sm:px-6 sm:py-6 overflow-y-auto overscroll-y-contain min-h-0 w-full print:overflow-visible print:h-auto print:w-full print:px-0 print:py-0", isStandalone && "pb-[calc(60px+env(safe-area-inset-bottom))]")}>
             <Outlet />
           </main>
         </div>
