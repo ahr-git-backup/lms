@@ -54,6 +54,8 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  // True when the video ended: YouTube paints a "more videos" grid over the player at that point, so we cover it.
+  const [hasEnded, setHasEnded] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [watchTime, setWatchTime] = useState(0);
   const { updateStreak, updateStats } = useStudyTools();
@@ -212,6 +214,7 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const onPlayerStateChange = (event: any) => {
     setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
+    setHasEnded(event.data === window.YT.PlayerState.ENDED);
     if (event.data === window.YT.PlayerState.PLAYING) {
       forceMaxQuality(event.target);
     }
@@ -240,6 +243,9 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
         showinfo: 0,
         fs: 0, // Hide fullscreen button
         iv_load_policy: 3, // Hide annotations
+        disablekb: 1, // no keyboard shortcuts that could open YouTube UI
+        cc_load_policy: 0,
+        origin: typeof window !== "undefined" ? window.location.origin : undefined,
       },
       events: {
         onReady: onPlayerReady,
@@ -544,6 +550,25 @@ const ClassPlayer = ({ videoId, title, onEnded, isLive, startTime, classId, watc
           className="absolute inset-0 z-10 cursor-pointer"
           onClick={(e) => { e.stopPropagation(); handlePlayPause(); }}
         />
+
+        {/* Hide YouTube's own UI that leaks through even with controls=0:
+            - top strip: video title, "Watch later" and "Share" icons
+            - bottom-right corner: YouTube logo / "Watch on YouTube"
+            - whole frame after the video ends: the "more videos" suggestion grid
+            These are opaque covers above the iframe (z-[15]); our own controls (z-20) stay on top. */}
+        <div className="absolute top-0 left-0 right-0 h-16 sm:h-20 z-[15] bg-gradient-to-b from-black to-black/0 pointer-events-auto" onClick={(e) => { e.stopPropagation(); handlePlayPause(); }} />
+        <div className="absolute bottom-0 right-0 w-28 sm:w-36 h-12 sm:h-14 z-[15] bg-black pointer-events-auto" onClick={(e) => { e.stopPropagation(); handlePlayPause(); }} />
+        {hasEnded && (
+          <div className="absolute inset-0 z-[16] bg-black flex items-center justify-center">
+            <button
+              type="button"
+              className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/30 text-white text-sm font-semibold hover:bg-white/20"
+              onClick={(e) => { e.stopPropagation(); setHasEnded(false); playerRef.current?.seekTo?.(0, true); playerRef.current?.playVideo?.(); }}
+            >
+              <Play className="h-4 w-4 fill-white" /> আবার দেখুন
+            </button>
+          </div>
+        )}
 
         {/* Overlay/Controls */}
         <div
