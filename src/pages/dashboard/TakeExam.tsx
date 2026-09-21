@@ -395,7 +395,8 @@ const TakeExam = () => {
   });
 
   const { data: questions, isLoading: questionsLoading } = useQuery({
-    queryKey: ["exam-questions", examId, retakeFromAttemptId],
+    queryKey: ["exam-questions", examId, retakeFromAttemptId, (exam as any)?.updated_at || null],
+    enabled: !!exam,
     queryFn: async () => {
       let allQuestions;
 
@@ -406,7 +407,9 @@ const TakeExam = () => {
             const parsed = JSON.parse(cached);
             // Cache is stored as { examId, data } so we can verify it actually
             // belongs to the exam being opened right now before trusting it.
-            if (parsed && parsed.examId === examId && Array.isArray(parsed.data) && parsed.data.length > 0) {
+            // Also require the cache to match the exam's current updated_at (bumped in DB whenever MCQs change).
+            const examStamp = (exam as any)?.updated_at || null;
+            if (parsed && parsed.examId === examId && (parsed.stamp ?? null) === examStamp && Array.isArray(parsed.data) && parsed.data.length > 0) {
                 allQuestions = parsed.data;
                 console.log("Loaded questions from cache");
             } else {
@@ -487,7 +490,7 @@ const TakeExam = () => {
       // Update cache with the final list (filtered or full)
       // Since the key is specific to the session (retake vs normal), caching the result is correct.
       try {
-         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify({ examId, data: allQuestions }));
+         localStorage.setItem(QUESTIONS_STORAGE_KEY, JSON.stringify({ examId, stamp: (exam as any)?.updated_at || null, data: allQuestions }));
       } catch (e) {
          console.error("Cache save error", e);
       }
