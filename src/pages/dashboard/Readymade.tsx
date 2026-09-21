@@ -2464,6 +2464,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           exam_id: sendingExam.id,
           exam_title: sendingExam.title || "",
           subject: Array.isArray(sendingExam.subject) ? (sendingExam.subject[0] || "") : (sendingExam.subject || ""),
+          chapter: sendingExam.chapter || "",
           links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf",
           links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : "full",
         }),
@@ -2550,7 +2551,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       // One combined Telegram message for every selected exam.
       try {
         setBulkProgress({ current: 1, total: exams.length, examTitle: "সব এক্সামের প্রশ্ন লোড হচ্ছে..." });
-        const examGroups: { exam_title: string; subject: string; batches: any[] }[] = [];
+        const examGroups: { exam_title: string; subject: string; chapter?: string; batches: any[] }[] = [];
         for (let i = 0; i < exams.length; i++) {
           const exam = exams[i];
           setBulkProgress({ current: i + 1, total: exams.length, examTitle: exam.title || "" });
@@ -2564,6 +2565,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           examGroups.push({
             exam_title: exam.title || "",
             subject: Array.isArray(exam.subject) ? (exam.subject[0] || "") : (exam.subject || ""),
+            chapter: exam.chapter || "",
             batches: buildBatchesForExam(exam, questions),
           });
         }
@@ -2626,6 +2628,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
             exam_id: exam.id,
             exam_title: exam.title || "",
             subject: Array.isArray(exam.subject) ? (exam.subject[0] || "") : (exam.subject || ""),
+            chapter: exam.chapter || "",
             links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf",
             links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : "full",
           }),
