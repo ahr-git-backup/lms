@@ -88,7 +88,9 @@ const ClassPlayerPage = () => {
           if (hasSharedAccess) return { hasAccess: true, viaArchive: false };
       }
 
-      if (classItem.is_archive) {
+      // A class flagged "also archive" (a normal class that is ALSO shown in Archive) follows the exact same
+      // archive access rules as a pure archive class — the Archive list already includes it, so the player must too.
+      if (classItem.is_archive || classItem.also_archive) {
           // 3a. Course-level "Archive Full Access" toggle
           const hasFullArchiveAccess = enrollments.some((e: any) => !overdueCourseIds.has(e.course_id) && e.course?.archive_full_access);
           if (hasFullArchiveAccess) return { hasAccess: true, viaArchive: true };
