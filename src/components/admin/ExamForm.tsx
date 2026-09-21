@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Upload, BookOpen, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
+import SpecialSegmentManager from "@/components/admin/SpecialSegmentManager";
 import type { QuestionData } from "@/types/exam";
 import { SUBJECTS } from "@/lib/constants";
 import { toDhakaTimeISO, fromDhakaTimeToUTC } from "@/lib/dateUtils";
@@ -707,6 +708,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         },
         onSuccess: () => {
           toast({ title: "Exam saved" });
+          queryClient.invalidateQueries({ queryKey: ["special-segments"] });
           queryClient.invalidateQueries({ queryKey: ["admin-exams"] });
           queryClient.invalidateQueries({ queryKey: ["public-free-exams"] });
           queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
@@ -925,6 +927,8 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
               {form.exam_type === "special" && (
                 <div className="space-y-2">
                   <Label>Subject Segments</Label>
+                  {form.id && <SpecialSegmentManager examId={form.id as string} />}
+                  {form.id && <Label className="text-xs text-muted-foreground">নতুন segment / MCQ যোগ করো:</Label>}
                   <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                     {segmentSubjects.map((sub: string) => {
                       const count = qbQuestions.filter((q: any) => q.subject === sub).length;
