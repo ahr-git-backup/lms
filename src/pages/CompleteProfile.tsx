@@ -110,12 +110,16 @@ const CompleteProfile = () => {
 
     try {
       // Check if this phone belongs to a different, already-complete account.
-      const { data: existingProfile } = await supabase
+      // The number can already be taken either as another account's `phone` OR as its `registration_id`
+      // (registration_id is unique too). Checking only `phone` let the second case slip through and fail
+      // later with a raw "duplicate key ... profiles_registration_id_key" error.
+      const { data: existingList } = await supabase
         .from("profiles")
         .select("id")
-        .eq("phone", phone)
+        .or(`phone.eq.${phone},registration_id.eq.${phone}`)
         .neq("id", user.id)
-        .maybeSingle();
+        .limit(1);
+      const existingProfile = existingList && existingList.length > 0 ? existingList[0] : null;
 
       if (existingProfile) {
         setDuplicatePhone(phone);
@@ -176,6 +180,13 @@ const CompleteProfile = () => {
       navigate("/dashboard", { replace: true });
     } catch (error: any) {
       console.error("Complete profile error:", error);
+      // Safety net: if the database still reports the number as already registered, show the same friendly
+      // "this number already has an account" message instead of the raw constraint text.
+      if (/duplicate key|profiles_registration_id_key|profiles_phone/i.test(error?.message || "")) {
+        setDuplicatePhone(phone);
+        setLoading(false);
+        return;
+      }
       const isAbort = error?.name === "AbortError" || /aborted/i.test(error?.message || "");
       toast({
         title: "Could not save",
