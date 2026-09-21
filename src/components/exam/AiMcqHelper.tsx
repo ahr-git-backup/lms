@@ -228,15 +228,36 @@ export async function generateAndCacheExplanationWithMeta(q: McqLike, questionId
  * Safe to call repeatedly; skips already-cached questions and runs in the
  * background without blocking any UI.
  */
+// Question ids already confirmed cached/handled this session, so re-opening a page never re-checks or re-generates.
+const prewarmedIds = new Set<string>();
+
 export function prewarmExplanations(qs: (McqLike & { id?: string })[]) {
-  const targets = qs.filter((q) => q.id && !q.ai_explanation);
-  if (targets.length === 0) return;
-  // Stagger slightly to avoid hammering the AI proxy all at once.
-  targets.forEach((q, i) => {
-    setTimeout(() => {
-      generateAndCacheExplanation(q, q.id).catch(() => {});
-    }, i * 400);
-  });
+  const candidates = qs.filter((q) => q.id && !q.ai_explanation && !prewarmedIds.has(q.id as string));
+  if (candidates.length === 0) return;
+  candidates.forEach((q) => prewarmedIds.add(q.id as string));
+
+  void (async () => {
+    let targets = candidates;
+    try {
+      // ONE cheap read: which of these already have a saved explanation? Skip those entirely
+      // (no AI call, no DB write). If the check fails (RPC missing/offline) fall back to the old behaviour.
+      const { data, error } = await (supabase.rpc as any)("get_cached_ai_explanation_ids", {
+        p_ids: candidates.map((q) => q.id),
+      });
+      if (!error && Array.isArray(data)) {
+        const have = new Set<string>(data as string[]);
+        targets = candidates.filter((q) => !have.has(q.id as string));
+      }
+    } catch {
+      /* fall back to generating for all candidates */
+    }
+    // Stagger slightly to avoid hammering the AI proxy all at once.
+    targets.forEach((q, i) => {
+      setTimeout(() => {
+        generateAndCacheExplanation(q, q.id).catch(() => {});
+      }, i * 400);
+    });
+  })();
 }
 
 /** Inline dropdown "AI ব্যাখ্যা" box — click to load/expand. Uses cached explanation when available. */
