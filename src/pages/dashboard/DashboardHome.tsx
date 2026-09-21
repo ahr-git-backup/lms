@@ -185,6 +185,14 @@ const DashboardHome = () => {
     // global default before giving up and showing the error screen.
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 8000),
+    // This data carries LIVE exam/class cards: a live exam starts at an exact minute, so a 5-minute cache made the
+    // card show up minutes late (or not at all until a manual refresh). Keep it fresh, and re-check when the student
+    // comes back to the app/tab. It is ONE small RPC (a few hundred bytes), so this costs almost nothing.
+    staleTime: 30 * 1000,
+    refetchOnWindowFocus: true,
+    // While the page is open, re-check every minute so an exam that starts (or ends) appears/disappears by itself.
+    refetchInterval: 60 * 1000,
+    refetchIntervalInBackground: false,
   });
 
   const { data: pendingReportsCount } = useQuery({
