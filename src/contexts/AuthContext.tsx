@@ -359,6 +359,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(false);
     setIsTeacher(false);
     localStorage.removeItem("app_session_id");
+    // Drop the on-disk query cache so the next person on this device never sees this user's data.
+    try {
+      const { del } = await import("idb-keyval");
+      await del("atlas-rq-cache");
+    } catch {
+      // best effort
+    }
 
     // 2. Perform actual sign out
     try {

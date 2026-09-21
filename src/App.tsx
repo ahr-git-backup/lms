@@ -149,6 +149,10 @@ const queryClient = new QueryClient({
 // viewable with no network — exam-taking/mutations still require a live
 // connection and are untouched by this. Wrapped in try/catch so this can
 // never block app boot.
+// Query keys holding per-user data must never be restored from disk.
+const USER_KEY_HINT = /dashboard|profile|enrollment|attempt|payment|notification|my-|user|session|result|history|progress|bookmark|mistake|routine|leaderboard|report|streak|study|focus|admin/i;
+const UUID_IN_KEY = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+
 const asyncIdbPersister = {
   persistClient: async (client: unknown) => {
     try {
@@ -208,12 +212,23 @@ const App = () => {
       persistOptions={{
         persister: asyncIdbPersister,
         maxAge: 24 * 60 * 60 * 1000, // 24h — stale cache beyond this is dropped, not trusted forever
+        buster: "v2-public-only", // bump to discard every previously persisted (possibly stale/poisoned) cache
         dehydrateOptions: {
           // Only cache successful GET-style queries — never mutations, never
           // errored/pending queries, and never queries explicitly opted out
           // (meta: { noPersist: true }) such as exam-attempt/live data.
-          shouldDehydrateQuery: (query) =>
-            query.state.status === "success" && query.meta?.noPersist !== true,
+          shouldDehydrateQuery: (query) => {
+            if (query.state.status !== "success" || query.meta?.noPersist === true) return false;
+            // Never persist per-user data (dashboard, profile, enrollments, attempts, payments, ...).
+            // A stale or half-loaded copy of those restored on the next visit is what left the dashboard
+            // empty until site data was cleared. Keys that carry a user id are user data.
+            const key = JSON.stringify(query.queryKey);
+            if (USER_KEY_HINT.test(key) || UUID_IN_KEY.test(key)) return false;
+            // Never persist empty results either — restoring "nothing" shows a blank page.
+            const d = query.state.data as unknown;
+            if (d == null || (Array.isArray(d) && d.length === 0)) return false;
+            return true;
+          },
         },
       }}
     >
