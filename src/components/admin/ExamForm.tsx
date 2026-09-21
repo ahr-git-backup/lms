@@ -643,6 +643,10 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 .from("exam_questions")
                 .insert(rowsWithExam);
               if (qError) throw qError;
+              if (parsed.exam_type === 'special') {
+                const { data: allQs } = await supabase.from("exam_questions").select("marks").eq("exam_id", parsed.id);
+                if (allQs) await supabase.from("exams").update({ total_marks: allQs.reduce((t: number, q: any) => t + Number(q.marks ?? 1), 0) } as any).eq("id", parsed.id);
+              }
             }
           } else {
             const { data, error } = await supabase
@@ -703,6 +707,9 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 .from("exam_questions")
                 .insert(rowsWithExam);
               if (qError) throw qError;
+              if (parsed.exam_type === 'special') {
+                await supabase.from("exams").update({ total_marks: allQuestionRows.reduce((t: number, q: any) => t + Number(q.marks ?? 1), 0) } as any).eq("id", data.id);
+              }
             }
           }
         },
