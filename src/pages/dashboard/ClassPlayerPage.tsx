@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import ClassPlayer from "@/components/ClassPlayer";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ const ClassPlayerPage = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: classItem, isLoading } = useQuery({
     queryKey: ["class", classId],
@@ -146,7 +147,12 @@ const ClassPlayerPage = () => {
   useEffect(() => {
     if (!classId || !profile?.id || !hasAccess) return;
     supabase.rpc("record_class_view", { p_class_id: classId }).then(({ error }) => {
-      if (error) console.error("Error recording class view", error);
+      if (error) {
+        console.error("Error recording class view", error);
+        return;
+      }
+      // The count was fetched before this view existed — refresh it so the student's own view shows immediately.
+      queryClient.invalidateQueries({ queryKey: ["class-view-count", classId] });
     });
   }, [classId, profile?.id, hasAccess]);
 
