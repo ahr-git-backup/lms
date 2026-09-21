@@ -174,6 +174,31 @@ const CourseBuy = () => {
     staleTime: 3 * 60 * 1000,
   });
 
+  // Show the "have a promo code?" box only when this course actually has a usable code
+  // (active, not used up, and either for this course or for all courses) — same rules check_promo_code applies.
+  const { data: hasPromoForCourse } = useQuery({
+    queryKey: ["course-has-promo", course?.id],
+    queryFn: async () => {
+      if (!course?.id) return false;
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("course_id, course_ids, usage_limit, used_count")
+        .eq("is_active", true);
+      if (error) throw error;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return (data || []).some((p: any) => {
+        const appliesToCourse =
+          !p.course_id && (!p.course_ids || p.course_ids.length === 0) ||
+          p.course_id === course.id ||
+          (Array.isArray(p.course_ids) && p.course_ids.includes(course.id));
+        const notUsedUp = p.usage_limit == null || (p.used_count ?? 0) < p.usage_limit;
+        return appliesToCourse && notUsedUp;
+      });
+    },
+    enabled: !!course?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
   useEffect(() => {
     if (course?.id) {
       trackPixelEvent("InitiateCheckout", {
@@ -504,39 +529,41 @@ const CourseBuy = () => {
                   )}
                 </div>
 
-                {/* Promo Code Input */}
-                <div className="flex gap-2 items-end">
-                  <div className="grid w-full gap-1.5">
-                    <Label htmlFor="promo" className="text-xs">প্রোমো কোড আছে?</Label>
-                    <div className="relative">
-                      <Tag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="promo"
-                        placeholder="কোড লিখুন"
-                        className="pl-9"
-                        value={promoCode}
-                        onChange={(e) => setPromoCode(e.target.value)}
-                        disabled={!!discount}
-                      />
+                {/* Promo Code Input — only when this course has a usable code (or one is already applied) */}
+                {(hasPromoForCourse || !!discount) && (
+                  <div className="flex gap-2 items-end">
+                    <div className="grid w-full gap-1.5">
+                      <Label htmlFor="promo" className="text-xs">প্রোমো কোড আছে?</Label>
+                      <div className="relative">
+                        <Tag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="promo"
+                          placeholder="কোড লিখুন"
+                          className="pl-9"
+                          value={promoCode}
+                          onChange={(e) => setPromoCode(e.target.value)}
+                          disabled={!!discount}
+                        />
+                      </div>
                     </div>
+                    {discount ? (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setDiscount(null);
+                          setPromoCode("");
+                          setAppliedCouponCode(null);
+                        }}
+                      >
+                        সরান
+                      </Button>
+                    ) : (
+                      <Button onClick={checkPromoCode} disabled={!promoCode || checkingPromo}>
+                        {checkingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
+                      </Button>
+                    )}
                   </div>
-                  {discount ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setDiscount(null);
-                        setPromoCode("");
-                        setAppliedCouponCode(null);
-                      }}
-                    >
-                      সরান
-                    </Button>
-                  ) : (
-                    <Button onClick={checkPromoCode} disabled={!promoCode || checkingPromo}>
-                      {checkingPromo ? <Loader2 className="h-4 w-4 animate-spin" /> : "প্রয়োগ করুন"}
-                    </Button>
-                  )}
-                </div>
+                )}
 
                 {/* Step 1: Send Money */}
                 <div className="bg-muted/50 p-6 rounded-lg space-y-4 border">
