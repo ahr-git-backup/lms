@@ -175,11 +175,13 @@ const Register = () => {
 
     try {
       // 0. Check if phone already exists
-      const { data: existingProfile } = await supabase
+      // Taken if it is another account's phone OR registration_id (registration_id is unique too).
+      const { data: existingList } = await supabase
         .from("profiles")
         .select("id")
-        .eq("phone", phone)
-        .maybeSingle();
+        .or(`phone.eq.${phone},registration_id.eq.${phone}`)
+        .limit(1);
+      const existingProfile = existingList && existingList.length > 0 ? existingList[0] : null;
 
       if (existingProfile) {
         setDuplicatePhone(phone);
