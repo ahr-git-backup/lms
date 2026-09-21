@@ -17,6 +17,7 @@ import {
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
 import { useFocusLock } from "@/hooks/useFocusLock";
+import { isStandaloneDisplay } from "@/pwa/usePWADisplayMode";
 
 const CIRCUMFERENCE = 502.65; // 2 * pi * 80
 
@@ -130,13 +131,17 @@ const Pomodoro = () => {
   const [focusLockOn, setFocusLockOn] = useState<boolean>(() => {
     try { return localStorage.getItem("pomo_focus_lock") === "1"; } catch { return false; }
   });
-  const toggleFocusLock = () => {
-    setFocusLockOn((v) => {
-      const next = !v;
-      try { localStorage.setItem("pomo_focus_lock", next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
+  const setLock = (next: boolean) => {
+    setFocusLockOn(next);
+    try { localStorage.setItem("pomo_focus_lock", next ? "1" : "0"); } catch { /* ignore */ }
+    // Needed so the "come back to focus" notification can be shown while the app is in the background.
+    if (next && typeof Notification !== "undefined" && Notification.permission === "default") {
+      void Notification.requestPermission();
+    }
   };
+  const toggleFocusLock = () => setLock(!focusLockOn);
+  const isPWA = isStandaloneDisplay();
+  const [showPinGuide, setShowPinGuide] = useState(false);
   const lockActive = focusLockOn && running;
   const focus = useFocusLock(lockActive);
   // Hold-to-confirm for Pause / Reset while locked (3s), so a stray tap can't break focus.
@@ -287,6 +292,18 @@ const Pomodoro = () => {
     setRunning(true);
     tickFrom(endAt);
     saveRun(phone, { currentTask, totalTime, running: true, endAt, pausedTimeLeft: null });
+  };
+
+  // One tap: Focus Lock ON + start/resume the clock. Fullscreen must be requested inside a user gesture, so it is
+  // triggered right here as well (the hook re-requests it harmlessly if it is already fullscreen).
+  const startFocus = () => {
+    setLock(true);
+    try {
+      if (!document.fullscreenElement) void document.documentElement.requestFullscreen?.();
+    } catch { /* unsupported */ }
+    if (running) return;
+    if (timeLeft > 0) resume();
+    else start();
   };
 
   // Only Pause <-> Resume — no separate stop control, per design.
@@ -611,6 +628,15 @@ const Pomodoro = () => {
             )}
           </div>
 
+          {!lockActive && (
+            <button
+              onClick={startFocus}
+              className="mt-3 w-full rounded-xl bg-red-500 hover:bg-red-600 text-white font-extrabold text-sm py-2.5 flex items-center justify-center gap-2 shadow-lg shadow-red-500/30"
+            >
+              <Lock className="h-4 w-4" /> Start Focus (ফোকাস মোড + টাইমার)
+            </button>
+          )}
+
           {lockActive && (
             <div className="mt-3 w-full text-center space-y-1.5">
               {holdPct > 0 ? (
@@ -628,6 +654,24 @@ const Pomodoro = () => {
             </div>
           )}
         </div>
+
+        {focusLockOn && (
+          <div className="rounded-2xl border-2 border-red-500/60 bg-card p-4 space-y-2">
+            <button onClick={() => setShowPinGuide((v) => !v)} className="w-full flex items-center justify-between text-left">
+              <span className="font-bold text-sm">🔒 ফোন থেকে বের হওয়া সম্পূর্ণ আটকাতে (Screen Pin)</span>
+              <span className="text-xs text-muted-foreground">{showPinGuide ? "লুকান" : "দেখুন"}</span>
+            </button>
+            {showPinGuide && (
+              <div className="text-xs text-muted-foreground space-y-1.5 leading-relaxed">
+                <p>ওয়েবসাইট ফোনের Home বাটন আটকাতে পারে না — এটা শুধু ফোনের নিজস্ব <b>Screen Pinning</b> দিয়ে সম্ভব:</p>
+                <p><b>১.</b> Settings → Security (বা Biometrics &amp; security) → Advanced → <b>Pin windows / Screen pinning</b> চালু করুন।</p>
+                <p><b>২.</b> এই অ্যাপ খুলে Recent apps (▢) চাপুন → অ্যাপের আইকনে চাপ দিন → <b>Pin this app</b>।</p>
+                <p><b>৩.</b> বের হতে: Back ও Recent বাটন একসাথে ধরে রাখুন (বা Back + Home)।</p>
+                {!isPWA && <p className="text-amber-600">💡 আরও ভালো অভিজ্ঞতার জন্য অ্যাপটি Install করে (Add to Home Screen) ব্যবহার করুন।</p>}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Setup card */}
         <div className="rounded-2xl border bg-card p-4 space-y-3">

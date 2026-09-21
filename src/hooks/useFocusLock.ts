@@ -13,11 +13,39 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * Every API is feature-detected and wrapped in try/catch, so on an unsupported browser the timer simply
  * works without that piece — the lock can never break the page.
  */
+const NUDGE_AFTER_MS = 20_000;
+
+async function showNudge(title: string, body: string) {
+  try {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    const reg = await navigator.serviceWorker?.ready;
+    if (reg?.showNotification) {
+      await reg.showNotification(title, { body, tag: "focus-lock-nudge", renotify: true, requireInteraction: false, data: { url: "/pomodoro" } } as NotificationOptions);
+    } else {
+      new Notification(title, { body, tag: "focus-lock-nudge" });
+    }
+  } catch {
+    /* notifications unsupported/blocked — ignore */
+  }
+}
+
+async function clearNudge() {
+  try {
+    const reg = await navigator.serviceWorker?.ready;
+    const list = await reg?.getNotifications?.({ tag: "focus-lock-nudge" });
+    list?.forEach((n) => n.close());
+  } catch {
+    /* ignore */
+  }
+}
+
 export function useFocusLock(active: boolean) {
   const [leaves, setLeaves] = useState(0);
   const [awaySeconds, setAwaySeconds] = useState(0);
   const [justReturned, setJustReturned] = useState<{ secs: number } | null>(null);
   const hiddenAtRef = useRef<number | null>(null);
+  const nudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const originalTitleRef = useRef<string>("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const wakeRef = useRef<any>(null);
 
@@ -67,7 +95,14 @@ export function useFocusLock(active: boolean) {
     const onVisibility = () => {
       if (document.visibilityState === "hidden") {
         hiddenAtRef.current = Date.now();
+        // If the user stays away, nudge them back with a notification (best effort).
+        if (nudgeTimerRef.current) clearTimeout(nudgeTimerRef.current);
+        nudgeTimerRef.current = setTimeout(() => {
+          void showNudge("⚠️ ফোকাসে ফিরে আসুন!", "আপনার Pomodoro টাইমার চলছে — পড়াশোনায় ফিরে আসুন।");
+        }, NUDGE_AFTER_MS);
       } else {
+        if (nudgeTimerRef.current) { clearTimeout(nudgeTimerRef.current); nudgeTimerRef.current = null; }
+        void clearNudge();
         // Wake lock is auto-released when the page is hidden — take it again.
         void requestWake();
         const t = hiddenAtRef.current;
@@ -93,14 +128,36 @@ export function useFocusLock(active: boolean) {
     };
     window.history.pushState({ focusLock: true }, "");
 
+    originalTitleRef.current = document.title;
+    let blink: ReturnType<typeof setInterval> | null = null;
+    const onVisTitle = () => {
+      if (document.visibilityState === "hidden") {
+        let on = false;
+        blink = setInterval(() => {
+          on = !on;
+          document.title = on ? "⚠️ ফোকাসে ফিরুন!" : originalTitleRef.current;
+        }, 1000);
+      } else {
+        if (blink) clearInterval(blink);
+        blink = null;
+        document.title = originalTitleRef.current;
+      }
+    };
+    document.addEventListener("visibilitychange", onVisTitle);
+
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("beforeunload", onBeforeUnload);
     window.addEventListener("popstate", onPopState);
 
     return () => {
       document.removeEventListener("visibilitychange", onVisibility);
+      document.removeEventListener("visibilitychange", onVisTitle);
+      if (blink) clearInterval(blink);
+      if (originalTitleRef.current) document.title = originalTitleRef.current;
       window.removeEventListener("beforeunload", onBeforeUnload);
       window.removeEventListener("popstate", onPopState);
+      if (nudgeTimerRef.current) { clearTimeout(nudgeTimerRef.current); nudgeTimerRef.current = null; }
+      void clearNudge();
       void releaseWake();
       void exitFullscreen();
     };
