@@ -11,9 +11,12 @@ import {
   Trash2,
   Flame,
   PartyPopper,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import PublicHeader from "@/components/PublicHeader";
 import { cn } from "@/lib/utils";
+import { useFocusLock } from "@/hooks/useFocusLock";
 
 const CIRCUMFERENCE = 502.65; // 2 * pi * 80
 
@@ -121,6 +124,41 @@ const Pomodoro = () => {
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const endAtRef = useRef<number>(0);
+
+  // Focus Lock: while ON and the clock is running, block accidental exits (see useFocusLock for what a
+  // website can and cannot do). Preference is remembered per device.
+  const [focusLockOn, setFocusLockOn] = useState<boolean>(() => {
+    try { return localStorage.getItem("pomo_focus_lock") === "1"; } catch { return false; }
+  });
+  const toggleFocusLock = () => {
+    setFocusLockOn((v) => {
+      const next = !v;
+      try { localStorage.setItem("pomo_focus_lock", next ? "1" : "0"); } catch { /* ignore */ }
+      return next;
+    });
+  };
+  const lockActive = focusLockOn && running;
+  const focus = useFocusLock(lockActive);
+  // Hold-to-confirm for Pause / Reset while locked (3s), so a stray tap can't break focus.
+  const [holdPct, setHoldPct] = useState(0);
+  const holdRef = useRef<{ t: ReturnType<typeof setInterval> | null; start: number }>({ t: null, start: 0 });
+  const HOLD_MS = 3000;
+  const startHold = (action: () => void) => {
+    if (!lockActive) { action(); return; }
+    holdRef.current.start = Date.now();
+    holdRef.current.t = setInterval(() => {
+      const pct = Math.min(100, ((Date.now() - holdRef.current.start) / HOLD_MS) * 100);
+      setHoldPct(pct);
+      if (pct >= 100) { cancelHold(); action(); }
+    }, 50);
+  };
+  const cancelHold = () => {
+    if (holdRef.current.t) clearInterval(holdRef.current.t);
+    holdRef.current.t = null;
+    setHoldPct(0);
+  };
+  useEffect(() => () => { if (holdRef.current.t) clearInterval(holdRef.current.t); }, []);
+  useEffect(() => { if (!running) focus.resetStats(); }, [running]);
 
   useEffect(() => {
     document.title = "Pomodoro Clock — Atlas";
@@ -392,6 +430,17 @@ const Pomodoro = () => {
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="flex-1 font-extrabold text-[17px]">Pomodoro Clock</h1>
+        <button
+          onClick={toggleFocusLock}
+          title="Focus Lock"
+          className={cn(
+            "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-bold border",
+            focusLockOn ? "bg-red-500 text-white border-red-500" : "bg-transparent text-muted-foreground border-border"
+          )}
+        >
+          {focusLockOn ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
+          Focus Lock {focusLockOn ? "ON" : "OFF"}
+        </button>
         {stats.streak > 0 && (
           <span className="flex items-center gap-1 text-xs font-bold text-orange-500">
             <Flame className="h-3.5 w-3.5" /> {stats.streak}
@@ -400,6 +449,18 @@ const Pomodoro = () => {
       </div>
 
       <div className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-5">
+        {focus.justReturned && lockActive && (
+          <div className="rounded-xl border-2 border-red-500 bg-red-50 dark:bg-red-950 p-3 flex items-start gap-2">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1 text-sm">
+              <p className="font-bold text-red-700 dark:text-red-300">ফোকাস ভেঙে গেছে!</p>
+              <p className="text-xs text-red-700/80 dark:text-red-300/80">
+                আপনি {focus.justReturned.secs} সেকেন্ড অ্যাপের বাইরে ছিলেন। টাইমার চলছে — মনোযোগ ফিরিয়ে আনুন।
+              </p>
+            </div>
+            <button onClick={focus.dismissReturned} className="text-xs font-bold underline text-red-700 dark:text-red-300">ঠিক আছে</button>
+          </div>
+        )}
         {/* Watch card */}
         <div className="relative rounded-2xl border bg-gradient-to-br from-indigo-950 to-slate-900 p-5 flex flex-col items-center overflow-hidden">
           {/* Progress % badge — top right corner, fills to 100% exactly as time runs out */}
@@ -526,14 +587,22 @@ const Pomodoro = () => {
           {/* Pause <-> Resume control, plus a Reset button that restarts fresh */}
           <div className="flex items-center gap-3 mt-4">
             <button
-              onClick={toggle}
-              className="h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
+              onClick={lockActive ? undefined : toggle}
+              onPointerDown={lockActive ? () => startHold(toggle) : undefined}
+              onPointerUp={lockActive ? cancelHold : undefined}
+              onPointerLeave={lockActive ? cancelHold : undefined}
+              onPointerCancel={lockActive ? cancelHold : undefined}
+              className="relative h-12 w-12 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg shadow-indigo-500/40 hover:bg-indigo-400"
             >
               {running ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5 fill-current ml-0.5" />}
             </button>
             {totalTime > 0 && (
               <button
-                onClick={reset}
+                onClick={lockActive ? undefined : reset}
+                onPointerDown={lockActive ? () => startHold(reset) : undefined}
+                onPointerUp={lockActive ? cancelHold : undefined}
+                onPointerLeave={lockActive ? cancelHold : undefined}
+                onPointerCancel={lockActive ? cancelHold : undefined}
                 title="রিসেট করুন"
                 className="h-10 w-10 rounded-full bg-white/10 border border-indigo-400/30 text-indigo-200 flex items-center justify-center hover:bg-white/20 transition-colors"
               >
@@ -541,6 +610,23 @@ const Pomodoro = () => {
               </button>
             )}
           </div>
+
+          {lockActive && (
+            <div className="mt-3 w-full text-center space-y-1.5">
+              {holdPct > 0 ? (
+                <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full bg-red-400" style={{ width: `${holdPct}%` }} />
+                </div>
+              ) : (
+                <p className="text-[10px] text-indigo-200/80">🔒 Focus Lock চালু — Pause/Reset করতে ৩ সেকেন্ড চেপে ধরুন</p>
+              )}
+              {focus.leaves > 0 && (
+                <p className="text-[10px] font-bold text-red-300">
+                  ⚠️ {focus.leaves} বার অ্যাপ ছেড়েছেন ({focus.awaySeconds}s)
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Setup card */}
