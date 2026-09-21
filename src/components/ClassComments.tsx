@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCircle, Trash2, Send, Radio } from "lucide-react";
+import { friendlyError } from "@/lib/friendlyError";
 
 type CommentRow = {
   id: string;
@@ -130,14 +131,14 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
     });
     setSending(false);
     if (error) {
-      toast({ title: "কমেন্ট করা যায়নি", description: error.message, variant: "destructive" });
+      toast({ title: "কমেন্ট করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
       setNewComment(text);
     }
   };
 
   const deleteComment = async (id: string) => {
     const { error } = await supabase.from("class_comments").delete().eq("id", id);
-    if (error) toast({ title: "ডিলিট করা যায়নি", description: error.message, variant: "destructive" });
+    if (error) toast({ title: "ডিলিট করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
   };
 
   const sendReply = async (parentId: string) => {
@@ -152,7 +153,7 @@ const ClassComments = ({ classId, isLive = false }: { classId: string; isLive?: 
       comment_text: text,
     });
     if (error) {
-      toast({ title: "রিপ্লাই পাঠানো যায়নি", description: error.message, variant: "destructive" });
+      toast({ title: "রিপ্লাই পাঠানো যায়নি", description: friendlyError(error).description, variant: "destructive" });
     }
   };
 

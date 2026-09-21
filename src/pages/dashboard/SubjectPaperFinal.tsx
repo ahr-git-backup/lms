@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ArrowLeft, BookOpen, FileText, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { friendlyError } from "@/lib/friendlyError";
 
 type SpCategory = "subject_final" | "paper_final";
 type SpMode = string;
@@ -72,7 +73,7 @@ const SubjectPaperFinal = () => {
       if (error) throw error;
       navigate(`/dashboard/take-exam/${examId}`);
     } catch (err: any) {
-      toast({ title: "শুরু করা যায়নি", description: err?.message || "আবার চেষ্টা করুন।", variant: "destructive" });
+      toast({ title: "শুরু করা যায়নি", description: friendlyError(err).description, variant: "destructive" });
     } finally {
       setStartingMode(null);
     }

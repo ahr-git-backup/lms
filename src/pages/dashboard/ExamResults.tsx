@@ -12,6 +12,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { friendlyError } from "@/lib/friendlyError";
 
 /** CustomExamBuilder bakes source exam names into the title as
  *  "Custom Exam — Source1, Source2". Split that so the source list can
@@ -123,7 +124,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             }
         } catch (e: any) {
             pdfWindow?.close();
-            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+            toast({ title: "PDF তৈরি করা যায়নি", description: friendlyError(e).description, variant: "destructive" });
         } finally {
             setPdfLoading(false);
         }

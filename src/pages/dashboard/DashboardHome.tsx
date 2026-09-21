@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { QuickAccessSortDialog, QUICK_ACCESS_ORDER_KEY } from "@/components/dashboard/QuickAccessSortDialog";
 import { LiveCountdown } from "@/components/shared/LiveCountdown";
 import { trackPixelEvent } from "@/lib/metaPixel";
+import { friendlyError } from "@/lib/friendlyError";
 
 // Define shape of dashboard data
 interface DashboardData {
@@ -164,7 +165,7 @@ const DashboardHome = () => {
     return () => { supabase.removeChannel(channel); };
   }, [user]);
 
-  const { data: dashboardData, isLoading: dashboardLoading, isError, refetch: refetchDashboard } = useQuery({
+  const { data: dashboardData, isLoading: dashboardLoading, isError, error: dashboardError, refetch: refetchDashboard } = useQuery({
     queryKey: ["dashboard-data", user?.id],
     queryFn: async () => {
       if (!user) return null;
@@ -245,9 +246,9 @@ const DashboardHome = () => {
       return (
           <div className="p-8 text-center">
               <AlertCircle className="h-10 w-10 text-destructive mx-auto mb-2" />
-              <h2 className="text-lg font-semibold text-destructive">Failed to load dashboard data.</h2>
-              <p className="text-sm text-muted-foreground">Please check your connection and try again.</p>
-              <Button onClick={() => refetchDashboard()} size="sm" className="mt-4">Retry</Button>
+              <h2 className="text-lg font-semibold text-destructive">{friendlyError(dashboardError).title}</h2>
+              <p className="text-sm text-muted-foreground">{friendlyError(dashboardError, "ড্যাশবোর্ড লোড").description}</p>
+              <Button onClick={() => refetchDashboard()} size="sm" className="mt-4">আবার চেষ্টা করুন</Button>
           </div>
       );
   }

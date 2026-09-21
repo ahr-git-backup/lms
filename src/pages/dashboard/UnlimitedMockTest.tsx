@@ -17,6 +17,7 @@ import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import MockPoolPositionManagerDialog from "@/components/admin/MockPoolPositionManagerDialog";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
+import { friendlyError } from "@/lib/friendlyError";
 
 const DEFAULT_STANDARDS = [
   { value: "medical", label: "Medical" },
@@ -55,7 +56,7 @@ const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undef
       .upsert({ key: DAILY_FREE_EXAM_LIMIT_KEY, value: parsed, updated_at: new Date().toISOString() });
     setSaving(false);
     if (error) {
-      toast({ title: "সেভ করা যায়নি", description: error.message, variant: "destructive" });
+      toast({ title: "সেভ করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
       return;
     }
     queryClient.invalidateQueries({ queryKey: ["mock-exam-daily-status"] });
@@ -574,7 +575,7 @@ const rowCount = (row: any): number =>
       window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior });
       navigate("/mock-test/play");
     } catch (e: any) {
-      toast({ title: "লোড করতে সমস্যা", description: e.message, variant: "destructive" });
+      toast({ title: "লোড করতে সমস্যা", description: friendlyError(e).description, variant: "destructive" });
     } finally {
       setStarting(false);
     }

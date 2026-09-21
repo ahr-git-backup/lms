@@ -15,6 +15,7 @@ import { setExamSourceList } from "@/lib/examSourceTracker";
 import { openSolvePdf } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { friendlyError } from "@/lib/friendlyError";
 
 const PastExamCatalog = () => {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
@@ -146,7 +147,7 @@ const PastExamCatalog = () => {
         style,
       });
     } catch (err: any) {
-      toast({ title: "PDF তৈরি করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+      toast({ title: "PDF তৈরি করা যায়নি", description: friendlyError(err).description, variant: "destructive" });
     } finally {
       setDownloadingId(null);
     }

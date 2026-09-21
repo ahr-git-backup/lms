@@ -26,6 +26,7 @@ import { startOfWeek, startOfMonth, format, isPast } from "date-fns";
 import { useEnrollments } from "@/hooks/useEnrollments";
 import { PayDueDialog } from "@/components/PayDueDialog";
 import { Link, useSearchParams } from "react-router-dom";
+import { friendlyError } from "@/lib/friendlyError";
 
 const profileSchema = z.object({
   full_name: z
@@ -320,7 +321,7 @@ const StudentProfile = () => {
     if (error) {
       toast({
         title: "Could not update profile",
-        description: error.message,
+        description: friendlyError(error).description,
         variant: "destructive",
       });
       return;
@@ -360,7 +361,7 @@ const StudentProfile = () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (profile as any).has_changed_email = true;
     } catch (e: any) {
-        toast({ title: "Error changing email", description: e.message, variant: "destructive" });
+        toast({ title: "Error changing email", description: friendlyError(e).description, variant: "destructive" });
     } finally {
         setUpdatingEmail(false);
     }
@@ -386,7 +387,7 @@ const StudentProfile = () => {
         await supabase.auth.refreshSession();
         window.location.reload();
     } catch (e: any) {
-        toast({ title: "Failed to cancel", description: e.message, variant: "destructive" });
+        toast({ title: "Failed to cancel", description: friendlyError(e).description, variant: "destructive" });
     } finally {
         setUpdatingEmail(false);
     }
@@ -408,7 +409,7 @@ const StudentProfile = () => {
           : `Roll No: ${result.omr_roll_no} • Reg No: ${result.omr_reg_no}`,
       });
     } catch (e: any) {
-      toast({ title: "Error", description: e.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(e).description, variant: "destructive" });
     } finally {
       setGeneratingOmr(false);
     }

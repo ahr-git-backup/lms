@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
+import { friendlyError } from "@/lib/friendlyError";
 
 // Report Dialog Component
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -55,7 +56,7 @@ const ReportQuestionDialog = ({ questionId, question, onClose }: { questionId: s
         },
         onError: (error) => {
             console.error("Report mutation error:", error);
-            toast({ title: "Failed to submit report", description: error.message, variant: "destructive" });
+            toast({ title: "Failed to submit report", description: friendlyError(error).description, variant: "destructive" });
         }
     });
 

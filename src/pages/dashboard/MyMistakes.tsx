@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { openSolvePdf } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { friendlyError } from "@/lib/friendlyError";
 
 const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGeneratePdf }: {
     exam: any;
@@ -120,7 +121,7 @@ const MyMistakes = () => {
                 style: "style1",
             });
         } catch (e: any) {
-            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+            toast({ title: "PDF তৈরি করা যায়নি", description: friendlyError(e).description, variant: "destructive" });
         } finally {
             setSinglePdfLoadingId(null);
         }
@@ -287,7 +288,7 @@ const MyMistakes = () => {
                 style: "style1",
             });
         } catch (e: any) {
-            toast({ title: "PDF তৈরি করা যায়নি", description: e.message, variant: "destructive" });
+            toast({ title: "PDF তৈরি করা যায়নি", description: friendlyError(e).description, variant: "destructive" });
         } finally {
             setPdfLoading(null);
         }

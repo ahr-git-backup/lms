@@ -226,9 +226,15 @@ const ClassPlayerPage = () => {
      return (
         <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
             <div className="p-6 border rounded-lg bg-destructive/5 text-destructive">
-                <h2 className="text-xl font-bold mb-2">Access Denied</h2>
-                <p>You are not enrolled in <strong>{classItem.course?.name}</strong>.</p>
-                <p className="text-sm mt-2">Please purchase the course to access this content.</p>
+                <h2 className="text-xl font-bold mb-2">এই ক্লাসটি দেখার অনুমতি নেই</h2>
+                <p>
+                  {classItem.course?.name
+                    ? <>এই ক্লাসটি <strong>{classItem.course.name}</strong> কোর্সের অংশ, আর আপনি এই কোর্সে এনরোল করা নেই।</>
+                    : <>এই ক্লাসটি আপনার বর্তমান কোনো কোর্সের সাথে যুক্ত নেই।</>}
+                </p>
+                <p className="text-sm mt-2">
+                  ক্লাসটি দেখতে কোর্সটি কিনুন। আপনি যদি ইতিমধ্যে কোনো কোর্সে এনরোল থাকেন এবং মনে করেন এটি দেখতে পাওয়ার কথা, তাহলে সাপোর্টে জানান — আমরা দ্রুত ঠিক করে দেব।
+                </p>
             </div>
             <Button onClick={() => navigate(`/courses/${classItem.course_id}`)}>
                 View Course Details

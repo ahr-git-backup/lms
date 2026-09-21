@@ -46,6 +46,7 @@ import { cn } from "@/lib/utils";
 import { AiExplanationBox, AiChatButton, prewarmExplanations } from "@/components/exam/AiMcqHelper";
 import { openSolvePdf } from "@/lib/solvePdf";
 import { usePWADisplayMode } from "@/pwa/usePWADisplayMode";
+import { friendlyError } from "@/lib/friendlyError";
 
 interface PoolQuestion {
   id: string;
@@ -119,7 +120,7 @@ const ReportQuestionDialog = ({ questionText }: { questionText: string }) => {
       setImagePreview(null);
       setIsOpen(false);
     },
-    onError: (e: any) => toast({ title: "রিপোর্ট ব্যর্থ", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "রিপোর্ট ব্যর্থ", description: friendlyError(e).description, variant: "destructive" }),
   });
 
   return (

@@ -25,6 +25,7 @@ import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
 import { CorrectBalloonBurst } from "@/components/CorrectBalloonBurst";
 import GuestExamInfoDialog from "@/components/exam/GuestExamInfoDialog";
 import { getGuestInfo, GuestExamInfo } from "@/lib/guestExamInfo";
+import { friendlyError } from "@/lib/friendlyError";
 
 const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionId: string, questionText: string, onClose: () => void }) => {
     const { toast } = useToast();
@@ -86,7 +87,7 @@ const ReportQuestionDialog = ({ questionId, questionText, onClose }: { questionI
             onClose();
         },
         onError: (error) => {
-            toast({ title: "Failed to submit report", description: error.message, variant: "destructive" });
+            toast({ title: "Failed to submit report", description: friendlyError(error).description, variant: "destructive" });
         }
     });
 
@@ -961,7 +962,7 @@ const TakeExam = () => {
     onError: (error: Error) => {
       toast({
         title: "Submission Failed",
-        description: error.message,
+        description: friendlyError(error).description,
         variant: "destructive",
       });
     },

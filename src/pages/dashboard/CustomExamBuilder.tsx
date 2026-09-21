@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ArrowLeft, ChevronRight, Sparkles, Loader2, ListChecks, Lock } from "lucide-react";
+import { friendlyError } from "@/lib/friendlyError";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const isExamUnlocked = (exam: any, enrolledIds: string[], isAdmin: boolean, fullAccessCourseIds: string[] = [], subChapterGrants: Set<string> = new Set()): boolean => {
@@ -316,7 +317,7 @@ const CustomExamBuilder = () => {
         toast({ title: "এই বিষয়ে সিলেক্ট করার মতো কোনো এক্সাম নেই", variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "সিলেক্ট করা যায়নি", description: err.message, variant: "destructive" });
+      toast({ title: "সিলেক্ট করা যায়নি", description: friendlyError(err).description, variant: "destructive" });
     } finally {
       setSelectingWholeSubject(null);
     }
@@ -369,7 +370,7 @@ const CustomExamBuilder = () => {
         toast({ title: "এই চ্যাপ্টারে সিলেক্ট করার মতো কোনো এক্সাম নেই", variant: "destructive" });
       }
     } catch (err: any) {
-      toast({ title: "সিলেক্ট করা যায়নি", description: err.message, variant: "destructive" });
+      toast({ title: "সিলেক্ট করা যায়নি", description: friendlyError(err).description, variant: "destructive" });
     } finally {
       setSelectingWholeChapter(null);
     }
@@ -440,7 +441,7 @@ const CustomExamBuilder = () => {
       setExamSourceList(data, "/dashboard/readymade");
       navigate(`/dashboard/take-exam/${data}`);
     } catch (err: any) {
-      toast({ title: "এক্সাম তৈরি করা যায়নি", description: err.message, variant: "destructive" });
+      toast({ title: "এক্সাম তৈরি করা যায়নি", description: friendlyError(err).description, variant: "destructive" });
     } finally {
       setCreating(false);
     }
