@@ -34,7 +34,7 @@ const LiveExam = () => {
         .from("exams")
         .select("*, course:courses(*)")
         .eq("is_published", true)
-        .eq("exam_type", "live") // Ensure only Live exams
+        .or("exam_type.eq.live,and(exam_type.eq.special,special_mode.eq.live)") // Live + live-mode Special exams
         .gt("time_window_end", now) // Only show exams that haven't ended
         .order("sort_order", { ascending: false })
         .order("created_at", { ascending: false });
@@ -110,7 +110,7 @@ const LiveExam = () => {
                     </div>
                     <div className="bg-muted p-3 rounded-md">
                         <span className="font-semibold block">Type</span>
-                        {selectedExamForPopup?.exam_type === 'live' ? 'Live Exam' : 'Practice Exam'}
+                        {(selectedExamForPopup?.exam_type === 'live' || selectedExamForPopup?.special_mode === 'live') ? 'Live Exam' : 'Practice Exam'}
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@ const LiveExam = () => {
                 <div className="text-xs text-muted-foreground p-2 border border-yellow-500/20 bg-yellow-500/10 rounded-md flex items-start gap-1.5">
                      <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
                      <span><strong>Warning:</strong> Ensure you have a stable internet connection.
-                     {selectedExamForPopup?.exam_type === 'live' && " This is a one-time attempt live exam."}</span>
+                     {(selectedExamForPopup?.exam_type === 'live' || selectedExamForPopup?.special_mode === 'live') && " This is a one-time attempt live exam."}</span>
                 </div>
             </div>
             <DialogFooter className="gap-2 sm:gap-0">
@@ -192,7 +192,7 @@ const LiveExam = () => {
         <div className="grid gap-4 md:grid-cols-2">
           {filteredExams.map((exam) => {
             const attempted = hasAttempted(exam.id);
-            const isLive = exam.exam_type === "live";
+            const isLive = exam.exam_type === "live" || (exam.exam_type === "special" && exam.special_mode === "live");
             const now = new Date();
             const start = exam.time_window_start ? new Date(exam.time_window_start) : null;
             const end = exam.time_window_end ? new Date(exam.time_window_end) : null;

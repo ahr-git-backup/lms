@@ -158,7 +158,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
               query = query.eq("readymade_topic", readymadeSubCategory);
           }
       } else if (mainCategory === "live") {
-          query = query.eq("is_readymade", false).eq("exam_type", "live");
+          query = query.eq("is_readymade", false).or("exam_type.eq.live,and(exam_type.eq.special,special_mode.eq.live)");
       } else if (mainCategory === "practice") {
           query = query.eq("is_readymade", false).eq("exam_type", "practice");
       } else if (mainCategory === "free") {

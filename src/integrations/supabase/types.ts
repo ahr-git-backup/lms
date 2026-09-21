@@ -490,6 +490,7 @@ export type Database = {
           created_at: string
           duration_minutes: number
           exam_type: string
+          special_mode: string
           id: string
           instructions: string | null
           is_published: boolean
@@ -512,6 +513,7 @@ export type Database = {
           created_at?: string
           duration_minutes: number
           exam_type: string
+          special_mode?: string
           id?: string
           instructions?: string | null
           is_published?: boolean
@@ -532,6 +534,7 @@ export type Database = {
           created_at?: string
           duration_minutes?: number
           exam_type?: string
+          special_mode?: string
           id?: string
           instructions?: string | null
           is_published?: boolean

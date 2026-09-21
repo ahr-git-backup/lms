@@ -7,6 +7,7 @@ export type ExamCategory = "live" | "practice" | "readymade";
 
 export interface ExamCategoryInput {
   exam_type?: string | null;
+  special_mode?: string | null;
   is_readymade?: boolean | null;
   time_window_end?: string | null;
 }
@@ -14,7 +15,7 @@ export interface ExamCategoryInput {
 export function getExamCategory(exam: ExamCategoryInput | null | undefined): ExamCategory {
   if (!exam) return "practice";
   if (exam.is_readymade) return "readymade";
-  if (exam.exam_type === "live") {
+  if (exam.exam_type === "live" || (exam.exam_type === "special" && exam.special_mode === "live")) {
     const isPastDeadline = exam.time_window_end && new Date(exam.time_window_end) < new Date();
     return isPastDeadline ? "practice" : "live";
   }

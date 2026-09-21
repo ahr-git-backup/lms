@@ -19,7 +19,8 @@ export interface Exam {
   title: string;
   subject: string[] | string;
   chapter?: string | null;
-  exam_type: "live" | "practice";
+  exam_type: "live" | "practice" | "special";
+  special_mode?: "live" | "practice";
   duration_minutes: number;
   total_marks?: number | null;
   negative_mark_per_question?: number;

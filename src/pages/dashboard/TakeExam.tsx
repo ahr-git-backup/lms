@@ -855,7 +855,7 @@ const TakeExam = () => {
   useEffect(() => {
     if (!exam?.duration_minutes || (!user && !guestInfo) || !hasStarted || isQuickPracticeMode) return;
 
-    const isExpiredPractice = exam.exam_type === 'live' && exam.time_window_end && new Date() > new Date(exam.time_window_end);
+    const isExpiredPractice = (exam.exam_type === 'live' || (exam.exam_type === 'special' && exam.special_mode === 'live')) && exam.time_window_end && new Date() > new Date(exam.time_window_end);
     const startTimeKey = `${LOCAL_STORAGE_KEY_PREFIX}_start_time`;
 
     let startTime = localStorage.getItem(startTimeKey);
@@ -878,7 +878,7 @@ const TakeExam = () => {
     let remaining = Math.max(0, durationSeconds - elapsedSeconds);
 
     // For active live exams (not expired ones taken for practice), respect the time window.
-    if (exam.exam_type === 'live' && !isExpiredPractice && exam.time_window_end && !retakeFromAttemptId) {
+    if ((exam.exam_type === 'live' || (exam.exam_type === 'special' && exam.special_mode === 'live')) && !isExpiredPractice && exam.time_window_end && !retakeFromAttemptId) {
         const hardEnd = new Date(exam.time_window_end).getTime();
         const secondsUntilEnd = Math.floor((hardEnd - now) / 1000);
         if (!isNaN(secondsUntilEnd)) {
@@ -1229,7 +1229,7 @@ const TakeExam = () => {
   }
 
   // Live Exam Check
-  const isLive = exam && exam.exam_type === 'live';
+  const isLive = exam && (exam.exam_type === 'live' || (exam.exam_type === 'special' && exam.special_mode === 'live'));
   const now = new Date();
   const start = exam?.time_window_start ? new Date(exam.time_window_start) : null;
   const end = exam?.time_window_end ? new Date(exam.time_window_end) : null;

@@ -31,6 +31,7 @@ const examSchema = z.object({
   subject: z.array(z.string()).default([]),
   chapter: z.string().trim().optional().or(z.literal("")),
   exam_type: z.enum(["live", "practice", "special"]),
+  special_mode: z.enum(["live", "practice"]).optional().default("practice"),
   duration_minutes: z
     .string()
     .trim()
@@ -132,6 +133,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
         subject: [],
         chapter: "",
         exam_type: "live",
+        special_mode: "practice",
         duration_minutes: "",
         total_marks: "",
         negative_mark_per_question: "0.25",
@@ -197,6 +199,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 subject: subjects,
                 chapter: exam.chapter || "",
                 exam_type: exam.exam_type === "practice" ? "practice" : exam.exam_type === "special" ? "special" : "live",
+                special_mode: exam.special_mode === "live" ? "live" : "practice",
                 duration_minutes: exam.duration_minutes != null ? String(exam.duration_minutes) : "",
                 total_marks: exam.total_marks != null ? String(exam.total_marks) : "",
                 negative_mark_per_question:
@@ -392,6 +395,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
             subject: parsed.subject,
             chapter: parsed.chapter || null,
             exam_type: parsed.exam_type,
+            special_mode: parsed.exam_type === "special" ? (parsed.special_mode || "practice") : "practice",
             duration_minutes: parsed.duration_minutes ? Number(parsed.duration_minutes) : null,
             total_marks: parsed.total_marks ? Number(parsed.total_marks) : null,
             negative_mark_per_question: parsed.negative_mark_per_question
@@ -717,6 +721,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                 subject: [],
                 chapter: "",
                 exam_type: "live",
+                special_mode: "practice",
                 duration_minutes: "",
                 total_marks: "",
                 negative_mark_per_question: "0.25",
@@ -760,7 +765,7 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         const isArchiveOnly = isArchiveMode || form.is_archive;
-        const courseRequired = form.exam_type === "live";
+        const courseRequired = form.exam_type === "live" || (form.exam_type === "special" && form.special_mode === "live");
         if (!isFreeMode && !isArchiveOnly && courseRequired && !form.course_id) {
             toast({
                 title: "Course required",
@@ -906,6 +911,16 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
                   </Button>
                 </div>
               </div>
+
+              {form.exam_type === "special" && (
+                <div className="space-y-2">
+                  <Label>Special exam mode</Label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant={form.special_mode === "live" ? "default" : "outline"} onClick={() => setForm((prev) => ({ ...prev, special_mode: "live" }))}>Live mode</Button>
+                    <Button type="button" variant={form.special_mode !== "live" ? "default" : "outline"} onClick={() => setForm((prev) => ({ ...prev, special_mode: "practice" }))}>Practice mode</Button>
+                  </div>
+                </div>
+              )}
 
               {form.exam_type === "special" && (
                 <div className="space-y-2">

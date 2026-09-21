@@ -482,7 +482,7 @@ const ExamList = ({ courseId, subject, chapter }: any) => {
                     <CardHeader className="pb-2">
                         <div className="flex justify-between items-start">
                             <CardTitle className="text-sm leading-snug">{exam.title}</CardTitle>
-                            {exam.exam_type === 'live' && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">LIVE</span>}
+                            {(exam.exam_type === 'live' || (exam.exam_type === 'special' && exam.special_mode === 'live')) && <span className="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded font-bold">LIVE</span>}
                         </div>
                         <div className="text-xs text-muted-foreground">
                             {exam.duration_minutes} mins • {exam.total_marks || '?'} marks
