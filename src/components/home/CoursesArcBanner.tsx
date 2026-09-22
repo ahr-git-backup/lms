@@ -9,12 +9,12 @@ interface ArcCourse {
   image_url: string;
 }
 
-const MAX_COURSES = 6;
-const STEP_DELAY = 0.35; // seconds between each course popping in, in order
+const MAX_COURSES = 7;
+const STEP_DELAY = 0.15;
 
 export default function CoursesArcBanner() {
   const navigate = useNavigate();
-  const [trackWidth, setTrackWidth] = useState(340);
+  const [trackWidth, setTrackWidth] = useState(320);
 
   const { data: courses = [] } = useQuery({
     queryKey: ["pwa-arc-courses"],
@@ -38,49 +38,57 @@ export default function CoursesArcBanner() {
   useEffect(() => {
     const el = document.getElementById("arc-courses-track");
     if (!el) return;
-    const measure = () => setTrackWidth(el.clientWidth || 340);
+    const measure = () => setTrackWidth(el.clientWidth || 320);
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Center course = focus piece (biggest, in the middle of the arc)
+  // Center course = main focus (biggest, dead-center of the arc, animates in FIRST)
   const mainIndex = useMemo(() => Math.floor((courses.length - 1) / 2), [courses.length]);
+
+  // Animation order: center piece first (delay 0), then alternating outward
+  // from the center to the edges, so items pop in centre -> out.
+  const animOrder = useMemo(() => {
+    const order: Record<number, number> = {};
+    let step = 0;
+    order[mainIndex] = step++;
+    let left = mainIndex - 1;
+    let right = mainIndex + 1;
+    while (left >= 0 || right < courses.length) {
+      if (right < courses.length) order[right++] = step++;
+      if (left >= 0) order[left--] = step++;
+    }
+    return order;
+  }, [mainIndex, courses.length]);
 
   if (!courses.length) return null;
 
-  const h = 118;
+  const h = 148;
   const cx = trackWidth / 2;
-  const cy = h + 4;
-  const r = h - 8;
+  const cy = h + 34;
+  const r = h - 6;
 
   const goToCourse = (id: string) => navigate(`/courses/${id}`);
 
   return (
-    <div className="relative mx-4 mt-3 mb-1 overflow-hidden rounded-[26px] px-3 pb-8 pt-5 shadow-[0_8px_24px_rgba(245,158,11,.28)]" style={{ background: "linear-gradient(160deg,#FFC93C 0%,#FFA53C 55%,#FF8A3C 100%)" }}>
-      {/* faint decorative food-app-style ring */}
-      <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full border-[3px] border-white/25" />
-      <div className="pointer-events-none absolute -left-8 bottom-6 h-20 w-20 rounded-full border-[3px] border-white/15" />
-
-      <div className="relative z-[2] mb-3 flex items-center justify-between gap-2 px-1">
-        <div>
-          <div className="text-[15px] font-extrabold leading-tight text-white drop-shadow-sm">আমাদের সেরা কোর্সসমূহ</div>
-          <div className="text-[10.5px] font-medium text-white/85">অসাধারণ মানের প্রস্তুতি, সীমাহীন সুবিধা</div>
-        </div>
-        <div className="flex shrink-0 items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 backdrop-blur-sm">
-          <span className="text-[11px]">🎓</span>
-          <span className="text-[10.5px] font-bold text-white">Premium</span>
-        </div>
+    <div className="relative mx-4 mt-3 mb-1 overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0f1a] px-2.5 pb-5 pt-4 min-h-[190px]">
+      <div
+        className="pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-[0.28] blur-[7px]"
+        style={{ backgroundImage: "url('/logo.png')", backgroundSize: "55%", backgroundPosition: "center 30%", transform: "scale(1.15)" }}
+      />
+      <div className="relative z-[2] text-center mb-1.5">
+        <div className="text-[13.5px] font-extrabold text-white tracking-tight">আমাদের কোর্সসমূহ</div>
+        <div className="text-[10px] text-white/55 mt-0.5">যেকোনো কোর্সে ট্যাপ করে বিস্তারিত দেখো</div>
       </div>
-
-      <div id="arc-courses-track" className="relative z-[2]" style={{ height: h + 40 }}>
-        <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${trackWidth} ${h + 10}`} preserveAspectRatio="none">
+      <div id="arc-courses-track" className="relative z-[2] mt-1.5" style={{ height: h }}>
+        <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${trackWidth} ${h}`} preserveAspectRatio="none">
           <path
-            d={`M 6 ${h - 4} A ${r} ${r} 0 0 1 ${trackWidth - 6} ${h - 4}`}
+            d={`M 4 ${h - 2} A ${r} ${r} 0 0 1 ${trackWidth - 4} ${h - 2}`}
             fill="none"
-            stroke="rgba(255,255,255,.55)"
-            strokeWidth={3}
+            stroke="rgba(255,255,255,.28)"
+            strokeWidth={2.5}
             strokeLinecap="round"
           />
         </svg>
@@ -91,8 +99,8 @@ export default function CoursesArcBanner() {
           const x = cx - r * Math.cos(angle);
           const y = cy - r * Math.sin(angle);
           const isMain = i === mainIndex;
-          const size = isMain ? 92 : 54;
-          const delay = (i * STEP_DELAY).toFixed(2);
+          const delay = (animOrder[i] * STEP_DELAY).toFixed(2);
+          const size = isMain ? 96 : 54;
 
           return (
             <button
@@ -101,24 +109,20 @@ export default function CoursesArcBanner() {
               className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
               style={{
                 left: x,
-                top: isMain ? y - 14 : y,
+                top: isMain ? y - 34 : y,
                 width: size,
                 height: size,
                 zIndex: isMain ? 5 : 2,
-                animation: "arcItemPop .5s cubic-bezier(.34,1.56,.64,1) forwards",
+                animation: "arcItemPop .55s cubic-bezier(.34,1.56,.64,1) forwards",
                 animationDelay: `${delay}s`,
               }}
             >
-              <div
-                className={isMain ? "h-full w-full rounded-full bg-white p-[4px] shadow-[0_10px_26px_rgba(0,0,0,.35)] animate-arc-main-glow" : "h-full w-full rounded-full bg-white/90 p-[2.5px] shadow-[0_4px_12px_rgba(0,0,0,.25)]"}
-              >
-                <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#fff3d9]" />
+              <div className={isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"} style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}>
+                <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
               </div>
-              {isMain && (
-                <div className="absolute left-1/2 top-full mt-1.5 max-w-[130px] -translate-x-1/2 truncate text-center text-[10.5px] font-bold text-white drop-shadow-sm">
-                  {c.name}
-                </div>
-              )}
+              <div className={isMain ? "absolute left-1/2 top-full mt-1 max-w-[110px] -translate-x-1/2 truncate text-center text-[10px] font-bold text-white" : "absolute left-1/2 top-full mt-1 max-w-[68px] -translate-x-1/2 truncate text-center text-[8.5px] text-white/65"}>
+                {c.name}
+              </div>
             </button>
           );
         })}
@@ -126,15 +130,15 @@ export default function CoursesArcBanner() {
 
       <style>{`
         @keyframes arcItemPop {
-          0% { transform: translate(-50%, -50%) scale(.05); opacity: 0; }
-          65% { opacity: 1; }
+          0% { transform: translate(-50%, -50%) scale(.001); opacity: 0; }
+          60% { opacity: 1; }
           100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
         @keyframes arcMainGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.6), 0 10px 26px rgba(0,0,0,.35); }
-          50% { box-shadow: 0 0 0 7px rgba(255,255,255,0), 0 10px 26px rgba(0,0,0,.35); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,214,92,.55), 0 6px 18px rgba(0,0,0,.5); }
+          50% { box-shadow: 0 0 0 8px rgba(255,214,92,0), 0 6px 18px rgba(0,0,0,.5); }
         }
-        .animate-arc-main-glow { animation: arcMainGlow 2.2s ease-in-out infinite; }
+        .animate-arc-main-glow { animation: arcMainGlow 2.4s ease-in-out infinite; }
       `}</style>
     </div>
   );
