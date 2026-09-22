@@ -706,12 +706,17 @@ const TakeMistakeExam = () => {
                 </div>
             </div>
 
-            {/* Floating Submit */}
-            <div className="fixed bottom-6 right-6 z-40">
+            {/* Sticky Full-Width Submit Bar */}
+            <div
+                className="fixed left-0 right-0 z-40 px-4"
+                style={{ bottom: "0.75rem" }}
+            >
                 <Button
-                    size="default"
-                    onClick={handleFinish}
-                    className="h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold px-5"
+                    size="lg"
+                    onClick={() => {
+                        if (confirm("Are you sure you want to submit the practice?")) handleFinish();
+                    }}
+                    className="w-full h-12 rounded-full shadow-xl bg-green-600 hover:bg-green-700 text-white font-bold"
                 >
                     Submit Practice
                 </Button>
