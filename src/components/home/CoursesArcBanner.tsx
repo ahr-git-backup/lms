@@ -9,12 +9,14 @@ interface ArcCourse {
   image_url: string;
 }
 
-const MAX_COURSES = 5; // shown on the arc at once
-const LOOP_SECONDS = 16; // one full lap (left end -> right end) takes this long
+const MAX_COURSES = 5; // number of fixed slots on the arc
+const SHIFT_MS = 3200; // how often courses shift one slot clockwise
+const TRANSITION_MS = 900; // how long a single shift's move/resize takes
 
 export default function CoursesArcBanner() {
   const navigate = useNavigate();
   const [trackWidth, setTrackWidth] = useState(320);
+  const [shift, setShift] = useState(0); // how many slots everything has rotated by
 
   const { data: courses = [] } = useQuery({
     queryKey: ["pwa-arc-courses"],
@@ -45,33 +47,42 @@ export default function CoursesArcBanner() {
     return () => ro.disconnect();
   }, [courses.length]);
 
+  // Every SHIFT_MS, each course moves one slot clockwise (left -> next
+  // slot to the right); the course in the rightmost slot wraps around to
+  // the leftmost slot. The slots themselves (position + size on the arc)
+  // never move — only which course sits in which slot changes, so the
+  // motion reads as courses rotating past fixed stopping points rather
+  // than the points themselves sliding.
+  useEffect(() => {
+    if (courses.length < 2) return;
+    const id = setInterval(() => setShift((s) => s + 1), SHIFT_MS);
+    return () => clearInterval(id);
+  }, [courses.length]);
+
   const trackH = 155;
   const cx = trackWidth / 2;
   const r = trackH - 8;
   const cy = trackH + 4;
-  // Half-circle path from the arc's left end to its right end, matching the
-  // visible guide line drawn below (same cx/cy/r). offset-path animates a
-  // course circle continuously along this exact curve.
   const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
 
-  // Every item shares one continuous-loop animation that walks 0% -> 100%
-  // along the arc (left end to right end = clockwise across the top), then
-  // jumps back to 0% to repeat. Items are phase-offset via a negative
-  // animation-delay so they are spread evenly along the arc at any given
-  // moment, each following the one after it — a continuous clockwise
-  // conveyor rather than a single circle animating alone. Size grows/shrinks
-  // together with position: biggest exactly at the arc's centre (50%),
-  // smallest at either end — driven by the same keyframe as the motion, so
-  // whichever circle is currently centred is the big one, in real time.
-  const MAIN_SIZE = 100;
-  const EDGE_SIZE = 46;
+  const mainSlot = Math.floor((courses.length - 1) / 2);
 
-  const items = useMemo(() => {
-    return courses.map((c, i) => {
-      const phase = courses.length > 1 ? i / courses.length : 0; // 0..1, evenly spread
-      return { course: c, phase };
+  // Fixed slot geometry: position along the half-circle (t: 0 = left end,
+  // 1 = right end) and size (biggest at the centre slot, smaller further
+  // out) never change — only which course occupies which slot does.
+  const slots = useMemo(() => {
+    const n = courses.length;
+    return Array.from({ length: n }, (_, slot) => {
+      const t = n > 1 ? slot / (n - 1) : 0.5;
+      const rad = Math.PI - t * Math.PI; // left (PI) -> right (0)
+      const x = cx - r * Math.cos(rad);
+      const y = cy - r * Math.sin(rad);
+      const distFromCenter = Math.abs(slot - mainSlot);
+      const size = distFromCenter === 0 ? 100 : distFromCenter === 1 ? 62 : 46;
+      const zIndex = distFromCenter === 0 ? 5 : 4 - distFromCenter;
+      return { x, y, size, zIndex, isMain: distFromCenter === 0 };
     });
-  }, [courses]);
+  }, [courses.length, cx, cy, r, mainSlot]);
 
   if (!courses.length) return null;
 
@@ -89,63 +100,41 @@ export default function CoursesArcBanner() {
           <path d={arcPath} fill="none" stroke="rgba(255,255,255,.28)" strokeWidth={2.5} strokeLinecap="round" />
         </svg>
 
-        {items.map(({ course: c, phase }) => (
-          <button
-            key={c.id}
-            onClick={() => goToCourse(c.id)}
-            className="absolute left-0 top-0 rounded-full arc-rotate-item"
-            style={{
-              offsetPath: `path('${arcPath}')`,
-              offsetRotate: "0deg",
-              animationDuration: `${LOOP_SECONDS}s`,
-              animationDelay: `${-phase * LOOP_SECONDS}s`,
-            }}
-          >
-            <div
-              className="rounded-full arc-rotate-item-glow"
+        {courses.map((c, courseIdx) => {
+          // Which fixed slot this course currently occupies: it advances
+          // one slot clockwise every `shift`, wrapping at the array end.
+          const slotIdx = (courseIdx + shift) % courses.length;
+          const slot = slots[slotIdx];
+          return (
+            <button
+              key={c.id}
+              onClick={() => goToCourse(c.id)}
+              className="absolute left-0 top-0 rounded-full"
               style={{
-                background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)",
-                animationDuration: `${LOOP_SECONDS}s`,
-                animationDelay: `${-phase * LOOP_SECONDS}s`,
+                width: slot.size,
+                height: slot.size,
+                transform: `translate(${slot.x - slot.size / 2}px, ${slot.y - slot.size / 2}px)`,
+                zIndex: slot.zIndex,
+                transition: `transform ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), width ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), height ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1)`,
               }}
             >
-              <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
-            </div>
-          </button>
-        ))}
+              <div
+                className={slot.isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"}
+                style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
+              >
+                <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
+              </div>
+            </button>
+          );
+        })}
       </div>
 
       <style>{`
-        /* offset-distance walks each item 0% -> 100% along its offset-path
-           (the same half-circle arc drawn as the guide line): left end to
-           right end across the top, i.e. clockwise. At 100% it jumps back
-           to 0% and repeats, so items keep following one after another.
-           Size (width/height/margin) is driven by the same 0%/50%/100%
-           keyframe stops as the position, so whichever circle currently
-           sits at the arc's centre (50% offset-distance) is the big one,
-           in real time — not tied to which item index it originally was. */
-        @keyframes arcOffsetLoop {
-          0%   { offset-distance: 0%;   width: ${EDGE_SIZE}px; height: ${EDGE_SIZE}px; margin-left: -${EDGE_SIZE / 2}px; margin-top: -${EDGE_SIZE / 2}px; z-index: 4; }
-          50%  { offset-distance: 50%;  width: ${MAIN_SIZE}px; height: ${MAIN_SIZE}px; margin-left: -${MAIN_SIZE / 2}px; margin-top: -${MAIN_SIZE / 2}px; z-index: 5; }
-          100% { offset-distance: 100%; width: ${EDGE_SIZE}px; height: ${EDGE_SIZE}px; margin-left: -${EDGE_SIZE / 2}px; margin-top: -${EDGE_SIZE / 2}px; z-index: 4; }
+        @keyframes arcMainGlow {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(255,214,92,.55), 0 6px 18px rgba(0,0,0,.5); }
+          50% { box-shadow: 0 0 0 8px rgba(255,214,92,0), 0 6px 18px rgba(0,0,0,.5); }
         }
-        .arc-rotate-item {
-          animation-name: arcOffsetLoop;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
-        @keyframes arcRotateInnerPad {
-          0%   { padding: 2.5px; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
-          50%  { padding: 3.5px; box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 0 6px rgba(255,214,92,.35); }
-          100% { padding: 2.5px; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
-        }
-        .arc-rotate-item-glow {
-          width: 100%;
-          height: 100%;
-          animation-name: arcRotateInnerPad;
-          animation-timing-function: linear;
-          animation-iteration-count: infinite;
-        }
+        .animate-arc-main-glow { animation: arcMainGlow 2.4s ease-in-out infinite; }
       `}</style>
     </div>
   );
