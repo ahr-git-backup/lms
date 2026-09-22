@@ -10,13 +10,14 @@ interface ArcCourse {
 }
 
 const MAX_COURSES = 7;
-const STEP_DELAY = 180; // ms between each item's rotate-in start
-const ANIM_DURATION = 650; // ms per item
+const STEP_DELAY_MS = 180;
+const ANIM_MS = 650;
+const SWEEP_DEG = 55; // how far back (counter-clockwise) each item starts from its resting spot
 
 export default function CoursesArcBanner() {
   const navigate = useNavigate();
   const [trackWidth, setTrackWidth] = useState(320);
-  const [progress, setProgress] = useState(0); // 0..1, driven by rAF
+  const [entered, setEntered] = useState(false); // flips true one tick after mount, triggers the CSS transition
 
   const { data: courses = [] } = useQuery({
     queryKey: ["pwa-arc-courses"],
@@ -45,11 +46,11 @@ export default function CoursesArcBanner() {
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [courses.length]);
 
   const mainIndex = useMemo(() => Math.floor((courses.length - 1) / 2), [courses.length]);
 
-  // Animation order: center piece first, then alternating outward to the edges.
+  // Center piece animates first, then alternating outward to the edges.
   const animOrder = useMemo(() => {
     const order: Record<number, number> = {};
     let step = 0;
@@ -68,46 +69,43 @@ export default function CoursesArcBanner() {
   const r = trackH - 10;
   const cy = trackH + 2;
 
-  const positions = useMemo(() => {
+  const items = useMemo(() => {
+    const sweepRad = (SWEEP_DEG * Math.PI) / 180;
     return courses.map((c, i) => {
       const t = courses.length > 1 ? i / (courses.length - 1) : 0.5;
-      const angle = Math.PI - t * Math.PI; // PI (left) -> 0 (right)
-      const x = cx - r * Math.cos(angle);
-      const y = cy - r * Math.sin(angle);
-      const rad = Math.atan2(cy - y, x - cx); // this point's angle on the circle
-      return { x, y, rad };
+      const finalRad = Math.PI - t * Math.PI; // PI (left) -> 0 (right), standard math angle
+      const finalX = cx - r * Math.cos(finalRad);
+      const finalY = cy - r * Math.sin(finalRad);
+      // Starting point: further clockwise-behind on the same arc (higher angle
+      // = further left/up in this coordinate scheme), so it sweeps CLOCKWISE
+      // into its resting spot as the angle decreases toward finalRad.
+      const startRad = finalRad + sweepRad;
+      const startX = cx - r * Math.cos(startRad);
+      const startY = cy - r * Math.sin(startRad);
+      return { course: c, finalX, finalY, startX, startY, isMain: i === mainIndex, delay: animOrder[i] * STEP_DELAY_MS };
     });
-  }, [courses, cx, r, cy]);
+  }, [courses, cx, r, cy, mainIndex, animOrder]);
 
-  // Drive the whole sequence with one rAF loop so every item's clockwise
-  // sweep is guaranteed to actually animate (no reliance on CSS custom
-  // properties inside transforms, which some mobile webviews mishandle).
+  // Flip to "entered" a frame after mount so the browser paints the start
+  // position first, then transitions to the final position (classic FLIP-style
+  // enter animation — relies only on a CSS transition on left/top/transform,
+  // no CSS custom properties, so it can't silently no-op).
   useEffect(() => {
     if (!courses.length) return;
-    setProgress(0);
-    let raf = 0;
-    const start = performance.now();
-    const totalDuration = STEP_DELAY * (courses.length - 1) + ANIM_DURATION;
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      setProgress(Math.min(1, elapsed / totalDuration));
-      if (elapsed < totalDuration) raf = requestAnimationFrame(tick);
+    setEntered(false);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
     };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
   }, [courses.length, trackWidth]);
 
   if (!courses.length) return null;
 
   const goToCourse = (id: string) => navigate(`/courses/${id}`);
-  const totalDuration = STEP_DELAY * (courses.length - 1) + ANIM_DURATION;
-  const elapsedMs = progress * totalDuration;
-
-  const easeOutBack = (p: number) => {
-    const c1 = 1.4;
-    const c3 = c1 + 1;
-    return 1 + c3 * Math.pow(p - 1, 3) + c1 * Math.pow(p - 1, 2);
-  };
 
   return (
     <div className="relative mx-4 mt-3 mb-1 overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0f1a] px-2.5 pb-7 pt-4 min-h-[190px]">
@@ -127,24 +125,12 @@ export default function CoursesArcBanner() {
           />
         </svg>
 
-        {courses.map((c, i) => {
-          const { x, y, rad } = positions[i];
-          const isMain = i === mainIndex;
+        {items.map(({ course: c, finalX, finalY, startX, startY, isMain, delay }) => {
           const size = isMain ? 92 : 54;
-
-          const itemStart = animOrder[i] * STEP_DELAY;
-          const itemElapsed = elapsedMs - itemStart;
-          const rawP = Math.max(0, Math.min(1, itemElapsed / ANIM_DURATION));
-          const eased = easeOutBack(rawP);
-
-          // Sweep clockwise: start 55° counter-clockwise of final angle on the
-          // same arc, animate the angle itself down to the final angle.
-          const sweepRad = (55 * Math.PI) / 180;
-          const currentRad = rawP <= 0 ? rad - sweepRad : rad - sweepRad * (1 - eased);
-          const curX = cx + r * Math.cos(currentRad);
-          const curY = cy - r * Math.sin(currentRad);
-          const scale = rawP <= 0 ? 0.15 : Math.min(1, 0.15 + 0.85 * eased);
-          const opacity = rawP <= 0 ? 0 : Math.min(1, rawP / 0.5);
+          const x = entered ? finalX : startX;
+          const y = entered ? finalY : startY;
+          const scale = entered ? 1 : 0.15;
+          const opacity = entered ? 1 : 0;
 
           return (
             <button
@@ -152,13 +138,14 @@ export default function CoursesArcBanner() {
               onClick={() => goToCourse(c.id)}
               className="absolute left-0 top-0 rounded-full"
               style={{
-                left: curX,
-                top: curY,
+                left: x,
+                top: y,
                 width: size,
                 height: size,
                 zIndex: isMain ? 5 : 2,
                 opacity,
                 transform: `translate(-50%, -50%) scale(${scale})`,
+                transition: `left ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, top ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, transform ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, opacity ${Math.round(ANIM_MS * 0.6)}ms ease-out ${delay}ms`,
               }}
             >
               <div
