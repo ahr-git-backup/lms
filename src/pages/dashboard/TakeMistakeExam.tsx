@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { AiExplanationBox, AiChatButton } from "@/components/exam/AiMcqHelper";
 
 interface Question {
     id: string;
@@ -423,20 +424,30 @@ const TakeMistakeExam = () => {
 
                             return (
                                 <Card key={q.id} className="rounded-[30px] overflow-hidden shadow-sm border">
-                                    <CardContent className="p-5 space-y-2 relative">
-                                        {/* Question Header */}
-                                        <div className="flex items-start gap-4 pr-10">
-                                            <div className={cn(
-                                                "flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center font-bold text-sm",
+                                    <CardContent className="px-2 py-5 space-y-2 relative">
+                                        {/* Header row: colored status badge + AI Chat + Bookmark */}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className={cn(
+                                                "text-xs font-bold px-2.5 py-1 rounded-full",
                                                 isCorrect ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
                                                 isWrong ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
                                                 "bg-muted text-muted-foreground"
                                             )}>
-                                                {idx + 1}
+                                                {idx + 1}/{questions.length}
+                                            </span>
+                                            <div className="flex items-center gap-0.5">
+                                                <AiChatButton q={q} questionId={q.id} />
+                                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-transparent">
+                                                    <Bookmark className="h-5 w-5" />
+                                                </Button>
                                             </div>
+                                        </div>
+
+                                        {/* Question Header */}
+                                        <div className="flex items-start gap-4">
                                             <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                                <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0">
-                                                    <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
+                                                <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words">
+                                                    <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                                 </div>
                                                 <Badge variant="outline" className="mt-2 text-[10px]">{q.exam_title}</Badge>
                                             </div>
@@ -490,11 +501,13 @@ const TakeMistakeExam = () => {
                                         {q.explanation && (
                                             <div className="mt-4 pt-4 border-t border-dashed">
                                                 <h4 className="text-sm font-bold text-muted-foreground mb-1">Explanation:</h4>
-                                                <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth">
-                                                    <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
+                                                <div className="text-sm text-foreground/80 whitespace-pre-line overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain break-words">
+                                                    <MathText text={q.explanation} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
                                                 </div>
                                             </div>
                                         )}
+
+                                        <AiExplanationBox q={q} questionId={q.id} />
                                     </CardContent>
                                 </Card>
                             );
@@ -623,13 +636,16 @@ const TakeMistakeExam = () => {
                             )}
 
                             <Card className="shadow-sm rounded-[30px] overflow-hidden max-w-full">
-                                <CardContent className="p-5 space-y-2 max-w-full overflow-x-hidden">
-                                    <div className="flex items-start gap-4 max-w-full">
-                                        <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
-                                            {idx + 1}
-                                        </div>
-                                        <div className="flex-1 min-w-0 pt-1 overflow-x-auto no-scrollbar scroll-smooth">
-                                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0" />
+                                <CardContent className="p-4 md:p-5 space-y-2 max-w-full overflow-x-hidden">
+                                    <div className="flex items-center justify-between gap-2 max-w-full">
+                                        <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-muted text-muted-foreground">
+                                            {idx + 1}/{questions.length}
+                                        </span>
+                                    </div>
+
+                                    <div className="w-full min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
+                                        <div className="text-lg font-medium leading-relaxed whitespace-pre-line min-w-0 break-words text-black dark:text-white">
+                                            <MathText text={q.question_text} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white" />
                                         </div>
                                     </div>
 
@@ -654,12 +670,12 @@ const TakeMistakeExam = () => {
                                                             });
                                                         }
                                                     }}
-                                                    className={cn("flex items-center gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
+                                                    className={cn("flex items-start gap-4 group max-w-full", !isAnswered && "cursor-pointer", isDisabled && "opacity-50 pointer-events-none")}
                                                 >
                                                     <div className={cn(
-                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all",
+                                                        "flex-shrink-0 h-8 w-8 rounded-full border-2 flex items-center justify-center text-sm font-bold transition-all mt-0.5",
                                                         isSelected
-                                                            ? "border-primary bg-primary text-primary-foreground scale-110"
+                                                            ? "bg-primary border-primary text-primary-foreground scale-110"
                                                             : "border-muted-foreground/30 text-muted-foreground",
                                                         !isAnswered && !isSelected && "group-hover:border-primary/50 group-hover:text-primary",
                                                         isDisabled && "border-muted-foreground/20 text-muted-foreground/50 cursor-not-allowed"
@@ -667,13 +683,13 @@ const TakeMistakeExam = () => {
                                                         {optionKey}
                                                     </div>
                                                     <div className={cn(
-                                                        "flex-1 min-w-0 text-base whitespace-pre-line flex items-center justify-between gap-3 p-3 rounded-lg border transition-all",
-                                                        isSelected ? "text-primary font-medium bg-primary/10 border-primary/50 shadow-sm" : "text-foreground border-border/60 hover:bg-muted/30 hover:border-primary/30"
+                                                        "flex-1 min-w-0 text-base whitespace-pre-line pt-1 p-2.5 rounded-lg border overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain flex items-start justify-between gap-2",
+                                                        isSelected ? "text-primary font-medium bg-primary/5 border-primary/40" : "text-black dark:text-white border-border/60"
                                                     )}>
-                                                        <div className="flex-1 min-w-0 overflow-x-auto no-scrollbar scroll-smooth overscroll-x-contain">
-                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <MathText text={optionText} className="prose dark:prose-invert max-w-none whitespace-pre-line min-w-0 break-words text-black dark:text-white" />
                                                         </div>
-                                                        {isSelected && <Lock className="h-5 w-5 text-primary shrink-0 ml-auto" />}
+                                                        {isSelected && <Lock className="h-4 w-4 text-primary shrink-0 mt-0.5" />}
                                                     </div>
                                                 </div>
                                             );
