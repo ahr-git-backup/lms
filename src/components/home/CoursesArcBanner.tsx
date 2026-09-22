@@ -10,7 +10,7 @@ interface ArcCourse {
 }
 
 const MAX_COURSES = 7;
-const STEP_DELAY = 0.15;
+const STEP_DELAY = 0.18;
 
 export default function CoursesArcBanner() {
   const navigate = useNavigate();
@@ -45,11 +45,11 @@ export default function CoursesArcBanner() {
     return () => ro.disconnect();
   }, []);
 
-  // Center course = main focus (biggest, dead-center of the arc, animates in FIRST)
+  // Center course = main focus (biggest, dead-center apex of the arc, animates in FIRST)
   const mainIndex = useMemo(() => Math.floor((courses.length - 1) / 2), [courses.length]);
 
   // Animation order: center piece first (delay 0), then alternating outward
-  // from the center to the edges, so items pop in centre -> out.
+  // from the center towards the edges.
   const animOrder = useMemo(() => {
     const order: Record<number, number> = {};
     let step = 0;
@@ -63,12 +63,24 @@ export default function CoursesArcBanner() {
     return order;
   }, [mainIndex, courses.length]);
 
-  if (!courses.length) return null;
-
-  const h = 148;
+  // Geometry: track box is exactly h tall, arc radius r, center (cx, cy).
+  // Every circle (including the main one) is centered exactly on this arc.
+  const trackH = 150;
   const cx = trackWidth / 2;
-  const cy = h + 34;
-  const r = h - 6;
+  const r = trackH - 10;
+  const cy = trackH + 2; // circle centers sit ON the arc line, arc bulges up into the track box
+
+  const positions = useMemo(() => {
+    return courses.map((c, i) => {
+      const t = courses.length > 1 ? i / (courses.length - 1) : 0.5;
+      const angle = Math.PI - t * Math.PI; // PI (left) -> 0 (right), apex at t=0.5
+      const x = cx - r * Math.cos(angle);
+      const y = cy - r * Math.sin(angle);
+      return { x, y, angleDeg: (angle * 180) / Math.PI };
+    });
+  }, [courses, cx, r, cy]);
+
+  if (!courses.length) return null;
 
   const goToCourse = (id: string) => navigate(`/courses/${id}`);
 
@@ -82,10 +94,11 @@ export default function CoursesArcBanner() {
         <div className="text-[13.5px] font-extrabold text-white tracking-tight">আমাদের কোর্সসমূহ</div>
         <div className="text-[10px] text-white/55 mt-0.5">যেকোনো কোর্সে ট্যাপ করে বিস্তারিত দেখো</div>
       </div>
-      <div id="arc-courses-track" className="relative z-[2] mt-1.5" style={{ height: h + 20 }}>
-        <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${trackWidth} ${h}`} preserveAspectRatio="none">
+
+      <div id="arc-courses-track" className="relative z-[2] mt-1.5" style={{ height: trackH }}>
+        <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${trackWidth} ${trackH}`} preserveAspectRatio="none">
           <path
-            d={`M 4 ${h - 2} A ${r} ${r} 0 0 1 ${trackWidth - 4} ${h - 2}`}
+            d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
             fill="none"
             stroke="rgba(255,255,255,.28)"
             strokeWidth={2.5}
@@ -94,33 +107,54 @@ export default function CoursesArcBanner() {
         </svg>
 
         {courses.map((c, i) => {
-          const t = courses.length > 1 ? i / (courses.length - 1) : 0.5;
-          const angle = Math.PI - t * Math.PI;
-          const x = cx - r * Math.cos(angle);
-          const y = cy - r * Math.sin(angle);
+          const { x, y } = positions[i];
           const isMain = i === mainIndex;
+          const size = isMain ? 92 : 54;
           const delay = (animOrder[i] * STEP_DELAY).toFixed(2);
-          const size = isMain ? 96 : 54;
+          // Rotate in clockwise around the arc's center into its resting spot:
+          // start ~55° back (counter-clockwise) from final position, same radius,
+          // then sweep clockwise while fading/scaling in.
+          const finalRad = Math.atan2(cy - y, x - cx); // angle of this item's resting point
+          const startRad = finalRad - (55 * Math.PI) / 180;
+          const startX = cx + r * Math.cos(startRad);
+          const startY = cy - r * Math.sin(startRad);
 
           return (
             <button
               key={c.id}
               onClick={() => goToCourse(c.id)}
-              className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
-              style={{
-                left: x,
-                top: y,
-                width: size,
-                height: size,
-                zIndex: isMain ? 5 : 2,
-                animation: "arcItemPop .55s cubic-bezier(.34,1.56,.64,1) forwards",
-                animationDelay: `${delay}s`,
-              }}
+              className="absolute left-0 top-0 rounded-full opacity-0"
+              style={
+                {
+                  left: x,
+                  top: y,
+                  width: size,
+                  height: size,
+                  zIndex: isMain ? 5 : 2,
+                  animation: "arcItemRotateIn .6s cubic-bezier(.34,1.2,.4,1) forwards",
+                  animationDelay: `${delay}s`,
+                  "--arc-dx": `${startX - x}px`,
+                  "--arc-dy": `${startY - y}px`,
+                } as React.CSSProperties
+              }
             >
-              <div className={isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"} style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}>
+              <div
+                className={
+                  isMain
+                    ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow"
+                    : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"
+                }
+                style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
+              >
                 <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
               </div>
-              <div className={isMain ? "absolute left-1/2 top-full mt-1 max-w-[110px] -translate-x-1/2 truncate text-center text-[10px] font-bold text-white" : "absolute left-1/2 top-full mt-1 max-w-[68px] -translate-x-1/2 truncate text-center text-[8.5px] text-white/65"}>
+              <div
+                className={
+                  isMain
+                    ? "absolute left-1/2 top-full mt-1 max-w-[110px] -translate-x-1/2 truncate text-center text-[10px] font-bold text-white"
+                    : "absolute left-1/2 top-full mt-1 max-w-[68px] -translate-x-1/2 truncate text-center text-[8.5px] text-white/65"
+                }
+              >
                 {c.name}
               </div>
             </button>
@@ -129,10 +163,16 @@ export default function CoursesArcBanner() {
       </div>
 
       <style>{`
-        @keyframes arcItemPop {
-          0% { transform: translate(-50%, -50%) scale(.001); opacity: 0; }
-          60% { opacity: 1; }
-          100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        @keyframes arcItemRotateIn {
+          0% {
+            transform: translate(calc(-50% + var(--arc-dx)), calc(-50% + var(--arc-dy))) scale(.2);
+            opacity: 0;
+          }
+          55% { opacity: 1; }
+          100% {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+          }
         }
         @keyframes arcMainGlow {
           0%, 100% { box-shadow: 0 0 0 0 rgba(255,214,92,.55), 0 6px 18px rgba(0,0,0,.5); }
