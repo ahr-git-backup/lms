@@ -62,7 +62,7 @@ export default function CoursesArcBanner() {
   const trackH = 155;
   const cx = trackWidth / 2;
   const r = trackH - 8;
-  const cy = trackH + 4;
+  const cy = trackH + 24;
   const arcPath = `M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`;
 
   const mainSlot = Math.floor((courses.length - 1) / 2);
