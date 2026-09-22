@@ -9,15 +9,15 @@ interface ArcCourse {
   image_url: string;
 }
 
-const MAX_COURSES = 7;
+const MAX_COURSES = 5; // center + 2 either side
 const STEP_DELAY_MS = 180;
-const ANIM_MS = 650;
-const SWEEP_DEG = 55; // how far back (counter-clockwise) each item starts from its resting spot
+const ANIM_MS = 700;
+const SWEEP_DEG = 60; // each item starts this many degrees clockwise-behind its resting spot
 
 export default function CoursesArcBanner() {
   const navigate = useNavigate();
   const [trackWidth, setTrackWidth] = useState(320);
-  const [entered, setEntered] = useState(false); // flips true one tick after mount, triggers the CSS transition
+  const [playKey, setPlayKey] = useState(0); // bump to re-trigger the keyframe animations
 
   const { data: courses = [] } = useQuery({
     queryKey: ["pwa-arc-courses"],
@@ -48,6 +48,10 @@ export default function CoursesArcBanner() {
     return () => ro.disconnect();
   }, [courses.length]);
 
+  useEffect(() => {
+    if (courses.length) setPlayKey((k) => k + 1);
+  }, [courses.length, trackWidth]);
+
   const mainIndex = useMemo(() => Math.floor((courses.length - 1) / 2), [courses.length]);
 
   // Center piece animates first, then alternating outward to the edges.
@@ -64,44 +68,40 @@ export default function CoursesArcBanner() {
     return order;
   }, [mainIndex, courses.length]);
 
-  const trackH = 150;
+  const trackH = 155;
   const cx = trackWidth / 2;
-  const r = trackH - 10;
-  const cy = trackH + 2;
+  const r = trackH - 8;
+  const cy = trackH + 4;
 
   const items = useMemo(() => {
     const sweepRad = (SWEEP_DEG * Math.PI) / 180;
     return courses.map((c, i) => {
+      const distFromCenter = Math.abs(i - mainIndex);
+      // Size: main focus biggest; each step away from center gets noticeably smaller.
+      const size = distFromCenter === 0 ? 100 : distFromCenter === 1 ? 62 : 46;
+
       const t = courses.length > 1 ? i / (courses.length - 1) : 0.5;
-      const finalRad = Math.PI - t * Math.PI; // PI (left) -> 0 (right), standard math angle
+      const finalRad = Math.PI - t * Math.PI; // PI (left) -> 0 (right)
       const finalX = cx - r * Math.cos(finalRad);
       const finalY = cy - r * Math.sin(finalRad);
-      // Starting point: further clockwise-behind on the same arc (higher angle
-      // = further left/up in this coordinate scheme), so it sweeps CLOCKWISE
-      // into its resting spot as the angle decreases toward finalRad.
+      // Start further clockwise-behind (higher angle) on the same arc, so as
+      // the angle decreases toward finalRad the item visibly sweeps clockwise.
       const startRad = finalRad + sweepRad;
       const startX = cx - r * Math.cos(startRad);
       const startY = cy - r * Math.sin(startRad);
-      return { course: c, finalX, finalY, startX, startY, isMain: i === mainIndex, delay: animOrder[i] * STEP_DELAY_MS };
+
+      return {
+        course: c,
+        size,
+        isMain: distFromCenter === 0,
+        delay: animOrder[i] * STEP_DELAY_MS,
+        dx: startX - finalX, // how far left/right of final spot it starts
+        dy: startY - finalY, // how far above/below final spot it starts
+        finalX,
+        finalY,
+      };
     });
   }, [courses, cx, r, cy, mainIndex, animOrder]);
-
-  // Flip to "entered" a frame after mount so the browser paints the start
-  // position first, then transitions to the final position (classic FLIP-style
-  // enter animation — relies only on a CSS transition on left/top/transform,
-  // no CSS custom properties, so it can't silently no-op).
-  useEffect(() => {
-    if (!courses.length) return;
-    setEntered(false);
-    let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setEntered(true));
-    });
-    return () => {
-      cancelAnimationFrame(raf1);
-      cancelAnimationFrame(raf2);
-    };
-  }, [courses.length, trackWidth]);
 
   if (!courses.length) return null;
 
@@ -125,29 +125,29 @@ export default function CoursesArcBanner() {
           />
         </svg>
 
-        {items.map(({ course: c, finalX, finalY, startX, startY, isMain, delay }) => {
-          const size = isMain ? 92 : 54;
-          const x = entered ? finalX : startX;
-          const y = entered ? finalY : startY;
-          const scale = entered ? 1 : 0.15;
-          const opacity = entered ? 1 : 0;
-
+        {items.map(({ course: c, size, isMain, delay, dx, dy, finalX, finalY }, idx) => {
+          const animName = `arcSweep_${playKey}_${idx}`;
           return (
             <button
-              key={c.id}
+              key={`${c.id}_${playKey}`}
               onClick={() => goToCourse(c.id)}
-              className="absolute left-0 top-0 rounded-full"
+              className="absolute left-0 top-0 rounded-full opacity-0"
               style={{
-                left: x,
-                top: y,
+                left: finalX,
+                top: finalY,
                 width: size,
                 height: size,
-                zIndex: isMain ? 5 : 2,
-                opacity,
-                transform: `translate(-50%, -50%) scale(${scale})`,
-                transition: `left ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, top ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, transform ${ANIM_MS}ms cubic-bezier(.22,1.4,.36,1) ${delay}ms, opacity ${Math.round(ANIM_MS * 0.6)}ms ease-out ${delay}ms`,
+                zIndex: isMain ? 5 : 4 - Math.round(Math.abs(dx) / 40),
+                animation: `${animName} ${ANIM_MS}ms cubic-bezier(.24,1.15,.4,1) ${delay}ms forwards`,
               }}
             >
+              <style>{`
+                @keyframes ${animName} {
+                  0% { transform: translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(.15); opacity: 0; }
+                  55% { opacity: 1; }
+                  100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+                }
+              `}</style>
               <div
                 className={isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"}
                 style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
