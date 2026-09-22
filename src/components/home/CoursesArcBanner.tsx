@@ -105,24 +105,34 @@ export default function CoursesArcBanner() {
           // one slot clockwise every `shift`, wrapping at the array end.
           const slotIdx = (courseIdx + shift) % courses.length;
           const slot = slots[slotIdx];
+          // Centre slot is a square (not a circle) so the whole course
+          // thumbnail is visible top-to-bottom, uncropped.
+          const shapeClass = slot.isMain ? "rounded-2xl" : "rounded-full";
           return (
             <button
               key={c.id}
               onClick={() => goToCourse(c.id)}
-              className="absolute left-0 top-0 rounded-full"
+              className={`absolute left-0 top-0 ${shapeClass}`}
               style={{
                 width: slot.size,
                 height: slot.size,
                 transform: `translate(${slot.x - slot.size / 2}px, ${slot.y - slot.size / 2}px)`,
                 zIndex: slot.zIndex,
-                transition: `transform ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), width ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), height ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1)`,
+                transition: `transform ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), width ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), height ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1), border-radius ${TRANSITION_MS}ms cubic-bezier(.4,0,.2,1)`,
               }}
             >
               <div
-                className={slot.isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"}
+                className={slot.isMain ? `h-full w-full ${shapeClass} p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow` : `h-full w-full ${shapeClass} p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]`}
                 style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
               >
-                <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
+                <div className={`h-full w-full ${shapeClass} overflow-hidden bg-[#1a1f30]`}>
+                  <img
+                    src={c.image_url}
+                    alt={c.name}
+                    loading="lazy"
+                    className={`h-full w-full ${slot.isMain ? "object-contain" : "object-cover"}`}
+                  />
+                </div>
               </div>
             </button>
           );
