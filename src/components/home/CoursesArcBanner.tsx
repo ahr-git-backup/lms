@@ -110,13 +110,13 @@ export default function CoursesArcBanner() {
   };
 
   return (
-    <div className="relative mx-4 mt-3 mb-1 overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0f1a] px-2.5 pb-5 pt-4 min-h-[190px]">
+    <div className="relative mx-4 mt-3 mb-1 overflow-hidden rounded-[22px] border border-white/10 bg-[#0c0f1a] px-2.5 pb-7 pt-4 min-h-[190px]">
       <div
         className="pointer-events-none absolute inset-0 bg-center bg-no-repeat opacity-[0.28] blur-[7px]"
         style={{ backgroundImage: "url('/logo.png')", backgroundSize: "55%", backgroundPosition: "center 30%", transform: "scale(1.15)" }}
       />
 
-      <div id="arc-courses-track" className="relative z-[2] mt-3" style={{ height: trackH }}>
+      <div id="arc-courses-track" className="relative z-[2] mt-9" style={{ height: trackH }}>
         <svg className="absolute inset-0 h-full w-full overflow-visible" viewBox={`0 0 ${trackWidth} ${trackH}`} preserveAspectRatio="none">
           <path
             d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
@@ -166,11 +166,6 @@ export default function CoursesArcBanner() {
                 style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
               >
                 <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
-              </div>
-              <div
-                className={isMain ? "absolute left-1/2 top-full mt-1 max-w-[110px] -translate-x-1/2 truncate text-center text-[10px] font-bold text-white" : "absolute left-1/2 top-full mt-1 max-w-[68px] -translate-x-1/2 truncate text-center text-[8.5px] text-white/65"}
-              >
-                {c.name}
               </div>
             </button>
           );
