@@ -10,7 +10,7 @@ interface ArcCourse {
 }
 
 const MAX_COURSES = 5; // number of fixed slots on the arc
-const SHIFT_MS = 3200; // how often courses shift one slot clockwise
+const SHIFT_MS = 2000; // how often courses shift one slot clockwise
 const TRANSITION_MS = 900; // how long a single shift's move/resize takes
 
 export default function CoursesArcBanner() {
