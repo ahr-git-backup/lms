@@ -22,7 +22,7 @@ export const AppBottomNav = () => {
   if (!isStandalone) return null;
   // Hide while an exam is running so only the Submit controls are visible.
   // (Result / review pages live on other routes, so the nav stays there.)
-  if (/^(\/dashboard)?\/take-exam\//.test(pathname)) return null;
+  if (/^(\/dashboard)?\/(take-exam\/|take-mistakes)/.test(pathname)) return null;
 
   return (
     <nav
