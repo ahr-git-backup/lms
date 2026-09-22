@@ -2255,7 +2255,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [savingNewChannel, setSavingNewChannel] = useState(false);
   const sendQueryClient = useQueryClient();
   const [sendSplitMode, setSendSplitMode] = useState<"auto" | "all" | "batch">("auto"); // auto = topic-wise if topics exist
-  const [sendMode, setSendMode] = useState<"all" | "links_only" | "poll_quiz_pdf">("all"); // all = polls+PDF+summary (present system); links_only = single post, no polls sent, just per-topic Poll Practice/Quiz Solve/Website Exam links; poll_quiz_pdf = same single-post style but only Poll Practice/Quiz Solve/Premium PDF links, no Website Exam link anywhere
+  const [sendMode, setSendMode] = useState<"all" | "links_only" | "poll_quiz_pdf" | "website_only">("all"); // all = polls+PDF+summary (present system); links_only = single post, no polls sent, just per-topic Poll Practice/Quiz Solve/Website Exam links; poll_quiz_pdf = same single-post style but only Poll Practice/Quiz Solve/Premium PDF links, no Website Exam link anywhere; website_only = same single-post style but only a Website Exam link per topic, no Poll/Quiz Solve/PDF link anywhere
   const [sendBatchSize, setSendBatchSize] = useState("25");
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
@@ -2465,8 +2465,8 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           exam_title: sendingExam.title || "",
           subject: Array.isArray(sendingExam.subject) ? (sendingExam.subject[0] || "") : (sendingExam.subject || ""),
           chapter: sendingExam.chapter || "",
-          links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf",
-          links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : "full",
+          links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf" || sendMode === "website_only",
+          links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : sendMode === "website_only" ? "website_only" : "full",
         }),
       });
       const rawText = await res.text();
@@ -2629,8 +2629,8 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
             exam_title: exam.title || "",
             subject: Array.isArray(exam.subject) ? (exam.subject[0] || "") : (exam.subject || ""),
             chapter: exam.chapter || "",
-            links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf",
-            links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : "full",
+            links_only: sendMode === "links_only" || sendMode === "poll_quiz_pdf" || sendMode === "website_only",
+            links_variant: sendMode === "poll_quiz_pdf" ? "poll_quiz_pdf" : sendMode === "website_only" ? "website_only" : "full",
           }),
         });
         const rawText = await res.text();
@@ -2929,6 +2929,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
                 <SelectItem value="all">সব (Poll + PDF + Summary — বর্তমান পদ্ধতি)</SelectItem>
                 <SelectItem value="links_only">শুধু Poll Practice, Quiz Solve, Website Exam লিংক (এক পোস্টে)</SelectItem>
                 <SelectItem value="poll_quiz_pdf">শুধু Poll + Quiz + PDF (Website লিংক ছাড়া)</SelectItem>
+                <SelectItem value="website_only">শুধু Website Link</SelectItem>
               </SelectContent>
             </Select>
           </div>
