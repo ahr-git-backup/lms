@@ -82,7 +82,7 @@ export default function CoursesArcBanner() {
         <div className="text-[13.5px] font-extrabold text-white tracking-tight">আমাদের কোর্সসমূহ</div>
         <div className="text-[10px] text-white/55 mt-0.5">যেকোনো কোর্সে ট্যাপ করে বিস্তারিত দেখো</div>
       </div>
-      <div id="arc-courses-track" className="relative z-[2] mt-1.5" style={{ height: h }}>
+      <div id="arc-courses-track" className="relative z-[2] mt-1.5" style={{ height: h + 20 }}>
         <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 ${trackWidth} ${h}`} preserveAspectRatio="none">
           <path
             d={`M 4 ${h - 2} A ${r} ${r} 0 0 1 ${trackWidth - 4} ${h - 2}`}
@@ -109,7 +109,7 @@ export default function CoursesArcBanner() {
               className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
               style={{
                 left: x,
-                top: isMain ? y - 34 : y,
+                top: y,
                 width: size,
                 height: size,
                 zIndex: isMain ? 5 : 2,
