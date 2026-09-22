@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import PublicHeader from "@/components/PublicHeader";
+import CoursesArcBanner from "@/components/home/CoursesArcBanner";
 import { PWAQuickActionsGrid } from "@/components/home/PWAQuickActionsGrid";
 import OwnerSectionPWA from "@/components/home/OwnerSectionPWA";
 import SuccessGallerySection from "@/components/home/SuccessGallerySection";
@@ -20,6 +21,7 @@ export default function PWAHome() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PublicHeader />
+      <CoursesArcBanner />
 
       <div className="px-4 py-3">
         <p className="text-lg font-bold leading-tight">
