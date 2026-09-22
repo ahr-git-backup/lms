@@ -45,8 +45,6 @@ export default function CoursesArcBanner() {
     return () => ro.disconnect();
   }, [courses.length]);
 
-  const mainIndex = useMemo(() => Math.floor((courses.length - 1) / 2), [courses.length]);
-
   const trackH = 155;
   const cx = trackWidth / 2;
   const r = trackH - 8;
@@ -61,16 +59,19 @@ export default function CoursesArcBanner() {
   // jumps back to 0% to repeat. Items are phase-offset via a negative
   // animation-delay so they are spread evenly along the arc at any given
   // moment, each following the one after it — a continuous clockwise
-  // conveyor rather than a single circle animating alone.
+  // conveyor rather than a single circle animating alone. Size grows/shrinks
+  // together with position: biggest exactly at the arc's centre (50%),
+  // smallest at either end — driven by the same keyframe as the motion, so
+  // whichever circle is currently centred is the big one, in real time.
+  const MAIN_SIZE = 100;
+  const EDGE_SIZE = 46;
+
   const items = useMemo(() => {
     return courses.map((c, i) => {
-      const distFromCenter = Math.abs(i - mainIndex);
-      const size = distFromCenter === 0 ? 100 : distFromCenter === 1 ? 62 : 46;
-      const isMain = distFromCenter === 0;
       const phase = courses.length > 1 ? i / courses.length : 0; // 0..1, evenly spread
-      return { course: c, size, isMain, phase };
+      return { course: c, phase };
     });
-  }, [courses, mainIndex]);
+  }, [courses]);
 
   if (!courses.length) return null;
 
@@ -88,17 +89,12 @@ export default function CoursesArcBanner() {
           <path d={arcPath} fill="none" stroke="rgba(255,255,255,.28)" strokeWidth={2.5} strokeLinecap="round" />
         </svg>
 
-        {items.map(({ course: c, size, isMain, phase }) => (
+        {items.map(({ course: c, phase }) => (
           <button
             key={c.id}
             onClick={() => goToCourse(c.id)}
             className="absolute left-0 top-0 rounded-full arc-rotate-item"
             style={{
-              width: size,
-              height: size,
-              marginLeft: -size / 2,
-              marginTop: -size / 2,
-              zIndex: isMain ? 5 : 4,
               offsetPath: `path('${arcPath}')`,
               offsetRotate: "0deg",
               animationDuration: `${LOOP_SECONDS}s`,
@@ -106,8 +102,12 @@ export default function CoursesArcBanner() {
             }}
           >
             <div
-              className={isMain ? "h-full w-full rounded-full p-[3.5px] shadow-[0_6px_18px_rgba(0,0,0,.5)] animate-arc-main-glow" : "h-full w-full rounded-full p-[2.5px] shadow-[0_4px_14px_rgba(0,0,0,.45)]"}
-              style={{ background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)" }}
+              className="rounded-full arc-rotate-item-glow"
+              style={{
+                background: "linear-gradient(135deg,#FFD65C,#FF7A45,#6C63FF)",
+                animationDuration: `${LOOP_SECONDS}s`,
+                animationDelay: `${-phase * LOOP_SECONDS}s`,
+              }}
             >
               <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full rounded-full object-cover bg-[#1a1f30]" />
             </div>
@@ -119,21 +119,33 @@ export default function CoursesArcBanner() {
         /* offset-distance walks each item 0% -> 100% along its offset-path
            (the same half-circle arc drawn as the guide line): left end to
            right end across the top, i.e. clockwise. At 100% it jumps back
-           to 0% and repeats, so items keep following one after another. */
+           to 0% and repeats, so items keep following one after another.
+           Size (width/height/margin) is driven by the same 0%/50%/100%
+           keyframe stops as the position, so whichever circle currently
+           sits at the arc's centre (50% offset-distance) is the big one,
+           in real time — not tied to which item index it originally was. */
         @keyframes arcOffsetLoop {
-          0% { offset-distance: 0%; }
-          100% { offset-distance: 100%; }
+          0%   { offset-distance: 0%;   width: ${EDGE_SIZE}px; height: ${EDGE_SIZE}px; margin-left: -${EDGE_SIZE / 2}px; margin-top: -${EDGE_SIZE / 2}px; z-index: 4; }
+          50%  { offset-distance: 50%;  width: ${MAIN_SIZE}px; height: ${MAIN_SIZE}px; margin-left: -${MAIN_SIZE / 2}px; margin-top: -${MAIN_SIZE / 2}px; z-index: 5; }
+          100% { offset-distance: 100%; width: ${EDGE_SIZE}px; height: ${EDGE_SIZE}px; margin-left: -${EDGE_SIZE / 2}px; margin-top: -${EDGE_SIZE / 2}px; z-index: 4; }
         }
         .arc-rotate-item {
           animation-name: arcOffsetLoop;
           animation-timing-function: linear;
           animation-iteration-count: infinite;
         }
-        @keyframes arcMainGlow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(255,214,92,.55), 0 6px 18px rgba(0,0,0,.5); }
-          50% { box-shadow: 0 0 0 8px rgba(255,214,92,0), 0 6px 18px rgba(0,0,0,.5); }
+        @keyframes arcRotateInnerPad {
+          0%   { padding: 2.5px; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
+          50%  { padding: 3.5px; box-shadow: 0 6px 18px rgba(0,0,0,.5), 0 0 0 6px rgba(255,214,92,.35); }
+          100% { padding: 2.5px; box-shadow: 0 4px 14px rgba(0,0,0,.45); }
         }
-        .animate-arc-main-glow { animation: arcMainGlow 2.4s ease-in-out infinite; }
+        .arc-rotate-item-glow {
+          width: 100%;
+          height: 100%;
+          animation-name: arcRotateInnerPad;
+          animation-timing-function: linear;
+          animation-iteration-count: infinite;
+        }
       `}</style>
     </div>
   );
