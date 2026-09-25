@@ -453,18 +453,10 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-0.5 p-2.5 pb-1.5">
-                            <div className="flex justify-between items-start gap-2">
-                                {classItem.course?.name && (
-                                    <Badge variant="outline" className="text-[9px] font-mono uppercase shrink-0 px-1.5 py-0">
-                                        {classItem.course.name}
-                                    </Badge>
-                                )}
+                            <div className="flex justify-end items-start gap-2">
                                 {!unlocked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
-                            <CardDescription className="text-[10px]">
-                              {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
-                            </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-1.5 p-2.5 pt-0">
                             {classItem.topic && (
@@ -593,18 +585,10 @@ const ArchiveClassView = ({ enrollments, selectedSubject, setSelectedSubject, se
                         return (
                          <Card key={classItem.id} className={`border rounded-2xl shadow-md transition-all flex flex-col h-full ${unlocked ? 'border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/20 dark:border-emerald-900 hover:shadow-lg' : 'border-border bg-muted/30 opacity-80'}`}>
                           <CardHeader className="space-y-0.5 p-2.5 pb-1.5">
-                            <div className="flex justify-between items-start gap-2">
-                                {classItem.course?.name && (
-                                    <Badge variant="outline" className="text-[9px] font-mono uppercase shrink-0 px-1.5 py-0">
-                                        {classItem.course.name}
-                                    </Badge>
-                                )}
+                            <div className="flex justify-end items-start gap-2">
                                 {!unlocked && <Lock className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
                             </div>
                             <CardTitle className="text-xs whitespace-nowrap overflow-hidden text-ellipsis" title={classItem.title}>{classItem.title}</CardTitle>
-                            <CardDescription className="text-[10px]">
-                              {classItem.start_at && new Date(classItem.start_at).toLocaleDateString()}
-                            </CardDescription>
                           </CardHeader>
                           <CardContent className="space-y-1.5 p-2.5 pt-0">
                             {classItem.topic && (
@@ -862,11 +846,6 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                             <CardHeader className="p-2.5 pb-1.5">
                                 <div className="flex justify-between items-start gap-2">
                                     <div className="space-y-0.5">
-                                        {exam.course?.name && (
-                                            <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0">
-                                                {exam.course.name}
-                                            </Badge>
-                                        )}
                                         <CardTitle className="text-xs leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                             {exam.title}
                                         </CardTitle>
@@ -1000,11 +979,6 @@ const ArchiveExamView = ({ enrollments, selectedSubject, setSelectedSubject, sel
                         <CardHeader className="p-2.5 pb-1.5">
                             <div className="flex justify-between items-start gap-2">
                                 <div className="space-y-0.5">
-                                    {exam.course?.name && (
-                                        <Badge variant="outline" className="text-[9px] font-mono uppercase px-1.5 py-0">
-                                            {exam.course.name}
-                                        </Badge>
-                                    )}
                                     <CardTitle className="text-xs leading-tight group-hover:text-primary transition-colors whitespace-nowrap overflow-hidden text-ellipsis" title={exam.title}>
                                         {exam.title}
                                     </CardTitle>
