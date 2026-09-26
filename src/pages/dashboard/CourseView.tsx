@@ -7,7 +7,7 @@ import { useEnrollments } from "@/hooks/useEnrollments";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Clock, Trophy, Archive, LayoutTemplate } from "lucide-react";
+import { ArrowLeft, BookOpen, Video, FileText, FolderOpen, Layers, ChevronRight, Trophy, Archive, LayoutTemplate } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -393,10 +393,6 @@ const ClassList = ({ courseId, subject, chapter }: any) => {
                 <Card key={cls.id} className="flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
-                        </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
                         <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
@@ -437,10 +433,6 @@ const PastClassList = ({ courseId, subject, chapter }: any) => {
                 <Card key={cls.id} className="flex flex-col">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                            <Clock className="h-3 w-3" />
-                            {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
-                        </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
                         <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
@@ -595,11 +587,6 @@ const ArchiveClassList = ({ courseId, subject, chapter }: any) => {
                 <Card key={cls.id} className="flex flex-col border-emerald-100 bg-emerald-50/20">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm leading-snug">{cls.title}</CardTitle>
-                        <div className="text-xs text-muted-foreground flex items-center gap-2">
-                             <Badge variant="outline" className="text-[10px]">Archive</Badge>
-                             <Clock className="h-3 w-3" />
-                             {cls.start_at && new Date(cls.start_at).toLocaleDateString()}
-                        </div>
                     </CardHeader>
                     <CardFooter className="mt-auto pt-4">
                         <Button size="sm" className="w-full" onClick={() => navigate(`/dashboard/class/${cls.id}`)}>
