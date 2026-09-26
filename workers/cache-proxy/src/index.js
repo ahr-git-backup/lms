@@ -53,6 +53,11 @@ const ROUTES = {
 // for Mock Test's routes.
 const ROUTE_TTL_OVERRIDES = {
   "/free-exams-metadata": 120, // 2 min, vs the 300s (5 min) default
+  // Mock Pool metadata (subjects/chapters/topics): admins add a new
+  // sub/chapter/type in AdminMockPool and expect it visible in Mock Test
+  // (and its Quick Practice sync) within seconds, not the 5-minute default.
+  "/mock-pool-subjects": 20,
+  "/mock-pool-subject-totals": 20,
 };
 
 async function supabaseRest(env, pathAndQuery) {
