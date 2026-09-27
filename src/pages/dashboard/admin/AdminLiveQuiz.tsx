@@ -6,9 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Radio, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, CheckCircle2, CalendarClock } from "lucide-react";
 import type { QuestionData } from "@/types/exam";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
@@ -165,7 +168,7 @@ export default function AdminLiveQuiz() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-2 sm:p-4 space-y-4">
+    <div className="w-full max-w-4xl mx-auto space-y-4">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="h-5 w-5" />
@@ -200,15 +203,35 @@ export default function AdminLiveQuiz() {
           </div>
 
           {timing === "schedule" && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Date</label>
-                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Time</label>
-                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">কবে পাঠাবে</label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    disabled={busy}
+                    className="w-full justify-start text-left font-normal"
+                  >
+                    <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
+                    {date && time
+                      ? `${format(new Date(`${date}T${time}:00`), "dd MMM yyyy")} — ${time}`
+                      : "Date ও Time বেছে নাও"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-3 space-y-3" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date ? new Date(`${date}T00:00:00`) : undefined}
+                    onSelect={(d) => d && setDate(format(d, "yyyy-MM-dd"))}
+                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
+                    initialFocus
+                  />
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium text-muted-foreground">Time</label>
+                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
+                  </div>
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
