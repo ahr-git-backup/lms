@@ -28,5 +28,5 @@ alter table public.scheduled_live_quizzes enable row level security;
 create policy "Admins manage scheduled live quizzes"
   on public.scheduled_live_quizzes
   for all
-  using (public.has_role(auth.uid(), 'admin'::public.app_role))
-  with check (public.has_role(auth.uid(), 'admin'::public.app_role));
+  using (public.is_admin())
+  with check (public.is_admin());
