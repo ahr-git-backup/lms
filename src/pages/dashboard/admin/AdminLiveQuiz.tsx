@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, Radio, CheckCircle2 } from "lucide-react";
+import type { QuestionData } from "@/types/exam";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
 const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
@@ -17,9 +18,11 @@ export default function AdminLiveQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // ── selected exam (filled in by the Question Bank picker at the bottom
-  //    of this same form) ──
-  const [selectedExam, setSelectedExam] = useState<{ id: string; title: string } | null>(null);
+  // ── manually-selected MCQs (filled in by the Question Bank picker at the
+  //    bottom of this same form) — only questions the admin explicitly
+  //    checks go into the Live Quiz, no whole-exam bulk-select ──
+  const [selectedQuestions, setSelectedQuestions] = useState<QuestionData[]>([]);
+  const [selectedExamTitle, setSelectedExamTitle] = useState<string>("");
 
   // ── channel picker ──
   const [savedChannelId, setSavedChannelId] = useState("");
@@ -87,23 +90,22 @@ export default function AdminLiveQuiz() {
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Fired by QuestionBankSelector's onSelect (bulk exam-checkbox "Add" flow,
-  // mounted inline below) — takes source.examIds (our picker is single-exam,
-  // so we take the first) and looks up its real title for display.
-  const handleBankSelect = (_questions: any[], source?: { label: string; examIds: string[] }) => {
-    const examId = source?.examIds?.[0];
-    if (!examId) return;
-    (async () => {
-      const { data } = await supabase.from("exams").select("title").eq("id", examId).single();
-      const title = data?.title || source?.label || "";
-      setSelectedExam({ id: examId, title });
-      setQuizName((prev) => prev || title);
-    })();
+  // Fired by QuestionBankSelector's onSelect — the admin manually checks
+  // individual questions inside an exam and hits "Add (n)"; only those exact
+  // MCQs are appended to this Live Quiz's question list.
+  const handleBankSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
+    if (!questions?.length) return;
+    setSelectedQuestions((prev) => [...prev, ...questions]);
+    const label = source?.label || "";
+    setSelectedExamTitle((prev) => prev || label);
+    setQuizName((prev) => prev || label);
   };
 
+  const questionIds = selectedQuestions.map((q) => q.id).filter((id): id is string => !!id);
+
   const handleSubmit = async () => {
-    if (!selectedExam || !channelId.trim()) {
-      toast({ title: "Exam ও Channel/Group ID দুটোই দরকার", variant: "destructive" });
+    if (questionIds.length === 0 || !channelId.trim()) {
+      toast({ title: "অন্তত একটা প্রশ্ন ও Channel/Group ID দুটোই দরকার", variant: "destructive" });
       return;
     }
     const perQ = Math.max(5, parseInt(perQSec, 10) || 20);
@@ -132,7 +134,7 @@ export default function AdminLiveQuiz() {
         body: JSON.stringify({
           secret: QUIZBOT_API_SECRET,
           name: quizName.trim(),
-          exam_id: selectedExam.id,
+          question_ids: questionIds,
           chat_id: channelId.trim(),
           thread_id: threadId.trim() ? Number(threadId.trim()) : null,
           per_q_time_sec: perQ,
@@ -148,7 +150,8 @@ export default function AdminLiveQuiz() {
         title: timing === "instant" ? "Live Quiz শুরু হচ্ছে" : "Live Quiz শিডিউল হয়েছে",
         description: timing === "instant" ? "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।" : `${date} ${time}-এ পাঠানো হবে।`,
       });
-      setSelectedExam(null);
+      setSelectedQuestions([]);
+      setSelectedExamTitle("");
       setQuizName("");
       setPerQSec("20");
       setTiming("instant");
@@ -246,25 +249,27 @@ export default function AdminLiveQuiz() {
             </Button>
           )}
 
-          {/* Question Bank exam picker — same drill-down as ExamForm,
-              mounted inline at the end of this same form */}
+          {/* Question Bank picker — same drill-down as ExamForm, mounted
+              inline at the end of this same form. Admin must manually check
+              individual MCQs (no whole-exam bulk select) — only those exact
+              questions go into the Live Quiz. */}
           <div className="space-y-1 pt-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">Question Bank — Exam বেছে নাও</label>
-              {selectedExam && (
+              <label className="text-xs font-medium text-muted-foreground">Question Bank — প্রশ্ন বাছাই করো</label>
+              {selectedQuestions.length > 0 && (
                 <span className="text-xs text-green-600 flex items-center gap-1">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> {selectedExam.title}
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {selectedQuestions.length}টি প্রশ্ন যোগ হয়েছে
                 </span>
               )}
             </div>
             <div className="border rounded-lg h-[55vh] overflow-hidden">
-              <QuestionBankSelector onSelect={handleBankSelect} allCategoriesOpen />
+              <QuestionBankSelector onSelect={handleBankSelect} />
             </div>
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
             <Button variant="outline" size="sm" disabled={busy} onClick={() => navigate("/dashboard")}>বাতিল</Button>
-            <Button size="sm" disabled={busy || !selectedExam} onClick={handleSubmit}>
+            <Button size="sm" disabled={busy || questionIds.length === 0} onClick={handleSubmit}>
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (timing === "instant" ? "🔴 এখনই শুরু করো" : "শিডিউল করো")}
             </Button>
           </div>

@@ -14,19 +14,19 @@ import { Card } from "@/components/ui/card";
 interface QuestionBankSelectorProps {
     onSelect: (questions: QuestionData[], source?: { label: string; examIds: string[] }) => void;
     alreadyAddedExamIds?: string[];
-    /** When true, skips the category-picker screen and shows all three
-        categories' subjects in one combined "subjects" list right away —
-        used by callers (e.g. Live Quiz) that want Exams/Readymade/Archive
-        all reachable without an extra click. Defaults to false so every
-        existing caller (ExamForm, SlideMaker, etc.) is unaffected. */
+    /** When true, requires picking a category first (Exams/Readymade/Archive)
+        same as every other caller — the category screen is NOT auto-opened.
+        Once inside an exam, only manually-selected individual MCQs (via the
+        normal question checkboxes + "Add (n)") go through onSelect; there is
+        no whole-exam bulk-select shortcut for this caller. */
     allCategoriesOpen?: boolean;
 }
 
 export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [], allCategoriesOpen = false }: QuestionBankSelectorProps) => {
-    const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>(allCategoriesOpen ? 'subjects' : 'category');
+    const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>('category');
 
     // Selection state
-    const [selectedCategory, setSelectedCategory] = useState<'exams' | 'readymade' | 'archive' | null>(allCategoriesOpen ? 'exams' : null);
+    const [selectedCategory, setSelectedCategory] = useState<'exams' | 'readymade' | 'archive' | null>(null);
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
     const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
@@ -344,6 +344,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [], allCa
             // Map to Question format expected by ExamCreator
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const mapped = data.map((q: any) => ({
+                id: q.id,
                 question: q.question_text,
                 options: {
                     A: q.option_a,
@@ -719,7 +720,6 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [], allCa
                                                 <Badge variant="secondary" className="text-[10px] py-0">+{exam.subject.length - 3}</Badge>
                                             )}
                                         </div>
-                                        {!allCategoriesOpen && (
                                         <div className="flex gap-2 pl-6">
                                             <Button
                                                 size="sm"
@@ -738,7 +738,6 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [], allCa
                                                 {isAdded ? "ইতিমধ্যে যোগ করা হয়েছে" : "প্রশ্ন বাছাই করে যোগ করুন"}
                                             </Button>
                                         </div>
-                                        )}
                                     </div>
                                     );
                                 })}
