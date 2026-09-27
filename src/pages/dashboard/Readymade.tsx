@@ -2270,7 +2270,12 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const cardJobsRef = useRef<Record<string, CardJob>>({});
   cardJobsRef.current = cardJobs;
 
-  const pollCardJob = (examId: string, jobId: string) => {
+  // onDone: optional callback fired once, when the job reaches a terminal
+  // state (done/error/cancelled) — used by the bulk "separate posts" loop to
+  // wait for exam N's job to fully finish before firing exam N+1's request,
+  // so exams never interleave in the channel.
+  const pollCardJob = (examId: string, jobId: string, onDone?: (status: string) => void) => {
+    let finished = false;
     const tick = async () => {
       try {
         const r = await fetch(`${QUIZBOT_API_BASE}/api/lms-send-channel/status/${jobId}`);
@@ -2284,6 +2289,7 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         }));
         if (j.status === "done" || j.status === "error" || j.status === "cancelled") {
           clearInterval(timer);
+          if (!finished) { finished = true; onDone?.(j.status); }
           setTimeout(() => {
             setCardJobs((prev) => {
               const next = { ...prev };
@@ -2602,7 +2608,9 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       return;
     }
 
-    // Separate post per exam (previous behaviour).
+    // Separate post per exam — MUST run one at a time (wait for exam N's
+    // job to fully finish on the bot server) before firing exam N+1, or
+    // their polls/PDFs/summaries interleave in the channel out of order.
     let okCount = 0, failCount = 0;
     for (let i = 0; i < exams.length; i++) {
       const exam = exams[i];
@@ -2639,8 +2647,15 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
           throw new Error(`HTTP ${res.status}`);
         }
         if (!res.ok || !json.ok) throw new Error(json.error || "failed");
-        pollCardJob(exam.id, json.job_id as string);
-        okCount++;
+
+        // Wait here until this exam's job hits done/error/cancelled before
+        // moving to the next exam in the loop — this is what keeps the
+        // channel posts strictly serial (image+caption → poll → PDF →
+        // summary, fully finished, THEN the next exam starts).
+        const finalStatus: string = await new Promise((resolve) => {
+          pollCardJob(exam.id, json.job_id as string, (status) => resolve(status));
+        });
+        if (finalStatus === "done") okCount++; else failCount++;
       } catch (err) {
         failCount++;
       }
