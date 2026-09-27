@@ -330,6 +330,21 @@ const TakeExam = () => {
   // dashboard isn't a reason to strip features.
   const showsReadymadeUI = !!(exam?.is_readymade && !exam?.external_exam_link);
 
+  // Quick Practice Mode is also allowed on Past Exams: a dedicated practice
+  // exam, or a live exam whose window has already ended (so no answer
+  // leakage to students who haven't taken it yet).
+  const isPastLiveExam = !!(
+    exam &&
+    (exam.exam_type === "live" || (exam.exam_type === "special" && exam.special_mode === "live")) &&
+    exam.time_window_end &&
+    new Date() > new Date(exam.time_window_end)
+  );
+  const canQuickPractice = !!(
+    exam &&
+    !exam.external_exam_link &&
+    (exam.is_readymade || exam.exam_type === "practice" || isPastLiveExam)
+  );
+
   // Direct Quick Practice deep-link: if ?qp=1 is present (from post-exam header button),
   // skip the pre-exam mode-select screen entirely and jump straight into the same
   // quiz-style Quick Practice experience as the toggle-and-Start flow.
@@ -511,7 +526,7 @@ const TakeExam = () => {
       if (error) throw error;
       return data;
     },
-    enabled: isQuickPracticeMode && showsReadymadeUI && (!!user?.id || !!guestInfo),
+    enabled: isQuickPracticeMode && canQuickPractice && (!!user?.id || !!guestInfo),
     retry: 1,
   });
 
@@ -1351,7 +1366,7 @@ const TakeExam = () => {
               </Card>
 
               {/* Card: Quick Practice Mode toggle */}
-              {showsReadymadeUI && (
+              {canQuickPractice && (
                   <Card className="w-full rounded-xl shadow-sm border overflow-hidden shrink-0">
                       <div className="px-2.5 py-1.5 flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 min-w-0">
@@ -1741,7 +1756,7 @@ const TakeExam = () => {
                                   }
                                   if (exam.external_exam_link) {
                                       window.location.replace(exam.external_exam_link);
-                                  } else if (isQuickPracticeMode && exam.is_readymade) {
+                                  } else if (isQuickPracticeMode) {
                                       localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_qp_mode`, "1");
                                       if (selectedQuestionCount) {
                                           localStorage.setItem(`${LOCAL_STORAGE_KEY_PREFIX}_selected_count`, selectedQuestionCount.toString());
@@ -1852,7 +1867,7 @@ const TakeExam = () => {
   }
 
   // Quick Practice Mode: dedicated quiz-style UI (30s/question, instant feedback, end anytime)
-  if (isQuickPracticeMode && exam?.is_readymade) {
+  if (isQuickPracticeMode && canQuickPractice) {
     if (practiceQuestionsError) {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-3 p-6 text-center">
