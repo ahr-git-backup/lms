@@ -14,13 +14,19 @@ import { Card } from "@/components/ui/card";
 interface QuestionBankSelectorProps {
     onSelect: (questions: QuestionData[], source?: { label: string; examIds: string[] }) => void;
     alreadyAddedExamIds?: string[];
+    /** When true, skips the category-picker screen and shows all three
+        categories' subjects in one combined "subjects" list right away —
+        used by callers (e.g. Live Quiz) that want Exams/Readymade/Archive
+        all reachable without an extra click. Defaults to false so every
+        existing caller (ExamForm, SlideMaker, etc.) is unaffected. */
+    allCategoriesOpen?: boolean;
 }
 
-export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: QuestionBankSelectorProps) => {
-    const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>('category');
+export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [], allCategoriesOpen = false }: QuestionBankSelectorProps) => {
+    const [view, setView] = useState<'category' | 'subjects' | 'chapters' | 'subchapters' | 'exams' | 'questions'>(allCategoriesOpen ? 'subjects' : 'category');
 
     // Selection state
-    const [selectedCategory, setSelectedCategory] = useState<'exams' | 'readymade' | 'archive' | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<'exams' | 'readymade' | 'archive' | null>(allCategoriesOpen ? 'exams' : null);
     const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
     const [selectedChapters, setSelectedChapters] = useState<string[]>([]);
     const [selectedSubChapter, setSelectedSubChapter] = useState<string | null>(null);
@@ -514,6 +520,20 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                 {/* View 2: Subjects Selection */}
                 {view === 'subjects' && (
                     <div className="max-w-3xl mx-auto">
+                        {allCategoriesOpen && (
+                            <div className="flex gap-1 rounded-lg bg-muted p-1 mb-3">
+                                {([['exams', 'Regular Exams'], ['readymade', 'Readymade'], ['archive', 'Archive']] as const).map(([cat, label]) => (
+                                    <button
+                                        key={cat}
+                                        type="button"
+                                        className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-colors ${selectedCategory === cat ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
+                                        onClick={() => { setSelectedCategory(cat); setSelectedSubjects([]); }}
+                                    >
+                                        {label}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold">Select Subjects</h3>
                             <Button
@@ -699,6 +719,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                                                 <Badge variant="secondary" className="text-[10px] py-0">+{exam.subject.length - 3}</Badge>
                                             )}
                                         </div>
+                                        {!allCategoriesOpen && (
                                         <div className="flex gap-2 pl-6">
                                             <Button
                                                 size="sm"
@@ -717,6 +738,7 @@ export const QuestionBankSelector = ({ onSelect, alreadyAddedExamIds = [] }: Que
                                                 {isAdded ? "ইতিমধ্যে যোগ করা হয়েছে" : "প্রশ্ন বাছাই করে যোগ করুন"}
                                             </Button>
                                         </div>
+                                        )}
                                     </div>
                                     );
                                 })}

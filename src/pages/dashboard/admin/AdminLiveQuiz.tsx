@@ -258,7 +258,7 @@ export default function AdminLiveQuiz() {
               )}
             </div>
             <div className="border rounded-lg h-[55vh] overflow-hidden">
-              <QuestionBankSelector onSelect={handleBankSelect} />
+              <QuestionBankSelector onSelect={handleBankSelect} allCategoriesOpen />
             </div>
           </div>
 
