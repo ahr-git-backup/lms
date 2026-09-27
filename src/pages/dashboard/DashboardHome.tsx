@@ -627,6 +627,18 @@ const DashboardHome = () => {
                     </div>
                   </CardContent>
                 </Card>
+                <Card
+                  className="cursor-pointer border-red-500/40 hover:border-red-500 transition-all bg-red-50/50 dark:bg-red-950/20"
+                  onClick={() => navigate("/admin/live-quiz")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <Send className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 flex-shrink-0 animate-icon-float" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">Live Quiz</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">Telegram-এ পাঠাও</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           )}

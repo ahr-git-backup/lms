@@ -1,0 +1,327 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft, Search, Loader2, Radio, ChevronLeft, ChevronRight } from "lucide-react";
+
+const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
+const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
+const PAGE_SIZE = 15;
+
+export default function AdminLiveQuiz() {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // ── exam picker (question bank) ──
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [selectedExam, setSelectedExam] = useState<{ id: string; title: string } | null>(null);
+
+  const { data: examsPage, isLoading: loadingExams } = useQuery({
+    queryKey: ["live-quiz-exam-search", search, page],
+    queryFn: async () => {
+      let query = supabase
+        .from("exams")
+        .select("id, title, subject, chapter", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+      if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return { data: data || [], count: count || 0 };
+    },
+  });
+
+  // ── channel picker ──
+  const [savedChannelId, setSavedChannelId] = useState("");
+  const [channelId, setChannelId] = useState("");
+  const [threadId, setThreadId] = useState("");
+  const [newChannelName, setNewChannelName] = useState("");
+  const [savingNewChannel, setSavingNewChannel] = useState(false);
+
+  const { data: savedChannels, refetch: refetchChannels } = useQuery({
+    queryKey: ["telegram-channels-live-quiz"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("telegram_channels")
+        .select("id, name, chat_id, thread_id")
+        .order("name", { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const handleSelectSavedChannel = (id: string) => {
+    setSavedChannelId(id);
+    setNewChannelName("");
+    if (id === "custom" || id === "__new__") {
+      setChannelId("");
+      setThreadId("");
+      return;
+    }
+    const ch = savedChannels?.find((c: any) => c.id === id);
+    if (ch) {
+      setChannelId(ch.chat_id || "");
+      setThreadId("");
+    }
+  };
+
+  const handleSaveNewChannel = async () => {
+    if (!newChannelName.trim() || !channelId.trim()) {
+      toast({ title: "নাম ও Chat ID দুটোই দরকার", variant: "destructive" });
+      return;
+    }
+    setSavingNewChannel(true);
+    try {
+      const { data, error } = await supabase
+        .from("telegram_channels")
+        .insert({ name: newChannelName.trim(), chat_id: channelId.trim(), thread_id: null, is_active: true })
+        .select("id, name, chat_id, thread_id")
+        .single();
+      if (error) throw error;
+      await refetchChannels();
+      setSavedChannelId(data.id);
+      setNewChannelName("");
+      toast({ title: "নতুন channel সেভ হয়েছে" });
+    } catch (err: any) {
+      toast({ title: "সেভ করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSavingNewChannel(false);
+    }
+  };
+
+  // ── Live Quiz fields ──
+  const [quizName, setQuizName] = useState("");
+  const [perQSec, setPerQSec] = useState("20");
+  const [timing, setTiming] = useState<"instant" | "schedule">("instant");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const pickExam = (ex: any) => {
+    setSelectedExam({ id: ex.id, title: ex.title });
+    setQuizName(ex.title || "");
+  };
+
+  const handleSubmit = async () => {
+    if (!selectedExam || !channelId.trim()) {
+      toast({ title: "Exam ও Channel/Group ID দুটোই দরকার", variant: "destructive" });
+      return;
+    }
+    const perQ = Math.max(5, parseInt(perQSec, 10) || 20);
+    let scheduledAtIso: string | undefined;
+    if (timing === "schedule") {
+      if (!date || !time) {
+        toast({ title: "Date ও Time দুটোই দরকার", variant: "destructive" });
+        return;
+      }
+      const local = new Date(`${date}T${time}:00`);
+      if (isNaN(local.getTime())) {
+        toast({ title: "সঠিক Date/Time দিন", variant: "destructive" });
+        return;
+      }
+      if (local.getTime() < Date.now() - 60000) {
+        toast({ title: "অতীতের সময় দেওয়া যাবে না", variant: "destructive" });
+        return;
+      }
+      scheduledAtIso = local.toISOString();
+    }
+    setBusy(true);
+    try {
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-live-quiz/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: QUIZBOT_API_SECRET,
+          name: quizName.trim(),
+          exam_id: selectedExam.id,
+          chat_id: channelId.trim(),
+          thread_id: threadId.trim() ? Number(threadId.trim()) : null,
+          per_q_time_sec: perQ,
+          scheduled_at: scheduledAtIso,
+          channel_row_id: savedChannelId && savedChannelId !== "custom" && savedChannelId !== "__new__" ? savedChannelId : null,
+        }),
+      });
+      const rawText = await res.text();
+      let json: any;
+      try { json = JSON.parse(rawText); } catch { throw new Error(`HTTP ${res.status}`); }
+      if (!res.ok || !json.ok) throw new Error(json.error || "failed");
+      toast({
+        title: timing === "instant" ? "Live Quiz শুরু হচ্ছে" : "Live Quiz শিডিউল হয়েছে",
+        description: timing === "instant" ? "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।" : `${date} ${time}-এ পাঠানো হবে।`,
+      });
+      setSelectedExam(null);
+      setQuizName("");
+      setPerQSec("20");
+      setTiming("instant");
+      setDate("");
+      setTime("");
+    } catch (err: any) {
+      toast({ title: "Schedule করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const totalPages = Math.max(1, Math.ceil((examsPage?.count || 0) / PAGE_SIZE));
+
+  return (
+    <div className="max-w-2xl mx-auto p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <h1 className="text-lg font-semibold flex items-center gap-2">
+          <Radio className="h-5 w-5 text-red-600" /> Live Quiz
+        </h1>
+      </div>
+
+      {!selectedExam ? (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <label className="text-xs font-medium text-muted-foreground">Exam বেছে নাও (Question Bank)</label>
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                className="pl-8"
+                placeholder="Exam খুঁজো..."
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+              />
+            </div>
+            {loadingExams ? (
+              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
+            ) : (
+              <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
+                {examsPage?.data?.length ? examsPage.data.map((ex: any) => (
+                  <button
+                    key={ex.id}
+                    type="button"
+                    onClick={() => pickExam(ex)}
+                    className="w-full text-left rounded-lg border p-2.5 hover:border-primary hover:bg-primary/5 transition-colors"
+                  >
+                    <p className="text-sm font-medium">{ex.title}</p>
+                    <div className="flex gap-1.5 mt-1">
+                      {ex.subject && <Badge variant="secondary" className="text-[10px]">{Array.isArray(ex.subject) ? ex.subject[0] : ex.subject}</Badge>}
+                      {ex.chapter && <Badge variant="outline" className="text-[10px]">{ex.chapter}</Badge>}
+                    </div>
+                  </button>
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-6">কোনো exam পাওয়া যায়নি</p>
+                )}
+              </div>
+            )}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-1">
+                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-xs text-muted-foreground">{page + 1} / {totalPages}</span>
+                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages - 1} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs text-muted-foreground">বাছাইকৃত Exam</p>
+                <p className="text-sm font-medium">{selectedExam.title}</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => setSelectedExam(null)}>বদলাও</Button>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Live Quiz-এর নাম</label>
+              <Input placeholder="যেমন: জাতীয় বাজেট Live Quiz" value={quizName} onChange={(e) => setQuizName(e.target.value)} disabled={busy} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Per Question Time (sec)</label>
+                <Input type="number" min={5} value={perQSec} onChange={(e) => setPerQSec(e.target.value)} disabled={busy} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">কখন পাঠাবে</label>
+                <Select value={timing} onValueChange={(v) => setTiming(v as any)} disabled={busy}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">এখনই (Instant)</SelectItem>
+                    <SelectItem value="schedule">শিডিউল করো</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {timing === "schedule" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Date</label>
+                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Time</label>
+                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
+              <Select value={savedChannelId} onValueChange={handleSelectSavedChannel} disabled={busy}>
+                <SelectTrigger><SelectValue placeholder="একটা channel বেছে নাও অথবা নতুন লিখো" /></SelectTrigger>
+                <SelectContent>
+                  {savedChannels?.map((ch: any) => (
+                    <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>
+                  ))}
+                  <SelectItem value="__new__">+ নতুন channel যোগ করো</SelectItem>
+                  <SelectItem value="custom">নতুন / সরাসরি ID লিখো (সেভ ছাড়া)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {savedChannelId === "__new__" && (
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">নতুন Channel-এর নাম</label>
+                <Input placeholder="যেমন: HSC Batch 27 Group" value={newChannelName} onChange={(e) => setNewChannelName(e.target.value)} disabled={busy || savingNewChannel} />
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
+              <Input placeholder="-100xxxxxxxxxx" value={channelId} onChange={(e) => setChannelId(e.target.value)} disabled={busy} />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (ঐচ্ছিক, সেভ হয় না)</label>
+              <Input placeholder="ঐচ্ছিক" value={threadId} onChange={(e) => setThreadId(e.target.value)} disabled={busy} />
+            </div>
+
+            {savedChannelId === "__new__" && (
+              <Button type="button" variant="secondary" size="sm" onClick={handleSaveNewChannel} disabled={savingNewChannel || busy || !newChannelName.trim() || !channelId.trim()}>
+                {savingNewChannel ? "সেভ হচ্ছে..." : "এই নামে সেভ করো"}
+              </Button>
+            )}
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" size="sm" disabled={busy} onClick={() => navigate("/dashboard")}>বাতিল</Button>
+              <Button size="sm" disabled={busy} onClick={handleSubmit}>
+                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (timing === "instant" ? "🔴 এখনই শুরু করো" : "শিডিউল করো")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
