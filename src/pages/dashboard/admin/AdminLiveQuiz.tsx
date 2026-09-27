@@ -6,10 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Radio, BookOpen } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, CheckCircle2 } from "lucide-react";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
 const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
@@ -18,8 +17,8 @@ export default function AdminLiveQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // ── exam picker (same Question Bank drill-down as ExamForm) ──
-  const [pickerOpen, setPickerOpen] = useState(false);
+  // ── selected exam (filled in by the Question Bank picker at the bottom
+  //    of this same form) ──
   const [selectedExam, setSelectedExam] = useState<{ id: string; title: string } | null>(null);
 
   // ── channel picker ──
@@ -88,17 +87,17 @@ export default function AdminLiveQuiz() {
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
 
-  // Fired by QuestionBankSelector's onSelect (bulk exam-checkbox "Add" flow) —
-  // takes source.examIds and uses the first (our picker is single-exam) as
-  // the chosen exam; then looks up its real title for display.
+  // Fired by QuestionBankSelector's onSelect (bulk exam-checkbox "Add" flow,
+  // mounted inline below) — takes source.examIds (our picker is single-exam,
+  // so we take the first) and looks up its real title for display.
   const handleBankSelect = (_questions: any[], source?: { label: string; examIds: string[] }) => {
     const examId = source?.examIds?.[0];
     if (!examId) return;
-    setPickerOpen(false);
     (async () => {
       const { data } = await supabase.from("exams").select("title").eq("id", examId).single();
-      setSelectedExam({ id: examId, title: data?.title || source?.label || "" });
-      setQuizName(data?.title || source?.label || "");
+      const title = data?.title || source?.label || "";
+      setSelectedExam({ id: examId, title });
+      setQuizName((prev) => prev || title);
     })();
   };
 
@@ -163,7 +162,7 @@ export default function AdminLiveQuiz() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 space-y-4">
+    <div className="max-w-4xl mx-auto p-4 space-y-4">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
           <ArrowLeft className="h-5 w-5" />
@@ -173,118 +172,104 @@ export default function AdminLiveQuiz() {
         </h1>
       </div>
 
-      {!selectedExam ? (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <p className="text-sm text-muted-foreground">Question Bank থেকে একটা Exam বেছে নাও।</p>
-            <Button onClick={() => setPickerOpen(true)} className="w-full">
-              <BookOpen className="h-4 w-4 mr-2" /> Exam বেছে নাও (Question Bank)
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs text-muted-foreground">বাছাইকৃত Exam</p>
-                <p className="text-sm font-medium">{selectedExam.title}</p>
-              </div>
-              <Button variant="outline" size="sm" onClick={() => setSelectedExam(null)}>বদলাও</Button>
-            </div>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Live Quiz-এর নাম</label>
+            <Input placeholder="যেমন: জাতীয় বাজেট Live Quiz" value={quizName} onChange={(e) => setQuizName(e.target.value)} disabled={busy} />
+          </div>
 
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Live Quiz-এর নাম</label>
-              <Input placeholder="যেমন: জাতীয় বাজেট Live Quiz" value={quizName} onChange={(e) => setQuizName(e.target.value)} disabled={busy} />
+              <label className="text-xs font-medium text-muted-foreground">Per Question Time (sec)</label>
+              <Input type="number" min={5} value={perQSec} onChange={(e) => setPerQSec(e.target.value)} disabled={busy} />
             </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">Per Question Time (sec)</label>
-                <Input type="number" min={5} value={perQSec} onChange={(e) => setPerQSec(e.target.value)} disabled={busy} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">কখন পাঠাবে</label>
-                <Select value={timing} onValueChange={(v) => setTiming(v as any)} disabled={busy}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="instant">এখনই (Instant)</SelectItem>
-                    <SelectItem value="schedule">শিডিউল করো</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {timing === "schedule" && (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Date</label>
-                  <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-muted-foreground">Time</label>
-                  <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
-                </div>
-              </div>
-            )}
-
             <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
-              <Select value={savedChannelId} onValueChange={handleSelectSavedChannel} disabled={busy}>
-                <SelectTrigger><SelectValue placeholder="একটা channel বেছে নাও অথবা নতুন লিখো" /></SelectTrigger>
+              <label className="text-xs font-medium text-muted-foreground">কখন পাঠাবে</label>
+              <Select value={timing} onValueChange={(v) => setTiming(v as any)} disabled={busy}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {savedChannels?.map((ch: any) => (
-                    <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>
-                  ))}
-                  <SelectItem value="__new__">+ নতুন channel যোগ করো</SelectItem>
-                  <SelectItem value="custom">নতুন / সরাসরি ID লিখো (সেভ ছাড়া)</SelectItem>
+                  <SelectItem value="instant">এখনই (Instant)</SelectItem>
+                  <SelectItem value="schedule">শিডিউল করো</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-
-            {savedChannelId === "__new__" && (
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-muted-foreground">নতুন Channel-এর নাম</label>
-                <Input placeholder="যেমন: HSC Batch 27 Group" value={newChannelName} onChange={(e) => setNewChannelName(e.target.value)} disabled={busy || savingNewChannel} />
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
-              <Input placeholder="-100xxxxxxxxxx" value={channelId} onChange={(e) => setChannelId(e.target.value)} disabled={busy} />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (ঐচ্ছিক, সেভ হয় না)</label>
-              <Input placeholder="ঐচ্ছিক" value={threadId} onChange={(e) => setThreadId(e.target.value)} disabled={busy} />
-            </div>
-
-            {savedChannelId === "__new__" && (
-              <Button type="button" variant="secondary" size="sm" onClick={handleSaveNewChannel} disabled={savingNewChannel || busy || !newChannelName.trim() || !channelId.trim()}>
-                {savingNewChannel ? "সেভ হচ্ছে..." : "এই নামে সেভ করো"}
-              </Button>
-            )}
-
-            <div className="flex justify-end gap-2 pt-1">
-              <Button variant="outline" size="sm" disabled={busy} onClick={() => navigate("/dashboard")}>বাতিল</Button>
-              <Button size="sm" disabled={busy} onClick={handleSubmit}>
-                {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (timing === "instant" ? "🔴 এখনই শুরু করো" : "শিডিউল করো")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col">
-          <DialogHeader className="p-3 pb-0">
-            <DialogTitle className="text-sm">Question Bank থেকে Exam বেছে নাও</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 p-3 pt-1">
-            <QuestionBankSelector onSelect={handleBankSelect} />
           </div>
-        </DialogContent>
-      </Dialog>
+
+          {timing === "schedule" && (
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Date</label>
+                <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} disabled={busy} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Time</label>
+                <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
+            <Select value={savedChannelId} onValueChange={handleSelectSavedChannel} disabled={busy}>
+              <SelectTrigger><SelectValue placeholder="একটা channel বেছে নাও অথবা নতুন লিখো" /></SelectTrigger>
+              <SelectContent>
+                {savedChannels?.map((ch: any) => (
+                  <SelectItem key={ch.id} value={ch.id}>{ch.name}</SelectItem>
+                ))}
+                <SelectItem value="__new__">+ নতুন channel যোগ করো</SelectItem>
+                <SelectItem value="custom">নতুন / সরাসরি ID লিখো (সেভ ছাড়া)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {savedChannelId === "__new__" && (
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">নতুন Channel-এর নাম</label>
+              <Input placeholder="যেমন: HSC Batch 27 Group" value={newChannelName} onChange={(e) => setNewChannelName(e.target.value)} disabled={busy || savingNewChannel} />
+            </div>
+          )}
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Channel/Group Chat ID</label>
+            <Input placeholder="-100xxxxxxxxxx" value={channelId} onChange={(e) => setChannelId(e.target.value)} disabled={busy} />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Thread/Topic ID (ঐচ্ছিক, সেভ হয় না)</label>
+            <Input placeholder="ঐচ্ছিক" value={threadId} onChange={(e) => setThreadId(e.target.value)} disabled={busy} />
+          </div>
+
+          {savedChannelId === "__new__" && (
+            <Button type="button" variant="secondary" size="sm" onClick={handleSaveNewChannel} disabled={savingNewChannel || busy || !newChannelName.trim() || !channelId.trim()}>
+              {savingNewChannel ? "সেভ হচ্ছে..." : "এই নামে সেভ করো"}
+            </Button>
+          )}
+
+          {/* Question Bank exam picker — same drill-down as ExamForm,
+              mounted inline at the end of this same form */}
+          <div className="space-y-1 pt-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-muted-foreground">Question Bank — Exam বেছে নাও</label>
+              {selectedExam && (
+                <span className="text-xs text-green-600 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {selectedExam.title}
+                </span>
+              )}
+            </div>
+            <div className="border rounded-lg h-[55vh] overflow-hidden">
+              <QuestionBankSelector onSelect={handleBankSelect} />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => navigate("/dashboard")}>বাতিল</Button>
+            <Button size="sm" disabled={busy || !selectedExam} onClick={handleSubmit}>
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (timing === "instant" ? "🔴 এখনই শুরু করো" : "শিডিউল করো")}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
