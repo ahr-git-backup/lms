@@ -72,6 +72,7 @@ const reviewImages = (review: any): string[] =>
       : [];
 
 const CATEGORIES = [
+  { value: "all", label: "সব" },
   { value: "classes", label: "ক্লাস" },
   { value: "exams", label: "এক্সাম" },
   { value: "chance", label: "চান্সপ্রাপ্ত" },
@@ -253,7 +254,9 @@ export default function Reviews() {
   });
 
   const grouped = CATEGORIES.reduce<Record<string, any[]>>((acc, c) => {
-    acc[c.value] = reviews?.filter((r) => r.category === c.value || (c.value === "classes" && !r.category)) || [];
+    acc[c.value] = c.value === "all"
+      ? (reviews || [])
+      : (reviews?.filter((r) => r.category === c.value || (c.value === "classes" && !r.category)) || []);
     return acc;
   }, {});
 
@@ -279,7 +282,7 @@ export default function Reviews() {
             No reviews available at the moment.
           </div>
         ) : (
-          <Tabs defaultValue="classes" className="w-full">
+          <Tabs defaultValue="all" className="w-full">
             <div className="flex justify-center mb-6">
               <TabsList className="bg-muted/50 p-1 md:p-1.5 rounded-xl w-full sm:w-auto flex-wrap h-auto justify-center border shadow-sm gap-1 md:gap-2">
                 {CATEGORIES.map((c) => (
