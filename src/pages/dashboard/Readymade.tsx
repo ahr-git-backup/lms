@@ -2260,6 +2260,16 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
   const [sendBusy, setSendBusy] = useState(false);
   const [sendJobStatus, setSendJobStatus] = useState<{ status: string; sent_total?: number; total?: number; batches_done?: number; batches_total?: number; error?: string | null } | null>(null);
 
+  // ── Live Quiz mode (send-dialog tab) ──
+  const [sendDialogTab, setSendDialogTab] = useState<"normal" | "live">("normal");
+  const [liveQuizName, setLiveQuizName] = useState("");
+  const [liveQuizPerQSec, setLiveQuizPerQSec] = useState("20");
+  const [liveQuizTiming, setLiveQuizTiming] = useState<"instant" | "schedule">("instant");
+  const [liveQuizDate, setLiveQuizDate] = useState(""); // yyyy-mm-dd
+  const [liveQuizTime, setLiveQuizTime] = useState(""); // HH:mm
+  const [liveQuizExamId, setLiveQuizExamId] = useState<string>("");
+  const [liveQuizBusy, setLiveQuizBusy] = useState(false);
+
   // Per-exam running-job tracking, keyed by exam.id — drives the inline
   // progress bar + Stop button on each card. Survives page reload because
   // on mount we ask the bot server (which owns the job, runs it in the
@@ -2360,6 +2370,13 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
     setSendBatchSize("25");
     setSendJobStatus(null);
     setNewChannelName("");
+    setSendDialogTab("normal");
+    setLiveQuizName(exam?.title || "");
+    setLiveQuizPerQSec("20");
+    setLiveQuizTiming("instant");
+    setLiveQuizDate("");
+    setLiveQuizTime("");
+    setLiveQuizExamId(exam?.id || "");
   };
 
   const handleSelectSavedChannel = (id: string) => {
@@ -2505,6 +2522,63 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
       toast({ title: "পাঠানো যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
       setSendBusy(false);
       setSendJobStatus(null);
+    }
+  };
+
+  const handleScheduleLiveQuiz = async () => {
+    if (!liveQuizExamId || !sendChannelId.trim()) {
+      toast({ title: "Exam ও Channel/Group ID দুটোই দরকার", variant: "destructive" });
+      return;
+    }
+    const perQSec = Math.max(5, parseInt(liveQuizPerQSec, 10) || 20);
+    let scheduledAtIso: string | undefined;
+    if (liveQuizTiming === "schedule") {
+      if (!liveQuizDate || !liveQuizTime) {
+        toast({ title: "Date ও Time দুটোই দরকার", variant: "destructive" });
+        return;
+      }
+      const local = new Date(`${liveQuizDate}T${liveQuizTime}:00`);
+      if (isNaN(local.getTime())) {
+        toast({ title: "সঠিক Date/Time দিন", variant: "destructive" });
+        return;
+      }
+      if (local.getTime() < Date.now() - 60000) {
+        toast({ title: "অতীতের সময় দেওয়া যাবে না", variant: "destructive" });
+        return;
+      }
+      scheduledAtIso = local.toISOString();
+    }
+    setLiveQuizBusy(true);
+    try {
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-live-quiz/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: QUIZBOT_API_SECRET,
+          name: liveQuizName.trim(),
+          exam_id: liveQuizExamId,
+          chat_id: sendChannelId.trim(),
+          thread_id: sendThreadId.trim() ? Number(sendThreadId.trim()) : null,
+          per_q_time_sec: perQSec,
+          scheduled_at: scheduledAtIso,
+          channel_row_id: sendSavedChannelId && sendSavedChannelId !== "custom" && sendSavedChannelId !== "__new__" ? sendSavedChannelId : null,
+        }),
+      });
+      const rawText = await res.text();
+      let json: any;
+      try { json = JSON.parse(rawText); } catch { throw new Error(`HTTP ${res.status}`); }
+      if (!res.ok || !json.ok) throw new Error(json.error || "failed");
+      toast({
+        title: liveQuizTiming === "instant" ? "Live Quiz শুরু হচ্ছে" : "Live Quiz শিডিউল হয়েছে",
+        description: liveQuizTiming === "instant"
+          ? "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।"
+          : `${liveQuizDate} ${liveQuizTime}-এ পাঠানো হবে।`,
+      });
+      setSendingExam(null);
+    } catch (err: any) {
+      toast({ title: "Schedule করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setLiveQuizBusy(false);
     }
   };
 
@@ -2928,12 +3002,33 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
     </AlertDialog>
     {splittingExam && <SplitExamDialog exam={splittingExam} onClose={() => setSplittingExam(null)} />}
     {topicAddExam && <TopicAddDialog exam={topicAddExam} onClose={() => setTopicAddExam(null)} />}
-    <Dialog open={!!sendingExam} onOpenChange={(v) => { if (!v && !sendBusy) setSendingExam(null); }}>
+    <Dialog open={!!sendingExam} onOpenChange={(v) => { if (!v && !sendBusy && !liveQuizBusy) setSendingExam(null); }}>
       <DialogContent onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>Telegram চ্যানেলে পাঠান</DialogTitle>
         </DialogHeader>
+        {!bulkSendExams && (
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-colors ${sendDialogTab === "normal" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              onClick={() => setSendDialogTab("normal")}
+              disabled={sendBusy || liveQuizBusy}
+            >
+              সাধারণ পাঠানো
+            </button>
+            <button
+              type="button"
+              className={`flex-1 rounded-md py-1.5 text-xs font-medium transition-colors ${sendDialogTab === "live" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+              onClick={() => setSendDialogTab("live")}
+              disabled={sendBusy || liveQuizBusy}
+            >
+              🔴 Live Quiz
+            </button>
+          </div>
+        )}
         <div className="space-y-3">
+          {sendDialogTab === "normal" && (
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">পাঠানোর ধরন</label>
             <Select value={sendMode} onValueChange={(v) => setSendMode(v as any)} disabled={sendBusy}>
@@ -2948,6 +3043,69 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
               </SelectContent>
             </Select>
           </div>
+          )}
+          {sendDialogTab === "live" && !bulkSendExams && (
+          <div className="space-y-3 rounded-lg border p-3 bg-muted/30">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Live Quiz-এর নাম</label>
+              <Input
+                placeholder="যেমন: জাতীয় বাজেট Live Quiz"
+                value={liveQuizName}
+                onChange={(e) => setLiveQuizName(e.target.value)}
+                disabled={liveQuizBusy}
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">Exam (Question Bank)</label>
+              <Select value={liveQuizExamId} onValueChange={setLiveQuizExamId} disabled={liveQuizBusy}>
+                <SelectTrigger>
+                  <SelectValue placeholder="একটা exam বেছে নাও" />
+                </SelectTrigger>
+                <SelectContent>
+                  {exams?.map((ex: any) => (
+                    <SelectItem key={ex.id} value={ex.id}>{ex.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">Per Question Time (sec)</label>
+                <Input
+                  type="number"
+                  min={5}
+                  value={liveQuizPerQSec}
+                  onChange={(e) => setLiveQuizPerQSec(e.target.value)}
+                  disabled={liveQuizBusy}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">কখন পাঠাবে</label>
+                <Select value={liveQuizTiming} onValueChange={(v) => setLiveQuizTiming(v as any)} disabled={liveQuizBusy}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">এখনই (Instant)</SelectItem>
+                    <SelectItem value="schedule">শিডিউল করো</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {liveQuizTiming === "schedule" && (
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Date</label>
+                  <Input type="date" value={liveQuizDate} onChange={(e) => setLiveQuizDate(e.target.value)} disabled={liveQuizBusy} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Time</label>
+                  <Input type="time" value={liveQuizTime} onChange={(e) => setLiveQuizTime(e.target.value)} disabled={liveQuizBusy} />
+                </div>
+              </div>
+            )}
+          </div>
+          )}
           <div className="space-y-1">
             <label className="text-xs font-medium text-muted-foreground">Saved Channel</label>
             <Select value={sendSavedChannelId} onValueChange={handleSelectSavedChannel} disabled={sendBusy}>
@@ -3058,13 +3216,20 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
             <p className="text-xs text-muted-foreground">পাঠানো হচ্ছে: {bulkProgress.current}/{bulkProgress.total} — {bulkProgress.examTitle}</p>
           )}
           <div className="flex justify-end gap-2 pt-1">
-            <Button variant="outline" size="sm" disabled={sendBusy || bulkSending} onClick={() => { setSendingExam(null); setBulkSendExams(null); }}>বাতিল</Button>
+            <Button variant="outline" size="sm" disabled={sendBusy || bulkSending || liveQuizBusy} onClick={() => { setSendingExam(null); setBulkSendExams(null); }}>বাতিল</Button>
             <Button
               size="sm"
-              disabled={sendBusy || bulkSending}
-              onClick={() => bulkSendExams ? handleSendMultipleToChannel(bulkSendExams) : handleSendToChannel()}
+              disabled={sendBusy || bulkSending || liveQuizBusy}
+              onClick={() => {
+                if (sendDialogTab === "live" && !bulkSendExams) return handleScheduleLiveQuiz();
+                return bulkSendExams ? handleSendMultipleToChannel(bulkSendExams) : handleSendToChannel();
+              }}
             >
-              {(sendBusy || bulkSending) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (bulkSendExams ? `${bulkSendExams.length}টি পাঠাও` : "পাঠাও")}
+              {(sendBusy || bulkSending || liveQuizBusy) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (
+                sendDialogTab === "live" && !bulkSendExams
+                  ? (liveQuizTiming === "instant" ? "🔴 এখনই শুরু করো" : "শিডিউল করো")
+                  : (bulkSendExams ? `${bulkSendExams.length}টি পাঠাও` : "পাঠাও")
+              )}
             </Button>
           </div>
         </div>
