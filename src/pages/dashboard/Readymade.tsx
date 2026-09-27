@@ -3100,15 +3100,14 @@ export const ExamGrid = ({ exams, navigate, enrolledIds = [], fullAccessCourseId
         <Button
           size="sm"
           onClick={() => {
-            const orderedAll = [...exams].sort((a: any, b: any) => {
-              const uA = isExamUnlocked(a, enrolledIds, fullAccessCourseIds, subChapterGrants);
-              const uB = isExamUnlocked(b, enrolledIds, fullAccessCourseIds, subChapterGrants);
-              if (uA === uB) return 0;
-              return uA ? -1 : 1;
-            });
-            const selected = orderedAll.filter((e: any) => bulkSelectedExamIds.has(e.id));
+            // Keep the exams' own list order (already sorted by sort_order/created_at,
+            // i.e. card serial/title order) — don't re-sort by lock status, that was
+            // scrambling the send order for bulk poll/pdf sends.
+            const selected = exams.filter((e: any) => bulkSelectedExamIds.has(e.id));
             setBulkSendExams(selected);
-            setBulkPostMode("single");
+            // Default post mode should match what "সব" (Poll+PDF+Summary) needs:
+            // separate posts per exam, not the single links-only combined post.
+            setBulkPostMode("separate");
             setSendingExam(selected[0]);
             setSendSavedChannelId("");
             setSendChannelId("");
