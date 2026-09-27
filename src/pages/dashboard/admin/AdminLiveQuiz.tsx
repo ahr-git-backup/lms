@@ -5,38 +5,22 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Search, Loader2, Radio, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, BookOpen } from "lucide-react";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
 const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
-const PAGE_SIZE = 15;
 
 export default function AdminLiveQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // ── exam picker (question bank) ──
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(0);
+  // ── exam picker (same Question Bank drill-down as ExamForm) ──
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<{ id: string; title: string } | null>(null);
-
-  const { data: examsPage, isLoading: loadingExams } = useQuery({
-    queryKey: ["live-quiz-exam-search", search, page],
-    queryFn: async () => {
-      let query = supabase
-        .from("exams")
-        .select("id, title, subject, chapter", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-      if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
-      const { data, error, count } = await query;
-      if (error) throw error;
-      return { data: data || [], count: count || 0 };
-    },
-  });
 
   // ── channel picker ──
   const [savedChannelId, setSavedChannelId] = useState("");
@@ -104,9 +88,18 @@ export default function AdminLiveQuiz() {
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const pickExam = (ex: any) => {
-    setSelectedExam({ id: ex.id, title: ex.title });
-    setQuizName(ex.title || "");
+  // Fired by QuestionBankSelector's onSelect (bulk exam-checkbox "Add" flow) —
+  // takes source.examIds and uses the first (our picker is single-exam) as
+  // the chosen exam; then looks up its real title for display.
+  const handleBankSelect = (_questions: any[], source?: { label: string; examIds: string[] }) => {
+    const examId = source?.examIds?.[0];
+    if (!examId) return;
+    setPickerOpen(false);
+    (async () => {
+      const { data } = await supabase.from("exams").select("title").eq("id", examId).single();
+      setSelectedExam({ id: examId, title: data?.title || source?.label || "" });
+      setQuizName(data?.title || source?.label || "");
+    })();
   };
 
   const handleSubmit = async () => {
@@ -169,8 +162,6 @@ export default function AdminLiveQuiz() {
     }
   };
 
-  const totalPages = Math.max(1, Math.ceil((examsPage?.count || 0) / PAGE_SIZE));
-
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-4">
       <div className="flex items-center gap-2">
@@ -185,49 +176,10 @@ export default function AdminLiveQuiz() {
       {!selectedExam ? (
         <Card>
           <CardContent className="p-4 space-y-3">
-            <label className="text-xs font-medium text-muted-foreground">Exam বেছে নাও (Question Bank)</label>
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="Exam খুঁজো..."
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-              />
-            </div>
-            {loadingExams ? (
-              <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin" /></div>
-            ) : (
-              <div className="space-y-1.5 max-h-[50vh] overflow-y-auto">
-                {examsPage?.data?.length ? examsPage.data.map((ex: any) => (
-                  <button
-                    key={ex.id}
-                    type="button"
-                    onClick={() => pickExam(ex)}
-                    className="w-full text-left rounded-lg border p-2.5 hover:border-primary hover:bg-primary/5 transition-colors"
-                  >
-                    <p className="text-sm font-medium">{ex.title}</p>
-                    <div className="flex gap-1.5 mt-1">
-                      {ex.subject && <Badge variant="secondary" className="text-[10px]">{Array.isArray(ex.subject) ? ex.subject[0] : ex.subject}</Badge>}
-                      {ex.chapter && <Badge variant="outline" className="text-[10px]">{ex.chapter}</Badge>}
-                    </div>
-                  </button>
-                )) : (
-                  <p className="text-sm text-muted-foreground text-center py-6">কোনো exam পাওয়া যায়নি</p>
-                )}
-              </div>
-            )}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 pt-1">
-                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page === 0} onClick={() => setPage(p => Math.max(0, p - 1))}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-xs text-muted-foreground">{page + 1} / {totalPages}</span>
-                <Button variant="outline" size="icon" className="h-7 w-7" disabled={page >= totalPages - 1} onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground">Question Bank থেকে একটা Exam বেছে নাও।</p>
+            <Button onClick={() => setPickerOpen(true)} className="w-full">
+              <BookOpen className="h-4 w-4 mr-2" /> Exam বেছে নাও (Question Bank)
+            </Button>
           </CardContent>
         </Card>
       ) : (
@@ -322,6 +274,17 @@ export default function AdminLiveQuiz() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="max-w-4xl h-[85vh] p-0 flex flex-col">
+          <DialogHeader className="p-3 pb-0">
+            <DialogTitle className="text-sm">Question Bank থেকে Exam বেছে নাও</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 p-3 pt-1">
+            <QuestionBankSelector onSelect={handleBankSelect} />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
