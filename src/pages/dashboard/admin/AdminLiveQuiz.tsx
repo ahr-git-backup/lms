@@ -92,6 +92,7 @@ export default function AdminLiveQuiz() {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [busy, setBusy] = useState(false);
+  const [bankOpen, setBankOpen] = useState(false);
 
   // Fired by QuestionBankSelector's onSelect — the admin manually checks
   // individual questions inside an exam and hits "Add (n)"; only those exact
@@ -99,6 +100,7 @@ export default function AdminLiveQuiz() {
   const handleBankSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
     if (!questions?.length) return;
     setSelectedQuestions((prev) => [...prev, ...questions]);
+    setBankOpen(false); // auto-close after adding so the form below is reachable
     const label = source?.label || "";
     setSelectedExamTitle((prev) => prev || label);
     setQuizName((prev) => prev || label);
@@ -285,9 +287,20 @@ export default function AdminLiveQuiz() {
                 </span>
               )}
             </div>
-            <div className="border rounded-lg h-[80vh] sm:h-[55vh] overflow-hidden">
-              <QuestionBankSelector onSelect={handleBankSelect} />
-            </div>
+            {bankOpen ? (
+              <div className="space-y-2">
+                <div className="border rounded-lg h-[80vh] sm:h-[55vh] overflow-hidden">
+                  <QuestionBankSelector onSelect={handleBankSelect} />
+                </div>
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setBankOpen(false)}>
+                  ✕ Question Bank বন্ধ করো
+                </Button>
+              </div>
+            ) : (
+              <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setBankOpen(true)}>
+                {selectedQuestions.length > 0 ? "＋ আরও প্রশ্ন যোগ করো" : "Question Bank খোলো"}
+              </Button>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-1">
