@@ -6,12 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Radio, CheckCircle2, CalendarClock } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, CheckCircle2 } from "lucide-react";
 import type { QuestionData } from "@/types/exam";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
@@ -207,37 +205,17 @@ export default function AdminLiveQuiz() {
           {timing === "schedule" && (
             <div className="space-y-1">
               <label className="text-xs font-medium text-muted-foreground">কবে পাঠাবে</label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    disabled={busy}
-                    className="w-full justify-start text-left font-normal"
-                  >
-                    <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
-                    {date
-                      ? `${format(new Date(`${date}T00:00:00`), "dd MMM yyyy")} — ${time || "--:--"}`
-                      : "Date ও Time বেছে নাও"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-3 space-y-3" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date ? new Date(`${date}T00:00:00`) : undefined}
-                    onSelect={(d) => {
-                      if (!d) return;
-                      setDate(format(d, "yyyy-MM-dd"));
-                      if (!time) setTime(format(new Date(), "HH:mm"));
-                    }}
-                    disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
-                    initialFocus
-                  />
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Time</label>
-                    <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={busy} />
-                  </div>
-                </PopoverContent>
-              </Popover>
+              <Input
+                type="datetime-local"
+                value={date && time ? `${date}T${time}` : ""}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => {
+                  const [d, t] = e.target.value ? e.target.value.split("T") : ["", ""];
+                  setDate(d || "");
+                  setTime(t || "");
+                }}
+                disabled={busy}
+              />
             </div>
           )}
 
