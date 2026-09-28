@@ -129,6 +129,7 @@ const ExamsManager = ({ isFreeMode = false }: ExamsManagerProps) => {
         .is("split_start", null)
         .not("category", "cs", '{"Custom Exam"}')
         .not("category", "cs", '{"Model Test"}')
+        .not("category", "cs", '{"Subject/Paper Final"}')
         .order("created_at", { ascending: false });
 
       if (mainCategory === "deleted") {
