@@ -25,7 +25,6 @@ export default function AdminLiveQuiz() {
   //    bottom of this same form) — only questions the admin explicitly
   //    checks go into the Live Quiz, no whole-exam bulk-select ──
   const [selectedQuestions, setSelectedQuestions] = useState<QuestionData[]>([]);
-  const [selectedExamTitle, setSelectedExamTitle] = useState<string>("");
 
   // ── channel picker ──
   const [savedChannelId, setSavedChannelId] = useState("");
@@ -97,13 +96,11 @@ export default function AdminLiveQuiz() {
   // Fired by QuestionBankSelector's onSelect — the admin manually checks
   // individual questions inside an exam and hits "Add (n)"; only those exact
   // MCQs are appended to this Live Quiz's question list.
-  const handleBankSelect = (questions: QuestionData[], source?: { label: string; examIds: string[] }) => {
+  const handleBankSelect = (questions: QuestionData[]) => {
     if (!questions?.length) return;
     setSelectedQuestions((prev) => [...prev, ...questions]);
     setBankOpen(false); // auto-close after adding so the form below is reachable
-    const label = source?.label || "";
-    setSelectedExamTitle((prev) => prev || label);
-    setQuizName((prev) => prev || label);
+    // Quiz name is entered manually by the admin — never auto-filled from the exam title.
   };
 
   const questionIds = selectedQuestions.map((q) => q.id).filter((id): id is string => !!id);
@@ -111,6 +108,10 @@ export default function AdminLiveQuiz() {
   const handleSubmit = async () => {
     if (questionIds.length === 0 || !channelId.trim()) {
       toast({ title: "অন্তত একটা প্রশ্ন ও Channel/Group ID দুটোই দরকার", variant: "destructive" });
+      return;
+    }
+    if (!quizName.trim()) {
+      toast({ title: "Live Quiz-এর নাম দিন", variant: "destructive" });
       return;
     }
     const perQ = Math.max(5, parseInt(perQSec, 10) || 20);
