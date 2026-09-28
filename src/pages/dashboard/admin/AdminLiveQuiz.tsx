@@ -215,8 +215,8 @@ export default function AdminLiveQuiz() {
                     className="w-full justify-start text-left font-normal"
                   >
                     <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
-                    {date && time
-                      ? `${format(new Date(`${date}T${time}:00`), "dd MMM yyyy")} — ${time}`
+                    {date
+                      ? `${format(new Date(`${date}T00:00:00`), "dd MMM yyyy")} — ${time || "--:--"}`
                       : "Date ও Time বেছে নাও"}
                   </Button>
                 </PopoverTrigger>
@@ -224,7 +224,11 @@ export default function AdminLiveQuiz() {
                   <Calendar
                     mode="single"
                     selected={date ? new Date(`${date}T00:00:00`) : undefined}
-                    onSelect={(d) => d && setDate(format(d, "yyyy-MM-dd"))}
+                    onSelect={(d) => {
+                      if (!d) return;
+                      setDate(format(d, "yyyy-MM-dd"));
+                      if (!time) setTime(format(new Date(), "HH:mm"));
+                    }}
                     disabled={(d) => d < new Date(new Date().setHours(0, 0, 0, 0))}
                     initialFocus
                   />
