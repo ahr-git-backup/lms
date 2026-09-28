@@ -157,7 +157,6 @@ export default function AdminLiveQuiz() {
         description: timing === "instant" ? "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।" : `${date} ${time}-এ পাঠানো হবে।`,
       });
       setSelectedQuestions([]);
-      setSelectedExamTitle("");
       setQuizName("");
       setPerQSec("20");
       setTiming("instant");
