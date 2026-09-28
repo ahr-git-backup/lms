@@ -13,10 +13,6 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, BookOpen, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
-import { CalendarClock } from "lucide-react";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import SpecialSegmentManager from "@/components/admin/SpecialSegmentManager";
 import type { QuestionData } from "@/types/exam";
@@ -26,46 +22,6 @@ import { MultiSelect } from "@/components/ui/multi-select";
 import { CreatableSelect } from "@/components/ui/creatable-select";
 import { useGlobalMetadata, useAddGlobalMetadata, useRenameGlobalMetadata, useDeleteGlobalMetadata, MetadataType } from "@/hooks/useGlobalMetadata";
 import Papa from "papaparse";
-
-// Single-popup date+time picker (calendar + time input together) for the
-// exam's time-window fields — value/onChange use the same "YYYY-MM-DDTHH:mm"
-// shape the existing datetime-local inputs used, so form state is untouched.
-function DateTimePopoverPicker({
-  value, onChange, disabled, placeholder,
-}: { value: string; onChange: (v: string) => void; disabled?: boolean; placeholder?: string }) {
-  const [datePart, timePart] = value ? value.split("T") : ["", ""];
-  const time = timePart || "00:00";
-
-  const setDate = (d: Date) => {
-    onChange(`${format(d, "yyyy-MM-dd")}T${time}`);
-  };
-  const setTime = (t: string) => {
-    if (datePart) onChange(`${datePart}T${t}`);
-  };
-
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" disabled={disabled} className="w-full justify-start text-left font-normal">
-          <CalendarClock className="mr-2 h-4 w-4 shrink-0" />
-          {datePart ? `${format(new Date(`${datePart}T00:00:00`), "dd MMM yyyy")} — ${time}` : (placeholder || "Date ও Time বেছে নাও")}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-3 space-y-3" align="start">
-        <Calendar
-          mode="single"
-          selected={datePart ? new Date(`${datePart}T00:00:00`) : undefined}
-          onSelect={(d) => d && setDate(d)}
-          initialFocus
-        />
-        <div className="space-y-1">
-          <Label className="text-xs font-medium text-muted-foreground">Time</Label>
-          <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} disabled={disabled} />
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 const examSchema = z.object({
   id: z.string().optional(),
@@ -1133,17 +1089,21 @@ export const ExamForm = ({ exam, onSuccess, onCancel, isFreeMode = false, isArch
 
               <div className="space-y-2">
                 <Label htmlFor="time_window_start">Time window start</Label>
-                <DateTimePopoverPicker
+                <Input
+                  id="time_window_start"
+                  type="datetime-local"
                   value={form.time_window_start}
-                  onChange={(v) => setForm((prev) => ({ ...prev, time_window_start: v }))}
+                  onChange={(e) => setForm((prev) => ({ ...prev, time_window_start: e.target.value }))}
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="time_window_end">Time window end</Label>
-                <DateTimePopoverPicker
+                <Input
+                  id="time_window_end"
+                  type="datetime-local"
                   value={form.time_window_end}
-                  onChange={(v) => setForm((prev) => ({ ...prev, time_window_end: v }))}
+                  onChange={(e) => setForm((prev) => ({ ...prev, time_window_end: e.target.value }))}
                 />
               </div>
 
