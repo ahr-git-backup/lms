@@ -727,7 +727,7 @@ const rowCount = (row: any): number =>
                     key={s}
                     value={s}
                     className={cn(
-                      "border-2 rounded-xl overflow-hidden transition-shadow duration-300",
+                      "border-2 rounded-xl overflow-hidden",
                       s === openSubject || subjectSelectedCount > 0
                         ? "border-primary shadow-[0_0_10px_2px_rgba(34,197,235,0.55)]"
                         : "border-border shadow-[0_0_6px_1px_rgba(34,197,235,0.3)]"
