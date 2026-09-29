@@ -110,12 +110,14 @@ const UnlimitedMockTest = () => {
       return {
         dailyLimit: row?.daily_limit ?? 0,
         todaysMockCount: row?.todays_count ?? 0,
+        isUnlimited: row?.is_unlimited ?? false,
       };
     },
   });
 
   const dailyLimit = dailyStatus?.dailyLimit ?? 0;
   const todaysMockCount = dailyStatus?.todaysMockCount ?? 0;
+  const isPremiumUnlimited = dailyStatus?.isUnlimited ?? false;
 
   const limitActive = !!dailyLimit && dailyLimit > 0;
   const remaining = limitActive ? Math.max(0, dailyLimit - (todaysMockCount ?? 0)) : null;
@@ -627,11 +629,15 @@ const rowCount = (row: any): number =>
                 <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
                   সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
                 </p>
-                {(user || guestInfo) && limitActive && (
-                  <p className="text-[11px] font-semibold mt-0.5 text-primary">
-                    আজকের বাকি আছে: {remaining}/{dailyLimit}
+                {isPremiumUnlimited ? (
+                  <p className="text-[11px] font-semibold mt-0.5 text-amber-600">
+                    ✦ প্রিমিয়াম — আনলিমিটেড এক্সাম
                   </p>
-                )}
+                ) : (user || guestInfo) && limitActive ? (
+                  <p className="text-[11px] font-semibold mt-0.5 text-primary">
+                    ফ্রি মোড — আজকের বাকি আছে: {remaining}/{dailyLimit}
+                  </p>
+                ) : null}
               </div>
             </div>
 

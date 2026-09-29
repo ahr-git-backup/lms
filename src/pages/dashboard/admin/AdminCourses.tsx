@@ -835,6 +835,19 @@ const AdminCourses = () => {
                                             <span className="text-[10px] leading-tight text-muted-foreground">Show "X জন ভর্তি" publicly</span>
                                         </div>
                                     </div>
+                                    <div className="flex items-start gap-3 p-3 rounded bg-muted/20 border">
+                                        <Switch
+                                        id="access_unlimited_practice"
+                                        checked={form.access_unlimited_practice}
+                                        onCheckedChange={(checked) =>
+                                            setForm((prev) => ({ ...prev, access_unlimited_practice: checked }))
+                                        }
+                                        />
+                                        <div className="grid gap-0.5">
+                                            <Label htmlFor="access_unlimited_practice" className="text-sm font-semibold cursor-pointer">Unlimited Random Practice</Label>
+                                            <span className="text-[10px] leading-tight text-muted-foreground">এই কোর্সে ভর্তি থাকলে Random Practice Exam আনলিমিটেড হবে</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </CardContent>
