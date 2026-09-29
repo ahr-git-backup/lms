@@ -698,15 +698,15 @@ const rowCount = (row: any): number =>
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
-            <Label className="mb-1 flex items-center justify-between">
-              <span>সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</span>
+            <div className="flex flex-col items-center text-center gap-1.5">
+              <Label className="text-lg sm:text-xl font-extrabold">সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</Label>
               {selectedChapters.length > 0 && (
                 <span className="text-muted-foreground font-normal text-xs">
                   {selectedChapters.length}টি চ্যাপ্টার নির্বাচিত
                   {availablePool != null ? ` • মোট ${availablePool} MCQ` : ""}
                 </span>
               )}
-            </Label>
+            </div>
             <Accordion
               type="single"
               collapsible
