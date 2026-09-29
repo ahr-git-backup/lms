@@ -638,12 +638,14 @@ const rowCount = (row: any): number =>
             </button>
 
             <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
-              <div className="h-10 w-10 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center shrink-0">
+              <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-fuchsia-500/20 via-fuchsia-400/10 to-amber-400/20 flex items-center justify-center shrink-0 ring-1 ring-fuchsia-500/20 shadow-sm">
                 <Target className="h-5 w-5 text-fuchsia-600" />
               </div>
               <div className="min-w-0 text-left">
-                <h1 className="text-base font-bold leading-tight truncate">আনলিমিটেড মক টেস্ট</h1>
-                <p className="text-[11px] text-muted-foreground leading-tight line-clamp-2">
+                <h1 className="text-base font-extrabold leading-tight truncate bg-gradient-to-r from-fuchsia-600 via-fuchsia-500 to-amber-500 bg-clip-text text-transparent">
+                  আনলিমিটেড মক টেস্ট
+                </h1>
+                <p className="text-[11px] text-muted-foreground/80 leading-tight line-clamp-2 font-medium">
                   সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
                 </p>
                 {isPremiumUnlimited ? (
