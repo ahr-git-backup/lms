@@ -59,33 +59,32 @@ const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undef
       toast({ title: "সেভ করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
       return;
     }
+    setTouched(false);
     queryClient.invalidateQueries({ queryKey: ["mock-exam-daily-status"] });
     toast({ title: "সেভ হয়েছে", description: "দৈনিক ফ্রি এক্সাম লিমিট আপডেট হয়েছে।" });
   };
 
   return (
-    <Card className="border-primary/30">
-      <CardContent className="py-3 flex flex-wrap items-end gap-3">
-        <div className="space-y-1.5">
-          <Label htmlFor="daily_free_exam_limit" className="text-xs">Daily Free Exam Limit (Admin)</Label>
-          <Input
-            id="daily_free_exam_limit"
-            type="number"
-            min={0}
-            placeholder="0 = unlimited"
-            value={value}
-            onChange={(e) => {
-              setTouched(true);
-              setValue(e.target.value);
-            }}
-            className="w-32 h-9"
-          />
-        </div>
-        <Button size="sm" onClick={handleSave} disabled={saving}>
-          {saving ? "Saving..." : "Save"}
-        </Button>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-1.5">
+      <Label htmlFor="daily_free_exam_limit" className="text-[11px] text-muted-foreground shrink-0">
+        Daily Limit
+      </Label>
+      <Input
+        id="daily_free_exam_limit"
+        type="number"
+        min={0}
+        placeholder="0=unlimited"
+        value={value}
+        onChange={(e) => {
+          setTouched(true);
+          setValue(e.target.value);
+        }}
+        className="w-20 h-8 text-xs"
+      />
+      <Button size="sm" className="h-8 px-2 text-xs" onClick={handleSave} disabled={saving}>
+        {saving ? "..." : "Save"}
+      </Button>
+    </div>
   );
 };
 
@@ -593,16 +592,19 @@ const rowCount = (row: any): number =>
   return (
     <div className="space-y-2.5 max-w-lg mx-auto">
       {isAdmin && (
-        <div className="space-y-2">
-          <AdminDailyLimitControl currentLimit={dailyLimit} />
-          <Button
-            variant="outline"
-            className="w-full"
-            onClick={() => setPositionManagerOpen(true)}
-          >
-            Manage Position (সাবজেক্ট/চ্যাপ্টার/টপিক)
-          </Button>
-        </div>
+        <Card className="border-primary/30">
+          <CardContent className="py-2 flex flex-wrap items-center justify-between gap-2">
+            <AdminDailyLimitControl currentLimit={dailyLimit} />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setPositionManagerOpen(true)}
+            >
+              Manage Position
+            </Button>
+          </CardContent>
+        </Card>
       )}
       <Card>
         <CardContent className="py-3">
