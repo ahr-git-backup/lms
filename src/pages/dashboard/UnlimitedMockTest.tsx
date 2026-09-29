@@ -698,10 +698,14 @@ const rowCount = (row: any): number =>
       <Card>
         <CardContent className="space-y-4 pt-6">
           <div className="space-y-2">
-            <div className="flex flex-col items-center text-center gap-1.5">
-              <Label className="text-lg sm:text-xl font-extrabold">সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</Label>
+            <div className="flex flex-col items-center text-center gap-1.5 py-4 px-4 rounded-2xl bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-600 shadow-lg shadow-fuchsia-500/20 ring-1 ring-white/10">
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm">
+                <Sparkles className="h-3 w-3 text-amber-300" />
+                <span className="text-[10px] font-bold text-amber-200 tracking-wider">PREMIUM</span>
+              </span>
+              <Label className="text-lg sm:text-xl font-extrabold text-white">সাবজেক্ট বেছে চ্যাপ্টার নির্বাচন করুন</Label>
               {selectedChapters.length > 0 && (
-                <span className="text-muted-foreground font-normal text-xs">
+                <span className="text-white/80 font-medium text-xs">
                   {selectedChapters.length}টি চ্যাপ্টার নির্বাচিত
                   {availablePool != null ? ` • মোট ${availablePool} MCQ` : ""}
                 </span>
