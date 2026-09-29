@@ -77,7 +77,6 @@ const CATEGORIES = [
   { value: "exams", label: "এক্সাম" },
   { value: "chance", label: "চান্সপ্রাপ্ত" },
   { value: "mentoring", label: "মেন্টরিং" },
-  { value: "website", label: "অন্যান্য" },
 ];
 
 /** A single auto-scrolling row: continuously slides via requestAnimationFrame,
