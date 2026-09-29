@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { FileText, ArrowLeft, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import ClassComments from "@/components/ClassComments";
-import { WhatsAppSupportButton } from "@/components/WhatsAppSupportButton";
-import { PayDueDialog } from "@/components/PayDueDialog";
+import { OverdueLockCard } from "@/components/shared/OverdueLockCard";
 
 // If the class would otherwise be accessible except that the relevant
 // course's payment is overdue, surface that reason instead of a generic
@@ -122,7 +121,6 @@ const ClassPlayerPage = () => {
     enabled: !!classItem && !!profile?.id
   });
   const hasAccess = accessInfo?.hasAccess ?? false;
-  const [payDueOpen, setPayDueOpen] = useState(false);
 
   const { data: viewCount } = useQuery({
     queryKey: ["class-view-count", classId],
@@ -200,27 +198,17 @@ const ClassPlayerPage = () => {
   if (!hasAccess) {
      const overdueInfo = accessInfo?.overdueInfo;
      if (overdueInfo) {
+       const daysPast = Math.max(0, Math.round((new Date(new Date().toISOString().slice(0,10)).getTime() - new Date(overdueInfo.dueDate).getTime()) / 86400000));
        return (
-          <div className="p-8 max-w-2xl mx-auto text-center space-y-6">
-              <div className="p-6 border rounded-lg bg-red-50 dark:bg-red-950/20 border-red-300 text-red-700 dark:text-red-400 space-y-2">
-                  <h2 className="text-xl font-bold mb-2">বকেয়া পেমেন্টের কারণে অ্যাক্সেস বন্ধ</h2>
-                  <p>এই কোর্সের বাকি টাকা পরিশোধের নির্ধারিত তারিখ পার হয়ে গেছে।</p>
-                  <p className="flex justify-center gap-2"><span>বাকি টাকা:</span><strong>৳{overdueInfo.dueAmount}</strong></p>
-                  <p className="flex justify-center gap-2"><span>দেওয়ার শেষ তারিখ ছিল:</span><strong>{new Date(overdueInfo.dueDate).toLocaleDateString("bn-BD", { day: "numeric", month: "long", year: "numeric" })}</strong></p>
-                  <p className="text-sm mt-2">বাকি টাকা পরিশোধ করলেই আবার এক্সেস চালু হয়ে যাবে।</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <Button onClick={() => setPayDueOpen(true)}>বাকি টাকা পরিশোধ করুন</Button>
-                <WhatsAppSupportButton message="আমার কোর্সের বাকি টাকা নিয়ে সমস্যা আছে।" />
-              </div>
-              <PayDueDialog
-                open={payDueOpen}
-                onClose={() => setPayDueOpen(false)}
-                paymentRequestId={overdueInfo.id}
-                remainingDue={overdueInfo.dueAmount - overdueInfo.amountPaid}
-                courseName={classItem.course?.name}
-              />
-          </div>
+         <OverdueLockCard overdue={{
+           courseId: classItem.course?.id || "",
+           courseName: classItem.course?.name || "কোর্স",
+           paymentRequestId: overdueInfo.id,
+           dueAmount: overdueInfo.dueAmount,
+           amountPaid: overdueInfo.amountPaid,
+           dueDate: overdueInfo.dueDate,
+           daysPast,
+         }} />
        );
      }
      return (

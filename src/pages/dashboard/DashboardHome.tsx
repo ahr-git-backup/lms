@@ -283,8 +283,29 @@ const DashboardHome = () => {
     return [...ordered, ...remaining];
   })();
 
+  const overdueCourses = (enrollments || [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((e: any) => e.is_payment_overdue && e.overdue_info);
+
   return (
     <div className="space-y-4 animate-in fade-in duration-500 dashboard-home-page -mt-4 sm:-mt-6">
+      {overdueCourses.length > 0 && (
+        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 p-3 space-y-1.5">
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          {overdueCourses.map((e: any) => {
+            const daysPast = Math.max(0, Math.round((new Date(new Date().toISOString().slice(0,10)).getTime() - new Date(e.overdue_info.dueDate).getTime()) / 86400000));
+            const remaining = e.overdue_info.dueAmount - e.overdue_info.amountPaid;
+            return (
+              <div key={e.course_id} className="flex items-center justify-between gap-2 flex-wrap text-sm">
+                <span>
+                  <strong>{e.course?.name}</strong> কোর্সের বকেয়া ৳{remaining} পরিশোধের মেয়াদ {daysPast > 0 ? `${daysPast} দিন পার হয়ে গেছে` : "পার হয়ে গেছে"} — এক্সেস বন্ধ আছে।
+                </span>
+                <Button size="sm" variant="destructive" onClick={() => navigate("/dashboard/profile")}>এখনই পরিশোধ করুন</Button>
+              </div>
+            );
+          })}
+        </div>
+      )}
       {/* Fixed floating WhatsApp + Telegram support buttons, bottom-left corner */}
       <div className="fixed bottom-4 left-4 z-40 flex flex-col gap-2">
         <a

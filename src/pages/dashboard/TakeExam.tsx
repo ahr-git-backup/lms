@@ -20,6 +20,7 @@ import { useStudyToolsOptional } from "@/contexts/StudyToolsContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getExamSourceList } from "@/lib/examSourceTracker";
 import { useEnrollments } from "@/hooks/useEnrollments";
+import { OverdueLockCard } from "@/components/shared/OverdueLockCard";
 import { OmrExamScanner } from "@/components/exam/OmrExamScanner";
 import { RIGHT_PACKS, WRONG_PACKS, playSound } from "@/lib/quizSounds";
 import { CorrectBalloonBurst } from "@/components/CorrectBalloonBurst";
@@ -1203,6 +1204,28 @@ const TakeExam = () => {
   const isPaidBatchEnrolled = !!user && !!enrollments && enrollments.some((e: any) => !e.is_payment_overdue);
 
   if (!hasAccess) {
+      // If this exam's own course is enrolled but locked for overdue payment
+      // (not just "not enrolled at all"), show the actual reason instead of
+      // a generic "not enrolled" message.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const relevantCourseIds = [exam?.course_id, ...(((exam as any)?.shared_course_ids) || []), ...(((exam as any)?.archive_course_ids) || []), ...(((exam as any)?.readymade_course_ids) || [])].filter(Boolean);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const overdueEnrollment = enrollments?.find((e: any) => e.is_payment_overdue && e.overdue_info && relevantCourseIds.includes(e.course_id));
+      if (overdueEnrollment) {
+          const daysPast = Math.max(0, Math.round((new Date(new Date().toISOString().slice(0,10)).getTime() - new Date(overdueEnrollment.overdue_info.dueDate).getTime()) / 86400000));
+          return (
+              <OverdueLockCard overdue={{
+                  courseId: overdueEnrollment.course_id,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  courseName: (overdueEnrollment as any).course?.name || "কোর্স",
+                  paymentRequestId: overdueEnrollment.overdue_info.id,
+                  dueAmount: overdueEnrollment.overdue_info.dueAmount,
+                  amountPaid: overdueEnrollment.overdue_info.amountPaid,
+                  dueDate: overdueEnrollment.overdue_info.dueDate,
+                  daysPast,
+              }} />
+          );
+      }
       return (
           <div className="p-8 text-center flex flex-col items-center justify-center min-h-[60vh] gap-4">
               <AlertTriangle className="h-12 w-12 text-destructive" />
