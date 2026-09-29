@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueries, useQueryClient } from "@tanstack/react-query";
-import { Target, Loader2, ArrowLeft, History, ChevronDown } from "lucide-react";
+import { Target, Loader2, ArrowLeft, History, ChevronDown, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fetchCached } from "@/lib/cacheProxy";
@@ -647,13 +647,16 @@ const rowCount = (row: any): number =>
                   সাবজেক্ট, চ্যাপ্টার বেছে নিয়ে র‍্যান্ডম প্রশ্নের টেস্ট দিন — যতবার খুশি।
                 </p>
                 {isPremiumUnlimited ? (
-                  <p className="text-[11px] font-semibold mt-0.5 text-amber-600">
-                    ✦ প্রিমিয়াম — আনলিমিটেড এক্সাম
-                  </p>
+                  <span className="inline-flex items-center gap-1 mt-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400 shadow-sm">
+                    <Sparkles className="h-3 w-3 text-white" />
+                    <span className="text-[11px] font-bold text-white tracking-wide">প্রিমিয়াম — আনলিমিটেড এক্সাম</span>
+                  </span>
                 ) : limitActive ? (
-                  <p className="text-[11px] font-semibold mt-0.5 text-primary">
-                    ফ্রি মোড — আজকের বাকি আছে: {remaining}/{dailyLimit}
-                  </p>
+                  <span className="inline-flex items-center gap-1.5 mt-1 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/30">
+                    <span className="text-[11px] font-semibold text-primary">ফ্রি মোড</span>
+                    <span className="h-3 w-px bg-primary/30" />
+                    <span className="text-[11px] font-bold text-primary">আজকের বাকি {remaining}/{dailyLimit}</span>
+                  </span>
                 ) : null}
               </div>
             </div>
