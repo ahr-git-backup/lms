@@ -88,6 +88,7 @@ const AdminPayments = () => {
   const [selectedRequest, setSelectedRequest] = useState<EnrichedPaymentRequest | null>(null);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [reduceDialogOpen, setReduceDialogOpen] = useState(false);
+  const [newDueDate, setNewDueDate] = useState("");
   const [reduceAmount, setReduceAmount] = useState("");
   const [adminNote, setAdminNote] = useState("");
   const [emiPage, setEmiPage] = useState(0);
@@ -279,7 +280,7 @@ const AdminPayments = () => {
   });
 
   const reduceDueMutation = useMutation({
-    mutationFn: async ({ requestId, amount, note }: { requestId: string; amount: number; note: string }) => {
+    mutationFn: async ({ requestId, amount, note, dueDate }: { requestId: string; amount: number; note: string; dueDate?: string }) => {
         const request = dueRequests.find(r => r.id === requestId) || selectedRequest;
         if (!request) throw new Error("Request not found");
         const currentPaid = request.amount_paid || 0;
@@ -296,18 +297,24 @@ const AdminPayments = () => {
           updatePayload.due_amount = 0;
         }
 
+        // Admin manually pushing the deadline forward — only applies while
+        // due is still outstanding; a fully-cleared due has nothing to extend.
+        if (dueDate && remaining > 0) {
+          updatePayload.due_date = dueDate;
+        }
+
         const { error } = await (supabase.from as any)("payment_requests")
           .update(updatePayload)
           .eq("id", requestId);
         if (error) throw error;
 
-        // Log this EMI payment in emi_logs
+        // Log this EMI payment in emi_logs (amount 0 = date-only extension, no cash received)
         await (supabase.from as any)("emi_logs").insert({
           payment_request_id: requestId,
           profile_id: request.profile_id,
           course_id: request.course_id,
           amount,
-          admin_note: note || null,
+          admin_note: note || (dueDate ? `Due date extended to ${dueDate}` : null),
         });
     },
     onSuccess: () => {
@@ -315,6 +322,7 @@ const AdminPayments = () => {
         setReduceDialogOpen(false);
         setReduceAmount("");
         setAdminNote("");
+        setNewDueDate("");
         queryClient.invalidateQueries({ queryKey: ["admin-due-payments"] });
         queryClient.invalidateQueries({ queryKey: ["admin-payment-stats"] });
         queryClient.invalidateQueries({ queryKey: ["admin-emi-logs"] });
@@ -692,7 +700,7 @@ const AdminPayments = () => {
                               size="sm"
                               variant="outline"
                               className="h-8 text-xs gap-1 text-green-700 border-green-200 hover:bg-green-50"
-                              onClick={() => { setSelectedRequest(request); setReduceDialogOpen(true); }}
+                              onClick={() => { setSelectedRequest(request); setReduceAmount(""); setAdminNote(""); setNewDueDate(""); setReduceDialogOpen(true); }}
                             >
                               <TrendingDown className="h-3.5 w-3.5" />
                               EMI/Pay
@@ -954,25 +962,39 @@ const AdminPayments = () => {
                   onChange={e => setAdminNote(e.target.value)}
                 />
               </div>
+              <div className="space-y-2 pt-2 border-t">
+                <Label>নতুন Due Date (মেয়াদ বাড়াও — ঐচ্ছিক)</Label>
+                <Input
+                  type="date"
+                  value={newDueDate}
+                  min={format(new Date(), "yyyy-MM-dd")}
+                  onChange={e => setNewDueDate(e.target.value)}
+                />
+                {selectedRequest.due_date && (
+                  <p className="text-xs text-muted-foreground">বর্তমান Due Date: {safeFormat(selectedRequest.due_date, "PPP")}</p>
+                )}
+              </div>
               <div className="flex justify-end gap-3">
                 <Button variant="outline" onClick={() => setReduceDialogOpen(false)}>Cancel</Button>
                 <Button
                   className="bg-green-600 hover:bg-green-700 text-white"
                   onClick={() => {
-                    if (!reduceAmount || Number(reduceAmount) <= 0) {
-                      toast.error("Enter a valid amount");
+                    const amt = Number(reduceAmount || 0);
+                    if (!newDueDate && amt <= 0) {
+                      toast.error("Amount দিন অথবা নতুন Due Date বেছে নিন");
                       return;
                     }
                     reduceDueMutation.mutate({
                       requestId: selectedRequest.id,
-                      amount: Number(reduceAmount),
+                      amount: amt,
                       note: adminNote,
+                      dueDate: newDueDate || undefined,
                     });
                   }}
                   disabled={reduceDueMutation.isPending}
                 >
                   {reduceDueMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  Record Payment
+                  {Number(reduceAmount || 0) > 0 ? "Record Payment" : "শুধু Due Date বাড়াও"}
                 </Button>
               </div>
             </div>
