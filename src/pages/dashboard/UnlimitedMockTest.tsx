@@ -31,18 +31,34 @@ type TopicSel = { subject: string; chapter: string; topic: string };
 
 const DAILY_FREE_EXAM_LIMIT_KEY = "daily_free_exam_limit";
 
-const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undefined }) => {
+const AdminDailyLimitControl = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [value, setValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);
 
+  const { data: rawLimit } = useQuery({
+    queryKey: ["daily-free-exam-limit-setting"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", DAILY_FREE_EXAM_LIMIT_KEY)
+        .maybeSingle();
+      if (error) throw error;
+      const raw = data?.value;
+      const parsed =
+        typeof raw === "number" ? raw : raw != null ? parseInt(String(raw), 10) : 0;
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+  });
+
   useEffect(() => {
-    if (!touched && currentLimit !== undefined) {
-      setValue(String(currentLimit));
+    if (!touched && rawLimit !== undefined) {
+      setValue(String(rawLimit));
     }
-  }, [currentLimit, touched]);
+  }, [rawLimit, touched]);
 
   const handleSave = async () => {
     const parsed = parseInt(value, 10);
@@ -60,6 +76,7 @@ const AdminDailyLimitControl = ({ currentLimit }: { currentLimit: number | undef
       return;
     }
     setTouched(false);
+    queryClient.invalidateQueries({ queryKey: ["daily-free-exam-limit-setting"] });
     queryClient.invalidateQueries({ queryKey: ["mock-exam-daily-status"] });
     toast({ title: "সেভ হয়েছে", description: "দৈনিক ফ্রি এক্সাম লিমিট আপডেট হয়েছে।" });
   };
@@ -596,7 +613,7 @@ const rowCount = (row: any): number =>
       {isAdmin && (
         <Card className="border-primary/30">
           <CardContent className="py-2 flex flex-wrap items-center justify-between gap-2">
-            <AdminDailyLimitControl currentLimit={dailyLimit} />
+            <AdminDailyLimitControl />
             <Button
               variant="outline"
               size="sm"
