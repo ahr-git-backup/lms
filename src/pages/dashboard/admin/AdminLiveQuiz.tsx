@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,9 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@
 import { format } from "date-fns";
 import { QuestionBankSelector } from "@/components/admin/QuestionBankSelector";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, Radio, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Loader2, Radio, CheckCircle2, RotateCw, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import type { QuestionData } from "@/types/exam";
 
 const QUIZBOT_API_BASE = "https://quizbot.pages.dev";
@@ -18,6 +20,25 @@ const QUIZBOT_API_SECRET = "001b72896f99e070168d2e48a8c4710b";
 export default function AdminLiveQuiz() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  // ── history list of created live quizzes (+ Resend / Cancel) ──
+  const { data: quizHistory } = useQuery({
+    queryKey: ["scheduled-live-quizzes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("scheduled_live_quizzes")
+        .select("id, name, exam_id, question_ids, chat_id, thread_id, per_q_time_sec, scheduled_at, status, error, channel_id, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 15000,
+  });
+  const [resendRow, setResendRow] = useState<any | null>(null);
+  const [resendWhen, setResendWhen] = useState(""); // "" = instant, else datetime-local value
+  const [resending, setResending] = useState(false);
 
   // ── manually-selected MCQs (filled in by the Question Bank picker at the
   //    bottom of this same form) — only questions the admin explicitly
@@ -154,6 +175,7 @@ export default function AdminLiveQuiz() {
         title: timing === "instant" ? "Live Quiz শুরু হচ্ছে" : "Live Quiz শিডিউল হয়েছে",
         description: timing === "instant" ? "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।" : `${date} ${time}-এ পাঠানো হবে।`,
       });
+      queryClient.invalidateQueries({ queryKey: ["scheduled-live-quizzes"] });
       setSelectedQuestions([]);
       setQuizName("");
       setPerQSec("20");
@@ -164,6 +186,72 @@ export default function AdminLiveQuiz() {
       toast({ title: "Schedule করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
     } finally {
       setBusy(false);
+    }
+  };
+
+  const channelNameFor = (row: any) =>
+    savedChannels?.find((c: any) => c.id === row.channel_id)?.name || row.chat_id;
+
+  const statusLabel = (st: string) =>
+    ({ pending: "অপেক্ষমান", running: "চলছে", done: "শেষ", error: "ব্যর্থ", cancelled: "বাতিল" } as Record<string, string>)[st] || st;
+
+  const handleResend = async () => {
+    if (!resendRow) return;
+    let scheduledAtIso: string | undefined;
+    if (resendWhen) {
+      const local = new Date(resendWhen);
+      if (isNaN(local.getTime())) {
+        toast({ title: "সঠিক Date/Time দিন", variant: "destructive" });
+        return;
+      }
+      if (local.getTime() < Date.now() - 60000) {
+        toast({ title: "অতীতের সময় দেওয়া যাবে না", variant: "destructive" });
+        return;
+      }
+      scheduledAtIso = local.toISOString();
+    }
+    setResending(true);
+    try {
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-live-quiz/schedule`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          secret: QUIZBOT_API_SECRET,
+          name: resendRow.name,
+          exam_id: resendRow.exam_id || undefined,
+          question_ids: resendRow.question_ids || undefined,
+          chat_id: resendRow.chat_id,
+          thread_id: resendRow.thread_id || null,
+          per_q_time_sec: resendRow.per_q_time_sec,
+          scheduled_at: scheduledAtIso,
+          channel_row_id: resendRow.channel_id || null,
+        }),
+      });
+      const rawText = await res.text();
+      let json: any;
+      try { json = JSON.parse(rawText); } catch { throw new Error(`HTTP ${res.status}`); }
+      if (!res.ok || !json.ok) throw new Error(json.error || "failed");
+      toast({
+        title: resendWhen ? "আবার শিডিউল হয়েছে" : "আবার শুরু হচ্ছে",
+        description: resendWhen ? format(new Date(resendWhen), "dd MMM yyyy, hh:mm a") : "১০ সেকেন্ডের মধ্যে চ্যানেলে শুরু হবে।",
+      });
+      setResendRow(null);
+      setResendWhen("");
+      queryClient.invalidateQueries({ queryKey: ["scheduled-live-quizzes"] });
+    } catch (err: any) {
+      toast({ title: "Resend করা যায়নি", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setResending(false);
+    }
+  };
+
+  const handleCancelRow = async (id: string) => {
+    try {
+      const res = await fetch(`${QUIZBOT_API_BASE}/api/lms-live-quiz/cancel/${id}`, { method: "POST" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      queryClient.invalidateQueries({ queryKey: ["scheduled-live-quizzes"] });
+    } catch (err: any) {
+      toast({ title: "বাতিল করা যায়নি", description: err?.message, variant: "destructive" });
     }
   };
 
@@ -293,6 +381,67 @@ export default function AdminLiveQuiz() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Created Live Quizzes (history) ── */}
+      <Card>
+        <CardContent className="p-3 sm:p-4 space-y-2">
+          <h3 className="text-sm font-semibold">তৈরি করা Live Quiz ({quizHistory?.length ?? 0})</h3>
+          {!quizHistory?.length && <p className="text-xs text-muted-foreground">এখনো কোনো Live Quiz তৈরি হয়নি।</p>}
+          {quizHistory?.map((row: any) => {
+            const qCount = row.question_ids?.length;
+            return (
+              <div key={row.id} className="flex items-center gap-2 rounded-lg border p-2.5">
+                <div className="min-w-0 flex-1 space-y-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium truncate">{row.name}</p>
+                    <Badge variant={row.status === "error" ? "destructive" : row.status === "done" ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                      {statusLabel(row.status)}
+                    </Badge>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {channelNameFor(row)} · {qCount ? `${qCount}টি প্রশ্ন` : "পুরো exam"} · {row.per_q_time_sec}s · {format(new Date(row.scheduled_at), "dd MMM, hh:mm a")}
+                  </p>
+                  {row.status === "error" && row.error && <p className="text-[11px] text-destructive truncate">{row.error}</p>}
+                </div>
+                {row.status === "pending" && (
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" title="বাতিল" onClick={() => handleCancelRow(row.id)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" className="shrink-0 h-8 px-2" onClick={() => { setResendRow(row); setResendWhen(""); }}>
+                  <RotateCw className="h-3.5 w-3.5 mr-1" /> Resend
+                </Button>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Dialog open={!!resendRow} onOpenChange={(v) => { if (!v && !resending) setResendRow(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>আবার পাঠাও — {resendRow?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">কখন পাঠাবে (খালি রাখলে এখনই)</label>
+              <Input
+                type="datetime-local"
+                value={resendWhen}
+                min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+                onChange={(e) => setResendWhen(e.target.value)}
+                disabled={resending}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" disabled={resending} onClick={() => setResendRow(null)}>বাতিল</Button>
+              <Button size="sm" disabled={resending} onClick={handleResend}>
+                {resending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : (resendWhen ? "শিডিউল করো" : "🔴 এখনই শুরু করো")}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
