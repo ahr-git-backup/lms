@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, History as HistoryIcon, FileText, Loader2, BookOpen, ChevronRight, Layers } from "lucide-react";
+import { ArrowLeft, History as HistoryIcon, FileText, Loader2, BookOpen, ChevronRight, Layers, LogIn } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -156,7 +156,20 @@ const MockTestHistory = () => {
         </div>
       </div>
 
-      {isLoading ? (
+      {!user ? (
+        <div className="flex flex-col items-center gap-3 py-14 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center">
+            <LogIn className="h-7 w-7 text-fuchsia-600" />
+          </div>
+          <p className="text-sm text-muted-foreground max-w-xs">
+            হিস্টোরি দেখতে হলে লগইন করতে হবে।
+          </p>
+          <Button className="gap-2" onClick={() => navigate("/login")}>
+            <LogIn className="h-4 w-4" />
+            লগইন করুন
+          </Button>
+        </div>
+      ) : isLoading ? (
         <div className="flex justify-center py-10">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
