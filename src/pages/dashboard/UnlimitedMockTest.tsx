@@ -650,7 +650,7 @@ const rowCount = (row: any): number =>
                   <p className="text-[11px] font-semibold mt-0.5 text-amber-600">
                     ✦ প্রিমিয়াম — আনলিমিটেড এক্সাম
                   </p>
-                ) : (user || guestInfo) && limitActive ? (
+                ) : limitActive ? (
                   <p className="text-[11px] font-semibold mt-0.5 text-primary">
                     ফ্রি মোড — আজকের বাকি আছে: {remaining}/{dailyLimit}
                   </p>
