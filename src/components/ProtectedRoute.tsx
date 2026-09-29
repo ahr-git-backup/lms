@@ -19,13 +19,14 @@ const ProtectedRoute = ({ children, requireAdmin = false, allowedRoles = [] }: P
     );
   }
 
-  // Not logged in: admin/teacher areas still require login. Everything else
-  // is browsable — the page/action itself prompts login when actually needed.
+  // Not logged in: any dashboard/protected experience redirects to the
+  // landing page instead of silently rendering children in a logged-out
+  // state. This is also what happens if the browser's cookies/site data
+  // get cleared while sitting on a dashboard page — the next render sees
+  // user=null and bounces to "/", so the person has to log in again
+  // rather than seeing a broken/empty dashboard.
   if (!user) {
-    if (requireAdmin || allowedRoles.length > 0) {
-      return <Navigate to="/login" replace />;
-    }
-    return <>{children}</>;
+    return <Navigate to="/" replace />;
   }
 
   // A Google sign-in creates a bare profile row (Google's metadata doesn't
