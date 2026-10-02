@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck, Send, Image as ImageIcon } from "lucide-react";
+import { CalendarClock, Calendar, FileText, ListChecks, Video, BookOpen, History, StickyNote, Files, Trophy, User, AlertCircle, Bookmark, Sparkles, Bell, CheckCircle, AlertTriangle, Trash2, ChevronDown, ChevronUp, Infinity, Flag, Megaphone, BarChart3, Zap, TrendingUp, Target, ClipboardCheck, Send, Image as ImageIcon, MessageSquareText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { quickAccessItems } from "@/config/dashboardCardItems";
@@ -657,6 +657,18 @@ const DashboardHome = () => {
                     <div>
                       <p className="font-semibold text-sm sm:text-base leading-tight">Live Quiz</p>
                       <p className="hidden sm:block text-sm text-muted-foreground">Telegram-এ পাঠাও</p>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card
+                  className="cursor-pointer border-green-500/40 hover:border-green-500 transition-all bg-green-50/50 dark:bg-green-950/20"
+                  onClick={() => navigate("/admin/sms-payments")}
+                >
+                  <CardContent className="p-2.5 sm:p-4 flex flex-col sm:flex-row items-center sm:items-center gap-1.5 sm:gap-3 text-center sm:text-left">
+                    <MessageSquareText className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-sm sm:text-base leading-tight">SMS Payments</p>
+                      <p className="hidden sm:block text-sm text-muted-foreground">বকেয়া SMS মিলাও</p>
                     </div>
                   </CardContent>
                 </Card>
