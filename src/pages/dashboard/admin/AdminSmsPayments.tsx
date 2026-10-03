@@ -12,7 +12,7 @@ import { ArrowLeft, MessageSquareText, CheckCircle2, Loader2 } from "lucide-reac
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Manual-approve fallback for a row the auto-matcher couldn't confidently
-// match (ambiguous amount, trx_id typo, etc). Admin picks the right pending
+// match (e.g. sender number typo, name mismatch). Admin picks the right pending
 // payment_requests row by searching name/phone, same data the normal
 // AdminPayments due-list already shows.
 function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => void; onDone: () => void }) {
@@ -25,7 +25,7 @@ function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => 
     queryFn: async () => {
       let query = supabase
         .from("payment_requests")
-        .select("id, trx_id, amount_sent, sender_last5, created_at, profiles:profile_id(full_name, phone), courses:course_id(name)")
+        .select("id, amount_sent, sender_last5, created_at, profiles:profile_id(full_name, phone), courses:course_id(name)")
         .eq("status", "pending")
         .order("created_at", { ascending: false })
         .limit(20);
@@ -36,8 +36,7 @@ function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => 
       return (data || []).filter((r: any) =>
         r.profiles?.full_name?.toLowerCase().includes(q) ||
         r.profiles?.phone?.includes(q) ||
-        r.sender_last5?.includes(q) ||
-        r.trx_id?.toLowerCase().includes(q)
+        r.sender_last5?.includes(q)
       );
     },
   });
@@ -47,7 +46,6 @@ function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => 
     try {
       const { error: rpcError } = await supabase.rpc("approve_payment_request", { p_request_id: requestId });
       if (rpcError) throw rpcError;
-      await supabase.from("payment_requests").update({ trx_id: row.trx_id }).eq("id", requestId);
       await supabase
         .from("sms_payment_relay_log")
         .update({ status: "matched", matched_payment_request_id: requestId, note: "Manually matched by admin" })
@@ -65,7 +63,7 @@ function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => 
     <Dialog open onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>মিলিয়ে দাও — Trx {row.trx_id}</DialogTitle>
+          <DialogTitle>মিলিয়ে দাও — ৳{row.amount} · {row.sender_phone}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">৳{row.amount} · {row.sender_phone || "নম্বর নেই"}</p>
@@ -156,11 +154,11 @@ export default function AdminSmsPayments() {
             <div key={row.id} className="flex items-center gap-2 rounded-lg border p-2.5">
               <div className="min-w-0 flex-1 space-y-0.5">
                 <div className="flex items-center gap-1.5 flex-wrap">
-                  <p className="text-sm font-mono font-medium">{row.trx_id}</p>
+                  <p className="text-sm font-mono font-medium">৳{row.amount} · {row.sender_phone || "নম্বর নেই"}</p>
                   {statusBadge(row.status)}
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  ৳{row.amount} · {row.sender_phone || "নম্বর নেই"} · {format(new Date(row.created_at), "dd MMM, hh:mm a")}
+                  {format(new Date(row.created_at), "dd MMM, hh:mm a")}
                 </p>
                 {row.note && <p className="text-[11px] text-muted-foreground truncate">{row.note}</p>}
               </div>
