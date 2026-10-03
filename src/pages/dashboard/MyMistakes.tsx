@@ -64,7 +64,7 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {singlePdfLoadingId === exam.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
-                                Practice Sheet
+                                PDF
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
@@ -79,6 +79,19 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
     );
 });
 ExamRow.displayName = "ExamRow";
+
+// answers JSON is heavy (every question's selection) and is only needed to
+// build a PDF, so it is fetched per attempt at generation time instead of
+// being pulled for every exam on page load.
+const fetchAttemptAnswers = async (attemptId: string): Promise<any[]> => {
+    const { data, error } = await supabase
+        .from("exam_attempts")
+        .select("answers")
+        .eq("id", attemptId)
+        .maybeSingle();
+    if (error) throw error;
+    return (data?.answers as any[]) || [];
+};
 
 const MyMistakes = () => {
     const { user } = useAuth();
@@ -102,7 +115,7 @@ const MyMistakes = () => {
                 toast({ title: "প্রশ্ন পাওয়া যায়নি", variant: "destructive" });
                 return;
             }
-            const userAnswers = (exam.answers as any[]) || [];
+            const userAnswers = await fetchAttemptAnswers(exam.attemptId);
             const qs: any[] = [];
             reviewData.forEach((reviewQ: any) => {
                 const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
@@ -156,7 +169,6 @@ const MyMistakes = () => {
                     id,
                     exam_id,
                     submitted_at,
-                    answers,
                     exams (
                         id,
                         title,
@@ -197,7 +209,6 @@ const MyMistakes = () => {
                         lastAttempt: attempt.submitted_at,
                         category,
                         readymadeTopic: examData.readymade_topic || null,
-                        answers: attempt.answers || [],
                         wrongCount: 0,
                         skipCount: 0,
                     });
@@ -275,7 +286,7 @@ const MyMistakes = () => {
                     p_attempt_id: exam.attemptId
                 });
                 if (!reviewData) continue;
-                const userAnswers = (exam.answers as any[]) || [];
+                const userAnswers = await fetchAttemptAnswers(exam.attemptId);
                 reviewData.forEach((reviewQ: any) => {
                     const userAnswerObj = userAnswers.find((a: any) => a.question_id === reviewQ.question_id);
                     const selected = userAnswerObj?.selected_option;
