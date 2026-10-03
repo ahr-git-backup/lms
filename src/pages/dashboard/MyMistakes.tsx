@@ -49,7 +49,6 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
                     <button type="button" onClick={(e) => { e.stopPropagation(); onReview(exam, "skip"); }} className="shrink-0">
                         <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900 cursor-pointer">Skip: {exam.skipCount}</Badge>
                     </button>
-                    <span className="text-[10px] text-muted-foreground shrink-0">Practice Sheet</span>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -60,7 +59,7 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 {singlePdfLoadingId === exam.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <FileDown className="h-3 w-3 mr-1" />}
-                                PDF
+                                Practice Sheet
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
