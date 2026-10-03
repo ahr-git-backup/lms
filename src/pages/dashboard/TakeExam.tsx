@@ -690,6 +690,41 @@ const TakeExam = () => {
       pushedHistoryCount.current = 0;
   };
 
+  // Topic-wise readymade runs happen in Quick Practice mode, which previously
+  // never wrote an exam_attempts row, so they vanished from Exam History.
+  // Save them through the same submit RPC as normal exams once finished.
+  const qpSavedRef = useRef(false);
+  useEffect(() => {
+    if (!qpFinished || !isQuickPracticeMode || !exam?.is_readymade) return;
+    if (qpSavedRef.current || qpQuestions.length === 0) return;
+    if (!user && !guestInfo) return;
+    qpSavedRef.current = true;
+    const answersList = qpQuestions.map((q: any, i: number) => ({
+      question_id: q.id,
+      selected_option: qpAnswers[i]?.selected ?? null,
+    }));
+    const startTime = localStorage.getItem(`${LOCAL_STORAGE_KEY_PREFIX}_start_time`);
+    const timeTaken = startTime ? Math.floor((Date.now() - parseInt(startTime)) / 1000) : 0;
+    supabase.rpc("submit_exam_attempt", {
+      p_exam_id: exam.id,
+      p_answers: answersList,
+      p_violation_count: violationCount,
+      p_time_taken_seconds: timeTaken,
+      ...(!user && guestInfo ? {
+        p_guest_name: guestInfo.name,
+        p_guest_hsc_batch: guestInfo.hscBatch,
+        p_guest_college_name: guestInfo.collegeName,
+        p_guest_phone: guestInfo.phone,
+      } : {}),
+    }).then(({ error }) => {
+      if (error) {
+        qpSavedRef.current = false;
+        console.error("Quick practice save failed:", error);
+        toast({ title: "ফলাফল সংরক্ষণ করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
+      }
+    });
+  }, [qpFinished, isQuickPracticeMode, exam, qpQuestions, qpAnswers, user, guestInfo, violationCount, LOCAL_STORAGE_KEY_PREFIX]);
+
   const qpGoNext = () => {
     if (qpCurrent >= qpQuestions.length - 1) {
       setQpFinished(true);
@@ -713,6 +748,7 @@ const TakeExam = () => {
   // silently restarting — matches how a fresh attempt should begin.
   const qpRestart = () => {
     setQpFinished(false);
+    qpSavedRef.current = false;
     setQpAnswers({});
     setQpCurrent(0);
     setQpTimeLeft(30);
