@@ -49,6 +49,7 @@ function studentTableCells(row: HistoryRow) {
       <TableCell className="p-1 text-[9px] font-mono whitespace-nowrap">{row.phone || "—"}</TableCell>
       <TableCell className="p-1 text-[9px] font-mono whitespace-nowrap">
         {(() => {
+          if ((row as any).isManual) return <span className="text-muted-foreground">ম্যানুয়াল access</span>;
           const m = (row.payment_method || "").toLowerCase();
           const to = m.includes("nagad") ? row.courses?.nagad_number : row.courses?.bkash_number;
           return to ? <>{to}<span className="text-muted-foreground"> ({m.includes("nagad") ? "Nagad" : "bKash"})</span></> : "—";
@@ -81,6 +82,35 @@ function DatewiseTab() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-payment-history-datewise", page],
     queryFn: async () => {
+      // Manual access = enrollment with no approved payment_request for same profile+course.
+      const [manualRes, paidKeysRes] = await Promise.all([
+        supabase
+          .from("enrollments")
+          .select("id, profile_id, course_id, created_at, courses(name, price, bkash_number, nagad_number), profiles(full_name, registration_id, college_name, hsc_batch)")
+          .order("created_at", { ascending: false })
+          .limit(1000),
+        supabase.from("payment_requests").select("profile_id, course_id").eq("status", "approved").limit(10000),
+      ]);
+      const paidKeys = new Set((paidKeysRes.data || []).map((r: any) => `${r.profile_id}|${r.course_id}`));
+      const manualRows: HistoryRow[] = ((manualRes.data || []) as any[])
+        .filter((e) => !paidKeys.has(`${e.profile_id}|${e.course_id}`))
+        .map((e) => ({
+          id: `manual-${e.id}`,
+          created_at: e.created_at,
+          updated_at: e.created_at,
+          amount_paid: 0,
+          amount_sent: 0,
+          due_amount: 0,
+          due_date: null,
+          course_id: e.course_id,
+          profile_id: e.profile_id,
+          phone: null,
+          payment_method: "manual",
+          courses: e.courses,
+          profiles: e.profiles,
+          isManual: true,
+        } as any));
+
       const { data, error, count } = await supabase
         .from("payment_requests")
         .select(
@@ -91,7 +121,13 @@ function DatewiseTab() {
         .order("updated_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (error) throw error;
-      return { rows: (data || []) as HistoryRow[], count: count || 0 };
+      // Merge paid + manual, newest first. Manual rows are added on page 0 only
+      // so pagination of paid rows stays intact.
+      const paid = (data || []) as HistoryRow[];
+      const merged = page === 0
+        ? [...paid, ...manualRows].sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime())
+        : paid;
+      return { rows: merged, count: (count || 0) + (page === 0 ? manualRows.length : 0) };
     },
   });
 
