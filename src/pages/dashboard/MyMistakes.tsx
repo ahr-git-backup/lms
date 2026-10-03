@@ -378,27 +378,24 @@ const MyMistakes = () => {
                     <CardContent className="space-y-3 px-3 pb-3">
                         <div className="space-y-1.5">
                             <label className="text-xs font-medium">Question Filter</label>
-                            <div className="flex flex-col gap-1.5">
+                            <div className="grid grid-cols-3 gap-1.5">
                                 <div
-                                    className={`p-2 border rounded-md cursor-pointer transition-all ${filterMode === 'wrong' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                                    className={`p-2 border rounded-md cursor-pointer transition-all text-center ${filterMode === 'wrong' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
                                     onClick={() => setFilterMode('wrong')}
                                 >
                                     <div className="text-xs font-medium">Wrong Only</div>
-                                    <div className="text-[10px] text-muted-foreground">Questions you attempted but got wrong</div>
                                 </div>
                                 <div
-                                    className={`p-2 border rounded-md cursor-pointer transition-all ${filterMode === 'skipped' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                                    className={`p-2 border rounded-md cursor-pointer transition-all text-center ${filterMode === 'skipped' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
                                     onClick={() => setFilterMode('skipped')}
                                 >
                                     <div className="text-xs font-medium">Skipped Only</div>
-                                    <div className="text-[10px] text-muted-foreground">Questions you didn't answer</div>
                                 </div>
                                 <div
-                                    className={`p-2 border rounded-md cursor-pointer transition-all ${filterMode === 'both' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
+                                    className={`p-2 border rounded-md cursor-pointer transition-all text-center ${filterMode === 'both' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}
                                     onClick={() => setFilterMode('both')}
                                 >
                                     <div className="text-xs font-medium">Both</div>
-                                    <div className="text-[10px] text-muted-foreground">All incorrect and unattempted questions</div>
                                 </div>
                             </div>
                         </div>
