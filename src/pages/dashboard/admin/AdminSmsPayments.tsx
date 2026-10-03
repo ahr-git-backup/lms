@@ -88,11 +88,44 @@ function ManualMatchDialog({ row, onClose, onDone }: { row: any; onClose: () => 
   );
 }
 
+// Serial queue: one unmatched SMS at a time, oldest first. Admin handles each
+// in turn — match it, or skip to the next. Keeps multiple users' payments
+// from being approved out of order or in parallel.
+function QueueCard({ rows, index, onNext, onOpen }: { rows: any[]; index: number; onNext: () => void; onOpen: (r: any) => void; onDone: () => void }) {
+  const row = rows[index];
+  const total = rows.length;
+  return (
+    <Card className="border-2 border-green-600/40">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">সারি {index + 1} / {total}</p>
+          <Badge variant="outline" className="text-[10px]">{row.status === "error" ? "Error" : "Unmatched"}</Badge>
+        </div>
+        <div className="space-y-1">
+          <p className="text-2xl font-mono font-semibold">৳{row.amount}</p>
+          <p className="text-sm font-mono">{row.sender_phone || "নম্বর নেই"}</p>
+          <p className="text-[11px] text-muted-foreground">{format(new Date(row.created_at), "dd MMM yyyy, hh:mm a")}</p>
+          {row.note && <p className="text-[11px] text-muted-foreground">{row.note}</p>}
+        </div>
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => onOpen(row)}>
+            <CheckCircle2 className="h-4 w-4 mr-1" /> মেলাও
+          </Button>
+          <Button variant="outline" className="flex-1" disabled={index >= total - 1} onClick={onNext}>
+            এড়িয়ে যাও →
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export default function AdminSmsPayments() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<"all" | "unmatched">("unmatched");
   const [matchRow, setMatchRow] = useState<any | null>(null);
+  const [queueIdx, setQueueIdx] = useState(0);
 
   const { data: rows, isLoading } = useQuery({
     queryKey: ["sms-payment-relay-log", tab],
@@ -100,7 +133,7 @@ export default function AdminSmsPayments() {
       let query = supabase
         .from("sms_payment_relay_log")
         .select("*")
-        .order("created_at", { ascending: false })
+        .order("created_at", { ascending: tab === "unmatched" })
         .limit(100);
       if (tab === "unmatched") query = query.in("status", ["unmatched", "error"]);
       const { data, error } = await query;
@@ -142,6 +175,19 @@ export default function AdminSmsPayments() {
         </button>
       </div>
 
+      {tab === "unmatched" && rows && rows.length > 0 && (
+        <QueueCard
+          rows={rows}
+          index={Math.min(queueIdx, rows.length - 1)}
+          onNext={() => setQueueIdx((i) => Math.min(i + 1, rows.length - 1))}
+          onOpen={(r) => setMatchRow(r)}
+          onDone={() => {
+            queryClient.invalidateQueries({ queryKey: ["sms-payment-relay-log"] });
+          }}
+        />
+      )}
+
+      {tab === "all" && (
       <Card>
         <CardContent className="p-3 sm:p-4 space-y-2">
           {isLoading && <p className="text-xs text-muted-foreground">লোড হচ্ছে...</p>}
@@ -171,6 +217,7 @@ export default function AdminSmsPayments() {
           ))}
         </CardContent>
       </Card>
+      )}
 
       {matchRow && (
         <ManualMatchDialog
@@ -178,6 +225,7 @@ export default function AdminSmsPayments() {
           onClose={() => setMatchRow(null)}
           onDone={() => {
             setMatchRow(null);
+            setQueueIdx(0);
             queryClient.invalidateQueries({ queryKey: ["sms-payment-relay-log"] });
           }}
         />
