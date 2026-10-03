@@ -40,13 +40,15 @@ const AdminDashboardHome = () => {
     queryKey: ["admin-stats"],
     queryFn: async () => {
       // Fetch counts in parallel
-      const [students, courses, pendingPayments, pendingReports, revenue, recentEnrollments] = await Promise.all([
+      const [students, courses, pendingPayments, pendingReports, revenue, recentEnrollments, autoMatched, pendingList] = await Promise.all([
         supabase.from("profiles").select("id", { count: "exact", head: true }),
         supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_active", true),
         supabase.from("payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.from("question_reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
         supabase.rpc("get_total_revenue"),
-        supabase.from("enrollments").select("id, created_at, profiles(id, full_name, registration_id), courses(name)").order("created_at", { ascending: false }).limit(5)
+        supabase.from("enrollments").select("id, created_at, profiles(id, full_name, registration_id), courses(name)").order("created_at", { ascending: false }).limit(5),
+        supabase.from("sms_payment_relay_log").select("id", { count: "exact", head: true }).eq("status", "matched"),
+        supabase.from("payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
       ]);
 
       return {
@@ -54,7 +56,9 @@ const AdminDashboardHome = () => {
         courses: courses.count || 0,
         pendingPayments: pendingPayments.count || 0,
         pendingReports: pendingReports.count || 0,
-        recentEnrollments: (recentEnrollments.data || []) as any[]
+        recentEnrollments: (recentEnrollments.data || []) as any[],
+        autoMatched: autoMatched.count || 0,
+        pendingList: pendingList.count || 0,
       };
     },
   });
@@ -82,6 +86,49 @@ const AdminDashboardHome = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-bold tracking-tight">Dashboard Overview</h2>
+
+      {!isLoading && ((stats?.autoMatched ?? 0) > 0 || (stats?.pendingList ?? 0) > 0) && (
+        <div className="grid gap-3 md:grid-cols-2">
+          {(stats?.autoMatched ?? 0) > 0 && (
+            <Card
+              className="cursor-pointer border-green-600/40 hover:border-green-600 transition-colors"
+              onClick={() => navigate("/admin/sms-payments")}
+            >
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-green-50 dark:bg-green-950">
+                    <Zap className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">অটো-approve হয়েছে</p>
+                    <p className="text-xs text-muted-foreground">SMS দিয়ে স্বয়ংক্রিয়ভাবে মেলানো পেমেন্ট</p>
+                  </div>
+                </div>
+                <span className="text-2xl font-bold text-green-600">{stats?.autoMatched}</span>
+              </CardContent>
+            </Card>
+          )}
+          {(stats?.pendingList ?? 0) > 0 && (
+            <Card
+              className="cursor-pointer border-amber-600/40 hover:border-amber-600 transition-colors"
+              onClick={() => navigate("/admin/payments")}
+            >
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-amber-50 dark:bg-amber-950">
+                    <CreditCard className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">পেমেন্ট রিকোয়েস্ট ঝুলে আছে</p>
+                    <p className="text-xs text-muted-foreground">Approve করা বাকি</p>
+                  </div>
+                </div>
+                <span className="text-2xl font-bold text-amber-600">{stats?.pendingList}</span>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
