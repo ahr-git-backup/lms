@@ -76,6 +76,144 @@ const safeFormat = (value?: string | null, pattern = "dd MMM yyyy") => {
   }
 };
 
+// SMS না-মেলা queue. Oldest first, one at a time. Admin picks the matching
+// pending payment request, or skips. Approval uses the same RPC as the
+// Pending tab.
+function SmsUnmatchedQueue() {
+  const queryClient = useQueryClient();
+  const [idx, setIdx] = useState(0);
+  const [pickOpen, setPickOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const { data: rows } = useQuery({
+    queryKey: ["sms-unmatched-queue"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sms_payment_relay_log")
+        .select("*")
+        .in("status", ["unmatched", "error"])
+        .order("created_at", { ascending: true })
+        .limit(200);
+      if (error) throw error;
+      return data || [];
+    },
+    refetchInterval: 15000,
+  });
+
+  const { data: pendingReqs } = useQuery({
+    queryKey: ["sms-queue-pending-requests"],
+    enabled: pickOpen,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("payment_requests")
+        .select("id, amount_sent, sender_last5, created_at, profiles:profile_id(full_name, phone), courses:course_id(name)")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const list = rows || [];
+  const safeIdx = Math.min(idx, Math.max(list.length - 1, 0));
+  const row: any = list[safeIdx];
+
+  const q = search.trim().toLowerCase();
+  const filtered = (pendingReqs || []).filter((r: any) =>
+    !q ||
+    r.profiles?.full_name?.toLowerCase().includes(q) ||
+    r.profiles?.phone?.includes(q) ||
+    r.sender_last5?.includes(q)
+  );
+
+  const handleMatch = async (requestId: string) => {
+    if (!row) return;
+    setBusy(true);
+    try {
+      const { error: rpcError } = await supabase.rpc("approve_payment_request", { p_request_id: requestId });
+      if (rpcError) throw rpcError;
+      await supabase
+        .from("sms_payment_relay_log")
+        .update({ status: "matched", matched_payment_request_id: requestId, note: "Manually matched by admin" })
+        .eq("id", row.id);
+      toast.success("মিলিয়ে Approve করা হয়েছে");
+      setPickOpen(false);
+      setSearch("");
+      setIdx(0);
+      queryClient.invalidateQueries({ queryKey: ["sms-unmatched-queue"] });
+      queryClient.invalidateQueries({ queryKey: ["sms-unmatched-count"] });
+      queryClient.invalidateQueries({ queryKey: ["sms-queue-pending-requests"] });
+    } catch (err: any) {
+      toast.error(err?.message || "Approve করা যায়নি");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!list.length) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-center text-sm text-muted-foreground">
+          কোনো না-মেলা SMS নেই, সব ঠিকঠাক মিলেছে।
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <Card className="border-2 border-green-600/40">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-muted-foreground">{safeIdx + 1} / {list.length}</p>
+            <Badge variant="outline" className="text-[10px]">{row.status === "error" ? "Error" : "Unmatched"}</Badge>
+          </div>
+          <div className="space-y-1">
+            <p className="text-2xl font-mono font-semibold">৳{row.amount}</p>
+            <p className="text-sm font-mono">{row.sender_phone || "নম্বর নেই"}</p>
+            <p className="text-[11px] text-muted-foreground">{format(new Date(row.created_at), "dd MMM yyyy, hh:mm a")}</p>
+            {row.note && <p className="text-[11px] text-muted-foreground">{row.note}</p>}
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => setPickOpen(true)}>
+              <CheckCircle2 className="h-4 w-4 mr-1" /> মেলাও
+            </Button>
+            <Button variant="outline" className="flex-1" disabled={safeIdx >= list.length - 1} onClick={() => setIdx(safeIdx + 1)}>
+              পরেরটা →
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={pickOpen} onOpenChange={setPickOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>৳{row.amount} · {row.sender_phone || "নম্বর নেই"}, কার পেমেন্ট?</DialogTitle>
+            <DialogDescription>নাম, ফোন বা শেষ ৫ digit দিয়ে খুঁজুন</DialogDescription>
+          </DialogHeader>
+          <Input placeholder="খুঁজুন..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <div className="space-y-2 max-h-80 overflow-y-auto">
+            {filtered.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between gap-2 border rounded-lg p-2 text-sm">
+                <div className="min-w-0">
+                  <p className="font-medium truncate">{c.profiles?.full_name || "—"} · {c.courses?.name}</p>
+                  <p className="text-xs text-muted-foreground">৳{c.amount_sent} · {c.sender_last5 || c.profiles?.phone} · {format(new Date(c.created_at), "dd MMM, hh:mm a")}</p>
+                </div>
+                <Button size="sm" disabled={busy} onClick={() => handleMatch(c.id)} className="shrink-0">
+                  {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Approve"}
+                </Button>
+              </div>
+            ))}
+            {!filtered.length && <p className="text-xs text-muted-foreground text-center py-4">কোনো pending payment পাওয়া যায়নি</p>}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 const AdminPayments = () => {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
