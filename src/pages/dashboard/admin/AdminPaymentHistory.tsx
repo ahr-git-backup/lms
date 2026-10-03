@@ -22,7 +22,9 @@ interface HistoryRow {
   due_date: string | null;
   course_id: string;
   profile_id: string;
-  courses?: { name: string; price: number | null } | null;
+  phone?: string | null;
+  payment_method?: string | null;
+  courses?: { name: string; price: number | null; bkash_number?: string | null; nagad_number?: string | null } | null;
   profiles?: {
     full_name: string | null;
     registration_id: string;
@@ -44,6 +46,14 @@ function studentTableCells(row: HistoryRow) {
       <TableCell className="p-1 text-[9px] truncate max-w-[70px]">{row.profiles?.college_name || "—"}</TableCell>
       <TableCell className="p-1 text-[9px] whitespace-nowrap">{format(new Date(paymentTime), "dd MMM")}</TableCell>
       <TableCell className="p-1 text-[9px] whitespace-nowrap">{format(new Date(paymentTime), "hh:mma")}</TableCell>
+      <TableCell className="p-1 text-[9px] font-mono whitespace-nowrap">{row.phone || "—"}</TableCell>
+      <TableCell className="p-1 text-[9px] font-mono whitespace-nowrap">
+        {(() => {
+          const m = (row.payment_method || "").toLowerCase();
+          const to = m.includes("nagad") ? row.courses?.nagad_number : row.courses?.bkash_number;
+          return to ? <>{to}<span className="text-muted-foreground"> ({m.includes("nagad") ? "Nagad" : "bKash"})</span></> : "—";
+        })()}
+      </TableCell>
       <TableCell className="p-1 text-[9px] font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">৳{paid.toLocaleString("en-BD")}</TableCell>
       <TableCell className="p-1 text-[9px] whitespace-nowrap">
         {due > 0 ? <span className="text-amber-600 dark:text-amber-400">৳{due.toLocaleString("en-BD")}</span> : <span className="text-muted-foreground">—</span>}
@@ -74,7 +84,7 @@ function DatewiseTab() {
       const { data, error, count } = await supabase
         .from("payment_requests")
         .select(
-          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, courses(name, price), profiles(full_name, registration_id, college_name, hsc_batch)",
+          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, phone, payment_method, courses(name, price, bkash_number, nagad_number), profiles(full_name, registration_id, college_name, hsc_batch)",
           { count: "exact" }
         )
         .eq("status", "approved")
@@ -125,6 +135,8 @@ function DatewiseTab() {
                   <TableHead className="p-1 text-[9px]">কলেজ</TableHead>
                   <TableHead className="p-1 text-[9px]">তারিখ</TableHead>
                   <TableHead className="p-1 text-[9px]">সময়</TableHead>
+                  <TableHead className="p-1 text-[9px]">কোন নম্বর থেকে</TableHead>
+                  <TableHead className="p-1 text-[9px]">কোন নম্বরে</TableHead>
                   <TableHead className="p-1 text-[9px]">পেইড</TableHead>
                   <TableHead className="p-1 text-[9px]">বাকি</TableHead>
                   <TableHead className="p-1 text-[9px]">শেষ তারিখ</TableHead>
@@ -186,7 +198,7 @@ function CoursewiseTab() {
       const { data, error } = await supabase
         .from("payment_requests")
         .select(
-          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, courses(name, price), profiles(full_name, registration_id, college_name, hsc_batch)"
+          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, phone, payment_method, courses(name, price, bkash_number, nagad_number), profiles(full_name, registration_id, college_name, hsc_batch)"
         )
         .eq("status", "approved")
         .eq("course_id", selectedCourseId)
@@ -220,7 +232,9 @@ function CoursewiseTab() {
                     <TableHead className="p-1 text-[9px]">কলেজ</TableHead>
                     <TableHead className="p-1 text-[9px]">তারিখ</TableHead>
                     <TableHead className="p-1 text-[9px]">সময়</TableHead>
-                    <TableHead className="p-1 text-[9px]">পেইড</TableHead>
+                    <TableHead className="p-1 text-[9px]">কোন নম্বর থেকে</TableHead>
+                  <TableHead className="p-1 text-[9px]">কোন নম্বরে</TableHead>
+                  <TableHead className="p-1 text-[9px]">পেইড</TableHead>
                     <TableHead className="p-1 text-[9px]">বাকি</TableHead>
                     <TableHead className="p-1 text-[9px]">শেষ তারিখ</TableHead>
                   </TableRow>
