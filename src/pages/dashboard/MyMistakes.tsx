@@ -13,30 +13,24 @@ import { openSolvePdf } from "@/lib/solvePdf";
 import { useToast } from "@/hooks/use-toast";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { friendlyError } from "@/lib/friendlyError";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
-const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGeneratePdf }: {
+const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGeneratePdf, onReview }: {
     exam: any;
+    onReview: (exam: any, mode: "wrong" | "skip") => void;
     checked: boolean;
     onToggle: (id: string) => void;
     singlePdfLoadingId: string | null;
     onGeneratePdf: (exam: any, mode: "all" | "wrong" | "both") => void;
 }) => {
-    const categoryLabel = exam.category === "live" ? "Live"
-        : exam.category === "readymade" ? "Readymade"
-        : exam.category === "practice" ? "Practice"
-        : null;
-
     return (
         <div className="relative flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none overflow-hidden">
-            {categoryLabel && (
-                <Badge className="absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 h-4 shrink-0 bg-primary/90">{categoryLabel}</Badge>
-            )}
             <Checkbox
                 id={exam.id}
                 checked={checked}
                 onCheckedChange={() => onToggle(exam.id)}
             />
-            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer pr-14" onClick={() => onToggle(exam.id)}>
+            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => onToggle(exam.id)}>
                 <div className="flex justify-between items-start gap-2 min-w-0">
                     <label
                         htmlFor={exam.id}
@@ -44,16 +38,18 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
                     >
                         {exam.title}
                     </label>
-                    {exam.subject && (
-                        <Badge variant="outline" className="text-[10px] shrink-0 max-w-[45%] truncate block">{exam.subject}</Badge>
-                    )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
                     Last attempt: {format(new Date(exam.lastAttempt), "PP")}
                 </p>
                 <div className="flex items-center gap-1.5 pt-0.5 flex-wrap min-w-0">
-                    <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900 shrink-0">Wrong: {exam.wrongCount}</Badge>
-                    <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900 shrink-0">Skip: {exam.skipCount}</Badge>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onReview(exam, "wrong"); }} className="shrink-0">
+                        <Badge variant="outline" className="text-[10px] text-red-600 dark:text-red-400 border-red-300 dark:border-red-900 cursor-pointer">Wrong: {exam.wrongCount}</Badge>
+                    </button>
+                    <button type="button" onClick={(e) => { e.stopPropagation(); onReview(exam, "skip"); }} className="shrink-0">
+                        <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-900 cursor-pointer">Skip: {exam.skipCount}</Badge>
+                    </button>
+                    <span className="text-[10px] text-muted-foreground shrink-0">Practice Sheet</span>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button
@@ -91,6 +87,79 @@ const fetchAttemptAnswers = async (attemptId: string): Promise<any[]> => {
         .maybeSingle();
     if (error) throw error;
     return (data?.answers as any[]) || [];
+};
+
+// Shows every wrong (or skipped) MCQ of one exam, scrollable and serial.
+// Data is fetched only when opened, so the list page stays light.
+const MistakeReviewDialog = ({ exam, mode, onClose }: { exam: any; mode: "wrong" | "skip"; onClose: () => void }) => {
+    const { data, isLoading } = useQuery({
+        queryKey: ["mistake-review", exam.attemptId],
+        queryFn: async () => {
+            const [{ data: review }, userAnswers] = await Promise.all([
+                supabase.rpc("get_student_exam_review", { p_attempt_id: exam.attemptId }),
+                fetchAttemptAnswers(exam.attemptId),
+            ]);
+            return { review: (review as any[]) || [], userAnswers };
+        },
+    });
+
+    const items = (data?.review || []).map((q: any, i: number) => {
+        const sel = data?.userAnswers.find((a: any) => a.question_id === q.question_id)?.selected_option;
+        const skipped = !sel;
+        const wrong = !skipped && sel !== q.correct_option;
+        return { q, i, sel, skipped, wrong };
+    }).filter((x: any) => (mode === "wrong" ? x.wrong : x.skipped));
+
+    const optKeys = ["a", "b", "c", "d", "e"] as const;
+
+    return (
+        <Dialog open onOpenChange={(o) => { if (!o) onClose(); }}>
+            <DialogContent className="max-w-lg max-h-[88vh] flex flex-col p-0 gap-0">
+                <DialogHeader className="p-4 pb-2 border-b">
+                    <DialogTitle className="text-sm">{exam.title}</DialogTitle>
+                    <DialogDescription className="text-xs">
+                        {mode === "wrong" ? `Wrong: ${items.length}` : `Skipped: ${items.length}`}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="overflow-y-auto p-4 space-y-4">
+                    {isLoading && <div className="text-center text-xs text-muted-foreground py-6">লোড হচ্ছে...</div>}
+                    {!isLoading && items.length === 0 && (
+                        <div className="text-center text-xs text-muted-foreground py-6">কোনো প্রশ্ন নেই</div>
+                    )}
+                    {items.map((x: any, n: number) => (
+                        <div key={x.q.question_id ?? n} className="border rounded-md p-3 space-y-2">
+                            <p className="text-xs font-medium">{n + 1}. {x.q.question_text}</p>
+                            <div className="space-y-1">
+                                {optKeys.map((k) => {
+                                    const text = x.q[`option_${k}`];
+                                    if (!text) return null;
+                                    const letter = k.toUpperCase();
+                                    const isCorrect = x.q.correct_option === letter;
+                                    const isUser = x.sel === letter;
+                                    return (
+                                        <div
+                                            key={k}
+                                            className={`text-[11px] px-2 py-1 rounded border ${
+                                                isCorrect ? "border-green-500 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-300"
+                                                : isUser ? "border-red-400 bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300"
+                                                : "border-transparent"
+                                            }`}
+                                        >
+                                            {letter}. {text}
+                                            {isCorrect && " ✓"}
+                                            {isUser && !isCorrect && " (আপনার উত্তর)"}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {x.skipped && <p className="text-[10px] text-amber-600">এই প্রশ্নের উত্তর দেওয়া হয়নি</p>}
+                            {x.q.explanation && <p className="text-[10px] text-muted-foreground">ব্যাখ্যা: {x.q.explanation}</p>}
+                        </div>
+                    ))}
+                </div>
+            </DialogContent>
+        </Dialog>
+    );
 };
 
 const MyMistakes = () => {
@@ -157,6 +226,8 @@ const MyMistakes = () => {
     const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
     const [readymadeSubCategory, setReadymadeSubCategory] = useState<string | null>(null);
     const [selectedExamIds, setSelectedExamIds] = useState<string[]>([]);
+    const [reviewTarget, setReviewTarget] = useState<{ exam: any; mode: "wrong" | "skip" } | null>(null);
+    const openReview = useCallback((exam: any, mode: "wrong" | "skip") => setReviewTarget({ exam, mode }), []);
 
     const { data: exams, isLoading } = useQuery({
         queryKey: ["my-mistakes-exams", user?.id],
@@ -491,6 +562,7 @@ const MyMistakes = () => {
                                             onToggle={toggleExam}
                                             singlePdfLoadingId={singlePdfLoadingId}
                                             onGeneratePdf={generateSingleExamPdf}
+                                            onReview={openReview}
                                         />
                                     ))}
                                 </div>
@@ -504,6 +576,13 @@ const MyMistakes = () => {
                     </CardContent>
                 </Card>
             </div>
+        {reviewTarget && (
+            <MistakeReviewDialog
+            exam={reviewTarget.exam}
+            mode={reviewTarget.mode}
+            onClose={() => setReviewTarget(null)}
+        />
+        )}
         </div>
     );
 };
