@@ -1,4 +1,4 @@
-import { useState, memo } from "react";
+import { useState, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,14 +21,22 @@ const ExamRow = memo(({ exam, checked, onToggle, singlePdfLoadingId, onGenerateP
     singlePdfLoadingId: string | null;
     onGeneratePdf: (exam: any, mode: "all" | "wrong" | "both") => void;
 }) => {
+    const categoryLabel = exam.category === "live" ? "Live"
+        : exam.category === "readymade" ? "Readymade"
+        : exam.category === "practice" ? "Practice"
+        : null;
+
     return (
-        <div className="flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none overflow-hidden">
+        <div className="relative flex items-start space-x-2 p-2 rounded-md border active:bg-muted/50 select-none overflow-hidden">
+            {categoryLabel && (
+                <Badge className="absolute top-1.5 right-1.5 text-[9px] px-1.5 py-0 h-4 shrink-0 bg-primary/90">{categoryLabel}</Badge>
+            )}
             <Checkbox
                 id={exam.id}
                 checked={checked}
                 onCheckedChange={() => onToggle(exam.id)}
             />
-            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer" onClick={() => onToggle(exam.id)}>
+            <div className="grid gap-1 leading-none w-full min-w-0 cursor-pointer pr-14" onClick={() => onToggle(exam.id)}>
                 <div className="flex justify-between items-start gap-2 min-w-0">
                     <label
                         htmlFor={exam.id}
@@ -79,7 +87,12 @@ const MyMistakes = () => {
     const [pdfLoading, setPdfLoading] = useState<"wrong" | "both" | null>(null);
     const [singlePdfLoadingId, setSinglePdfLoadingId] = useState<string | null>(null);
 
-    const generateSingleExamPdf = async (exam: any, mode: "all" | "wrong" | "both") => {
+    // useCallback here matters: ExamRow is memo()-ed specifically so
+    // toggling one checkbox doesn't re-render every row in a long exam
+    // list (which was causing scroll jank/freezing once there were many
+    // exams) — but memo only helps if the function props it receives are
+    // stable across renders, which a plain inline function isn't.
+    const generateSingleExamPdf = useCallback(async (exam: any, mode: "all" | "wrong" | "both") => {
         setSinglePdfLoadingId(exam.id);
         try {
             const { data: reviewData } = await supabase.rpc("get_student_exam_review", {
@@ -125,7 +138,7 @@ const MyMistakes = () => {
         } finally {
             setSinglePdfLoadingId(null);
         }
-    };
+    }, [toast]);
 
     const [filterMode, setFilterMode] = useState<"wrong" | "skipped" | "both">("both");
     const [category, setCategory] = useState<"all" | "live" | "practice" | "readymade">("all");
@@ -237,11 +250,11 @@ const MyMistakes = () => {
         setSelectedExamIds([]);
     };
 
-    const toggleExam = (id: string) => {
+    const toggleExam = useCallback((id: string) => {
         setSelectedExamIds(prev =>
             prev.includes(id) ? prev.filter(e => e !== id) : [...prev, id]
         );
-    };
+    }, []);
 
     const handleStart = () => {
         if (selectedExamIds.length === 0) return;
