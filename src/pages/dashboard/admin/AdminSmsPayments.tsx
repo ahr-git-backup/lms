@@ -98,7 +98,7 @@ function QueueCard({ rows, index, onNext, onOpen }: { rows: any[]; index: number
     <Card className="border-2 border-green-600/40">
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">সারি {index + 1} / {total}</p>
+          <p className="text-xs text-muted-foreground">{index + 1} / {total}</p>
           <Badge variant="outline" className="text-[10px]">{row.status === "error" ? "Error" : "Unmatched"}</Badge>
         </div>
         <div className="space-y-1">
