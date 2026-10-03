@@ -94,6 +94,7 @@ function DatewiseTab() {
       const paidKeys = new Set((paidKeysRes.data || []).map((r: any) => `${r.profile_id}|${r.course_id}`));
       const manualRows: HistoryRow[] = ((manualRes.data || []) as any[])
         .filter((e) => !paidKeys.has(`${e.profile_id}|${e.course_id}`))
+        .filter((e) => Number(e.courses?.price ?? 0) > 0)
         .map((e) => ({
           id: `manual-${e.id}`,
           created_at: e.created_at,
@@ -114,10 +115,11 @@ function DatewiseTab() {
       const { data, error, count } = await supabase
         .from("payment_requests")
         .select(
-          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, phone, payment_method, courses(name, price, bkash_number, nagad_number), profiles(full_name, registration_id, college_name, hsc_batch)",
+          "id, created_at, updated_at, amount_paid, amount_sent, due_amount, due_date, course_id, profile_id, phone, payment_method, courses!inner(name, price, bkash_number, nagad_number), profiles(full_name, registration_id, college_name, hsc_batch)",
           { count: "exact" }
         )
         .eq("status", "approved")
+        .gt("courses.price", 0)
         .order("updated_at", { ascending: false })
         .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
       if (error) throw error;
