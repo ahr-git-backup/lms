@@ -207,6 +207,19 @@ const DashboardHome = () => {
     enabled: !!isAdmin,
   });
 
+  const { data: adminPaymentNotice } = useQuery({
+    queryKey: ["admin-payment-notice"],
+    queryFn: async () => {
+      const [auto, pending] = await Promise.all([
+        supabase.from("sms_payment_relay_log").select("id", { count: "exact", head: true }).eq("status", "matched"),
+        supabase.from("payment_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      ]);
+      return { auto: auto.count || 0, pending: pending.count || 0 };
+    },
+    enabled: !!isAdmin,
+    refetchInterval: 30000,
+  });
+
   const { data: telegramSupportCards } = useQuery({
     queryKey: ["telegram-support-cards"],
     queryFn: async () => {
@@ -551,6 +564,40 @@ const DashboardHome = () => {
           </Card>
         </div>
       </div>
+
+      {/* Admin payment notice — auto-approved SMS payments & pending requests */}
+      {isAdmin && ((adminPaymentNotice?.auto ?? 0) > 0 || (adminPaymentNotice?.pending ?? 0) > 0) && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(adminPaymentNotice?.auto ?? 0) > 0 && (
+            <Card
+              className="cursor-pointer border-green-600/40 hover:border-green-600 transition-colors"
+              onClick={() => navigate("/admin/sms-payments")}
+            >
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm">অটো-approve হয়েছে</p>
+                  <p className="text-xs text-muted-foreground">SMS দিয়ে স্বয়ংক্রিয়ভাবে মেলানো পেমেন্ট</p>
+                </div>
+                <span className="text-2xl font-bold text-green-600">{adminPaymentNotice?.auto}</span>
+              </CardContent>
+            </Card>
+          )}
+          {(adminPaymentNotice?.pending ?? 0) > 0 && (
+            <Card
+              className="cursor-pointer border-amber-600/40 hover:border-amber-600 transition-colors"
+              onClick={() => navigate("/admin/payments")}
+            >
+              <CardContent className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm">পেমেন্ট রিকোয়েস্ট ঝুলে আছে</p>
+                  <p className="text-xs text-muted-foreground">Approve করা বাকি</p>
+                </div>
+                <span className="text-2xl font-bold text-amber-600">{adminPaymentNotice?.pending}</span>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
 
       {/* Admin-only quick actions — collapsed by default behind a floating
           toggle so the 5 admin cards don't push down content other users
