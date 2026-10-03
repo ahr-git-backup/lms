@@ -195,7 +195,13 @@ const MyMistakes = () => {
 
             // Compute wrong/skip counts for ALL exams in one bulk RPC call
             // (previously made one RPC call per exam - very slow with many attempts)
-            const { data: summaryData } = await supabase.rpc("get_my_mistakes_summary");
+            const { data: summaryData, error: summaryError } = await supabase.rpc("get_my_mistakes_summary");
+            if (summaryError) {
+                // Previously this error was silently swallowed (not even
+                // destructured) — every exam just quietly showed 0/0
+                // wrong/skip with no indication anything had failed.
+                console.error("get_my_mistakes_summary RPC failed:", summaryError);
+            }
             const summaryByAttempt = new Map<string, { wrong_count: number; skip_count: number }>();
             (summaryData || []).forEach((row: any) => {
                 summaryByAttempt.set(row.attempt_id, { wrong_count: row.wrong_count, skip_count: row.skip_count });
