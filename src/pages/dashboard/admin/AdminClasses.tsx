@@ -467,7 +467,7 @@ const AdminClasses = () => {
                                                         <Edit className="h-4 w-4" />
                                                     </Button>
                                                 </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end" className="w-36">
+                                                <DropdownMenuContent side="top" align="end" sideOffset={6} className="w-36">
                                                     <DropdownMenuItem onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                                                         <Edit className="h-4 w-4 mr-2" /> Edit class
                                                     </DropdownMenuItem>
@@ -517,7 +517,7 @@ const AdminClasses = () => {
                                         <DropdownMenuTrigger asChild>
                                             <Button size="sm" variant="outline" className="h-8">Edit</Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end" className="w-36">
+                                        <DropdownMenuContent side="top" align="end" sideOffset={6} className="w-36">
                                             <DropdownMenuItem onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
                                                 <Edit className="h-4 w-4 mr-2" /> Edit class
                                             </DropdownMenuItem>
