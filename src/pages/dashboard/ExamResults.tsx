@@ -150,7 +150,10 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
                     </Button>
                 </div>
             </div>
-            <CardTitle className="text-sm leading-tight">{renderCustomExamTitle(attempt.exam.title)}</CardTitle>
+            <CardTitle className="text-sm leading-tight">
+                {renderCustomExamTitle(attempt.exam.title)}
+                {attempt.topic && <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">({attempt.subtopic || attempt.topic})</span>}
+              </CardTitle>
             <CardDescription className="text-[11px] leading-snug">
                 <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
                 {gpaScore > 0 && <div>With GPA: <span className="font-bold text-primary">{totalScoreWithGpa.toFixed(2)}</span></div>}
@@ -280,7 +283,7 @@ const ExamResults = () => {
 
       const { data, error } = await supabase
         .from("exam_attempts")
-        .select("id, exam_id, score, answers, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, readymade_topic, total_marks, course_id, course:courses(id, name))")
+        .select("id, exam_id, score, answers, topic, subtopic, submitted_at, created_at, exam:exams(id, title, chapter, exam_type, is_readymade, readymade_topic, total_marks, course_id, course:courses(id, name))")
         .eq("profile_id", user.id)
         .order("submitted_at", { ascending: false });
 

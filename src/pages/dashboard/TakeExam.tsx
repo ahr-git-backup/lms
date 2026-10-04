@@ -710,6 +710,8 @@ const TakeExam = () => {
       p_answers: answersList,
       p_violation_count: violationCount,
       p_time_taken_seconds: timeTaken,
+      p_topic: selectedTopic,
+      p_subtopic: selectedSubtopic,
       ...(!user && guestInfo ? {
         p_guest_name: guestInfo.name,
         p_guest_hsc_batch: guestInfo.hscBatch,
@@ -723,7 +725,7 @@ const TakeExam = () => {
         toast({ title: "ফলাফল সংরক্ষণ করা যায়নি", description: friendlyError(error).description, variant: "destructive" });
       }
     });
-  }, [qpFinished, isQuickPracticeMode, exam, qpQuestions, qpAnswers, user, guestInfo, violationCount, LOCAL_STORAGE_KEY_PREFIX]);
+  }, [qpFinished, isQuickPracticeMode, exam, qpQuestions, qpAnswers, user, guestInfo, violationCount, selectedTopic, selectedSubtopic, LOCAL_STORAGE_KEY_PREFIX]);
 
   const qpGoNext = () => {
     if (qpCurrent >= qpQuestions.length - 1) {
