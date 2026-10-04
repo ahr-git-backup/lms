@@ -152,7 +152,7 @@ const ResultCard = ({ attempt, isLive, navigate, profile }: { attempt: any, isLi
             </div>
             <CardTitle className="text-sm leading-tight">
                 {renderCustomExamTitle(attempt.exam.title)}
-                {attempt.topic && <span className="block text-[11px] font-normal text-muted-foreground mt-0.5">({attempt.subtopic || attempt.topic})</span>}
+                {attempt.topic && <span className="block text-[12px] font-bold text-red-600 dark:text-red-400 mt-0.5">({attempt.subtopic || attempt.topic})</span>}
               </CardTitle>
             <CardDescription className="text-[11px] leading-snug">
                 <div>Score: <span className="font-bold text-foreground">{attempt.score}</span> / {attempt.exam.total_marks} {percentage && <span className="text-muted-foreground">({percentage}%)</span>}</div>
