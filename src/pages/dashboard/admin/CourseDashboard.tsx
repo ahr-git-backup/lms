@@ -296,7 +296,7 @@ export default function CourseDashboard() {
                       <div>
                         <div className="font-medium">{cls.title}</div>
                         <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
-                          <span className="capitalize">{cls.class_type}</span>
+                          <span className="capitalize">{cls.is_archive ? "archive" : cls.class_type}</span>
                           <span>•</span>
                           <span>{new Date(cls.start_at).toLocaleString()}</span>
                         </div>
