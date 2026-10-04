@@ -17,14 +17,14 @@ import java.util.regex.Pattern;
 public class SmsParser {
 
     // TrxID: bKash/Nagad both use a short alphanumeric code, no spaces.
-    private static final Pattern TRX_ID = Pattern.compile("TrxID\\s*[:\\-]?\\s*([A-Za-z0-9]{6,})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TRX_ID = Pattern.compile("(?:TrxID|TxnID|Txn\\s*ID)\\s*[:\\-]?\\s*([A-Za-z0-9]{6,})", Pattern.CASE_INSENSITIVE);
 
     // First "Tk <amount>" occurrence is always the transaction amount
     // (fee/balance mentions come after it in every known sample).
     private static final Pattern AMOUNT = Pattern.compile("Tk\\.?\\s*([0-9][0-9,]*\\.?[0-9]*)", Pattern.CASE_INSENSITIVE);
 
     // Sender's phone number, when present ("from 018XXXXXXXX").
-    private static final Pattern SENDER = Pattern.compile("from\\s+(01[0-9]{9})", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SENDER = Pattern.compile("(?:from|Sender:?)\\s*(01[0-9]{9})", Pattern.CASE_INSENSITIVE);
 
     public static class ParsedPayment {
         public final String trxId;
