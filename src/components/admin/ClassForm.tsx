@@ -335,7 +335,14 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
     return (
         <Card className="border border-foreground/60 w-full overflow-hidden">
             <CardHeader>
-                <CardTitle className="text-base">{form.id ? "Edit Class" : "Schedule New Class"}</CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base">{form.id ? "Edit Class" : "Schedule New Class"}</CardTitle>
+                    {classItem && (
+                        <Button type="button" size="sm" variant="secondary" disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate()}>
+                            {duplicateClassMutation.isPending ? "Duplicating..." : "Duplicate"}
+                        </Button>
+                    )}
+                </div>
                 <CardDescription>Set class timings in Dhaka Time.</CardDescription>
             </CardHeader>
             <CardContent className="p-3">
