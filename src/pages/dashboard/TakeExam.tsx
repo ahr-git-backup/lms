@@ -986,6 +986,8 @@ const TakeExam = () => {
             p_answers: answersList,
             p_violation_count: violationCount,
             p_time_taken_seconds: timeTaken,
+            p_topic: selectedTopic,
+            p_subtopic: selectedSubtopic,
             ...(!user && guestInfo ? {
                 p_guest_name: guestInfo.name,
                 p_guest_hsc_batch: guestInfo.hscBatch,
