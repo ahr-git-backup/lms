@@ -175,7 +175,8 @@ const ClassPlayerPage = () => {
   // Determine actual live status: It is live ONLY if it's type 'live' AND current time is BEFORE end_at
   // If end_at is null, we assume it's live indefinitely (or until manual change), but usually end_at is set.
   // If end_at is passed, we treat it as recorded (isLive=false).
-  const isActuallyLive = classItem.class_type === 'live' && (!endTime || now < endTime);
+  // Archive items are recordings even if they were saved with class_type 'live'.
+  const isActuallyLive = classItem.class_type === 'live' && !classItem.is_archive && (!endTime || now < endTime);
 
   if (startTime && startTime > now) {
       return (
