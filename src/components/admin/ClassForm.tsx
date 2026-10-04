@@ -215,6 +215,8 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
     const upsertClassMutation = useMutation({
         mutationFn: async (values: z.infer<typeof classSchema>) => {
             const parsed = classSchema.parse(values);
+            // Saved from the archive section counts as archive even if the form flag was never set.
+            const archiveOnlySave = isArchiveMode || parsed.is_archive;
             const payload = {
                 course_id: parsed.course_id || null, // Allow null if logic permits, but typically required unless archive-only flow
                 // @ts-ignore
@@ -230,10 +232,10 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 video_url: parsed.video_url || null,
                 notes_url: parsed.notes_url || null,
                 // Archive-only items are recordings, never live (also_archive keeps the live type).
-                class_type: parsed.is_archive && !parsed.also_archive ? "recorded" : parsed.class_type,
+                class_type: archiveOnlySave && !parsed.also_archive ? "recorded" : parsed.class_type,
                 button_text: parsed.button_text || null,
                 button_url: parsed.button_url || null,
-                is_archive: parsed.is_archive,
+                is_archive: archiveOnlySave || parsed.is_archive,
                 also_archive: parsed.also_archive,
                 sort_order: parsed.sort_order,
             };
