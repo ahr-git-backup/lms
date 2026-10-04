@@ -474,20 +474,13 @@ const AdminClasses = () => {
                                                     <DropdownMenuItem disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate(cls)}>
                                                         Duplicate
                                                     </DropdownMenuItem>
+                                                    {isAdmin && (
+                                                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id); }}>
+                                                            <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                                        </DropdownMenuItem>
+                                                    )}
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
-                                            {isAdmin && (
-                                              <Button
-                                                  size="icon"
-                                                  variant="ghost"
-                                                  className="h-8 w-8 text-destructive"
-                                                  onClick={() => {
-                                                      if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
-                                                  }}
-                                              >
-                                                  <Trash2 className="h-4 w-4" />
-                                              </Button>
-                                            )}
                                         </div>
                                     </TableCell>
                                 </TableRow>
@@ -531,20 +524,13 @@ const AdminClasses = () => {
                                             <DropdownMenuItem disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate(cls)}>
                                                 Duplicate
                                             </DropdownMenuItem>
+                                            {isAdmin && (
+                                                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => { if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id); }}>
+                                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                                </DropdownMenuItem>
+                                            )}
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                    {isAdmin && (
-                                      <Button
-                                          size="sm"
-                                          variant="destructive"
-                                          className="h-8"
-                                          onClick={() => {
-                                              if (confirm("Delete this class?")) deleteClassMutation.mutate(cls.id);
-                                          }}
-                                      >
-                                          Delete
-                                      </Button>
-                                    )}
                                 </div>
                             </CardContent>
                         </Card>
