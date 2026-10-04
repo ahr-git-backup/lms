@@ -19,6 +19,7 @@ import { TutorialSortableList } from "@/components/admin/TutorialSortableList";
 import { AdminCourseView } from "@/components/admin/AdminCourseView";
 import { ArrowUpDown, Plus, List, LayoutGrid, Video as VideoIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 
 const PAGE_SIZE = 30;
@@ -26,7 +27,6 @@ const PAGE_SIZE = 30;
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
-  const [actionClass, setActionClass] = useState<any>(null);
   const queryClient = useQueryClient();
 
   const duplicateClassMutation = useMutation({
@@ -298,28 +298,6 @@ const AdminClasses = () => {
 
       <div className="grid gap-6">
 
-      <Dialog open={!!actionClass} onOpenChange={(o) => { if (!o) setActionClass(null); }}>
-        <DialogContent className="max-w-xs">
-          <DialogHeader>
-            <DialogTitle>Class</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <Button
-              variant="outline"
-              onClick={() => { setEditingClass(actionClass); setActionClass(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
-            >
-              <Edit className="h-4 w-4 mr-2" /> Edit class
-            </Button>
-            <Button
-              variant="secondary"
-              disabled={duplicateClassMutation.isPending}
-              onClick={() => { duplicateClassMutation.mutate(actionClass); setActionClass(null); }}
-            >
-              {duplicateClassMutation.isPending ? "Duplicating..." : "Duplicate"}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
 
         {(showForm || editingClass) && (
             <div className="bg-card border rounded-lg shadow-sm mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
@@ -483,15 +461,21 @@ const AdminClasses = () => {
                                     </TableCell>
                                     <TableCell className="text-right">
                                         <div className="flex items-center justify-end gap-2">
-                                            <Button
-                                                size="icon"
-                                                variant="ghost"
-                                                className="h-8 w-8"
-                                                title="Edit Class"
-                                                onClick={() => setActionClass(cls)}
-                                            >
-                                                <Edit className="h-4 w-4" />
-                                            </Button>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button size="icon" variant="ghost" className="h-8 w-8" title="Edit Class">
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                                <DropdownMenuContent align="end" className="w-36">
+                                                    <DropdownMenuItem onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                                        <Edit className="h-4 w-4 mr-2" /> Edit class
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate(cls)}>
+                                                        Duplicate
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
                                             {isAdmin && (
                                               <Button
                                                   size="icon"
@@ -536,9 +520,19 @@ const AdminClasses = () => {
                                     </div>
                                 )}
                                 <div className="flex justify-end gap-2 pt-2 border-t mt-2">
-                                     <Button size="sm" variant="outline" className="h-8" onClick={() => setActionClass(cls)}>
-                                        Edit
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button size="sm" variant="outline" className="h-8">Edit</Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-36">
+                                            <DropdownMenuItem onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                                                <Edit className="h-4 w-4 mr-2" /> Edit class
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate(cls)}>
+                                                Duplicate
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                     {isAdmin && (
                                       <Button
                                           size="sm"
