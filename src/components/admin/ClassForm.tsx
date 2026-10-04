@@ -221,13 +221,13 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 course_id: classItem.course_id,
                 shared_course_ids: classItem.shared_course_ids,
                 archive_course_ids: classItem.archive_course_ids,
-                title: `${classItem.title} (Copy)`,
+                title: classItem.title,
                 chapter: classItem.chapter,
                 topic: classItem.topic,
                 subject: classItem.subject,
                 start_at: classItem.start_at,
                 end_at: classItem.end_at,
-                video_url: classItem.video_url,
+                video_url: null,
                 notes_url: classItem.notes_url,
                 class_type: classItem.class_type,
                 button_text: classItem.button_text,
@@ -239,7 +239,7 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
             if (error) throw error;
         },
         onSuccess: () => {
-            toast({ title: "Class duplicated", description: "Title/date ঠিক করে Save করুন।" });
+            toast({ title: "Class duplicated", description: "Date ঠিক করে Save করুন।" });
             queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
             queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
             onSuccess?.();
@@ -610,11 +610,6 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                         <Button type="submit" size="sm" disabled={upsertClassMutation.isPending}>
                             {upsertClassMutation.isPending ? "Saving..." : form.id ? "Update Class" : "Create Class"}
                         </Button>
-                        {classItem && (
-                            <Button type="button" size="sm" variant="secondary" disabled={duplicateClassMutation.isPending} onClick={() => duplicateClassMutation.mutate()}>
-                                {duplicateClassMutation.isPending ? "Duplicating..." : "Duplicate"}
-                            </Button>
-                        )}
                         {onCancel && (
                             <Button type="button" size="sm" variant="outline" onClick={onCancel}>
                                 Cancel
