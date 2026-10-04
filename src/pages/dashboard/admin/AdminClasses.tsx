@@ -26,6 +26,40 @@ const PAGE_SIZE = 30;
 const AdminClasses = () => {
   const [editingClass, setEditingClass] = useState<any>(null);
   const [showForm, setShowForm] = useState(false);
+  const [actionClass, setActionClass] = useState<any>(null);
+  const queryClient = useQueryClient();
+
+  const duplicateClassMutation = useMutation({
+    mutationFn: async (cls: any) => {
+      const { error } = await supabase.from("classes").insert({
+        course_id: cls.course_id,
+        shared_course_ids: cls.shared_course_ids,
+        archive_course_ids: cls.archive_course_ids,
+        title: cls.title,
+        chapter: cls.chapter,
+        topic: cls.topic,
+        subject: cls.subject,
+        start_at: cls.start_at,
+        end_at: cls.end_at,
+        video_url: null,
+        notes_url: cls.notes_url,
+        class_type: cls.class_type,
+        button_text: cls.button_text,
+        button_url: cls.button_url,
+        is_archive: cls.is_archive,
+        also_archive: cls.also_archive,
+        sort_order: cls.sort_order,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Class duplicated", description: "Date ঠিক করে Save করুন।" });
+      queryClient.invalidateQueries({ queryKey: ["admin-classes"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-archive-items"] });
+    },
+    onError: (error: any) => toast({ title: "Duplicate failed", description: error.message, variant: "destructive" }),
+  });
+
   const [showTutorialDialog, setShowTutorialDialog] = useState(false);
   const [tutorialCaptionInput, setTutorialCaptionInput] = useState("");
   const [tutorialUrlInput, setTutorialUrlInput] = useState("");
@@ -49,7 +83,6 @@ const AdminClasses = () => {
       return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const queryClient = useQueryClient();
   const { toast } = useToast();
   const { isAdmin } = useAuth();
 
@@ -264,6 +297,30 @@ const AdminClasses = () => {
       </Dialog>
 
       <div className="grid gap-6">
+
+      <Dialog open={!!actionClass} onOpenChange={(o) => { if (!o) setActionClass(null); }}>
+        <DialogContent className="max-w-xs">
+          <DialogHeader>
+            <DialogTitle>Class</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-2">
+            <Button
+              variant="outline"
+              onClick={() => { setEditingClass(actionClass); setActionClass(null); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            >
+              <Edit className="h-4 w-4 mr-2" /> Edit class
+            </Button>
+            <Button
+              variant="secondary"
+              disabled={duplicateClassMutation.isPending}
+              onClick={() => { duplicateClassMutation.mutate(actionClass); setActionClass(null); }}
+            >
+              {duplicateClassMutation.isPending ? "Duplicating..." : "Duplicate"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
         {(showForm || editingClass) && (
             <div className="bg-card border rounded-lg shadow-sm mb-4 animate-in fade-in slide-in-from-top-4 duration-300">
                 <ClassForm
@@ -431,7 +488,7 @@ const AdminClasses = () => {
                                                 variant="ghost"
                                                 className="h-8 w-8"
                                                 title="Edit Class"
-                                                onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                                                onClick={() => setActionClass(cls)}
                                             >
                                                 <Edit className="h-4 w-4" />
                                             </Button>
@@ -479,7 +536,7 @@ const AdminClasses = () => {
                                     </div>
                                 )}
                                 <div className="flex justify-end gap-2 pt-2 border-t mt-2">
-                                     <Button size="sm" variant="outline" className="h-8" onClick={() => { setEditingClass(cls); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                                     <Button size="sm" variant="outline" className="h-8" onClick={() => setActionClass(cls)}>
                                         Edit
                                     </Button>
                                     {isAdmin && (
