@@ -229,7 +229,8 @@ export const ClassForm = ({ classItem, onSuccess, onCancel, isArchiveMode = fals
                 end_at: fromDhakaTimeToUTC(parsed.end_at),
                 video_url: parsed.video_url || null,
                 notes_url: parsed.notes_url || null,
-                class_type: parsed.class_type,
+                // Archive-only items are recordings, never live (also_archive keeps the live type).
+                class_type: parsed.is_archive && !parsed.also_archive ? "recorded" : parsed.class_type,
                 button_text: parsed.button_text || null,
                 button_url: parsed.button_url || null,
                 is_archive: parsed.is_archive,

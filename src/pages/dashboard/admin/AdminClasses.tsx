@@ -465,7 +465,7 @@ const AdminClasses = () => {
                                         <div className="text-xs font-mono uppercase text-muted-foreground truncate">{cls.course?.name}</div>
                                         <div className="font-semibold leading-tight break-words">{cls.title}</div>
                                     </div>
-                                    <div className={`text-[10px] px-2 py-1 rounded-full border uppercase tracking-wider shrink-0 ${cls.class_type === 'live' ? 'bg-red-100 text-red-600 border-red-200' : 'bg-secondary text-secondary-foreground border-transparent'}`}>
+                                    <div className={`text-[10px] px-2 py-1 rounded-full border uppercase tracking-wider shrink-0 ${cls.class_type === 'live' && !cls.is_archive ? 'bg-red-100 text-red-600 border-red-200' : 'bg-secondary text-secondary-foreground border-transparent'}`}>
                                         {cls.class_type}
                                     </div>
                                 </div>
